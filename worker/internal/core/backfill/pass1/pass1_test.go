@@ -13,7 +13,7 @@ import (
 )
 
 // How a run starts, from whether the pass has ended, whether it is due again because a scanner other
-// than the one in force decided what the index holds, and the latest run recorded (ADR-0017,
+// than the one in force decided what the index holds, and the latest run recorded (ADR-0133,
 // ADR-0120).
 func TestBegin(t *testing.T) {
 	at := pass1.Progress{Checkpoint: pass1.Checkpoint{Page: 7, Token: "p8"}, Counters: pass1.Counters{Pages: 7, Messages: 690}}

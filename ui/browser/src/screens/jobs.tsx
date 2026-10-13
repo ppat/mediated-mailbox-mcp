@@ -358,7 +358,7 @@ function Cards(props: { account: string; jobs: Jobs; live: Stream }) {
                 text={(r) => {
                   const decided = numberIn(r.counters, "decided") ?? 0;
                   const pending = numberIn(r.counters, "pending") ?? 0;
-                  return `${count(decided)} of ${count(decided + pending)}, ${count(pending)} pending, ${count(numberIn(r.counters, "scanned") ?? 0)} scanned this run, ${count(numberIn(r.counters, "skipped") ?? 0)} skipped`;
+                  return `${count(decided)} of ${count(decided + pending)}, ${count(pending)} pending, ${count(numberIn(r.counters, "scanned") ?? 0)} scanned this run, ${count(numberIn(r.counters, "skipped") ?? 0)} skipped, ${count(numberIn(r.counters, "refused") ?? 0)} refused`;
                 }}
               />
             </Field>

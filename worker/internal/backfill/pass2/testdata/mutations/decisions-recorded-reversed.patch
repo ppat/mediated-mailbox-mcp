@@ -4,15 +4,11 @@ packages: ./worker/internal/backfill/pass2
 tests: TestAPassDecidesAndRecordsEveryWaitingMessage TestAKilledSecondPassResumesFromItsCheckpoint
 scheduled-count: no
 integration: yes
-
 diff --git a/worker/internal/backfill/pass2/postgres.go b/worker/internal/backfill/pass2/postgres.go
-index 2b9ece79..1d53c73d 100644
+index 1d6d25fa..11c69d15 100644
 --- a/worker/internal/backfill/pass2/postgres.go
 +++ b/worker/internal/backfill/pass2/postgres.go
-@@ -428,15 +428,15 @@ func (s *Postgres) Commit(ctx context.Context, account, runID string, p core.Pag
- // decided, and the verdict or skip state it leads to. A message the gate could not decide, or whose
- // body was not scanned, stays waiting.
- func commitOutcome(ctx context.Context, messages *scan.Queries, gate *gaterecord.Queries, o index.Outcome) error {
+@@ -440,9 +440,9 @@ func commitOutcome(ctx context.Context, messages *scan.Queries, gate *gaterecord
  	if !o.Verdict.Decided() {
  		return nil
  	}
@@ -24,6 +20,3 @@ index 2b9ece79..1d53c73d 100644
  	}
  	err := gate.RecordDecision(ctx, gaterecord.RecordDecisionParams{MessageID: o.ID, Decision: decision, Reason: o.Verdict.Reason().String()})
  	if err != nil {
- 		return fmt.Errorf("recording the gate's decision: %w", err)
- 	}
- 	var n int64

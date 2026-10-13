@@ -6,7 +6,7 @@ package due
 import "github.com/ppat/mediated-mailbox-mcp/core/mail"
 
 // State is what recorded state says of an account's backfill, its completion flags and the mark
-// that starts its second pass over, as account_state holds them (ADR-0017, ADR-0120).
+// that starts its second pass over, as account_state holds them (ADR-0133, ADR-0120).
 type State struct {
 	FirstEnded, SecondEnded, Restart bool
 }

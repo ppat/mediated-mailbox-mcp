@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"slices"
 	"strconv"
 	"strings"
@@ -216,16 +217,19 @@ func TestASendersFirstHitReachesItsNextMessage(t *testing.T) {
 	}
 }
 
-// VERIFICATIONS' row for scanning both parts of a body. A code only in the text part of a body whose
-// HTML part is clean flags the message, and so does a code only in the HTML part of a body whose text
-// part is clean (ADR-0017).
-func TestBothPartsOfABodyAreScanned(t *testing.T) {
+// VERIFICATIONS' row for scanning the released part of a body. The scan reads the body as it is
+// released, the conversion of its HTML part when it has one and its text part in the literal form
+// otherwise, so a code in the HTML part flags the message, a code in a text-only body flags it, and
+// a clean HTML part is the whole of what is scanned, the text part beside it never fetched
+// (ADR-0131).
+func TestTheReleasedPartOfABodyIsScanned(t *testing.T) {
 	messages := []fake.Message{
 		message("m01", "a@shop.example", false, marker.Body("texta")+" "+code, "<p>"+marker.Body("htmla")+" Welcome.</p>"),
 		message("m02", "b@shop.example", false, marker.Body("textb")+" Welcome.", "<p>"+marker.Body("htmlb")+" "+code+"</p>"),
-		message("m03", "c@shop.example", false, marker.Body("textc")+" Welcome.", "<p>"+marker.Body("htmlc")+" Welcome.</p>"),
+		message("m03", "c@shop.example", false, marker.Body("textc")+" "+code, ""),
+		message("m04", "d@shop.example", false, marker.Body("textd")+" Welcome.", "<p>"+marker.Body("htmld")+" Welcome.</p>"),
 	}
-	w := realWorldOf(t, 3, messages)
+	w := realWorldOf(t, 4, messages)
 
 	drive(t, w)
 
@@ -233,39 +237,156 @@ func TestBothPartsOfABodyAreScanned(t *testing.T) {
 	for id, m := range inspectPostgres(t, postgres.URL(t), w.account).Messages {
 		flags[id] = m.Flags
 	}
-	want := map[string][]string{"m01": {"mfa_code"}, "m02": {"mfa_code"}, "m03": {}}
+	want := map[string][]string{"m01": {}, "m02": {"mfa_code"}, "m03": {"mfa_code"}, "m04": {}}
 	if diff := cmp.Diff(want, flags, compare.Options); diff != "" {
 		t.Errorf("the content flags (-want +got):\n%s", diff)
 	}
 }
 
-// VERIFICATIONS' row for a body the conversion refuses. An HTML part one byte over the conversion's
-// limit is never scanned, its message stays pending with a failed item of kind message, class
-// validation and disposition abandoned, and the pass goes on to scan the next message and end
-// (ADR-0017, ADR-0036, ADR-0074).
-func TestABodyTheConversionRefusesStaysPending(t *testing.T) {
-	huge := "<p>" + strings.Repeat("a", 512*1024-6) + "</p>"
+// VERIFICATIONS' row for a body refused for good. A body whose rendered part the port refuses as past
+// the bound, an HTML part and a text part, and one within the bound the conversion refuses, nesting
+// more elements than the parser accepts, are each
+// recorded refused with the bound they were refused under, never scanned, with a failed item of kind
+// message, class refused and disposition refused, counted as refused, and the pass goes on to scan
+// the next message and end. A later run reads none of them again, so none is fetched again (ADR-0131,
+// ADR-0132).
+func TestABodyRefusedIsRecordedRefusedAndNotFetchedAgain(t *testing.T) {
+	over := strings.Repeat("a", mail.MaxBodyBytes)
 	messages := []fake.Message{
-		message("m01", "a@shop.example", false, marker.Body("refused"), huge),
-		message("m02", "b@shop.example", false, marker.Body("next"), ""),
+		message("m01", "a@shop.example", false, marker.Body("text"), "<p>"+over+"</p>"),
+		message("m02", "b@shop.example", false, marker.Body("plain")+over, ""),
+		message("m03", "c@shop.example", false, marker.Body("text"), strings.Repeat("<div>", 600)+marker.Body("nested")+strings.Repeat("</div>", 600)),
+		message("m04", "d@shop.example", false, marker.Body("next"), ""),
 	}
-	w := realWorldOf(t, 2, messages)
+	w := realWorldOf(t, 4, messages)
+	inner := w.deps.Body
+	fetched := map[string]int{}
+	w.deps.Body = func(ctx context.Context, id string) (mail.MessageBody, error) {
+		fetched[id]++
+		return inner(ctx, id)
+	}
 
 	drive(t, w)
 
 	got := inspectPostgres(t, postgres.URL(t), w.account)
-	if st := got.Messages["m01"]; st.State != "pending" || st.Decision != "SCAN" {
-		t.Errorf("the refused message is %+v, want pending with its scan decision recorded", st)
+	for _, id := range []string{"m01", "m02", "m03"} {
+		if st := got.Messages[id]; st.State != "refused" || st.Decision != "SCAN" || len(st.Flags) != 0 {
+			t.Errorf("message %s is %+v, want refused with its scan decision recorded and no flags", id, st)
+		}
 	}
-	if got.Messages["m02"].State != "scanned" || !got.Ended {
-		t.Errorf("the pass did not go on to scan the next message and end: %+v, ended %v", got.Messages["m02"], got.Ended)
+	if got.Messages["m04"].State != "scanned" || !got.Ended {
+		t.Errorf("the pass did not go on to scan the next message and end: %+v, ended %v", got.Messages["m04"], got.Ended)
 	}
-	var class, disposition string
-	err := superuser(t).QueryRow(context.Background(),
-		"SELECT error_class, disposition FROM job_run_failures WHERE account_id = $1 AND item_kind = 'message' AND item_id = 'm01'", w.account).
-		Scan(&class, &disposition)
-	if err != nil || class != "validation" || disposition != "abandoned" {
-		t.Errorf("the refused message's failed item is %q, %q (%v), want validation, abandoned", class, disposition, err)
+	type item struct {
+		ID, Class, Disposition string
+		Bound                  int32
+	}
+	var items []item
+	rows, err := superuser(t).Query(context.Background(), `SELECT f.item_id, f.error_class, f.disposition, m.refused_bound
+		FROM job_run_failures AS f JOIN messages AS m ON m.account_id = f.account_id AND m.message_id = f.item_id
+		WHERE f.account_id = $1 AND f.item_kind = 'message' ORDER BY f.item_id`, w.account)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var it item
+	if _, err := pgx.ForEachRow(rows, []any{&it.ID, &it.Class, &it.Disposition, &it.Bound}, func() error { items = append(items, it); return nil }); err != nil {
+		t.Fatal(err)
+	}
+	wantItems := []item{
+		{ID: "m01", Class: "refused", Disposition: "refused", Bound: mail.MaxBodyBytes},
+		{ID: "m02", Class: "refused", Disposition: "refused", Bound: mail.MaxBodyBytes},
+		{ID: "m03", Class: "refused", Disposition: "refused", Bound: mail.MaxBodyBytes},
+	}
+	if diff := cmp.Diff(wantItems, items, compare.Options); diff != "" {
+		t.Errorf("the refused messages' failed items (-want +got):\n%s", diff)
+	}
+	if r, ok := got.latest(); !ok || r.Progress.Counters.Refused != 3 || r.Progress.Counters.Pending != 0 {
+		t.Errorf("the run's counters are %+v, want three refused and none pending", r.Progress.Counters)
+	}
+
+	if _, err := superuser(t).Exec(context.Background(), "UPDATE account_state SET backfill_pass2_complete = false WHERE account_id = $1", w.account); err != nil {
+		t.Fatal(err)
+	}
+	before := maps.Clone(fetched)
+	drive(t, w)
+	if diff := cmp.Diff(before, fetched, compare.Options); diff != "" {
+		t.Errorf("a later run fetched a body again (-before +after):\n%s", diff)
+	}
+}
+
+// VERIFICATIONS' row for a refusal's return to pending. The run-start step returns a body refused
+// under another size bound than the port's to pending and reopens the pass, so the next run fetches it
+// again under the bound in force and records its new bound, and leaves a refusal under the bound in
+// force alone. A rule restricting a refused message's sender, added and then lifted, leaves the
+// message refused through the delisting transition, which returns only the messages skipped as
+// restricted, so it is not fetched again. The sender's other message waits while the rule is added,
+// is skipped as restricted, and returns to pending at the lift, so the transition runs for the
+// sender's domain (ADR-0132, ADR-0136, ADR-0037).
+func TestARefusalReturnsToPendingOnlyWhenItsBoundChanges(t *testing.T) {
+	over := "<p>" + strings.Repeat("a", mail.MaxBodyBytes) + "</p>"
+	messages := []fake.Message{
+		message("m01", "a@shop.example", false, marker.Body("bound"), over),
+		message("m02", "b@news.example", false, marker.Body("restricted"), over),
+		message("m03", "c@other.example", false, marker.Body("kept"), over),
+		message("m04", "d@news.example", false, marker.Body("skipped"), "<p>small</p>"),
+	}
+	w := realWorldOf(t, 3, messages)
+	inner := w.deps.Body
+	fetched := map[string]int{}
+	w.deps.Body = func(ctx context.Context, id string) (mail.MessageBody, error) {
+		fetched[id]++
+		return inner(ctx, id)
+	}
+	bound := func(id string) *int32 {
+		t.Helper()
+		var b *int32
+		if err := superuser(t).QueryRow(context.Background(), "SELECT refused_bound FROM messages WHERE account_id = $1 AND message_id = $2", w.account, id).Scan(&b); err != nil {
+			t.Fatal(err)
+		}
+		return b
+	}
+
+	drive(t, w)
+	if _, err := superuser(t).Exec(context.Background(), "UPDATE messages SET refused_bound = 1024 WHERE account_id = $1 AND message_id = 'm01'", w.account); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := superuser(t).Exec(context.Background(), "UPDATE messages SET scan_state = 'pending', content_flags = '{}', rule_ids = '{}', scanned_at = NULL, "+
+		"scanner_version = NULL, scanner_revision = NULL WHERE account_id = $1 AND message_id = 'm04'", w.account); err != nil {
+		t.Fatal(err)
+	}
+	w.added = []string{"news.example"}
+	r, err := pass2.Reopen(context.Background(), w.deps, w.account)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Refusals != 1 {
+		t.Errorf("the run-start step returned %d refusals to pending, want the one made under another bound", r.Refusals)
+	}
+	if got := inspectPostgres(t, postgres.URL(t), w.account); got.Ended || got.Messages["m01"].State != "pending" || got.Messages["m03"].State != "refused" {
+		t.Errorf("after the run-start step the pass is ended %v, m01 %q and m03 %q, want reopened, pending and refused",
+			got.Ended, got.Messages["m01"].State, got.Messages["m03"].State)
+	}
+	drive(t, w)
+	if b := bound("m01"); b == nil || *b != mail.MaxBodyBytes {
+		t.Errorf("m01's bound after it was refused again is %v, want %d", b, mail.MaxBodyBytes)
+	}
+
+	w.added = nil
+	if _, err := superuser(t).Exec(context.Background(), "UPDATE account_state SET backfill_pass2_complete = false WHERE account_id = $1", w.account); err != nil {
+		t.Fatal(err)
+	}
+	drive(t, w)
+	if st := inspectPostgres(t, postgres.URL(t), w.account).Messages["m02"]; st.State != "refused" {
+		t.Errorf("after a rule restricting its sender was added and lifted m02 is %q, want still refused", st.State)
+	}
+	if b := bound("m02"); b == nil || *b != mail.MaxBodyBytes {
+		t.Errorf("m02's bound after its sender's rule was lifted is %v, want %d", b, mail.MaxBodyBytes)
+	}
+	if st := inspectPostgres(t, postgres.URL(t), w.account).Messages["m04"]; st.State != "scanned" {
+		t.Errorf("after its sender's rule was lifted m04 is %q, want scanned once it returned to pending", st.State)
+	}
+	if diff := cmp.Diff(map[string]int{"m01": 2, "m02": 1, "m03": 1, "m04": 2}, fetched, compare.Options); diff != "" {
+		t.Errorf("the bodies asked for (-want +got):\n%s", diff)
 	}
 }
 

@@ -52,8 +52,9 @@ func TestFetched(t *testing.T) {
 }
 
 // A throttle or a refused credential stops the account's scanning, a provider failure, a body the
-// provider no longer has and a refused request leave the message waiting, and a failure that is not
-// the provider's fails the tick, as does a decision nobody made (ADR-0104).
+// provider no longer has and a refused request leave the message waiting, a body the port refused is
+// recorded as refused (ADR-0132), and a failure that is not the provider's fails the tick, as does a
+// decision nobody made (ADR-0104).
 func TestOnBodyFailure(t *testing.T) {
 	cases := []struct {
 		class       index.ErrorClass
@@ -65,6 +66,7 @@ func TestOnBodyFailure(t *testing.T) {
 		{index.ProviderError, tick.LeaveWaiting, "abandoned"},
 		{index.Gone, tick.LeaveWaiting, "gone"},
 		{index.Validation, tick.LeaveWaiting, "abandoned"},
+		{index.Refused, tick.Refuse, "refused"},
 		{index.NotProvider, tick.FailTick, "abandoned"},
 	}
 	for _, c := range cases {

@@ -1,20 +1,20 @@
-control: A body the conversion refuses stays pending, never scanned, with a failed item
-removes: a refusal is ignored, so the body is scanned as empty and recorded clean
+control: A body the port or the conversion refuses is recorded refused, never scanned, and not fetched again
+removes: a rendering refusal is ignored, so the body is scanned as empty and recorded clean
 packages: ./worker/internal/backfill/pass2 ./worker/internal/backfill
-tests: TestABodyTheConversionRefusesStaysPending TestEachSecondPassPageIsAUnitOfWork TestNoBodyTextReachesTheIndexOrTheLogs
+tests: TestABodyRefusedIsRecordedRefusedAndNotFetchedAgain TestNoBodyTextReachesTheIndexOrTheLogs
 scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/backfill/pass2/pass2.go b/worker/internal/backfill/pass2/pass2.go
-index a4acf74..15caaed 100644
+index 6aec8976..c98c5c47 100644
 --- a/worker/internal/backfill/pass2/pass2.go
 +++ b/worker/internal/backfill/pass2/pass2.go
-@@ -314,7 +314,7 @@ func (p *Pass) scan(ctx context.Context, id string, number int) (*index.Scanned,
- 		start := time.Now()
- 		converted, cerr := markdown.Convert(body.HTML)
- 		p.deps.Processing.Since(series.StepConvert, start)
--		if cerr != nil {
-+		if cerr != nil && false {
- 			now := p.deps.Now().UTC()
- 			refused := &pass1.Item{
- 				Kind: "message", ID: id, Page: number, Class: string(index.Validation),
+@@ -322,7 +322,7 @@ func (p *Pass) scan(ctx context.Context, id string, number int) (*index.Scanned,
+ 	start := time.Now()
+ 	rendered, rerr := markdown.Render(body)
+ 	p.deps.Processing.Since(series.StepConvert, start)
+-	if rerr != nil {
++	if rerr != nil && false {
+ 		now := p.deps.Now().UTC()
+ 		refused := &pass1.Item{
+ 			Kind: "message", ID: id, Page: number, Class: string(index.Refused),

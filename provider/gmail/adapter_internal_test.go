@@ -1,10 +1,13 @@
 package gmail
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
+	"net/url"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -12,6 +15,7 @@ import (
 
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/provider/gmail/consent"
+	"github.com/ppat/mediated-mailbox-mcp/provider/gmail/core"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 )
 
@@ -112,7 +116,11 @@ func TestEveryRequestSentIsCounted(t *testing.T) {
 	}{
 		{"a label listing", func(ctx context.Context, a *Adapter) error { _, err := a.ListLabels(ctx); return err }, 1},
 		{"a body", func(ctx context.Context, a *Adapter) error {
-			_, err := a.GetMessageBody(ctx, "18c2f0a1b2c3d4e5")
+			_, err := a.GetMessageBody(ctx, "18c2f0a1b2c3d4e5", "")
+			return err
+		}, 20},
+		{"a body's part held apart", func(ctx context.Context, a *Adapter) error {
+			_, err := a.GetMessageBody(ctx, "18c2f0a1b2c3d4e5", heldApart{message: "18c2f0a1b2c3d4e5", slot: core.HTML, attachment: "ANGjdJ9"}.bodyPart())
 			return err
 		}, 20},
 		{"a thread", func(ctx context.Context, a *Adapter) error {
@@ -319,7 +327,8 @@ func TestEachOperationsDearestPathFitsItsCall(t *testing.T) {
 		{"ListThreads", mail.OpListThreads, 0, []request{labelsRequest(), threadsRequest(search{}, "", threadsPerPage), threadRequest("t1"), labelsRequest()}},
 		{"GetThreadMetadata", mail.OpGetThreadMetadata, 0, []request{threadRequest("t1"), labelsRequest()}},
 		{"GetMessageMetadata", mail.OpGetMessageMetadata, idsPerMetadataCall, []request{get, get, get, labelsRequest()}},
-		{"GetMessageBody", mail.OpGetMessageBody, 1, []request{messageRequest("m1", formatFull)}},
+		{"GetMessageBody", mail.OpGetMessageBody, 1, []request{bodyRequest("m1")}},
+		{"GetMessageBody naming a part", mail.OpGetMessageBody, 1, []request{partRequest("m1", "ANGjdJ9")}},
 		{"ListLabels", mail.OpListLabels, 0, []request{labelsRequest()}},
 		{"EnsureLabel", mail.OpEnsureLabel, 0, []request{labelsRequest(), create, labelsRequest()}},
 		{"Mutate, every op changing nothing", mail.OpMutate, opsPerMutation, []request{labelsRequest(), read, read, read}},
@@ -386,5 +395,133 @@ func TestParseThread(t *testing.T) {
 	}
 	if _, err := parseThread([]byte(`{"id": "t", "messages": [{"id": "m"}]}`)); !errors.Is(err, mail.ErrProvider) {
 		t.Errorf("parseThread of a message with no thread returned %v, want an error wrapping %v", err, mail.ErrProvider)
+	}
+}
+
+// The answer to each body read is taken up to the cap the body decision gives the read. One byte past
+// it refuses the body with the port's refusal, never the provider's failure, so the message is
+// recorded refused rather than fetched again (ADR-0131, ADR-0132). Any other request's answer past
+// maxResponse is the provider's failure. Each answer is handed over as literal bytes at the seam
+// between the HTTP exchange and the adapter, with no stand-in for Google (ADR-0043), answering a
+// request carrying the cap the port call's request carries, as the exchange sends it.
+func TestABodyReadsAnswerPastItsCapIsRefused(t *testing.T) {
+	for _, c := range []struct {
+		name  string
+		r     request
+		limit int
+	}{
+		{"the message read", bodyRequest("m1"), core.MessageReadCap},
+		{"the read of a part held apart", partRequest("m1", "a1"), core.PartReadCap},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			at, err := answer(okAnswer(t, c.limit, c.r)) //nolint:bodyclose // answer closes the body it reads
+			if err != nil || len(at) != c.limit {
+				t.Errorf("an answer of exactly the cap, %d bytes, returned %d bytes and %v", c.limit, len(at), err)
+			}
+			_, err = answer(okAnswer(t, c.limit+1, c.r)) //nolint:bodyclose // answer closes the body it reads
+			if !errors.Is(err, mail.ErrRefused) || errors.Is(err, mail.ErrProvider) {
+				t.Errorf("an answer one byte past the cap of %d returned %v, want the refusal alone", c.limit, err)
+			}
+		})
+	}
+	_, err := answer(okAnswer(t, maxResponse+1, labelsRequest())) //nolint:bodyclose // answer closes the body it reads
+	if !errors.Is(err, mail.ErrProvider) || errors.Is(err, mail.ErrRefused) {
+		t.Errorf("a label listing's answer one byte past %d returned %v, want the provider's failure alone", maxResponse, err)
+	}
+}
+
+// okAnswer is a successful answer of n bytes to r, as the exchange sends it.
+func okAnswer(t *testing.T, n int, r request) *http.Response {
+	t.Helper()
+	req, err := http.NewRequestWithContext(withReadCap(t.Context(), r.Cap), r.Method, r.URL(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return &http.Response{StatusCode: http.StatusOK, Header: http.Header{}, Request: req, Body: io.NopCloser(bytes.NewReader(bytes.Repeat([]byte{'a'}, n)))}
+}
+
+// A request carrying no read cap is refused as the provider's failure before it is sent, so no answer
+// is ever read to a default. The client sends through a proxy on a port nothing listens on, so a
+// request that was sent fails with the transport's own error, which the refusal does not carry
+// (ADR-0131).
+func TestARequestWithNoReadCapIsNeverSent(t *testing.T) {
+	metrics, err := NewMetrics(prometheus.NewRegistry())
+	if err != nil {
+		t.Fatal(err)
+	}
+	a, err := New(Config{
+		Account: "you@example.com", Client: &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(&url.URL{Scheme: "http", Host: "127.0.0.1:9"})}},
+		Tokens: staticTokens{}, Metrics: metrics,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for name, r := range map[string]request{"no cap": {Method: "GET", Path: "profile"}, "a cap of no bytes": {Method: "GET", Path: "profile", Cap: readCap{Refuses: true}}} {
+		t.Run(name, func(t *testing.T) {
+			req, err := http.NewRequestWithContext(withReadCap(t.Context(), r.Cap), r.Method, r.URL(), nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, err = a.exchange(t.Context(), req)
+			var sent *url.Error
+			if !errors.Is(err, mail.ErrProvider) || errors.As(err, &sent) {
+				t.Errorf("exchange returned %v, want the provider's failure before the request is sent", err)
+			}
+		})
+	}
+}
+
+// sentCap is a request as it left the adapter: its path and the read cap it carried.
+type sentCap struct {
+	Path string
+	Cap  readCap
+}
+
+// Each request leaves the adapter carrying the cap its builder gave it, which is the cap its answer
+// is read to, so nothing between the builder and the read picks another (ADR-0131). The transport's
+// proxy hook records each request as it is sent and fails it, so nothing answers and no stand-in for
+// Google is involved (ADR-0043). Each port call stops at its first request.
+func TestEachRequestIsSentWithItsBuildersCap(t *testing.T) {
+	var sent []sentCap
+	proxy := func(req *http.Request) (*url.URL, error) {
+		c, _ := readCapOf(req)
+		sent = append(sent, sentCap{Path: req.URL.Path, Cap: c})
+		return nil, errors.New("recorded and not sent")
+	}
+	metrics, err := NewMetrics(prometheus.NewRegistry())
+	if err != nil {
+		t.Fatal(err)
+	}
+	a, err := New(Config{Account: "you@example.com", Client: &http.Client{Transport: &http.Transport{Proxy: proxy}}, Tokens: staticTokens{}, Metrics: metrics})
+	if err != nil {
+		t.Fatal(err)
+	}
+	const id = "18c2f0a1b2c3d4e5"
+	part := heldApart{message: id, slot: core.HTML, attachment: "ANGjdJ9"}.bodyPart()
+	calls := map[string]func(ctx context.Context) error{
+		"the body read":     func(ctx context.Context) error { _, err := a.GetMessageBody(ctx, id, ""); return err },
+		"the part read":     func(ctx context.Context) error { _, err := a.GetMessageBody(ctx, id, part); return err },
+		"the label listing": func(ctx context.Context) error { _, err := a.ListLabels(ctx); return err },
+		"the cursor read":   func(ctx context.Context) error { _, err := a.CurrentCursor(ctx); return err },
+		"the metadata read": func(ctx context.Context) error { _, err := a.GetMessageMetadata(ctx, []string{id}); return err },
+	}
+	base := "/gmail/v1/users/me/"
+	want := map[string]sentCap{
+		"the body read":     {base + "messages/" + id, readCap{Bytes: core.MessageReadCap, Refuses: true}},
+		"the part read":     {base + "messages/" + id + "/attachments/ANGjdJ9", readCap{Bytes: core.PartReadCap, Refuses: true}},
+		"the label listing": {base + "labels", readCap{Bytes: maxResponse}},
+		"the cursor read":   {base + "profile", readCap{Bytes: maxResponse}},
+		"the metadata read": {base + "messages/" + id, readCap{Bytes: maxResponse}},
+	}
+	for name, call := range calls {
+		t.Run(name, func(t *testing.T) {
+			sent = nil
+			if err := call(t.Context()); err == nil {
+				t.Fatal("a call whose request the proxy failed returned no error")
+			}
+			if diff := cmp.Diff([]sentCap{want[name]}, sent, compare.Options); diff != "" {
+				t.Errorf("the requests sent (-want +got):\n%s", diff)
+			}
+		})
 	}
 }

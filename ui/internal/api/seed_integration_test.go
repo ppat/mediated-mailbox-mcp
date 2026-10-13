@@ -146,8 +146,8 @@ func seed(t *testing.T) {
 		{
 			`INSERT INTO job_runs (account_id, run_id, workload, pass, state, plan_id, resumed_from, started_at, finished_at, heartbeat_at, checkpoint, counters, last_error) VALUES
 			($1, 'r-0901', 'backfill', 'pass1', 'succeeded', NULL, NULL, $2, $3, $3, '{"page": 3368, "of": 3368}', '{"pages": 3368, "messages": 84212}', NULL),
-			($1, 'r-0912', 'backfill', 'pass2', 'failed', NULL, NULL, $11, $12, $12, '{"page": 14, "of": 3368}', '{"pages": 14, "decided": 350, "pending": 83862, "scanned": 330, "skipped": 20}', $13),
-			($1, 'r-0913', 'backfill', 'pass2', 'running', NULL, 'r-0912', $4, NULL, $5, '{"page": 3065, "of": 3368}', '{"pages": 3065, "decided": 76610, "pending": 7602, "scanned": 70100, "skipped": 6510}', $8),
+			($1, 'r-0912', 'backfill', 'pass2', 'failed', NULL, NULL, $11, $12, $12, '{"page": 14, "of": 3368}', '{"pages": 14, "decided": 350, "pending": 83862, "scanned": 330, "skipped": 20, "refused": 0}', $13),
+			($1, 'r-0913', 'backfill', 'pass2', 'running', NULL, 'r-0912', $4, NULL, $5, '{"page": 3065, "of": 3368}', '{"pages": 3065, "decided": 76610, "pending": 7602, "scanned": 70100, "skipped": 6490, "refused": 20}', $8),
 			($1, 'r-0914', 'sync', 'tick', 'succeeded', NULL, NULL, $6, $5, $5, NULL, '{"added": 3, "modified": 1, "removed": 0}', NULL),
 			($1, 'r-0908', 'sync', 'gap_recovery', 'running', NULL, NULL, $14, NULL, $14, NULL, '{"window_start": "2026-09-10T08:00:00Z", "window_end": "2026-09-10T09:00:00Z", "reconciled": 0}', NULL),
 			($1, 'r-0911', 'sync', 'gap_recovery', 'succeeded', NULL, NULL, $7, $7, $7, NULL, '{"window_start": "2026-09-08T00:00:00Z", "window_end": "2026-09-08T06:00:00Z", "reconciled": 41}', NULL),
@@ -159,7 +159,8 @@ func seed(t *testing.T) {
 			},
 		},
 		{
-			// r-0912's failures, one per disposition and item kind, among them a message the index no
+			// r-0912's failures, one per disposition but refused, whose wording a browser test builds
+			// from another row, and one per item kind, among them a message the index no
 			// longer holds and an item with no page, and r-0901's, one on a message stored with an empty
 			// domain beside a page item with none. seq is written so the rows and their identities do not
 			// move between runs.

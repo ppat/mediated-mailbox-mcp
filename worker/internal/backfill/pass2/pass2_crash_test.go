@@ -3,7 +3,9 @@
 package pass2_test
 
 import (
-	"strings"
+	"context"
+	"fmt"
+	"slices"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -95,7 +97,7 @@ var config = crash.Config{Replays: 5, MaxOps: 40}
 // with no restricted sender's body fetched, every message decided and recorded once under the
 // scanner in force, each sender's prior hits counted once, no message left skipped by the gate once
 // its thresholds were widened past every sender's volume, and no more than a page of bodies fetched
-// again for each crash and the mailbox for each change of scanner (ADR-0017, ADR-0037, ADR-0045,
+// again for each crash and the mailbox for each change of scanner (ADR-0133, ADR-0037, ADR-0045,
 // ADR-0120, ADR-0121).
 //
 // The model never writes the stored form of a checkpoint, so a break in it is seen only by a sequence
@@ -107,19 +109,40 @@ func TestAKilledSecondPassResumesFromItsCheckpoint(t *testing.T) {
 	t.Run("resumed-after-every-page-among-messages-sent-at-one-instant", resumedAfterEveryPageAmongMessagesSentAtOneInstant)
 }
 
+// failing makes the world's provider fail every fetch of the body of id, so the pass abandons it after
+// its attempts and leaves it waiting. It returns every body asked for, in order, an attempt again
+// included.
+func failing(w *world, id string) *[]string {
+	var asked []string
+	inner := w.deps.Body
+	w.deps.Body = func(ctx context.Context, got string) (mail.MessageBody, error) {
+		asked = append(asked, got)
+		if got == id {
+			return mail.MessageBody{}, fmt.Errorf("the fake fails %s: %w", id, mail.ErrProvider)
+		}
+		return inner(ctx, got)
+	}
+	return &asked
+}
+
+// rounds returns the bodies asked for with each run of attempts at one body counted once.
+func rounds(asked []string) []string {
+	return slices.Compact(slices.Clone(asked))
+}
+
 // resumedAfterAPageThatLeftAMessageWaiting kills the process after its first page is durable, where
-// that page left its one message waiting, a body the conversion refuses (ADR-0017). The next run
-// resumes from page 1 after that message, so it never reads the message again, never asks for its
-// body again and records its failed item once, and the pass ends with the two messages after it
-// scanned. A run that resumed from the first waiting message instead would read the refused message
-// again, which only the position the checkpoint holds tells apart.
+// that page left its one message waiting, a body the provider fails on every attempt (ADR-0133). The
+// next run resumes from page 1 after that message, so it never reads the message again, never asks
+// for its body again and records its failed item once, and the pass ends with the two messages after
+// it scanned. A run that resumed from the first waiting message instead would read the abandoned
+// message again, which only the position the checkpoint holds tells apart.
 func resumedAfterAPageThatLeftAMessageWaiting(t *testing.T) {
-	refused := "<p>" + strings.Repeat("a", 512*1024-6) + "</p>"
 	w := realWorldOf(t, 1, []fake.Message{
-		message("m01", "a@shop.example", false, marker.Body("refused"), refused),
+		message("m01", "a@shop.example", false, marker.Body("failing"), ""),
 		message("m02", "b@shop.example", false, marker.Body("second"), ""),
 		message("m03", "c@shop.example", false, marker.Body("third"), ""),
 	})
+	asked := failing(w, "m01")
 	w.step(t)
 	w.crash(t, betweenSteps)
 	w.open(t)
@@ -145,8 +168,11 @@ func resumedAfterAPageThatLeftAMessageWaiting(t *testing.T) {
 	if diff := cmp.Diff(map[string]string{"m01": "pending", "m02": "scanned", "m03": "scanned"}, states, compare.Options); diff != "" {
 		t.Errorf("the scan states (-want +got):\n%s", diff)
 	}
-	if diff := cmp.Diff([]string{"m01", "m02", "m03"}, w.fetched, compare.Options); diff != "" {
+	if diff := cmp.Diff([]string{"m01", "m02", "m03"}, rounds(*asked), compare.Options); diff != "" {
 		t.Errorf("the bodies asked for (-want +got):\n%s", diff)
+	}
+	if n := len(*asked) - 2; n != pass1core.MaxAttempts {
+		t.Errorf("the failing body was asked for %d times, want one round of %d attempts", n, pass1core.MaxAttempts)
 	}
 	if diff := cmp.Diff(map[string][]string{"m01": {"abandoned"}}, got.Items, compare.Options); diff != "" {
 		t.Errorf("the failed items (-want +got):\n%s", diff)
@@ -155,14 +181,13 @@ func resumedAfterAPageThatLeftAMessageWaiting(t *testing.T) {
 
 // resumedAfterEveryPageAmongMessagesSentAtOneInstant kills the process after every page of a pass over
 // nine messages sent in three minutes, two a page, so pages end between two messages sent in the same
-// minute and between two minutes. The last message of the first page is a body the conversion refuses,
-// so it stays waiting. Every run resumes from the stored checkpoint, the position of the last message
-// read, its send time and identifier (ADR-0126). The pass reads the messages newest first, by send time
-// and then identifier, each once, asks for the refused body once and ends with every other message
-// scanned. A checkpoint that lost the send time, a comparison that included the position's own message,
+// minute and between two minutes. The last message of the first page is a body the provider fails on
+// every attempt, so it stays waiting. Every run resumes from the stored checkpoint, the position of the
+// last message read, its send time and identifier (ADR-0126). The pass reads the messages newest first,
+// by send time and then identifier, each once, asks for the failing body in one round of attempts and
+// ends with every other message scanned. A checkpoint that lost the send time, a comparison that included the position's own message,
 // or a tie broken the other way would read a message again, skip one, or read them in another order.
 func resumedAfterEveryPageAmongMessagesSentAtOneInstant(t *testing.T) {
-	refused := "<p>" + strings.Repeat("a", 512*1024-6) + "</p>"
 	at := func(minute int64, m fake.Message) fake.Message {
 		m.Metadata.Date = mail.UnixMilli(1_700_000_000_000 + minute*60_000)
 		return m
@@ -172,12 +197,13 @@ func resumedAfterEveryPageAmongMessagesSentAtOneInstant(t *testing.T) {
 		at(0, message("m02", "b@shop.example", false, marker.Body("two"), "")),
 		at(2, message("m03", "c@shop.example", false, marker.Body("three"), "")),
 		at(1, message("m04", "d@shop.example", false, marker.Body("four"), "")),
-		at(2, message("m05", "e@shop.example", false, marker.Body("five"), refused)),
+		at(2, message("m05", "e@shop.example", false, marker.Body("five"), "")),
 		at(1, message("m06", "f@shop.example", false, marker.Body("six"), "")),
 		at(0, message("m07", "g@shop.example", false, marker.Body("seven"), "")),
 		at(2, message("m08", "h@shop.example", false, marker.Body("eight"), "")),
 		at(1, message("m09", "i@shop.example", false, marker.Body("nine"), "")),
 	})
+	asked := failing(w, "m05")
 	done := false
 	for range 10 {
 		if done = w.step(t); done {
@@ -191,8 +217,11 @@ func resumedAfterEveryPageAmongMessagesSentAtOneInstant(t *testing.T) {
 		t.Fatalf("the pass did not end")
 	}
 	newestFirst := []string{"m08", "m05", "m03", "m01", "m09", "m06", "m04", "m07", "m02"}
-	if diff := cmp.Diff(newestFirst, w.fetched, compare.Options); diff != "" {
+	if diff := cmp.Diff(newestFirst, rounds(*asked), compare.Options); diff != "" {
 		t.Errorf("the bodies asked for (-want +got):\n%s", diff)
+	}
+	if n := len(*asked) - len(newestFirst) + 1; n != pass1core.MaxAttempts {
+		t.Errorf("the failing body was asked for %d times, want one round of %d attempts", n, pass1core.MaxAttempts)
 	}
 	got := w.inspect(t)
 	states := map[string]string{}

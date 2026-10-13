@@ -3,17 +3,16 @@ removes: a thread read carries the price of a thread listing, so it is counted a
 packages: ./provider/gmail
 tests: TestRequests TestEveryRequestSentIsCounted TestACallIsHeldToItsDeclaredCost
 scheduled-count: no
-
 diff --git a/provider/gmail/request.go b/provider/gmail/request.go
-index 71c01d0..1459889 100644
+index 5a6fc6e7..e58c9fb4 100644
 --- a/provider/gmail/request.go
 +++ b/provider/gmail/request.go
-@@ -129,7 +129,7 @@ func messageRequest(id, format string) request {
+@@ -155,7 +155,7 @@ func messageRequest(id, format string) request {
  // caller has checked id with validID.
  func threadRequest(id string) request {
  	q := url.Values{"format": {formatFull}, "fields": {"id,historyId,messages(" + metadataFields() + ")"}}
--	return request{Method: "GET", Path: "threads/" + url.PathEscape(id), Query: q, Units: unitsThreadsGet, Endpoint: "threads.get"}
-+	return request{Method: "GET", Path: "threads/" + url.PathEscape(id), Query: q, Units: unitsThreadsList, Endpoint: "threads.get"}
+-	return request{Method: "GET", Path: "threads/" + url.PathEscape(id), Query: q, Units: unitsThreadsGet, Endpoint: "threads.get", Cap: anyReadCap()}
++	return request{Method: "GET", Path: "threads/" + url.PathEscape(id), Query: q, Units: unitsThreadsList, Endpoint: "threads.get", Cap: anyReadCap()}
  }
  
- // modifyRequest adds and removes label identifiers on a message, or on every message of a thread.
+ // bodyFields is the field mask a body read sends with the full format. It names the identifiers and

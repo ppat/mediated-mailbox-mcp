@@ -71,19 +71,19 @@ type Scanned struct {
 	Revision string
 }
 
-// Scan returns what a body records once scanned by s, from the Markdown of its HTML part and its text
-// part. A flag in either flags the message, since release may serve either (ADR-0017). The rules are
-// the content rules alone, each once, sorted. A scanner nobody built flags the body, as its verdict
-// does.
-func Scan(s scan.Scanner, markdown, text string) Scanned {
-	a, b := s.Scan(markdown), s.Scan(text)
-	rules := append(append([]string{}, a.Rules()...), b.Rules()...)
+// Scan returns what a body records once scanned by s, from rendered, the Markdown its rendered part
+// is released as, so the scan reads exactly what release would serve (ADR-0131). The rules
+// are the content rules alone, each once, sorted. A scanner nobody built flags the body, as its
+// verdict does.
+func Scan(s scan.Scanner, rendered string) Scanned {
+	v := s.Scan(rendered)
+	rules := append([]string{}, v.Rules()...)
 	slices.Sort(rules)
 	return Scanned{
-		Flags:    sensitivity.Flags(a.Flags().MFACode() || b.Flags().MFACode(), a.Flags().LoginLink() || b.Flags().LoginLink()),
+		Flags:    sensitivity.Flags(v.Flags().MFACode(), v.Flags().LoginLink()),
 		Rules:    slices.Compact(rules),
-		Version:  a.Version(),
-		Revision: a.Revision(),
+		Version:  v.Version(),
+		Revision: v.Revision(),
 	}
 }
 
@@ -94,6 +94,9 @@ type Outcome struct {
 	Verdict scangate.Verdict
 	// Scanned is what the message's scan records, nil when it was not scanned.
 	Scanned *Scanned
+	// Refused is set when the message's body was refused for its size or by its conversion, so the
+	// message is recorded as refused rather than left waiting (ADR-0132). Scanned is then nil.
+	Refused bool
 }
 
 // Hits returns how many of the scanned messages among outcomes carry a content flag, by the sender's

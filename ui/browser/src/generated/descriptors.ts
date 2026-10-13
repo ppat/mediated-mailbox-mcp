@@ -195,7 +195,8 @@ export const descriptors = {
           "gone",
           "scanner_timeout",
           "validation",
-          "authentication"
+          "authentication",
+          "refused"
         ]
       },
       {
@@ -228,7 +229,8 @@ export const descriptors = {
           "recovered",
           "pending",
           "gone",
-          "abandoned"
+          "abandoned",
+          "refused"
         ]
       },
       {

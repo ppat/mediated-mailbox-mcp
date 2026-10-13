@@ -1,0 +1,20 @@
+control: Delta sync holds each account's token source across ticks while the stored credential is the one it was built from
+removes: delta sync builds a token source for each tick
+packages: ./worker/internal/deltasync
+tests: TestTicksHoldTheirSourceUntilTheCredentialIsReplaced
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/deltasync.go
+index e66a0aa5..55d86eed 100644
+--- a/worker/internal/deltasync/deltasync.go
++++ b/worker/internal/deltasync/deltasync.go
+@@ -183,7 +183,7 @@ func build(c Config, connectors map[string]session.Connector) (*DeltaSync, error
+ 	loader := accountload.New(c.Pool, c.Keys, c.Logger, []string{gmailProvider})
+ 	return &DeltaSync{
+ 		config: c, limit: schedule.NewLimit(c.Concurrency), loader: loader,
+-		sessions: session.New(session.Config{Loader: loader, DB: c.Pool, Logger: c.Logger, Connectors: connectors, Hold: true}),
++		sessions: session.New(session.Config{Loader: loader, DB: c.Pool, Logger: c.Logger, Connectors: connectors}),
+ 		ticks:    ticks, keyScan: keyScan, leases: leases, processing: processing,
+ 		lookups: classify.Lookups{ToUnicode: idna.Lookup.ToUnicode, ToASCII: idna.Lookup.ToASCII, Registrable: publicsuffix.EffectiveTLDPlusOne},
+ 	}, nil

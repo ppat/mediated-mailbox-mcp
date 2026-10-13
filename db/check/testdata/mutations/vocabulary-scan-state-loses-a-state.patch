@@ -4,17 +4,16 @@ packages: ./db/check
 tests: TestEachCheckedColumnRefusesAValueOutsideItsSet
 scheduled-count: no
 integration: yes
-
 diff --git a/db/migrations/00002_schema.sql b/db/migrations/00002_schema.sql
-index 22b7ca01..ee6544fb 100644
+index e9887bfb..3e7c91af 100644
 --- a/db/migrations/00002_schema.sql
 +++ b/db/migrations/00002_schema.sql
 @@ -169,7 +169,7 @@ CREATE TABLE messages (
      rule_ids text[] NOT NULL DEFAULT '{}',
      -- ADR-0093's states.
      scan_state text NOT NULL DEFAULT 'pending'
--    CHECK (scan_state IN ('scanned', 'skipped_restricted', 'skipped_gate', 'pending')),
-+    CHECK (scan_state IN ('scanned', 'skipped_restricted', 'pending')),
+-    CHECK (scan_state IN ('scanned', 'skipped_restricted', 'skipped_gate', 'pending', 'refused')),
++    CHECK (scan_state IN ('scanned', 'skipped_restricted', 'pending', 'refused')),
      scanned_at timestamptz,
      scanner_version int,
      -- The scanner configuration's revision a verdict was made under (ADR-0009).

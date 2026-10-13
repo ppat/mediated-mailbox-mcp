@@ -4,13 +4,12 @@ packages: ./db/check
 tests: TestTheAuditRowsColumnsRefuseAValueOutsideTheirSets
 scheduled-count: no
 integration: yes
-
 diff --git a/db/migrations/00002_schema.sql b/db/migrations/00002_schema.sql
-index 8f6d933f..dd6f2108 100644
+index 278dbb46..bfb2e718 100644
 --- a/db/migrations/00002_schema.sql
 +++ b/db/migrations/00002_schema.sql
-@@ -428,7 +428,7 @@ CREATE TABLE audit_log (
-             'serve_time_check_matched', 'conversion_refused'
+@@ -432,7 +432,7 @@ CREATE TABLE audit_log (
+             'serve_time_check_matched', 'conversion_refused', 'body_refused'
          )
      ),
 -    sender_class text CHECK (sender_class IN ('normal', 'restricted')),

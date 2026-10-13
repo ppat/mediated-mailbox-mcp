@@ -1,6 +1,10 @@
 package markdown
 
-import "strings"
+import (
+	"errors"
+	"strconv"
+	"strings"
+)
 
 // Literal returns text, message text that has no HTML form, as one CommonMark fenced code block that
 // shows it exactly (ADR-0100). That is the text part of a body with no HTML part, a snippet, or an
@@ -29,4 +33,16 @@ func Literal(text string) string {
 	}
 	b.WriteString(fence)
 	return b.String()
+}
+
+// LiteralBody returns the text part of a body with no HTML part as Literal does, and refuses, with an
+// error wrapping ErrUnconvertible and no Markdown, a text above MaxInputBytes, the bound the
+// conversion holds an HTML part to (ADR-0131). The snippet and a filename are not body parts, and
+// Literal renders them unbounded.
+func LiteralBody(text string) (string, error) {
+	if len(text) > MaxInputBytes {
+		return "", errors.Join(ErrUnconvertible, errors.New("markdown: the text is "+strconv.Itoa(len(text))+
+			" bytes, above the limit of "+strconv.Itoa(MaxInputBytes)))
+	}
+	return Literal(text), nil
 }

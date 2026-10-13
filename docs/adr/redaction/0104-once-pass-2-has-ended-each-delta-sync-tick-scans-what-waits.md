@@ -10,8 +10,9 @@ Delta sync's tick runs the scan gate on added messages and scans the bodies the 
 ([ADR-0018](../data/0018-delta-sync-polls.md)). A message also goes back to pending scan when its
 sender is removed from the sensitive list, and the normal scanning machinery picks it up like any
 other unscanned mail ([ADR-0037](./0037-delisting-transition.md)). Backfill's second pass scans
-what waits while it runs, and it ends ([ADR-0017](../data/0017-two-pass-backfill.md)). Backfill runs
-again only after a change of scanner or of the gate's thresholds
+what waits while it runs, and it ends
+([ADR-0133](../data/0133-backfill-is-full-history-and-two-pass.md)). Backfill runs again only after
+a change of scanner or of the gate's thresholds
 ([ADR-0120](./0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md),
 [ADR-0121](./0121-the-run-start-step-decides-each-gate-skip-again.md)). A growing pending backlog is
 a failure in its own right, since pending denies the body
@@ -48,7 +49,9 @@ the delisting comparison at its start.
   account, since the provider is refusing the tick rather than the message. Nothing from that
   message on is decided, so no message is decided without the hits the unscanned bodies would have
   added, and the tick's checkpoint stays at the last message decided before it, so the next tick
-  reads that message first.
+  reads that message first. A body the port or the conversion refuses is not a failed fetch, and
+  the tick records it as refused, as backfill's second pass does
+  ([ADR-0132](./0132-a-body-refused-for-good-is-recorded-as-refused-not-left-pending.md)).
 - **Delta sync emits the account's scan backlog depth once the second pass has ended**, read after
   each tick's scanning.
 
@@ -79,9 +82,10 @@ the start of each tick.
 
 - A delisted sender's messages are scanned within as many ticks as the backlog takes at the bound,
   and their bodies are denied as pending until then.
-- A body the conversion refuses or the provider keeps failing is fetched again once each time the
-  reading position passes it, and recorded as a failed item each time. The bound caps that work per
-  tick.
+- A body the provider keeps failing is fetched again once each time the reading position passes it,
+  and recorded as a failed item each time. The bound caps that work per tick. A body refused for its
+  size or by its conversion leaves the waiting state at its first fetch, so no tick fetches it again
+  ([ADR-0132](./0132-a-body-refused-for-good-is-recorded-as-refused-not-left-pending.md)).
 - Delta sync and backfill run the same scanner section and the same gate thresholds, or each
   reopens the other's work
   ([ADR-0120](./0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md),

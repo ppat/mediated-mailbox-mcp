@@ -1,0 +1,23 @@
+control: One constant bounds the rendered part, the conversion's input and the literal form's alike
+removes: a body holding both parts renders as its HTML part's conversion followed by its text part
+packages: ./content/markdown
+tests: TestRenderTakesTheReleasedForm/both_parts
+scheduled-count: no
+
+diff --git a/content/markdown/render.go b/content/markdown/render.go
+index acebc697..a7c5e82a 100644
+--- a/content/markdown/render.go
++++ b/content/markdown/render.go
+@@ -8,7 +8,11 @@ import "github.com/ppat/mediated-mailbox-mcp/core/mail"
+ // ErrUnconvertible, and no Markdown, for a body either form refuses, above MaxInputBytes included.
+ func Render(body mail.MessageBody) (string, error) {
+ 	if body.HTML != "" {
+-		return Convert(body.HTML)
++		converted, err := Convert(body.HTML)
++		if err != nil || body.Text == "" {
++			return converted, err
++		}
++		return converted + "\n\n" + Literal(body.Text), nil
+ 	}
+ 	return LiteralBody(body.Text)
+ }

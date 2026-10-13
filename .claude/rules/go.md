@@ -18,7 +18,8 @@ layout](../../CLAUDE.md#code-layout-and-conventions), and what tests the work ne
   entry in each workflow that watches it.
 - **Pure-core code sits under a directory named `core`**, and does no I/O and reads nothing ambient
   (ADR-0040). The core checks match a `core` path element at any depth, and each package of a family
-  keeps its own `core`, such as `process/dbconnect/core`, never one pooled for the family. A
+  keeps its own `core`, such as `process/dbconnect/core`, never one pooled for the family. So does a
+  library's package whose pure rules are its own, such as `provider/gmail/core`. A
   deployable's composition root is its entry package `<deployable>/app`, which its `main.go` calls,
   and everything else it holds sits under `internal/`, apart from the entry and an `importtarget`
   package holding a violation file (CLAUDE.md, Inside a component).

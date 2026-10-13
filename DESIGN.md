@@ -182,14 +182,15 @@ exists.
 ### One gate, N dumb adapters
 
 Redaction happens in exactly one place, above the provider adapters and below every client-facing
-surface. Adapters return full data by design. The Redaction Gate decides what survives. No
-adapter, frontend, tool handler, or batch path holds its own copy of the rules.
+surface. Adapters return in full what the Provider Port defines, a message's body being its
+rendered part, and make no release or redaction decision. The Redaction Gate decides what
+survives. No adapter, frontend, tool handler, or batch path holds its own copy of the rules.
 
 Why: redaction can only be enforced above the provider adapter and below the client surface. No
 available mailbox credential can be scoped to exclude senders, and the client surface is where
-callers instruct. Adapters return full data by design and the gate decides what survives, so a
-bug in adapter #3 cannot become a silent leak. The adapter never had redaction responsibility
-to get wrong.
+callers instruct. Adapters return in full what the port defines and the gate decides what
+survives, so a bug in adapter #3 cannot become a silent leak. The adapter never had redaction
+responsibility to get wrong.
 
 Known limit, stated rather than hidden: a single chokepoint concentrates correctness. A bug in the
 gate is a bug everywhere. That is the accepted trade, and it is why the gate is built first,
@@ -503,8 +504,11 @@ top-level documents, a decision record, or a ticket from here without guessing.
 - **Content flag** — the per-message axis, a detected MFA code or login link. Decides
   readability. Any flag denies the body.
 - **Scan state** — a message's position relative to the content scanner, meaning pending,
-  scanned, or one of the deliberate skip states. "Not scanned" has distinct meanings with
-  different consequences. Pending always denies.
+  scanned, one of the deliberate skip states, or refused, a body never scanned because the system
+  will not release it, past the size bound, in a charset the adapter cannot decode, or refused by
+  the conversion (reasons in ADR-0131, ADR-0132 and ADR-0134, via the
+  [decision-record index](./docs/adr/README.md)). "Not scanned" has distinct meanings with
+  different consequences. Pending and refused always deny.
 - **Redaction Gate** — the mediator component that decides, at the last hop, which fields of a
   message a client receives. Distinct from the *Scan Gate* below.
 - **Scan Gate** — the batch-side predicate that decides which non-restricted bodies are worth
@@ -560,7 +564,14 @@ top-level documents, a decision record, or a ticket from here without guessing.
 - **Provider Port** — the single interface the system's canonical model is defined against.
   Everything above it is provider-blind.
 - **Adapter** — a per-provider implementation of the port, and the only code that knows provider
-  concepts. Adapters are deliberately dumb. Full data in, no redaction responsibility.
+  concepts. Adapters are deliberately dumb. They return in full what the port defines, a body
+  being its rendered part, and make no release or redaction decision.
+- **Rendered part** — the one part of a message's body the port returns and the system releases
+  and scans, its HTML part when it has one and otherwise its text part, held to one size bound
+  (definition and bound in ADR-0131, via the [decision-record index](./docs/adr/README.md)).
+- **Held apart** — said of a rendered part the provider sends by reference rather than with the
+  message, which a second call of the port's body operation names (rule in ADR-0131, via the
+  [decision-record index](./docs/adr/README.md)).
 - **Canonical model** — the provider-neutral representation of messages, threads, labels, queries,
   and changes that everything above the port speaks. Its query is the search language the port takes
   and each adapter compiles, the one query a provider ever receives.

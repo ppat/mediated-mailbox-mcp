@@ -39,7 +39,10 @@ import it. Text from a message that has no HTML form is released as a fenced cod
 it exactly
 ([ADR-0100](../docs/adr/redaction/0100-message-text-without-html-is-released-as-a-literal-code-block.md)),
 and that form is `content/markdown`'s too, so every Markdown a client receives from a message comes
-from this package.
+from this package. One function renders a body in the form it is released in, its HTML part's
+conversion or its text part's literal form, and the mediator releases and the worker scans exactly
+what it returns, both held to the port's bound on the rendered part
+([ADR-0131](../docs/adr/provider/0131-the-body-is-one-rendered-part-bounded-by-one-size-constant.md)).
 
 Only `content/markdown` may import the converter library. Its property test reads the output with
 [goldmark](https://github.com/yuin/goldmark), an independent CommonMark parser, to find what a

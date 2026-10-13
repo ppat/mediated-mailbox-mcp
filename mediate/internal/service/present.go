@@ -113,6 +113,8 @@ func storedScanState(name string) sensitivity.ScanState {
 		return sensitivity.SkippedGate()
 	case "skipped_restricted":
 		return sensitivity.SkippedRestricted()
+	case "refused":
+		return sensitivity.Refused()
 	default:
 		return sensitivity.Pending()
 	}
@@ -183,7 +185,7 @@ const messageSchema = `{"type":"object","properties":{` +
 	`"sensitivity":{"type":"object","properties":{` +
 	`"sender_class":{"type":"string","enum":["normal","restricted"]},` +
 	`"content_flags":{"type":"array","items":{"type":"string","enum":["mfa_code","login_link"]}},` +
-	`"scan_state":{"type":"string","enum":["pending","scanned","skipped_gate","skipped_restricted"]}},` +
+	`"scan_state":{"type":"string","enum":["pending","refused","scanned","skipped_gate","skipped_restricted"]}},` +
 	`"required":["sender_class","content_flags","scan_state"]},` +
 	`"body_available":{"type":"boolean"}},` +
 	`"required":["account_id","message_id","thread_id","subject","from","date","labels","flags","has_attachments","attachment_types","sensitivity","body_available"]}`

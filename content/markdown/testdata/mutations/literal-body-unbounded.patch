@@ -1,0 +1,19 @@
+control: One constant bounds the rendered part, the conversion's input and the literal form's alike
+removes: the literal form renders a text-only body whatever its length
+packages: ./content/markdown
+tests: TestLiteralBodyHoldsTheSizeLimit TestRenderTakesTheReleasedForm/a_text_part_over_the_limit
+scheduled-count: no
+
+diff --git a/content/markdown/literal.go b/content/markdown/literal.go
+index 6d893b6e..02bbab21 100644
+--- a/content/markdown/literal.go
++++ b/content/markdown/literal.go
+@@ -40,7 +40,7 @@ func Literal(text string) string {
+ // conversion holds an HTML part to (ADR-0131). The snippet and a filename are not body parts, and
+ // Literal renders them unbounded.
+ func LiteralBody(text string) (string, error) {
+-	if len(text) > MaxInputBytes {
++	if len(text) > MaxInputBytes && false {
+ 		return "", errors.Join(ErrUnconvertible, errors.New("markdown: the text is "+strconv.Itoa(len(text))+
+ 			" bytes, above the limit of "+strconv.Itoa(MaxInputBytes)))
+ 	}

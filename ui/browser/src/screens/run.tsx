@@ -363,6 +363,8 @@ export function meaning(row: FailureRow): string {
       return `${cls}. ${row.scan_state === null ? "The index no longer holds it." : `Its scan state is ${word(scanStateLong, row.scan_state).text}.`}`;
     case "abandoned":
       return `${cls} on this item after ${row.attempts} attempts. The workload gave up. Its scan state stays pending, so its body is denied until a later run reaches it.`;
+    case "refused":
+      return `${cls} on this item. Its body is larger than the system releases, or cannot be read or converted, so its scan state is refused and its body is denied. It is not fetched again unless the size limit changes or its sender is removed from a restriction.`;
     default:
       return `${cls} on this item, with the disposition ${row.disposition}, which this screen does not know.`;
   }

@@ -36,6 +36,10 @@ type Querier interface {
 	// nullable position, the comparison is applied as a filter and a page's cost grows with progress. The
 	// page is keyed on the position, so a message left waiting is read once per pass.
 	PendingPageNewestFirst(ctx context.Context, arg PendingPageNewestFirstParams) ([]PendingPageNewestFirstRow, error)
+	// Records that a waiting message's body was refused for its size or by its conversion, with the size
+	// bound in bytes it was refused under, so it no longer waits for a scan and its body is denied
+	// (ADR-0132). A message no longer waiting is left as it is and counts no row.
+	RecordRefusal(ctx context.Context, arg RecordRefusalParams) (int64, error)
 	// Records that the scan gate skipped a waiting message, as skipped_restricted or skipped_gate
 	// (ADR-0093). A message no longer waiting is left as it is and counts no row.
 	RecordSkip(ctx context.Context, arg RecordSkipParams) (int64, error)
@@ -47,6 +51,10 @@ type Querier interface {
 	// longer decides as the same skip (ADR-0121). A message no longer skipped by the gate is left as it is
 	// and counts no row.
 	RequeueGateSkips(ctx context.Context, messageIds []string) (int64, error)
+	// Returns each of the account's messages whose body was refused under another size bound than the one
+	// given to pending scan, its bound cleared, so the next scan fetches it again under the bound in force
+	// (ADR-0132). Backfill's run-start step makes it, beside the return of stale verdicts.
+	RequeueRefusals(ctx context.Context, refusedBound int32) (int64, error)
 	// Returns each of the account's messages the gate skipped whose subject is now masked to pending scan,
 	// since the gate decided without that signal (ADR-0120, ADR-0093).
 	RequeueSignalledSkips(ctx context.Context) (int64, error)

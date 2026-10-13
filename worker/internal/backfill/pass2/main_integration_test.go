@@ -256,7 +256,7 @@ func (s state) latest() (run, bool) {
 }
 
 // seedPostgres creates the account and runs the first pass over its mailbox for real, so the second
-// pass starts from what the first stores (ADR-0017).
+// pass starts from what the first stores (ADR-0133).
 func seedPostgres(t testing.TB, account string, f mail.Port[context.Context]) {
 	t.Helper()
 	conn := superuser(t)
@@ -319,7 +319,7 @@ func inspectPostgres(t tb, url, account string) state {
 			After  string `json:"after"`
 			SentAt int64  `json:"sent_at"`
 		}
-		var n struct{ Pages, Decided, Pending, Scanned, Skipped int }
+		var n struct{ Pages, Decided, Pending, Scanned, Skipped, Refused int }
 		if err := json.Unmarshal(cp, &c); err != nil {
 			return err
 		}
@@ -328,7 +328,7 @@ func inspectPostgres(t tb, url, account string) state {
 		}
 		r.Progress = core.Progress{
 			Checkpoint: core.Checkpoint{Page: c.Page, After: core.Position{SentAt: mail.UnixMilli(c.SentAt), ID: c.After}},
-			Counters:   core.Counters{Pages: n.Pages, Decided: n.Decided, Pending: n.Pending, Scanned: n.Scanned, Skipped: n.Skipped},
+			Counters:   core.Counters{Pages: n.Pages, Decided: n.Decided, Pending: n.Pending, Scanned: n.Scanned, Skipped: n.Skipped, Refused: n.Refused},
 		}
 		s.Runs = append(s.Runs, r)
 		return nil
@@ -593,6 +593,8 @@ func (m *memory) Commit(ctx context.Context, _, runID string, p core.Page, items
 			msg.st.Decision, msg.st.State = "SCAN", "scanned"
 			msg.st.Flags, msg.st.Rules = flagNames(o.Scanned), slices.Clone(o.Scanned.Rules)
 			msg.st.Version, msg.st.Revision = o.Scanned.Version, o.Scanned.Revision
+		case o.Refused:
+			msg.st.Decision, msg.st.State = "SCAN", "refused"
 		case !o.Verdict.Scans():
 			msg.st.State = o.Verdict.State().String()
 		default:
@@ -856,13 +858,13 @@ func (w *world) open(t tb) {
 	if _, err := pass2.Reopen(w.ctx, w.deps, w.account); err != nil {
 		t.Fatalf("returning the stale verdicts to pending: %v", err)
 	}
-	// The run-start step marks the pass to start over when it returned a verdict or a gate skip to
-	// pending, when it masked a subject stored unmasked again, or when a subject stored masked is
+	// The run-start step marks the pass to start over when it returned a verdict, a gate skip or a
+	// refusal to pending, when it masked a subject stored unmasked again, or when a subject stored masked is
 	// stale, here whenever the scanner in force is not the one the first pass masked under, since this
 	// world runs no first pass (ADR-0120, ADR-0121).
 	reopened := w.inspect(t)
 	for id, m := range before.Messages {
-		if (m.State == "scanned" || m.State == "skipped_gate") && reopened.Messages[id].State == "pending" {
+		if (m.State == "scanned" || m.State == "skipped_gate" || m.State == "refused") && reopened.Messages[id].State == "pending" {
 			w.mark = true
 		}
 	}
@@ -1100,9 +1102,7 @@ func realWorldOf(t testing.TB, pageSize int, messages []fake.Message) *world {
 	return newWorld(t, s, account, messages, pass2.NewPostgres(pool), func(t tb) state { return inspectPostgres(t, url, account) },
 		func(p mail.Port[context.Context]) pass2.Body {
 			return func(ctx context.Context, id string) (mail.MessageBody, error) {
-				return lease.Call(ctx, limiter, p, account, ratecore.Batch, mail.ProviderOp{Operation: mail.OpGetMessageBody}, func(ctx context.Context) (mail.MessageBody, error) {
-					return p.GetMessageBody(ctx, id)
-				})
+				return lease.Body(ctx, limiter, p, account, ratecore.Batch, id)
 			}
 		})
 }
@@ -1112,7 +1112,9 @@ func modelWorld(t tb, s setup) *world {
 	t.Helper()
 	messages := mailbox(s)
 	m := newMemory(t, messages)
-	return newWorld(t, s, "personal", messages, m, m.inspect, func(p mail.Port[context.Context]) pass2.Body { return p.GetMessageBody })
+	return newWorld(t, s, "personal", messages, m, m.inspect, func(p mail.Port[context.Context]) pass2.Body {
+		return func(ctx context.Context, id string) (mail.MessageBody, error) { return p.GetMessageBody(ctx, id, "") }
+	})
 }
 
 // fixed returns a policy function that returns c for every page, the active snapshot of a policy

@@ -13,7 +13,7 @@ type Querier interface {
 	// running is left as it is, so a run a later one found stopped keeps the state that run gave it.
 	EndRun(ctx context.Context, arg EndRunParams) error
 	// The account's latest run of one workload and pass, whatever its state, which a workload reads to
-	// decide whether it resumes that run (ADR-0017, ADR-0117).
+	// decide whether it resumes that run (ADR-0133, ADR-0117).
 	LatestRun(ctx context.Context, arg LatestRunParams) (LatestRunRow, error)
 	// Adds one event to a run's timeline. A progress event carries the checkpoint page. The detail is
 	// provider or scanner text, never a body (ADR-0117).

@@ -1,0 +1,19 @@
+control: A body refused for its size or form is denied with the reason body_refused, by the gate and at serve
+removes: the gate denies a message stored as refused as pending its content scan
+packages: ./core/redact
+tests: TestDecide
+scheduled-count: no
+
+diff --git a/core/redact/redact.go b/core/redact/redact.go
+index 66a9fc09..711a9503 100644
+--- a/core/redact/redact.go
++++ b/core/redact/redact.go
+@@ -119,7 +119,7 @@ func Decide(p policy.Composed, sender string, l classify.Lookups, flags sensitiv
+ 	case c.Class().Restricted():
+ 		v.reason = RestrictedSender
+ 	case scan == sensitivity.Refused():
+-		v.reason = BodyRefused
++		v.reason = PendingScan
+ 	case flags.Any():
+ 		v.reason = ContentFlagged
+ 	case scan == sensitivity.Scanned(), scan == sensitivity.SkippedGate():

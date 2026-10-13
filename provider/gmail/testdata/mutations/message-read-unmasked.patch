@@ -3,17 +3,16 @@ removes: a message's metadata read sends the full format without the mask, so th
 packages: ./provider/gmail
 tests: TestMetadataReadsNameNoBody/messages.get
 scheduled-count: no
-
 diff --git a/provider/gmail/request.go b/provider/gmail/request.go
-index 71c01d0..b4e773f 100644
+index 5a6fc6e7..f4922d8d 100644
 --- a/provider/gmail/request.go
 +++ b/provider/gmail/request.go
-@@ -115,7 +115,7 @@ func metadataFields() string {
+@@ -141,7 +141,7 @@ func metadataFields() string {
  // metadataRequest reads the message id names through the metadata mask. The caller has checked id
  // with validID.
  func metadataRequest(id string) request {
 -	q := url.Values{"format": {formatFull}, "fields": {metadataFields()}}
 +	q := url.Values{"format": {formatFull}}
- 	return request{Method: "GET", Path: "messages/" + url.PathEscape(id), Query: q, Units: unitsMessagesGet, Endpoint: "messages.get"}
+ 	return request{Method: "GET", Path: "messages/" + url.PathEscape(id), Query: q, Units: unitsMessagesGet, Endpoint: "messages.get", Cap: anyReadCap()}
  }
  

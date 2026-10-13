@@ -4,7 +4,7 @@ The demonstrations of the controls whose patches sit in `content/`. [MUTATIONS.m
 
 ## A body that cannot be converted is refused with no Markdown
 
-- **Date · evidence:** 2026-09-24 · [pull request #152](https://github.com/ppat/mediated-mailbox-mcp/pull/152), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
+- **Date · evidence:** 2026-09-24 · [pull request #152](https://github.com/ppat/mediated-mailbox-mcp/pull/152), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-13 at RAPID_SEED=1, after the body fetch by part and the refused scan state changed the code, tests or patches the row rests on · [pull request #369](https://github.com/ppat/mediated-mailbox-mcp/pull/369)
 - **Break (1):** a panic in the conversion is no longer recovered
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/content/markdown`:** `TestGuardedFailsClosed`, `TestGuardedFailsClosed/a_panic_carrying_body_text`
 - **Break (2):** a recovered panic's value, which can carry body text, is written into the error
@@ -16,7 +16,7 @@ The demonstrations of the controls whose patches sit in `content/`. [MUTATIONS.m
 - **Break (5):** a body exactly at the size limit is refused as over it
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/content/markdown`:** `TestABodyAtTheSizeLimitConverts`
 - **Break (6):** a body over the size limit is converted
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/content/markdown`:** `TestFailClosed`, `TestFailClosed/a_body_one_byte_over_the_size_limit`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/content/markdown`:** `TestFailClosed`, `TestFailClosed/a_body_one_byte_over_the_size_limit`, `TestRenderTakesTheReleasedForm`, `TestRenderTakesTheReleasedForm/an_HTML_part_over_the_limit`
 
 ## A link keeps its target only when the target is an absolute http or https URL with a host, or a mailto URL of bare addresses and nothing else
 
@@ -66,13 +66,23 @@ The demonstrations of the controls whose patches sit in `content/`. [MUTATIONS.m
 
 ## Message text with no HTML form is released as one fenced code block that shows it exactly
 
-- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
+- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-13 at RAPID_SEED=1, after the body fetch by part and the refused scan state changed the code, tests or patches the row rests on · [pull request #369](https://github.com/ppat/mediated-mailbox-mcp/pull/369)
 - **Break (1):** the fence is as long as the longest run of backticks in the text rather than one longer, so that run closes the block
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/content/markdown`:** `TestLiteralForms`, `TestLiteralTextIsOneCodeBlockShowingIt`
 - **Break (2):** the fence is always three backticks, so a text holding a run of three closes the block early
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/content/markdown`:** `TestLiteralForms`, `TestLiteralTextIsOneCodeBlockShowingIt`
 - **Break (3):** the text is released as it is, with no fence around it
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/content/markdown`:** `TestLiteralForms`, `TestLiteralTextIsOneCodeBlockShowingIt`
+
+## One constant bounds the rendered part, the conversion's input and the literal form's alike
+
+- **Date · evidence:** 2026-10-13 · [pull request #369](https://github.com/ppat/mediated-mailbox-mcp/pull/369), at RAPID_SEED=1
+- **Break (1):** a body holding both parts renders as its HTML part's conversion followed by its text part
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/content/markdown`:** `TestRenderTakesTheReleasedForm`, `TestRenderTakesTheReleasedForm/both_parts`
+- **Break (2):** the conversion's input bound is a constant of its own, twice the port's, so the two drift apart
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/content/markdown`:** `TestFailClosed`, `TestFailClosed/a_body_one_byte_over_the_size_limit`, `TestLiteralBodyHoldsTheSizeLimit`, `TestRenderTakesTheReleasedForm`, `TestRenderTakesTheReleasedForm/a_text_part_over_the_limit`, `TestRenderTakesTheReleasedForm/an_HTML_part_over_the_limit`
+- **Break (3):** the literal form renders a text-only body whatever its length
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/content/markdown`:** `TestLiteralBodyHoldsTheSizeLimit`, `TestRenderTakesTheReleasedForm`, `TestRenderTakesTheReleasedForm/a_text_part_over_the_limit`
 
 ## The conversion writes the structure the Content Scanner reads
 

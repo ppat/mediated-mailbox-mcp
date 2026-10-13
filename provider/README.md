@@ -21,13 +21,27 @@ registers metrics through client_golang on a registry its caller passes in
 `fake`, the provider fake of [ADR-0043](../docs/adr/engineering/0043-no-mocking.md), which only test
 files may import, and `contract`, the contract suite every implementation passes, ordinary code so
 each implementation's tests can run it. The Provider Port interface and the canonical model are
-pure and sit in `core/mail`.
+pure and sit in `core/mail`. An adapter's own decisions that read its provider's shapes are pure
+too, and sit in a `core` package beside it, so the core import check and the globals analyser hold
+them ([ADR-0040](../docs/adr/engineering/0040-pure-core-decisions-as-values.md)). That is
+`gmail/core`, the Gmail adapter's decisions on a body from Gmail's part tree: which part is
+rendered, whether it is returned, fetched or refused, the decoding of a part's data, each read's cap
+and the refusal of an answer past it
+([ADR-0131](../docs/adr/provider/0131-the-body-is-one-rendered-part-bounded-by-one-size-constant.md),
+[ADR-0134](../docs/adr/provider/0134-a-held-apart-part-is-decoded-by-the-whatwg-label-table.md)).
+It returns each decision as a value, and the adapter makes the requests, reads each answer up to
+the cap the core gives it and builds the port's errors. The media-type parser and the charset label table reach the operating
+system through what they import, so the adapter passes them in.
 
 The fake keeps a mailbox in memory. Its throttle is a wrapper around any port that applies a
 schedule, so the rate limiter's tests can meet throttling without the fake's storage knowing of it,
-and a throttled call changes nothing. The contract suite seeds the mailbox it runs against from the
-synthetic fixtures, adding what a mailbox holds beside a message, its identifiers, thread, date,
-labels and flags, and never assumes an implementation keeps the identifiers it was seeded with.
+and a throttled call changes nothing. It returns a body's rendered part alone, refuses one past the
+port's bound, and can hold a message's rendered part apart so that only a second call naming it
+returns it, as Gmail holds a large part, so the fetch by part runs without a real provider
+([ADR-0131](../docs/adr/provider/0131-the-body-is-one-rendered-part-bounded-by-one-size-constant.md)).
+The contract suite seeds the mailbox it runs against from the synthetic fixtures, adding what a
+mailbox holds beside a message, its identifiers, thread, date, labels and flags, and never assumes
+an implementation keeps the identifiers it was seeded with.
 Against a real provider it adds its messages to a test account it does not control, each marked as
 that run's, and checks and reports only those, never assuming or touching the account's other mail
 ([ADR-0043](../docs/adr/engineering/0043-no-mocking.md)). The Gmail consent for the test account's

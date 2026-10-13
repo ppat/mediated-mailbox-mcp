@@ -1,0 +1,19 @@
+control: A screen's text, rows, cursor, focus, range fields and loading timers follow the route, answers, range and read in view
+removes: pass 2's decided line leaves out the refused count, so a body refused for good shows on the card as neither scanned nor skipped nor anything else
+packages: ./ui/browser/test/jobs.test.tsx
+tests: the cards show each workload's state and fields, with the decisions block's counts
+scheduled-count: no
+runner: bun
+diff --git a/ui/browser/src/screens/jobs.tsx b/ui/browser/src/screens/jobs.tsx
+index 0a9cb5ac..3e40823f 100644
+--- a/ui/browser/src/screens/jobs.tsx
++++ b/ui/browser/src/screens/jobs.tsx
+@@ -358,7 +358,7 @@ function Cards(props: { account: string; jobs: Jobs; live: Stream }) {
+                 text={(r) => {
+                   const decided = numberIn(r.counters, "decided") ?? 0;
+                   const pending = numberIn(r.counters, "pending") ?? 0;
+-                  return `${count(decided)} of ${count(decided + pending)}, ${count(pending)} pending, ${count(numberIn(r.counters, "scanned") ?? 0)} scanned this run, ${count(numberIn(r.counters, "skipped") ?? 0)} skipped, ${count(numberIn(r.counters, "refused") ?? 0)} refused`;
++                  return `${count(decided)} of ${count(decided + pending)}, ${count(pending)} pending, ${count(numberIn(r.counters, "scanned") ?? 0)} scanned this run, ${count(numberIn(r.counters, "skipped") ?? 0)} skipped`;
+                 }}
+               />
+             </Field>

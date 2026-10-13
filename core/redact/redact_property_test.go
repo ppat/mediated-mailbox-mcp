@@ -20,11 +20,11 @@ type args struct {
 }
 
 var scanStates = []func() sensitivity.ScanState{
-	sensitivity.Pending, sensitivity.Scanned, sensitivity.SkippedGate, sensitivity.SkippedRestricted,
+	sensitivity.Pending, sensitivity.Scanned, sensitivity.SkippedGate, sensitivity.SkippedRestricted, sensitivity.Refused,
 }
 
 const (
-	pending, scannedState, skippedGate, skippedRestricted = 0, 1, 2, 3
+	pending, scannedState, skippedGate, skippedRestricted, refused = 0, 1, 2, 3, 4
 )
 
 func draw(t *rapid.T) args {
@@ -81,7 +81,7 @@ func kind(a args) string {
 	if flagsDeny && a.Scan != scannedState {
 		return "invalid"
 	}
-	scanDenies := a.Scan == pending || a.Scan == skippedRestricted
+	scanDenies := a.Scan == pending || a.Scan == skippedRestricted || a.Scan == refused
 	switch {
 	case !a.Listed && !flagsDeny && !scanDenies:
 		return "releases"
@@ -97,7 +97,7 @@ func kind(a args) string {
 }
 
 // The generator report for the property above. Each minimum catches a kind the generator stops
-// producing. Over 32 equally likely combinations the rarest kinds are 2 in 32, and across thirty
+// producing. Over 40 equally likely combinations the rarest kinds are 2 in 40, and across thirty
 // seeds at 200 cases none fell below 1 percent.
 func TestTheGateReleasesOnlyWhatTheRuleReleasesMix(t *testing.T) {
 	property.Report(t, draw, kind, map[string]float64{

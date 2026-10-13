@@ -1,0 +1,18 @@
+control: A part held apart is decoded from its declared charset, and a label the table does not name is refused
+removes: a Content-Type that does not parse is read as declaring no charset, so the part is decoded as us-ascii whatever charset it names
+packages: ./provider/gmail/core
+tests: TestMessageBodyOfAPartHeldApartReadsItsContentType
+scheduled-count: no
+diff --git a/provider/gmail/core/body.go b/provider/gmail/core/body.go
+index 4fdb9acb..7bc8be26 100644
+--- a/provider/gmail/core/body.go
++++ b/provider/gmail/core/body.go
+@@ -270,7 +270,7 @@ func declaredCharset(p Part, parse ParseMediaType) (string, Problem) {
+ 	}
+ 	_, params, err := parse(value)
+ 	if err != nil {
+-		return "", ContentTypeUnparsed
++		return "", None
+ 	}
+ 	return params["charset"], None
+ }

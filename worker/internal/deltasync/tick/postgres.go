@@ -411,8 +411,8 @@ func (s *Postgres) CommitScan(ctx context.Context, account, runID string, outcom
 var errNotWaiting = errors.New("the message no longer waits for a scan")
 
 // commitOutcome records what the tick did with one message, as backfill's second pass records it,
-// which is the gate's decision when it decided, and the verdict or skip state it leads to. A
-// message the gate could not decide, or whose body was not scanned, stays waiting.
+// which is the gate's decision when it decided, and the verdict, refusal or skip state it leads to. A
+// message the gate could not decide, or whose body was not scanned or refused, stays waiting.
 func commitOutcome(ctx context.Context, messages *scan.Queries, gate *gaterecord.Queries, o index.Outcome) error {
 	if !o.Verdict.Decided() {
 		return nil
@@ -446,6 +446,8 @@ func commitOutcome(ctx context.Context, messages *scan.Queries, gate *gaterecord
 			ScannerRevision: pgtype.Text{String: o.Scanned.Revision, Valid: true},
 			MessageID:       o.ID,
 		})
+	case o.Refused:
+		n, err = messages.RecordRefusal(ctx, scan.RecordRefusalParams{RefusedBound: pgtype.Int4{Int32: mail.MaxBodyBytes, Valid: true}, MessageID: o.ID})
 	case !o.Verdict.Scans():
 		n, err = messages.RecordSkip(ctx, scan.RecordSkipParams{ScanState: o.Verdict.State().String(), MessageID: o.ID})
 	default:

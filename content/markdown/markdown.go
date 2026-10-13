@@ -28,7 +28,7 @@ package markdown
 
 import (
 	"errors"
-	"net/mail"
+	netmail "net/mail"
 	"net/url"
 	"strconv"
 	"strings"
@@ -39,12 +39,15 @@ import (
 	"github.com/JohannesKaufmann/html-to-markdown/v2/plugin/table"
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
+
+	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 )
 
-// MaxInputBytes is the largest body Convert accepts. It is about five times the size senders design
-// HTML mail to stay under, and it bounds a conversion's memory, which grows to about 150 times its
-// input.
-const MaxInputBytes = 512 << 10
+// MaxInputBytes is the largest body Convert and LiteralBody accept, the port's bound on the rendered
+// part, so the conversion refuses nothing the port would return and the two cannot drift (ADR-0131).
+// It is about five times the size senders design HTML mail to stay under, and it bounds a
+// conversion's memory, which grows to about 150 times its input (ADR-0074).
+const MaxInputBytes = mail.MaxBodyBytes
 
 // ErrUnconvertible is wrapped by every error Convert returns. A body that cannot be converted is
 // never released and never scanned as anything but a denial.
@@ -231,7 +234,7 @@ func addresses(to string) bool {
 		if err != nil {
 			return false
 		}
-		if a, err := mail.ParseAddress(addr); err != nil || a.Name != "" || a.Address != addr {
+		if a, err := netmail.ParseAddress(addr); err != nil || a.Name != "" || a.Address != addr {
 			return false
 		}
 	}

@@ -84,6 +84,7 @@ moves it. Records themselves link freely and deep, into
 | 0113 | [An added rule reaches the stored sender classes by its effect, through the comparison every scanning workload already makes](./redaction/0113-an-added-rule-reaches-the-stored-classes-by-its-effect.md) | **Superseded** |
 | 0120 | [A change of scanner re-masks unmasked stored subjects from the store and fetches again only the masked ones, by identifier](./redaction/0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md) | Accepted |
 | 0121 | [Backfill's run-start step, made once per process and account, decides each stored gate skip again](./redaction/0121-the-run-start-step-decides-each-gate-skip-again.md) | Accepted |
+| 0132 | [A body refused for its size or by its conversion is recorded as refused, and returns to pending only when the size bound changes](./redaction/0132-a-body-refused-for-good-is-recorded-as-refused-not-left-pending.md) | Accepted |
 | 0136 | [The index stores no sender class, and every reader classifies under the policy in force when it reads](./redaction/0136-the-index-stores-no-sender-class-and-every-reader-classifies-when-it-reads.md) | Accepted |
 
 ## Classification — `classification/`
@@ -109,6 +110,8 @@ moves it. Records themselves link freely and deep, into
 | 0106 | [An installation holds any number of OAuth clients for a provider, and each account connects through one of them, shared or its own](./provider/0106-accounts-of-a-provider-connect-through-any-of-its-oauth-clients.md) | Accepted |
 | 0107 | [Gmail connects through an installed-app OAuth client in the installation owner's own Cloud project, set up through the UI, with `gmail.modify`](./provider/0107-gmail-through-an-installed-app-oauth-client-set-up-in-the-ui.md) | Accepted |
 | 0123 | [A message's attachment types are words of a closed vocabulary, derived when read from each attachment's media type and extension, which ingest stores normalized](./provider/0123-attachment-types-are-words-of-a-closed-vocabulary.md) | Accepted |
+| 0131 | [The body the port returns is one rendered part, bounded by one size constant, and a body above it, or one the adapter cannot decode, is refused rather than failed](./provider/0131-the-body-is-one-rendered-part-bounded-by-one-size-constant.md) | Accepted |
+| 0134 | [The Gmail adapter decodes a part held apart in its declared charset through the WHATWG label table, refusing a label the table does not name or a UTF-16 label](./provider/0134-a-held-apart-part-is-decoded-by-the-whatwg-label-table.md) | Accepted |
 
 ## Data — `data/`
 
@@ -116,7 +119,7 @@ moves it. Records themselves link freely and deep, into
 | --- | --- | --- |
 | 0015 | [The metadata index lives in Postgres, not a key-value store](./data/0015-postgres-not-a-kv-store.md) | Accepted |
 | 0016 | [The schema: no body columns anywhere, everything scoped by account](./data/0016-schema.md) | Accepted |
-| 0017 | [Backfill is full-history and two-pass: metadata first, gated scanning second](./data/0017-two-pass-backfill.md) | Accepted |
+| 0017 | [Backfill is full-history and two-pass: metadata first, gated scanning second](./data/0017-two-pass-backfill.md) | **Superseded** |
 | 0018 | [Delta sync polls on a short cadence; push delivery rejected](./data/0018-delta-sync-polls.md) | Accepted |
 | 0047 | [The schema is the single authority, read through per-query result types — no entity model](./data/0047-schema-first-data-access.md) | Accepted |
 | 0048 | [Migrations are hand-written SQL, forward-only, run under their own role](./data/0048-forward-only-migrations.md) | Accepted |
@@ -131,6 +134,7 @@ moves it. Records themselves link freely and deep, into
 | 0126 | [Backfill's second pass reads the messages waiting for a scan newest first, keyed on the send time and the identifier](./data/0126-backfills-second-pass-walks-newest-first.md) | Accepted |
 | 0128 | [Account identifiers are one lowercase DNS label, held alike by the UI's proposal, its server check and the database](./data/0128-account-identifiers-are-one-lowercase-dns-label.md) | Accepted |
 | 0129 | [The chart runs the migration step as one Helm hook Job before install and every upgrade, holding the migration role's credential alone](./data/0129-the-chart-runs-the-migration-step-as-a-pre-install-and-pre-upgrade-hook-job.md) | Accepted |
+| 0133 | [Backfill is full-history and two-pass: metadata first, gated scanning second](./data/0133-backfill-is-full-history-and-two-pass.md) | Accepted |
 | 0135 | [Every statement reads its account from the transaction, and no table carries a row-level security policy](./data/0135-every-statement-reads-its-account-from-the-transaction.md) | Accepted |
 
 ## Mutation — `mutation/`

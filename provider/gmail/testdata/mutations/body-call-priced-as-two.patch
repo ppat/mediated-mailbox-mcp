@@ -1,0 +1,19 @@
+control: Gmail's cost profile declares each call's worst case, every read of the label table included, and sizes its pages to one second's worth at the hard cap
+removes: a body call is declared at both methods' price, so every body declares the cost of its rarest path
+packages: ./provider/gmail
+tests: TestCostDeclaresEachCallsWorstCase
+scheduled-count: no
+
+diff --git a/provider/gmail/profile.go b/provider/gmail/profile.go
+index 2653e4df..c5f6b013 100644
+--- a/provider/gmail/profile.go
++++ b/provider/gmail/profile.go
+@@ -90,7 +90,7 @@ func (Profile) Cost(op mail.ProviderOp) mail.OpCost {
+ 	case mail.OpGetMessageMetadata:
+ 		units = unitsMessagesGet*n + unitsLabelsList
+ 	case mail.OpGetMessageBody:
+-		units = max(unitsMessagesGet, unitsAttachmentsGet)
++		units = unitsMessagesGet + unitsAttachmentsGet
+ 	case mail.OpListLabels:
+ 		units = unitsLabelsList
+ 	case mail.OpEnsureLabel:

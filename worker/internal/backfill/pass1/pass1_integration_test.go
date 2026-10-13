@@ -83,7 +83,7 @@ func failures(t *testing.T, account string) []string {
 // A whole pass over PostgreSQL indexes every message once with its subject masked and its sender
 // classified, rebuilds each sender's statistics, records each mask as an event naming its rule and
 // tier, records the run with a progress event at every checkpoint, and sets the account's completion
-// flag when it ends (ADR-0003, ADR-0017, ADR-0117).
+// flag when it ends (ADR-0003, ADR-0133, ADR-0117).
 func TestAPassIndexesTheWholeMailbox(t *testing.T) {
 	w := realWorld(t, mixed)
 	w.finish(t, 10)
@@ -152,7 +152,7 @@ func TestAPassThatEndedIsSkipped(t *testing.T) {
 
 // A run killed after two pages leaves them durable, and the next run records itself as resuming it,
 // records the killed run as failed, and asks the provider next for the third page, so the kill cost no
-// page (ADR-0017).
+// page (ADR-0133).
 func TestAKilledRunIsResumedByTheNextRun(t *testing.T) {
 	w := realWorld(t, mixed)
 	w.step(t)
@@ -181,7 +181,7 @@ func TestAKilledRunIsResumedByTheNextRun(t *testing.T) {
 }
 
 // A run killed after the commit of the page that ended the enumeration, before it recorded its end, is
-// resumed by a run that finishes the pass and asks the provider for no page again (ADR-0017).
+// resumed by a run that finishes the pass and asks the provider for no page again (ADR-0133).
 func TestARunKilledBeforeItsEndFinishesWithoutEnumeratingAgain(t *testing.T) {
 	w := realWorld(t, setup{PageSize: 1, Messages: []drawn{{Sender: 1}, {Sender: 2}}})
 	w.step(t)
@@ -271,7 +271,7 @@ func TestARefusedCredentialFailsTheRunAtOnce(t *testing.T) {
 // The fallback when the provider refuses the page token a run resumed from. The pass starts over from
 // the first page and takes every page again, and a page taken twice counts nothing twice. Each message
 // is indexed once with one masking event per mask, each sender's statistics count each message once,
-// and the counters count each message once (ADR-0017).
+// and the counters count each message once (ADR-0133).
 func TestAPassStartedOverCountsNothingTwice(t *testing.T) {
 	w := realWorld(t, mixed)
 	w.step(t)

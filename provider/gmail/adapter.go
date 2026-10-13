@@ -11,13 +11,15 @@ import (
 
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/provider/gmail/consent"
+	"github.com/ppat/mediated-mailbox-mcp/provider/gmail/core"
 )
 
 // historyPage is the most history records one history.list returns. Gmail charges the same for any
 // page size.
 const historyPage = 500
 
-// maxResponse bounds how much of a Gmail response body is read.
+// maxResponse bounds how much of a Gmail response body is read, for every request but a body read,
+// whose caps derive from the port's bound (ADR-0131). A response past it is the provider's failure.
 const maxResponse = 64 << 20
 
 // Tokens hands out access tokens for the account. *TokenSource is the one the deployables use. A
@@ -103,7 +105,7 @@ func (a *Adapter) send(ctx context.Context, r request) ([]byte, error) {
 	if r.Body != "" {
 		body = strings.NewReader(r.Body)
 	}
-	req, err := http.NewRequestWithContext(ctx, r.Method, r.URL(), body)
+	req, err := http.NewRequestWithContext(withReadCap(ctx, r.Cap), r.Method, r.URL(), body)
 	if err != nil {
 		return nil, fmt.Errorf("gmail: building a request: %w", errors.Join(mail.ErrInvalid, err))
 	}
@@ -131,8 +133,12 @@ func outcomeOf(err error) string {
 }
 
 // exchange sends req and reads its answer, returning the answer's body, or the port error for a
-// request that failed or was refused.
+// request that failed or was refused. A request carrying no read cap is refused as the provider's
+// failure before it is sent, since only a request no builder made has none.
 func (a *Adapter) exchange(ctx context.Context, req *http.Request) ([]byte, error) {
+	if _, ok := readCapOf(req); !ok {
+		return nil, fmt.Errorf("gmail: a request with no read cap: %w", mail.ErrProvider)
+	}
 	res, err := a.client.Do(req)
 	if err != nil {
 		if ctx.Err() != nil {
@@ -140,14 +146,62 @@ func (a *Adapter) exchange(ctx context.Context, req *http.Request) ([]byte, erro
 		}
 		return nil, fmt.Errorf("gmail: sending a request: %w", errors.Join(mail.ErrProvider, err))
 	}
-	data, readErr := io.ReadAll(io.LimitReader(res.Body, maxResponse))
+	return answer(res)
+}
+
+// answer reads res, returning its body or the port error. The answer is read to the cap its request
+// carries, the very request exchange checked before sending it, and one byte more, so an answer past
+// it is told apart rather than truncated. A body read's answer past its cap is the body decision's
+// PastCap (ADR-0131), and any other answer past maxResponse is the provider's failure.
+func answer(res *http.Response) ([]byte, error) {
+	c, ok := readCapOf(res.Request)
+	if !ok {
+		return nil, errors.Join(fmt.Errorf("gmail: an answer to a request with no read cap: %w", mail.ErrProvider), res.Body.Close())
+	}
+	data, over, readErr := capped(res.Body, c.Bytes)
 	if err := errors.Join(readErr, res.Body.Close()); err != nil {
 		return nil, fmt.Errorf("gmail: reading a response: %w", errors.Join(mail.ErrProvider, err))
 	}
 	if res.StatusCode < 200 || res.StatusCode > 299 {
 		return nil, parseError(res.StatusCode, res.Header.Get("Retry-After"), time.Now(), data)
 	}
+	switch {
+	case over && c.Refuses:
+		return nil, fmt.Errorf("gmail: the answer passes its cap of %d bytes, as %v: %w", c.Bytes, core.PastCap, portError(core.PastCap))
+	case over:
+		return nil, fmt.Errorf("gmail: the response passes its cap of %d bytes: %w", c.Bytes, mail.ErrProvider)
+	}
 	return data, nil
+}
+
+// readCapKey is the context key a request's read cap travels under, on the *http.Request itself, so
+// the cap checked before the request is sent is the cap its answer is read to. The cap rides that one
+// request's context, passed with it, not an ambient value (ADR-0040), and that carrier is what lets
+// a test observe the cap a sent request carries.
+type readCapKey struct{}
+
+// withReadCap returns ctx carrying c.
+func withReadCap(ctx context.Context, c readCap) context.Context {
+	return context.WithValue(ctx, readCapKey{}, c)
+}
+
+// readCapOf returns the read cap req carries, and false when it carries none or one of no bytes.
+func readCapOf(req *http.Request) (readCap, bool) {
+	if req == nil {
+		return readCap{}, false
+	}
+	c, ok := req.Context().Value(readCapKey{}).(readCap)
+	return c, ok && c.Bytes > 0
+}
+
+// capped reads r to ceiling bytes and one more, so a response past its cap is told apart rather than
+// truncated, and reports whether it passed.
+func capped(r io.Reader, ceiling int) ([]byte, bool, error) {
+	data, err := io.ReadAll(io.LimitReader(r, int64(ceiling)+1))
+	if err == nil && len(data) > ceiling {
+		return data[:ceiling], true, nil
+	}
+	return data, false, err
 }
 
 // tokenError is the port error for err, a failure to obtain an access token, read the way the token
@@ -305,15 +359,30 @@ func (a *Adapter) GetMessageMetadata(ctx context.Context, ids []string) ([]mail.
 	return a.begin(mail.OpGetMessageMetadata, len(ids)).metadata(ctx, ids)
 }
 
-// GetMessageBody implements the port.
-func (a *Adapter) GetMessageBody(ctx context.Context, id string) (mail.MessageBody, error) {
+// GetMessageBody implements the port. With the empty part it reads the message and returns its
+// rendered part, refuses one whose declared size passes the bound without downloading it, and
+// answers a part held apart within the bound with a HeldApartError naming it. With a part it named,
+// it reads that part with messages.attachments.get (ADR-0131).
+func (a *Adapter) GetMessageBody(ctx context.Context, id string, part mail.BodyPart) (mail.MessageBody, error) {
 	if err := ctx.Err(); err != nil {
 		return mail.MessageBody{}, err
 	}
 	if !validID(id) {
 		return mail.MessageBody{}, fmt.Errorf("gmail: message %q: %w", id, mail.ErrNotFound)
 	}
-	body, err := a.begin(mail.OpGetMessageBody, 1).do(ctx, messageRequest(id, formatFull))
+	c := a.begin(mail.OpGetMessageBody, 1)
+	if part != "" {
+		h, err := readBodyPart(part, id)
+		if err != nil {
+			return mail.MessageBody{}, err
+		}
+		body, err := c.do(ctx, partRequest(id, h.attachment))
+		if err != nil {
+			return mail.MessageBody{}, err
+		}
+		return partBody(a.account, h, body)
+	}
+	body, err := c.do(ctx, bodyRequest(id))
 	if err != nil {
 		return mail.MessageBody{}, err
 	}

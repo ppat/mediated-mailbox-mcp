@@ -72,9 +72,7 @@ func (l Leased) ListThreads(ctx context.Context, q mail.Query, page mail.PageTok
 	})
 }
 
-// GetMessageBody implements Provider.
+// GetMessageBody implements Provider, a second call naming a part held apart (ADR-0131).
 func (l Leased) GetMessageBody(ctx context.Context, id string) (mail.MessageBody, error) {
-	return call(ctx, l, mail.ProviderOp{Operation: mail.OpGetMessageBody, Messages: 1}, func(ctx context.Context) (mail.MessageBody, error) {
-		return l.Port.GetMessageBody(ctx, id)
-	})
+	return lease.Body(ctx, l.Limiter, l.Port, l.Account, ratecore.Sync, id)
 }

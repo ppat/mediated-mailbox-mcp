@@ -86,14 +86,20 @@ const (
 	// StopScanning records the message as a failed item and ends the tick's scanning for the account,
 	// since the provider is refusing the tick rather than the message. The next tick goes on.
 	StopScanning
+	// Refuse records the message as refused and goes on, since a later tick would refuse it again
+	// (ADR-0132).
+	Refuse
 )
 
 // OnBodyFailure decides what a tick does after a body fetch of class fails (ADR-0104). A throttle or
 // a refused credential stops the account's scanning, a body the provider failed, no longer has or
-// refused as malformed is left waiting, and a failure that is not the provider's fails the tick. A
-// later tick asks again, so a tick never retries a body itself.
+// refused as malformed is left waiting, a body the port refused is recorded as refused (ADR-0132),
+// and a failure that is not the provider's fails the tick. A later tick asks again for what waits,
+// so a tick never retries a body itself.
 func OnBodyFailure(class index.ErrorClass) Next {
 	switch class {
+	case index.Refused:
+		return Refuse
 	case index.Throttled, index.Authentication:
 		return StopScanning
 	case index.ProviderError, index.Gone, index.Validation:
@@ -106,10 +112,14 @@ func OnBodyFailure(class index.ErrorClass) Next {
 }
 
 // Disposition is what a failed item records became of a message whose body fetch failed, gone for one
-// the provider no longer has and abandoned for any other (ADR-0016).
+// the provider no longer has, refused for one whose body was refused (ADR-0132), and abandoned for any
+// other (ADR-0016).
 func Disposition(class index.ErrorClass) string {
 	if class == index.Gone {
 		return "gone"
+	}
+	if class == index.Refused {
+		return "refused"
 	}
 	return "abandoned"
 }

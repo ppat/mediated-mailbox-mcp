@@ -61,7 +61,8 @@ persist) are pipelined as bounded async queues so network waits overlap CPU work
 writes are batched at 500 to 1000 rows so single-row inserts never become the bottleneck the API
 is not. The batched write is a multi-row upsert, expressed as one insert selecting from unnested
 array parameters, not `COPY`, which would not serve this design, because backfill resumes at page
-granularity and replays the partial page ([ADR-0017](../data/0017-two-pass-backfill.md),
+granularity and replays the partial page
+([ADR-0133](../data/0133-backfill-is-full-history-and-two-pass.md),
 [ADR-0045](../engineering/0045-crash-injection-testing.md)) so every bulk write is idempotent by
 decision, and `COPY` cannot upsert. At steady state the controller sits at target with nothing to
 adapt to, and the sync tick fits comfortably inside its reservation.

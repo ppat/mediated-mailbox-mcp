@@ -1,0 +1,19 @@
+control: A message is stored refused only with the size bound it was refused under, and in no other state with one
+removes: the bound is unchecked, so a refused message is stored with none and a pending one with one
+packages: ./db/check
+tests: TestARefusedMessageCarriesTheBoundItWasRefusedUnder
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00002_schema.sql b/db/migrations/00002_schema.sql
+index e9887bfb..a3e850f7 100644
+--- a/db/migrations/00002_schema.sql
++++ b/db/migrations/00002_schema.sql
+@@ -177,7 +177,6 @@ CREATE TABLE messages (
+     -- The size bound in bytes a refused body was refused under, which backfill's run-start step
+     -- compares with the bound it runs with, and null in every other state (ADR-0132).
+     refused_bound int,
+-    CHECK ((scan_state = 'refused') = (refused_bound IS NOT null)),
+     PRIMARY KEY (account_id, message_id),
+     -- Only a scan sets a content flag, so a statement that returns a message to pending, or skips it,
+     -- without clearing its verdict fails instead of storing a state the Redaction Gate reads as invalid

@@ -15,8 +15,8 @@ already decides it again when the class changes
 ([ADR-0037](./0037-delisting-transition.md)).
 
 Backfill's second pass decides a message once, when it reads it waiting for a scan
-([ADR-0017](../data/0017-two-pass-backfill.md)). A stored skip is decided again in one case only,
-at the second pass's start for a subject now masked, after a change of scanner
+([ADR-0133](../data/0133-backfill-is-full-history-and-two-pass.md)). A stored skip is decided again
+in one case only, at the second pass's start for a subject now masked, after a change of scanner
 ([ADR-0120](./0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md)). So a change of
 thresholds that scans more re-decides no stored skip, and every message skipped under the earlier
 thresholds stays released unscanned, in the residual the change meant to narrow.

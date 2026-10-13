@@ -39,7 +39,7 @@ const bodyCode = "Your verification code is 419283."
 // pass, which reads newest first (ADR-0126), reads them in the order of their identifiers.
 func bodyMailbox(t *testing.T, account string) *fake.Fake {
 	t.Helper()
-	refused := "<p>" + marker.Body("refused") + strings.Repeat(" padding", 512*1024/8) + "</p>"
+	refused := marker.Body("refused") + strings.Repeat("<div>", 600) + strings.Repeat("</div>", 600)
 	bodies := []struct {
 		from       string
 		text, html string
@@ -88,7 +88,7 @@ func passesDeps(t *testing.T, pool *pgxpool.Pool, account string, f *fake.Fake) 
 		RunID: runID, Now: time.Now,
 	}
 	second := pass2.Deps{
-		Store: pass2.NewPostgres(pool), Body: f.GetMessageBody, Policy: fixed(classify.Prepare(rules.For(account), lookups)),
+		Store: pass2.NewPostgres(pool), Body: func(ctx context.Context, id string) (mail.MessageBody, error) { return f.GetMessageBody(ctx, id, "") }, Policy: fixed(classify.Prepare(rules.For(account), lookups)),
 		Gate: scangate.DefaultConfig(), Scanner: s, PageSize: 2, RunID: runID, Now: time.Now,
 	}
 	return first, second
@@ -122,8 +122,9 @@ func (o *observing) Backlog(ctx context.Context, account string) (int64, error) 
 // and after the step that ends the pass, and the account's scan backlog series is set after each page,
 // so the last page leaves it reading the messages left waiting. The step that ends the pass removes it,
 // since delta sync's tick emits the account's backlog once the pass has ended (ADR-0082, ADR-0093,
-// ADR-0104). The messages each page scanned are counted, each scan is timed, and so is each
-// conversion, the one the conversion refused included (ADR-0125).
+// ADR-0104). The messages each page scanned are counted, and each scan is timed (ADR-0125). The body
+// the conversion refuses is recorded refused, so nothing is left waiting after the last page
+// (ADR-0132).
 func TestEachSecondPassPageIsAUnitOfWork(t *testing.T) {
 	conn := superuser(t)
 	reset(t, conn)
@@ -162,8 +163,8 @@ func TestEachSecondPassPageIsAUnitOfWork(t *testing.T) {
 	if ends != 4 {
 		t.Errorf("the units of work ended %d times, want once after each of the three pages and once after the end", ends)
 	}
-	if len(store.seen) != 4 || store.seen[0] != -1 || store.seen[3] != 1 {
-		t.Errorf("the backlog series read %v before each step's read, want none before the first and 1 after the last page, the message whose body the conversion refused", store.seen)
+	if len(store.seen) != 4 || store.seen[0] != -1 || store.seen[3] != 0 {
+		t.Errorf("the backlog series read %v before each step's read, want none before the first and 0 after the last page, the body the conversion refuses recorded refused", store.seen)
 	}
 	if got := accountsIn(t, registry, series.BacklogName); len(got) != 0 {
 		t.Errorf("the backlog series names %v once the pass ended, want none", got)
@@ -293,7 +294,7 @@ func TestNoBodyTextReachesTheIndexOrTheLogs(t *testing.T) {
 		(SELECT count(*) FROM job_run_failures WHERE account_id = 'personal' AND item_kind = 'message')
 		FROM messages WHERE account_id = 'personal'`).Scan(&scanned, &refused)
 	if err != nil || scanned != 1 || refused != 1 {
-		t.Fatalf("the run flagged %d bodies and failed %d (%v), want the shop's code flagged and the large body refused", scanned, refused, err)
+		t.Fatalf("the run flagged %d bodies and failed %d (%v), want the shop's code flagged and the body the conversion refuses refused", scanned, refused, err)
 	}
 	if found := bodyMarkers(t, conn, "personal", logs.String()); len(found) != 0 {
 		t.Errorf("fixture body text reached the index or the logs:\n%s", strings.Join(found, "\n"))

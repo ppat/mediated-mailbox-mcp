@@ -44,10 +44,13 @@ var vocabularies = []vocabulary{
 	},
 	// Cheap, next to safety.
 	{
-		column:  "messages.scan_state",
-		insert:  "INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, sent_at, has_attachments, scan_state) VALUES ('" + accountA + "', gen_random_uuid()::text, 't', 'a@example.com', 'example.com', now(), false, $1)",
-		refused: []any{"SKIPPED_GATE", "skipped", "clean"},
-		stored:  []any{"scanned", "skipped_restricted", "skipped_gate", "pending"},
+		column: "messages.scan_state",
+		// A refused message records the bound it was refused under, and no other state records one
+		// (ADR-0132), so the row sets the bound exactly for the refused state.
+		insert: "INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, sent_at, has_attachments, scan_state, refused_bound) " +
+			"VALUES ('" + accountA + "', gen_random_uuid()::text, 't', 'a@example.com', 'example.com', now(), false, $1, CASE WHEN $1 = 'refused' THEN 524288 END)",
+		refused: []any{"SKIPPED_GATE", "skipped", "clean", "REFUSED"},
+		stored:  []any{"scanned", "skipped_restricted", "skipped_gate", "pending", "refused"},
 	},
 	{
 		column:  "messages.content_flags",
@@ -145,6 +148,31 @@ func TestARunRecordsOneOfTheBuiltJobKindsPairs(t *testing.T) {
 	}
 	if code := attempt(t, tx, insert, "sync", nil); code != notNullViolation {
 		t.Errorf("storing a run with no pass: %q, want %s", code, notNullViolation)
+	}
+}
+
+// F5's row for a refusal's bound. A message is stored refused only with the size bound it was refused
+// under, and a message in any other state with no bound, so the run-start step always has a bound to
+// compare and a returned refusal never keeps one (ADR-0132).
+func TestARefusedMessageCarriesTheBoundItWasRefusedUnder(t *testing.T) {
+	tx := seeded(t)
+	const insert = "INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, sent_at, has_attachments, scan_state, refused_bound) " +
+		"VALUES ('" + accountA + "', gen_random_uuid()::text, 't', 'a@example.com', 'example.com', now(), false, $1, $2)"
+	for _, c := range []struct {
+		state  string
+		bound  any
+		stored bool
+	}{
+		{"refused", 524288, true},
+		{"refused", nil, false},
+		{"pending", 524288, false},
+		{"scanned", 524288, false},
+		{"pending", nil, true},
+	} {
+		code := attempt(t, tx, insert, c.state, c.bound)
+		if want := map[bool]string{true: "", false: checkViolation}[c.stored]; code != want {
+			t.Errorf("storing a %s message with the bound %v: %q, want %q", c.state, c.bound, code, want)
+		}
 	}
 }
 
@@ -254,11 +282,12 @@ func TestTheAuditRowsColumnsRefuseAValueOutsideTheirSets(t *testing.T) {
 		{"reason", 2, []any{"pending content scan", "Released", "undecided", "denied"}, []any{
 			"released", "pending_scan", "skipped_restricted", "restricted_sender", "content_flagged", "invalid_stored_state",
 			"scan_state_not_releasable", "serve_time_check_no_scanner", "serve_time_check_matched", "conversion_refused",
+			"body_refused",
 		}},
 		{"sender_class", 3, []any{"sensitive", "Restricted"}, []any{"normal", "restricted"}},
 		{"class_rule_scope", 5, []any{"overlay", "Base", "global"}, []any{"base", "account"}},
 		{"content_flags", 6, []any{"{password}", "{mfa_code,MFA_CODE}"}, []any{"{}", "{mfa_code}", "{login_link}", "{mfa_code,login_link}"}},
-		{"scan_state", 7, []any{"SKIPPED_GATE", "skipped", "clean"}, []any{"scanned", "skipped_restricted", "skipped_gate", "pending"}},
+		{"scan_state", 7, []any{"SKIPPED_GATE", "skipped", "clean"}, []any{"scanned", "skipped_restricted", "skipped_gate", "pending", "refused"}},
 	}
 	for _, c := range columns {
 		for _, value := range c.refused {

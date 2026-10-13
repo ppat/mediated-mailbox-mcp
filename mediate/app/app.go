@@ -798,10 +798,10 @@ func newBodies(served *serving, connect session.Connector, scanner scan.Scanner,
 	return service.Bodies{
 		Policy: served.currentPolicy,
 		Open:   p.open,
-		Convert: func(html string) (string, error) {
+		Render: func(body mail.MessageBody) (string, error) {
 			start := time.Now()
 			defer func() { converted.Observe(time.Since(start).Seconds()) }()
-			return markdown.Convert(html)
+			return markdown.Render(body)
 		},
 		Literal: markdown.Literal,
 		Scanner: scanner,
@@ -874,12 +874,22 @@ type provider struct {
 	waitUntil time.Time
 }
 
-// Body returns the message's body, under a lease in the interactive class.
+// Body returns the message's body, under leases in the interactive class, each call leased on its
+// own, a second naming the rendered part when the first answers that it is held apart, as
+// mail.NextBodyPart decides (ADR-0131).
 func (s *provider) Body(ctx context.Context, id string) (mail.MessageBody, error) {
 	return session.Call(ctx, s.session, func(ctx context.Context, port mail.Port[context.Context]) (mail.MessageBody, error) {
-		return leased(ctx, s.limiter, port, s.account, mail.OpGetMessageBody, 0, s.waitUntil, s.p.timeout, func(ctx context.Context) (mail.MessageBody, error) {
-			return port.GetMessageBody(ctx, id)
-		})
+		var part mail.BodyPart
+		for {
+			body, err := leased(ctx, s.limiter, port, s.account, mail.OpGetMessageBody, 1, s.waitUntil, s.p.timeout, func(ctx context.Context) (mail.MessageBody, error) {
+				return port.GetMessageBody(ctx, id, part)
+			})
+			next, due := mail.NextBodyPart(part, err)
+			if !due {
+				return body, err
+			}
+			part = next
+		}
 	})
 }
 

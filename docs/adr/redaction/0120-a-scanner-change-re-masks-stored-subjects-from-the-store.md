@@ -23,9 +23,9 @@ applied, so a stored subject that reads unmasked is the subject the provider ret
 Such a subject can be masked again from what is stored. Only a subject that was masked lost what a
 new scanner would read, and only it must be fetched from the provider again. Backfill's first pass
 masks a subject as it adds the message and leaves a message it already holds as it is
-([ADR-0017](../data/0017-two-pass-backfill.md)). The scan gate scans a message whose subject was
-masked ([ADR-0093](./0093-composite-scan-gate.md)), so a skip decided before a better scanner masked
-the subject was decided without a signal the message now carries.
+([ADR-0133](../data/0133-backfill-is-full-history-and-two-pass.md)). The scan gate scans a
+message whose subject was masked ([ADR-0093](./0093-composite-scan-gate.md)), so a skip decided
+before a better scanner masked the subject was decided without a signal the message now carries.
 
 [ADR-0096](./0096-a-scanner-change-reopens-backfill.md) re-masks every stale subject by enumerating
 the whole mailbox again, on the premise that a subject cannot be masked again from what is stored.
@@ -88,11 +88,11 @@ as ended for an account only while every stored subject carries the pair of the 
 with, and when it is found due again the run that starts it clears its completion flag. After the
 run-start step, only subjects stored masked can still be stale. The second pass is recorded as not
 ended by the run-start step above. A pass recorded as not ended runs again, a fresh pass when its
-latest run succeeded ([ADR-0017](../data/0017-two-pass-backfill.md)). So a reopened first pass always
-leads to a run of the second, which also scans the mail the first pass added, and every skip decided
-without its subject's signal follows a re-mask that reopened the second pass. No record of the change
-is kept or read. A change made in any layer, by a release or while nothing ran, is seen by the next
-run.
+latest run succeeded ([ADR-0133](../data/0133-backfill-is-full-history-and-two-pass.md)). So a
+reopened first pass always leads to a run of the second, which also scans the mail the first pass
+added, and every skip decided without its subject's signal follows a re-mask that reopened the
+second pass. No record of the change is kept or read. A change made in any layer, by a release or
+while nothing ran, is seen by the next run.
 
 **The first pass fetches again only the subjects that were masked, by identifier.** A message the
 index already holds whose subject is stored masked and stale has its metadata fetched again by its
@@ -183,10 +183,10 @@ configuration change, either of which restarts the worker
   pass produces.
 - **Deciding the restart by effect, a waiting message at or before the checkpoint.** The case for it
   is that it needs no stored mark and covers any path that returns a message to pending before the
-  checkpoint. Not chosen. Messages stay pending before the checkpoint by design, a body the converter
-  refuses ([ADR-0017](../data/0017-two-pass-backfill.md)), one the provider no longer has, one
-  abandoned after its attempts, and one the gate cannot decide, so every resume after a crash would
-  start over and fetch their bodies again, which breaks a resume's one page of rework.
+  checkpoint. Not chosen. Messages stay pending before the checkpoint by design, one the provider no
+  longer has, one abandoned after its attempts, and one the gate cannot decide, so every resume
+  after a crash would start over and fetch their bodies again, which breaks a resume's one page of
+  rework.
 - **Deciding the restart from the scanner pair the stopped run's checkpoint records.** The case for
   it is that it needs no column, the pair riding in the checkpoint as it does in the first pass's.
   Not chosen. A change reverted before any second pass runs under it brings the pair back to the
@@ -236,6 +236,10 @@ configuration change, either of which restarts the worker
   subject as it now stands.
 - A re-opened second pass also runs the delisting transition at its start
   ([ADR-0037](./0037-delisting-transition.md)).
+- The run-start step also returns to pending a body refused under another size bound than the one
+  the process runs with, and records the second pass as not ended and marks it to start over the
+  same way. A change of scanner alone returns no refused body to pending
+  ([ADR-0132](./0132-a-body-refused-for-good-is-recorded-as-refused-not-left-pending.md)).
 - Assumptions about other components. Every job kind that masks or scans runs the same scanner
   version and the same scanner section, which one configuration load in the worker gives by
   construction ([ADR-0117](../operability/0117-one-background-worker-runs-every-job-kind.md)). Ingest

@@ -22,9 +22,15 @@ type Port[C any] interface {
 	// the trash or marked as spam included. An identifier naming no message, such as one the mailbox
 	// no longer holds, is left out of the result rather than failing the call.
 	GetMessageMetadata(ctx C, ids []string) ([]MessageMetadata, error)
-	// GetMessageBody returns a message's body, or ErrNotFound. It is the only operation that
+	// GetMessageBody returns a message's body, its rendered part as MessageBody describes it, or
+	// ErrNotFound. Called with the empty part, it chooses the rendered part, and when the provider
+	// holds that part apart from the message it returns a HeldApartError naming it, so the caller
+	// names it in a second call, as NextBodyPart decides. Called with a part an earlier call named, it
+	// returns that part. It returns ErrRefused, and no body, for a rendered part larger than
+	// MaxBodyBytes, decided from the part's declared size before anything is fetched where the
+	// provider declares one, or for one it cannot decode (ADR-0131). It is the only operation that
 	// returns body content, and the gate guards every call to it (ADR-0002).
-	GetMessageBody(ctx C, id string) (MessageBody, error)
+	GetMessageBody(ctx C, id string, part BodyPart) (MessageBody, error)
 	// ListLabels returns every label the account has, Inbox, Trash and Spam included.
 	ListLabels(ctx C) ([]Label, error)
 	// EnsureLabel returns the label at path, creating it when the account lacks it. It returns
@@ -41,7 +47,7 @@ type Port[C any] interface {
 	// ErrCursorGap when the provider cannot calculate changes from cursor.
 	ChangesSince(ctx C, cursor Cursor) (ChangeSet, error)
 	// EnumerateAll returns a page of every message in the mailbox. Full traversal is the backfill
-	// primitive and never a delta, so delta sync does not call it (ADR-0017, ADR-0018). An
+	// primitive and never a delta, so delta sync does not call it (ADR-0133, ADR-0018). An
 	// implementation that counts the mailbox gives every page its Total, the messages a full
 	// enumeration returns as the provider counts them and its page limit, and one that does not
 	// gives none (ADR-0095). It returns ErrInvalid for a page token it did not issue.
@@ -68,4 +74,46 @@ var (
 	ErrProvider = errors.New("mail: the provider failed the request")
 	// ErrAuthentication is a credential the provider refused.
 	ErrAuthentication = errors.New("mail: the provider refused the credential")
+	// ErrRefused is a body the port will not return, its rendered part larger than MaxBodyBytes or in
+	// a form the implementation cannot decode. The provider did nothing wrong, and asking again
+	// refuses again while the message and MaxBodyBytes stay as they are (ADR-0131).
+	ErrRefused = errors.New("mail: the body is refused, too large or not decodable")
+	// ErrHeldApart is a rendered part the provider holds apart from the message, which a second
+	// GetMessageBody call names. An error wrapping it is a HeldApartError naming the part.
+	ErrHeldApart = errors.New("mail: the body's rendered part is held apart from the message")
 )
+
+// BodyPart names one rendered part of a message for GetMessageBody. It is opaque, and only the
+// implementation that issued it can read it. The empty part asks the implementation to choose the
+// rendered part.
+type BodyPart string
+
+// HeldApartError is GetMessageBody's answer when the rendered part is held apart from the message
+// and within MaxBodyBytes. Part names it for the second call.
+type HeldApartError struct {
+	Part BodyPart
+}
+
+func (e HeldApartError) Error() string { return ErrHeldApart.Error() }
+
+func (e HeldApartError) Unwrap() error { return ErrHeldApart }
+
+// NextBodyPart decides, after a GetMessageBody call that named asked returned err, the part the next
+// call names and whether one is due (ADR-0131). A call that chose the rendered part and was told it
+// is held apart is followed by one naming that part. Nothing else is followed, a part that names
+// itself held apart again included, so a body takes at most two calls.
+func NextBodyPart(asked BodyPart, err error) (BodyPart, bool) {
+	var apart HeldApartError
+	if asked != "" || !errors.As(err, &apart) || apart.Part == "" {
+		return "", false
+	}
+	return apart.Part, true
+}
+
+// MaxBodyBytes is the largest rendered part, in bytes of UTF-8 text, that the port returns and the
+// system releases or scans (ADR-0131). The conversion's input limit and the literal form's are this
+// value, so the three cannot drift. The live run measured Gmail holding parts apart once a message's
+// parts pass between 1,000,000 and 1,048,619 bytes in all, the large parts first, so any raise of
+// this value first runs the gmail-contract workflow on its branch, since only a real Gmail answer
+// shows how many bodies would then take the second call (ADR-0131).
+const MaxBodyBytes = 512 << 10

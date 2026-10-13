@@ -1,0 +1,18 @@
+control: Nothing past the bound is downloaded where the provider declares a part's size, nothing past it is returned, and a response past its cap is refused
+removes: a body read is capped at every other request's cap rather than its own, so an answer past the body read's cap is returned whole
+packages: ./provider/gmail
+tests: TestABodyReadsAnswerPastItsCapIsRefused TestRequests
+scheduled-count: no
+diff --git a/provider/gmail/request.go b/provider/gmail/request.go
+index 5a6fc6e7..0776f959 100644
+--- a/provider/gmail/request.go
++++ b/provider/gmail/request.go
+@@ -171,7 +171,7 @@ func bodyRequest(id string) request {
+ 	q := url.Values{"format": {formatFull}, "fields": {bodyFields}}
+ 	return request{
+ 		Method: "GET", Path: "messages/" + url.PathEscape(id), Query: q, Units: unitsMessagesGet, Endpoint: "messages.get",
+-		Cap: bodyReadCap(core.MessageReadCap),
++		Cap: anyReadCap(),
+ 	}
+ }
+ 

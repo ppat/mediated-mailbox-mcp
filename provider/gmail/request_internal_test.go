@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
+	"github.com/ppat/mediated-mailbox-mcp/provider/gmail/core"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 )
 
@@ -68,9 +69,14 @@ func TestRequests(t *testing.T) {
 			sent{"GET", "https://gmail.googleapis.com/gmail/v1/users/me/messages/18c2f0a1b2c3d4e5?" + url.Values{"fields": {metadataMask}, "format": {"full"}}.Encode(), "", 20},
 		},
 		{
-			"messages.get in the full format",
-			messageRequest("18c2f0a1b2c3d4e5", formatFull),
-			sent{"GET", "https://gmail.googleapis.com/gmail/v1/users/me/messages/18c2f0a1b2c3d4e5?format=full", "", 20},
+			"messages.get for the body, through the body mask",
+			bodyRequest("18c2f0a1b2c3d4e5"),
+			sent{"GET", "https://gmail.googleapis.com/gmail/v1/users/me/messages/18c2f0a1b2c3d4e5?fields=id%2CthreadId%2Cpayload&format=full", "", 20},
+		},
+		{
+			"messages.attachments.get for a body part held apart",
+			partRequest("18c2f0a1b2c3d4e5", "ANGjdJ9-x_1"),
+			sent{"GET", "https://gmail.googleapis.com/gmail/v1/users/me/messages/18c2f0a1b2c3d4e5/attachments/ANGjdJ9-x_1", "", 20},
 		},
 		{
 			"messages.get in the minimal format",
@@ -103,6 +109,16 @@ func TestRequests(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			if diff := cmp.Diff(c.want, onWire(c.got), compare.Options); diff != "" {
 				t.Errorf("request (-want +got):\n%s", diff)
+			}
+			want := readCap{Bytes: maxResponse}
+			switch c.name {
+			case "messages.get for the body, through the body mask":
+				want = readCap{Bytes: core.MessageReadCap, Refuses: true}
+			case "messages.attachments.get for a body part held apart":
+				want = readCap{Bytes: core.PartReadCap, Refuses: true}
+			}
+			if c.got.Cap != want {
+				t.Errorf("the request reads to %+v, want %+v", c.got.Cap, want)
 			}
 		})
 	}

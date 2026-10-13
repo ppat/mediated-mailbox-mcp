@@ -1,0 +1,19 @@
+control: Nothing past the bound is downloaded where the provider declares a part's size, nothing past it is returned, and a response past its cap is refused
+removes: a part held apart is named for a second call whatever size it declares, so a part past the bound is downloaded
+packages: ./provider/gmail/core
+tests: TestMessageBodyOfAPartHeldApartOrPastTheBound
+scheduled-count: no
+
+diff --git a/provider/gmail/core/body.go b/provider/gmail/core/body.go
+index 4fdb9acb..1221c43e 100644
+--- a/provider/gmail/core/body.go
++++ b/provider/gmail/core/body.go
+@@ -156,7 +156,7 @@ func MessageBody(payload Part, parse ParseMediaType) (Decision, string) {
+ 		return Decision{Act: Empty}, ""
+ 	}
+ 	if p.Body.Data == "" {
+-		if p.Body.Size > mail.MaxBodyBytes {
++		if p.Body.Size > mail.MaxBodyBytes && false {
+ 			return stop(slot, PastBound), ""
+ 		}
+ 		charset, problem := declaredCharset(p, parse)

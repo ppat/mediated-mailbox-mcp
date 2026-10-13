@@ -90,8 +90,12 @@ type ThreadMetadata struct {
 	Messages  []MessageMetadata
 }
 
-// MessageBody is a message's body as the provider holds it, before any sanitization. A part the
-// message does not have is empty, so a body with no HTML part is never converted as HTML (ADR-0036).
+// MessageBody is a message's rendered part as the provider holds it, before any sanitization: its
+// HTML part when it has one, and otherwise its text part, each the first without a file name that
+// holds content, data or a reference to data, depth first, so an empty part is passed over. The
+// other field is empty, so a body with no HTML part is never converted as HTML (ADR-0036), and the
+// text part of a body with an HTML part, which is never released, is never fetched (ADR-0100,
+// ADR-0131).
 type MessageBody struct {
 	AccountID string
 	MessageID string

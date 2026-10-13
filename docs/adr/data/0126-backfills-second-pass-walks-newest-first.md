@@ -7,7 +7,7 @@
 
 Backfill's second pass decides and scans the messages its first pass stored pending, and a pending
 message's body is denied as pending its content scan
-([ADR-0017](./0017-two-pass-backfill.md), [ADR-0093](../redaction/0093-composite-scan-gate.md)).
+([ADR-0133](./0133-backfill-is-full-history-and-two-pass.md), [ADR-0093](../redaction/0093-composite-scan-gate.md)).
 The pass starts for an account only once the first pass has ended, because the gate reads each
 sender's volume and prior hits from the first pass's statistics, and with partial statistics a
 sender can show high volume and no hits only because its earlier hits are not stored yet. A pending

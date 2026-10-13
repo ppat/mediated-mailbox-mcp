@@ -1,0 +1,20 @@
+control: A worker's provider call that does not answer within the deadline is cut off as the provider's failure
+removes: a call its caller gave up on is read as the provider's failure and cuts the rate
+packages: ./ratelimit/lease
+tests: TestACallThatDoesNotAnswerIsCutOffAsTheProvidersFailure
+scheduled-count: no
+integration: yes
+
+diff --git a/ratelimit/lease/call.go b/ratelimit/lease/call.go
+index 980e1f40..7a1fdb31 100644
+--- a/ratelimit/lease/call.go
++++ b/ratelimit/lease/call.go
+@@ -33,7 +33,7 @@ func Call[T any](ctx context.Context, limiter *Limiter, port mail.Port[context.C
+ 	start := time.Now()
+ 	bounded, cancel := context.WithTimeout(ctx, CallTimeout)
+ 	out, err := call(bounded)
+-	if err != nil && errors.Is(bounded.Err(), context.DeadlineExceeded) && ctx.Err() == nil {
++	if err != nil && errors.Is(bounded.Err(), context.DeadlineExceeded) {
+ 		err = fmt.Errorf("%w: no answer within %s: %w", mail.ErrProvider, CallTimeout, err)
+ 	}
+ 	cancel()

@@ -1,0 +1,21 @@
+control: The port returns a body's rendered part alone, and a part the provider holds apart takes exactly one more call
+removes: the Gmail adapter looks for the rendered part only at the top of the part tree, so a multipart message's body reads as empty
+packages: ./provider/gmail/core
+tests: TestMessageBodyChoosesTheRenderedPart
+scheduled-count: no
+diff --git a/provider/gmail/core/body.go b/provider/gmail/core/body.go
+index 4fdb9acb..7674f363 100644
+--- a/provider/gmail/core/body.go
++++ b/provider/gmail/core/body.go
+@@ -252,11 +252,6 @@ func first(p Part, mediaType string) (Part, bool) {
+ 	if p.Filename == "" && strings.EqualFold(p.MimeType, mediaType) && (p.Body.Data != "" || p.Body.AttachmentID != "") {
+ 		return p, true
+ 	}
+-	for _, c := range p.Parts {
+-		if found, ok := first(c, mediaType); ok {
+-			return found, true
+-		}
+-	}
+ 	return Part{}, false
+ }
+ 

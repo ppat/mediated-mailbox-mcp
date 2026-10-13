@@ -85,6 +85,7 @@ func TestFailClosed(t *testing.T) {
 		{"stored values nobody built", p, unlisted, sensitivity.ContentFlags{}, sensitivity.ScanState{}, denied("invalid_stored_state", "unlisted")},
 		{"a flag on a message skipped by the scan gate", p, unlisted, link, sensitivity.SkippedGate(), denied("invalid_stored_state", "unlisted")},
 		{"a flag on a message skipped as restricted", p, listed, mfa, sensitivity.SkippedRestricted(), denied("invalid_stored_state", "listed")},
+		{"a flag on a message whose body was refused", p, unlisted, mfa, sensitivity.Refused(), denied("invalid_stored_state", "unlisted")},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -124,6 +125,8 @@ func TestDecide(t *testing.T) {
 		{"both flags", unlisted, sensitivity.Flags(true, true), scanned, denied("content_flagged", "unlisted")},
 		{"a restricted sender with a flag", listed, mfa, scanned, denied("restricted_sender", "listed")},
 		{"a delisted sender before its messages return to pending", unlisted, none, sensitivity.SkippedRestricted(), denied("skipped_restricted", "unlisted")},
+		{"a normal sender, its body refused", unlisted, none, sensitivity.Refused(), denied("body_refused", "unlisted")},
+		{"a restricted sender, its body refused before it was listed", listed, none, sensitivity.Refused(), denied("restricted_sender", "listed")},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

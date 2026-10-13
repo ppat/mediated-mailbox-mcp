@@ -478,7 +478,7 @@ func skippedAfterAnEdit(t *testing.T) map[string]bool {
 // pass runs would.
 type bodyPanicking struct{ *fake.Fake }
 
-func (bodyPanicking) GetMessageBody(context.Context, string) (mail.MessageBody, error) {
+func (bodyPanicking) GetMessageBody(context.Context, string, mail.BodyPart) (mail.MessageBody, error) {
 	panic("a bug in the second pass")
 }
 

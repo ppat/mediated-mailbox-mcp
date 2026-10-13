@@ -19,7 +19,10 @@ import (
 const hardCap = 80
 
 // Each call's declared cost is the sum of Gmail's published prices for the methods it calls, in its
-// worst case, counting each read of the label table at one unit (ADR-0023).
+// worst case, counting each read of the label table at one unit (ADR-0023). A body call declares 20
+// units whether it chooses the rendered part, a messages.get, or names a part held apart, a
+// messages.attachments.get, so only a part held apart within the bound pays for a second call
+// (ADR-0131).
 func TestCostDeclaresEachCallsWorstCase(t *testing.T) {
 	cases := []struct {
 		op   mail.ProviderOp
@@ -30,6 +33,7 @@ func TestCostDeclaresEachCallsWorstCase(t *testing.T) {
 		{mail.ProviderOp{Operation: mail.OpGetMessageMetadata, Messages: 3}, mail.OpCost{Weight: 61, OpsCount: 3}},
 		{mail.ProviderOp{Operation: mail.OpGetMessageMetadata}, mail.OpCost{Weight: 1}},
 		{mail.ProviderOp{Operation: mail.OpGetMessageBody, Messages: 1}, mail.OpCost{Weight: 20, OpsCount: 1}},
+		{mail.ProviderOp{Operation: mail.OpGetMessageBody}, mail.OpCost{Weight: 20}},
 		{mail.ProviderOp{Operation: mail.OpListLabels}, mail.OpCost{Weight: 1}},
 		{mail.ProviderOp{Operation: mail.OpEnsureLabel}, mail.OpCost{Weight: 7}},
 		{mail.ProviderOp{Operation: mail.OpMutate, Messages: 3}, mail.OpCost{Weight: 61, OpsCount: 3}},

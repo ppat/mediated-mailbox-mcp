@@ -7535,7 +7535,8 @@
                   "gone",
                   "scanner_timeout",
                   "validation",
-                  "authentication"
+                  "authentication",
+                  "refused"
                 ]
               },
               {
@@ -7568,7 +7569,8 @@
                   "recovered",
                   "pending",
                   "gone",
-                  "abandoned"
+                  "abandoned",
+                  "refused"
                 ]
               },
               {

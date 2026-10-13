@@ -1,0 +1,18 @@
+control: Every request the Gmail adapter sends is counted at its cost where it is sent, failed requests included
+removes: a read of a part held apart is counted at no cost
+packages: ./provider/gmail
+tests: TestEveryRequestSentIsCounted
+scheduled-count: no
+diff --git a/provider/gmail/request.go b/provider/gmail/request.go
+index 5a6fc6e7..6a9ae9cd 100644
+--- a/provider/gmail/request.go
++++ b/provider/gmail/request.go
+@@ -180,7 +180,7 @@ func bodyRequest(id string) request {
+ func partRequest(id, attachment string) request {
+ 	return request{
+ 		Method: "GET", Path: "messages/" + url.PathEscape(id) + "/attachments/" + url.PathEscape(attachment),
+-		Units: unitsAttachmentsGet, Endpoint: "messages.attachments.get", Cap: bodyReadCap(core.PartReadCap),
++		Units: 0, Endpoint: "messages.attachments.get", Cap: bodyReadCap(core.PartReadCap),
+ 	}
+ }
+ 

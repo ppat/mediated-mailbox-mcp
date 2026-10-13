@@ -124,6 +124,10 @@ func Run(t *testing.T, cfg Config) {
 		{"the trash and spam are listed and read like any other mail", scoped, trashAndSpamListed, false},
 		{"a query no constructor completed is refused", empty, invalidQueriesRefused, false},
 		{"a body comes back exactly as seeded", seeded, bodyAsSeeded, false},
+		{"a body is its rendered part alone", empty, bodyIsItsRenderedPart, false},
+		{"a body held apart within the bound comes back whole, in two calls at most", empty, heldApartBodyComesBack, false},
+		{"a body past the bound is refused at its first call", empty, bodyPastTheBoundRefused, false},
+		{"a body in a declared charset comes back as UTF-8", empty, declaredCharsetDecoded, false},
 		{"an unknown message's body is not found", empty, unknownBodyNotFound, false},
 		{"every label is listed", seeded, everyLabelListed, false},
 		{"ensuring a label creates it once", empty, ensureLabelIsIdempotent, false},
@@ -767,23 +771,101 @@ func invalidQueriesRefused(t *testing.T, s *subject) {
 	}
 }
 
+// body reads the body of the message id names as a caller of the port does, a second call naming the
+// part when the first answers that it is held apart, as mail.NextBodyPart decides. It returns the
+// body, the error of the last call, and how many calls it took.
+func body(ctx context.Context, port mail.Port[context.Context], id string) (mail.MessageBody, int, error) {
+	var part mail.BodyPart
+	for calls := 1; ; calls++ {
+		got, err := port.GetMessageBody(ctx, id, part)
+		next, due := mail.NextBodyPart(part, err)
+		if !due {
+			return got, calls, err
+		}
+		part = next
+	}
+}
+
+// bodyOf reads the message keyed key's body and compares it with want, filled in with the account and
+// the message's identifier.
+func bodyOf(t *testing.T, s *subject, key string, want mail.MessageBody) int {
+	t.Helper()
+	id := s.id(t, key)
+	got, calls, err := body(t.Context(), s.port, id)
+	if err != nil {
+		t.Fatalf("GetMessageBody(%q): %v", key, err)
+	}
+	want.AccountID, want.MessageID = Account, id
+	if diff := cmp.Diff(want, got, compare.Options); diff != "" {
+		t.Errorf("GetMessageBody(%q) (-want +got):\n%s", key, diff)
+	}
+	return calls
+}
+
 func bodyAsSeeded(t *testing.T, s *subject) {
 	for _, key := range mailboxKeys() {
-		id := s.id(t, key)
-		got, err := s.port.GetMessageBody(t.Context(), id)
-		if err != nil {
-			t.Fatalf("GetMessageBody(%q): %v", key, err)
-		}
-		want := s.messages[key].Body
-		want.AccountID, want.MessageID = Account, id
-		if diff := cmp.Diff(want, got, compare.Options); diff != "" {
-			t.Errorf("GetMessageBody(%q) (-seeded +got):\n%s", key, diff)
+		bodyOf(t, s, key, s.messages[key].Body)
+	}
+}
+
+// bodyIsItsRenderedPart delivers a message with a text part and an HTML part, and one with a text
+// part alone. The first's body is its HTML part, with no text, and the second's its text part
+// (ADR-0131).
+func bodyIsItsRenderedPart(t *testing.T, s *subject) {
+	both := mail.MessageBody{Text: marker.Body("alternativetext") + " Plain words.", HTML: "<p>" + marker.Body("alternativehtml") + " Rich words.</p>"}
+	s.deliver(t, bodied(s.mark, s.base, "both", both))
+	s.deliver(t, bodied(s.mark, s.base, "plain", mail.MessageBody{Text: marker.Body("plainonly") + " Plain words."}))
+	bodyOf(t, s, "both", mail.MessageBody{HTML: both.HTML})
+	bodyOf(t, s, "plain", mail.MessageBody{Text: marker.Body("plainonly") + " Plain words."})
+}
+
+// heldApartBodyComesBack delivers a message whose HTML part is near the bound, 500,000 bytes, held
+// apart where the implementation can choose. Its body comes back whole, in one call or two, and a
+// second call is made only when the first said the part is held apart. 524288 bytes is the bound the
+// operator set, written out here rather than read from the port (ADR-0131).
+func heldApartBodyComesBack(t *testing.T, s *subject) {
+	m := bodied(s.mark, s.base, "large", mail.MessageBody{HTML: sizedHTML("large", 500000)})
+	m.HeldApart = true
+	s.deliver(t, m)
+	calls := bodyOf(t, s, "large", mail.MessageBody{HTML: m.Body.HTML})
+	if calls > 2 {
+		t.Errorf("the body took %d calls, want two at most", calls)
+	}
+}
+
+// bodyPastTheBoundRefused delivers a message whose HTML part is a byte past the bound, held apart
+// where the implementation can choose, and one whose text part alone is. Each is refused, at the
+// first call, with the port's refusal and not the provider's failure (ADR-0131).
+func bodyPastTheBoundRefused(t *testing.T, s *subject) {
+	html := bodied(s.mark, s.base, "pasthtml", mail.MessageBody{HTML: sizedHTML("pasthtml", 524289)})
+	html.HeldApart = true
+	s.deliver(t, html)
+	s.deliver(t, bodied(s.mark, s.base, "pasttext", mail.MessageBody{Text: sizedText("pasttext", 524289)}))
+	for _, key := range []string{"pasthtml", "pasttext"} {
+		got, err := s.port.GetMessageBody(t.Context(), s.id(t, key), "")
+		if !errors.Is(err, mail.ErrRefused) || errors.Is(err, mail.ErrProvider) {
+			t.Errorf("GetMessageBody(%q) returned %d bytes and %v, want an error wrapping %v alone", key, len(got.HTML)+len(got.Text), err, mail.ErrRefused)
 		}
 	}
 }
 
+// declaredCharsetDecoded delivers two messages whose HTML part is declared and encoded in Latin-1,
+// one small and one near the bound held apart where the implementation can choose. Each comes back as
+// the same text in UTF-8.
+func declaredCharsetDecoded(t *testing.T, s *subject) {
+	for key, html := range map[string]string{
+		"latinsmall": "<p>" + marker.Body("latinsmall") + " Café, crème brûlée.</p>",
+		"latinlarge": sizedHTML("latinlarge", 480000) + "<p>Café, crème brûlée.</p>",
+	} {
+		m := bodied(s.mark, s.base, key, mail.MessageBody{HTML: html})
+		m.Charset, m.HeldApart = "iso-8859-1", key == "latinlarge"
+		s.deliver(t, m)
+		bodyOf(t, s, key, mail.MessageBody{HTML: html})
+	}
+}
+
 func unknownBodyNotFound(t *testing.T, s *subject) {
-	if _, err := s.port.GetMessageBody(t.Context(), "no-such-message"); !errors.Is(err, mail.ErrNotFound) {
+	if _, err := s.port.GetMessageBody(t.Context(), "no-such-message", ""); !errors.Is(err, mail.ErrNotFound) {
 		t.Errorf("GetMessageBody of an unknown message returned %v, want an error wrapping %v", err, mail.ErrNotFound)
 	}
 }
@@ -1173,7 +1255,7 @@ func removalReported(t *testing.T, s *subject) {
 	if _, ok := s.state(t)["bank"]; ok {
 		t.Error("the removed message's metadata is still returned")
 	}
-	if _, err := s.port.GetMessageBody(t.Context(), bank); !errors.Is(err, mail.ErrNotFound) {
+	if _, err := s.port.GetMessageBody(t.Context(), bank, ""); !errors.Is(err, mail.ErrNotFound) {
 		t.Errorf("the removed message's body returned %v, want an error wrapping %v", err, mail.ErrNotFound)
 	}
 }
@@ -1305,7 +1387,7 @@ func cancelledCallsFail(t *testing.T, s *subject) {
 		"ListThreads":        func() error { _, err := s.port.ListThreads(cancelled, mail.All(), ""); return err },
 		"GetThreadMetadata":  func() error { _, err := s.port.GetThreadMetadata(cancelled, "no-such-thread"); return err },
 		"GetMessageMetadata": func() error { _, err := s.port.GetMessageMetadata(cancelled, []string{code}); return err },
-		"GetMessageBody":     func() error { _, err := s.port.GetMessageBody(cancelled, code); return err },
+		"GetMessageBody":     func() error { _, err := s.port.GetMessageBody(cancelled, code, ""); return err },
 		"ListLabels":         func() error { _, err := s.port.ListLabels(cancelled); return err },
 		"EnsureLabel":        func() error { _, err := s.port.EnsureLabel(cancelled, cancelledLabel); return err },
 		"Mutate": func() error {

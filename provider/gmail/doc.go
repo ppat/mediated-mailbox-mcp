@@ -55,8 +55,12 @@
 //     returns the headers and the parts tree without any body content (ADR-0010). Every header of
 //     the message comes back, since a mask cannot pick headers by name, and the model reads only
 //     the ones it maps. Each part's type and file name come back to six levels of nesting.
-//   - GetMessageBody reads the message in the full format and takes the first plain text part and
-//     the first HTML part that are not attachments.
+//   - GetMessageBody reads the message through the body mask and returns its rendered part alone,
+//     within mail.MaxBodyBytes. A rendered part Gmail holds apart is named in a HeldApartError and
+//     read by a second call through messages.attachments.get. Which part is rendered, whether it is
+//     returned, fetched or refused, the decoding of its data from its declared charset, each read's
+//     cap and the refusal of an answer past it are decided by the pure core in provider/gmail/core,
+//     and this package enacts each decision (ADR-0131, ADR-0134).
 //   - Mutate sends one messages.modify per op. Only a label an op adds must exist (ADR-0010), so a
 //     label it removes that the account lacks is left out of the modify. An op left with nothing to
 //     change reads its message and sends nothing else, so an op on an unknown message is still not

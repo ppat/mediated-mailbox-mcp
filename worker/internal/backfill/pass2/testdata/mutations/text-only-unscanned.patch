@@ -1,0 +1,21 @@
+control: The scan reads the part release serves, in the form it is served
+removes: the second pass scans nothing of a body with no HTML part
+packages: ./worker/internal/backfill/pass2
+tests: TestTheReleasedPartOfABodyIsScanned
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/pass2/pass2.go b/worker/internal/backfill/pass2/pass2.go
+index 6aec8976..6acfaaaf 100644
+--- a/worker/internal/backfill/pass2/pass2.go
++++ b/worker/internal/backfill/pass2/pass2.go
+@@ -334,6 +334,9 @@ func (p *Pass) scan(ctx context.Context, id string, number int) (*index.Scanned,
+ 		return nil, refused, true, nil
+ 	}
+ 	start = time.Now()
++	if body.HTML == "" {
++		rendered = ""
++	}
+ 	scanned := index.Scan(p.deps.Scanner, rendered)
+ 	p.deps.Processing.Since(series.StepScan, start)
+ 	return &scanned, item, false, nil

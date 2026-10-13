@@ -1,0 +1,19 @@
+control: A part held apart is decoded from its declared charset, and a label the table does not name is refused
+removes: a label the table maps to its replacement encoding is decoded, so the part reads as one replacement character
+packages: ./provider/gmail/core
+tests: TestPartText/a_charset_that_decodes_to_replacement
+scheduled-count: no
+
+diff --git a/provider/gmail/core/body.go b/provider/gmail/core/body.go
+index 4fdb9acb..7cebc382 100644
+--- a/provider/gmail/core/body.go
++++ b/provider/gmail/core/body.go
+@@ -208,7 +208,7 @@ func PartText(data, charset string, labels Labels) (string, Problem) {
+ 		name, err = labels.Name(enc)
+ 	}
+ 	switch {
+-	case err != nil, name == "replacement", name == "utf-16le", name == "utf-16be", name == "x-user-defined":
++	case err != nil, name == "utf-16le", name == "utf-16be", name == "x-user-defined":
+ 		return "", CharsetRefused
+ 	}
+ 	out, err := enc.NewDecoder().Bytes(raw)

@@ -4,15 +4,11 @@ packages: ./worker/internal/backfill/pass2
 tests: TestAPassDecidesAndRecordsEveryWaitingMessage TestAKilledSecondPassResumesFromItsCheckpoint
 scheduled-count: no
 integration: yes
-
 diff --git a/worker/internal/backfill/pass2/postgres.go b/worker/internal/backfill/pass2/postgres.go
-index 2b9ece79..73f00a3f 100644
+index 1d6d25fa..91c7c6c8 100644
 --- a/worker/internal/backfill/pass2/postgres.go
 +++ b/worker/internal/backfill/pass2/postgres.go
-@@ -454,13 +454,13 @@ func commitOutcome(ctx context.Context, messages *scan.Queries, gate *gaterecord
- 			rules = []string{}
- 		}
- 		n, err = messages.RecordVerdict(ctx, scan.RecordVerdictParams{
+@@ -466,7 +466,7 @@ func commitOutcome(ctx context.Context, messages *scan.Queries, gate *gaterecord
  			ContentFlags:    flags,
  			RuleIds:         rules,
  			ScannerVersion:  pgtype.Int4{Int32: int32(min(max(o.Scanned.Version, 0), 1<<31-1)), Valid: true}, //nolint:gosec // Bounded.
@@ -20,7 +16,4 @@ index 2b9ece79..73f00a3f 100644
 +			ScannerRevision: pgtype.Text{},
  			MessageID:       o.ID,
  		})
- 	case !o.Verdict.Scans():
- 		n, err = messages.RecordSkip(ctx, scan.RecordSkipParams{ScanState: o.Verdict.State().String(), MessageID: o.ID})
- 	default:
- 		return nil
+ 	case o.Refused:

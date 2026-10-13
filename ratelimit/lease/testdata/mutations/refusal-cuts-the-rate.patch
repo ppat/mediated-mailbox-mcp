@@ -1,0 +1,20 @@
+control: A refusal is not the provider's failure, so it never reaches the rate controller as a server error
+removes: a worker's leased call tells the controller of a refused body as a server error
+packages: ./ratelimit/lease
+tests: TestABodyIsFetchedByPartAndARefusalTellsTheControllerNothing
+scheduled-count: no
+integration: yes
+
+diff --git a/ratelimit/lease/call.go b/ratelimit/lease/call.go
+index 980e1f40..334f8aa1 100644
+--- a/ratelimit/lease/call.go
++++ b/ratelimit/lease/call.go
+@@ -43,7 +43,7 @@ func Call[T any](ctx context.Context, limiter *Limiter, port mail.Port[context.C
+ 		told = limiter.Succeeded(ctx, account, cost, time.Since(start))
+ 	case throttled:
+ 		told = limiter.Throttled(ctx, account, signal)
+-	case errors.Is(err, mail.ErrProvider):
++	case errors.Is(err, mail.ErrProvider), errors.Is(err, mail.ErrRefused):
+ 		told = limiter.ServerErrored(ctx, account)
+ 	}
+ 	if told != nil {

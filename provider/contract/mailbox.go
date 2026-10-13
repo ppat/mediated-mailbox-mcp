@@ -40,10 +40,18 @@ import (
 // Attachments are the message's attachments as its parts declare them, which a harness that writes
 // the message to a provider gives each part, and Metadata carries the names and the normalized media
 // the implementation must report for them, the media written out in the fixtures (ADR-0123).
+//
+// Body may hold both parts, and the implementation returns the rendered one alone (ADR-0131).
+// HeldApart asks an implementation that can choose to hold the rendered part apart from the message,
+// as a real provider holds a large part, which a real provider decides for itself by the part's size.
+// Charset is the charset a harness that writes the message to a provider declares and encodes each
+// body part in, empty for UTF-8, and every body part's text is representable in it.
 type Message struct {
 	Metadata    mail.MessageMetadata
 	Body        mail.MessageBody
 	Attachments []mail.AttachmentPart
+	HeldApart   bool
+	Charset     string
 }
 
 // The labels the mailbox's messages carry beyond the three the disposal verbs manage. They are
@@ -141,4 +149,26 @@ func brief(mark string, base mail.UnixMilli) Message {
 	f := fixture.Receipt()
 	f.Subject = marker.Field("briefsubject") + " Your order has shipped"
 	return seed(mark, base, "brief", "brief", f, 8, mail.Flags{}, mail.Inbox)
+}
+
+// bodied is a message a case delivers to read its body back, the receipt fixture with a subject and a
+// thread of its own under key and the body given.
+func bodied(mark string, base mail.UnixMilli, key string, body mail.MessageBody) Message {
+	f := fixture.Receipt()
+	f.Subject = marker.Field(key+"subject") + " Your order has shipped"
+	m := seed(mark, base, key, key, f, 7, mail.Flags{Read: true}, mail.Inbox)
+	m.Body = body
+	return m
+}
+
+// sizedText returns a text of exactly n bytes that begins with the body marker for key, so a leak
+// check finds it, and an HTML part of exactly n bytes holding that text.
+func sizedText(key string, n int) string {
+	head := marker.Body(key) + " "
+	return head + strings.Repeat("a", n-len(head))
+}
+
+func sizedHTML(key string, n int) string {
+	const open, closing = "<p>", "</p>"
+	return open + sizedText(key, n-len(open)-len(closing)) + closing
 }

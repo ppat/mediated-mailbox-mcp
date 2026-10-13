@@ -104,11 +104,19 @@ The demonstrations of the controls whose patches sit in `ratelimit/`. [MUTATIONS
 
 ## A worker that waited on the account's lock is stamped with the clock read after it got the lock
 
-- **Date · evidence:** 2026-09-24 · [pull request #157](https://github.com/ppat/mediated-mailbox-mcp/pull/157), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and every break again on 2026-10-11 at RAPID_SEED=1, after the performance measurements changed the code, tests or patches the row rests on · [pull request #341](https://github.com/ppat/mediated-mailbox-mcp/pull/341), and breaks 1 and 2 again on 2026-10-13 at RAPID_SEED=1, with their patches regenerated after every statement came to read its account from the transaction · [pull request #370](https://github.com/ppat/mediated-mailbox-mcp/pull/370)
+- **Date · evidence:** 2026-09-24 · [pull request #157](https://github.com/ppat/mediated-mailbox-mcp/pull/157), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and every break again on 2026-10-11 at RAPID_SEED=1, after the performance measurements changed the code, tests or patches the row rests on · [pull request #341](https://github.com/ppat/mediated-mailbox-mcp/pull/341), and breaks 1 and 2 again on 2026-10-13 at RAPID_SEED=1, with their patches regenerated after every statement came to read its account from the transaction · [pull request #370](https://github.com/ppat/mediated-mailbox-mcp/pull/370), and every break again on 2026-10-13 at RAPID_SEED=1, over the statement form that reads the account from the transaction and the body fetch by part, which changed the code, tests or patches the row rests on · [pull request #369](https://github.com/ppat/mediated-mailbox-mcp/pull/369)
 - **Break (1):** the clock is read before the lock is taken, so a worker that waited is stamped early
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/ratelimit/lease`:** `TestAWorkerThatWaitedOnTheLockIsStampedAfterIt`
 - **Break (2):** no lock is taken, so issuers for one account do not take turns
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ratelimit/lease`:** `TestACrashedWorkersLeaseStopsCountingAtItsExpiry`, `TestACutComesOutOfBatchWhileInteractiveKeepsItsShare`, `TestAStoredCapAboveTheCeilingDoesNotRaiseIssuance`, `TestAWorkerThatWaitedOnTheLockIsStampedAfterIt`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ratelimit/lease`:** `TestACutComesOutOfBatchWhileInteractiveKeepsItsShare`, `TestAStoredCapAboveTheCeilingDoesNotRaiseIssuance`, `TestAWorkerThatWaitedOnTheLockIsStampedAfterIt`
+
+## A worker's provider call that does not answer within the deadline is cut off as the provider's failure
+
+- **Date · evidence:** 2026-10-13 · [pull request #369](https://github.com/ppat/mediated-mailbox-mcp/pull/369), at RAPID_SEED=1
+- **Break (1):** a call cut off at the deadline fails with the context's error, which the controller does not count as the provider's failure
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ratelimit/lease`:** `TestACallThatDoesNotAnswerIsCutOffAsTheProvidersFailure`
+- **Break (2):** a call its caller gave up on is read as the provider's failure and cuts the rate
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ratelimit/lease`:** `TestACallThatDoesNotAnswerIsCutOffAsTheProvidersFailure`
 
 ## Additive increase grows the rate by 2% of the target times the call's cost over the current rate
 
@@ -158,11 +166,11 @@ The demonstrations of the controls whose patches sit in `ratelimit/`. [MUTATIONS
 
 ## Every ask records its class's ask instant, and a waiting worker asks again within each lease period
 
-- **Date · evidence:** 2026-09-29 · [pull request #196](https://github.com/ppat/mediated-mailbox-mcp/pull/196), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and every break again on 2026-10-11 at RAPID_SEED=1, after the performance measurements changed the code, tests or patches the row rests on · [pull request #341](https://github.com/ppat/mediated-mailbox-mcp/pull/341)
+- **Date · evidence:** 2026-09-29 · [pull request #196](https://github.com/ppat/mediated-mailbox-mcp/pull/196), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and every break again on 2026-10-11 at RAPID_SEED=1, after the performance measurements changed the code, tests or patches the row rests on · [pull request #341](https://github.com/ppat/mediated-mailbox-mcp/pull/341), and every break again on 2026-10-13 at RAPID_SEED=1, over the statement form that reads the account from the transaction and the body fetch by part, which changed the code, tests or patches the row rests on · [pull request #369](https://github.com/ppat/mediated-mailbox-mcp/pull/369)
 - **Break (1):** a request left waiting stores nothing, so its ask is never recorded
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/ratelimit/lease`:** `TestACrashedWorkersLeaseStopsCountingAtItsExpiry`, `TestAnAskIsRecordedAndRenewedUntilTheWorkerStops`
 - **Break (2):** a waiting worker asks again every two seconds, longer than a lease period
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ratelimit/lease`:** `TestACutComesOutOfBatchWhileInteractiveKeepsItsShare`, `TestAStoredCapAboveTheCeilingDoesNotRaiseIssuance`, `TestAnAskIsRecordedAndRenewedUntilTheWorkerStops`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ratelimit/lease`:** `TestAStoredCapAboveTheCeilingDoesNotRaiseIssuance`, `TestAnAskIsRecordedAndRenewedUntilTheWorkerStops`
 
 ## Every grant of the last second is stored and counted in the one-second window
 

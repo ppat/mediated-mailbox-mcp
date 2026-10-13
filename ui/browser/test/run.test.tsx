@@ -19,6 +19,7 @@ import {
   type RunSummary,
 } from "../src/app/api.ts";
 import { LiveText } from "../src/app/live.tsx";
+import { disposition, scanState, scanStateLong, word } from "../src/app/wording.ts";
 import { App } from "../src/app/router.tsx";
 import type { components } from "../src/generated/contract.ts";
 import { canonicalize, parse } from "../src/app/url.ts";
@@ -463,6 +464,22 @@ test("a gone item says the message was not found at the provider, and what the i
   expect(meaning({ ...detail.row, scan_state: "skipped_restricted" })).toBe(
     "not found at provider. Its scan state is not scanned, restricted sender.",
   );
+});
+
+test("a refused failure says its body is denied and not fetched again until the limit changes", async () => {
+  const detail: FailureDetail = await recording("failure-4.json");
+  const refused = {
+    ...detail.row,
+    error_class: "refused",
+    disposition: "refused",
+    scan_state: "refused",
+  };
+  expect(meaning(refused)).toBe(
+    "body refused on this item. Its body is larger than the system releases, or cannot be read or converted, so its scan state is refused and its body is denied. It is not fetched again unless the size limit changes or its sender is removed from a restriction.",
+  );
+  expect(word(scanState, "refused").text).toBe("refused");
+  expect(word(scanStateLong, "refused").text).toBe("not scanned, body refused");
+  expect(word(disposition, "refused").text).toBe("refused");
 });
 
 test("a failure's panel shows its message's rule ids, scan time and scanner version", async () => {

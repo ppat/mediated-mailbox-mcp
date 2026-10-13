@@ -20,7 +20,7 @@ The demonstrations of the controls whose patches sit in `core/`. [MUTATIONS.md](
 
 ## A message body cannot carry a denying sensitivity
 
-- **Date · evidence:** 2026-09-22 · [pull request #142](https://github.com/ppat/mediated-mailbox-mcp/pull/142)
+- **Date · evidence:** 2026-09-22 · [pull request #142](https://github.com/ppat/mediated-mailbox-mcp/pull/142), and every break again on 2026-10-13 at RAPID_SEED=1, after the body fetch by part and the refused scan state changed the code, tests or patches the row rests on · [pull request #369](https://github.com/ppat/mediated-mailbox-mcp/pull/369)
 - **Break (1):** the Body gains an exported field that Text returns, so a Body literal can carry any text while the old field stays unexported
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/sensitivity`:** `TestNoSensitivityCarryingTypeExposesAField`
 - **Break (2):** the Body's text field is exported, so a Body literal can hold any text
@@ -34,7 +34,7 @@ The demonstrations of the controls whose patches sit in `core/`. [MUTATIONS.md](
 
 ## A restricted sender's body is never scanned
 
-- **Date · evidence:** 2026-09-25 · [pull request #167](https://github.com/ppat/mediated-mailbox-mcp/pull/167)
+- **Date · evidence:** 2026-09-25 · [pull request #167](https://github.com/ppat/mediated-mailbox-mcp/pull/167), and every break again on 2026-10-13 at RAPID_SEED=1, after the body fetch by part and the refused scan state changed the code, tests or patches the row rests on · [pull request #369](https://github.com/ppat/mediated-mailbox-mcp/pull/369)
 - **Break (1):** the sender class is checked after the scan rules, so a restricted sender any scan rule names is scanned
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/scangate`:** `TestAConfigThatCannotDecide`, `TestAConfigThatCannotDecide/a_restricted_sender_under_a_zero_Config`, `TestDecide`, `TestDecide/a_restricted_sender_whose_every_other_input_asks_for_a_scan`, `TestDecide/an_input_nobody_filled_in`
 - **Break (2):** the sender class is never read, so a restricted sender is decided like a normal one
@@ -78,7 +78,7 @@ The demonstrations of the controls whose patches sit in `core/`. [MUTATIONS.md](
 
 ## A scanner nobody built, or built from an invalid configuration, refuses to decide
 
-- **Date · evidence:** 2026-09-29 · [pull request #196](https://github.com/ppat/mediated-mailbox-mcp/pull/196)
+- **Date · evidence:** 2026-09-29 · [pull request #196](https://github.com/ppat/mediated-mailbox-mcp/pull/196), and every break again on 2026-10-13 at RAPID_SEED=1, after the body fetch by part and the refused scan state changed the code, tests or patches the row rests on · [pull request #369](https://github.com/ppat/mediated-mailbox-mcp/pull/369)
 - **Break (1):** a subject threshold above the body's builds a scanner
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/scan`:** `TestNewRefusesAnInvalidConfiguration`, `TestNewRefusesAnInvalidConfiguration/a_subject_threshold_above_the_body's`
 - **Break (2):** an invalid configuration builds a scanner
@@ -116,15 +116,15 @@ The demonstrations of the controls whose patches sit in `core/`. [MUTATIONS.md](
 
 ## A stored state no message can be in is denied as invalid, never as pending
 
-- **Date · evidence:** 2026-09-23 · [pull request #145](https://github.com/ppat/mediated-mailbox-mcp/pull/145), and every break again on 2026-10-11, after the typed audit row changed the code, tests, test fixtures or patch context they rest on · [pull request #347](https://github.com/ppat/mediated-mailbox-mcp/pull/347), and every break again on 2026-10-12 at RAPID_SEED=1, after the policy prepared once per load for the classifier changed the code, tests or patches the row rests on · [pull request #365](https://github.com/ppat/mediated-mailbox-mcp/pull/365)
+- **Date · evidence:** 2026-09-23 · [pull request #145](https://github.com/ppat/mediated-mailbox-mcp/pull/145), and every break again on 2026-10-11, after the typed audit row changed the code, tests, test fixtures or patch context they rest on · [pull request #347](https://github.com/ppat/mediated-mailbox-mcp/pull/347), and every break again on 2026-10-12 at RAPID_SEED=1, after the policy prepared once per load for the classifier changed the code, tests or patches the row rests on · [pull request #365](https://github.com/ppat/mediated-mailbox-mcp/pull/365), and every break again on 2026-10-13 at RAPID_SEED=1, after the body fetch by part and the refused scan state changed the code, tests or patches the row rests on · [pull request #369](https://github.com/ppat/mediated-mailbox-mcp/pull/369)
 - **Break (1):** every message not scanned, or with a flag, is denied as invalid
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/redact`:** `TestDecide`, `TestDecide/a_delisted_sender_before_its_messages_return_to_pending`, `TestDecide/a_login_link`, `TestDecide/a_normal_sender,_skipped_by_the_scan_gate`, `TestDecide/a_one-time_code`, `TestDecide/a_restricted_sender,_pending`, `TestDecide/a_restricted_sender,_skipped_as_restricted`, `TestDecide/a_restricted_sender,_skipped_by_the_scan_gate`, `TestDecide/a_restricted_sender_with_a_flag`, `TestDecide/both_flags`, `TestFailClosed`, `TestFailClosed/an_unscanned_message`, `TestTheGateReleasesOnlyWhatTheRuleReleases`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/redact`:** `TestDecide`, `TestDecide/a_delisted_sender_before_its_messages_return_to_pending`, `TestDecide/a_login_link`, `TestDecide/a_normal_sender,_its_body_refused`, `TestDecide/a_normal_sender,_skipped_by_the_scan_gate`, `TestDecide/a_one-time_code`, `TestDecide/a_restricted_sender,_its_body_refused_before_it_was_listed`, `TestDecide/a_restricted_sender,_pending`, `TestDecide/a_restricted_sender,_skipped_as_restricted`, `TestDecide/a_restricted_sender,_skipped_by_the_scan_gate`, `TestDecide/a_restricted_sender_with_a_flag`, `TestDecide/both_flags`, `TestFailClosed`, `TestFailClosed/an_unscanned_message`, `TestTheGateReleasesOnlyWhatTheRuleReleases`
 - **Break (2):** content flags on a message the scanner has not read are decided like any other state
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/redact`:** `TestFailClosed`, `TestFailClosed/a_flag_on_a_message_skipped_as_restricted`, `TestFailClosed/a_flag_on_a_message_skipped_by_the_scan_gate`, `TestFailClosed/stored_values_nobody_built`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/redact`:** `TestFailClosed`, `TestFailClosed/a_flag_on_a_message_skipped_as_restricted`, `TestFailClosed/a_flag_on_a_message_skipped_by_the_scan_gate`, `TestFailClosed/a_flag_on_a_message_whose_body_was_refused`, `TestFailClosed/stored_values_nobody_built`
 
 ## A verb no constant names is refused
 
-- **Date · evidence:** 2026-09-23 · [pull request #150](https://github.com/ppat/mediated-mailbox-mcp/pull/150)
+- **Date · evidence:** 2026-09-23 · [pull request #150](https://github.com/ppat/mediated-mailbox-mcp/pull/150), and every break again on 2026-10-13 at RAPID_SEED=1, after the body fetch by part and the refused scan state changed the code, tests or patches the row rests on · [pull request #369](https://github.com/ppat/mediated-mailbox-mcp/pull/369)
 - **Break (1):** a value no constant names is authorized
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/authorize`:** `TestFailClosed`, `TestFailClosed/a_value_past_the_last_verb`, `TestFailClosed/the_largest_value`, `TestOnlyTheMatrixVerbsAreAuthorized`, `TestTheAuthorizerAllowsOnlyWhatTheRulesAllow`
 - **Break (2):** a value no constant names is authorized for a restricted sender's mail alone
@@ -150,7 +150,7 @@ The demonstrations of the controls whose patches sit in `core/`. [MUTATIONS.md](
 
 ## A verdict reason no case handles withholds the body
 
-- **Date · evidence:** 2026-09-23 · [pull request #145](https://github.com/ppat/mediated-mailbox-mcp/pull/145), and every break again on 2026-10-11, after the typed audit row changed the code, tests, test fixtures or patch context they rest on · [pull request #347](https://github.com/ppat/mediated-mailbox-mcp/pull/347)
+- **Date · evidence:** 2026-09-23 · [pull request #145](https://github.com/ppat/mediated-mailbox-mcp/pull/145), and every break again on 2026-10-11, after the typed audit row changed the code, tests, test fixtures or patch context they rest on · [pull request #347](https://github.com/ppat/mediated-mailbox-mcp/pull/347), and every break again on 2026-10-13 at RAPID_SEED=1, after the body fetch by part and the refused scan state changed the code, tests or patches the row rests on · [pull request #369](https://github.com/ppat/mediated-mailbox-mcp/pull/369)
 - **Break (1):** a reason no case names reads as released
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/redact`:** `TestAnUnhandledReasonWithholds`
 - **Break (2):** a reason no case names releases the body
@@ -256,7 +256,7 @@ The demonstrations of the controls whose patches sit in `core/`. [MUTATIONS.md](
 
 ## The first rule in ADR-0093's order gives the reason
 
-- **Date · evidence:** 2026-09-25 · [pull request #167](https://github.com/ppat/mediated-mailbox-mcp/pull/167)
+- **Date · evidence:** 2026-09-25 · [pull request #167](https://github.com/ppat/mediated-mailbox-mcp/pull/167), and every break again on 2026-10-13 at RAPID_SEED=1, after the body fetch by part and the refused scan state changed the code, tests or patches the row rests on · [pull request #369](https://github.com/ppat/mediated-mailbox-mcp/pull/369)
 - **Break (1):** the low-volume rule is checked before the recent small rule
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/scangate`:** `TestDecide`, `TestDecide/a_recent_small_message_wins_over_low_volume`
 - **Break (2):** the prior hit rule is checked before the low-volume rule
@@ -288,7 +288,7 @@ The demonstrations of the controls whose patches sit in `core/`. [MUTATIONS.md](
 
 ## The high-volume rule skips only a message carrying a List-Id from a sender above the mark with no prior hit
 
-- **Date · evidence:** 2026-09-25 · [pull request #167](https://github.com/ppat/mediated-mailbox-mcp/pull/167)
+- **Date · evidence:** 2026-09-25 · [pull request #167](https://github.com/ppat/mediated-mailbox-mcp/pull/167), and every break again on 2026-10-13 at RAPID_SEED=1, after the body fetch by part and the refused scan state changed the code, tests or patches the row rests on · [pull request #369](https://github.com/ppat/mediated-mailbox-mcp/pull/369)
 - **Break (1):** the high-volume rule skips whatever the prior hit count
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/scangate`:** `TestDecide`, `TestDecide/a_sender_with_a_negative_hit_count`
 - **Break (2):** the high-volume rule skips a message with no List-Id
@@ -312,15 +312,15 @@ The demonstrations of the controls whose patches sit in `core/`. [MUTATIONS.md](
 
 ## The Redaction Gate classifies the sender against the policy it is given
 
-- **Date · evidence:** 2026-09-23 · [pull request #145](https://github.com/ppat/mediated-mailbox-mcp/pull/145), and every break again on 2026-10-11, after the typed audit row changed the code, tests, test fixtures or patch context they rest on · [pull request #347](https://github.com/ppat/mediated-mailbox-mcp/pull/347), and every break again on 2026-10-12 at RAPID_SEED=1, after the policy prepared once per load for the classifier changed the code, tests or patches the row rests on · [pull request #365](https://github.com/ppat/mediated-mailbox-mcp/pull/365)
+- **Date · evidence:** 2026-09-23 · [pull request #145](https://github.com/ppat/mediated-mailbox-mcp/pull/145), and every break again on 2026-10-11, after the typed audit row changed the code, tests, test fixtures or patch context they rest on · [pull request #347](https://github.com/ppat/mediated-mailbox-mcp/pull/347), and every break again on 2026-10-12 at RAPID_SEED=1, after the policy prepared once per load for the classifier changed the code, tests or patches the row rests on · [pull request #365](https://github.com/ppat/mediated-mailbox-mcp/pull/365), and every break again on 2026-10-13 at RAPID_SEED=1, after the body fetch by part and the refused scan state changed the code, tests or patches the row rests on · [pull request #369](https://github.com/ppat/mediated-mailbox-mcp/pull/369)
 - **Break (1):** the sender is classified against an empty policy instead of the one given, prepared with the real lookups a composition root passes in, so only the policy changes
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/redact`:** `TestAJustListedDomainDeniesOnTheNextDecision`, `TestDecide`, `TestDecide/a_restricted_sender,_pending`, `TestDecide/a_restricted_sender,_scanned_before_it_was_listed`, `TestDecide/a_restricted_sender,_skipped_as_restricted`, `TestDecide/a_restricted_sender,_skipped_by_the_scan_gate`, `TestDecide/a_restricted_sender_with_a_flag`, `TestFailClosed`, `TestFailClosed/a_flag_on_a_message_skipped_as_restricted`, `TestFailClosed/a_policy_that_never_loaded`, `TestTheGateReleasesOnlyWhatTheRuleReleases`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/redact`:** `TestAJustListedDomainDeniesOnTheNextDecision`, `TestDecide`, `TestDecide/a_restricted_sender,_its_body_refused_before_it_was_listed`, `TestDecide/a_restricted_sender,_pending`, `TestDecide/a_restricted_sender,_scanned_before_it_was_listed`, `TestDecide/a_restricted_sender,_skipped_as_restricted`, `TestDecide/a_restricted_sender,_skipped_by_the_scan_gate`, `TestDecide/a_restricted_sender_with_a_flag`, `TestFailClosed`, `TestFailClosed/a_flag_on_a_message_skipped_as_restricted`, `TestFailClosed/a_policy_that_never_loaded`, `TestTheGateReleasesOnlyWhatTheRuleReleases`
 - **Break (2):** the sender is classified as if no policy had loaded, whatever policy is given
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/redact`:** `TestAJustListedDomainDeniesOnTheNextDecision`, `TestDecide`, `TestDecide/a_delisted_sender_before_its_messages_return_to_pending`, `TestDecide/a_login_link`, `TestDecide/a_normal_sender,_scanned_clean`, `TestDecide/a_normal_sender,_skipped_by_the_scan_gate`, `TestDecide/a_one-time_code`, `TestDecide/a_restricted_sender,_pending`, `TestDecide/a_restricted_sender,_scanned_before_it_was_listed`, `TestDecide/a_restricted_sender,_skipped_as_restricted`, `TestDecide/a_restricted_sender,_skipped_by_the_scan_gate`, `TestDecide/a_restricted_sender_with_a_flag`, `TestDecide/both_flags`, `TestFailClosed`, `TestFailClosed/a_flag_on_a_message_skipped_as_restricted`, `TestFailClosed/a_flag_on_a_message_skipped_by_the_scan_gate`, `TestFailClosed/a_sender_the_classifier_cannot_read`, `TestFailClosed/a_sender_with_no_registrable_domain`, `TestFailClosed/an_unscanned_message`, `TestFailClosed/stored_values_nobody_built`, `TestTheGateReleasesOnlyWhatTheRuleReleases`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/redact`:** `TestAJustListedDomainDeniesOnTheNextDecision`, `TestDecide`, `TestDecide/a_delisted_sender_before_its_messages_return_to_pending`, `TestDecide/a_login_link`, `TestDecide/a_normal_sender,_its_body_refused`, `TestDecide/a_normal_sender,_scanned_clean`, `TestDecide/a_normal_sender,_skipped_by_the_scan_gate`, `TestDecide/a_one-time_code`, `TestDecide/a_restricted_sender,_its_body_refused_before_it_was_listed`, `TestDecide/a_restricted_sender,_pending`, `TestDecide/a_restricted_sender,_scanned_before_it_was_listed`, `TestDecide/a_restricted_sender,_skipped_as_restricted`, `TestDecide/a_restricted_sender,_skipped_by_the_scan_gate`, `TestDecide/a_restricted_sender_with_a_flag`, `TestDecide/both_flags`, `TestFailClosed`, `TestFailClosed/a_flag_on_a_message_skipped_as_restricted`, `TestFailClosed/a_flag_on_a_message_skipped_by_the_scan_gate`, `TestFailClosed/a_flag_on_a_message_whose_body_was_refused`, `TestFailClosed/a_sender_the_classifier_cannot_read`, `TestFailClosed/a_sender_with_no_registrable_domain`, `TestFailClosed/an_unscanned_message`, `TestFailClosed/stored_values_nobody_built`, `TestTheGateReleasesOnlyWhatTheRuleReleases`
 
 ## The Redaction Gate releases a body only for a sender the policy does not restrict, with no content flag, scanned or skipped by the scan gate
 
-- **Date · evidence:** 2026-09-23 · [pull request #145](https://github.com/ppat/mediated-mailbox-mcp/pull/145), and every break again on 2026-10-11, after the typed audit row changed the code, tests, test fixtures or patch context they rest on · [pull request #347](https://github.com/ppat/mediated-mailbox-mcp/pull/347)
+- **Date · evidence:** 2026-09-23 · [pull request #145](https://github.com/ppat/mediated-mailbox-mcp/pull/145), and every break again on 2026-10-11, after the typed audit row changed the code, tests, test fixtures or patch context they rest on · [pull request #347](https://github.com/ppat/mediated-mailbox-mcp/pull/347), and every break again on 2026-10-13 at RAPID_SEED=1, after the body fetch by part and the refused scan state changed the code, tests or patches the row rests on · [pull request #369](https://github.com/ppat/mediated-mailbox-mcp/pull/369)
 - **Break (1):** a message with a one-time code or a login link is released
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/redact`:** `TestDecide`, `TestDecide/a_login_link`, `TestDecide/a_one-time_code`, `TestDecide/both_flags`, `TestTheGateReleasesOnlyWhatTheRuleReleases`
 - **Break (2):** only a sender a rule lists is restricted, so an unreadable address and a policy that never loaded are released
@@ -330,11 +330,13 @@ The demonstrations of the controls whose patches sit in `core/`. [MUTATIONS.md](
 - **Break (4):** no body is ever released
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/redact`:** `TestAJustListedDomainDeniesOnTheNextDecision`, `TestDecide`, `TestDecide/a_normal_sender,_scanned_clean`, `TestDecide/a_normal_sender,_skipped_by_the_scan_gate`, `TestTheGateReleasesOnlyWhatTheRuleReleases`
 - **Break (5):** a sender the policy restricts is released
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/redact`:** `TestAJustListedDomainDeniesOnTheNextDecision`, `TestDecide`, `TestDecide/a_restricted_sender,_scanned_before_it_was_listed`, `TestDecide/a_restricted_sender,_skipped_by_the_scan_gate`, `TestDecide/a_restricted_sender_with_a_flag`, `TestFailClosed`, `TestFailClosed/a_policy_that_never_loaded`, `TestFailClosed/a_sender_the_classifier_cannot_read`, `TestFailClosed/a_sender_with_no_registrable_domain`, `TestTheGateReleasesOnlyWhatTheRuleReleases`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/redact`:** `TestAJustListedDomainDeniesOnTheNextDecision`, `TestDecide`, `TestDecide/a_restricted_sender,_its_body_refused_before_it_was_listed`, `TestDecide/a_restricted_sender,_scanned_before_it_was_listed`, `TestDecide/a_restricted_sender,_skipped_by_the_scan_gate`, `TestDecide/a_restricted_sender_with_a_flag`, `TestFailClosed`, `TestFailClosed/a_policy_that_never_loaded`, `TestFailClosed/a_sender_the_classifier_cannot_read`, `TestFailClosed/a_sender_with_no_registrable_domain`, `TestTheGateReleasesOnlyWhatTheRuleReleases`
+- **Break (6):** a message whose body was refused is released
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/redact`:** `TestDecide`, `TestDecide/a_normal_sender,_its_body_refused`, `TestTheGateReleasesOnlyWhatTheRuleReleases`
 
 ## The scan gate scans a message with no List-Id from a listed local part
 
-- **Date · evidence:** 2026-09-25 · [pull request #167](https://github.com/ppat/mediated-mailbox-mcp/pull/167)
+- **Date · evidence:** 2026-09-25 · [pull request #167](https://github.com/ppat/mediated-mailbox-mcp/pull/167), and every break again on 2026-10-13 at RAPID_SEED=1, after the body fetch by part and the refused scan state changed the code, tests or patches the row rests on · [pull request #369](https://github.com/ppat/mediated-mailbox-mcp/pull/369)
 - **Break (1):** a local part matches a listed one only in the same letter case
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/scangate`:** `TestDecide`, `TestDecide/a_noreply_local_part_in_another_letter_case`
 - **Break (2):** a listed local part asks for a scan even on a message carrying a List-Id
@@ -346,7 +348,7 @@ The demonstrations of the controls whose patches sit in `core/`. [MUTATIONS.md](
 
 ## The scan gate scans a sender below the low-volume mark
 
-- **Date · evidence:** 2026-09-25 · [pull request #167](https://github.com/ppat/mediated-mailbox-mcp/pull/167)
+- **Date · evidence:** 2026-09-25 · [pull request #167](https://github.com/ppat/mediated-mailbox-mcp/pull/167), and every break again on 2026-10-13 at RAPID_SEED=1, after the body fetch by part and the refused scan state changed the code, tests or patches the row rests on · [pull request #369](https://github.com/ppat/mediated-mailbox-mcp/pull/369)
 - **Break (1):** a sender exactly at the low-volume mark counts as low volume
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/scangate`:** `TestDecide`, `TestDecide/a_sender_at_the_low-volume_mark`
 - **Break (2):** a low sender volume no longer asks for a scan
@@ -354,7 +356,7 @@ The demonstrations of the controls whose patches sit in `core/`. [MUTATIONS.md](
 
 ## The scan gate scans a sender with a prior scan hit
 
-- **Date · evidence:** 2026-09-25 · [pull request #167](https://github.com/ppat/mediated-mailbox-mcp/pull/167)
+- **Date · evidence:** 2026-09-25 · [pull request #167](https://github.com/ppat/mediated-mailbox-mcp/pull/167), and every break again on 2026-10-13 at RAPID_SEED=1, after the body fetch by part and the refused scan state changed the code, tests or patches the row rests on · [pull request #369](https://github.com/ppat/mediated-mailbox-mcp/pull/369)
 - **Break (1):** a sender with no prior hit counts as having one, so the prior-hit rule scans every sender it reaches
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/scangate`:** `TestAConfigThatCannotDecide`, `TestAConfigThatCannotDecide/the_default_Config`, `TestDecide`, `TestDecide/a_high-volume_sender_with_no_prior_hit,_a_List-Id_and_no_subject_signal`, `TestDecide/a_local_part_holding_a_listed_one_inside_it`, `TestDecide/a_message_with_no_List-Id_no_other_rule_names`, `TestDecide/a_noreply_local_part_with_a_List-Id`, `TestDecide/a_recent_message_at_the_size_mark`, `TestDecide/a_sender_at_the_high-volume_mark`, `TestDecide/a_sender_at_the_low-volume_mark`, `TestDecide/a_sender_far_above_the_high-volume_mark`, `TestDecide/a_small_message_at_the_age_mark`, `TestDecide/a_small_recent_message_with_a_List-Id`, `TestDecideReadsTheConfig`, `TestDecideReadsTheConfig/a_default_local_part_left_out_of_the_configuration`, `TestDecideReadsTheConfig/a_message_at_a_lowered_size_mark`, `TestDecideReadsTheConfig/a_message_at_a_shortened_age_mark`, `TestDecideReadsTheConfig/a_sender_above_a_lowered_high-volume_mark`, `TestDecideReadsTheConfig/a_sender_at_a_lowered_high-volume_mark`
 - **Break (2):** a sender needs more than one prior hit to be scanned
@@ -364,7 +366,7 @@ The demonstrations of the controls whose patches sit in `core/`. [MUTATIONS.md](
 
 ## The scan gate scans a small recent message with no List-Id
 
-- **Date · evidence:** 2026-09-25 · [pull request #167](https://github.com/ppat/mediated-mailbox-mcp/pull/167)
+- **Date · evidence:** 2026-09-25 · [pull request #167](https://github.com/ppat/mediated-mailbox-mcp/pull/167), and every break again on 2026-10-13 at RAPID_SEED=1, after the body fetch by part and the refused scan state changed the code, tests or patches the row rests on · [pull request #369](https://github.com/ppat/mediated-mailbox-mcp/pull/369)
 - **Break (1):** a message exactly at the age mark counts as recent
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/scangate`:** `TestDecide`, `TestDecide/a_small_message_at_the_age_mark`, `TestDecideReadsTheConfig`, `TestDecideReadsTheConfig/a_message_at_a_shortened_age_mark`
 - **Break (2):** a small recent message asks for a scan even when it carries a List-Id
@@ -376,7 +378,7 @@ The demonstrations of the controls whose patches sit in `core/`. [MUTATIONS.md](
 
 ## The scan gate scans a subject pass 1 masked
 
-- **Date · evidence:** 2026-09-25 · [pull request #167](https://github.com/ppat/mediated-mailbox-mcp/pull/167)
+- **Date · evidence:** 2026-09-25 · [pull request #167](https://github.com/ppat/mediated-mailbox-mcp/pull/167), and every break again on 2026-10-13 at RAPID_SEED=1, after the body fetch by part and the refused scan state changed the code, tests or patches the row rests on · [pull request #369](https://github.com/ppat/mediated-mailbox-mcp/pull/369)
 - **Break (1):** an unmasked subject asks for a scan and a masked one does not
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/scangate`:** `TestAConfigThatCannotDecide`, `TestAConfigThatCannotDecide/the_default_Config`, `TestDecide`, `TestDecide/a_high-volume_sender_with_no_prior_hit,_a_List-Id_and_no_subject_signal`, `TestDecide/a_local_part_holding_a_listed_one_inside_it`, `TestDecide/a_message_with_no_List-Id_no_other_rule_names`, `TestDecide/a_noreply_local_part_in_another_letter_case`, `TestDecide/a_noreply_local_part_wins_over_the_recent_small_rule`, `TestDecide/a_noreply_local_part_with_a_List-Id`, `TestDecide/a_noreply_local_part_with_no_List-Id`, `TestDecide/a_recent_message_at_the_size_mark`, `TestDecide/a_recent_small_message_wins_over_low_volume`, `TestDecide/a_sender_at_the_high-volume_mark`, `TestDecide/a_sender_at_the_low-volume_mark`, `TestDecide/a_sender_below_the_low-volume_mark`, `TestDecide/a_sender_far_above_the_high-volume_mark`, `TestDecide/a_sender_with_a_negative_hit_count`, `TestDecide/a_sender_with_one_prior_hit`, `TestDecide/a_small_message_at_the_age_mark`, `TestDecide/a_small_recent_message_with_a_List-Id`, `TestDecide/a_small_recent_message_with_no_List-Id`, `TestDecide/a_subject_pass_1_masked`, `TestDecide/a_subject_signal_wins_over_every_later_rule`, `TestDecide/low_volume_wins_over_a_prior_hit`, `TestDecideReadsTheConfig`, `TestDecideReadsTheConfig/a_configured_local_part`, `TestDecideReadsTheConfig/a_default_local_part_left_out_of_the_configuration`, `TestDecideReadsTheConfig/a_message_at_a_lowered_size_mark`, `TestDecideReadsTheConfig/a_message_at_a_shortened_age_mark`, `TestDecideReadsTheConfig/a_message_below_a_lowered_size_mark`, `TestDecideReadsTheConfig/a_sender_above_a_lowered_high-volume_mark`, `TestDecideReadsTheConfig/a_sender_at_a_lowered_high-volume_mark`, `TestDecideReadsTheConfig/a_sender_below_a_raised_low-volume_mark`
 - **Break (2):** a masked subject no longer asks for a scan
@@ -392,11 +394,11 @@ The demonstrations of the controls whose patches sit in `core/`. [MUTATIONS.md](
 
 ## The snippet and attachment filenames follow the body
 
-- **Date · evidence:** 2026-09-23 · [pull request #145](https://github.com/ppat/mediated-mailbox-mcp/pull/145), and every break again on 2026-10-11, after the typed audit row changed the code, tests, test fixtures or patch context they rest on · [pull request #347](https://github.com/ppat/mediated-mailbox-mcp/pull/347), and break (1) again on 2026-10-12 at RAPID_SEED=1, after the policy prepared once per load for the classifier changed the code, tests or patches the row rests on · [pull request #365](https://github.com/ppat/mediated-mailbox-mcp/pull/365)
+- **Date · evidence:** 2026-09-23 · [pull request #145](https://github.com/ppat/mediated-mailbox-mcp/pull/145), and every break again on 2026-10-11, after the typed audit row changed the code, tests, test fixtures or patch context they rest on · [pull request #347](https://github.com/ppat/mediated-mailbox-mcp/pull/347), and break (1) again on 2026-10-12 at RAPID_SEED=1, after the policy prepared once per load for the classifier changed the code, tests or patches the row rests on · [pull request #365](https://github.com/ppat/mediated-mailbox-mcp/pull/365), and every break again on 2026-10-13 at RAPID_SEED=1, after the body fetch by part and the refused scan state changed the code, tests or patches the row rests on · [pull request #369](https://github.com/ppat/mediated-mailbox-mcp/pull/369)
 - **Break (1):** attachment filenames are withheld even with a released body
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/redact`:** `TestAJustListedDomainDeniesOnTheNextDecision`, `TestDecide`, `TestDecide/a_normal_sender,_scanned_clean`, `TestDecide/a_normal_sender,_skipped_by_the_scan_gate`, `TestTheGateReleasesOnlyWhatTheRuleReleases`
 - **Break (2):** the snippet is shown whatever happens to the body
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/redact`:** `TestAJustListedDomainDeniesOnTheNextDecision`, `TestAnUnhandledReasonWithholds`, `TestDecide`, `TestDecide/a_delisted_sender_before_its_messages_return_to_pending`, `TestDecide/a_login_link`, `TestDecide/a_one-time_code`, `TestDecide/a_restricted_sender,_pending`, `TestDecide/a_restricted_sender,_scanned_before_it_was_listed`, `TestDecide/a_restricted_sender,_skipped_as_restricted`, `TestDecide/a_restricted_sender,_skipped_by_the_scan_gate`, `TestDecide/a_restricted_sender_with_a_flag`, `TestDecide/both_flags`, `TestFailClosed`, `TestFailClosed/a_flag_on_a_message_skipped_as_restricted`, `TestFailClosed/a_flag_on_a_message_skipped_by_the_scan_gate`, `TestFailClosed/a_policy_that_never_loaded`, `TestFailClosed/a_sender_the_classifier_cannot_read`, `TestFailClosed/a_sender_with_no_registrable_domain`, `TestFailClosed/an_unscanned_message`, `TestFailClosed/stored_values_nobody_built`, `TestTheGateReleasesOnlyWhatTheRuleReleases`, `TestTheZeroVerdictWithholds`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/redact`:** `TestAJustListedDomainDeniesOnTheNextDecision`, `TestAnUnhandledReasonWithholds`, `TestDecide`, `TestDecide/a_delisted_sender_before_its_messages_return_to_pending`, `TestDecide/a_login_link`, `TestDecide/a_normal_sender,_its_body_refused`, `TestDecide/a_one-time_code`, `TestDecide/a_restricted_sender,_its_body_refused_before_it_was_listed`, `TestDecide/a_restricted_sender,_pending`, `TestDecide/a_restricted_sender,_scanned_before_it_was_listed`, `TestDecide/a_restricted_sender,_skipped_as_restricted`, `TestDecide/a_restricted_sender,_skipped_by_the_scan_gate`, `TestDecide/a_restricted_sender_with_a_flag`, `TestDecide/both_flags`, `TestFailClosed`, `TestFailClosed/a_flag_on_a_message_skipped_as_restricted`, `TestFailClosed/a_flag_on_a_message_skipped_by_the_scan_gate`, `TestFailClosed/a_flag_on_a_message_whose_body_was_refused`, `TestFailClosed/a_policy_that_never_loaded`, `TestFailClosed/a_sender_the_classifier_cannot_read`, `TestFailClosed/a_sender_with_no_registrable_domain`, `TestFailClosed/an_unscanned_message`, `TestFailClosed/stored_values_nobody_built`, `TestTheGateReleasesOnlyWhatTheRuleReleases`, `TestTheZeroVerdictWithholds`
 
 ## The thresholds are the ones the caller passes
 

@@ -4,12 +4,11 @@ packages: ./db/check
 tests: TestTheAuditRowsColumnsRefuseAValueOutsideTheirSets
 scheduled-count: no
 integration: yes
-
 diff --git a/db/migrations/00002_schema.sql b/db/migrations/00002_schema.sql
-index 8f6d933f..a3dfa83d 100644
+index 278dbb46..bf85ca2e 100644
 --- a/db/migrations/00002_schema.sql
 +++ b/db/migrations/00002_schema.sql
-@@ -421,13 +421,7 @@ CREATE TABLE audit_log (
+@@ -425,13 +425,7 @@ CREATE TABLE audit_log (
      -- released the message.
      stage text CHECK (stage IN ('gate', 'serve')),
      -- The reason the client surface returns (ADR-0101).
@@ -17,7 +16,7 @@ index 8f6d933f..a3dfa83d 100644
 -        reason IN (
 -            'released', 'pending_scan', 'skipped_restricted', 'restricted_sender', 'content_flagged',
 -            'invalid_stored_state', 'scan_state_not_releasable', 'serve_time_check_no_scanner',
--            'serve_time_check_matched', 'conversion_refused'
+-            'serve_time_check_matched', 'conversion_refused', 'body_refused'
 -        )
 -    ),
 +    reason text,

@@ -46,8 +46,8 @@ append-only audit log ([ADR-0016](./0016-schema.md)).
 - **A message column whose value comes from the provider is decided before the corpus that needs
   it is ingested, or comes with a way to fetch it again.** It is rebuildable only by fetching the
   corpus's metadata again, since the first pass leaves a message it already holds as it is
-  ([ADR-0017](./0017-two-pass-backfill.md)), so it is the expensive kind of rebuildable. A column
-  derived from what is stored costs a statement.
+  ([ADR-0133](./0133-backfill-is-full-history-and-two-pass.md)), so it is the expensive kind of
+  rebuildable. A column derived from what is stored costs a statement.
 - **Migrations run as their own step, under their own database role that owns the DDL.** The
   runtime roles hold no DDL rights. This is the same role discipline that scopes the approval
   surface's grants ([ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)),

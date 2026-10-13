@@ -3,17 +3,16 @@ removes: a metadata fetch's read of the label table is left out of its cost, so 
 packages: ./provider/gmail
 tests: TestCostDeclaresEachCallsWorstCase TestEveryPageFitsAndCallerSizedCallsSplitWhereTheSecondEnds
 scheduled-count: no
-
 diff --git a/provider/gmail/profile.go b/provider/gmail/profile.go
-index ab4fbbc..3660427 100644
+index 2653e4df..ab6eaf25 100644
 --- a/provider/gmail/profile.go
 +++ b/provider/gmail/profile.go
-@@ -86,7 +86,7 @@ func (Profile) Cost(op mail.ProviderOp) mail.OpCost {
+@@ -88,7 +88,7 @@ func (Profile) Cost(op mail.ProviderOp) mail.OpCost {
  	case mail.OpGetThreadMetadata:
  		units = unitsThreadsGet + unitsLabelsList
  	case mail.OpGetMessageMetadata:
 -		units = unitsMessagesGet*n + unitsLabelsList
 +		units = unitsMessagesGet * n
  	case mail.OpGetMessageBody:
- 		units = unitsMessagesGet
+ 		units = max(unitsMessagesGet, unitsAttachmentsGet)
  	case mail.OpListLabels:

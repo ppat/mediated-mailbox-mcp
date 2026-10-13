@@ -15,6 +15,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
+	"github.com/ppat/mediated-mailbox-mcp/provider/gmail/core"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 )
 
@@ -57,7 +58,11 @@ func TestEveryRequestSentIsTimedByItsEndpoint(t *testing.T) {
 	}{
 		{"a label listing", "labels.list", func(ctx context.Context, a *Adapter) error { _, err := a.ListLabels(ctx); return err }},
 		{"a body", "messages.get", func(ctx context.Context, a *Adapter) error {
-			_, err := a.GetMessageBody(ctx, "18c2f0a1b2c3d4e5")
+			_, err := a.GetMessageBody(ctx, "18c2f0a1b2c3d4e5", "")
+			return err
+		}},
+		{"a body's part held apart", "messages.attachments.get", func(ctx context.Context, a *Adapter) error {
+			_, err := a.GetMessageBody(ctx, "18c2f0a1b2c3d4e5", heldApart{message: "18c2f0a1b2c3d4e5", slot: core.Text, attachment: "ANGjdJ9"}.bodyPart())
 			return err
 		}},
 		{"a thread", "threads.get", func(ctx context.Context, a *Adapter) error {
@@ -96,13 +101,14 @@ func TestEveryRequestNamesItsEndpoint(t *testing.T) {
 		"labels": labelsRequest(), "create": create, "threads": threadsRequest(search{}, "", threadsPerPage),
 		"messages": messagesRequest("", 100), "metadata": metadataRequest("m1"), "message": messageRequest("m1", formatFull),
 		"thread": threadRequest("t1"), "modify": modify, "profile": profileRequest(), "history": historyRequest(12, 100),
+		"body": bodyRequest("m1"), "part": partRequest("m1", "a1"),
 	} {
 		got[name] = r.Endpoint
 	}
 	want := map[string]string{
 		"labels": "labels.list", "create": "labels.create", "threads": "threads.list", "messages": "messages.list",
 		"metadata": "messages.get", "message": "messages.get", "thread": "threads.get", "modify": "messages.modify",
-		"profile": "getProfile", "history": "history.list",
+		"profile": "getProfile", "history": "history.list", "body": "messages.get", "part": "messages.attachments.get",
 	}
 	if diff := cmp.Diff(want, got, compare.Options); diff != "" {
 		t.Errorf("the requests' endpoints (-want +got):\n%s", diff)

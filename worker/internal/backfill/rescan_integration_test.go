@@ -138,7 +138,7 @@ func rescanDeps(t *testing.T, pool *pgxpool.Pool, account string, f *fake.Fake, 
 		RunID: runID, Now: time.Now,
 	}
 	second := pass2.Deps{
-		Store: pass2.NewPostgres(pool), Body: f.GetMessageBody, Policy: fixed(classify.Prepare(rules.For(account), lookups)),
+		Store: pass2.NewPostgres(pool), Body: func(ctx context.Context, id string) (mail.MessageBody, error) { return f.GetMessageBody(ctx, id, "") }, Policy: fixed(classify.Prepare(rules.For(account), lookups)),
 		Gate: gate, Scanner: s, PageSize: 2, RunID: runID, Now: time.Now,
 	}
 	return first, second

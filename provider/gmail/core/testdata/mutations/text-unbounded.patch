@@ -1,0 +1,28 @@
+control: Nothing past the bound is downloaded where the provider declares a part's size, nothing past it is returned, and a response past its cap is refused
+removes: the Gmail adapter returns a part's text whatever its length, inline or fetched apart
+packages: ./provider/gmail/core
+tests: TestMessageBodyOfAPartHeldApartOrPastTheBound TestPartText
+scheduled-count: no
+
+diff --git a/provider/gmail/core/body.go b/provider/gmail/core/body.go
+index 4fdb9acb..74d85867 100644
+--- a/provider/gmail/core/body.go
++++ b/provider/gmail/core/body.go
+@@ -169,7 +169,7 @@ func MessageBody(payload Part, parse ParseMediaType) (Decision, string) {
+ 	if problem != None {
+ 		return stop(slot, problem), ""
+ 	}
+-	if len(data) > mail.MaxBodyBytes {
++	if len(data) > mail.MaxBodyBytes && false {
+ 		return stop(slot, PastBound), ""
+ 	}
+ 	return Decision{Act: Inline, Slot: slot}, string(data)
+@@ -215,7 +215,7 @@ func PartText(data, charset string, labels Labels) (string, Problem) {
+ 	if err != nil {
+ 		return "", Undecodable
+ 	}
+-	if len(out) > mail.MaxBodyBytes {
++	if len(out) > mail.MaxBodyBytes && false {
+ 		return "", PastBound
+ 	}
+ 	return string(out), None

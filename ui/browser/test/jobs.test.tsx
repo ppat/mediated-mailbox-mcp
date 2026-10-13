@@ -100,7 +100,10 @@ test("the cards show each workload's state and fields, with the decisions block'
     ],
     ["pass 2", "r-0913 running"],
     ["checkpoint", "page 3,065 of 3,368"],
-    ["decided", "76,610 of 84,212, 7,602 pending, 70,100 scanned this run, 6,510 skipped"],
+    [
+      "decided",
+      "76,610 of 84,212, 7,602 pending, 70,100 scanned this run, 6,490 skipped, 20 refused",
+    ],
     ["started", "2026-09-10 09:36Z"],
     ["heartbeat", "1m ago"],
     ["estimated time left", "50m 30s"],

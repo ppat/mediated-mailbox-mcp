@@ -1,6 +1,6 @@
 // Package pass2 runs backfill's second pass over one account, reading the messages waiting for a
 // scan a page at a time, deciding each through the scan gate, scanning the bodies it selects, and
-// making each page durable with its checkpoint in one transaction (ADR-0017). The pass's decisions
+// making each page durable with its checkpoint in one transaction (ADR-0133). The pass's decisions
 // come from worker/internal/core/backfill/pass2, and this package enacts them.
 //
 // A Pass is opened once per run and asked for its next page until it is done. Opening it is the
@@ -128,14 +128,14 @@ type Step struct {
 }
 
 // Reopened counts what backfill's run-start step returned to pending, the verdicts made under another
-// scanner and the gate skips the gate no longer decides as the same skip, and the subjects stored
-// unmasked it masked again from the store.
+// scanner, the bodies refused under another size bound (ADR-0132) and the gate skips the gate no
+// longer decides as the same skip, and the subjects stored unmasked it masked again from the store.
 type Reopened struct {
-	Verdicts, Skips, Subjects int
+	Verdicts, Refusals, Skips, Subjects int
 }
 
 // Reopen returns to pending every verdict made under another scanner than the one the pass scans
-// with, masks again from the store, with that scanner, every subject stored unmasked under another,
+// with and every body refused under another size bound than the port's (ADR-0132), masks again from the store, with that scanner, every subject stored unmasked under another,
 // and then returns to pending every stored gate skip the gate, deciding it again under the pass's
 // thresholds and policy with the message's age measured at the pass's clock, no longer decides as the
 // same skip, so those decisions see the subjects as now masked. It reopens the pass when it did any of
@@ -262,13 +262,14 @@ func (p *Pass) Next(ctx context.Context) (step Step, err error) {
 	for _, m := range messages {
 		o := index.Outcome{ID: m.ID, Domain: m.Domain, Verdict: index.Gate(composed, p.deps.Gate, now, m, hits[m.Domain])}
 		if o.Verdict.Scans() {
-			scanned, item, err := p.scan(ctx, m.ID, number)
+			scanned, item, refused, err := p.scan(ctx, m.ID, number)
 			if err != nil {
 				return Step{}, err
 			}
 			if item != nil {
 				items = append(items, *item)
 			}
+			o.Refused = refused
 			if scanned != nil {
 				o.Scanned = scanned
 				if scanned.Flags.Any() {
@@ -287,36 +288,39 @@ func (p *Pass) Next(ctx context.Context) (step Step, err error) {
 	return Step{Scanned: scanned}, nil
 }
 
-// scan fetches the message's body, converts its HTML part and scans both parts. It returns what the
+// scan fetches the message's body, renders it as it is released and scans that. It returns what the
 // scan records, or the failed item that leaves the message waiting, or with neither the error that
-// ends the run. The body is dropped when it returns.
-func (p *Pass) scan(ctx context.Context, id string, number int) (*index.Scanned, *pass1.Item, error) {
+// ends the run. A body the port or the rendering refused is returned as refused with its failed item,
+// which records it as refused rather than waiting (ADR-0132). The body is dropped when it returns.
+func (p *Pass) scan(ctx context.Context, id string, number int) (*index.Scanned, *pass1.Item, bool, error) {
 	body, item, err := p.fetch(ctx, id, number)
-	if err != nil || item != nil && item.Disposition != "recovered" {
-		return nil, item, err
+	if err != nil {
+		return nil, item, false, err
 	}
-	var md string
-	if body.HTML != "" {
-		start := time.Now()
-		converted, cerr := markdown.Convert(body.HTML)
-		p.deps.Processing.Since(series.StepConvert, start)
-		if cerr != nil {
-			now := p.deps.Now().UTC()
-			refused := &pass1.Item{
-				Kind: "message", ID: id, Page: number, Class: string(index.Validation),
-				Summary: "the conversion refused the body: " + cerr.Error(), Attempts: 1, First: now, Last: now, Disposition: "abandoned",
-			}
-			if item != nil {
-				refused.Attempts, refused.First = item.Attempts, item.First
-			}
-			return nil, refused, nil
-		}
-		md = converted
+	if item != nil && item.Disposition == "refused" {
+		return nil, item, true, nil
+	}
+	if item != nil && item.Disposition != "recovered" {
+		return nil, item, false, nil
 	}
 	start := time.Now()
-	scanned := index.Scan(p.deps.Scanner, md, body.Text)
+	rendered, rerr := markdown.Render(body)
+	p.deps.Processing.Since(series.StepConvert, start)
+	if rerr != nil {
+		now := p.deps.Now().UTC()
+		refused := &pass1.Item{
+			Kind: "message", ID: id, Page: number, Class: string(index.Refused),
+			Summary: "the conversion refused the body: " + rerr.Error(), Attempts: 1, First: now, Last: now, Disposition: "refused",
+		}
+		if item != nil {
+			refused.Attempts, refused.First = item.Attempts, item.First
+		}
+		return nil, refused, true, nil
+	}
+	start = time.Now()
+	scanned := index.Scan(p.deps.Scanner, rendered)
 	p.deps.Processing.Since(series.StepScan, start)
-	return &scanned, item, nil
+	return &scanned, item, false, nil
 }
 
 // fetch asks for the message's body until it arrives or the run gives up on it. It returns the body
@@ -353,6 +357,9 @@ func (p *Pass) fetch(ctx context.Context, id string, number int) (mail.MessageBo
 			return mail.MessageBody{}, item, nil
 		case core.Abandon:
 			item.Disposition = "abandoned"
+			return mail.MessageBody{}, item, nil
+		case core.Refuse:
+			item.Disposition = "refused"
 			return mail.MessageBody{}, item, nil
 		case core.Backoff:
 			e = pass1.Event{Kind: "backoff", Page: number, Detail: err.Error()}

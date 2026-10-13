@@ -1,0 +1,19 @@
+control: One constant bounds the rendered part, the conversion's input and the literal form's alike
+removes: the conversion's input bound is a constant of its own, twice the port's, so the two drift apart
+packages: ./content/markdown
+tests: TestLiteralBodyHoldsTheSizeLimit TestRenderTakesTheReleasedForm
+scheduled-count: no
+
+diff --git a/content/markdown/markdown.go b/content/markdown/markdown.go
+index c4fbad4b..5a6206ad 100644
+--- a/content/markdown/markdown.go
++++ b/content/markdown/markdown.go
+@@ -47,7 +47,7 @@ import (
+ // part, so the conversion refuses nothing the port would return and the two cannot drift (ADR-0131).
+ // It is about five times the size senders design HTML mail to stay under, and it bounds a
+ // conversion's memory, which grows to about 150 times its input (ADR-0074).
+-const MaxInputBytes = mail.MaxBodyBytes
++const MaxInputBytes = 2 * mail.MaxBodyBytes
+ 
+ // ErrUnconvertible is wrapped by every error Convert returns. A body that cannot be converted is
+ // never released and never scanned as anything but a denial.

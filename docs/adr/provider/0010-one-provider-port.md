@@ -41,7 +41,7 @@ class MailProvider(Protocol):
     async def list_threads(self, q: Query, page: Page) -> Page[ThreadMetadata]: ...
     async def get_thread_metadata(self, thread_id: str) -> ThreadMetadata: ...
     async def get_message_metadata(self, ids: list[str]) -> list[MessageMetadata]: ...
-    async def get_message_body(self, id: str) -> MessageBody: ...     # gate-guarded
+    async def get_message_body(self, id: str, part: BodyPart = "") -> MessageBody: ...  # gate-guarded, the rendered part, ADR-0131
     async def list_labels(self) -> list[Label]: ...
     async def ensure_label(self, path: str) -> Label: ...             # for reorg
     async def mutate(self, ops: list[MutationOp]) -> MutationResult: ...
@@ -115,7 +115,13 @@ guarantees wherever a provider offers them.
 
 - The contract is the intersection both backends can honour, normalized. A canonical operation one
   backend cannot express is a contract bug, not an adapter branch.
-- Adapters are deliberately dumb, taking full data in with no redaction responsibility and no
-  policy knowledge.
+- Adapters are deliberately dumb, returning in full what the port defines with no redaction
+  responsibility and no policy knowledge. The body an adapter returns is the message's rendered
+  part, held to the port's one size bound, and a part the provider holds apart is named for a
+  second call of the same operation, so the adapter knows the port's definition of that part and
+  its bound and no release rule
+  ([ADR-0131](./0131-the-body-is-one-rendered-part-bounded-by-one-size-constant.md)). The
+  signature that takes the part is pinned by the port's method check like every other, so a change
+  to it is a reviewed change of the contract.
 - Only a second mail adapter proves the contract. If that adapter forces a change above the port,
   the contract was wrong.

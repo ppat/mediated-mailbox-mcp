@@ -5,13 +5,13 @@ tests: TestOnlyAScannedMessageCarriesContentFlags
 scheduled-count: no
 integration: yes
 diff --git a/db/migrations/00002_schema.sql b/db/migrations/00002_schema.sql
-index 1c740839..4d222a1f 100644
+index 0d871121..994196d9 100644
 --- a/db/migrations/00002_schema.sql
 +++ b/db/migrations/00002_schema.sql
-@@ -174,11 +174,7 @@ CREATE TABLE messages (
-     scanner_version int,
-     -- The scanner configuration's revision a verdict was made under (ADR-0009).
-     scanner_revision text,
+@@ -178,11 +178,7 @@ CREATE TABLE messages (
+     -- compares with the bound it runs with, and null in every other state (ADR-0132).
+     refused_bound int,
+     CHECK ((scan_state = 'refused') = (refused_bound IS NOT null)),
 -    PRIMARY KEY (account_id, message_id),
 -    -- Only a scan sets a content flag, so a statement that returns a message to pending, or skips it,
 -    -- without clearing its verdict fails instead of storing a state the Redaction Gate reads as invalid

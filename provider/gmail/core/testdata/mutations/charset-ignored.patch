@@ -1,0 +1,20 @@
+control: A part held apart is decoded from its declared charset, and a label the table does not name is refused
+removes: a part held apart is read as UTF-8 whatever charset it declares
+packages: ./provider/gmail/core
+tests: TestPartText
+scheduled-count: no
+
+diff --git a/provider/gmail/core/body.go b/provider/gmail/core/body.go
+index 4fdb9acb..69a62a9c 100644
+--- a/provider/gmail/core/body.go
++++ b/provider/gmail/core/body.go
+@@ -211,7 +211,8 @@ func PartText(data, charset string, labels Labels) (string, Problem) {
+ 	case err != nil, name == "replacement", name == "utf-16le", name == "utf-16be", name == "x-user-defined":
+ 		return "", CharsetRefused
+ 	}
+-	out, err := enc.NewDecoder().Bytes(raw)
++	out, err := raw, error(nil)
++	_ = enc
+ 	if err != nil {
+ 		return "", Undecodable
+ 	}
