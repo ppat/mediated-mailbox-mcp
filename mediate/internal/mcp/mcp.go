@@ -1,8 +1,12 @@
 package mcp
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -38,10 +42,64 @@ func Handler(reg service.Registry, version string, logger *slog.Logger) http.Han
 		}, call(reg, op.Name, logger))
 	}
 	server.AddReceivingMiddleware(refuseBeyondTools)
-	return sdk.NewStreamableHTTPHandler(func(*http.Request) *sdk.Server { return server }, &sdk.StreamableHTTPOptions{
-		Stateless:    true,
-		JSONResponse: true,
-		Logger:       logger,
+	// A client's cancellation reaches the tool handler, so an abandoned call stops waiting for its
+	// lease and spends nothing on a provider. The SDK follows it from 2026-07-28 on, and the lease
+	// wait's own deadline bounds a call on an earlier revision (ADR-0130).
+	return refuseBatches(sdk.NewStreamableHTTPHandler(func(*http.Request) *sdk.Server { return server }, &sdk.StreamableHTTPOptions{
+		Stateless:                    true,
+		JSONResponse:                 true,
+		Logger:                       logger,
+		PropagateRequestCancellation: true,
+	}))
+}
+
+// refuseBatches answers 400 to a POST whose body is a JSON-RPC batch, a body whose first byte after
+// JSON's whitespace is an opening bracket, before the SDK reads it, at every protocol revision. The
+// SDK runs a batch's calls at once and holds every answer until the last completes, so one request
+// could make the mediator hold thousands of calls, and revision 2025-06-18 removed batches
+// (ADR-0130). It decides on the body's first byte after the whitespace alone, and on no method, which
+// the SDK alone parses (refuseBeyondTools). The whitespace it reads is bounded by the SDK's own body
+// limit and dropped, which JSON ignores, and the body from that byte on reaches the SDK as it was
+// sent.
+func refuseBatches(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.Body == nil {
+			next.ServeHTTP(w, r)
+			return
+		}
+		body := bufio.NewReader(http.MaxBytesReader(w, r.Body, sdk.DefaultMaxRequestBodyBytes))
+		for {
+			c, err := body.ReadByte()
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			var tooLarge *http.MaxBytesError
+			if errors.As(err, &tooLarge) {
+				http.Error(w, fmt.Sprintf("request body exceeds %d bytes", tooLarge.Limit), http.StatusRequestEntityTooLarge)
+				return
+			}
+			if err != nil {
+				http.Error(w, "failed to read body", http.StatusBadRequest)
+				return
+			}
+			if c == ' ' || c == '\t' || c == '\n' || c == '\r' {
+				continue
+			}
+			if c == '[' {
+				http.Error(w, "JSON-RPC batches are not accepted", http.StatusBadRequest)
+				return
+			}
+			if err := body.UnreadByte(); err != nil {
+				http.Error(w, "failed to read body", http.StatusBadRequest)
+				return
+			}
+			break
+		}
+		r.Body = struct {
+			io.Reader
+			io.Closer
+		}{body, r.Body}
+		next.ServeHTTP(w, r)
 	})
 }
 
@@ -91,7 +149,7 @@ func refused(method string) bool {
 
 // refuseBeyondTools answers a refused method as a method the server does not have. It runs inside
 // the SDK, on the method the SDK parsed from the request, so no request reads as one method here and
-// another at dispatch, a batch's elements included. The SDK carries the error in a 404 from
+// another at dispatch. The SDK carries the error in a 404 from
 // 2026-07-28 on and in a 200 before it.
 func refuseBeyondTools(next sdk.MethodHandler) sdk.MethodHandler {
 	return func(ctx context.Context, method string, req sdk.Request) (sdk.Result, error) {

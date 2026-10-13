@@ -167,24 +167,40 @@ func wrap(markdown string) string {
 // between the letters, with replacement. No run of replacement's letters that starts or ends it is
 // also a run that ends or starts keyword, so a replacement never joins its neighbours into a new
 // match, and keyword never overlaps itself, so one pass finds every match.
+//
+// The scan holds the byte ranges of the last len(keyword) letters since the last match in a ring, so
+// what it holds is fixed whatever the text's length. A full ring that does not spell keyword drops
+// its oldest letter, and a match empties it, so the scan tries every run of len(keyword) consecutive
+// letters that starts after the last match. A text with no match is returned as it is, and one with
+// a match is copied once.
 func neutralize(text string) string {
-	var letters []letter
-	for i, r := range text {
-		if unicode.IsLetter(r) {
-			letters = append(letters, letter{i, i + utf8.RuneLen(r)})
-		}
-	}
+	var ring [len(keyword)]letter
+	head, count := 0, 0
 	var b strings.Builder
 	written := 0
-	for i := 0; i+len(keyword) <= len(letters); {
-		if !spells(text, letters[i:i+len(keyword)]) {
-			i++
+	for i, r := range text {
+		if !unicode.IsLetter(r) {
 			continue
 		}
-		b.WriteString(text[written:letters[i].start])
+		ring[(head+count)%len(keyword)] = letter{i, i + utf8.RuneLen(r)}
+		if count < len(keyword) {
+			count++
+		} else {
+			head = (head + 1) % len(keyword)
+		}
+		if count < len(keyword) || !spells(text, &ring, head) {
+			continue
+		}
+		if written == 0 {
+			b.Grow(len(text))
+		}
+		b.WriteString(text[written:ring[head].start])
 		b.WriteString(replacement)
-		written = letters[i+len(keyword)-1].end
-		i += len(keyword)
+		written = ring[(head+len(keyword)-1)%len(keyword)].end
+		head, count = 0, 0
+	}
+	if written == 0 {
+		return text
 	}
 	b.WriteString(text[written:])
 	return b.String()
@@ -193,9 +209,11 @@ func neutralize(text string) string {
 // letter is the byte range of one letter of a text.
 type letter struct{ start, end int }
 
-// spells reports whether the letters of text at the given ranges spell keyword, ignoring case.
-func spells(text string, letters []letter) bool {
-	for k, l := range letters {
+// spells reports whether the letters of text the ring holds, oldest first from head, spell keyword,
+// ignoring case.
+func spells(text string, ring *[len(keyword)]letter, head int) bool {
+	for k := range len(keyword) {
+		l := ring[(head+k)%len(keyword)]
 		r, _ := utf8.DecodeRuneInString(text[l.start:l.end])
 		if !foldsTo(r, rune(keyword[k])) {
 			return false

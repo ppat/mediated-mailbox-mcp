@@ -13,7 +13,7 @@ index 7a0a49f1..8254ab19 100644
  	v := redact.Decide(p, row.FromEmail, flags, state)
  	g := gateDecided(v, flags, state, row.RuleIds)
  	denied := bodyResult{AccountID: account, MessageID: args.MessageID}
-+	if session, err := s.Bodies.Open(ctx, account); err == nil {
++	if session, err := s.Bodies.Open(ctx, account, arrived); err == nil {
 +		_, _ = session.Body(ctx, args.MessageID)
 +		session.Done(ctx)
 +	}

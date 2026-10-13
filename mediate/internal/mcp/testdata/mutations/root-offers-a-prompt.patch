@@ -6,10 +6,9 @@ scheduled-count: no
 
 
 diff --git a/mediate/internal/mcp/mcp.go b/mediate/internal/mcp/mcp.go
-index 18f0dae..88a7686 100644
 --- a/mediate/internal/mcp/mcp.go
 +++ b/mediate/internal/mcp/mcp.go
-@@ -33,6 +33,9 @@ func Handler(reg service.Registry, version string, logger *slog.Logger) http.Han
+@@ -41,6 +41,9 @@ func Handler(reg service.Registry, version string, logger *slog.Logger) http.Han
  			Annotations:  annotations(op.Annotations),
  		}, call(reg, op.Name, logger))
  	}
@@ -17,5 +16,5 @@ index 18f0dae..88a7686 100644
 +		return &sdk.GetPromptResult{}, nil
 +	})
  	server.AddReceivingMiddleware(refuseBeyondTools)
- 	return sdk.NewStreamableHTTPHandler(func(*http.Request) *sdk.Server { return server }, &sdk.StreamableHTTPOptions{
- 		Stateless:    true,
+ 	// A client's cancellation reaches the tool handler, so an abandoned call stops waiting for its
+ 	// lease and spends nothing on a provider. The SDK follows it from 2026-07-28 on, and the lease

@@ -5,15 +5,14 @@ tests: TestABodyCannotCloseTheDelimiters/the_closing_line TestABodyCannotCloseTh
 scheduled-count: no
 
 diff --git a/mediate/internal/core/release/release.go b/mediate/internal/core/release/release.go
-index dc64550..ad44e1f 100644
 --- a/mediate/internal/core/release/release.go
 +++ b/mediate/internal/core/release/release.go
-@@ -127,7 +127,7 @@ func wrap(markdown string) string {
- func neutralize(text string) string {
- 	var letters []letter
+@@ -179,7 +179,7 @@ func neutralize(text string) string {
+ 	var b strings.Builder
+ 	written := 0
  	for i, r := range text {
--		if unicode.IsLetter(r) {
-+		if r != 0 {
- 			letters = append(letters, letter{i, i + utf8.RuneLen(r)})
+-		if !unicode.IsLetter(r) {
++		if r == 0 {
+ 			continue
  		}
- 	}
+ 		ring[(head+count)%len(keyword)] = letter{i, i + utf8.RuneLen(r)}

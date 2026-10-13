@@ -90,7 +90,7 @@ it.
 | Construction | Harm | What stops it |
 | --- | --- | --- |
 | A server built with no options | It advertises logging and a changing tool list, and each agent parks an open stream against a stateless server | A test asserting the advertised capabilities are exactly tools at both the legacy and the 2026-07-28 revision, with a mutation removing the option |
-| A prompt, a resource or a log level answered | Surface on one root that the other lacks | The receiving middleware, and a test that sends each, a request with a case-variant method key and a batch, and expects every one refused |
+| A prompt, a resource or a log level answered | Surface on one root that the other lacks | The receiving middleware, and a test that sends each and a request with a case-variant method key, and expects every one refused. The root refuses a batch before the SDK reads it, at every revision ([ADR-0130](../operability/0130-the-mediator-bounds-what-one-request-can-make-it-hold.md)) |
 | Typed tool registration | Arguments validated or reshaped in the frontend | A root that uses raw handlers only, reviewed in its one generator file |
 | The SDK imported outside the root's generator | Protocol code spread into the service layer | The import lists and their violation files ([ADR-0071](./0071-static-enforcement-toolchain.md)) |
 | A tool registered with a hint pointer left nil | The client reads the tool as destructive and open-world | A test asserting the literal annotations of one tool per effect class at both revisions, with mutations dropping each pointer |
@@ -228,6 +228,10 @@ detachable, since the same suite can run against a hand-written root, while its 
 - Each SDK release is read for retired `MCPGODEBUG` flags and protocol changes before it is taken.
   The SDK's flag documentation gives each flag the release that removes it
   ([`mcpgodebug.md`](https://github.com/modelcontextprotocol/go-sdk/blob/main/docs/mcpgodebug.md)).
+- What one request can make the root hold is bounded by
+  [ADR-0130](../operability/0130-the-mediator-bounds-what-one-request-can-make-it-hold.md), which
+  has the root refuse a JSON-RPC batch before the SDK reads it and ask the SDK to follow a
+  request's cancellation.
 - Assumptions about other components. The service layer validates arguments, rejects timestamps
   that are not UTC and shapes failures for both roots. The registry derives all four hints from the
   effect class, and a registry rule refuses `x-mcp-header` at generation, proven by its violation

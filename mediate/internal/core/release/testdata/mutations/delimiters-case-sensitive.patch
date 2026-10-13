@@ -5,12 +5,11 @@ tests: TestABodyCannotCloseTheDelimiters/the_closing_line TestABodyCannotCloseTh
 scheduled-count: no
 
 diff --git a/mediate/internal/core/release/release.go b/mediate/internal/core/release/release.go
-index dc64550..c351e27 100644
 --- a/mediate/internal/core/release/release.go
 +++ b/mediate/internal/core/release/release.go
-@@ -154,7 +154,7 @@ type letter struct{ start, end int }
- func spells(text string, letters []letter) bool {
- 	for k, l := range letters {
+@@ -215,7 +215,7 @@ func spells(text string, ring *[len(keyword)]letter, head int) bool {
+ 	for k := range len(keyword) {
+ 		l := ring[(head+k)%len(keyword)]
  		r, _ := utf8.DecodeRuneInString(text[l.start:l.end])
 -		if !foldsTo(r, rune(keyword[k])) {
 +		if r != rune(keyword[k]) {

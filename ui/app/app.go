@@ -290,8 +290,8 @@ const idleTimeout = 2 * time.Minute
 
 // uiServer is the UI's HTTP server. Requests take ctx as their base, so an open event stream ends
 // when the process is told to stop rather than holding the shutdown until its timeout. It closes a
-// connection idle between requests, and sets no read or write timeout, which would cut an open event
-// stream, one response that never ends.
+// connection idle between requests, and sets no write timeout, which would cut an open event stream,
+// one response that never ends.
 func uiServer(ctx context.Context, handler http.Handler, tlsConf *tls.Config, logger *slog.Logger) *http.Server {
 	return &http.Server{
 		Handler: handler, ReadHeaderTimeout: 10 * time.Second, IdleTimeout: idleTimeout, TLSConfig: tlsConf,

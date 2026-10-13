@@ -1,0 +1,17 @@
+control: The mediator's HTTP servers close an idle connection and cut off a request that has not arrived within their limits, and bound no answer
+removes: the servers bound writing an answer by the read limit, which cuts off a request waiting for its leases
+packages: ./mediate/app
+tests: TestTheConnectionLimits
+scheduled-count: no
+
+diff --git a/mediate/app/app.go b/mediate/app/app.go
+--- a/mediate/app/app.go
++++ b/mediate/app/app.go
+@@ -134,6 +134,7 @@ func newServer(h http.Handler, l limits, logger *slog.Logger) *http.Server {
+ 		ReadHeaderTimeout: l.header,
+ 		ReadTimeout:       l.read,
+ 		IdleTimeout:       l.idle,
++		WriteTimeout:      l.read,
+ 		ErrorLog:          logging.ServerErrorLog(logger),
+ 	}
+ }

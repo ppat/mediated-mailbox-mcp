@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"slices"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -27,9 +28,10 @@ type Bodies struct {
 	// snapshot that load left active (ADR-0099). A load that failed leaves the active valid policy.
 	// A request takes it once, before the gate decides.
 	Policy func(ctx context.Context, account string) classify.Policy
-	// Open returns the provider session a released message's provider calls go through. It is called
+	// Open returns the provider session a released message's provider calls go through, given when
+	// the request arrived, from which its waits for its leases are bounded (ADR-0130). It is called
 	// only once the gate has released the message, so a denial never reaches a provider (ADR-0002).
-	Open func(ctx context.Context, account string) (Provider, error)
+	Open func(ctx context.Context, account string, arrived time.Time) (Provider, error)
 	// Convert converts a body's HTML part to clean Markdown, and refuses a body it will not convert
 	// (ADR-0036).
 	Convert func(html string) (string, error)
@@ -129,11 +131,14 @@ func (s Sources) bodyOperation() Operation {
 
 // getMessageBody decides one body request (ADR-0002). The policy is loaded and taken once, the gate
 // decides from the index, and a denial is audited and returned before any provider is reached. A
-// released message's body and metadata are fetched, converted, and decided by the release step,
+// released message's metadata and then its body are fetched, converted, and decided by the release step,
 // whose serve-time pattern check reads what no scanner read, which is a scanned message's filenames
 // and a gate-skipped message's body, snippet and filenames. Nothing is released before its audit row
 // is written, so an audit write that fails releases nothing.
 func (s Sources) getMessageBody(ctx context.Context, account string, input json.RawMessage) (json.RawMessage, error) {
+	// The request's arrival is taken before the policy load and the gate's read, so the time they take
+	// counts against the request's waits for its leases (ADR-0130).
+	arrived := time.Now()
 	var args struct {
 		MessageID string `json:"message_id"`
 	}
@@ -167,16 +172,18 @@ func (s Sources) getMessageBody(ctx context.Context, account string, input json.
 		return ok(deny(denied, reason))
 	}
 
-	session, err := s.Bodies.Open(ctx, account)
+	session, err := s.Bodies.Open(ctx, account, arrived)
 	if err != nil {
 		return nil, err
 	}
 	defer session.Done(context.WithoutCancel(ctx))
-	body, err := session.Body(ctx, args.MessageID)
+	// The metadata is fetched before the body, so the body is held only while it is converted,
+	// decided and served, and not across the wait for a second lease (ADR-0130).
+	meta, err := session.Metadata(ctx, args.MessageID)
 	if err != nil {
 		return nil, FromProvider(err)
 	}
-	meta, err := session.Metadata(ctx, args.MessageID)
+	body, err := session.Body(ctx, args.MessageID)
 	if err != nil {
 		return nil, FromProvider(err)
 	}
