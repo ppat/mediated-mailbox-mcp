@@ -1,5 +1,5 @@
 control: Missing account-level series fire the absence rule rather than reading as a healthy account
-removes: the absence rule watches a job workload's series rather than the mediator's account-level ones
+removes: the absence rule watches a job workload's series rather than the API server's account-level ones
 packages: ./ratelimit/lease
 tests: TestAlertingRules
 scheduled-count: no
@@ -8,7 +8,7 @@ diff --git a/packaging/chart/rules/alerting-rules.yaml b/packaging/chart/rules/a
 --- a/packaging/chart/rules/alerting-rules.yaml
 +++ b/packaging/chart/rules/alerting-rules.yaml
 @@ -49,7 +49,7 @@
-   # Missing data never reads as a healthy account. The mediator runs continuously and emits every account's series,
+   # Missing data never reads as a healthy account. The API server runs continuously and emits every account's series,
    # while the job workloads' series are absent between their runs by design and are not read here.
    - alert: MediatedMailboxRateSeriesAbsent
 -    expr: absent(mediated_mailbox_ratelimit_account_rate)

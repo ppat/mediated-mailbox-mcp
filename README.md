@@ -4,7 +4,7 @@ A self-hosted mediation layer between an AI agent and a complete mailbox. The ag
 organizational visibility (every thread, sender, subject, label, and timestamp) and does real
 whole-mailbox work in triage, analysis, and operator-approved reorganization. What it never
 gets is the body content of messages from a defined set of sensitive senders, or the MFA codes and
-login links that grant account access. The mediator exposes an API, with MCP as a thin protocol
+login links that grant account access. The API server exposes an API, with MCP as a thin protocol
 adapter over it, and enforces that line in code, at the last hop before any client, because no
 mailbox credential can be scoped to express it.
 

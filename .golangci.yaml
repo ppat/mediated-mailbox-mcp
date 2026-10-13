@@ -184,7 +184,7 @@ linters:
           - "unicode$"
           - "unicode/utf8$"
           - "github.com/ppat/mediated-mailbox-mcp/core/"
-          - "github.com/ppat/mediated-mailbox-mcp/mediate/internal/core/"
+          - "github.com/ppat/mediated-mailbox-mcp/api/internal/core/"
           - "github.com/ppat/mediated-mailbox-mcp/ratelimit/core/"
           - "github.com/ppat/mediated-mailbox-mcp/ui/internal/core/"
           - "github.com/ppat/mediated-mailbox-mcp/worker/internal/core/"
@@ -224,7 +224,7 @@ linters:
           - "golang.org/x/net/idna$"
           - "golang.org/x/net/publicsuffix$"
           - "github.com/ppat/mediated-mailbox-mcp/core/"
-          - "github.com/ppat/mediated-mailbox-mcp/mediate/internal/core/"
+          - "github.com/ppat/mediated-mailbox-mcp/api/internal/core/"
           # The rate limiter's pure core is one package rather than a directory of packages, so its external tests
           # import it by its exact path.
           - "github.com/ppat/mediated-mailbox-mcp/ratelimit/core$"
@@ -549,7 +549,7 @@ linters:
           - "pgregory.net/rapid$"
 
         # The message content family outside its conversion package. The converter is called from content/markdown
-        # alone, so the mediator and the Backfill Job convert with one configuration.
+        # alone, so the API server and the Backfill Job convert with one configuration.
         content-without-converter:
           list-mode: strict
           files:
@@ -650,15 +650,15 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/open$"
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal$"
 
-        # Deployable mediate, every file. A deployable imports its own code and the shared libraries, never another
+        # Deployable api, every file. A deployable imports its own code and the shared libraries, never another
         # deployable (ADR-0054). Its tests may also use test tooling, which the list for non-test code refuses.
         # It names each data-access subsection it may use, which db/check tests against its role's grants.
         # The MCP root's generator is left out, because it alone imports the MCP SDK, and its own list governs it.
-        mediate:
+        api:
           list-mode: strict
           files:
-          - "${base-path}/mediate/**.go"
-          - "!${base-path}/mediate/internal/mcp/mcp.go"
+          - "${base-path}/api/**.go"
+          - "!${base-path}/api/internal/mcp/mcp.go"
           allow:
           - "$gostd"
           - "github.com/getkin/kin-openapi/openapi3$"
@@ -673,7 +673,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/open$"
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal$"
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/session$"
-          # The audit row of each body served or denied, a write only the mediator's list admits (ADR-0016). The
+          # The audit row of each body served or denied, a write only the API server's list admits (ADR-0016). The
           # recording of the last authentication attempt at the end of each body request runs in the account
           # session, which executioncontext/session admits (ADR-0097).
           - "github.com/ppat/mediated-mailbox-mcp/db/auditlog/record$"
@@ -687,7 +687,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/db/senders$"
           - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/policyload$"
-          - "github.com/ppat/mediated-mailbox-mcp/mediate/"
+          - "github.com/ppat/mediated-mailbox-mcp/api/"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect$"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core$"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbmetrics$"
@@ -1017,33 +1017,33 @@ linters:
           - "golang.org/x/net/publicsuffix$"
           - "pgregory.net/rapid$"
 
-        # The mediator's API root reaches the service layer and nothing below it (ADR-0030). Each root is generated
+        # The API server's API root reaches the service layer and nothing below it (ADR-0030). Each root is generated
         # from the operation registry by one file, its generator, and only the generator imports the library its
         # protocol is served with, so an operation cannot be registered on a root anywhere else (ADR-0053). The
         # other files of a root import no standard-library package at all.
-        mediate-api-root:
+        api-api-root:
           list-mode: strict
           files:
-          - "${base-path}/mediate/internal/api/**.go"
-          - "!${base-path}/mediate/internal/api/api.go"
+          - "${base-path}/api/internal/api/**.go"
+          - "!${base-path}/api/internal/api/api.go"
           - "!$test"
           allow:
-          - "github.com/ppat/mediated-mailbox-mcp/mediate/internal/api$"
-          - "github.com/ppat/mediated-mailbox-mcp/mediate/internal/api/"
-          - "github.com/ppat/mediated-mailbox-mcp/mediate/internal/service$"
+          - "github.com/ppat/mediated-mailbox-mcp/api/internal/api$"
+          - "github.com/ppat/mediated-mailbox-mcp/api/internal/api/"
+          - "github.com/ppat/mediated-mailbox-mcp/api/internal/service$"
 
-        # Every package of the mediator but the two roots serves no HTTP, so none can register an operation on the
+        # Every package of the API server but the two roots serves no HTTP, so none can register an operation on the
         # client surface outside the roots' generators (ADR-0053). A new package under internal falls under it
         # without being named. It admits the standard-library packages and the pure cores these packages import,
-        # the shared one and the mediator's own, pgx and its pgtype, the transaction helper, and the data-access
+        # the shared one and the API server's own, pgx and its pgtype, the transaction helper, and the data-access
         # subsections the service layer's operations run, and nothing under net/http. A package added here that
         # imports anything else adds its entry with it.
-        mediate-no-http:
+        api-no-http:
           list-mode: strict
           files:
-          - "${base-path}/mediate/internal/**.go"
-          - "!${base-path}/mediate/internal/api/**"
-          - "!${base-path}/mediate/internal/mcp/**"
+          - "${base-path}/api/internal/**.go"
+          - "!${base-path}/api/internal/api/**"
+          - "!${base-path}/api/internal/mcp/**"
           - "!$test"
           allow:
           - "bytes$"
@@ -1067,7 +1067,7 @@ linters:
           - "github.com/jackc/pgx/v5/pgtype$"
           - "github.com/ppat/mediated-mailbox-mcp/core/"
           # The release step, which the body operation runs (ADR-0036).
-          - "github.com/ppat/mediated-mailbox-mcp/mediate/internal/core/"
+          - "github.com/ppat/mediated-mailbox-mcp/api/internal/core/"
           # The operations' statements, each run through the transaction helper (ADR-0047), the body operation's
           # audit row among them.
           - "github.com/ppat/mediated-mailbox-mcp/db/accountstate$"
@@ -1080,37 +1080,37 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
 
         # The API root's generator, which serves HTTP.
-        mediate-api-generator:
+        api-api-generator:
           list-mode: strict
           files:
-          - "${base-path}/mediate/internal/api/api.go"
+          - "${base-path}/api/internal/api/api.go"
           allow:
           - "$gostd"
-          - "github.com/ppat/mediated-mailbox-mcp/mediate/internal/service$"
+          - "github.com/ppat/mediated-mailbox-mcp/api/internal/service$"
 
-        # The mediator's MCP root reaches the service layer and nothing below it (ADR-0030), under the same rule
+        # The API server's MCP root reaches the service layer and nothing below it (ADR-0030), under the same rule
         # as the API root.
-        mediate-mcp-root:
+        api-mcp-root:
           list-mode: strict
           files:
-          - "${base-path}/mediate/internal/mcp/**.go"
-          - "!${base-path}/mediate/internal/mcp/mcp.go"
+          - "${base-path}/api/internal/mcp/**.go"
+          - "!${base-path}/api/internal/mcp/mcp.go"
           - "!$test"
           allow:
-          - "github.com/ppat/mediated-mailbox-mcp/mediate/internal/mcp$"
-          - "github.com/ppat/mediated-mailbox-mcp/mediate/internal/mcp/"
-          - "github.com/ppat/mediated-mailbox-mcp/mediate/internal/service$"
+          - "github.com/ppat/mediated-mailbox-mcp/api/internal/mcp$"
+          - "github.com/ppat/mediated-mailbox-mcp/api/internal/mcp/"
+          - "github.com/ppat/mediated-mailbox-mcp/api/internal/service$"
 
-        # The MCP root's generator, the one file of the mediator the MCP SDK is admitted in (ADR-0086).
-        mediate-mcp-generator:
+        # The MCP root's generator, the one file of the API server the MCP SDK is admitted in (ADR-0086).
+        api-mcp-generator:
           list-mode: strict
           files:
-          - "${base-path}/mediate/internal/mcp/mcp.go"
+          - "${base-path}/api/internal/mcp/mcp.go"
           allow:
           - "$gostd"
           - "github.com/modelcontextprotocol/go-sdk/jsonrpc$"
           - "github.com/modelcontextprotocol/go-sdk/mcp$"
-          - "github.com/ppat/mediated-mailbox-mcp/mediate/internal/service$"
+          - "github.com/ppat/mediated-mailbox-mcp/api/internal/service$"
 
         # Every non-test file outside test tooling. Test tooling, the provider fake, the contract suite, rapid and
         # go-cmp never reach code that ships.
@@ -1138,7 +1138,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal$"
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/policyload$"
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/session$"
-          - "github.com/ppat/mediated-mailbox-mcp/mediate/"
+          - "github.com/ppat/mediated-mailbox-mcp/api/"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect$"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core$"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbmetrics$"
@@ -1165,7 +1165,7 @@ linters:
           - "go/"
           - "golang.org/x/net/html$"
           - "golang.org/x/net/html/atom$"
-          # The sender classifier's domain functions, which the mediator's composition root passes it.
+          # The sender classifier's domain functions, which the API server's composition root passes it.
           - "golang.org/x/net/idna$"
           - "golang.org/x/net/publicsuffix$"
           # The Gmail adapter's decoding of a part held apart in its declared charset (ADR-0134).
@@ -1199,7 +1199,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal$"
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/policyload$"
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/session$"
-          - "github.com/ppat/mediated-mailbox-mcp/mediate/"
+          - "github.com/ppat/mediated-mailbox-mcp/api/"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect$"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core$"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbmetrics$"
@@ -1246,7 +1246,7 @@ linters:
           - "!${base-path}/executioncontext/credential/**"
           - "!${base-path}/executioncontext/policyload/**"
           - "!${base-path}/executioncontext/session/**"
-          - "!${base-path}/mediate/**"
+          - "!${base-path}/api/**"
           - "!${base-path}/packaging/**"
           - "!${base-path}/process/dbconnect/**"
           - "!${base-path}/process/dbmetrics/**"

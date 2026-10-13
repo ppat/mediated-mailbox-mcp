@@ -19,11 +19,11 @@ import (
 const chartDir = "."
 
 // everyOption sets every optional input that adds a mounted file: the CA certificate, two private keys during a key
-// replacement, and the mediator's and the UI's TLS pairs.
+// replacement, and the API server's and the UI's TLS pairs.
 var everyOption = []string{
 	"--set", "secrets.databaseCaCertificate.existingSecret=database-ca",
 	"--set", "secrets.credentialSealingKeyPair.secretKeys.privateKeys={old.key,new.key}",
-	"--set", "secrets.mediatorTls.existingSecret=mediator-tls",
+	"--set", "secrets.apiTls.existingSecret=api-tls",
 	"--set", "secrets.uiTls.existingSecret=ui-tls",
 }
 
@@ -109,7 +109,7 @@ func secretFiles(spec map[string]any) []string {
 
 // TestEveryPodReadsOnlyTheSecretsItsProcessUses renders the chart with every optional secret input set and lists,
 // for each pod, every secret key it can read by any means. Each process gets exactly the keys it reads (ADR-0079):
-// the key pair reaches the mediator, the worker and the UI and nothing else (ADR-0081), the migration role's
+// the key pair reaches the API server, the worker and the UI and nothing else (ADR-0081), the migration role's
 // password file reaches only the migration step (ADR-0129), each runtime role's password only its own process, and
 // the Helm test reads no secret at all. The expected lists are written out here, not derived from the chart.
 func TestEveryPodReadsOnlyTheSecretsItsProcessUses(t *testing.T) {
@@ -120,10 +120,10 @@ func TestEveryPodReadsOnlyTheSecretsItsProcessUses(t *testing.T) {
 	}
 	ca := "database-ca/ca.crt -> ca/ca.crt"
 	want := map[string][]string{
-		"Deployment/release-mediated-mailbox-mediator": append([]string{
-			ca, "mediator-db/password -> database/password",
-			"mediator-tls/tls.crt -> tls/tls.crt", "mediator-tls/tls.key -> tls/tls.key",
-			"release-mediated-mailbox-access-credentials/mediator-bearer-token -> bearer-token",
+		"Deployment/release-mediated-mailbox-api": append([]string{
+			ca, "api-db/password -> database/password",
+			"api-tls/tls.crt -> tls/tls.crt", "api-tls/tls.key -> tls/tls.key",
+			"release-mediated-mailbox-access-credentials/api-bearer-token -> bearer-token",
 		}, keyPair...),
 		"Deployment/release-mediated-mailbox-ui": append([]string{
 			ca, "release-mediated-mailbox-access-credentials/ui-request-token-key -> request-token-key",
@@ -132,7 +132,7 @@ func TestEveryPodReadsOnlyTheSecretsItsProcessUses(t *testing.T) {
 		"Deployment/release-mediated-mailbox-worker": append([]string{
 			"backfill-db/password -> database/backfill/password", ca, "sync-db/password -> database/sync/password",
 		}, keyPair...),
-		"Job/release-mediated-mailbox-migration": {ca, "migrate-db/pgpass -> database/pgpass"},
+		"Job/release-mediated-mailbox-migration": {ca, "migrator-db/pgpass -> database/pgpass"},
 		"Pod/release-mediated-mailbox-test":      nil,
 	}
 	got := map[string][]string{}
@@ -191,7 +191,7 @@ func checksums(t *testing.T, dir string, args ...string) map[string]string {
 // pods (ADR-0052). Each checksum hashes only its own process's rendered file, so a change to one process's own value
 // restarts that process alone and a shared value restarts exactly the processes it is rendered into.
 func TestAConfigurationChangeRestartsOnlyTheProcessesThatReadIt(t *testing.T) {
-	const mediator, ui, worker = "release-mediated-mailbox-mediator", "release-mediated-mailbox-ui", "release-mediated-mailbox-worker"
+	const api, ui, worker = "release-mediated-mailbox-api", "release-mediated-mailbox-ui", "release-mediated-mailbox-worker"
 	base := checksums(t, chartDir)
 	for _, sum := range base {
 		if sum == "" {
@@ -202,12 +202,12 @@ func TestAConfigurationChangeRestartsOnlyTheProcessesThatReadIt(t *testing.T) {
 		set     string
 		changed []string
 	}{
-		{"mediator.config.provider_timeout=1m", []string{mediator}},
+		{"api.config.provider_timeout=1m", []string{api}},
 		{"ui.config.operator_name=owner", []string{ui}},
 		{"worker.jobKinds.backfill.config.concurrency=3", []string{worker}},
 		{"sharedConfig.sync_interval=2m", []string{ui, worker}},
-		{"sharedConfig.scanner.window=5", []string{mediator, worker}},
-		{"sharedConfig.log_level=debug", []string{mediator, ui, worker}},
+		{"sharedConfig.scanner.window=5", []string{api, worker}},
+		{"sharedConfig.log_level=debug", []string{api, ui, worker}},
 	} {
 		var changed []string
 		for name, sum := range checksums(t, chartDir, "--set", c.set) {
@@ -229,7 +229,7 @@ func TestAConfigurationChangeRestartsOnlyTheProcessesThatReadIt(t *testing.T) {
 func TestEveryPodRunsHardened(t *testing.T) {
 	ws := workloads(t, helmchart.Render(t, chartDir, everyOption...))
 	if len(ws) != 5 {
-		t.Fatalf("the chart renders %d pods, want the mediator, the UI, the worker, the migration step and the test", len(ws))
+		t.Fatalf("the chart renders %d pods, want the API server, the UI, the worker, the migration step and the test", len(ws))
 	}
 	for _, w := range ws {
 		pod := dig[map[string]any](w.spec, "securityContext")
@@ -276,7 +276,7 @@ func TestEveryPodRunsHardened(t *testing.T) {
 func TestEveryPodPullsWithTheGlobalImagePullSecrets(t *testing.T) {
 	ws := workloads(t, helmchart.Render(t, chartDir, "--set", "global.imagePullSecrets[0].name=registry-login"))
 	if len(ws) != 5 {
-		t.Fatalf("the chart renders %d pods, want the mediator, the UI, the worker, the migration step and the test", len(ws))
+		t.Fatalf("the chart renders %d pods, want the API server, the UI, the worker, the migration step and the test", len(ws))
 	}
 	want := []any{map[string]any{"name": "registry-login"}}
 	for _, w := range ws {
@@ -330,7 +330,7 @@ func TestTheMigrationStepIsAHookThatReadsNothingTheChartRenders(t *testing.T) {
 	env := list(dig[any](list(spec["containers"])[0], "env"))
 	want := []any{map[string]any{
 		"name":  "GOOSE_DBSTRING",
-		"value": "postgres://mediated_mailbox_migrate@db.example:5432/mediated_mailbox?sslmode=verify-full&passfile=/etc/mediated-mailbox/secrets/database/pgpass&sslrootcert=/etc/mediated-mailbox/secrets/ca/ca.crt",
+		"value": "postgres://mediated_mailbox_migrator@db.example:5432/mediated_mailbox?sslmode=verify-full&passfile=/etc/mediated-mailbox/secrets/database/pgpass&sslrootcert=/etc/mediated-mailbox/secrets/ca/ca.crt",
 	}}
 	if diff := cmp.Diff(want, env); diff != "" {
 		t.Errorf("the Job's environment (-want +got):\n%s", diff)
@@ -380,8 +380,8 @@ func TestNothingOptionalRendersByDefault(t *testing.T) {
 		t.Errorf("the kinds a default render holds (-want +got):\n%s", diff)
 	}
 	on := kinds(t,
-		"--set", "mediator.ingress.enabled=true", "--set", "ui.ingress.enabled=true",
-		"--set", "mediator.httpRoute.enabled=true", "--set", "ui.httpRoute.enabled=true",
+		"--set", "api.ingress.enabled=true", "--set", "ui.ingress.enabled=true",
+		"--set", "api.httpRoute.enabled=true", "--set", "ui.httpRoute.enabled=true",
 		"--set", "monitoring.dashboard.enabled=true")
 	if on["Ingress"] != 2 || on["HTTPRoute"] != 2 || on["ConfigMap"] != 2 {
 		t.Errorf("switched on, the chart renders %d Ingresses, %d HTTPRoutes and %d ConfigMaps, want 2, 2 and 2", on["Ingress"], on["HTTPRoute"], on["ConfigMap"])
@@ -411,24 +411,24 @@ func goSoftMemoryLimits(t *testing.T, args ...string) map[string]string {
 // by default, and each Go container given a soft memory limit gets exactly its own, so one component's value never
 // reaches another and the Helm test never gets one.
 func TestEachGoContainerGetsOnlyItsOwnSoftMemoryLimit(t *testing.T) {
-	if diff := cmp.Diff(map[string]string{"mediator": "", "ui": "", "worker": "", "migration": "", "smoke": ""}, goSoftMemoryLimits(t)); diff != "" {
+	if diff := cmp.Diff(map[string]string{"api": "", "ui": "", "worker": "", "migration": "", "smoke": ""}, goSoftMemoryLimits(t)); diff != "" {
 		t.Errorf("GOMEMLIMIT by default (-want +got):\n%s", diff)
 	}
 	limits := goSoftMemoryLimits(t,
-		"--set", "mediator.goSoftMemoryLimit=101MiB", "--set", "ui.goSoftMemoryLimit=102MiB",
+		"--set", "api.goSoftMemoryLimit=101MiB", "--set", "ui.goSoftMemoryLimit=102MiB",
 		"--set", "worker.goSoftMemoryLimit=103MiB", "--set", "migration.goSoftMemoryLimit=104MiB")
-	want := map[string]string{"mediator": "101MiB", "ui": "102MiB", "worker": "103MiB", "migration": "104MiB", "smoke": ""}
+	want := map[string]string{"api": "101MiB", "ui": "102MiB", "worker": "103MiB", "migration": "104MiB", "smoke": ""}
 	if diff := cmp.Diff(want, limits); diff != "" {
 		t.Errorf("GOMEMLIMIT with each component's own value (-want +got):\n%s", diff)
 	}
 }
 
-// accessCredentials is the Secret the chart creates for whichever of the mediator's bearer token and the UI's request
+// accessCredentials is the Secret the chart creates for whichever of the API server's bearer token and the UI's request
 // token key no Secret is named for.
 const accessCredentials = "release-mediated-mailbox-access-credentials"
 
 // bearerTokenAndRequestTokenKeyRead renders the chart with args and returns the keys of the chart's access credentials
-// Secret, nil when it renders none, and what the mediator and the UI read for the bearer token and the request token
+// Secret, nil when it renders none, and what the API server and the UI read for the bearer token and the request token
 // key.
 func bearerTokenAndRequestTokenKeyRead(t *testing.T, args ...string) (accessCredentialsKeys []string, read map[string][]string) {
 	t.Helper()
@@ -462,38 +462,38 @@ func bearerTokenAndRequestTokenKeyRead(t *testing.T, args ...string) (accessCred
 	return accessCredentialsKeys, read
 }
 
-// TestTheBearerTokenAndRequestTokenKeyComeFromTheUsersSecretsOrTheChartsOwn checks where the mediator's bearer token
+// TestTheBearerTokenAndRequestTokenKeyComeFromTheUsersSecretsOrTheChartsOwn checks where the API server's bearer token
 // and the UI's request token key come from (ADR-0052). With no Secret named for either, the chart creates one Secret,
 // its access credentials Secret, kept on uninstall, holding both, and the pods read it. With a Secret named for each,
 // under key names of the user's choosing, the chart creates none and the pods read exactly those keys. With a Secret
 // named for only the bearer token, or only the request token key, the chart's Secret holds only the other, and each
 // pod reads its value where it is.
 func TestTheBearerTokenAndRequestTokenKeyComeFromTheUsersSecretsOrTheChartsOwn(t *testing.T) {
-	const mediator, ui = "release-mediated-mailbox-mediator", "release-mediated-mailbox-ui"
+	const api, ui = "release-mediated-mailbox-api", "release-mediated-mailbox-ui"
 	for _, c := range []struct {
 		name              string
 		args              []string
 		accessCredentials []string
 		read              map[string][]string
 	}{
-		{"neither named", nil, []string{"mediator-bearer-token", "ui-request-token-key"}, map[string][]string{
-			mediator: {accessCredentials + "/mediator-bearer-token -> bearer-token"},
-			ui:       {accessCredentials + "/ui-request-token-key -> request-token-key"},
+		{"neither named", nil, []string{"api-bearer-token", "ui-request-token-key"}, map[string][]string{
+			api: {accessCredentials + "/api-bearer-token -> bearer-token"},
+			ui:  {accessCredentials + "/ui-request-token-key -> request-token-key"},
 		}},
 		{"both named", []string{
-			"--set", "secrets.mediatorBearerToken.existingSecret=api-token", "--set", "secrets.mediatorBearerToken.secretKeys.bearerToken=token",
+			"--set", "secrets.apiBearerToken.existingSecret=api-token", "--set", "secrets.apiBearerToken.secretKeys.bearerToken=token",
 			"--set", "secrets.uiRequestTokenKey.existingSecret=ui-signing", "--set", "secrets.uiRequestTokenKey.secretKeys.requestTokenKey=key",
 		}, nil, map[string][]string{
-			mediator: {"api-token/token -> bearer-token"},
-			ui:       {"ui-signing/key -> request-token-key"},
+			api: {"api-token/token -> bearer-token"},
+			ui:  {"ui-signing/key -> request-token-key"},
 		}},
-		{"only the bearer token named", []string{"--set", "secrets.mediatorBearerToken.existingSecret=api-token"}, []string{"ui-request-token-key"}, map[string][]string{
-			mediator: {"api-token/mediator-bearer-token -> bearer-token"},
-			ui:       {accessCredentials + "/ui-request-token-key -> request-token-key"},
+		{"only the bearer token named", []string{"--set", "secrets.apiBearerToken.existingSecret=api-token"}, []string{"ui-request-token-key"}, map[string][]string{
+			api: {"api-token/api-bearer-token -> bearer-token"},
+			ui:  {accessCredentials + "/ui-request-token-key -> request-token-key"},
 		}},
-		{"only the request token key named", []string{"--set", "secrets.uiRequestTokenKey.existingSecret=ui-signing"}, []string{"mediator-bearer-token"}, map[string][]string{
-			mediator: {accessCredentials + "/mediator-bearer-token -> bearer-token"},
-			ui:       {"ui-signing/ui-request-token-key -> request-token-key"},
+		{"only the request token key named", []string{"--set", "secrets.uiRequestTokenKey.existingSecret=ui-signing"}, []string{"api-bearer-token"}, map[string][]string{
+			api: {accessCredentials + "/api-bearer-token -> bearer-token"},
+			ui:  {"ui-signing/ui-request-token-key -> request-token-key"},
 		}},
 	} {
 		gotAccessCredentials, gotRead := bearerTokenAndRequestTokenKeyRead(t, c.args...)
@@ -519,15 +519,15 @@ func TestTheSchemaRefusesWhatHelmOrTheProcessesWouldChange(t *testing.T) {
 		{"an unquoted no as a language", "sharedConfig:\n  scanner:\n    triggers:\n      no: [kode]\n", "invalid propertyName 'false'"},
 		{"an unquoted yes as a trigger word", "sharedConfig:\n  scanner:\n    triggers:\n      en: [code, yes]\n", "got boolean, want string"},
 		{"an unquoted off as a link word", "sharedConfig:\n  scanner:\n    link_words: [off]\n", "got boolean, want string"},
-		{"the scanner in the mediator's own block", "mediator:\n  config:\n    scanner: {window: 3}\n", "additional properties 'scanner' not allowed"},
+		{"the scanner in the API server's own block", "api:\n  config:\n    scanner: {window: 3}\n", "additional properties 'scanner' not allowed"},
 		{"the listen address in the UI's own block", "ui:\n  config:\n    listen: \":1\"\n", "additional properties 'listen' not allowed"},
 		{"the database in the worker's own block", "worker:\n  config:\n    database: {host: other}\n", "additional properties 'database' not allowed"},
 		{"the sync interval in delta sync's own section", "worker:\n  jobKinds:\n    sync:\n      config:\n        sync_interval: 1m\n", "additional properties 'sync_interval' not allowed"},
-		{"a password file in a role's block", "mediator:\n  database:\n    password_file: /x\n", "additional properties 'password_file' not allowed"},
+		{"a password file in a role's block", "api:\n  database:\n    password_file: /x\n", "additional properties 'password_file' not allowed"},
 		{"a job kind the worker does not run", "worker:\n  jobKinds:\n    organize:\n      database: {user: x}\n", "additional properties 'organize' not allowed"},
 		{"a password for a job kind the worker does not run", "secrets:\n  databasePasswords:\n    worker:\n      organize: {existingSecret: x}\n", "additional properties 'organize' not allowed"},
-		{"a misspelled key", "mediator:\n  config:\n    provider_timout: 1m\n", "additional properties 'provider_timout' not allowed"},
-		{"a Kubernetes quantity as a Go soft memory limit", "mediator:\n  goSoftMemoryLimit: 460Mi\n", "does not match pattern"},
+		{"a misspelled key", "api:\n  config:\n    provider_timout: 1m\n", "additional properties 'provider_timout' not allowed"},
+		{"a Kubernetes quantity as a Go soft memory limit", "api:\n  goSoftMemoryLimit: 460Mi\n", "does not match pattern"},
 		{"a number as a Go soft memory limit", "worker:\n  goSoftMemoryLimit: 1073741824\n", "got number, want string"},
 		{"a pool size of zero", "ui:\n  database:\n    poolSize: 0\n", "minimum: got 0, want 1"},
 	} {

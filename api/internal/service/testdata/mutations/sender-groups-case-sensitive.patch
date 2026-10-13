@@ -1,0 +1,75 @@
+control: A summary and each group count the messages they hold, each thread once, the unread, those with attachments, and the oldest and the newest date
+removes: the groups by sender group an address by its spelling, so one written in two cases is two senders
+packages: ./api/internal/service
+tests: TestEachCountCountsEveryThreadOnce
+scheduled-count: no
+integration: yes
+
+diff --git a/db/messages/search.sql b/db/messages/search.sql
+index 173bebc3..b92c2283 100644
+--- a/db/messages/search.sql
++++ b/db/messages/search.sql
+@@ -169,13 +169,13 @@ SELECT
+     sum(t.unread)::bigint AS unread,
+     sum(t.with_attachments)::bigint AS with_attachments,
+     min(t.oldest_at)::timestamptz AS oldest_at,
+     max(t.newest_at)::timestamptz AS newest_at
+ FROM (
+     SELECT
+-        m.from_email,
++        m.from_email::text AS from_email,
+         count(*) AS messages,
+         count(*) FILTER (WHERE NOT coalesce((m.flags ->> 'read')::boolean, FALSE)) AS unread,
+         count(*) FILTER (WHERE m.has_attachments) AS with_attachments,
+         min(m.sent_at) AS oldest_at,
+         max(m.sent_at) AS newest_at
+     FROM messages AS m
+@@ -204,13 +204,13 @@ FROM (
+                 NOT EXISTS (
+                     SELECT 1 FROM unnest(@normal_domains::text[]) AS n (d)
+                     WHERE n.d = m.from_domain::text
+                 )
+             ) = any(@restricted::boolean[])
+         )
+-    GROUP BY convert_to(m.thread_id, 'UTF8'), m.from_email
++    GROUP BY convert_to(m.thread_id, 'UTF8'), m.from_email::text
+ ) AS t
+ GROUP BY t.from_email
+ HAVING
+     @first_page::boolean
+     OR sum(t.messages) < @after_count::bigint
+     OR (sum(t.messages) = @after_count::bigint AND t.from_email > @after_key::citext)
+diff --git a/db/messages/search.sql.go b/db/messages/search.sql.go
+index de36bd5e..34ad43d2 100644
+--- a/db/messages/search.sql.go
++++ b/db/messages/search.sql.go
+@@ -267,13 +267,13 @@ SELECT
+     sum(t.unread)::bigint AS unread,
+     sum(t.with_attachments)::bigint AS with_attachments,
+     min(t.oldest_at)::timestamptz AS oldest_at,
+     max(t.newest_at)::timestamptz AS newest_at
+ FROM (
+     SELECT
+-        m.from_email,
++        m.from_email::text AS from_email,
+         count(*) AS messages,
+         count(*) FILTER (WHERE NOT coalesce((m.flags ->> 'read')::boolean, FALSE)) AS unread,
+         count(*) FILTER (WHERE m.has_attachments) AS with_attachments,
+         min(m.sent_at) AS oldest_at,
+         max(m.sent_at) AS newest_at
+     FROM messages AS m
+@@ -302,13 +302,13 @@ FROM (
+                 NOT EXISTS (
+                     SELECT 1 FROM unnest($13::text[]) AS n (d)
+                     WHERE n.d = m.from_domain::text
+                 )
+             ) = any($12::boolean[])
+         )
+-    GROUP BY convert_to(m.thread_id, 'UTF8'), m.from_email
++    GROUP BY convert_to(m.thread_id, 'UTF8'), m.from_email::text
+ ) AS t
+ GROUP BY t.from_email
+ HAVING
+     $14::boolean
+     OR sum(t.messages) < $15::bigint
+     OR (sum(t.messages) = $15::bigint AND t.from_email > $16::citext)

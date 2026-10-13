@@ -1,0 +1,17 @@
+control: The chart renders the API server a file it starts with, holding every API server key the chart admits
+removes: the chart leaves the API server's pool size out of its file though the values set one
+packages: ./api/app
+tests: TestTheChartRendersAFileTheAPIServerStartsWith
+scheduled-count: no
+
+diff --git a/packaging/chart/templates/_config.tpl b/packaging/chart/templates/_config.tpl
+--- a/packaging/chart/templates/_config.tpl
++++ b/packaging/chart/templates/_config.tpl
+@@ -48,6 +48,7 @@ so no key is written twice.
+ {{- $_ := set $c "scanner" .Values.sharedConfig.scanner }}
+ {{- end }}
+ {{- $_ := set $c "database" (include "mm.config.database" (list . $v.database) | fromYaml) }}
++{{- $_ := unset (index $c "database") "pool_size" }}
+ {{- $_ := set $c "credential" (include "mm.config.credential" . | fromYaml) }}
+ {{- $_ := set $c "listen" (printf ":%s" (include "mm.port.http" .)) }}
+ {{- $_ := set $c "probe_listen" (printf ":%s" (include "mm.port.metrics" .)) }}

@@ -1,0 +1,19 @@
+control: Each failure names its origin, with the status the origin gives, and no detail of an API server or provider failure reaches the client
+removes: an argument refusal is classified as the API server's failure, which says only that the call failed
+packages: ./api/internal/api ./api/internal/mcp
+tests: TestEachFailureNamesItsOrigin TestAToolCallRunsTheOperation
+scheduled-count: no
+
+diff --git a/api/internal/service/failure.go b/api/internal/service/failure.go
+index c2cba09..c57fb97 100644
+--- a/api/internal/service/failure.go
++++ b/api/internal/service/failure.go
+@@ -68,7 +68,7 @@ func FromProvider(err error) error {
+ // nobody classified never reads as the client's or the provider's.
+ func Classify(err error) (Origin, string) {
+ 	var arg *ArgumentError
+-	if errors.As(err, &arg) {
++	if false && errors.As(err, &arg) {
+ 		return OriginClient, arg.Error()
+ 	}
+ 	for _, refusal := range refusals {

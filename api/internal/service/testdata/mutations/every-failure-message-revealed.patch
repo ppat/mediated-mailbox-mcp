@@ -1,0 +1,19 @@
+control: Each failure names its origin, with the status the origin gives, and no detail of an API server or provider failure reaches the client
+removes: a failure inside the API server carries its error's own text, an internal detail included
+packages: ./api/internal/api ./api/internal/mcp
+tests: TestEachFailureNamesItsOrigin TestAToolCallRunsTheOperation
+scheduled-count: no
+
+diff --git a/api/internal/service/failure.go b/api/internal/service/failure.go
+index edb01ed..06c3404 100644
+--- a/api/internal/service/failure.go
++++ b/api/internal/service/failure.go
+@@ -81,7 +81,7 @@ func Classify(err error) (Origin, string) {
+ 	if errors.As(err, &provider) {
+ 		return OriginProvider, provider.message
+ 	}
+-	return OriginAPI, apiServerMessage
++	return OriginAPI, err.Error()
+ }
+ 
+ // FailureLevel returns the level a failed call is logged at, by its origin, so both roots log a

@@ -105,10 +105,10 @@ ticket makes, so nothing is created ahead of its consumer. How packages and fami
   obvious home, the least ceremony. Rejected: it is the dumping ground. Impure machinery is what
   accretes, every component ends up transitively depending on everything, and the monolith
   returns one layer down with its dependency tree inside every image.
-- **No shared code, with batch workloads calling the mediator for shared decisions.** The case
-  for it: nothing shared at all. Rejected: it couples every batch workload to the mediator's
+- **No shared code, with batch workloads calling the API server for shared decisions.** The case
+  for it: nothing shared at all. Rejected: it couples every batch workload to the API server's
   availability, defeating the point of running the background work in a deployable apart from
-  the mediator ([ADR-0117](../operability/0117-one-background-worker-runs-every-job-kind.md)).
+  the API server ([ADR-0117](../operability/0117-one-background-worker-runs-every-job-kind.md)).
 - **Per-component copies of the shared logic.** No case was tabled for it. Not weighable, because
   the one-gate pillar already forbids any path holding its own copy of the rules.
 - **One separate top-level library per concern, founded at its second consumer by the ticket that

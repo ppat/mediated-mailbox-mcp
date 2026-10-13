@@ -1,0 +1,21 @@
+control: The system status carries recorded operational state only
+removes: the status reads a message and shows its subject as the last authentication's outcome
+packages: ./api/internal/service
+tests: TestTheSystemStatusCarriesOperationalStateOnly
+scheduled-count: no
+integration: yes
+
+diff --git a/api/internal/service/reads.go b/api/internal/service/reads.go
+index 7546b7fd..d360d42a 100644
+--- a/api/internal/service/reads.go
++++ b/api/internal/service/reads.go
+@@ -573,6 +573,9 @@ func (s Sources) getSystemStatus(ctx context.Context, account string, input json
+ 		if out.ScanBacklog, err = messages.New(t).ScanBacklog(ctx); err != nil {
+ 			return err
+ 		}
++		if rows, err := messages.New(t).MessagePage(ctx, messages.MessagePageParams{PageSize: 1}); err == nil && len(rows) > 0 && out.LastAuth != nil {
++			out.LastAuth.Outcome = text(rows[0].Subject)
++		}
+ 		rate, err := ratestate.New(t).RateStatus(ctx)
+ 		switch {
+ 		case errors.Is(err, pgx.ErrNoRows):

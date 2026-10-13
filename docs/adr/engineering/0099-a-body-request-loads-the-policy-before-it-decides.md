@@ -11,10 +11,10 @@ domain added to the deny list to take effect on the next call, not the next cach
 [ADR-0002](../redaction/0002-fetch-time-re-evaluation.md) re-derives the sender class at fetch time
 against current policy so that it does. Policy reaches a process as an immutable snapshot it loads
 on a cadence of its own, and a request takes the active snapshot once at entry
-([ADR-0041](./0041-policy-as-immutable-snapshots.md)). A mediator that loaded the policy only when
-the set of accounts it serves changed would never see an edit to the deny list while it ran. A body
-request is the first decision that releases content, so the mediator's load cadence is decided
-here.
+([ADR-0041](./0041-policy-as-immutable-snapshots.md)). An API server that loaded the policy only
+when the set of accounts it serves changed would never see an edit to the deny list while it ran. A
+body request is the first decision that releases content, so the API server's load cadence is
+decided here.
 
 What can be read cheaply is limited. The policy rules carry no revision a process could compare,
 and a deleted rule leaves no trace in the table. A connection pooler in transaction mode, which
@@ -37,9 +37,9 @@ alarm.
 - **A failed load decides nothing differently.** The request is decided against the active valid
   policy, and the loader raises the reload-failure alarm, as ADR-0041 states. Before any load has
   succeeded there is no policy, and every sender is restricted.
-- **The mediator's scheduled account reload also loads the policy, every time.** The metadata reads
-  and the reload-failure alarm stay current without a body request, and a failed load is retried at
-  the next reload.
+- **The API server's scheduled account reload also loads the policy, every time.** The metadata
+  reads and the reload-failure alarm stay current without a body request, and a failed load is
+  retried at the next reload.
 
 The accepted cost is about one small read of the policy tables per body request, fewer under a
 burst, since concurrent requests share one.
@@ -71,5 +71,5 @@ burst, since concurrent requests share one.
   requests. A load that never finishes holds them until each one's own deadline.
 - Releasing gated calendar content follows the same answer.
 - Assumptions about other components. The policy loader reloads every served account in one load
-  and takes its reloads in turn. A load the mediator starts is cancelled only when the mediator
-  stops, so a client that abandons its request never cancels a load another request waits on.
+  and takes its reloads in turn. A load the API server starts is cancelled only when the API
+  server stops, so a client that abandons its request never cancels a load another request waits on.

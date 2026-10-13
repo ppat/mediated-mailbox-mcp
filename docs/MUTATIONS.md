@@ -64,7 +64,7 @@ at different places in the file. A component's first row creates its file and it
 | [mutations/provider.md](./mutations/provider.md) | `provider/` |
 | [mutations/ratelimit.md](./mutations/ratelimit.md) | `ratelimit/` |
 | [mutations/testsupport.md](./mutations/testsupport.md) | `testsupport/` |
-| [mutations/mediate.md](./mutations/mediate.md) | `mediate/` |
+| [mutations/api.md](./mutations/api.md) | `api/` |
 | [mutations/worker.md](./mutations/worker.md) | `worker/` |
 | [mutations/ui.md](./mutations/ui.md) | `ui/` |
 | [mutations/packaging-chart.md](./mutations/packaging-chart.md) | `packaging/chart/` |

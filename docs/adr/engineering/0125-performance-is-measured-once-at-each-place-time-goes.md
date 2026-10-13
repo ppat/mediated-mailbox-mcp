@@ -25,7 +25,7 @@ When something in this system is slow, the time is in one of a handful of places
 
 | Place | Why time goes there |
 | --- | --- |
-| The database pool | Every unit of work acquires a connection, and every pool is sized by its `pool_size`, the worker's set for each job kind and the mediator's and the UI's defaulting to pgx's default of the larger of 4 and the processor count |
+| The database pool | Every unit of work acquires a connection, and every pool is sized by its `pool_size`, the worker's set for each job kind and the API server's and the UI's defaulting to pgx's default of the larger of 4 and the processor count |
 | A database statement | Every operation, page and tick runs statements, and [db/tx](../../../db/tx/tx.go) adds four round trips to each transaction to set and read back the account |
 | The policy load a body request waits on | [ADR-0099](./0099-a-body-request-loads-the-policy-before-it-decides.md) puts a coalesced load on the body request's path |
 | The rate lease | [ADR-0025](../operability/0025-priority-classes-and-leases.md)'s limiter makes a caller wait for its class, asking again at least every half second |
@@ -64,7 +64,7 @@ rather than followed as lists.
 | A reading that moves something | Each series kept has a reading that sends the reader to a setting or to a piece of code | The SRE book's removal test, and the operator's request that nothing be overkill |
 | Closed label sets | No label takes a value from a message, an SQL text, a path or any other unbounded set | [ADR-0009](../redaction/0009-scanner-verdicts-carry-no-content.md), [ADR-0076](./0076-metrics-emitted-through-client-golang.md) |
 | Nothing assumed of the platform | No measurement depends on a tracing backend, container metrics or a server-side extension | [ADR-0051](./0051-environment-contract.md) |
-| Shell code only | Capture sits in shells and composition roots, and the mediator's service layer takes no metrics import | [ADR-0040](./0040-pure-core-decisions-as-values.md), [ADR-0071](./0071-static-enforcement-toolchain.md) |
+| Shell code only | Capture sits in shells and composition roots, and the API server's service layer takes no metrics import | [ADR-0040](./0040-pure-core-decisions-as-values.md), [ADR-0071](./0071-static-enforcement-toolchain.md) |
 
 The reading requirement ordered the candidates, because a series no reading acts on is the
 overkill the operator ruled out. Closed labels and the platform gate any series whatever its
@@ -80,7 +80,7 @@ Context names, since no production run exists yet.
 
 ### The client surface
 
-**K1. Operation latency.** `mediated_mailbox_mediate_operation_duration_seconds`, a histogram
+**K1. Operation latency.** `mediated_mailbox_api_operation_duration_seconds`, a histogram
 labelled by `operation`, the name of each operation the registry holds, with buckets at 0.005,
 0.01, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10 and 30 seconds.
 
@@ -89,12 +89,12 @@ labelled by `operation`, the name of each operation the registry holds, with buc
   policy load, the lease wait, Gmail, conversion and statements. A slow listing whose statements
   are fast spends its time in the process.
 - **Evidence.** RED's duration and the SRE book's latency signal. The UI's dataset reads already
-  carry one, and the mediator carried none.
-- **Capture.** The mediator's composition root wraps each operation's handler before the registry
+  carry one, and the API server carried none.
+- **Capture.** The API server's composition root wraps each operation's handler before the registry
   is built, so every call through either root is observed and the service layer is unchanged. It
   observes the handler's run, after the registry's account check.
 - **What it includes.** The registry refuses a call whose arguments are not one object, repeat a
-  key, or name no account the mediator serves before the handler runs, and that refusal is not
+  key, or name no account the API server serves before the handler runs, and that refusal is not
   timed. Each operation decodes and validates the rest of its arguments inside its handler, so an
   argument refusal and a not-found answer are timed among the operation's calls. That is accepted
   because such a call does the decoding and the reads the operation's other calls do, which is the
@@ -113,9 +113,9 @@ with no label of its own, with buckets at 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1 
   the request path.
 - **Capture.** `(*policyload.Loader).Reload`, the one load every process uses, beside its
   reload-failure gauge. It times one load, every one its caller did not cancel, succeeded or
-  failed, from its call to its outcome. A mediator body request waits in the coalesced load for the
-  load already running, when one is, and then for the load that starts after it asked, so one body
-  request's policy wait is one or two of these observations.
+  failed, from its call to its outcome. An API server body request waits in the coalesced load for
+  the load already running, when one is, and then for the load that starts after it asked, so one
+  body request's policy wait is one or two of these observations.
 
 ### Provider calls
 
@@ -170,8 +170,8 @@ histogram labelled by `step`, `convert` or `scan`, with buckets at 0.0005, 0.001
   records that converters can blow up on nested input, and the chosen one's cost on real mail is
   unmeasured.
 - **Capture.** In the worker, each conversion and each scan of the second pass and of delta sync's
-  tick, the one series defined once for both job kinds. In the mediator, the conversion the body
-  operation is handed, wrapped in the composition root. The mediator's serve-time pattern check
+  tick, the one series defined once for both job kinds. In the API server, the conversion the body
+  operation is handed, wrapped in the composition root. The API server's serve-time pattern check
   runs inside the release decision's pure core over a scanner value, so observing it would need a
   hook in the service layer, and it is not observed. K1's body latency bounds it.
 - **No body-derived label**, as everywhere ([ADR-0009](../redaction/0009-scanner-verdicts-carry-no-content.md)).
@@ -255,8 +255,8 @@ by `statement`, with buckets at 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1 and 5 seco
 
 - **Question.** Is time lost waiting for a connection rather than in the database, and is that wait
   for the pool's ceiling or for building connections? Is the worker's `pool_size` right, and is
-  pgx's processor-dependent default right for the mediator and the UI, whose `pool_size` defaults
-  to it? Do callers give up waiting?
+  pgx's processor-dependent default right for the API server and the UI, whose `pool_size`
+  defaults to it? Do callers give up waiting?
 - **Reading.** An acquire that builds a new connection counts as waited, with its connect time,
   and pgx builds connections again after its idle and lifetime limits, such as after a quiet half
   hour. So waits that rise with `new_connections_total` are construction, which a larger pool does
@@ -264,7 +264,7 @@ by `statement`, with buckets at 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1 and 5 seco
   the same interval and `acquired_connections` reaches `max_connections`. Such waits with flat
   statement latency call for raising the pool or finding code holding a connection across other
   work. Such waits with rising statement latency mean the database is saturated, where a bigger
-  pool hurts. Sustained waits of that kind in the mediator or the UI are the evidence for setting
+  pool hurts. Sustained waits of that kind in the API server or the UI are the evidence for setting
   its `pool_size` above the default.
 - **Evidence.** USE, HikariCP's sizing and metrics, and the Buttondown and Val Town postmortems.
 - **Capture.** A collector over every pool `process/dbmetrics` opens, which reads the pool only
@@ -322,7 +322,7 @@ descriptors and start time.
 
 | Process | Registers |
 | --- | --- |
-| The mediator | K1, K2, K3, K4, K5's conversion step, K8 and K9 for its pool, K10 and K11 |
+| The API server | K1, K2, K3, K4, K5's conversion step, K8 and K9 for its pool, K10 and K11 |
 | The UI | K8 and K9 for its pool, K10 and K11, beside the dataset read latency it already emits |
 | The worker | K10 and K11 once. Per job kind, through the registerer that adds `job_kind`, K2, K3, K4, K5, K6, and K8 and K9 for the kind's pool. K7 on the scheduler's series |
 
@@ -336,7 +336,7 @@ The candidates left out, each with the case for it and why it lost.
 | Client surface | HTTP middleware per route | It comes with client_golang | ADR-0076 rejected it, and K1 measures at the operation, which means more than a route |
 | Client surface | An outcome label on K1 | Errors read by latency | A denied body is a successful call that the body counters split, and an argument refusal costs what the operation's other calls cost and is logged |
 | Client surface | A count of MCP sessions | It is a count of what is held in memory | The MCP root is stateless, so nothing is held |
-| Client surface | The mediator's account snapshot load time | It is a reload's cost | It runs on an interval off the request path, its statements are in K8, and no setting follows from it |
+| Client surface | The API server's account snapshot load time | It is a reload's cost | It runs on an interval off the request path, its statements are in K8, and no setting follows from it |
 | Provider calls | The token refresh's latency | It is a provider call | It happens about once an hour per account |
 | Provider calls | An `account` label on K3 and K4 | Per-account attribution | One API and one budget mechanism serve every account alike, and the per-account counters stay |
 | Provider calls | Retry and backoff counters | They count trouble | Backfill records each retry and backoff as an event of its run, which the Jobs screen shows, and throttles are already counted |
@@ -368,7 +368,7 @@ The candidates left out, each with the case for it and why it lost.
   1,000 in the UI and 1,400 in the worker, because attribution per statement is the point. Every
   other family stays within tens of series per process.
 - **The bucket boundaries are reasoned, not measured.** Each is reconsidered once real runs of
-  backfill and of the mediator exist.
+  backfill and of the API server exist.
 - **What it assumes of the platform.** The platform scrapes each process's metrics endpoint and
   keeps what it scrapes ([ADR-0051](./0051-environment-contract.md)). The deploying side owns
   pg_stat_statements if it wants the server's view, and nothing here depends on it. Dashboards are

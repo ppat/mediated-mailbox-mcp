@@ -1,7 +1,7 @@
 control: The database section is validated before anything else starts
 removes: a pool size of zero is accepted
-packages: ./process/dbconnect/core ./mediate/app ./ui/app
-tests: TestAnUnusableValueIsRefused/a_pool_size_of_zero TestAConfigurationTheMediatorCannotServeWithIsRefused TestAPoolSizeOfZeroRefusesTheStart
+packages: ./process/dbconnect/core ./api/app ./ui/app
+tests: TestAnUnusableValueIsRefused/a_pool_size_of_zero TestAConfigurationTheAPIServerCannotServeWithIsRefused TestAPoolSizeOfZeroRefusesTheStart
 scheduled-count: no
 
 diff --git a/process/dbconnect/core/core.go b/process/dbconnect/core/core.go

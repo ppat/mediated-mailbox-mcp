@@ -27,8 +27,8 @@ The UI's own read API already tells origins apart in one error shape
 
   | Origin | What failed | Message | API status |
   | --- | --- | --- | --- |
-  | `client` | The request. Arguments that are not one object, repeat a key, name an argument the operation does not take or break its schema, an account the mediator does not serve, an identifier the account does not hold | Names what the request got wrong, never stored content | 400, or 405 for `HEAD` on a route |
-  | `mediator` | Anything inside the system. The database, the rate limiter, the audit write, an account with no connected credential | Says only that the operation failed inside the mediator, and that the system status operation reports the account's operational state ([ADR-0034](./0034-system-status-operation.md)) | 500 |
+  | `client` | The request. Arguments that are not one object, repeat a key, name an argument the operation does not take or break its schema, an account the API server does not serve, an identifier the account does not hold | Names what the request got wrong, never stored content | 400, or 405 for `HEAD` on a route |
+  | `api` | Anything inside the system. The database, the rate limiter, the audit write, an account with no connected credential | Says only that the operation failed inside the API server, and that the system status operation reports the account's operational state ([ADR-0034](./0034-system-status-operation.md)) | 500 |
   | `provider` | The provider's answer or its absence. A throttle, a failure on its side, a refused credential, a message the index holds and the provider no longer does, no answer within the provider timeout | A fixed sentence per kind, never the provider's own text | 502 |
 
 - **One shape on both roots, for every failure of an operation call.** A failure's content is
@@ -41,17 +41,17 @@ The UI's own read API already tells origins apart in one error shape
   error on the MCP root, such as a tool the registry does not hold or a request that is not valid
   JSON-RPC, which the protocol's own error answers, and a request the bearer check refuses with 401.
 - **Each provider call has a deadline.** A body request's provider call that has not answered
-  within the provider timeout is the provider's failure. The timeout is the mediator's
+  within the provider timeout is the provider's failure. The timeout is the API server's
   `provider_timeout` configuration value, 30 seconds by default, refused unless it is positive and
   at most 5 minutes. It is not a safety setting
   ([ADR-0051](../engineering/0051-environment-contract.md)), since it can only fail a release. A
   request its client abandoned is not the provider's failure, and nobody receives its answer. The
   wait for a lease before a provider call has a bound of its own, and a wait that bound cuts off
-  is the mediator's failure
-  ([ADR-0130](./0130-the-mediator-bounds-what-one-request-can-make-it-hold.md)).
+  is the API server's failure
+  ([ADR-0130](./0130-the-api-server-bounds-what-one-request-can-make-it-hold.md)).
 - **The origin is decided where the failure is known.** The registry's refusals and an operation's
   refusal of an argument are the client's. An error from a provider call is wrapped as the
-  provider's at the call. Everything else is the mediator's, so a failure nobody classified never
+  provider's at the call. Everything else is the API server's, so a failure nobody classified never
   reads as the client's or the provider's.
 - **A gated body denial is a successful result.** It carries `released: false`, the reason, and a
   fixed note saying the denial is policy and that no argument or setting releases the body. A
@@ -112,12 +112,12 @@ The UI's own read API already tells origins apart in one error shape
 
 - Changing the shape of a failure is a breaking change of the client surface, as every change to
   an operation's output is.
-- The transparency half of O5 rests on the system status operation. A provider or mediator failure
+- The transparency half of O5 rests on the system status operation. A provider or API server failure
   points the client at it.
 - Assumptions about other components. The Provider Port wraps every error in one of its own errors
   or the caller's cancellation ([ADR-0010](../provider/0010-one-provider-port.md)), so the service
   layer classifies a provider failure without reading the provider's text. An adapter returns the
-  caller's context error once a call's deadline passes, so the mediator, which set the deadline,
+  caller's context error once a call's deadline passes, so the API server, which set the deadline,
   turns a passed deadline of its own into the provider's failure. The router of the API root, the
   MCP SDK and the bearer check each answer the requests outside the shape with their own status or
   code, before any operation runs.

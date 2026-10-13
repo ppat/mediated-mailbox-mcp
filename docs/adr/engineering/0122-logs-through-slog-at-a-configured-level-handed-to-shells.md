@@ -74,9 +74,9 @@ grading, because no shell logs in a loop tighter than one line per page of provi
   a deployable's shell that builds an `http.Server` gives it an error log made from that logger.
 - **The MCP SDK's server logs through the handed logger, its routine records at `debug`.** With no
   session kept, the server connects one session per request and writes "server connecting" and
-  "server session connected" at `info` for each, which is detail. The mediator's MCP root hands
-  the server a logger over the handed logger's handler that lowers every record at `info` or above
-  and below `warn` to `debug`, and passes its warnings and errors at their own levels. The
+  "server session connected" at `info` for each, which is detail. The API server's MCP root
+  hands the server a logger over the handed logger's handler that lowers every record at `info` or
+  above and below `warn` to `debug`, and passes its warnings and errors at their own levels. The
   streamable HTTP handler writes warnings and errors and takes the handed logger as it is.
 - **The start banner goes to standard error, and is no log record.** Each deployable writes a few
   plain lines for a person reading its output once its configuration has validated, naming its

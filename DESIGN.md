@@ -43,7 +43,7 @@ owns.
 └──────────────┼─────────────────────────────────┼─────────────────┘
                │                                 │
 ┌──────────────▼─────────────────────┐  ┌────────▼─────────────────┐
-│ mail-mediator                      │  │ UI (Web interface)       │
+│ The API server                     │  │ UI (Web interface)       │
 │                                    │  │  read-mostly reporting   │
 │ ┌────────────────────────────────┐ │  │  + approvals and setup   │
 │ │ Client Surface: API + MCP roots│ │  │  separate identity and   │
@@ -101,14 +101,14 @@ owns.
 
 | Component | One job | Runs as |
 | --- | --- | --- |
-| Client Surface (API + thin MCP adapter) | Validate, page, and route client requests by account | mail-mediator |
-| Redaction Gate | Decide what survives the last hop before any client | mail-mediator |
-| Mutation Authorizer | Enforce per-sensitivity mutation rights on every write | mail-mediator |
-| Sender Classifier | Classify senders deterministically against the policy list | mail-mediator |
-| Provider Port + adapters | Speak each provider's API and expose one canonical model | mail-mediator, and each job kind of the worker that calls a provider |
+| Client Surface (API + thin MCP adapter) | Validate, page, and route client requests by account | the API server |
+| Redaction Gate | Decide what survives the last hop before any client | the API server |
+| Mutation Authorizer | Enforce per-sensitivity mutation rights on every write | the API server |
+| Sender Classifier | Classify senders deterministically against the policy list | the API server |
+| Provider Port + adapters | Speak each provider's API and expose one canonical model | the API server, and each job kind of the worker that calls a provider |
 | Scan Gate | Choose which non-restricted bodies get scanned | the worker |
 | Content Scanner | Read bodies it will withhold and emit content-free verdicts | the worker |
-| Rate Limiter | Keep every spender inside one polite per-account budget | mail-mediator, and each job kind of the worker that calls a provider |
+| Rate Limiter | Keep every spender inside one polite per-account budget | the API server, and each job kind of the worker that calls a provider |
 | The worker | Run every background job kind, each scheduled from recorded state, with its code, role and series kept apart | separate deployment |
 | Backfill Job | Build the full-history metadata index | job kind of the worker |
 | Delta Sync | Keep the index current against the provider | job kind of the worker |
@@ -134,8 +134,8 @@ The one narrative to read first, assembled from the decision records, resolved t
 - ADR-0036 — the sanitization applied to whatever is released, and ADR-0100 for text with no
   HTML form.
 - ADR-0101 — the result a denial returns, and the failure that names its origin.
-- ADR-0130 — what one request can make the mediator hold, its lease waits, its connection and the
-  release step's working memory among them.
+- ADR-0130 — what one request can make the API server hold, its lease waits, its connection and
+  the release step's working memory among them.
 
 Metadata requests need none of it. Metadata paths cannot carry a body by construction.
 
@@ -164,9 +164,10 @@ Both dispositions are recorded and measured (see [Known limits](#3-known-limits)
 
 ### Redaction is enforced by code, not by the provider's token
 
-The mediator's own credentials are always full-mailbox. No available mail credential can be scoped
-to exclude senders. The design assumes the token is over-privileged and compensates by making the
-redaction path unbypassable, rather than by trusting the credential to constrain anything.
+The API server's own credentials are always full-mailbox. No available mail credential can be
+scoped to exclude senders. The design assumes the token is over-privileged and compensates by
+making the redaction path unbypassable, rather than by trusting the credential to constrain
+anything.
 
 Why: this is the constraint the whole architecture is built around. Because it cannot be delegated
 to the provider, enforcement must be a property of code the operator controls, which is why the
@@ -261,8 +262,8 @@ cannot be reached at all. There is no field a body could hide in, no verb a perm
 ride on.
 
 Known limit, stated rather than hidden: not every unsafe state can be made unrepresentable. Bodies
-must transit mediator memory to be served and scanned at all. Where representation is unavoidable,
-the design falls back to fail-closed checks plus audit, and says so explicitly.
+must transit the API server's memory to be served and scanned at all. Where representation is
+unavoidable, the design falls back to fail-closed checks plus audit, and says so explicitly.
 
 ### Everything above the port speaks canonical
 
@@ -320,7 +321,7 @@ The redaction invariant does not depend on network position of the deployment. A
 caller reaching the client surface gets exactly what the gate permits and nothing more.
 
 Why: A LAN-only scope is a meaningful simplification (it removes the entire class of "someone on
-the internet reaches the mediator" risk), but it determined by the deployment environment and its'
+the internet reaches the API server" risk), but it determined by the deployment environment and its'
 configuration. As that falls outside the purview of this design, the redaction invariant must not
 depend on the network position of the deployment.
 
@@ -383,7 +384,7 @@ where each disposition is recorded, not what it is. The record named is the sing
 | Fail-closed paths are exercised by tests or not at all | Their injections in [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md), and the proof those tests can fail in the mutation ledger, [docs/MUTATIONS.md](./docs/MUTATIONS.md) and the files it lists (ADR-0046) |
 | Union composition means over-restriction stands until its policy or verdict is corrected | The masking and gate review loops (ADR-0003, ADR-0093) |
 | The approval surface is itself a target | ADR-0084 (two decision verbs, a rollback request, OAuth client setup, account setup and policy management, scoped role, seals credentials its code never opens), with every policy change recorded where no runtime role can rewrite it (ADR-0102) |
-| Bodies must transit mediator memory to be served and scanned at all | ADR-0009 |
+| Bodies must transit the API server's memory to be served and scanned at all | ADR-0009 |
 | A metric not collected for a past window is lost for good | [ROADMAP.md](./ROADMAP.md), where emission is a non-deferrable riding the units that emit |
 | Content released to the agent is released, into context, transcripts, and memory | ADR-0036 bounds it. It cannot be recalled |
 | Text a sender hides with CSS is released as ordinary text, and delimiter words written in look-alike letters pass the release step | ADR-0036's consequences |
@@ -428,16 +429,20 @@ top-level documents, a decision record, or a ticket from here without guessing.
 - **The invariant** — the fixed point of [USE_CASES.md](./USE_CASES.md), used as a proper noun
   throughout the documents, meaning full organizational visibility and zero sensitive content,
   held at once.
-- **The mediator** (`mail-mediator` in this document's diagram and component table, published as
-  `mediated-mailbox-mediate` from the directory `mediate/`) — the process that enforces redaction
-  and serves the client surface. It holds provider credentials, as every process that calls a
-  provider does (ADR-0080 and ADR-0081, via the [decision-record index](./docs/adr/README.md)), and
-  those processes together, with the UI while it completes a consent, are the trust anchor.
+- **The API server** (published as `mediated-mailbox-api` from the directory `api/`) — the
+  process that enforces redaction and serves the client surface. It holds provider credentials, as
+  every process that calls a provider does (ADR-0080 and ADR-0081, via the
+  [decision-record index](./docs/adr/README.md)), and those processes together, with the UI while
+  it completes a consent, are the trust anchor. Distinct from **the API**, one of the two roots it
+  serves, and from the UI's read API.
 - **Client** — any caller of the serving surface, whether the agent over MCP or any other caller
   of the API. Every client is untrusted by design. Every control assumes a client can be talked
   into, or built to attempt, anything.
-- **The client surface** — the mediator's serving surface, the API plus its MCP adapter (shape
+- **The client surface** — the API server's serving surface, the API plus its MCP adapter (shape
   and rules in ADR-0030, via the [decision-record index](./docs/adr/README.md)).
+- **The API** — the client surface's HTTP root, served under `/api/` beside the MCP root at
+  `/mcp`. Distinct from **the API server**, the process that serves both roots, and from the UI's
+  read API, which the UI's server serves to its own browser app under its own `/api/`.
 - **Effect class** — the one declaration each operation of the client surface makes about what it
   does to the mailbox, from which its HTTP method and its MCP annotations are derived (classes and
   derivation in ADR-0087, via the [decision-record index](./docs/adr/README.md)).
@@ -509,7 +514,7 @@ top-level documents, a decision record, or a ticket from here without guessing.
   the conversion (reasons in ADR-0131, ADR-0132 and ADR-0134, via the
   [decision-record index](./docs/adr/README.md)). "Not scanned" has distinct meanings with
   different consequences. Pending and refused always deny.
-- **Redaction Gate** — the mediator component that decides, at the last hop, which fields of a
+- **Redaction Gate** — the API server's component that decides, at the last hop, which fields of a
   message a client receives. Distinct from the *Scan Gate* below.
 - **Scan Gate** — the batch-side predicate that decides which non-restricted bodies are worth
   scanning. Distinct from the *Redaction Gate* above. The Redaction Gate guards release to
@@ -525,7 +530,7 @@ top-level documents, a decision record, or a ticket from here without guessing.
   and attachment filenames, passes at release, and that every released message's filenames pass,
   since no scanner reads them (rule in ADR-0002, via the
   [decision-record index](./docs/adr/README.md)).
-- **Release step** — the mediator's last decision on a body the Redaction Gate lets through,
+- **Release step** — the API server's last decision on a body the Redaction Gate lets through,
   which either releases its Markdown wrapped in the untrusted-content delimiters, with the snippet
   and attachment filenames beside it, or withholds all of them, running the serve-time pattern check
   over all of them for a gate-skipped message, and over the filenames of every message, on the way (rules in ADR-0036 and ADR-0002, via
@@ -649,7 +654,11 @@ top-level documents, a decision record, or a ticket from here without guessing.
 - **The migration chain** — the ordered set of hand-written migration files that builds the
   schema. How it evolves, when it is applied, and what its first entry carries are ADR-0048's
   (via the [decision-record index](./docs/adr/README.md)).
-- **Mutation Authorizer** — the mediator component that checks every write against the message's
+- **The migrator** (published as `mediated-mailbox-migrator` from the directory `migrator/`) — the
+  image the migration step runs, which applies the migration chain. It is not a deployable and
+  holds none of this project's Go code (ADR-0048 and ADR-0049, via the
+  [decision-record index](./docs/adr/README.md)).
+- **Mutation Authorizer** — the API server's component that checks every write against the message's
   sensitivity, independently of who approved what. Mutation here is the mailbox-write sense,
   not the test-suite sense of **Mutation demonstration**.
 
@@ -660,7 +669,7 @@ top-level documents, a decision record, or a ticket from here without guessing.
 - **Priority class** — the division of the per-account rate budget between interactive, sync, and
   batch work, so background work can never starve interactive work.
 - **Lease** — a short-lived allocation of rate budget to one spender, the mechanism by which the
-  mediator and the worker's job kinds share one per-account budget without a coordinator process.
+  API server and the worker's job kinds share one per-account budget without a coordinator process.
 - **Audit log** — the record of every body served, every denial, and every mutation. Must survive
   the compromise of any process holding provider credentials, so no runtime role may update or
   delete a row of it (grant and bound in ADR-0016 and ADR-0028, via the [decision-record

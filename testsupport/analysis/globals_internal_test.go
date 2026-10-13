@@ -24,7 +24,7 @@ func TestAVariableNamedInATestFileIsTheCoresOutsideItsPackage(t *testing.T) {
 		writer   *types.Package
 		reported bool
 	}{
-		{"another package", types.NewPackage(modulePath+"/mediate", "main"), true},
+		{"another package", types.NewPackage(modulePath+"/api", "main"), true},
 		{"the declaring package", core, false},
 		{"its external tests", types.NewPackage(modulePath+"/core/state_test", "state_test"), false},
 	}

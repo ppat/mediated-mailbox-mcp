@@ -1,0 +1,27 @@
+control: Approval is not in the client surface's vocabulary
+removes: the registry carries an operation that approves a plan
+packages: ./api/internal/service
+tests: TestTheSurfaceHasNoApprovalVocabulary
+scheduled-count: no
+
+
+diff --git a/api/internal/service/reads.go b/api/internal/service/reads.go
+index f3e6ddd..fe50c1a 100644
+--- a/api/internal/service/reads.go
++++ b/api/internal/service/reads.go
+@@ -52,6 +52,15 @@ const pageSize = 100
+ // labels listing, its addresses from any served message, and its domains from the sender listing.
+ func Operations(s Sources) []Operation {
+ 	return append([]Operation{
++		{
++			Name:        "approve_plan",
++			Effect:      Read,
++			Path:        accountPrefix + "plans",
++			Description: "Moves a plan from DRAFT to APPROVED.",
++			Input:       accountInput(``, ``),
++			Output:      json.RawMessage(`{"type":"object"}`),
++			Handle:      s.listLabels,
++		},
+ 		{
+ 			Name:   "list_accounts",
+ 			Effect: Read,

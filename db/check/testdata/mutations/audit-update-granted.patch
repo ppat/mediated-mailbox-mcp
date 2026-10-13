@@ -1,7 +1,7 @@
 control: No runtime role can update or delete an audit row
-removes: the chain grants the mediator's role UPDATE on the audit log
+removes: the chain grants the API server's role UPDATE on the audit log
 packages: ./db/check
-tests: TestNoRuntimeRoleCanAlterTheAuditLog TestNoRuntimeRoleCanAlterTheAuditLog/mediated_mailbox_mediate/update
+tests: TestNoRuntimeRoleCanAlterTheAuditLog TestNoRuntimeRoleCanAlterTheAuditLog/mediated_mailbox_api/update
 scheduled-count: no
 integration: yes
 diff --git a/db/migrations/00003_grants.sql b/db/migrations/00003_grants.sql
@@ -11,8 +11,8 @@ index f763c1aa..2383b7d8 100644
 @@ -98,6 +98,7 @@ GRANT INSERT (
      account_id, actor, action, message_id, stage, reason, sender_class, class_rule_id, class_rule_scope, content_flags,
      content_rule_ids, serve_rule_ids, scan_state, scanner_version, scanner_revision
- ) ON audit_log TO mediated_mailbox_mediate;
-+GRANT INSERT, UPDATE ON audit_log TO mediated_mailbox_mediate;
- GRANT USAGE ON SEQUENCE audit_log_id_seq TO mediated_mailbox_mediate;
+ ) ON audit_log TO mediated_mailbox_api;
++GRANT INSERT, UPDATE ON audit_log TO mediated_mailbox_api;
+ GRANT USAGE ON SEQUENCE audit_log_id_seq TO mediated_mailbox_api;
  
  -- Backfill (ADR-0118, ADR-0133).

@@ -1,5 +1,5 @@
 control: Each Go container gets only its own soft memory limit
-removes: the UI's container takes the mediator's soft memory limit rather than its own
+removes: the UI's container takes the API server's soft memory limit rather than its own
 packages: ./packaging/chart
 tests: TestEachGoContainerGetsOnlyItsOwnSoftMemoryLimit
 scheduled-count: no
@@ -12,7 +12,7 @@ diff --git a/packaging/chart/templates/ui/deployment.yaml b/packaging/chart/temp
          args:
          - --config-file={{ include "mm.configDir" . }}/ui.yaml
 -        {{- with $v.goSoftMemoryLimit }}
-+        {{- with $.Values.mediator.goSoftMemoryLimit }}
++        {{- with $.Values.api.goSoftMemoryLimit }}
          env:
          - name: GOMEMLIMIT
            value: {{ . | quote }}

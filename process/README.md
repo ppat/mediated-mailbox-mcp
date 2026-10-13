@@ -34,7 +34,7 @@ under the list over files outside every component, which admits only the standar
 is the execution context family's and the scanner's section is `core/scan`'s, while this family
 holds only the layering mechanism and the database section, whose whole concern is running as a
 process. Nothing here reads an account, a policy or a message, and nothing here runs a statement.
-The mediator's and the UI's probes stay with them, because each answers `/readyz` from state only
+The API server's and the UI's probes stay with them, because each answers `/readyz` from state only
 that deployable holds.
 
 ## The configuration library, `settings`
@@ -71,7 +71,7 @@ in `dbconnect/core`. The shell renders every connection setting into the connect
 pool at the section's pool size, reads the password from the mounted password file
 ([ADR-0079](../docs/adr/operability/0079-secrets-arrive-as-mounted-files.md)) and refuses a start
 while `PGPASSWORD` or `PGSSLPASSWORD` is set. Each deployable supplies its own defaults, the user
-being its own runtime role, and the mediator and the UI take the pool size the shell gives as the
+being its own runtime role, and the API server and the UI take the pool size the shell gives as the
 driver's own default. The worker names the server once and gives each job kind a user of its own,
 its job kind's runtime role, with a password file and a pool size of its own
 ([ADR-0118](../docs/adr/data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)).
@@ -162,7 +162,7 @@ It holds no logger of its own and no package-level state, and it logs nothing.
 ## The release version, `version`
 
 Every binary the project publishes reports the release it was built for through its `--version`
-flag, every deployable names it in its start banner, and the mediator's MCP server reports it as
+flag, every deployable names it in its start banner, and the API server's MCP server reports it as
 its version
 ([ADR-0078](../docs/adr/engineering/0078-configuration-layers-through-an-owned-library.md),
 [ADR-0122](../docs/adr/engineering/0122-logs-through-slog-at-a-configured-level-handed-to-shells.md)).

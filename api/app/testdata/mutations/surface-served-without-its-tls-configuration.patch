@@ -1,0 +1,18 @@
+control: The client surface is served over TLS when the configuration names a key pair and over plain HTTP when it names none, with the key pair read from its mounted files
+removes: the start builds the client surface's server without its TLS configuration, so an API server given both TLS files serves plain HTTP
+packages: ./api/app
+tests: TestTheSurfaceIsServedOverTLSWhenGivenAKeyPair
+scheduled-count: no
+
+diff --git a/api/app/app.go b/api/app/app.go
+--- a/api/app/app.go
++++ b/api/app/app.go
+@@ -142,7 +142,7 @@ func newServer(h http.Handler, l limits, logger *slog.Logger) *http.Server {
+ // the probes' server for probes, both bounded by the connection limits.
+ func servers(c Configuration, surface, probes http.Handler, logger *slog.Logger) (surfaceServer, probeServer *http.Server) {
+ 	surfaceServer = newServer(surface, connectionLimits, logger)
+-	surfaceServer.TLSConfig = tlsConfig(c)
++	surfaceServer.TLSConfig = nil
+ 	return surfaceServer, newServer(probes, connectionLimits, logger)
+ }
+ 

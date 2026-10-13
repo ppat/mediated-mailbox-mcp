@@ -102,7 +102,7 @@
         "databasePasswords": {
           "type": "object",
           "properties": {
-            "mediator": {
+            "api": {
               "type": "object",
               "properties": {
                 "existingSecret": {
@@ -241,7 +241,7 @@
           },
           "additionalProperties": false,
           "required": [
-            "mediator",
+            "api",
             "ui",
             "worker",
             "migration"
@@ -300,7 +300,7 @@
             "existingSecret"
           ]
         },
-        "mediatorBearerToken": {
+        "apiBearerToken": {
           "type": "object",
           "properties": {
             "existingSecret": {
@@ -340,7 +340,7 @@
           },
           "additionalProperties": false
         },
-        "mediatorTls": {
+        "apiTls": {
           "type": "object",
           "properties": {
             "existingSecret": {
@@ -485,12 +485,12 @@
             }
           },
           "additionalProperties": false,
-          "description": "The scanner section (ADR-0005), rendered identically into the mediator and the worker."
+          "description": "The scanner section (ADR-0005), rendered identically into the API server and the worker."
         }
       },
       "additionalProperties": false
     },
-    "mediator": {
+    "api": {
       "type": "object",
       "properties": {
         "replicaCount": {
@@ -557,7 +557,7 @@
             }
           },
           "additionalProperties": false,
-          "description": "The mediator's own configuration keys. Keys the chart renders itself are refused here."
+          "description": "The API server's own configuration keys. Keys the chart renders itself are refused here."
         },
         "serviceAccount": {
           "type": "object",

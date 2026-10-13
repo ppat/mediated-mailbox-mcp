@@ -13,7 +13,7 @@ tests:
   input_series:
   - series: 'mediated_mailbox_policyload_reload_failed{instance="backfill"}'
     values: '0 0 0 0 1 1 1 1 1 1 1 1 0 0 0 0'
-  - series: 'mediated_mailbox_policyload_reload_failed{instance="mediate"}'
+  - series: 'mediated_mailbox_policyload_reload_failed{instance="api"}'
     values: '0x15'
   alert_rule_test:
   - eval_time: 45s

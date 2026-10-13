@@ -1,0 +1,20 @@
+control: The service layer refuses an operation whose account is missing or unknown, except the accounts listing
+removes: every operation runs as the accounts listing does, with no account check
+packages: ./api/internal/service
+tests: TestTheServiceLayerRefusesAMissingOrUnknownAccount/no_account_id TestTheServiceLayerRefusesAMissingOrUnknownAccount/an_account_the_API_server_does_not_serve TestTheServiceLayerRefusesAMissingOrUnknownAccount/a_served_account
+scheduled-count: no
+
+
+diff --git a/api/internal/service/registry.go b/api/internal/service/registry.go
+index c7bb370..8dbc069 100644
+--- a/api/internal/service/registry.go
++++ b/api/internal/service/registry.go
+@@ -167,7 +167,7 @@ func (r Registry) Call(ctx context.Context, name string, input json.RawMessage)
+ 	if err := distinctKeys(input); err != nil {
+ 		return nil, err
+ 	}
+-	if op.Path == accountsPath {
++	if true {
+ 		return op.Handle(ctx, "", input)
+ 	}
+ 	account, rest, err := splitAccount(input)

@@ -9,7 +9,7 @@
 [ADR-0001](../redaction/0001-redaction-matrix.md)'s matrix shows an attachment's type in every
 sensitivity state and its filename only where the body is visible, because filenames are
 body-derived and follow the body. Its example message carries `"attachment_types": ["pdf"]`, and
-the mediator serves that field on every message. [ADR-0010](./0010-one-provider-port.md)'s
+the API server serves that field on every message. [ADR-0010](./0010-one-provider-port.md)'s
 canonical model carried each message's attachment names and no types, so every message was served
 with no types. The operator ruled on 2026-10-07 to give messages their attachment types before
 [production point 1](../../../ROADMAP.md#production-point-1--the-read-path), from the adapter

@@ -121,7 +121,7 @@ whether to run the analysers individually or under one command. Everything else 
     may use, so the grant check of [ADR-0066](../data/0066-data-access-generated-from-sql.md) can
     test the list against the role's grants, while the lists over code that never ships, and over
     every component's files at once, admit the whole data-access library.
-  - **The mediator's two protocol roots**, each admitting the service layer and nothing below it
+  - **The API server's two protocol roots**, each admitting the service layer and nothing below it
     ([ADR-0030](../operability/0030-api-core-mcp-thin-adapter.md)).
   - **The UI's non-test code outside its one opening part.** It admits the standard library and
     names exactly the seven packages under `crypto/` that code uses, `crypto/aes`, `crypto/cipher`,
@@ -197,7 +197,7 @@ whether to run the analysers individually or under one command. Everything else 
   which only a mounting helper generic over the mux and over its handler or its pattern writes.
   Matching a type parameter there would add a rule that nothing in the UI needs. Test files are
   exempt, since a route a test registers is never served. The rule sits in its own analyser, run by
-  the same program, and honours no suppression comment. The mediator is outside its scope, for the
+  the same program, and honours no suppression comment. The API server is outside its scope, for the
   reason the alternatives give.
 - **The UI runs a statement only through the data-access library, and the project's own `go vet`
   analysers refuse the statements they can see.** The UI's role may read an OAuth client's sealed
@@ -650,22 +650,22 @@ instead, which need no carve-out and refuse that write too.
   seconds across the four configurations. It needs no dependency beyond the go command.
 
 **How to refuse a route registered around the UI's recording mux, and where.** Three mechanisms
-were weighed, over the UI and over the mediator, whose composition root mounts its two roots and its
-probe routes on muxes with nothing recording them.
+were weighed, over the UI and over the API server, whose composition root mounts its two roots and
+its probe routes on muxes with nothing recording them.
 
 - **A `go vet` analyser over the UI** was chosen. Run over the whole module with its one exemption,
   the recording mux's own `Handle`, it reported nothing under `ui/`, so it refuses no legitimate
   registration there. It is about a hundred and thirty lines with its comments.
-- **The same analyser over the mediator** was rejected. There it reported six registrations and all
-  six are legitimate, the API root's generator registering each operation of the registry, and the
-  composition root mounting `/api/` and `/mcp` and serving its three probe routes. The import lists
-  already confine `net/http` in the mediator's code to three files, the two roots' generators and the
-  composition root, so exempting those leaves the analyser refusing only a route registered in the
-  MCP root's generator, a case no record names. The case left to review there, a route the
-  composition root adds by hand, could be refused only by a list of the patterns the composition
-  root may mount, which would copy `mediate/app` into the analyser and drift from it, or by
+- **The same analyser over the API server** was rejected. There it reported six registrations and
+  all six are legitimate, the API root's generator registering each operation of the registry, and
+  the composition root mounting `/api/` and `/mcp` and serving its three probe routes. The import
+  lists already confine `net/http` in the API server's code to three files, the two roots'
+  generators and the composition root, so exempting those leaves the analyser refusing only a route
+  registered in the MCP root's generator, a case no record names. The case left to review there, a
+  route the composition root adds by hand, could be refused only by a list of the patterns the
+  composition root may mount, which would copy `api/app` into the analyser and drift from it, or by
   exempting the functions that mount them, which lets a route added inside them through. The
-  mediator's routes stay with review.
+  API server's routes stay with review.
 - **Moving the recording mux into a package of its own** was rejected. The compiler would then
   refuse a call on the mux beneath the recorder from package `api`, with no analyser. It needs a new
   directory, and it leaves a registration on a second mux built in package `api` unrefused, which the
@@ -695,7 +695,7 @@ the only mechanism holding a control.
 
 | Requirement | Where the lists load it |
 | --- | --- |
-| A named standard-library package is refused, and a list can admit no standard-library package at all | The mediator's packages outside its two roots admit nothing under `net/http`, the UI's shipped code nothing under `crypto/` beyond the packages it uses, and the files of each root other than its generator no standard-library package ([ADR-0053](./0053-parity-by-construction.md), [ADR-0081](../operability/0081-credentials-sealed-to-a-public-key.md)) |
+| A named standard-library package is refused, and a list can admit no standard-library package at all | The API server's packages outside its two roots admit nothing under `net/http`, the UI's shipped code nothing under `crypto/` beyond the packages it uses, and the files of each root other than its generator no standard-library package ([ADR-0053](./0053-parity-by-construction.md), [ADR-0081](../operability/0081-credentials-sealed-to-a-public-key.md)) |
 | A rule covers single files inside a package | Each root's generator file takes a list of its own beside the rest of its package, the one file its protocol's library is admitted in ([ADR-0053](./0053-parity-by-construction.md), [ADR-0086](./0086-mcp-root-on-the-official-go-sdk.md)) |
 | Test files and non-test files take different lists | The test tooling, rapid and go-cmp are refused to code that ships and admitted to tests ([ADR-0069](./0069-property-and-crash-sequences-from-rapid.md)) |
 | A list admits only what it names, and an empty one refuses | This record's decision |
@@ -707,9 +707,10 @@ the only mechanism holding a control.
 | `arch-go` | A named one, yes | No. Its unit is the package | No. It loads non-test packages only | No. An empty list of standard-library packages admits every one |
 | A check written here | It would | It would | It would | It would |
 
-`go-arch-lint` and `arch-go` each fail a requirement whose control nothing else holds, so a mediator
-package importing `net/http`, or a test-only library reaching shipped code, would pass without a
-finding. The check written here loses as it did above, on accumulation rather than capability.
+`go-arch-lint` and `arch-go` each fail a requirement whose control nothing else holds, so an API
+server package importing `net/http`, or a test-only library reaching shipped code, would pass
+without a finding. The check written here loses as it did above, on accumulation rather than
+capability.
 `depguard` stays, for the inter-component rules as for the pure-core rule, and no list changed tool,
 so no list was proven again for a new one. Its cost is the one named above, that its rules repeat
 file globs where a graph of components would declare each once.

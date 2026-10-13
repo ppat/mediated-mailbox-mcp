@@ -65,7 +65,7 @@ func ProjectID(id *string) Refusal {
 // Identifier refuses an account identifier outside the grammar of one lowercase DNS label, one to
 // 63 lowercase ASCII letters, digits and hyphens starting and ending with a letter or a digit, which
 // the database's check on accounts.account_id also holds, so every identifier is a path segment the
-// mediator's API root can address (ADR-0087) and legible wherever it spreads (ADR-0128). It also
+// API server's API root can address (ADR-0087) and legible wherever it spreads (ADR-0128). It also
 // refuses one of reserved, the words the UI's own top-level paths use, which the database does not
 // know, so every account's screens can be reached (docs/UI.md section 8.12). It reads id as it
 // arrives, trimming and folding nothing, so it accepts nothing the database refuses. An identifier

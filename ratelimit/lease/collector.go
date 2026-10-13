@@ -15,7 +15,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/ratelimit/core"
 )
 
-// The account-level series the mediator emits from each account's rate state (ADR-0077).
+// The account-level series the API server emits from each account's rate state (ADR-0077).
 // ratelimit/README.md lists them with the alerting rules that read them.
 const (
 	accountRateName       = "mediated_mailbox_ratelimit_account_rate"
@@ -36,7 +36,7 @@ type Account struct {
 
 // Collector emits each account's rate, floor, bucket level, and the seconds since any class last
 // asked and since the last grant, read from the account's rate state at scrape time (ADR-0077). The
-// mediator registers it, because it runs continuously, and the job workloads' series are absent
+// API server registers it, because it runs continuously, and the job workloads' series are absent
 // between their runs by design.
 //
 // An account with no rate state yet has never spent, and it is reported idle, at the target with an

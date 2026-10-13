@@ -40,8 +40,8 @@ so no key is written twice.
 {{- toYaml $db }}
 {{- end }}
 
-{{- define "mm.config.mediator" -}}
-{{- $v := .Values.mediator }}
+{{- define "mm.config.api" -}}
+{{- $v := .Values.api }}
 {{- $c := deepCopy $v.config }}
 {{- $_ := set $c "log_level" (default .Values.sharedConfig.log_level (index $v.config "log_level")) }}
 {{- if .Values.sharedConfig.scanner }}
@@ -52,7 +52,7 @@ so no key is written twice.
 {{- $_ := set $c "listen" (printf ":%s" (include "mm.port.http" .)) }}
 {{- $_ := set $c "probe_listen" (printf ":%s" (include "mm.port.metrics" .)) }}
 {{- $_ := set $c "token_file" (printf "%s/bearer-token" (include "mm.secretsDir" .)) }}
-{{- if .Values.secrets.mediatorTls.existingSecret }}
+{{- if .Values.secrets.apiTls.existingSecret }}
 {{- $_ := set $c "tls_cert" (printf "%s/tls/tls.crt" (include "mm.secretsDir" .)) }}
 {{- $_ := set $c "tls_key" (printf "%s/tls/tls.key" (include "mm.secretsDir" .)) }}
 {{- end }}

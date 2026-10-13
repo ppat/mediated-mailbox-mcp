@@ -1,0 +1,19 @@
+control: Every response of the client surface is uncacheable, and HEAD is refused
+removes: the client surface is served without the no-store wrapper
+packages: ./api/app
+tests: TestEveryResponseIsUncacheable
+scheduled-count: no
+
+diff --git a/api/app/app.go b/api/app/app.go
+index 00212862..02a3550c 100644
+--- a/api/app/app.go
++++ b/api/app/app.go
+@@ -586,7 +586,7 @@ func surface(registry service.Registry, tokenFile string, logger *slog.Logger) (
+ 	roots := http.NewServeMux()
+ 	roots.Handle("/api/", apiRoot)
+ 	roots.Handle("/mcp", mcp.Handler(registry, version.Number, logger))
+-	return noStore(logger, bearer(tokenFile, logger, roots)), nil
++	return bearer(tokenFile, logger, roots), nil
+ }
+ 
+ // noStore marks every response uncacheable, before its handler runs, so a response its handler

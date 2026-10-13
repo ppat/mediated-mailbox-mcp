@@ -1,0 +1,20 @@
+control: A served message's flags are exactly read and starred, each a boolean
+removes: starred is always served as false
+packages: ./api/internal/service
+tests: TestTheFlagsAreServedAsReadAndStarredAlone
+scheduled-count: no
+integration: yes
+
+diff --git a/api/internal/service/present.go b/api/internal/service/present.go
+index a8bd6cb2..c6d44e1b 100644
+--- a/api/internal/service/present.go
++++ b/api/internal/service/present.go
+@@ -65,7 +65,7 @@ func storedMessageFlags(stored []byte) messageFlags {
+ 	if err := json.Unmarshal(stored, &keys); err != nil {
+ 		return messageFlags{}
+ 	}
+-	return messageFlags{Read: storedBool(keys["read"]), Starred: storedBool(keys["starred"])}
++	return messageFlags{Read: storedBool(keys["read"]), Starred: false}
+ }
+ 
+ // storedBool reads one stored flag, false unless it is the JSON boolean true.

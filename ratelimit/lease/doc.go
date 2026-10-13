@@ -4,5 +4,5 @@
 //
 // It also holds the rate limiter's metrics (ADR-0076). Each spending process emits its own rate, lease
 // and throttle series through its Limiter, and the Collector emits each account's series from its
-// rate state for the mediator, which registers it (ADR-0077).
+// rate state for the API server, which registers it (ADR-0077).
 package lease

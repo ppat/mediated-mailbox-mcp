@@ -103,7 +103,7 @@ guarantees wherever a provider offers them.
   the port exists to prevent.
 - **Pass provider-native query strings through.** No case was tabled for it. Rejected: query syntax
   in the agent's vocabulary couples the client surface to one backend and makes queries unanalyzable
-  by the mediator.
+  by the API server.
 - **The enumeration's total reported in pages rather than items.** The case for it is one field
   rather than two, with the page size kept private to the adapter, which would divide its own count
   by it. Rejected in favour of the item count above.

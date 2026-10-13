@@ -133,8 +133,8 @@ client's question, not the surface's.
 - **The sender class term read from the class the index stored.** For it, one column in the
   statement and no classification per call. Against it, a domain listed after its messages were
   stored would select as normal while the same message is served as restricted, the disagreement
-  [ADR-0002](../redaction/0002-fetch-time-re-evaluation.md) rules out, and the mediator holds no grant
-  on that column
+  [ADR-0002](../redaction/0002-fetch-time-re-evaluation.md) rules out, and the API server holds no
+  grant on that column
   ([ADR-0118](../data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)).
 
 ## Consequences

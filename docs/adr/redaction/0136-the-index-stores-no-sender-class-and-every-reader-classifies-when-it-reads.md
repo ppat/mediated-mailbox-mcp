@@ -19,9 +19,10 @@ with the rule (ADR-0113). Backfill's second pass made both at each run's start a
 changed by value, and delta sync on every tick once that pass had ended. Each read every message of
 the account, measured at about 30 ms each at 100,000 messages, on every tick.
 
-Only the UI read the stored class. The Redaction Gate classifies at fetch time and the mediator's
+Only the UI read the stored class. The Redaction Gate classifies at fetch time and the API server's
 role held no grant on the column ([ADR-0002](./0002-fetch-time-re-evaluation.md)). The scan gate
-classifies under the policy it is given, and the mediator's index reads classify domains themselves
+classifies under the policy it is given, and the API server's index reads classify domains
+themselves
 ([ADR-0108](../operability/0108-index-reads-select-by-an-index-query-of-the-surfaces-own.md)). The
 UI read it in four places. Home's corpus figures counted restricted messages, the failures dataset
 showed each failed message's class and counted restricted failures, its row detail named the rule
@@ -56,8 +57,8 @@ released wrongly. The path was read from the statements and not reproduced by a 
   - The policy screens and the sender picker classify each sender domain they read.
   - The failures dataset classifies each row's sender, and counts restricted failures by passing the
     domains the policy classifies normal into its statements, every other stored domain counting as
-    restricted, as the mediator's sender class term does, so a domain the read did not classify fails
-    closed
+    restricted, as the API server's sender class term does, so a domain the read did not classify
+    fails closed
     ([ADR-0108](../operability/0108-index-reads-select-by-an-index-query-of-the-surfaces-own.md)).
     Its row detail names the rule that restricts the sender under the policy in force.
 - **A rule's count on the policy screens is what it restricts now.** No count measures a stored

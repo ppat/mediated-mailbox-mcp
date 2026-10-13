@@ -19,4 +19,4 @@ index 7312c97c..531008e7 100644
 +GRANT USAGE ON SEQUENCE policy_changes_id_seq TO mediated_mailbox_ui, mediated_mailbox_propose;
  
  -- The rate limiter's statements, in db/ratestate, run under the role of each deployable or job kind
- -- that spends from the budget (ADR-0118), the mediator, backfill and delta sync. The grants also name
+ -- that spends from the budget (ADR-0118), the API server, backfill and delta sync. The grants also name

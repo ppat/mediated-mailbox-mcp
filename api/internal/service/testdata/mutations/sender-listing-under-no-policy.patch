@@ -1,0 +1,20 @@
+control: The sender class an index read selects, groups and lists by is the Redaction Gate's under the policy in force
+removes: the sender listing classifies each domain under no policy, which restricts every sender, instead of the policy the call took
+packages: ./api/internal/service
+tests: TestTheIndexReadsClassifySendersUnderThePolicyInForce
+scheduled-count: no
+integration: yes
+
+diff --git a/api/internal/service/index.go b/api/internal/service/index.go
+index 18c44b2f..6e94cb03 100644
+--- a/api/internal/service/index.go
++++ b/api/internal/service/index.go
+@@ -468,7 +468,7 @@ func (s Sources) listSenders(ctx context.Context, account string, input json.Raw
+ 		return nil, err
+ 	}
+ 	params := senders.SenderPageParams{FirstPage: !found, AfterCount: from.Count, AfterDomain: from.Key, PageSize: pageSize}
+-	p := s.Policy(account)
++	p := classify.Policy{}
+ 	var rows []senders.SenderPageRow
+ 	err = tx.Run(ctx, tx.Snapshot(s.DB), account, func(t pgx.Tx) error {
+ 		var err error

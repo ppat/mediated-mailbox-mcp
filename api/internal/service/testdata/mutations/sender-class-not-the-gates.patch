@@ -1,0 +1,20 @@
+control: Every message a read operation serves follows the redaction matrix, decided by the Redaction Gate under the policy in force
+removes: every served message is shown with a normal sender, whatever the gate classified
+packages: ./api/internal/service
+tests: TestEveryServedMessageFollowsTheRedactionMatrix
+scheduled-count: no
+integration: yes
+
+diff --git a/api/internal/service/present.go b/api/internal/service/present.go
+index d610d3ab..34949895 100644
+--- a/api/internal/service/present.go
++++ b/api/internal/service/present.go
+@@ -124,7 +124,7 @@ func present(account string, m stored, p classify.Policy) message {
+ 	flags, scan := storedFlags(m.ContentFlags), storedScanState(m.ScanState)
+ 	v := redact.Decide(p, m.FromEmail, flags, scan)
+ 	class := "normal"
+-	if v.Sender().Class().Restricted() {
++	if false && v.Sender().Class().Restricted() {
+ 		class = "restricted"
+ 	}
+ 	shownFlags := []string{}

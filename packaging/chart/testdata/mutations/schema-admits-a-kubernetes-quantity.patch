@@ -1,5 +1,5 @@
 control: The values schema refuses a value Helm or a process would change
-removes: the mediator's soft memory limit admits Kubernetes' units, which the Go runtime refuses at start
+removes: the API server's soft memory limit admits Kubernetes' units, which the Go runtime refuses at start
 packages: ./packaging/chart
 tests: TestTheSchemaRefusesWhatHelmOrTheProcessesWouldChange
 scheduled-count: no

@@ -18,7 +18,7 @@ query is [ADR-0108](./0108-index-reads-select-by-an-index-query-of-the-surfaces-
 client's vocabulary ([DESIGN.md](../../../DESIGN.md#approval-is-not-in-any-clients-vocabulary)).
 What is left to choose is how each operation appears on the wire. That is its HTTP method and
 path, how its arguments and its account travel, and what the MCP tool declares about its behaviour.
-This record binds the mediator's client surface only. The UI's read API is the UI's own and keeps
+This record binds the API server's client surface only. The UI's read API is the UI's own and keeps
 its own routes ([docs/UI.md](../../UI.md#17-the-read-api)).
 
 The choice looks like a question of HTTP style. It is really a question of where the facts about an
@@ -149,7 +149,7 @@ passes the gates once each design adds the mechanism named below, so they break 
   breaking change to it is a breaking release.
 - **The MCP result carries the output as structured content and the same JSON as text**, so a client
   that reads only text content still receives the result.
-- **The mediator serves its listener over TLS when its configuration names a key pair, and over
+- **The API server serves its listener over TLS when its configuration names a key pair, and over
   plain HTTP when it names none**, as [ADR-0127](./0127-tls-when-given-a-key-pair-plain-http-otherwise.md)
   decides.
 - **The health and readiness probes and the metrics endpoint listen on a separate plain-HTTP port**,

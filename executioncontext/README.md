@@ -45,7 +45,7 @@ process reloads is its caller's. Each loader loads when asked and swaps only on 
 
 ## The account snapshot, `accountload`
 
-The mediator, backfill, delta sync and the reorg job kind each hold their accounts, each paired
+The API server, backfill, delta sync and the reorg job kind each hold their accounts, each paired
 with the OAuth client it connects through where its provider has one
 ([ADR-0106](../docs/adr/provider/0106-accounts-of-a-provider-connect-through-any-of-its-oauth-clients.md)),
 and the opened credentials as one account snapshot
@@ -105,11 +105,11 @@ work takes the snapshot once.
 
 ## The account session, `session`
 
-The mediator, backfill and delta sync each call a provider for an account in units of work, a body
-request, a page of a pass, a tick. Each pairs the account with the credentials the snapshot opened,
-holds a token source over them, reads a refused credential again from the account's row and makes
-the call once more over a source built from a replaced one, and at the end of a unit hands the
-source's credential over with the adoption stamp of the credential it was built from
+The API server, backfill and delta sync each call a provider for an account in units of work, a
+body request, a page of a pass, a tick. Each pairs the account with the credentials the snapshot
+opened, holds a token source over them, reads a refused credential again from the account's row
+and makes the call once more over a source built from a replaced one, and at the end of a unit
+hands the source's credential over with the adoption stamp of the credential it was built from
 ([ADR-0089](../docs/adr/operability/0089-sealed-values-written-by-compare-and-set.md)) and records
 the latest authentication attempt
 ([ADR-0097](../docs/adr/operability/0097-authentication-outcome-reported-by-the-adapter-recorded-by-the-deployable.md)).
@@ -121,13 +121,13 @@ credential while it uses it.
 It is one mechanism with two parameters, so it never branches on which caller holds it.
 
 - **How long a held source lives.** For one unit of work, or across units while the stored
-  credential is the one the source was built from or the one it rotated to. The mediator holds
+  credential is the one the source was built from or the one it rotated to. The API server holds
   across requests, so an access token the provider issued serves the requests after it. Backfill
   holds across the pages of its runs by the same rule, and delta sync across its ticks. No record
   gives delta sync a reason for a source of its own per tick, which would cost a token refresh on
   every tick, so it holds as backfill does.
-- **Which units run concurrently.** Only the mediator runs concurrent units for one account, so the
-  holder takes a lock around what it holds, which costs the batch callers nothing.
+- **Which units run concurrently.** Only the API server runs concurrent units for one account, so
+  the holder takes a lock around what it holds, which costs the batch callers nothing.
 
 The rules a copy could get wrong without anyone noticing are these.
 
@@ -166,7 +166,7 @@ belongs to the rate budget rather than to the account's credential.
 
 ## The policy loader, `policyload`
 
-Backfill, the mediator, delta sync, the reorg job kind and the heuristics job kind each hold the
+Backfill, the API server, delta sync, the reorg job kind and the heuristics job kind each hold the
 active policy as one immutable snapshot and replace it only with an update that validates
 ([ADR-0041](../docs/adr/engineering/0041-policy-as-immutable-snapshots.md)). The validation, the
 composition of the base policy with an account's overlay and the atomic swap are pure and sit in
@@ -221,8 +221,8 @@ one that ran out of time is a failed read like any other.
 An account's provider credential is stored in the database sealed to a public key
 ([ADR-0080](../docs/adr/data/0080-accounts-and-credentials-live-in-the-database.md),
 [ADR-0081](../docs/adr/operability/0081-credentials-sealed-to-a-public-key.md)). The UI seals a
-credential when an account is connected or re-authorized. Backfill, the mediator, delta sync and the
-reorg job kind open it with the private key, and seal a rotated one before writing it back
+credential when an account is connected or re-authorized. Backfill, the API server, delta sync and
+the reorg job kind open it with the private key, and seal a rotated one before writing it back
 ([ADR-0082](../docs/adr/operability/0082-rotation-writeback-to-the-database.md)). The UI's
 `ui/internal/clientsecret` opens an OAuth client's secret with the same keys, for a consent's code
 exchange, and nothing else. These packages are that sealing and opening, the loading of each key

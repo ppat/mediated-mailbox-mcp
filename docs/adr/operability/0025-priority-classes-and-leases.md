@@ -6,7 +6,7 @@
 ## Context
 
 The rate budget is per account, but the spenders are separate processes and separate jobs — the
-mediator serving interactive queries, and the background jobs, backfill, delta sync and reorg
+API server serving interactive queries, and the background jobs, backfill, delta sync and reorg
 apply, which run as job kinds of one worker process
 ([ADR-0117](./0117-one-background-worker-runs-every-job-kind.md)). Two problems follow: a naive
 shared queue lets a running backfill starve the agent's live queries behind hours of enqueued
@@ -77,7 +77,7 @@ store-choice reasoning is [ADR-0015](../data/0015-postgres-not-a-kv-store.md)).
 - **First-in-first-out over one bucket.** No case was tabled for it. Rejected: a backfill enqueues
   hours of work, and every interactive query would wait behind it. Starvation of the human's agent
   by the human's own batch job is the exact inversion of correct priority.
-- **Static per-process budgets** (give backfill 60%, mediator 30%, sync 10%, permanently). No case
+- **Static per-process budgets** (give backfill 60%, API server 30%, sync 10%, permanently). No case
   was tabled for it. Rejected: idle reservations are waste. When no backfill runs, most of the
   budget would sit unspendable, while classes over one live budget reassign headroom automatically.
 - **A dedicated coordination service or Redis-style store now.** No case was tabled for it. Rejected

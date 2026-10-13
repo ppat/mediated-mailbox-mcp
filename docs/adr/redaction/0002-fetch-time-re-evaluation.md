@@ -37,10 +37,10 @@ Gate re-classifies from the index at fetch time
 Two properties are the point.
 
 - **On a gate deny, the provider is never contacted**, so no gate-denied body ever enters
-  mediator memory. The denial is decided entirely from the index.
+  API server memory. The denial is decided entirely from the index.
 - **Policy changes bind on the next call, not the next sync.** A newly deny-listed domain denies
   immediately, because classification is re-derived against current policy at fetch time. How the
-  mediator holds current policy at each call is
+  API server holds current policy at each call is
   [ADR-0099](../engineering/0099-a-body-request-loads-the-policy-before-it-decides.md)'s.
 
 `SKIPPED_GATE` allowing is deliberate and visible in the flow rather than hidden. It is the
@@ -86,7 +86,7 @@ snippet are not checked again.
   the metadata). No case was tabled for it. Rejected: anything a client supplies, a suborned client
   can forge. Inputs to the release decision must come only from state no client can write.
 - **Fetch the body first, then decide.** No case was tabled for it. Rejected: it moves every denied
-  body through mediator memory for no benefit, enlarging the blast radius of any spill or logging
+  body through API server memory for no benefit, enlarging the blast radius of any spill or logging
   bug. The serve-time pattern check is not this. It never fetches in order to decide, since the
   gate's release decision triggered the fetch, and the check can only subtract from what that
   decision would release.

@@ -1,0 +1,19 @@
+control: Each failure names its origin, with the status the origin gives, and no detail of an API server or provider failure reaches the client
+removes: the API root answers an argument refusal with 500, as it answers a fault of its own
+packages: ./api/internal/api
+tests: TestEachFailureNamesItsOrigin
+scheduled-count: no
+
+diff --git a/api/internal/api/api.go b/api/internal/api/api.go
+index 2b19c7e..2e61d4d 100644
+--- a/api/internal/api/api.go
++++ b/api/internal/api/api.go
+@@ -261,7 +261,7 @@ func objectMembers(body []byte) ([]member, error) {
+ func status(origin service.Origin) int {
+ 	switch origin {
+ 	case service.OriginClient:
+-		return http.StatusBadRequest
++		return http.StatusInternalServerError
+ 	case service.OriginProvider:
+ 		return http.StatusBadGateway
+ 	case service.OriginAPI:

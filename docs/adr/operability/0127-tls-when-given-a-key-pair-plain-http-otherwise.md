@@ -1,4 +1,4 @@
-# 0127. The mediator and the UI serve TLS when given a certificate and key, and plain HTTP when given neither
+# 0127. The API server and the UI serve TLS when given a certificate and key, and plain HTTP when given neither
 
 **Status:** Accepted ·
 **Pillar:** [Concerns stay un-braided; components know only their contracts](../../../DESIGN.md#concerns-stay-un-braided-components-know-only-their-contracts) ·
@@ -6,7 +6,7 @@
 
 ## Context
 
-The mediator's client surface and the UI each serve their clients over HTTP. Where TLS ends is a
+The API server's client surface and the UI each serve their clients over HTTP. Where TLS ends is a
 property of the platform. Some platforms terminate TLS in front of the app, at an ingress or a
 gateway, and hand it plain HTTP. Others hand the app a certificate.
 [ADR-0051](../engineering/0051-environment-contract.md) says the app knows its environment
@@ -28,14 +28,14 @@ is [ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)'s.
 - **No other setting chooses the transport.** There is no flag declaring an ingress, no flag
   asking for plain HTTP, and no build of the binary that serves differently from another.
 - **Serving TLS, the key pair is read from its files on each handshake**, so a renewed certificate
-  serves without a restart. The mediator reports ready only once the key pair loads, and the UI
+  serves without a restart. The API server reports ready only once the key pair loads, and the UI
   loads it before it serves anything. Serving plain HTTP, neither reads a key file.
 - **Each deployable's start log records which transport it serves**, as an info record, beside the
   TLS file paths the effective configuration logs. Neither deployable warns when it serves plain
   HTTP, since a warning would be an opinion about the platform.
 - **What holds in either mode.** The bearer check stands in front of both of the
-  mediator's roots in either mode ([ADR-0030](./0030-api-core-mcp-thin-adapter.md)). The probes and
-  the metrics endpoint are on their own plain-HTTP listener
+  API server's roots in either mode ([ADR-0030](./0030-api-core-mcp-thin-adapter.md)). The probes
+  and the metrics endpoint are on their own plain-HTTP listener
   ([ADR-0051](../engineering/0051-environment-contract.md)). The UI's session cookie and the
   consent attempt's cookie are `Secure`, `HttpOnly` and `SameSite=Strict`, and the request token is
   the same, in either mode ([ADR-0061](./0061-ui-browser-security-posture.md),

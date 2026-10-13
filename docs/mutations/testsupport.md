@@ -124,7 +124,7 @@ The demonstrations of the controls whose patches sit in `testsupport/`. [MUTATIO
 
 ## The analyser refuses a failing-case store write from inside a property
 
-- **Date · evidence:** 2026-09-22 · [pull request #142](https://github.com/ppat/mediated-mailbox-mcp/pull/142), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-11 under seeds the runner chose, after the analyser's rules came to cover `property.ReportReach`, with break (2)'s patch regenerated for the changed context · [pull request #345](https://github.com/ppat/mediated-mailbox-mcp/pull/345)
+- **Date · evidence:** 2026-09-22 · [pull request #142](https://github.com/ppat/mediated-mailbox-mcp/pull/142), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-11 under seeds the runner chose, after the analyser's rules came to cover `property.ReportReach`, with break (2)'s patch regenerated for the changed context · [pull request #345](https://github.com/ppat/mediated-mailbox-mcp/pull/345), and every break again on 2026-10-13 at RAPID_SEED=1, after the rename of the API server and the migrator moved the code, tests or patches the row rests on · [pull request #376](https://github.com/ppat/mediated-mailbox-mcp/pull/376), in run [38440944897](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/38440944897) of the `mutation-demonstrations` workflow
 - **Break (1):** the store rule also fires on property.Report
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestPlacement`
 - **Break (2):** the store rule is removed
@@ -132,7 +132,7 @@ The demonstrations of the controls whose patches sit in `testsupport/`. [MUTATIO
 
 ## The analyser refuses a generator report reachable from a property
 
-- **Date · evidence:** 2026-09-22 · [pull request #142](https://github.com/ppat/mediated-mailbox-mcp/pull/142), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-11, breaks (5) to (7) added, under seeds the runner chose, after the report rule came to cover `property.ReportReach`, with break (4)'s patch regenerated for the changed context · [pull request #345](https://github.com/ppat/mediated-mailbox-mcp/pull/345)
+- **Date · evidence:** 2026-09-22 · [pull request #142](https://github.com/ppat/mediated-mailbox-mcp/pull/142), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-11, breaks (5) to (7) added, under seeds the runner chose, after the report rule came to cover `property.ReportReach`, with break (4)'s patch regenerated for the changed context · [pull request #345](https://github.com/ppat/mediated-mailbox-mcp/pull/345), and every break again on 2026-10-13 at RAPID_SEED=1, after the rename of the API server and the migrator moved the code, tests or patches the row rests on · [pull request #376](https://github.com/ppat/mediated-mailbox-mcp/pull/376), in run [38440944897](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/38440944897) of the `mutation-demonstrations` workflow
 - **Break (1):** function literals assigned to variables are no longer followed, so a property held in a variable escapes
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestPlacement`
 - **Break (2):** calls to this package's own functions are no longer followed, so a report call inside a helper escapes
@@ -150,7 +150,7 @@ The demonstrations of the controls whose patches sit in `testsupport/`. [MUTATIO
 
 ## The analyser refuses a link to a pure core's symbol
 
-- **Date · evidence:** 2026-09-23 · [pull request #149](https://github.com/ppat/mediated-mailbox-mcp/pull/149), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
+- **Date · evidence:** 2026-09-23 · [pull request #149](https://github.com/ppat/mediated-mailbox-mcp/pull/149), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-13 at RAPID_SEED=1, after the rename of the API server and the migrator moved the code, tests or patches the row rests on · [pull request #376](https://github.com/ppat/mediated-mailbox-mcp/pull/376), in run [38440944897](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/38440944897) of the `mutation-demonstrations` workflow
 - **Break (1):** every go:linkname directive is reported, whatever package it names
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestGlobals`
 - **Break (2):** a go:linkname directive naming a pure core's symbol goes unreported
@@ -158,7 +158,7 @@ The demonstrations of the controls whose patches sit in `testsupport/`. [MUTATIO
 
 ## The analyser refuses a read of the environment outside a deployable's main.go
 
-- **Date · evidence:** 2026-09-26 · [pull request #177](https://github.com/ppat/mediated-mailbox-mcp/pull/177), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
+- **Date · evidence:** 2026-09-26 · [pull request #177](https://github.com/ppat/mediated-mailbox-mcp/pull/177), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-13 at RAPID_SEED=1, after the rename of the API server and the migrator moved the code, tests or patches the row rests on · [pull request #376](https://github.com/ppat/mediated-mailbox-mcp/pull/376), in run [38440944897](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/38440944897) of the `mutation-demonstrations` workflow
 - **Break (1):** (*exec.Cmd).Environ is not reported, so a command's inherited environment escapes
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestEnvironment`
 - **Break (2):** os.ExpandEnv is not reported
@@ -184,7 +184,7 @@ The demonstrations of the controls whose patches sit in `testsupport/`. [MUTATIO
 
 ## The analyser refuses a write to a pure core's package-level variable
 
-- **Date · evidence:** 2026-09-23 · [pull request #149](https://github.com/ppat/mediated-mailbox-mcp/pull/149), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
+- **Date · evidence:** 2026-09-23 · [pull request #149](https://github.com/ppat/mediated-mailbox-mcp/pull/149), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-13 at RAPID_SEED=1, after the rename of the API server and the migrator moved the code, tests or patches the row rests on · [pull request #376](https://github.com/ppat/mediated-mailbox-mcp/pull/376), in run [38440944897](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/38440944897) of the `mutation-demonstrations` workflow
 - **Break (1):** taking a variable's address goes unreported
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestGlobals`
 - **Break (2):** a line directive written as a block comment goes unreported
@@ -206,7 +206,7 @@ The demonstrations of the controls whose patches sit in `testsupport/`. [MUTATIO
 
 ## The analyser refuses package-level state declared in a pure core
 
-- **Date · evidence:** 2026-09-23 · [pull request #149](https://github.com/ppat/mediated-mailbox-mcp/pull/149), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
+- **Date · evidence:** 2026-09-23 · [pull request #149](https://github.com/ppat/mediated-mailbox-mcp/pull/149), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-13 at RAPID_SEED=1, after the rename of the API server and the migrator moved the code, tests or patches the row rests on · [pull request #376](https://github.com/ppat/mediated-mailbox-mcp/pull/376), in run [38440944897](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/38440944897) of the `mutation-demonstrations` workflow
 - **Break (1):** a variable of any type other than error is admitted
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestGlobals`
 - **Break (2):** an error value made by errors.New from a constant message is refused
@@ -314,7 +314,7 @@ The demonstrations of the controls whose patches sit in `testsupport/`. [MUTATIO
 
 ## The chain applies from an empty database on every test run
 
-- **Date · evidence:** 2026-09-24 · [pull request #153](https://github.com/ppat/mediated-mailbox-mcp/pull/153), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326)
+- **Date · evidence:** 2026-09-24 · [pull request #153](https://github.com/ppat/mediated-mailbox-mcp/pull/153), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and every break again on 2026-10-13 at RAPID_SEED=1, after the rename of the API server and the migrator moved the code, tests or patches the row rests on · [pull request #376](https://github.com/ppat/mediated-mailbox-mcp/pull/376), in run [38440944897](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/38440944897) of the `mutation-demonstrations` workflow
 - **Break (1):** goose applies the chain to the database the migration URL names rather than the one just created empty
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/postgres`:** `TestTheChainAppliesWithNoSuperuserStep`, `TestTheChainFailsFromEmptyOnAMigrationOnlyTheCurrentShapeAccepts`, `TestTheChainFailsFromEmptyOnAMigrationOnlyTheCurrentShapeAccepts/from_empty`
 - **Break (2):** a migration that fails does not fail the chain's application
@@ -322,7 +322,7 @@ The demonstrations of the controls whose patches sit in `testsupport/`. [MUTATIO
 
 ## The chain applies with no superuser step
 
-- **Date · evidence:** 2026-10-09 · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326)
+- **Date · evidence:** 2026-10-09 · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and every break again on 2026-10-13 at RAPID_SEED=1, after the rename of the API server and the migrator moved the code, tests or patches the row rests on · [pull request #376](https://github.com/ppat/mediated-mailbox-mcp/pull/376), in run [38440944897](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/38440944897) of the `mutation-demonstrations` workflow
 - **Break (1):** the extension is created by the superuser before the chain runs, a superuser step inside the application database
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/postgres`:** `TestTheChainAppliesWithNoSuperuserStep`
 - **Break (2):** the chain runs as the superuser rather than the migration role
@@ -397,7 +397,7 @@ The demonstrations of the controls whose patches sit in `testsupport/`. [MUTATIO
 
 ## The goroutines analyser refuses a goroutine started in the worker's code outside its scheduler
 
-- **Date · evidence:** 2026-10-10 · [pull request #328](https://github.com/ppat/mediated-mailbox-mcp/pull/328), at RAPID_SEED=1
+- **Date · evidence:** 2026-10-10 · [pull request #328](https://github.com/ppat/mediated-mailbox-mcp/pull/328), at RAPID_SEED=1, and every break again on 2026-10-13 at RAPID_SEED=1, after the rename of the API server and the migrator moved the code, tests or patches the row rests on · [pull request #376](https://github.com/ppat/mediated-mailbox-mcp/pull/376), in run [38440944897](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/38440944897) of the `mutation-demonstrations` workflow
 - **Break (1):** a starter is reported only where it is called, so a method value or a method expression of one escapes
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestGoroutines`
 - **Break (2):** a package whose path only starts with the worker's is reported as the worker's
@@ -437,7 +437,7 @@ The demonstrations of the controls whose patches sit in `testsupport/`. [MUTATIO
 
 ## The pure-core rule matches a core path element at any depth
 
-- **Date · evidence:** 2026-10-08 · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
+- **Date · evidence:** 2026-10-08 · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-13 at RAPID_SEED=1, after the rename of the API server and the migrator moved the code, tests or patches the row rests on · [pull request #376](https://github.com/ppat/mediated-mailbox-mcp/pull/376), in run [38440944897](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/38440944897) of the `mutation-demonstrations` workflow
 - **Break (1):** the match is no longer held to a whole path element, so a directory whose name ends in core counts as a pure core
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestGlobals`
 - **Break (2):** only the fixed depths the pattern once named count, core, a library's core and a deployable's internal core, so a core at depth three goes unchecked
@@ -445,7 +445,7 @@ The demonstrations of the controls whose patches sit in `testsupport/`. [MUTATIO
 
 ## The raw SQL analyser refuses a statement the UI runs other than through the data-access library
 
-- **Date · evidence:** 2026-10-02 · [pull request #256](https://github.com/ppat/mediated-mailbox-mcp/pull/256), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
+- **Date · evidence:** 2026-10-02 · [pull request #256](https://github.com/ppat/mediated-mailbox-mcp/pull/256), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-13 at RAPID_SEED=1, after the rename of the API server and the migrator moved the code, tests or patches the row rests on · [pull request #376](https://github.com/ppat/mediated-mailbox-mcp/pull/376), in run [38440944897](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/38440944897) of the `mutation-demonstrations` workflow
 - **Break (1):** parameters are compared by the names they are printed with, so a parameter spelled through an alias escapes
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestRawSQL`
 - **Break (2):** a batch sent or rows copied in are not reported
@@ -469,7 +469,7 @@ The demonstrations of the controls whose patches sit in `testsupport/`. [MUTATIO
 
 ## The routes analyser refuses a route the UI registers on a mux other than through its recording mux
 
-- **Date · evidence:** 2026-09-30 · [pull request #199](https://github.com/ppat/mediated-mailbox-mcp/pull/199), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
+- **Date · evidence:** 2026-09-30 · [pull request #199](https://github.com/ppat/mediated-mailbox-mcp/pull/199), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-13 at RAPID_SEED=1, after the rename of the API server and the migrator moved the code, tests or patches the row rests on · [pull request #376](https://github.com/ppat/mediated-mailbox-mcp/pull/376), in run [38440944897](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/38440944897) of the `mutation-demonstrations` workflow
 - **Break (1):** an interface method's parameters are compared by the names they are printed with, so a parameter spelled through an alias escapes
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestRawSQL`, `TestRoutes`
 - **Break (2):** a concrete type's method named and typed like the mux's is reported, the recording mux's own Handle included
@@ -486,14 +486,14 @@ The demonstrations of the controls whose patches sit in `testsupport/`. [MUTATIO
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestRoutes`
 - **Break (8):** every method named Handle or HandleFunc on an interface is reported, whatever its parameters
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestRoutes`
-- **Break (9):** every package of the module is checked, the mediator included
+- **Break (9):** every package of the module is checked, the API server included
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestRoutes`
 - **Break (10):** test files are no longer exempt
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestRoutes`
 
 ## The txhelper analyser holds every generated data-access function to the transaction helper, except the accounts listing, the read of oauth_clients, delta sync's re-seal of a client secret and the UI's client setup
 
-- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
+- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-13 at RAPID_SEED=1, after the rename of the API server and the migrator moved the code, tests or patches the row rests on · [pull request #376](https://github.com/ppat/mediated-mailbox-mcp/pull/376), in run [38440944897](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/38440944897) of the `mutation-demonstrations` workflow
 - **Break (1):** taking the transaction parameter's address is not reported
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestTxHelper`
 - **Break (2):** taking the address of any variable is reported, not only of the transaction parameter
@@ -541,7 +541,7 @@ The demonstrations of the controls whose patches sit in `testsupport/`. [MUTATIO
 
 ## The txhelper analyser holds the base policy's subsection and tx.RunBase to each other
 
-- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
+- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-13 at RAPID_SEED=1, after the rename of the API server and the migrator moved the code, tests or patches the row rests on · [pull request #376](https://github.com/ppat/mediated-mailbox-mcp/pull/376), in run [38440944897](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/38440944897) of the `mutation-demonstrations` workflow
 - **Break (1):** the base policy's subsection built in an account's transaction is accepted
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestTxHelper`
 - **Break (2):** another subsection built in a base-policy transaction is accepted
@@ -551,7 +551,7 @@ The demonstrations of the controls whose patches sit in `testsupport/`. [MUTATIO
 
 ## The unsafe analyser refuses an import of unsafe, and a use of reflect's unsafe pointers, in this module's code
 
-- **Date · evidence:** 2026-10-10 · [pull request #328](https://github.com/ppat/mediated-mailbox-mcp/pull/328), at RAPID_SEED=1
+- **Date · evidence:** 2026-10-10 · [pull request #328](https://github.com/ppat/mediated-mailbox-mcp/pull/328), at RAPID_SEED=1, and every break again on 2026-10-13 at RAPID_SEED=1, after the rename of the API server and the migrator moved the code, tests or patches the row rests on · [pull request #376](https://github.com/ppat/mediated-mailbox-mcp/pull/376), in run [38440944897](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/38440944897) of the `mutation-demonstrations` workflow
 - **Break (1):** an import of unsafe is not reported
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestUnsafeImport`
 - **Break (2):** code of other modules is reported as this module's

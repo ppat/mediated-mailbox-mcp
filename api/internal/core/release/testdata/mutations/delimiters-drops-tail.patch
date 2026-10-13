@@ -1,0 +1,17 @@
+control: A released body sits inside delimiters it cannot close
+removes: the text after the last replaced stretch is dropped
+packages: ./api/internal/core/release
+tests: TestABodyCannotCloseTheDelimiters/the_closing_line TestTheReleasedBodysForm
+scheduled-count: no
+
+diff --git a/api/internal/core/release/release.go b/api/internal/core/release/release.go
+--- a/api/internal/core/release/release.go
++++ b/api/internal/core/release/release.go
+@@ -202,7 +202,6 @@ func neutralize(text string) string {
+ 	if written == 0 {
+ 		return text
+ 	}
+-	b.WriteString(text[written:])
+ 	return b.String()
+ }
+ 

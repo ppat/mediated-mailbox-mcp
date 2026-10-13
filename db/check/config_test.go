@@ -24,22 +24,22 @@ import (
 // so its list has no entry here. Its statements run under the role of each list with a role that
 // admits it, and the grant check plans them under each of those roles (ADR-0066). The lists admitting
 // the rate limiter and the account snapshot are those of the code that calls a provider, the
-// mediator's and the two job kinds', and the UI's names the subsections its read API reads.
+// API server's and the two job kinds', and the UI's names the subsections its read API reads.
 //
-// The mediator's code is also governed by narrower lists, and the one over every package but its two
+// The API server's code is also governed by narrower lists, and the one over every package but its two
 // protocol roots names the subsections its read operations run. The lists of the two roots and their
-// generators admit that code through the service layer, so each is keyed here to the mediator's role
+// generators admit that code through the service layer, so each is keyed here to the API server's role
 // too.
 var componentRoles = map[string]string{
-	"mediate":               "mediated_mailbox_mediate",
-	"mediate-api-generator": "mediated_mailbox_mediate",
-	"mediate-api-root":      "mediated_mailbox_mediate",
-	"mediate-mcp-generator": "mediated_mailbox_mediate",
-	"mediate-mcp-root":      "mediated_mailbox_mediate",
-	"ui":                    "mediated_mailbox_ui",
-	"ui-clientsecret":       "mediated_mailbox_ui",
-	"worker-backfill":       "mediated_mailbox_backfill",
-	"worker-sync":           "mediated_mailbox_sync",
+	"api":               "mediated_mailbox_api",
+	"api-api-generator": "mediated_mailbox_api",
+	"api-api-root":      "mediated_mailbox_api",
+	"api-mcp-generator": "mediated_mailbox_api",
+	"api-mcp-root":      "mediated_mailbox_api",
+	"ui":                "mediated_mailbox_ui",
+	"ui-clientsecret":   "mediated_mailbox_ui",
+	"worker-backfill":   "mediated_mailbox_backfill",
+	"worker-sync":       "mediated_mailbox_sync",
 }
 
 // testRoles is componentRoles for the test library's import lists. The entry named leftover names no

@@ -1,0 +1,20 @@
+control: The API server serves the accounts each account snapshot it reloads lists, and keeps them when a reload's read fails
+removes: a reload loads the snapshot and never hands its accounts to the registry
+packages: ./api/app
+tests: TestTheAPIServerServesTheAccountsEachReloadLists
+scheduled-count: no
+integration: yes
+
+
+diff --git a/api/app/app.go b/api/app/app.go
+index 8f9657ee..1cf2a385 100644
+--- a/api/app/app.go
++++ b/api/app/app.go
+@@ -352,7 +352,6 @@ func (s *serving) reload(ctx context.Context) error {
+ 	ids := idsOf(next)
+ 	failed := s.loadPolicy(ctx, ids)
+ 	s.snapshot.Store(next)
+-	s.registry.Serve(ids)
+ 	s.logger.Info("accounts served", "accounts", len(ids))
+ 	return failed
+ }

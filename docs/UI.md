@@ -225,10 +225,10 @@ dataset has a default. `page=P` is a 1-based page number over a fixed 50 rows. `
 other parameter is a dimension filter named as the registry declares it.
 
 **Filter grammar.** `dim=value` is equality. `dim=a,b` is any of. `dim=!value` is exclusion. The
-unfiled group of the label dimension is `label=none` in the URL and a `null` key in the API. An
+unfiled group of the label dimension is `label=none` in the URL and a `null` key in the read API. An
 audit row with no message falls into the `none` group of every message-derived dimension. A value
 stored empty, such as a sender's empty domain, is `sender=empty` in the URL and an empty key in the
-API, on a dimension that can hold one ([section 17.1](#171-the-dataset-endpoint)). A default
+read API, on a dimension that can hold one ([section 17.1](#171-the-dataset-endpoint)). A default
 filter the operator removed is written `dim=` with no value in the browser's URL, so the router's
 canonicalization does not put the default back. The router leaves it out of the request it sends,
 because an absent filter is no filter to the endpoint. Filling default filters only into a URL
@@ -371,7 +371,7 @@ run's data under another's address.
 One component renders every message-derived row, in the corpus lens, the plan's operations, the
 masking and gate lenses, the audit lens where a message is present, the review queue's sender
 messages, and a run's message and operation failures. Its fields, in order, one line each, with
-the wire name the row carries in the API. Every cell truncates to its column width with an
+the wire name the row carries in the read API. Every cell truncates to its column width with an
 ellipsis and shows its full value on hover.
 
 | Field | Wire name | Width | Rendering | Links to |
@@ -1036,7 +1036,7 @@ holds a domain. With no overlay rule, the account's part of the table reads "No 
 {account} alone. The base rules above apply to every account."
 
 A policy edit reaches every process with no manual step and no restart. Each process picks it up
-within a minute, at its next scheduled policy reload, and the mediator before each body request
+within a minute, at its next scheduled policy reload, and the API server before each body request
 (ADR-0090, ADR-0099, ADR-0119). This screen's sentences about a process's next policy reload rest
 on that.
 
@@ -1557,7 +1557,7 @@ until the third succeeds (ADR-0091). Not live.
    grammar of one DNS label, which the database's check on `accounts.account_id` holds (ADR-0128).
    The identifier is permanent and spreads into every table, metric label, path and bookmark of
    the account, so the grammar keeps it legible there, and every identifier it accepts is a path
-   segment the mediator's API root can address (ADR-0087). The proposal lowercases the local part,
+   segment the API server's API root can address (ADR-0087). The proposal lowercases the local part,
    replaces each run of characters outside the grammar with a hyphen, trims hyphens at both ends,
    cuts what is left to 63 characters and trims hyphens again, and takes `account` when nothing is
    left. When an account already holds the result, or it is a word the UI's own top-level paths
@@ -1930,8 +1930,8 @@ the operator would miss, so it asks nothing beyond the consent itself.
 | column numbers | tabular numerals, right-aligned | |
 | before → after labels | the label sets in brackets joined by an arrow | [INBOX] → [INBOX, Finance/Statements] |
 
-**Vocabularies and their on-screen wording.** The stored value is what the URL and the API carry,
-spelled as ADR-0016 stores it, and the registry declares each column's value set from there.
+**Vocabularies and their on-screen wording.** The stored value is what the URL and the read API
+carry, spelled as ADR-0016 stores it, and the registry declares each column's value set from there.
 
 | Vocabulary | Stored value | Wording |
 | --- | --- | --- |
@@ -2115,7 +2115,7 @@ decisions, the two setups, and the policy writes.
 
 - **TLS when given a key pair, and plain HTTP otherwise** (ADR-0127). The UI serves TLS when its
   configuration names both TLS files, plain HTTP when it names neither, and refuses to start with
-  one, as the mediator's client surface does
+  one, as the API server's client surface does
   ([section 18.1](#181-the-configuration-the-ui-declares)). Its cookies are `Secure` in either
   mode, with the consequence ADR-0127 states for plain HTTP end to end. ADR-0084's posture of no
   authentication of the UI's own is, for the first version, the operator's ruling, with an optional
@@ -2165,7 +2165,7 @@ decisions, the two setups, and the policy writes.
   database origin, and nothing is recorded. The guarantee that no path writes one row without the
   others is carried by the tests of [section 18](#18-repository-and-build-layout).
 - **Message-derived text is inert** ([section 11](#11-rendering-and-formatting-rules)).
-- **The UI never calls the mediator.** It has no route to it and no credential for it. Every read
+- **The UI never calls the API server.** It has no route to it and no credential for it. Every read
   is the UI's own database role against the tables ADR-0084 grants. The only outside endpoints it
   calls are a provider's, to check a client, complete a consent, and confirm which mailbox granted
   it (ADR-0107).
@@ -2618,10 +2618,10 @@ server then refuses.
 | Key | Value | Required |
 | --- | --- | --- |
 | `database` | the section ADR-0078 declares for every deployable, the Postgres connection settings for the UI's own role (ADR-0084) rendered into the connection string, with the password read from the file `database.password_file` names, `database.user` defaulting to that role and `database.pool_size` to the driver's own default | yes |
-| `listen` | the address and port the UI serves on | no, defaults to `:8443`, as the mediator's does |
-| `probe_listen` | the address and port the health and readiness probes and the metrics endpoint serve on, in plain HTTP | no, defaults to `:8080`, as the mediator's does |
-| `tls_cert`, `tls_key` | paths to the TLS material, mounted as files (ADR-0079's convention) and read again on each handshake, as the mediator's are, so a renewed certificate needs no restart. Both named, the UI serves TLS, and neither named, plain HTTP. A path of spaces counts as unset (ADR-0127) | no, but one without the other refuses the start, naming the missing one |
-| `credential` | the credential section the mediator and the worker also hold, under the same keys, so one block names the key files for every process that reads them. `credential.public_key_file` is the path of the mounted public key the UI seals credentials and client secrets to (ADR-0081). `credential.private_key_files` is the paths of every mounted private key, the keyring the deployables that call a provider hold, with which the UI's client-secret package opens a client's secret for a consent's code exchange (ADR-0081, ADR-0092). The start is refused when either is empty or names an empty path, and unless the public key matches one of the private keys | yes |
+| `listen` | the address and port the UI serves on | no, defaults to `:8443`, as the API server's does |
+| `probe_listen` | the address and port the health and readiness probes and the metrics endpoint serve on, in plain HTTP | no, defaults to `:8080`, as the API server's does |
+| `tls_cert`, `tls_key` | paths to the TLS material, mounted as files (ADR-0079's convention) and read again on each handshake, as the API server's are, so a renewed certificate needs no restart. Both named, the UI serves TLS, and neither named, plain HTTP. A path of spaces counts as unset (ADR-0127) | no, but one without the other refuses the start, naming the missing one |
+| `credential` | the credential section the API server and the worker also hold, under the same keys, so one block names the key files for every process that reads them. `credential.public_key_file` is the path of the mounted public key the UI seals credentials and client secrets to (ADR-0081). `credential.private_key_files` is the paths of every mounted private key, the keyring the deployables that call a provider hold, with which the UI's client-secret package opens a client's secret for a consent's code exchange (ADR-0081, ADR-0092). The start is refused when either is empty or names an empty path, and unless the public key matches one of the private keys | yes |
 | `identity_header` | the header name an authenticating proxy forwards. When it is set, its value is recorded on decisions and policy writes, and a decision or a policy write without it is refused | no |
 | `operator_name` | the identity recorded on decisions and policy writes when no header is declared | no, defaults to `operator` |
 | `consent_redirect` | the loopback address a consent redirects the browser to, where nothing listens, which the consent request and the code exchange name, the pasted address is checked against, and the browser reads from the entry document to picture it and check a paste ([section 8.12](#812-connect-an-account-and-re-authorize)). The start is refused unless it is an `http` address whose host is a loopback IP literal, `127.0.0.1` or another in `127.0.0.0/8`, or `[::1]`, with an explicit port, and no path but `/`, no query, fragment or user. A desktop client accepts a loopback redirect on any port, so changing it needs nothing at Google | no, defaults to `http://127.0.0.1:47823/`, a high port a web server on the operator's computer is unlikely to answer on |
@@ -2660,7 +2660,7 @@ each is ADR-0063's decision.
 **What not to do.** Do not add a rendering path that interprets message-derived text. Do not add a
 decision, however small, without a record that widens ADR-0084's grant. Do not let any of the UI's
 code but `ui/internal/clientsecret` open a stored value. Do not aggregate across accounts. Do not proxy anything
-through the mediator. Do not fetch a corpus into the browser to
+through the API server. Do not fetch a corpus into the browser to
 group it there. Do not paint a fake status bar or keyboard in any layout. Do not introduce a
 color outside the token tables without re-running the palette derivation and, for a chart series,
 its validator. Do not read a header for identity unless the deployment declared it. Do not keep

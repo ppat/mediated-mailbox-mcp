@@ -1,19 +1,19 @@
 mediated-mailbox {{ .Chart.AppVersion }} is installed as release {{ .Release.Name }} in namespace {{ .Release.Namespace }}.
 
-The migration step ran before the deployables rolled. The mediator, the worker and the UI read their configuration
+The migration step ran before the deployables rolled. The API server, the worker and the UI read their configuration
 from the ConfigMap {{ include "mm.fullname" . }}-config.
 
-Agents call the mediator at {{ if .Values.secrets.mediatorTls.existingSecret }}https{{ else }}http{{ end }}://{{ include "mm.componentName" (list $ "mediator") }}.{{ .Release.Namespace }}.svc:{{ .Values.mediator.service.port }}
-with the bearer token held under {{ .Values.secrets.mediatorBearerToken.secretKeys.bearerToken }} in the Secret {{ include "mm.mediatorBearerTokenSecretName" . }}:
+Agents call the API server at {{ if .Values.secrets.apiTls.existingSecret }}https{{ else }}http{{ end }}://{{ include "mm.componentName" (list $ "api") }}.{{ .Release.Namespace }}.svc:{{ .Values.api.service.port }}
+with the bearer token held under {{ .Values.secrets.apiBearerToken.secretKeys.bearerToken }} in the Secret {{ include "mm.apiBearerTokenSecretName" . }}:
 
-  kubectl --namespace {{ .Release.Namespace }} get secret {{ include "mm.mediatorBearerTokenSecretName" . }} \
-    --output jsonpath='{.data.{{ .Values.secrets.mediatorBearerToken.secretKeys.bearerToken }}}' | base64 --decode
+  kubectl --namespace {{ .Release.Namespace }} get secret {{ include "mm.apiBearerTokenSecretName" . }} \
+    --output jsonpath='{.data.{{ .Values.secrets.apiBearerToken.secretKeys.bearerToken }}}' | base64 --decode
 
 The UI has no login of its own. Reach it through an authenticating proxy, or locally:
 
   kubectl --namespace {{ .Release.Namespace }} port-forward service/{{ include "mm.componentName" (list $ "ui") }} {{ .Values.ui.service.port }}
 
-{{- if not (or .Values.mediator.ingress.enabled .Values.mediator.httpRoute.enabled .Values.ui.ingress.enabled .Values.ui.httpRoute.enabled) }}
+{{- if not (or .Values.api.ingress.enabled .Values.api.httpRoute.enabled .Values.ui.ingress.enabled .Values.ui.httpRoute.enabled) }}
 
 Nothing is exposed outside the cluster: no Ingress or HTTPRoute is enabled.
 {{- end }}

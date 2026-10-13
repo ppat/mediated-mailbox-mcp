@@ -6,8 +6,8 @@ database:
   name: mediated_mailbox
 secrets:
   databasePasswords:
-    mediator:
-      existingSecret: mediator-db
+    api:
+      existingSecret: api-db
     ui:
       existingSecret: ui-db
     worker:
@@ -16,6 +16,6 @@ secrets:
       sync:
         existingSecret: sync-db
     migration:
-      existingSecret: migrate-db
+      existingSecret: migrator-db
   credentialSealingKeyPair:
     existingSecret: sealing-keys

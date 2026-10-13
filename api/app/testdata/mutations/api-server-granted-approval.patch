@@ -1,0 +1,20 @@
+control: Approval is not in the client surface's vocabulary
+removes: the API server's role is granted the columns a plan's approval writes
+packages: ./api/app
+tests: TestTheAPIServerCannotApproveAPlan
+scheduled-count: no
+integration: yes
+
+
+diff --git a/db/migrations/00003_grants.sql b/db/migrations/00003_grants.sql
+index 912d38ff..498830c2 100644
+--- a/db/migrations/00003_grants.sql
++++ b/db/migrations/00003_grants.sql
+@@ -92,6 +92,7 @@ GRANT SELECT (
+ GRANT SELECT (account_id, run_id, seq, kind, at, page, detail) ON job_run_events TO mediated_mailbox_api;
+ GRANT SELECT (account_id, run_id, disposition, recovered_by) ON job_run_failures TO mediated_mailbox_api;
+ GRANT SELECT (account_id, plan_id, description, status) ON reorg_plans TO mediated_mailbox_api;
++GRANT UPDATE (status, approved_at, approved_by) ON reorg_plans TO mediated_mailbox_api;
+ -- Each serve and each denial of a body is recorded through db/auditlog/record, which only the
+ -- API server's list admits, as an insert and nothing else (ADR-0002, ADR-0016).
+ GRANT INSERT (

@@ -1,0 +1,19 @@
+control: A body request waits for its leases no longer than its deadline for them, and a wait cut off by it is the API server's failure
+removes: the lease is waited for on the request's own context, so a lease that never comes holds the request for as long as its client waits
+packages: ./api/app
+tests: TestARequestWaitsForItsLeasesNoLongerThanItsDeadline
+scheduled-count: no
+integration: yes
+
+diff --git a/api/app/app.go b/api/app/app.go
+--- a/api/app/app.go
++++ b/api/app/app.go
+@@ -923,7 +923,7 @@ func leased[T any](ctx context.Context, limiter *lease.Limiter, port mail.Port[c
+ 	var zero T
+ 	cost := port.RateProfile().Cost(mail.ProviderOp{Operation: op, Messages: messages})
+ 	waiting, stopWaiting := context.WithDeadline(ctx, waitUntil)
+-	_, err := limiter.Acquire(waiting, account, ratecore.Interactive, cost.Weight)
++	_, err := limiter.Acquire(ctx, account, ratecore.Interactive, cost.Weight)
+ 	cutOff := errors.Is(waiting.Err(), context.DeadlineExceeded) && ctx.Err() == nil
+ 	stopWaiting()
+ 	if err != nil && cutOff {

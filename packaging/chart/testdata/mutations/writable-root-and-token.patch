@@ -1,19 +1,19 @@
 control: Every pod the chart renders runs hardened
-removes: every container's root filesystem is writable and the mediator mounts its ServiceAccount token
+removes: every container's root filesystem is writable and the API server mounts its ServiceAccount token
 packages: ./packaging/chart
 tests: TestEveryPodRunsHardened
 scheduled-count: no
 
-diff --git a/packaging/chart/templates/mediator/deployment.yaml b/packaging/chart/templates/mediator/deployment.yaml
+diff --git a/packaging/chart/templates/api/deployment.yaml b/packaging/chart/templates/api/deployment.yaml
 index f95e2200..036c992a 100644
---- a/packaging/chart/templates/mediator/deployment.yaml
-+++ b/packaging/chart/templates/mediator/deployment.yaml
+--- a/packaging/chart/templates/api/deployment.yaml
++++ b/packaging/chart/templates/api/deployment.yaml
 @@ -32,11 +32,11 @@ spec:
        {{- with .Values.global.imagePullSecrets }}
        imagePullSecrets:
          {{- toYaml . | nindent 8 }}
        {{- end }}
-       serviceAccountName: {{ include "mm.serviceAccountName" (list $ "mediator" $v.serviceAccount) }}
+       serviceAccountName: {{ include "mm.serviceAccountName" (list $ "api" $v.serviceAccount) }}
 -      automountServiceAccountToken: false
 +      automountServiceAccountToken: true
        enableServiceLinks: false

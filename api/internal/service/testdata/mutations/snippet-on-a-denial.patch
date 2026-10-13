@@ -1,0 +1,22 @@
+control: The snippet and attachment filenames follow the body, and a denial releases none of them
+removes: a serve-time denial carries the snippet it withheld
+packages: ./api/app
+tests: TestTheServeTimeCheckReadsEverythingReleased
+scheduled-count: no
+integration: yes
+
+diff --git a/api/internal/service/body.go b/api/internal/service/body.go
+index b868a7c7..a1f22507 100644
+--- a/api/internal/service/body.go
++++ b/api/internal/service/body.go
+@@ -196,7 +196,9 @@ func (s Sources) getMessageBody(ctx context.Context, account string, input json.
+ 			return nil, err
+ 		}
+ 		s.Bodies.Observe(account, Outcome{Stage: StageServe, Reason: reason})
+-		return ok(deny(denied, reason))
++		r := deny(denied, reason)
++		r.Snippet = &meta.Snippet
++		return ok(r)
+ 	}
+ 	if err := s.audit(ctx, account, args.MessageID, actionRead, StageServe, releasedReason, g, check); err != nil {
+ 		return nil, err

@@ -12,7 +12,7 @@ import (
 
 // CallTimeout is how long a call made through Call has to answer once its lease is issued. A call
 // that has not answered by then while its caller's context is still live is the provider's failure,
-// so a provider that never answers cannot hold a job's run forever. It matches the mediator's default
+// so a provider that never answers cannot hold a job's run forever. It matches the API server's default
 // provider timeout, and its largest call, a page of an enumeration, sends six requests, each far
 // shorter. It is a constant, not a setting, since no deployment has a reason of its own to tune it.
 const CallTimeout = 30 * time.Second

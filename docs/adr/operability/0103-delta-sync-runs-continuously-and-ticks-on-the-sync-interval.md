@@ -59,7 +59,7 @@ platform runs ([ADR-0051](../engineering/0051-environment-contract.md)).
   whose account or client a later reload no longer lists is removed.
 
 The deciding argument. A process that stays up keeps its counters and gauges in every scrape, so the
-runaway rule and the key-retirement gate read delta sync the way they read the mediator, with no
+runaway rule and the key-retirement gate read delta sync the way they read the API server, with no
 assumption about the platform's scrape interval and no component the chart does not already assume.
 
 ## Alternatives considered
@@ -72,23 +72,23 @@ assumption about the platform's scrape interval and no component the chart does 
 - **A job that stays up for two scrape intervals before it exits.** For it, a scheduled job that is
   still scraped twice. Against it, the application would have to know the platform's scrape interval,
   which it cannot, and the key-scan series would still be missing between runs.
-- **Writing the counts to the database for the mediator to emit.** For it, the mediator already
-  runs continuously and emits each account's rate state. Against it, delta sync's measurement would
-  be braided into another component, and the runaway rule must read the cost counted where each
-  request is sent ([ADR-0077](./0077-conditions-raised-as-alerting-rules.md)).
+- **Writing the counts to the database for the API server to emit.** For it, the API server
+  already runs continuously and emits each account's rate state. Against it, delta sync's
+  measurement would be braided into another component, and the runaway rule must read the cost
+  counted where each request is sent ([ADR-0077](./0077-conditions-raised-as-alerting-rules.md)).
 
 ## Consequences
 
-- Delta sync holds a database connection and its keyring for as long as it runs, as the mediator
+- Delta sync holds a database connection and its keyring for as long as it runs, as the API server
   does. A crash between ticks loses nothing, since every tick's writes are durable before it ends.
   A crash during a tick leaves its run, and a recovery it started, recorded as running until the
   account's next tick records them failed.
 - A runaway spread across delta sync's ticks reaches the runaway rule, since its count is scraped
-  like the mediator's. ADR-0077's remaining gap, a process living less than two scrape intervals,
+  like the API server's. ADR-0077's remaining gap, a process living less than two scrape intervals,
   does not apply to delta sync.
 - Assumptions about other components. The platform runs one copy of the worker at a time, a
   rollout included, keeps it running and restarts it when it stops, and scrapes its metrics
-  endpoint as it does the mediator's
+  endpoint as it does the API server's
   ([ADR-0051](../engineering/0051-environment-contract.md)). The worker's in-process exclusion of
   one run per job and account rests on that single copy
   ([ADR-0119](./0119-the-workers-jobs-are-scheduled-from-recorded-state.md)).

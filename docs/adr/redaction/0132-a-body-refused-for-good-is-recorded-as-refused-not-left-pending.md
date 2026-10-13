@@ -44,7 +44,7 @@ with what the run runs with, at backfill's run-start step, the step a scanner ch
 - **The Redaction Gate denies a refused message's body**, as `body_refused`, after a restricted
   sender and before content flags, so a restricted sender's message reads as the policy's denial.
   Content flags on a refused message are an invalid stored state, as on any state but scanned. The
-  mediator's own refusal at serve time, when the port refuses a body the gate let through, carries
+  API server's own refusal at serve time, when the port refuses a body the gate let through, carries
   the same reason (ADR-0131), so the agent reads one meaning however the refusal was found.
 - **The refusal records the size bound it was made under.** The row stores the bound in bytes. At
   backfill's run-start step, each refused message whose recorded bound differs from the bound the

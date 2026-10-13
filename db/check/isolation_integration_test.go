@@ -187,12 +187,12 @@ func TestTheTransactionsAccountScopesEveryAccountTable(t *testing.T) {
 }
 
 // listingRoles are the roles that read every row of accounts, the UI's for its account selector and
-// the roles of the code that calls a provider for their account snapshots, the mediator's and those of
+// the roles of the code that calls a provider for their account snapshots, the API server's and those of
 // the worker's job kinds backfill, delta sync, and reorg apply and rollback (ADR-0091). The heuristics
 // job's role is not among them.
 var listingRoles = []string{
 	"mediated_mailbox_backfill",
-	"mediated_mailbox_mediate",
+	"mediated_mailbox_api",
 	"mediated_mailbox_organize",
 	"mediated_mailbox_sync",
 	uiRole,
@@ -272,12 +272,12 @@ func TestOnlyTheUIWritesThePolicy(t *testing.T) {
 	}
 }
 
-// providerRoles are the roles of the code that calls a provider, the mediator and the worker's job
+// providerRoles are the roles of the code that calls a provider, the API server and the worker's job
 // kinds backfill, delta sync, and reorg apply and rollback, which read every OAuth client and their
 // own account's state (ADR-0016, ADR-0118, ADR-0091).
 var providerRoles = []string{
 	"mediated_mailbox_backfill",
-	"mediated_mailbox_mediate",
+	"mediated_mailbox_api",
 	"mediated_mailbox_organize",
 	"mediated_mailbox_sync",
 }

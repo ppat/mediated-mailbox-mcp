@@ -14,13 +14,13 @@ spec:
   bootstrap:
     initdb:
       database: mediated_mailbox
-      owner: mediated_mailbox_migrate
+      owner: mediated_mailbox_migrator
   managed:
     roles:
-    - name: mediated_mailbox_mediate
+    - name: mediated_mailbox_api
       login: true
       passwordSecret:
-        name: mediate-db
+        name: api-db
     - name: mediated_mailbox_ui
       login: true
       passwordSecret:

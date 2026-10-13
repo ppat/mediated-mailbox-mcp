@@ -1,0 +1,131 @@
+{{- /*
+The API server, serving the client surface agents call. The pod mounts its own configuration file and one projected
+volume holding exactly the secret files the API server reads: its role's password, the key pair, the bearer token, and
+the CA certificate and TLS pair when given (ADR-0079).
+GOMEMLIMIT is set only from its soft memory limit when one is given (ADR-0052).
+*/ -}}
+{{- $v := .Values.api }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "mm.componentName" (list $ "api") }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "mm.labels" (list $ "api") | nindent 4 }}
+spec:
+  replicas: {{ $v.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "mm.selectorLabels" (list $ "api") | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include "mm.config.api" . | sha256sum }}
+        {{- with $v.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "mm.labels" (list $ "api") | nindent 8 }}
+        {{- with $v.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "mm.serviceAccountName" (list $ "api" $v.serviceAccount) }}
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      {{- with $v.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
+      securityContext:
+        {{- include "mm.podSecurityContext" (list $ $v) | nindent 8 }}
+      containers:
+      - name: api
+        image: {{ include "mm.image" (list $ $v.image) }}
+        imagePullPolicy: {{ .Values.global.image.pullPolicy }}
+        args:
+        - --config-file={{ include "mm.configDir" . }}/api.yaml
+        {{- with $v.goSoftMemoryLimit }}
+        env:
+        - name: GOMEMLIMIT
+          value: {{ . | quote }}
+        {{- end }}
+        ports:
+        - name: http
+          containerPort: {{ include "mm.port.http" . }}
+          protocol: TCP
+        - name: metrics
+          containerPort: {{ include "mm.port.metrics" . }}
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: metrics
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: metrics
+        securityContext:
+          {{- include "mm.securityContext" (list $ $v) | nindent 10 }}
+        {{- with $v.resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        volumeMounts:
+        - name: config
+          mountPath: {{ include "mm.configDir" . }}
+          readOnly: true
+        - name: secrets
+          mountPath: {{ include "mm.secretsDir" . }}
+          readOnly: true
+      volumes:
+      - name: config
+        configMap:
+          name: {{ include "mm.fullname" . }}-config
+          items:
+          - key: api.yaml
+            path: api.yaml
+      - name: secrets
+        projected:
+          defaultMode: 0440
+          sources:
+          - secret:
+              name: {{ required "secrets.databasePasswords.api.existingSecret is required" .Values.secrets.databasePasswords.api.existingSecret }}
+              items:
+              - key: {{ .Values.secrets.databasePasswords.api.secretKeys.password }}
+                path: database/password
+          {{- include "mm.credentialSealingKeyPairSource" . | nindent 10 }}
+          - secret:
+              name: {{ include "mm.apiBearerTokenSecretName" . }}
+              items:
+              - key: {{ .Values.secrets.apiBearerToken.secretKeys.bearerToken }}
+                path: bearer-token
+          {{- include "mm.databaseCaCertificateSource" . | nindent 10 }}
+          {{- with .Values.secrets.apiTls.existingSecret }}
+          - secret:
+              name: {{ . }}
+              items:
+              - key: {{ $.Values.secrets.apiTls.secretKeys.certificate }}
+                path: tls/tls.crt
+              - key: {{ $.Values.secrets.apiTls.secretKeys.privateKey }}
+                path: tls/tls.key
+          {{- end }}
+      {{- with $v.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $v.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $v.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $v.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

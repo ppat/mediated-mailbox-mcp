@@ -57,7 +57,7 @@ runs on every message and the body scan does not
   (`emptyDir: {medium: Memory}`) for anything that could spill. A process whose root filesystem is
   read-only and which is given no writable volume has nothing that could spill, so it needs no
   scratch space. How long the process holding a
-  body lives adds nothing to this guard, since the mediator and the process running delta sync run
+  body lives adds nothing to this guard, since the API server and the process running delta sync run
   until stopped.
 - Nothing body-derived is persisted except the masked subject, the flags and each attachment's
   normalized media type and extension, which
@@ -70,9 +70,9 @@ runs on every message and the body scan does not
   rows stale the same way. How the operation runs, and how a masked subject is masked again, is
   [ADR-0120](./0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md)'s.
 
-**Accepted residual, stated plainly:** non-restricted, gated-in bodies transit mediator memory.
-That channel exists regardless, since the mediator fetches bodies to serve them at all. The scanner
-increases volume through an existing channel, and it does not create a new one.
+**Accepted residual, stated plainly:** non-restricted, gated-in bodies transit API server memory.
+That channel exists regardless, since the API server fetches bodies to serve them at all. The
+scanner increases volume through an existing channel, and it does not create a new one.
 
 ## Alternatives considered
 

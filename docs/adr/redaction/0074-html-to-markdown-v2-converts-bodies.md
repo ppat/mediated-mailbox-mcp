@@ -46,7 +46,7 @@ candidates only where configuration could not reach. R7 and R8 broke ties.
   percent-encoded, so a `)` in a URL cannot end the link and point it elsewhere. It links only a
   small DOM helper package beside `golang.org/x/net`, and it grew linearly on every input tried.
 - **It is called from `content/markdown` and nowhere else**
-  ([content/README.md](../../../content/README.md)), so the mediator and backfill cannot configure
+  ([content/README.md](../../../content/README.md)), so the API server and backfill cannot configure
   it differently.
 - **A body larger than 512 KiB is refused before conversion**, because a conversion's memory grows
   to about 150 times its input, 626 MB for 4.2 MB of text. The limit is about five times the
@@ -185,7 +185,7 @@ package too.
   issues go unanswered, which would weaken R7. And a move off a `golang.org/x/net` that limits open
   elements, because that limit is what bounds the conversion's depth.
 - **What it adds to other costs.** Each body in flight can take about 80 MB while it converts, so
-  how many bodies the mediator converts at once, and backfill's batch size, bound their memory.
+  how many bodies the API server converts at once, and backfill's batch size, bound their memory.
 - **Assumptions about other components.** The import lists let only `content/markdown` import the
   library ([ADR-0071](../engineering/0071-static-enforcement-toolchain.md)). The caller withholds a
   refused body, as [ADR-0036](./0036-released-bodies-are-clean-markdown.md) requires.

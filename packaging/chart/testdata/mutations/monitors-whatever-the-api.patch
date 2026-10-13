@@ -15,7 +15,7 @@ index 270e6b3c..aa75432f 100644
  */ -}}
 -{{- if include "mm.monitoringEnabled" (list $ .Values.monitoring.serviceMonitor.enabled "monitoring.coreos.com/v1/ServiceMonitor") }}
 +{{- if ne (toString .Values.monitoring.serviceMonitor.enabled) "false" }}
- {{- range $component := list "mediator" "ui" "worker" }}
+ {{- range $component := list "api" "ui" "worker" }}
  ---
  apiVersion: monitoring.coreos.com/v1
  kind: ServiceMonitor

@@ -13,11 +13,11 @@ index fbdc919a..51b91d91 100644
      classes,
      updated_at
  ) ON rate_state
--TO mediated_mailbox_mediate, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
-+TO mediated_mailbox_mediate, mediated_mailbox_sync, mediated_mailbox_organize;
+-TO mediated_mailbox_api, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
++TO mediated_mailbox_api, mediated_mailbox_sync, mediated_mailbox_organize;
  GRANT SELECT, INSERT (account_id, class, tokens, issued_at), UPDATE (issued_at), DELETE ON rate_grants
--TO mediated_mailbox_mediate, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
-+TO mediated_mailbox_mediate, mediated_mailbox_sync, mediated_mailbox_organize;
+-TO mediated_mailbox_api, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
++TO mediated_mailbox_api, mediated_mailbox_sync, mediated_mailbox_organize;
  
  -- The policy loader's statement, in db/policyrules, runs under the role of each deployable or job kind that loads
- -- policy (ADR-0118), the mediator, backfill and delta sync. It reads the account, the identifier, the
+ -- policy (ADR-0118), the API server, backfill and delta sync. It reads the account, the identifier, the

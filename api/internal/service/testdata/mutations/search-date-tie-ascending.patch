@@ -1,0 +1,31 @@
+control: A listing's cursor continues only the listing, account and filter it came from, and paging serves every row once
+removes: a search by date, newest first, breaks a tie by message identifier ascending while it continues after its cursor by the row comparison, so a page boundary inside a tie skips and repeats messages
+packages: ./api/internal/service
+tests: TestAnIndexReadPagesThroughEveryRowOnce
+scheduled-count: no
+integration: yes
+
+diff --git a/db/messages/search.sql b/db/messages/search.sql
+index 173bebc3..df548d5e 100644
+--- a/db/messages/search.sql
++++ b/db/messages/search.sql
+@@ -99,7 +99,6 @@ ORDER BY
+     CASE WHEN @sort_by::text = 'sender' AND NOT @descending::boolean THEN m.from_email END ASC,
+     CASE WHEN @sort_by::text = 'subject' AND @descending::boolean THEN coalesce(m.subject, '') END DESC,
+     CASE WHEN @sort_by::text = 'subject' AND NOT @descending::boolean THEN coalesce(m.subject, '') END ASC,
+-    CASE WHEN @sort_by::text = 'date' AND @descending::boolean THEN m.message_id END DESC,
+     m.message_id ASC
+ LIMIT @page_size;
+ 
+diff --git a/db/messages/search.sql.go b/db/messages/search.sql.go
+index de36bd5e..743945fb 100644
+--- a/db/messages/search.sql.go
++++ b/db/messages/search.sql.go
+@@ -629,7 +629,6 @@ ORDER BY
+     CASE WHEN $15::text = 'sender' AND NOT $16::boolean THEN m.from_email END ASC,
+     CASE WHEN $15::text = 'subject' AND $16::boolean THEN coalesce(m.subject, '') END DESC,
+     CASE WHEN $15::text = 'subject' AND NOT $16::boolean THEN coalesce(m.subject, '') END ASC,
+-    CASE WHEN $15::text = 'date' AND $16::boolean THEN m.message_id END DESC,
+     m.message_id ASC
+ LIMIT $21
+ `

@@ -1,0 +1,20 @@
+control: The sender class an index read selects, groups and lists by is the Redaction Gate's under the policy in force
+removes: the index reads classify the sender domains under no policy, which restricts every sender, instead of the policy the call took
+packages: ./api/internal/service
+tests: TestTheIndexReadsClassifySendersUnderThePolicyInForce
+scheduled-count: no
+integration: yes
+
+diff --git a/api/internal/service/query.go b/api/internal/service/query.go
+index 4e855fcc..25c447ed 100644
+--- a/api/internal/service/query.go
++++ b/api/internal/service/query.go
+@@ -188,7 +188,7 @@ type classes struct {
+ func classifyDomains(domains []string, p classify.Policy) classes {
+ 	c := classes{normal: []string{}}
+ 	for _, d := range domains {
+-		if !classify.Classify(p, "@"+d).Class().Restricted() {
++		if !classify.Classify(classify.Policy{}, "@"+d).Class().Restricted() {
+ 			c.normal = append(c.normal, d)
+ 		}
+ 	}

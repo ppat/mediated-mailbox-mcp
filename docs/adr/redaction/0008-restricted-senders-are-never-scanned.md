@@ -8,7 +8,7 @@
 
 The content scanner exists to find secrets in bodies that might be released. Restricted-sender
 bodies are never released, because their denial is decided by sender class alone. Scanning them
-would mean fetching the most sensitive bodies in the corpus into mediator memory to compute a
+would mean fetching the most sensitive bodies in the corpus into API server memory to compute a
 verdict that changes nothing.
 
 ## Decision

@@ -107,14 +107,14 @@ probes and the Services read the same number.
 {{- define "mm.configDir" -}}/etc/mediated-mailbox/config{{- end }}
 {{- define "mm.secretsDir" -}}/etc/mediated-mailbox/secrets{{- end }}
 
-{{/* The Secret the chart creates for whichever of the mediator's bearer token and the UI's request token key no Secret is named for. */}}
+{{/* The Secret the chart creates for whichever of the API server's bearer token and the UI's request token key no Secret is named for. */}}
 {{- define "mm.accessCredentialsSecretName" -}}
 {{- printf "%s-access-credentials" (include "mm.fullname" .) }}
 {{- end }}
 
-{{/* The Secret holding the mediator's bearer token, the user's or the chart's own. */}}
-{{- define "mm.mediatorBearerTokenSecretName" -}}
-{{- default (include "mm.accessCredentialsSecretName" .) .Values.secrets.mediatorBearerToken.existingSecret }}
+{{/* The Secret holding the API server's bearer token, the user's or the chart's own. */}}
+{{- define "mm.apiBearerTokenSecretName" -}}
+{{- default (include "mm.accessCredentialsSecretName" .) .Values.secrets.apiBearerToken.existingSecret }}
 {{- end }}
 
 {{/* The Secret holding the UI's request token key, the user's or the chart's own. */}}

@@ -1,25 +1,25 @@
 control: A configuration change restarts only the processes that read it
-removes: the mediator's and the UI's pods carry no checksum, so a change to their files restarts nothing
+removes: the API server's and the UI's pods carry no checksum, so a change to their files restarts nothing
 packages: ./packaging/chart
 tests: TestAConfigurationChangeRestartsOnlyTheProcessesThatReadIt
 scheduled-count: no
 
-diff --git a/packaging/chart/templates/mediator/deployment.yaml b/packaging/chart/templates/mediator/deployment.yaml
+diff --git a/packaging/chart/templates/api/deployment.yaml b/packaging/chart/templates/api/deployment.yaml
 index f95e2200..f0ddda09 100644
---- a/packaging/chart/templates/mediator/deployment.yaml
-+++ b/packaging/chart/templates/mediator/deployment.yaml
+--- a/packaging/chart/templates/api/deployment.yaml
++++ b/packaging/chart/templates/api/deployment.yaml
 @@ -17,11 +17,10 @@ spec:
      matchLabels:
-       {{- include "mm.selectorLabels" (list $ "mediator") | nindent 6 }}
+       {{- include "mm.selectorLabels" (list $ "api") | nindent 6 }}
    template:
      metadata:
        annotations:
--        checksum/config: {{ include "mm.config.mediator" . | sha256sum }}
+-        checksum/config: {{ include "mm.config.api" . | sha256sum }}
          {{- with $v.podAnnotations }}
          {{- toYaml . | nindent 8 }}
          {{- end }}
        labels:
-         {{- include "mm.labels" (list $ "mediator") | nindent 8 }}
+         {{- include "mm.labels" (list $ "api") | nindent 8 }}
 diff --git a/packaging/chart/templates/ui/deployment.yaml b/packaging/chart/templates/ui/deployment.yaml
 index 5263e986..d1eb34f3 100644
 --- a/packaging/chart/templates/ui/deployment.yaml

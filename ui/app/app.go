@@ -63,7 +63,7 @@ type Configuration struct {
 	AttentionMaskCount    int64   `yaml:"attention_mask_count"`
 	AttentionServeFactor  float64 `yaml:"attention_serve_factor"`
 	AttentionGapDays      int64   `yaml:"attention_gap_days"`
-	// Credential is the credential section the mediator and the worker hold, under the same keys. Its
+	// Credential is the credential section the API server and the worker hold, under the same keys. Its
 	// public key is the one the UI seals credentials and client secrets to. Its private keys are the
 	// keyring the deployables that call a provider open credentials with, which only the UI's
 	// client-secret package holds, and it opens a client's secret for a consent's code exchange and
@@ -90,7 +90,7 @@ const providerTimeout = 30 * time.Second
 
 // defaults are the UI's defaults. The user is the UI's own runtime role (ADR-0118), the TLS mode is
 // the one that fails closed, the pool size is the driver's own default, the two listen addresses
-// are the mediator's, and the intervals shown on the jobs cards are ADR-0018's sync interval and
+// are the API server's, and the intervals shown on the jobs cards are ADR-0018's sync interval and
 // ADR-0117's heuristics run. The server's stream poll and the browser stream client's backoff and
 // fallback poll are ADR-0058's, and the browser follows the OS theme. The worth-a-look thresholds are section 8.1's starting values. A consent
 // redirects to 127.0.0.1 on a high port a web server on the operator's computer is unlikely to
@@ -340,7 +340,7 @@ func serve(ctx context.Context, c Configuration, uiListener, probeListener net.L
 }
 
 // tlsConfig reads the key pair from its mounted files on each handshake, so a renewed certificate is
-// served without a restart, as the mediator's client surface does (docs/UI.md section 15).
+// served without a restart, as the API server's client surface does (docs/UI.md section 15).
 func tlsConfig(certFile, keyFile string) *tls.Config {
 	return &tls.Config{
 		MinVersion: tls.VersionTLS12,

@@ -1,0 +1,33 @@
+control: A listing's cursor continues only the listing, account and filter it came from, and paging serves every row once
+removes: the masking-events listing's next page starts after the last event's time alone, so an event sharing that time is skipped
+packages: ./api/internal/service
+tests: TestAListingPagesThroughEveryRowOnce
+scheduled-count: no
+integration: yes
+
+diff --git a/db/maskingevents/listing.sql b/db/maskingevents/listing.sql
+index 46e5e485..b7cd5bcc 100644
+--- a/db/maskingevents/listing.sql
++++ b/db/maskingevents/listing.sql
+@@ -15,7 +15,7 @@ WHERE
+     AND (@since::timestamptz IS NULL OR e.masked_at >= @since::timestamptz)
+     AND (
+         @before_masked_at::timestamptz IS NULL
+-        OR (e.masked_at, e.id) < (@before_masked_at::timestamptz, @before_id::bigint)
++        OR e.masked_at < @before_masked_at::timestamptz
+     )
+ ORDER BY e.masked_at DESC, e.id DESC
+ LIMIT @page_size;
+diff --git a/db/maskingevents/listing.sql.go b/db/maskingevents/listing.sql.go
+index 71cd0d94..28d27483 100644
+--- a/db/maskingevents/listing.sql.go
++++ b/db/maskingevents/listing.sql.go
+@@ -25,7 +25,7 @@ WHERE
+     AND ($1::timestamptz IS NULL OR e.masked_at >= $1::timestamptz)
+     AND (
+         $2::timestamptz IS NULL
+-        OR (e.masked_at, e.id) < ($2::timestamptz, $3::bigint)
++        OR (e.masked_at < $2::timestamptz AND $3::bigint IS NOT NULL)
+     )
+ ORDER BY e.masked_at DESC, e.id DESC
+ LIMIT $4

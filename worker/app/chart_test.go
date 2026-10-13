@@ -74,7 +74,7 @@ func TestTheChartRendersAFileTheWorkerStartsWith(t *testing.T) {
 // TestTheChartAdmitsEveryWorkerKeyItDoesNotRender reads the values schema's blocks for the worker and checks that,
 // with the keys the chart renders itself, they name exactly the keys of the worker's configuration types: the root,
 // each job kind's block under database and each job kind's own section, and the scanner section the chart renders
-// into the worker and the mediator. A key the worker gains that the schema does not admit, or one the schema admits
+// into the worker and the API server. A key the worker gains that the schema does not admit, or one the schema admits
 // that the worker would refuse, fails here.
 func TestTheChartAdmitsEveryWorkerKeyItDoesNotRender(t *testing.T) {
 	jobKinds := helmchart.SchemaKeys(t, chartDir, "worker", "jobKinds")

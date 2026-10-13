@@ -1,5 +1,5 @@
 control: Nothing optional renders by default
-removes: the mediator's Ingress is enabled by default
+removes: the API server's Ingress is enabled by default
 packages: ./packaging/chart
 tests: TestNothingOptionalRendersByDefault
 scheduled-count: no
@@ -8,7 +8,7 @@ diff --git a/packaging/chart/values.yaml b/packaging/chart/values.yaml
 index deff4b80..0f34bcf8 100644
 --- a/packaging/chart/values.yaml
 +++ b/packaging/chart/values.yaml
-@@ -201,11 +201,11 @@ mediator:
+@@ -201,11 +201,11 @@ api:
      annotations: {}
    # The Ingress in front of the client surface. Nothing is exposed until enabled. Annotations pass through untouched,
    # so a controller's or cert-manager's annotations go here.

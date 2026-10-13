@@ -235,8 +235,8 @@ requirements it scores 2 on, on maintenance, and on the cost of leaving.
   are caught by the compiler except one, effect cleanup deferring until after paint, which lands
   in the stream client's subscribe and unsubscribe, the one module
   [docs/UI.md](../../UI.md#9-live-surfaces) isolates.
-- The one advisory in Preact's record as of 2026-09-10 is a type confusion that needs the API to
-  return an object where the app assumes a string. It cannot arise here while every field
+- The one advisory in Preact's record as of 2026-09-10 is a type confusion that needs the read API
+  to return an object where the app assumes a string. It cannot arise here while every field
   rendered in text position is a scalar or an array of strings in the contract, because a Go
   string field marshals as a string and a changed type fails the drift check first. The rule is
   therefore named. No field of type `any`, `unknown`, or free-form JSON reaches a text position

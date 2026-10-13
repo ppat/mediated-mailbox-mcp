@@ -54,7 +54,7 @@ func TestTheConfigurationTypeIsPinned(t *testing.T) {
 func discard() *slog.Logger { return slog.New(slog.DiscardHandler) }
 
 // The UI's defaults are the port, its own runtime role, the TLS mode that fails closed, the driver's
-// own pool size, the larger of 4 and the processor count, the mediator's listen addresses and the
+// own pool size, the larger of 4 and the processor count, the API server's listen addresses and the
 // records' intervals, and the database's host, name and password file are required (docs/UI.md
 // section 18.1).
 func TestTheDefaults(t *testing.T) {
@@ -102,7 +102,7 @@ func TestAPoolSizeOfZeroRefusesTheStart(t *testing.T) {
 	}
 }
 
-// The credential section is validated as the mediator's and the worker's is, so an empty list of
+// The credential section is validated as the API server's and the worker's is, so an empty list of
 // private keys refuses the start before any key file is read (ADR-0078, VERIFICATIONS, the row for a
 // configuration mistake refused).
 func TestAnEmptyListOfPrivateKeysRefusesTheStart(t *testing.T) {
@@ -180,7 +180,7 @@ func writeKeyPair(t *testing.T, certFile, keyFile string, serial int64) *x509.Ce
 }
 
 // A key pair rotated in its mounted files serves the next handshake without a restart, as the
-// mediator's client surface does (docs/UI.md section 15).
+// API server's client surface does (docs/UI.md section 15).
 func TestARotatedKeyPairServesTheNextHandshake(t *testing.T) {
 	dir := t.TempDir()
 	certFile, keyFile := filepath.Join(dir, "tls.crt"), filepath.Join(dir, "tls.key")

@@ -55,7 +55,7 @@ groups:
       summary: Requests for account {{ $labels.account }} are counted with no hard cap to judge a runaway by.
 
   # Collapse, the rate pinned at the floor for more than five minutes while a class has asked within the last minute
-  # (ADR-0024), from the mediator's account-level series.
+  # (ADR-0024), from the API server's account-level series.
   - alert: MediatedMailboxRateCollapsed
     expr: |
       mediated_mailbox_ratelimit_account_rate <= on (account) mediated_mailbox_ratelimit_account_floor
@@ -77,7 +77,7 @@ groups:
     annotations:
       summary: Nothing has been granted for account {{ $labels.account }} for more than five minutes while work waits.
 
-  # Missing data never reads as a healthy account. The mediator runs continuously and emits every account's series,
+  # Missing data never reads as a healthy account. The API server runs continuously and emits every account's series,
   # while the job workloads' series are absent between their runs by design and are not read here.
   - alert: MediatedMailboxRateSeriesAbsent
     expr: absent(mediated_mailbox_ratelimit_account_rate)
@@ -85,7 +85,7 @@ groups:
     labels:
       severity: warning
     annotations:
-      summary: The mediator's account-level rate series are missing.
+      summary: The API server's account-level rate series are missing.
 
 - name: mediated-mailbox-policy
   rules:
@@ -126,7 +126,7 @@ groups:
   rules:
   # The worker stopped (ADR-0077, ADR-0119). The worker emits a job's latest success for every job it runs from the
   # job's start, each job kind's reload included, so the series exists whenever a worker is scraped. Once no worker has
-  # been scraped for five minutes the rule fires, the same delay the mediator's absence rule uses.
+  # been scraped for five minutes the rule fires, the same delay the API server's absence rule uses.
   - alert: MediatedMailboxWorkerAbsent
     expr: absent(mediated_mailbox_job_last_success_timestamp_seconds)
     for: 5m

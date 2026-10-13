@@ -27,9 +27,9 @@ for what it holds.
 | --- | --- |
 | `db/accountstate/credential` | The statements that read and write an account's sealed credential, which is a secret |
 | `db/ratestate/limiter` | The rate limiter's lease statements, which write the rate state |
-| `db/jobruns/classification` | The reads of a run's failures, which read the failure columns the mediator's role is not granted and join each item's message with its sender's domain, which the UI classifies under the policy in force ([ADR-0136](../docs/adr/redaction/0136-the-index-stores-no-sender-class-and-every-reader-classifies-when-it-reads.md)) |
-| `db/maskingevents/senders` | The count of masking events under the domain of each event's message's sender, a column the mediator's role is not granted |
-| `db/senders/classification` | The UI's reads of the sender statistics, which it classifies under the policy in force, its policy screens counting rules against them, Home summing the messages of the restricted ones and its sender picker searching them with their prior scan hits, a column the mediator's role is not granted |
+| `db/jobruns/classification` | The reads of a run's failures, which read the failure columns the API server's role is not granted and join each item's message with its sender's domain, which the UI classifies under the policy in force ([ADR-0136](../docs/adr/redaction/0136-the-index-stores-no-sender-class-and-every-reader-classifies-when-it-reads.md)) |
+| `db/maskingevents/senders` | The count of masking events under the domain of each event's message's sender, a column the API server's role is not granted |
+| `db/senders/classification` | The UI's reads of the sender statistics, which it classifies under the policy in force, its policy screens counting rules against them, Home summing the messages of the restricted ones and its sender picker searching them with their prior scan hits, a column the API server's role is not granted |
 
 The writes the tables' readers are not granted sit apart the same way.
 
@@ -37,7 +37,7 @@ The writes the tables' readers are not granted sit apart the same way.
 | --- | --- |
 | `db/messages/ingest` | Adding a message's metadata to the index with its attachment media, and masking a stored subject again |
 | `db/maskingevents/record` | Recording a mask applied to a subject |
-| `db/auditlog/record` | The mediator's recording of each body it serves or denies |
+| `db/auditlog/record` | The API server's recording of each body it serves or denies |
 | `db/jobruns/record` | A job kind recording its own runs, their timelines and failed items with the read it resumes from, and `RecordedSuccess`, the read of the account's latest recorded success and earliest run's start that each job's latest success starts from at its ensure ([ADR-0119](../docs/adr/operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md)) |
 | `db/accountstate/completion` | Setting backfill's completion flags and clearing them when a pass is due again, and setting, reading and clearing the mark that starts the second pass over |
 | `db/accountstate/authentication` | Recording the last provider authentication attempt |
@@ -128,8 +128,8 @@ A list admits a library when one of its entries admits a package of the library 
 library's statements, one that imports one of the library's subsections or, through the library's
 own packages, reaches one that does, so admitting only a library's pure core does not count. The
 map from import list to database role those checks read is held in `db/check`, keyed by the
-mediator's and the UI's import lists, by each narrower list governing part of their code that admits
-code naming subsections, and by each list of a job kind of the worker
+API server's and the UI's import lists, by each narrower list governing part of their code that
+admits code naming subsections, and by each list of a job kind of the worker
 ([ADR-0118](../docs/adr/data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)). The
 worker's own list names no subsection and admits no shared library that runs statements, so it has
 no entry, and a shared library has none either, since it connects as no role of its own. The

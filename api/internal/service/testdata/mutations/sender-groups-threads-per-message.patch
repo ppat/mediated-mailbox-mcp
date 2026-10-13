@@ -1,0 +1,46 @@
+control: A summary and each group count the messages they hold, each thread once, the unread, those with attachments, and the oldest and the newest date
+removes: the groups by sender count a thread once for each of its messages in the group
+packages: ./api/internal/service
+tests: TestEachCountCountsEveryThreadOnce
+scheduled-count: no
+integration: yes
+
+
+diff --git a/db/messages/search.sql b/db/messages/search.sql
+index 173bebc3..e08bfc18 100644
+--- a/db/messages/search.sql
++++ b/db/messages/search.sql
+@@ -162,13 +162,13 @@ FROM (
+ -- grouped by its identifier's bytes, which group exactly as the identifier does under the database's
+ -- deterministic collation and sort without it, since a sort that compares by the collation took most
+ -- of the statement's time.
+ SELECT
+     t.from_email,
+     sum(t.messages)::bigint AS messages,
+-    count(*) AS threads,
++    sum(t.messages)::bigint AS threads,
+     sum(t.unread)::bigint AS unread,
+     sum(t.with_attachments)::bigint AS with_attachments,
+     min(t.oldest_at)::timestamptz AS oldest_at,
+     max(t.newest_at)::timestamptz AS newest_at
+ FROM (
+     SELECT
+diff --git a/db/messages/search.sql.go b/db/messages/search.sql.go
+index de36bd5e..66bc49ae 100644
+--- a/db/messages/search.sql.go
++++ b/db/messages/search.sql.go
+@@ -260,13 +260,13 @@ func (q *Queries) CountByMonth(ctx context.Context, arg CountByMonthParams) ([]C
+ }
+ 
+ const countBySender = `-- name: CountBySender :many
+ SELECT
+     t.from_email,
+     sum(t.messages)::bigint AS messages,
+-    count(*) AS threads,
++    sum(t.messages)::bigint AS threads,
+     sum(t.unread)::bigint AS unread,
+     sum(t.with_attachments)::bigint AS with_attachments,
+     min(t.oldest_at)::timestamptz AS oldest_at,
+     max(t.newest_at)::timestamptz AS newest_at
+ FROM (
+     SELECT

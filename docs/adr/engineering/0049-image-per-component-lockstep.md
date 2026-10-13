@@ -16,19 +16,19 @@ extend to the artifact layer or quietly stop at the process boundary.
 ## Decision
 
 - **One image per deployable.** The default position is an image per deployable, held until reality
-  bites and argues for a different cut. The deployables are the mediator, the UI, and the worker
+  bites and argues for a different cut. The deployables are the API server, the UI, and the worker
   that runs every background job kind
   ([ADR-0117](../operability/0117-one-background-worker-runs-every-job-kind.md)). The other named
   components, the gate, the classifier, the scanner, the scan gate and the rate limiter, are not
   deployables and ride inside deployables as code. The migration step of
   [ADR-0048](../data/0048-forward-only-migrations.md) is not a deployable either. It has an
-  image of its own, which carries the migration runner and the migration chain and none of this
-  project's Go code. Each image bakes only its deployable's own code plus the shared libraries it
-  imports. One deployable's image cannot contain another's code, so "nothing beyond what it
-  needs" reads all the way down to image contents. Exactness is a property of the binary and the
-  final stage. Go links only the packages a binary imports, and the final stage copies only that
-  binary, so which source a build stage copies is mechanism and never widens what the image
-  holds.
+  image of its own, the migrator, which carries the migration runner and the migration chain and
+  none of this project's Go code. Each image bakes only its deployable's own code plus the shared
+  libraries it imports. One deployable's image cannot contain another's code, so "nothing beyond
+  what it needs" reads all the way down to image contents. Exactness is a property of the binary
+  and the final stage. Go links only the packages a binary imports, and the final stage copies
+  only that binary, so which source a build stage copies is mechanism and never widens what the
+  image holds.
 - **Everything moves in lockstep.** Images, the deployment artifact that consumes them and the
   key-generation binaries attached to the release
   ([ADR-0088](../operability/0088-credentials-sealed-with-hpke-x-wing.md)) carry one version, the

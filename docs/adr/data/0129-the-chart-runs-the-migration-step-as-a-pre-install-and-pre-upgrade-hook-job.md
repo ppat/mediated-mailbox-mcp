@@ -7,10 +7,10 @@
 
 [ADR-0048](./0048-forward-only-migrations.md) runs migrations as their own step, under their own
 role that owns the DDL, before the deployables roll, whatever the deployment mechanism is. The step
-is the migration image [ADR-0049](../engineering/0049-image-per-component-lockstep.md) lists, which
-holds the goose command of [ADR-0067](./0067-migration-runner-goose.md) and the chain, and reads
-its connection string from `GOOSE_DBSTRING`. The image is distroless, with no shell, so a container
-cannot assemble the string from files at run time.
+runs the migrator, the image [ADR-0049](../engineering/0049-image-per-component-lockstep.md)
+lists, which holds the goose command of [ADR-0067](./0067-migration-runner-goose.md) and the
+chain, and reads its connection string from `GOOSE_DBSTRING`. The image is distroless, with no
+shell, so a container cannot assemble the string from files at run time.
 
 The chart of [ADR-0052](../engineering/0052-kubernetes-deployment-helm-chart.md) has to place that
 step. Three things constrain it. The migration role's credential must reach only the migrating
@@ -53,7 +53,7 @@ names, in the libpq password file format, `host:port:database:user:password`.
   works under any renderer, since every pod migrates before it starts. Rejected: it puts the
   migration role's credential into every serving pod, against
   [ADR-0048](./0048-forward-only-migrations.md)'s role split, and pods starting together, a UI with
-  replicas beside the mediator and the worker, run the chain at once.
+  replicas beside the API server and the worker, run the chain at once.
 - **A plain Job, named by a hash of the release, with the deployables waiting on it.** The case for
   it is that it works under any renderer, since nothing is a hook. Rejected: each deployable would
   need a container that watches the Job, the Kubernetes API access to do it, and a binary the
@@ -80,7 +80,7 @@ names, in the libpq password file format, `host:port:database:user:password`.
   deletes the previous hook Job with background propagation and waits only for the Job object to be
   gone, not for its pod, so when a release times out while the Job still retries and the release is
   run again, the old Job's pod can still be running as the new Job's starts. Two runs at once could
-  both apply one migration. A guard against that is a change to the migration image, which would
+  both apply one migration. A guard against that is a change to the migrator, which would
   take that lock, and is not the chart's.
 - **The roles exist before the chain runs, and the chart cannot order that.** A grant to a role not
   yet created fails its migration's transaction, and the Job's retries converge once the platform
@@ -91,5 +91,5 @@ names, in the libpq password file format, `host:port:database:user:password`.
   the roles first.
 - Assumptions about other components. The user's Secret for the migration role holds a key in the
   libpq password file format whose host, port, database and user match the connection string, or a
-  `*` in their place. The migration image keeps reading `GOOSE_DBSTRING`, applying the chain with
+  `*` in their place. The migrator keeps reading `GOOSE_DBSTRING`, applying the chain with
   its default command, and opening PostgreSQL through pgx.

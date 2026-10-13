@@ -37,12 +37,13 @@ paged.
   platform without the Prometheus Operator loads the same rules file its own way.
 - **Every rule is tested with `promtool test rules`**, run from a Go test so its mutation
   demonstration runs like any other, firing above its threshold and silent below it.
-- **The account-level series come from the mediator, which runs continuously.** It reads each
+- **The account-level series come from the API server, which runs continuously.** It reads each
   account's rate-state row and emits the rate, the floor, the bucket's level, how long since any
   class last asked and how long since the last grant. A worker still waiting asks again at least
   once a lease period, so an abandoned request stops counting as demand within a minute. The
-  account-level series are read from the stored rate state, so they stay with the mediator rather
-  than with whichever process spends. A rule that fires when the mediator's series are absent
+  account-level series are read from the stored rate state, so they stay with the API server
+  rather than with whichever process spends. A rule that fires when the API server's series are
+  absent
   covers missing data, so it never reads as a healthy account.
 - **The runaway rule reads the cost of provider requests counted where each request is sent,**
   never a figure derived from lease accounting, because a runaway is the failure in which lease
@@ -115,5 +116,5 @@ paged.
   holds issuance at `hard_cap`, which at most equals the threshold over two whole minutes, so the
   rule, which fires only above it, stays silent.
 - Assumptions about other components: the platform scrapes every spending process and the
-  mediator, keeps the series long enough for a five-minute rule, and routes the runaway rule to a
+  API server, keeps the series long enough for a five-minute rule, and routes the runaway rule to a
   person.

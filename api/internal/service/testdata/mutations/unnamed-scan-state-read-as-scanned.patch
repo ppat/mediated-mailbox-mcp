@@ -1,0 +1,18 @@
+control: Every message a read operation serves follows the redaction matrix, decided by the Redaction Gate under the policy in force
+removes: a stored scan state the schema does not name is read as scanned, so the message is released
+packages: ./api/internal/service
+tests: TestAnUnnamedStoredStateReadsAsTheMostRestrictive
+scheduled-count: no
+diff --git a/api/internal/service/present.go b/api/internal/service/present.go
+index d081c51c..ab69bee4 100644
+--- a/api/internal/service/present.go
++++ b/api/internal/service/present.go
+@@ -117,7 +117,7 @@ func storedScanState(name string) sensitivity.ScanState {
+ 	case "refused":
+ 		return sensitivity.Refused()
+ 	default:
+-		return sensitivity.Pending()
++		return sensitivity.Scanned()
+ 	}
+ }
+ 
