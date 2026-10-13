@@ -1,7 +1,7 @@
 control: A scan verdict records its content flags, content rules, scanner version and configuration revision
 removes: a one-time code is stored as a login link
 packages: ./worker/internal/backfill/pass2
-tests: TestAPassDecidesAndRecordsEveryWaitingMessage TestBothPartsOfABodyAreScanned TestAKilledSecondPassResumesFromItsCheckpoint
+tests: TestAPassDecidesAndRecordsEveryWaitingMessage TestTheReleasedPartOfABodyIsScanned TestAKilledSecondPassResumesFromItsCheckpoint
 scheduled-count: no
 integration: yes
 

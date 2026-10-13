@@ -1,6 +1,6 @@
 # 0017. Backfill is full-history and two-pass: metadata first, gated body scanning second
 
-**Status:** Accepted ·
+**Status:** Superseded — **Superseded by:** [ADR-0133](./0133-backfill-is-full-history-and-two-pass.md), [ADR-0131](../provider/0131-the-body-is-one-rendered-part-bounded-by-one-size-constant.md) and [ADR-0132](../redaction/0132-a-body-refused-for-good-is-recorded-as-refused-not-left-pending.md) ·
 **Pillar:** [Metadata always flows; sensitive bodies never do](../../../DESIGN.md#metadata-always-flows-sensitive-bodies-never-do) ·
 **Serves:** [G2](../../../USE_CASES.md#g2--historical-understanding), [G1](../../../USE_CASES.md#g1--whole-mailbox-visibility), [O3](../../../USE_CASES.md#o3--survives-its-failure-modes)
 

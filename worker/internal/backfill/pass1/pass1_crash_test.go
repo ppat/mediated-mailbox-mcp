@@ -69,7 +69,7 @@ var config = crash.Config{Replays: 5, MaxOps: 40}
 // masked under the scanner in force and classified, each mask recorded once under that scanner, its
 // senders' statistics counted once, no more than one page or call of rework for each crash, no
 // enumeration again for a change of scanner, and each subject fetched again no more than once for
-// each change of scanner (ADR-0017, ADR-0045, ADR-0120).
+// each change of scanner (ADR-0133, ADR-0045, ADR-0120).
 func TestAKilledRunResumesFromItsCheckpoint(t *testing.T) {
 	crash.Check(t, target(), config)
 }

@@ -35,12 +35,12 @@ type Window struct {
 }
 
 // Counters count a tick's work. Added, Modified and Removed count what the change sets reported,
-// Window is the first reconciliation of an account with no cursor, and Decided, Scanned, Skipped and
-// Pending count the waiting messages the tick read, as backfill's second pass counts them.
+// Window is the first reconciliation of an account with no cursor, and Decided, Scanned, Skipped,
+// Refused and Pending count the waiting messages the tick read, as backfill's second pass counts them.
 type Counters struct {
-	Added, Modified, Removed           int
-	Window                             *Window
-	Decided, Scanned, Skipped, Pending int
+	Added, Modified, Removed                    int
+	Window                                      *Window
+	Decided, Scanned, Skipped, Refused, Pending int
 }
 
 // Checkpoint is where a tick's scanning stands, the identifier of the last waiting message it read.
@@ -89,8 +89,9 @@ func (p Progress) encode() ([]byte, []byte, error) {
 		Decided int `json:"decided"`
 		Scanned int `json:"scanned"`
 		Skipped int `json:"skipped"`
+		Refused int `json:"refused"`
 		Pending int `json:"pending"`
-	}{c.Added, c.Modified, c.Removed, c.Window.stored(), c.Decided, c.Scanned, c.Skipped, c.Pending})
+	}{c.Added, c.Modified, c.Removed, c.Window.stored(), c.Decided, c.Scanned, c.Skipped, c.Refused, c.Pending})
 	return cp, ct, err
 }
 

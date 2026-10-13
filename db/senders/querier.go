@@ -16,7 +16,7 @@ type Querier interface {
 	// to the statement (ADR-0108).
 	SenderDomains(ctx context.Context) ([]string, error)
 	// One page of the account's sender statistics, the sender with the most messages first, after the
-	// position a cursor names or from the start when it names none (ADR-0017). The prior scan hits are not
+	// position a cursor names or from the start when it names none (ADR-0133). The prior scan hits are not
 	// read, since they are a signal derived from bodies that no read serves. The statistics hold no class,
 	// which the service layer decides against the policy in force (ADR-0002, ADR-0136).
 	SenderPage(ctx context.Context, arg SenderPageParams) ([]SenderPageRow, error)

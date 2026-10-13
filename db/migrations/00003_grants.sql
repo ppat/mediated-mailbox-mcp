@@ -98,7 +98,7 @@ GRANT INSERT (
 ) ON audit_log TO mediated_mailbox_mediate;
 GRANT USAGE ON SEQUENCE audit_log_id_seq TO mediated_mailbox_mediate;
 
--- Backfill (ADR-0118, ADR-0017).
+-- Backfill (ADR-0118, ADR-0133).
 --
 -- Its statements sit in db/messages/ingest, db/messages/scan, db/maskingevents/record,
 -- db/senders/statistics, db/scangatedecisions/record, db/jobruns/record, db/accountstate/completion
@@ -114,7 +114,8 @@ GRANT USAGE ON SEQUENCE audit_log_id_seq TO mediated_mailbox_mediate;
 -- reads the domains of the messages skipped as restricted, and returns those messages of a domain the
 -- policy now classifies normal to pending scan (ADR-0037). Backfill's run-start step, before the first
 -- pass, returns each scanned message whose verdict carries another pair to pending with its verdict
--- cleared.
+-- cleared, and each body refused under another size bound to pending with its bound cleared, and
+-- pass 2 records a refused body with the bound it was refused under (ADR-0132).
 GRANT SELECT (
     account_id,
     message_id,
@@ -132,7 +133,8 @@ GRANT SELECT (
     content_flags,
     scan_state,
     scanner_version,
-    scanner_revision
+    scanner_revision,
+    refused_bound
 ),
 INSERT (
     account_id,
@@ -163,7 +165,8 @@ UPDATE (
     rule_ids,
     scanned_at,
     scanner_version,
-    scanner_revision
+    scanner_revision,
+    refused_bound
 ) ON messages TO mediated_mailbox_backfill;
 GRANT INSERT (account_id, message_id, media_type, extension) ON attachment_media TO mediated_mailbox_backfill;
 GRANT INSERT (account_id, message_id, field, rule_id, tier, scanner_version, scanner_revision) ON masking_events
@@ -275,6 +278,8 @@ UPDATE (
 -- message's labels and flags to the ones the provider reports, removes a message the provider no
 -- longer holds, and removes a sender's statistics once none of its messages is stored (ADR-0018).
 -- Admitted to db/messages/ingest, it can also mask a stored subject again under another scanner.
+-- It records a refused body with the bound it was refused under, and holds the read of that bound
+-- because db/messages/scan, which it shares, holds the run-start step's comparison (ADR-0132).
 GRANT SELECT (
     account_id,
     message_id,
@@ -293,7 +298,8 @@ GRANT SELECT (
     content_flags,
     scan_state,
     scanner_version,
-    scanner_revision
+    scanner_revision,
+    refused_bound
 ),
 INSERT (
     account_id,
@@ -326,7 +332,8 @@ UPDATE (
     rule_ids,
     scanned_at,
     scanner_version,
-    scanner_revision
+    scanner_revision,
+    refused_bound
 ),
 DELETE ON messages TO mediated_mailbox_sync;
 -- A message the tick removes takes its attachment media with it through their foreign key, which runs

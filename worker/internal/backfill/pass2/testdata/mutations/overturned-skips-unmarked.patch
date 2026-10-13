@@ -4,15 +4,11 @@ packages: ./worker/internal/backfill ./worker/internal/backfill/pass2
 tests: TestASkipReturnedBeforeAStoppedPassesCheckpointIsScanned
 scheduled-count: no
 integration: yes
-
 diff --git a/worker/internal/backfill/pass2/postgres.go b/worker/internal/backfill/pass2/postgres.go
-index 2b9ece79..2e9b3490 100644
+index 1d6d25fa..beabb071 100644
 --- a/worker/internal/backfill/pass2/postgres.go
 +++ b/worker/internal/backfill/pass2/postgres.go
-@@ -246,12 +246,15 @@ func (s *Postgres) Reopen(ctx context.Context, account string, stamp index.Stamp
- 		if marked.Verdicts == 0 && marked.Skips == 0 && marked.Subjects == 0 && !stale {
- 			return nil
- 		}
+@@ -258,6 +258,9 @@ func (s *Postgres) Reopen(ctx context.Context, account string, stamp index.Stamp
  		if err := completion.New(t).ReopenBackfillSecond(ctx); err != nil {
  			return fmt.Errorf("recording the pass as due again: %w", err)
  		}
@@ -22,6 +18,3 @@ index 2b9ece79..2e9b3490 100644
  		return nil
  	})
  	return marked, err
- }
- 
- // remaskStored masks again every stale subject the account stores unmasked, from the subject stored,

@@ -20,11 +20,11 @@ type args struct {
 }
 
 var scanStates = []func() sensitivity.ScanState{
-	sensitivity.Pending, sensitivity.Scanned, sensitivity.SkippedGate, sensitivity.SkippedRestricted,
+	sensitivity.Pending, sensitivity.Scanned, sensitivity.SkippedGate, sensitivity.SkippedRestricted, sensitivity.Refused,
 }
 
 const (
-	pending, scanned, skippedGate, skippedRestricted = 0, 1, 2, 3
+	pending, scanned, skippedGate, skippedRestricted, refused = 0, 1, 2, 3, 4
 )
 
 func draw(t *rapid.T) args {
@@ -85,7 +85,7 @@ func kind(a args) string {
 	}
 	classDenies := a.Restricted
 	flagsDeny := a.MFACode || a.LoginLink
-	scanDenies := a.Scan == pending || a.Scan == skippedRestricted
+	scanDenies := a.Scan == pending || a.Scan == skippedRestricted || a.Scan == refused
 	switch {
 	case !classDenies && !flagsDeny && !scanDenies:
 		return "releases"
@@ -101,8 +101,9 @@ func kind(a args) string {
 }
 
 // The generator report for the property above. Each minimum catches a kind the generator stops
-// producing. Over 32 equally likely combinations the scan-state boundary is the rarest kind, at 1
-// in 32, and across thirty seeds at 100 and at 200 cases it never fell below 1 percent.
+// producing. Over 40 equally likely combinations the rarest kinds are the release and the boundaries
+// of the sender class and the scan state, and across thirty seeds at 100 and at 200 cases none fell
+// below 2 percent.
 func TestNoBodyCarriesADenyingSensitivityMix(t *testing.T) {
 	property.Report(t, draw, kind, map[string]float64{
 		"releases":                0.01,

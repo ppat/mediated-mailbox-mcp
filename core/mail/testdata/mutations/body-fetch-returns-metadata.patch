@@ -3,17 +3,16 @@ removes: the body fetch returns the message's metadata beside its body, so body 
 packages: ./core/mail
 tests: TestOnlyTheBodyFetchReturnsABody
 scheduled-count: no
-
 diff --git a/core/mail/port.go b/core/mail/port.go
-index cd61424..f6ddb6b 100644
+index a2e31ac5..f29e8a81 100644
 --- a/core/mail/port.go
 +++ b/core/mail/port.go
-@@ -22,7 +22,7 @@ type Port[C any] interface {
- 	GetMessageMetadata(ctx C, ids []string) ([]MessageMetadata, error)
- 	// GetMessageBody returns a message's body, or ErrNotFound. It is the only operation that
+@@ -30,7 +30,7 @@ type Port[C any] interface {
+ 	// MaxBodyBytes, decided from the part's declared size before anything is fetched where the
+ 	// provider declares one, or for one it cannot decode (ADR-0131). It is the only operation that
  	// returns body content, and the gate guards every call to it (ADR-0002).
--	GetMessageBody(ctx C, id string) (MessageBody, error)
-+	GetMessageBody(ctx C, id string) (MessageMetadata, MessageBody, error)
+-	GetMessageBody(ctx C, id string, part BodyPart) (MessageBody, error)
++	GetMessageBody(ctx C, id string, part BodyPart) (MessageMetadata, MessageBody, error)
  	// ListLabels returns every label the account has, Inbox, Trash and Spam included.
  	ListLabels(ctx C) ([]Label, error)
  	// EnsureLabel returns the label at path, creating it when the account lacks it. It returns

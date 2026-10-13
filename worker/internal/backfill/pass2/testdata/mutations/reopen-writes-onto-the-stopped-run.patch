@@ -4,15 +4,11 @@ packages: ./worker/internal/backfill
 tests: TestAStoppedSecondPassKeepsItsRecordAndStartsOver
 scheduled-count: no
 integration: yes
-
 diff --git a/worker/internal/backfill/pass2/postgres.go b/worker/internal/backfill/pass2/postgres.go
-index 2b9ece79..ab04e614 100644
+index 1d6d25fa..b6515838 100644
 --- a/worker/internal/backfill/pass2/postgres.go
 +++ b/worker/internal/backfill/pass2/postgres.go
-@@ -246,13 +246,29 @@ func (s *Postgres) Reopen(ctx context.Context, account string, stamp index.Stamp
- 		if marked.Verdicts == 0 && marked.Skips == 0 && marked.Subjects == 0 && !stale {
- 			return nil
- 		}
+@@ -258,7 +258,23 @@ func (s *Postgres) Reopen(ctx context.Context, account string, stamp index.Stamp
  		if err := completion.New(t).ReopenBackfillSecond(ctx); err != nil {
  			return fmt.Errorf("recording the pass as due again: %w", err)
  		}
@@ -37,6 +33,3 @@ index 2b9ece79..ab04e614 100644
  	})
  	return marked, err
  }
- 
- // remaskStored masks again every stale subject the account stores unmasked, from the subject stored,
- // in the transaction messages and events run in, a batch at a time in the order of the messages'

@@ -3,12 +3,11 @@ removes: a metadata fetch naming no identifier is declared to cost nothing, so t
 packages: ./provider/gmail
 tests: TestTheProfileMeetsTheContract/the_rate_profile_declares_a_budget_and_a_cost_for_every_operation
 scheduled-count: no
-
 diff --git a/provider/gmail/profile.go b/provider/gmail/profile.go
-index ab4fbbc..9e5b428 100644
+index 2653e4df..92f3798d 100644
 --- a/provider/gmail/profile.go
 +++ b/provider/gmail/profile.go
-@@ -86,7 +86,9 @@ func (Profile) Cost(op mail.ProviderOp) mail.OpCost {
+@@ -88,7 +88,9 @@ func (Profile) Cost(op mail.ProviderOp) mail.OpCost {
  	case mail.OpGetThreadMetadata:
  		units = unitsThreadsGet + unitsLabelsList
  	case mail.OpGetMessageMetadata:
@@ -17,5 +16,5 @@ index ab4fbbc..9e5b428 100644
 +			units = unitsMessagesGet*n + unitsLabelsList
 +		}
  	case mail.OpGetMessageBody:
- 		units = unitsMessagesGet
+ 		units = max(unitsMessagesGet, unitsAttachmentsGet)
  	case mail.OpListLabels:

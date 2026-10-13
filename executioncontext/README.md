@@ -123,8 +123,9 @@ It is one mechanism with two parameters, so it never branches on which caller ho
 - **How long a held source lives.** For one unit of work, or across units while the stored
   credential is the one the source was built from or the one it rotated to. The mediator holds
   across requests, so an access token the provider issued serves the requests after it. Backfill
-  holds across the pages of its runs by the same rule. Delta sync builds a fresh source for each
-  tick.
+  holds across the pages of its runs by the same rule, and delta sync across its ticks. No record
+  gives delta sync a reason for a source of its own per tick, which would cost a token refresh on
+  every tick, so it holds as backfill does.
 - **Which units run concurrently.** Only the mediator runs concurrent units for one account, so the
   holder takes a lock around what it holds, which costs the batch callers nothing.
 

@@ -1,0 +1,21 @@
+control: The scan reads the part release serves, in the form it is served
+removes: a tick scans nothing of a body with no HTML part
+packages: ./worker/internal/deltasync/tick
+tests: TestOnceTheSecondPassHasEndedATickScansWhatWaits
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/deltasync/tick/tick.go b/worker/internal/deltasync/tick/tick.go
+index c67aa0c2..3a4b75f7 100644
+--- a/worker/internal/deltasync/tick/tick.go
++++ b/worker/internal/deltasync/tick/tick.go
+@@ -459,6 +459,9 @@ func (t *ticker) scan(ctx context.Context, id string) (*index.Scanned, *Item, co
+ 		}, core.Refuse, nil
+ 	}
+ 	start = time.Now()
++	if body.HTML == "" {
++		rendered = ""
++	}
+ 	scanned := index.Scan(t.deps.Scanner, rendered)
+ 	t.deps.Processing.Since(series.StepScan, start)
+ 	return &scanned, nil, core.LeaveWaiting, nil

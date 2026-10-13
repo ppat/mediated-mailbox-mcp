@@ -42,6 +42,8 @@ const (
 	ContentFlagged
 	// Released is a body the gate releases.
 	Released
+	// BodyRefused is a message whose body was refused for its size or by its conversion (ADR-0132).
+	BodyRefused
 )
 
 // String names the reason by its token, the one the client surface returns and the audit row and the
@@ -58,6 +60,8 @@ func (r Reason) String() string {
 		return "content_flagged"
 	case Released:
 		return "released"
+	case BodyRefused:
+		return "body_refused"
 	case InvalidState:
 		return "invalid_stored_state"
 	default:
@@ -85,7 +89,7 @@ func (v Verdict) ReleasesBody() bool {
 	switch v.reason {
 	case Released:
 		return true
-	case InvalidState, PendingScan, SkippedRestricted, RestrictedSender, ContentFlagged:
+	case InvalidState, PendingScan, SkippedRestricted, RestrictedSender, ContentFlagged, BodyRefused:
 		return false
 	default:
 		return false
@@ -113,6 +117,8 @@ func Decide(p classify.Policy, sender string, flags sensitivity.ContentFlags, sc
 		v.reason = SkippedRestricted
 	case c.Class().Restricted():
 		v.reason = RestrictedSender
+	case scan == sensitivity.Refused():
+		v.reason = BodyRefused
 	case flags.Any():
 		v.reason = ContentFlagged
 	case scan == sensitivity.Scanned(), scan == sensitivity.SkippedGate():

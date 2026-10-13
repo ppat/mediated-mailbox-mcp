@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/url"
 	"strconv"
+
+	"github.com/ppat/mediated-mailbox-mcp/provider/gmail/core"
 )
 
 // apiBase is the root every Gmail request's path is relative to, the account the access token
@@ -23,7 +25,26 @@ type request struct {
 	Body     string
 	Units    int
 	Endpoint string
+	// Cap is the most of the answer the request reads. Every builder names one, and a request with
+	// none is refused before it is sent (adapter.go).
+	Cap readCap
 }
+
+// readCap is how much of an answer a request reads and what an answer past it is. Bytes of zero is
+// no cap at all, which only a request no builder made carries.
+type readCap struct {
+	Bytes int
+	// Refuses is true for a body read, whose answer past its cap is the body decision's PastCap, the
+	// port's refusal (ADR-0131), and false for every other request, whose answer past maxResponse is
+	// the provider's failure.
+	Refuses bool
+}
+
+// bodyReadCap is the cap the body decision gives a read of a body, at n bytes.
+func bodyReadCap(n int) readCap { return readCap{Bytes: n, Refuses: core.PastCap.Refused()} }
+
+// anyReadCap is every other request's cap, maxResponse.
+func anyReadCap() readCap { return readCap{Bytes: maxResponse} }
 
 // URL returns the address the request is sent to.
 func (r request) URL() string {
@@ -51,7 +72,7 @@ func validID(id string) bool {
 }
 
 func labelsRequest() request {
-	return request{Method: "GET", Path: "labels", Units: unitsLabelsList, Endpoint: "labels.list"}
+	return request{Method: "GET", Path: "labels", Units: unitsLabelsList, Endpoint: "labels.list", Cap: anyReadCap()}
 }
 
 func createLabelRequest(path string) (request, error) {
@@ -61,7 +82,7 @@ func createLabelRequest(path string) (request, error) {
 	if err != nil {
 		return request{}, err
 	}
-	return request{Method: "POST", Path: "labels", Body: body, Units: unitsLabelsCreate, Endpoint: "labels.create"}, nil
+	return request{Method: "POST", Path: "labels", Body: body, Units: unitsLabelsCreate, Endpoint: "labels.create", Cap: anyReadCap()}, nil
 }
 
 // threadsRequest lists the threads a compiled query selects, trash and spam included.
@@ -76,7 +97,7 @@ func threadsRequest(s search, pageToken string, size int) request {
 	if pageToken != "" {
 		q.Set("pageToken", pageToken)
 	}
-	return request{Method: "GET", Path: "threads", Query: q, Units: unitsThreadsList, Endpoint: "threads.list"}
+	return request{Method: "GET", Path: "threads", Query: q, Units: unitsThreadsList, Endpoint: "threads.list", Cap: anyReadCap()}
 }
 
 // messagesRequest lists every message in the mailbox, trash and spam included.
@@ -85,7 +106,7 @@ func messagesRequest(pageToken string, size int) request {
 	if pageToken != "" {
 		q.Set("pageToken", pageToken)
 	}
-	return request{Method: "GET", Path: "messages", Query: q, Units: unitsMessagesList, Endpoint: "messages.list"}
+	return request{Method: "GET", Path: "messages", Query: q, Units: unitsMessagesList, Endpoint: "messages.list", Cap: anyReadCap()}
 }
 
 // The formats a message is read in. Full holds the body, and minimal holds the identifiers and the
@@ -121,20 +142,46 @@ func metadataFields() string {
 // with validID.
 func metadataRequest(id string) request {
 	q := url.Values{"format": {formatFull}, "fields": {metadataFields()}}
-	return request{Method: "GET", Path: "messages/" + url.PathEscape(id), Query: q, Units: unitsMessagesGet, Endpoint: "messages.get"}
+	return request{Method: "GET", Path: "messages/" + url.PathEscape(id), Query: q, Units: unitsMessagesGet, Endpoint: "messages.get", Cap: anyReadCap()}
 }
 
 // messageRequest reads the message id names in a format. The caller has checked id with validID.
 func messageRequest(id, format string) request {
 	q := url.Values{"format": {format}}
-	return request{Method: "GET", Path: "messages/" + url.PathEscape(id), Query: q, Units: unitsMessagesGet, Endpoint: "messages.get"}
+	return request{Method: "GET", Path: "messages/" + url.PathEscape(id), Query: q, Units: unitsMessagesGet, Endpoint: "messages.get", Cap: anyReadCap()}
 }
 
 // threadRequest reads the thread id names, every message of it through the metadata mask. The
 // caller has checked id with validID.
 func threadRequest(id string) request {
 	q := url.Values{"format": {formatFull}, "fields": {"id,historyId,messages(" + metadataFields() + ")"}}
-	return request{Method: "GET", Path: "threads/" + url.PathEscape(id), Query: q, Units: unitsThreadsGet, Endpoint: "threads.get"}
+	return request{Method: "GET", Path: "threads/" + url.PathEscape(id), Query: q, Units: unitsThreadsGet, Endpoint: "threads.get", Cap: anyReadCap()}
+}
+
+// bodyFields is the field mask a body read sends with the full format. It names the identifiers and
+// the whole part tree, which the rendered part is chosen from, and drops the labels, the snippet, the
+// history identifier, the date and the size estimate, which the metadata read supplies. It keeps the
+// headers, since a part held apart comes in the charset its Content-Type declares, which for a
+// single-part message is among the message's own headers (ADR-0131).
+const bodyFields = "id,threadId,payload"
+
+// bodyRequest reads the message id names for its rendered part. The caller has checked id with
+// validID.
+func bodyRequest(id string) request {
+	q := url.Values{"format": {formatFull}, "fields": {bodyFields}}
+	return request{
+		Method: "GET", Path: "messages/" + url.PathEscape(id), Query: q, Units: unitsMessagesGet, Endpoint: "messages.get",
+		Cap: bodyReadCap(core.MessageReadCap),
+	}
+}
+
+// partRequest reads the part held apart from message id that Gmail's reference attachment names.
+// The caller has checked both with validID.
+func partRequest(id, attachment string) request {
+	return request{
+		Method: "GET", Path: "messages/" + url.PathEscape(id) + "/attachments/" + url.PathEscape(attachment),
+		Units: unitsAttachmentsGet, Endpoint: "messages.attachments.get", Cap: bodyReadCap(core.PartReadCap),
+	}
 }
 
 // modifyRequest adds and removes label identifiers on a message, or on every message of a thread.
@@ -147,17 +194,17 @@ func modifyRequest(id string, add, remove []string) (request, error) {
 	if err != nil {
 		return request{}, err
 	}
-	return request{Method: "POST", Path: "messages/" + url.PathEscape(id) + "/modify", Body: body, Units: unitsMessageModify, Endpoint: "messages.modify"}, nil
+	return request{Method: "POST", Path: "messages/" + url.PathEscape(id) + "/modify", Body: body, Units: unitsMessageModify, Endpoint: "messages.modify", Cap: anyReadCap()}, nil
 }
 
 func profileRequest() request {
-	return request{Method: "GET", Path: "profile", Units: unitsGetProfile, Endpoint: "getProfile"}
+	return request{Method: "GET", Path: "profile", Units: unitsGetProfile, Endpoint: "getProfile", Cap: anyReadCap()}
 }
 
 // historyRequest lists the mailbox's history records after start.
 func historyRequest(start uint64, size int) request {
 	q := url.Values{"startHistoryId": {strconv.FormatUint(start, 10)}, "maxResults": {strconv.Itoa(size)}}
-	return request{Method: "GET", Path: "history", Query: q, Units: unitsHistoryList, Endpoint: "history.list"}
+	return request{Method: "GET", Path: "history", Query: q, Units: unitsHistoryList, Endpoint: "history.list", Cap: anyReadCap()}
 }
 
 func encode(v any) (string, error) {

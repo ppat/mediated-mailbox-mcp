@@ -1,0 +1,19 @@
+control: A body the port or the conversion refuses is recorded refused, never scanned, and not fetched again
+removes: the second pass's commit records a refused message as nothing, so it stays pending and is fetched again
+packages: ./worker/internal/backfill/pass2
+tests: TestABodyRefusedIsRecordedRefusedAndNotFetchedAgain TestARefusalReturnsToPendingOnlyWhenItsBoundChanges
+scheduled-count: no
+integration: yes
+diff --git a/worker/internal/backfill/pass2/postgres.go b/worker/internal/backfill/pass2/postgres.go
+index 1d6d25fa..df93120d 100644
+--- a/worker/internal/backfill/pass2/postgres.go
++++ b/worker/internal/backfill/pass2/postgres.go
+@@ -470,7 +470,7 @@ func commitOutcome(ctx context.Context, messages *scan.Queries, gate *gaterecord
+ 			MessageID:       o.ID,
+ 		})
+ 	case o.Refused:
+-		n, err = messages.RecordRefusal(ctx, scan.RecordRefusalParams{RefusedBound: pgtype.Int4{Int32: refusedBound, Valid: true}, MessageID: o.ID})
++		n = 1
+ 	case !o.Verdict.Scans():
+ 		n, err = messages.RecordSkip(ctx, scan.RecordSkipParams{ScanState: o.Verdict.State().String(), MessageID: o.ID})
+ 	default:

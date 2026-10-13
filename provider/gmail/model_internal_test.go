@@ -1,12 +1,16 @@
 package gmail
 
 import (
+	"encoding/base64"
 	"errors"
+	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
+	"github.com/ppat/mediated-mailbox-mcp/provider/gmail/core"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 )
 
@@ -209,6 +213,8 @@ const fullBody = `{
   ]}
 }`
 
+// The rendered part of the mixed message is its HTML part alone, and the text alternative is neither
+// decoded nor returned (ADR-0131).
 func TestMessageBody(t *testing.T) {
 	m, err := parseMessage([]byte(fullBody))
 	if err != nil {
@@ -218,40 +224,119 @@ func TestMessageBody(t *testing.T) {
 	if err != nil {
 		t.Fatalf("messageBody: %v", err)
 	}
-	want := mail.MessageBody{AccountID: "a", MessageID: "18c2f0a1b2c3d4e5", Text: "Hello, world!\nLine two?>", HTML: "<p>Hello, world!</p>"}
+	want := mail.MessageBody{AccountID: "a", MessageID: "18c2f0a1b2c3d4e5", HTML: "<p>Hello, world!</p>"}
 	if diff := cmp.Diff(want, got, compare.Options); diff != "" {
 		t.Errorf("messageBody (-want +got):\n%s", diff)
 	}
 }
 
-func TestMessageBodyOfASinglePartMessage(t *testing.T) {
-	m, err := parseMessage([]byte(`{"id": "m1", "threadId": "t1", "payload": {"mimeType": "text/html", "filename": "", "body": {"size": 4, "data": "PGI-"}}}`))
+// message parses a messages.get response whose payload is payload.
+func message(t *testing.T, payload string) gmailMessage {
+	t.Helper()
+	m, err := parseMessage([]byte(`{"id": "m1", "threadId": "t1", "payload": ` + payload + `}`))
 	if err != nil {
 		t.Fatalf("parseMessage: %v", err)
 	}
-	got, err := messageBody("a", m)
-	if err != nil {
-		t.Fatalf("messageBody: %v", err)
+	return m
+}
+
+// A rendered part held apart within the bound is named in a part token for a second call, carrying
+// the charset its Content-Type declares. Which part, and whether it is held apart or refused, is the
+// body decision's, tested in provider/gmail/core.
+func TestAPartHeldApartIsNamedForASecondCall(t *testing.T) {
+	payload := `{"mimeType": "text/html", "filename": "", "headers": [{"name": "content-type", "value": "text/html; charset=\"ISO-8859-1\""}],` +
+		` "body": {"attachmentId": "ANGjdJ9-x_1", "size": 524288}}`
+	_, err := messageBody("a", message(t, payload))
+	var held mail.HeldApartError
+	if !errors.As(err, &held) {
+		t.Fatalf("messageBody of a part held apart returned %v, want a %T", err, held)
 	}
-	if diff := cmp.Diff(mail.MessageBody{AccountID: "a", MessageID: "m1", HTML: "<b>"}, got, compare.Options); diff != "" {
-		t.Errorf("messageBody (-want +got):\n%s", diff)
+	got, err := readBodyPart(held.Part, "m1")
+	if err != nil {
+		t.Fatalf("readBodyPart: %v", err)
+	}
+	if diff := cmp.Diff([]string{"m1", "html", "ANGjdJ9-x_1", "ISO-8859-1"}, []string{got.message, string(got.slot), got.attachment, got.charset}, compare.Options); diff != "" {
+		t.Errorf("the part named (-want +got):\n%s", diff)
+	}
+}
+
+// A body the decision refuses for good is the port's refusal, and one it cannot read is the
+// provider's failure.
+func TestABodyNotReturnedIsThePortErrorItsProblemNames(t *testing.T) {
+	refused := map[string]string{
+		"held apart past the bound":          `{"mimeType": "text/html", "filename": "", "body": {"attachmentId": "a", "size": 524289}}`,
+		"a Content-Type that does not parse": `{"mimeType": "text/html", "filename": "", "headers": [{"name": "Content-Type", "value": "text/html;;"}], "body": {"attachmentId": "a", "size": 10}}`,
+	}
+	for name, payload := range refused {
+		t.Run(name, func(t *testing.T) {
+			if _, err := messageBody("a", message(t, payload)); !errors.Is(err, mail.ErrRefused) || errors.Is(err, mail.ErrProvider) {
+				t.Errorf("messageBody returned %v, want the refusal alone", err)
+			}
+		})
 	}
 }
 
 func TestMessageBodyRefusesAPartItCannotRead(t *testing.T) {
 	for name, part := range map[string]string{
-		"held apart": `{"mimeType": "text/plain", "filename": "", "body": {"attachmentId": "ANGjdJ9", "size": 900000}}`,
-		"not base64": `{"mimeType": "text/plain", "filename": "", "body": {"size": 3, "data": "***"}}`,
+		"not base64":              `{"mimeType": "text/plain", "filename": "", "body": {"size": 3, "data": "***"}}`,
+		"an unreadable reference": `{"mimeType": "text/plain", "filename": "", "body": {"size": 3, "attachmentId": "a/b"}}`,
 	} {
 		t.Run(name, func(t *testing.T) {
-			m, err := parseMessage([]byte(`{"id": "m1", "threadId": "t1", "payload": ` + part + `}`))
-			if err != nil {
-				t.Fatalf("parseMessage: %v", err)
-			}
-			if _, err := messageBody("a", m); !errors.Is(err, mail.ErrProvider) {
+			if _, err := messageBody("a", message(t, part)); !errors.Is(err, mail.ErrProvider) {
 				t.Errorf("messageBody returned %v, want an error wrapping %v", err, mail.ErrProvider)
 			}
 		})
+	}
+}
+
+// A part read is decoded through the WHATWG label table, and a charset the table does not name is
+// the port's refusal. The rest of the decoding is the body decision's, tested in provider/gmail/core.
+func TestPartBody(t *testing.T) {
+	response := func(data []byte) []byte {
+		return []byte(`{"size": ` + strconv.Itoa(len(data)) + `, "data": "` + base64.URLEncoding.EncodeToString(data) + `"}`)
+	}
+	h := heldApart{message: "m1", slot: core.Text, attachment: "ANGjdJ9", charset: "iso-8859-1"}
+	got, err := partBody("a", h, response([]byte("caf\xe9 \x80")))
+	if err != nil {
+		t.Fatalf("partBody: %v", err)
+	}
+	if diff := cmp.Diff(mail.MessageBody{AccountID: "a", MessageID: "m1", Text: "café €"}, got, compare.Options); diff != "" {
+		t.Errorf("a Latin-1 part (-want +got):\n%s", diff)
+	}
+	unknown := heldApart{message: "m1", slot: core.Text, attachment: "a", charset: "x-unknown"}
+	if _, err := partBody("a", unknown, response([]byte("a"))); !errors.Is(err, mail.ErrRefused) {
+		t.Errorf("partBody returned %v, want an error wrapping %v", err, mail.ErrRefused)
+	}
+}
+
+// A part token is read back only for the message it was issued for, and a token the adapter did not
+// issue is refused as malformed.
+func TestReadBodyPartRefusesAForeignPart(t *testing.T) {
+	issued := heldApart{message: "m1", slot: core.HTML, attachment: "ANGjdJ9", charset: ""}.bodyPart()
+	for name, c := range map[string]struct {
+		part mail.BodyPart
+		id   string
+	}{
+		"another message's part":                {issued, "m2"},
+		"no prefix":                             {"m=m1&k=html&a=ANGjdJ9", "m1"},
+		"an unknown kind":                       {heldApart{message: "m1", slot: "image", attachment: "a"}.bodyPart(), "m1"},
+		"a reference that is not an identifier": {heldApart{message: "m1", slot: core.Text, attachment: "a/../b"}.bodyPart(), "m1"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			if _, err := readBodyPart(c.part, c.id); !errors.Is(err, mail.ErrInvalid) {
+				t.Errorf("readBodyPart returned %v, want an error wrapping %v", err, mail.ErrInvalid)
+			}
+		})
+	}
+}
+
+// A response within its cap is read whole, and one past it is told apart rather than truncated.
+func TestCapped(t *testing.T) {
+	if data, over, err := capped(strings.NewReader("abcd"), 4); string(data) != "abcd" || over || err != nil {
+		t.Errorf("capped at its cap returned %q, %v, %v", data, over, err)
+	}
+	if _, over, err := capped(strings.NewReader("abcde"), 4); !over || err != nil {
+		t.Errorf("capped past its cap returned %v, %v, want past", over, err)
 	}
 }
 

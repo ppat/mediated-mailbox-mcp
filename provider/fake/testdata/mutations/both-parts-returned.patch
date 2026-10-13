@@ -1,0 +1,23 @@
+control: The port returns a body's rendered part alone, and a part the provider holds apart takes exactly one more call
+removes: the provider fake returns both parts of a body, the text part beside the HTML part
+packages: ./provider/fake
+tests: TestTheFakePassesTheContract
+scheduled-count: no
+
+diff --git a/provider/fake/fake.go b/provider/fake/fake.go
+index f9e55002..f6a62015 100644
+--- a/provider/fake/fake.go
++++ b/provider/fake/fake.go
+@@ -267,11 +267,7 @@ func (f *Fake) GetMessageBody(ctx context.Context, id string, part mail.BodyPart
+ 	case s.apart && part == "":
+ 		return mail.MessageBody{}, mail.HeldApartError{Part: named}
+ 	}
+-	out := mail.MessageBody{AccountID: s.body.AccountID, MessageID: s.body.MessageID, HTML: s.body.HTML}
+-	if out.HTML == "" {
+-		out.Text = s.body.Text
+-	}
+-	return out, nil
++	return s.body, nil
+ }
+ 
+ // ListLabels implements the port.

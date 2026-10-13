@@ -553,13 +553,13 @@ func TestAReleasedBodyIsCleanMarkdown(t *testing.T) {
 	if got := counter(t, h.metrics, bodiesServedName, map[string]string{"account": h.account}); got != 2 {
 		t.Errorf("two serves counted %v", got)
 	}
-	// Both requests are timed as the body operation, and the one HTML body's conversion is timed, while
-	// the plain-text body needs none (ADR-0125).
+	// Both requests are timed as the body operation, and so is each body's rendering, the HTML body's
+	// conversion and the plain-text body's literal form (ADR-0125, ADR-0131).
 	if got := counter(t, h.metrics, operationDurationName, map[string]string{"operation": "get_message_body"}); got != 2 {
 		t.Errorf("%v body requests timed, want 2", got)
 	}
-	if got := counter(t, h.metrics, processingName, map[string]string{"step": "convert"}); got != 1 {
-		t.Errorf("%v conversions timed, want the newsletter's one", got)
+	if got := counter(t, h.metrics, processingName, map[string]string{"step": "convert"}); got != 2 {
+		t.Errorf("%v renderings timed, want one for each body", got)
 	}
 }
 
@@ -672,30 +672,118 @@ func TestAServedBodyFetchesNoImage(t *testing.T) {
 	}
 }
 
-// A body the conversion refuses is denied at serve, audited and counted (ADR-0036).
+// A body the conversion refuses is denied at serve, audited and counted (ADR-0036). Its HTML part is
+// within the bound and nests more elements than the parser accepts.
 func TestABodyTheConversionRefusesIsDenied(t *testing.T) {
 	h := newHarness(t)
-	huge := "<p>" + strings.Repeat("a", 600<<10) + "</p>"
+	nested := strings.Repeat("<div>", 600) + marker.Body("nested") + strings.Repeat("</div>", 600)
 	if err := h.fake.Deliver(fake.Message{
-		Metadata: mail.MessageMetadata{ID: "m-huge", ThreadID: "m-huge", From: mail.Address{Email: "a@newsletter.example"}},
-		Body:     mail.MessageBody{HTML: huge, Text: "x"},
+		Metadata: mail.MessageMetadata{ID: "m-nested", ThreadID: "m-nested", From: mail.Address{Email: "a@newsletter.example"}},
+		Body:     mail.MessageBody{HTML: nested, Text: "x"},
 	}); err != nil {
 		t.Fatal(err)
 	}
 	must(t, h.conn, `INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, sent_at, has_attachments,
-		scan_state) VALUES ($1, 'm-huge', 'm-huge', 'a@newsletter.example', 'newsletter.example', now(), false, 'scanned')`, h.account)
-	got, _ := h.request(t, "m-huge")
+		scan_state) VALUES ($1, 'm-nested', 'm-nested', 'a@newsletter.example', 'newsletter.example', now(), false, 'scanned')`, h.account)
+	got, _ := h.request(t, "m-nested")
 	if got.Released || got.Reason != "conversion_refused" || got.Body != nil {
 		t.Errorf("a body the conversion refuses answered %+v", got)
 	}
 	// The conversion refused the body before the serve-time pattern check could read it, so the row
 	// names no check, which tells it apart from the check's own denial.
-	want := []auditRow{decided("DENY_BODY", "m-huge", "serve", "conversion_refused", "normal", "scanned")}
+	want := []auditRow{decided("DENY_BODY", "m-nested", "serve", "conversion_refused", "normal", "scanned")}
 	if diff := cmp.Diff(want, h.audit(t), compare.Options); diff != "" {
 		t.Errorf("the refusal's audit row (-want +got):\n%s", diff)
 	}
 	if got := counter(t, h.metrics, bodiesDeniedName, map[string]string{"account": h.account, "stage": "serve", "reason": "conversion_refused"}); got != 1 {
 		t.Errorf("the refusal was counted %v times", got)
+	}
+}
+
+// rate returns the account's current rate as the rate-state series reports it.
+func (h *harness) rate(t *testing.T) float64 {
+	t.Helper()
+	families, err := h.metrics.Gather()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range families {
+		if f.GetName() != "mediated_mailbox_ratelimit_account_rate" {
+			continue
+		}
+		for _, m := range f.GetMetric() {
+			for _, l := range m.GetLabel() {
+				if l.GetName() == "account" && l.GetValue() == h.account {
+					return m.GetGauge().GetValue()
+				}
+			}
+		}
+	}
+	t.Fatal("the rate-state series reports no rate for the account")
+	return 0
+}
+
+// VERIFICATIONS' rows for a body past the bound and for a refusal reaching no controller. A stored
+// scanned message whose rendered part the port refuses as past the bound, an HTML part and a text-only
+// body alike, is denied at serve with the reason body_refused, audited with no serve-time check and
+// counted, and the refusal leaves the account's rate as it was, where a provider failure cuts it. A
+// part the provider holds apart within the bound is released, fetched in a second body call
+// (ADR-0131, ADR-0101, ADR-0024).
+func TestABodyPastTheBoundIsDeniedAsRefused(t *testing.T) {
+	h := newHarness(t)
+	over := strings.Repeat("a", mail.MaxBodyBytes)
+	for _, m := range []fake.Message{
+		{Metadata: mail.MessageMetadata{ID: "m-huge", ThreadID: "m-huge", From: mail.Address{Email: "a@newsletter.example"}}, Body: mail.MessageBody{HTML: "<p>" + over + "</p>", Text: "x"}},
+		{Metadata: mail.MessageMetadata{ID: "m-long", ThreadID: "m-long", From: mail.Address{Email: "a@newsletter.example"}}, Body: mail.MessageBody{Text: over + "a"}},
+		{Metadata: mail.MessageMetadata{ID: "m-apart", ThreadID: "m-apart", From: mail.Address{Email: "a@newsletter.example"}}, Body: mail.MessageBody{HTML: "<p>" + marker.Body("apart") + "</p>"}, HeldApart: true},
+	} {
+		if err := h.fake.Deliver(m); err != nil {
+			t.Fatal(err)
+		}
+		must(t, h.conn, `INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, sent_at, has_attachments,
+			scan_state) VALUES ($1, $2, $2, 'a@newsletter.example', 'newsletter.example', now(), false, 'scanned')`, h.account, m.Metadata.ID)
+	}
+	start := h.providerCalls()
+	if got, _ := h.request(t, "m-news"); !got.Released {
+		t.Fatalf("the newsletter was not released: %+v", got)
+	}
+	released, before := h.providerCalls()-start, h.rate(t)
+	for _, id := range []string{"m-huge", "m-long"} {
+		if got, _ := h.request(t, id); got.Released || got.Reason != "body_refused" || got.Body != nil || got.Note == nil {
+			t.Errorf("a body past the bound answered %+v", got)
+		}
+	}
+	if after := h.rate(t); after != before {
+		t.Errorf("the refusals moved the account's rate from %v to %v", before, after)
+	}
+	want := []auditRow{
+		decided("READ_BODY", "m-news", "serve", "released", "normal", "scanned").checked([]string{}),
+		decided("DENY_BODY", "m-huge", "serve", "body_refused", "normal", "scanned"),
+		decided("DENY_BODY", "m-long", "serve", "body_refused", "normal", "scanned"),
+	}
+	if diff := cmp.Diff(want, h.audit(t), compare.Options); diff != "" {
+		t.Errorf("the refusals' audit rows (-want +got):\n%s", diff)
+	}
+	if got := counter(t, h.metrics, bodiesDeniedName, map[string]string{"account": h.account, "stage": "serve", "reason": "body_refused"}); got != 2 {
+		t.Errorf("the refusals were counted %v times, want 2", got)
+	}
+
+	calls := h.providerCalls()
+	if got, _ := h.request(t, "m-apart"); !got.Released || got.Body == nil || !strings.Contains(*got.Body, marker.Body("apart")) {
+		t.Errorf("a part held apart within the bound answered %+v", got)
+	}
+	if n := h.providerCalls() - calls; n != released+1 {
+		t.Errorf("the part held apart took %d provider calls, want one more than the %d of a release", n, released)
+	}
+
+	h.mu.Lock()
+	h.outage = true
+	h.mu.Unlock()
+	if _, err := h.reg.Call(t.Context(), "get_message_body", json.RawMessage(`{"account_id":"`+h.account+`","message_id":"m-news"}`)); err == nil {
+		t.Fatal("a request during the outage succeeded")
+	}
+	if after := h.rate(t); after >= before {
+		t.Errorf("a provider failure left the account's rate at %v from %v, so the series shows no cut", after, before)
 	}
 }
 

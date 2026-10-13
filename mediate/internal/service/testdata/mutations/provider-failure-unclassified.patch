@@ -4,11 +4,11 @@ packages: ./mediate/app
 tests: TestEachOriginIsToldApartOnBothRoots TestARefusedCredentialIsReadAgainBeforeTheRefusalIsReported
 scheduled-count: no
 integration: yes
-
 diff --git a/mediate/internal/service/body.go b/mediate/internal/service/body.go
+index 2c5c8e77..8e553377 100644
 --- a/mediate/internal/service/body.go
 +++ b/mediate/internal/service/body.go
-@@ -176,7 +176,7 @@ func (s Sources) getMessageBody(ctx context.Context, account string, input json.
+@@ -189,7 +189,7 @@ func (s Sources) getMessageBody(ctx context.Context, account string, input json.
  	// decided and served, and not across the wait for a second lease (ADR-0130).
  	meta, err := session.Metadata(ctx, args.MessageID)
  	if err != nil {
@@ -16,4 +16,4 @@ diff --git a/mediate/internal/service/body.go b/mediate/internal/service/body.go
 +		return nil, err
  	}
  	body, err := session.Body(ctx, args.MessageID)
- 	if err != nil {
+ 	if errors.Is(err, mail.ErrRefused) {

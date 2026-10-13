@@ -13,15 +13,16 @@ const budgetPerSecond = 100
 
 // The quota units each Gmail method the adapter calls is charged, from the same page.
 const (
-	unitsGetProfile    = 1
-	unitsHistoryList   = 2
-	unitsLabelsList    = 1
-	unitsLabelsCreate  = 5
-	unitsMessagesList  = 5
-	unitsMessagesGet   = 20
-	unitsMessageModify = 5
-	unitsThreadsList   = 10
-	unitsThreadsGet    = 40
+	unitsGetProfile     = 1
+	unitsHistoryList    = 2
+	unitsLabelsList     = 1
+	unitsLabelsCreate   = 5
+	unitsMessagesList   = 5
+	unitsMessagesGet    = 20
+	unitsAttachmentsGet = 20
+	unitsMessageModify  = 5
+	unitsThreadsList    = 10
+	unitsThreadsGet     = 40
 )
 
 // The largest page each listing returns, sized so that its worst case costs no more than one
@@ -60,7 +61,9 @@ const (
 //     identifier it calls nothing, and it still declares the read of the label table, because the
 //     rate limiter refuses a call costing nothing (ADR-0024) and the port gives every operation a
 //     positive cost, so a caller never has to leave that call out.
-//   - GetMessageBody costs a messages.get.
+//   - GetMessageBody costs a messages.get when it chooses the rendered part, and a
+//     messages.attachments.get when it names a part held apart, each 20 units, so either call
+//     declares 20 and only a part held apart within the bound takes a second call (ADR-0131).
 //   - ListLabels costs a read of the label table. EnsureLabel costs a read of the label table, a
 //     labels.create, and a second read when Gmail answers that the label already exists.
 //   - Mutate costs a read of the label table and, per op, the dearest way an op is applied, a read
@@ -87,7 +90,7 @@ func (Profile) Cost(op mail.ProviderOp) mail.OpCost {
 	case mail.OpGetMessageMetadata:
 		units = unitsMessagesGet*n + unitsLabelsList
 	case mail.OpGetMessageBody:
-		units = unitsMessagesGet
+		units = max(unitsMessagesGet, unitsAttachmentsGet)
 	case mail.OpListLabels:
 		units = unitsLabelsList
 	case mail.OpEnsureLabel:

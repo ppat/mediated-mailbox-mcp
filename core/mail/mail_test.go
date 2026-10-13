@@ -214,7 +214,7 @@ func TestThrottles(t *testing.T) {
 
 // The port's errors are distinct, so a caller tells each apart with errors.Is.
 func TestThePortsErrorsAreDistinct(t *testing.T) {
-	all := []error{mail.ErrNotFound, mail.ErrInvalid, mail.ErrCursorGap, mail.ErrThrottled, mail.ErrProvider, mail.ErrAuthentication}
+	all := []error{mail.ErrNotFound, mail.ErrInvalid, mail.ErrCursorGap, mail.ErrThrottled, mail.ErrProvider, mail.ErrAuthentication, mail.ErrRefused, mail.ErrHeldApart}
 	for i, a := range all {
 		for j, b := range all {
 			if i != j && errors.Is(a, b) {
@@ -235,7 +235,7 @@ func TestOnlyTheBodyFetchReturnsABody(t *testing.T) {
 		"CurrentCursor func(ctx C) (Cursor, error)",
 		"EnsureLabel func(ctx C, path string) (Label, error)",
 		"EnumerateAll func(ctx C, page PageToken) (Page[MessageMetadata], error)",
-		"GetMessageBody func(ctx C, id string) (MessageBody, error)",
+		"GetMessageBody func(ctx C, id string, part BodyPart) (MessageBody, error)",
 		"GetMessageMetadata func(ctx C, ids []string) ([]MessageMetadata, error)",
 		"GetThreadMetadata func(ctx C, threadID string) (ThreadMetadata, error)",
 		"ListLabels func(ctx C) ([]Label, error)",
@@ -295,5 +295,34 @@ func TestCallSize(t *testing.T) {
 		if got := mail.CallSize(gmailLike, c.ceiling, c.most); got != c.want {
 			t.Errorf("%s: CallSize = %d, want %d", c.name, got, c.want)
 		}
+	}
+}
+
+// A body takes a second call only when the first chose the rendered part and was told it is held
+// apart, and never a third (ADR-0131).
+func TestNextBodyPart(t *testing.T) {
+	apart := mail.HeldApartError{Part: "part-1"}
+	cases := []struct {
+		name  string
+		asked mail.BodyPart
+		err   error
+		next  mail.BodyPart
+		due   bool
+	}{
+		{"a body returned", "", nil, "", false},
+		{"a part held apart", "", apart, "part-1", true},
+		{"a part held apart, wrapped", "", errors.Join(errors.New("leased"), apart), "part-1", true},
+		{"a named part held apart again", "part-1", apart, "", false},
+		{"a held-apart answer naming no part", "", mail.HeldApartError{}, "", false},
+		{"a refusal", "", mail.ErrRefused, "", false},
+		{"a provider failure", "", mail.ErrProvider, "", false},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			next, due := mail.NextBodyPart(c.asked, c.err)
+			if next != c.next || due != c.due {
+				t.Errorf("NextBodyPart(%q, %v) = %q, %v, want %q, %v", c.asked, c.err, next, due, c.next, c.due)
+			}
+		})
 	}
 }

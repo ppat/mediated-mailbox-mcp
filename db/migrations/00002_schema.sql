@@ -169,11 +169,15 @@ CREATE TABLE messages (
     rule_ids text[] NOT NULL DEFAULT '{}',
     -- ADR-0093's states.
     scan_state text NOT NULL DEFAULT 'pending'
-    CHECK (scan_state IN ('scanned', 'skipped_restricted', 'skipped_gate', 'pending')),
+    CHECK (scan_state IN ('scanned', 'skipped_restricted', 'skipped_gate', 'pending', 'refused')),
     scanned_at timestamptz,
     scanner_version int,
     -- The scanner configuration's revision a verdict was made under (ADR-0009).
     scanner_revision text,
+    -- The size bound in bytes a refused body was refused under, which backfill's run-start step
+    -- compares with the bound it runs with, and null in every other state (ADR-0132).
+    refused_bound int,
+    CHECK ((scan_state = 'refused') = (refused_bound IS NOT null)),
     PRIMARY KEY (account_id, message_id),
     -- Only a scan sets a content flag, so a statement that returns a message to pending, or skips it,
     -- without clearing its verdict fails instead of storing a state the Redaction Gate reads as invalid
@@ -436,7 +440,7 @@ CREATE TABLE audit_log (
         reason IN (
             'released', 'pending_scan', 'skipped_restricted', 'restricted_sender', 'content_flagged',
             'invalid_stored_state', 'scan_state_not_releasable', 'serve_time_check_no_scanner',
-            'serve_time_check_matched', 'conversion_refused'
+            'serve_time_check_matched', 'conversion_refused', 'body_refused'
         )
     ),
     sender_class text CHECK (sender_class IN ('normal', 'restricted')),
@@ -449,7 +453,7 @@ CREATE TABLE audit_log (
     -- The serve-time pattern check's rules and the scanner it ran under, NULL when it did not run.
     serve_rule_ids text[],
     scan_state text
-    CHECK (scan_state IN ('scanned', 'skipped_restricted', 'skipped_gate', 'pending')),
+    CHECK (scan_state IN ('scanned', 'skipped_restricted', 'skipped_gate', 'pending', 'refused')),
     scanner_version int,
     scanner_revision text,
     -- A body decision's row names its reason, sender class and scan state, and a mutation's row is

@@ -1,0 +1,19 @@
+control: Nothing past the bound is downloaded where the provider declares a part's size, nothing past it is returned, and a response past its cap is refused
+removes: the provider fake returns a body past the bound rather than refusing it
+packages: ./provider/fake
+tests: TestTheFakePassesTheContract
+scheduled-count: no
+
+diff --git a/provider/fake/fake.go b/provider/fake/fake.go
+index f9e55002..636a090d 100644
+--- a/provider/fake/fake.go
++++ b/provider/fake/fake.go
+@@ -262,7 +262,7 @@ func (f *Fake) GetMessageBody(ctx context.Context, id string, part mail.BodyPart
+ 	switch {
+ 	case part != "" && part != named:
+ 		return mail.MessageBody{}, fmt.Errorf("fake: body part %q of message %q: %w", part, id, mail.ErrInvalid)
+-	case len(s.body.HTML) > mail.MaxBodyBytes, s.body.HTML == "" && len(s.body.Text) > mail.MaxBodyBytes:
++	case false:
+ 		return mail.MessageBody{}, fmt.Errorf("fake: message %q's rendered part passes the bound: %w", id, mail.ErrRefused)
+ 	case s.apart && part == "":
+ 		return mail.MessageBody{}, mail.HeldApartError{Part: named}

@@ -28,7 +28,10 @@ through. Each one falsifies [A4](../../../USE_CASES.md#a4--released-bodies-are-c
   the text exactly, as code, and sees no link, image, heading or raw HTML in it.
 - **It applies to three texts.** The text part of a body that has no HTML part, the snippet, and each
   attachment filename. A body that has an HTML part is released as that part's conversion, and its
-  text part is not released.
+  text part is not released. How large a text part may be is not this record's decision.
+  [ADR-0131](../provider/0131-the-body-is-one-rendered-part-bounded-by-one-size-constant.md)'s
+  bound on the rendered part applies to the text part as it does to an HTML part, and reaches
+  neither the snippet nor the filenames.
 - **The form lives beside the conversion,** in `content/markdown`, so every Markdown a client
   receives from a message comes from one library, and its proof reads the output with the same
   independent CommonMark parser the conversion's proof uses.
@@ -40,7 +43,7 @@ through. Each one falsifies [A4](../../../USE_CASES.md#a4--released-bodies-are-c
   backslashes, which lands inside URLs, so an underscore in a link's query reaches the client
   changed, and the serve-time pattern check of
   [ADR-0002](./0002-fetch-time-re-evaluation.md) would read a text different from the one backfill's
-  scanner read, which scans the text part as it arrived.
+  scanner read, which scans the text part in this form, the text as it arrived inside its fence.
 - **Release the text as it is.** For it, the text reaches the client unchanged. Against
   it, raw HTML and a Markdown remote image reach the client, which A4 names as falsifying.
 - **Deny a body with no HTML part.** For it, nothing to decide. Against it, every plain-text message
@@ -56,7 +59,9 @@ through. Each one falsifies [A4](../../../USE_CASES.md#a4--released-bodies-are-c
   with the delimiters' words replaced in them as in the body
   ([ADR-0036](./0036-released-bodies-are-clean-markdown.md)).
 - The text inside the block is the text as it arrived, so a URL in it survives intact, and the
-  serve-time pattern check reads the same characters backfill's scanner read in the text part.
+  serve-time pattern check reads the same characters backfill's scanner read, since the scanner
+  reads the text part in this form
+  ([ADR-0131](../provider/0131-the-body-is-one-rendered-part-bounded-by-one-size-constant.md)).
 - Assumptions about other components. Clients read released text as CommonMark, or as plain text.
   A reader that does not honour fenced code blocks sees the text with a fence line before and after
   it, which is still the text.

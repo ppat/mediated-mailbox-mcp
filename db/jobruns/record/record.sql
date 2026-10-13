@@ -1,6 +1,6 @@
 -- name: LatestRun :one
 -- The account's latest run of one workload and pass, whatever its state, which a workload reads to
--- decide whether it resumes that run (ADR-0017, ADR-0117).
+-- decide whether it resumes that run (ADR-0133, ADR-0117).
 SELECT
     r.run_id,
     r.state,

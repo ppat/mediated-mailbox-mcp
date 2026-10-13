@@ -22,12 +22,14 @@ import (
 // The failure vocabularies as stored (ADR-0016), and the dispositions' wording (docs/UI.md section 11)
 // in the same order.
 func errorClasses() []string {
-	return []string{"throttled", "provider_error", "gone", "scanner_timeout", "validation", "authentication"}
+	return []string{"throttled", "provider_error", "gone", "scanner_timeout", "validation", "authentication", "refused"}
 }
 
-func dispositions() []string { return []string{"recovered", "pending", "gone", "abandoned"} }
+func dispositions() []string { return []string{"recovered", "pending", "gone", "abandoned", "refused"} }
 
-func dispositionWording() []string { return []string{"recovered", "pending", "gone", "abandoned"} }
+func dispositionWording() []string {
+	return []string{"recovered", "pending", "gone", "abandoned", "refused"}
+}
 
 // FailureRow is one row of the failures dataset, one of a run's item failures with the message-row
 // fields of its item's message (docs/UI.md sections 7.1, 7.2 and 8.4). The message fields are nil for

@@ -50,7 +50,7 @@ func scanner(t *testing.T) scan.Scanner {
 	return s
 }
 
-// A run starts only once the first pass has ended, and then as the first pass's runs start (ADR-0017).
+// A run starts only once the first pass has ended, and then as the first pass's runs start (ADR-0133).
 func TestBegin(t *testing.T) {
 	at := pass2.Progress{Checkpoint: pass2.Checkpoint{Page: 3, After: pass2.Position{SentAt: 1_700_000_030_000, ID: "m30"}}, Counters: pass2.Counters{Pages: 3, Decided: 30, Scanned: 20, Skipped: 10}}
 	stopped := pass1.Latest[pass2.Progress]{Found: true, RunID: "r1", State: pass1.Failed, Progress: at}
@@ -168,8 +168,9 @@ func TestOverturned(t *testing.T) {
 
 // What a run does after an attempt at a body fails. A throttle backs off and then stops the run, a
 // provider error retries and then abandons the message, a message the provider no longer has is
-// gone, a refused request is abandoned, a refused credential stops the run, and a failure that is not
-// the provider's fails it. A decision nobody made stops the run.
+// gone, a refused request is abandoned, a body the port refused is refused at its first attempt
+// (ADR-0132), a refused credential stops the run, and a failure that is not the provider's fails it.
+// A decision nobody made stops the run.
 func TestOnFailure(t *testing.T) {
 	cases := []struct {
 		name string
@@ -183,6 +184,7 @@ func TestOnFailure(t *testing.T) {
 		{"the last provider error", pass2.Attempt{Class: index.ProviderError, Attempts: pass1.MaxAttempts}, pass2.Abandon},
 		{"gone", pass2.Attempt{Class: index.Gone, Attempts: 1}, pass2.Gone},
 		{"refused as malformed", pass2.Attempt{Class: index.Validation, Attempts: 1}, pass2.Abandon},
+		{"a body the port refused", pass2.Attempt{Class: index.Refused, Attempts: 1}, pass2.Refuse},
 		{"a refused credential", pass2.Attempt{Class: index.Authentication, Attempts: 1}, pass2.Stop},
 		{"an unknown class", pass2.Attempt{Class: "something else", Attempts: 1}, pass2.Stop},
 	}
@@ -202,25 +204,26 @@ func TestOnFailure(t *testing.T) {
 }
 
 // A page advances the checkpoint to its last message's position, its send time and identifier
-// (ADR-0126), and counts each message once, as decided and scanned, decided and skipped, or left
-// waiting, and its hits by sender (ADR-0016).
+// (ADR-0126), and counts each message once, as decided and scanned, decided and skipped, decided and
+// refused (ADR-0132), or left waiting, and its hits by sender (ADR-0016).
 func TestAdvance(t *testing.T) {
 	s := scanner(t)
-	flagged := index.Scan(s, "Your verification code is 419283.", "")
-	clean := index.Scan(s, "Hello there.", "")
+	flagged := index.Scan(s, "Your verification code is 419283.")
+	clean := index.Scan(s, "Hello there.")
 	scanned := index.Gate(listing(t), thresholds, now, index.Waiting{From: "a@a.example", SenderVolume: 1}, 0)
 	skip := index.Gate(listing(t), thresholds, now, skipped(), 0)
-	page := pass2.Page{Last: pass2.Position{SentAt: 1_699_999_995_000, ID: "m5"}, Outcomes: []index.Outcome{
+	page := pass2.Page{Last: pass2.Position{SentAt: 1_699_999_994_000, ID: "m6"}, Outcomes: []index.Outcome{
 		{ID: "m1", Domain: "a.example", Verdict: scanned, Scanned: &flagged},
 		{ID: "m2", Domain: "a.example", Verdict: scanned, Scanned: &clean},
 		{ID: "m3", Domain: "list.example", Verdict: skip},
 		{ID: "m4", Domain: "a.example", Verdict: scanned},
 		{ID: "m5", Domain: "b.example", Verdict: index.Gate(listing(t), scangate.Config{}, now, skipped(), 0)},
+		{ID: "m6", Domain: "a.example", Verdict: scanned, Refused: true},
 	}}
 	at := pass2.Progress{Checkpoint: pass2.Checkpoint{Page: 1, After: pass2.Position{SentAt: 1_700_000_000_000, ID: "m0"}}, Counters: pass2.Counters{Pages: 1, Decided: 1, Scanned: 1}}
 	want := pass2.Progress{
-		Checkpoint: pass2.Checkpoint{Page: 2, After: pass2.Position{SentAt: 1_699_999_995_000, ID: "m5"}},
-		Counters:   pass2.Counters{Pages: 2, Decided: 5, Scanned: 3, Skipped: 1, Pending: 2},
+		Checkpoint: pass2.Checkpoint{Page: 2, After: pass2.Position{SentAt: 1_699_999_994_000, ID: "m6"}},
+		Counters:   pass2.Counters{Pages: 2, Decided: 6, Scanned: 3, Skipped: 1, Refused: 1, Pending: 2},
 	}
 	if diff := cmp.Diff(want, pass2.Advance(at, page), compare.Options); diff != "" {
 		t.Errorf("Advance (-want +got):\n%s", diff)

@@ -145,13 +145,13 @@ func TestATickAppliesTheChangesSinceItsCursor(t *testing.T) {
 		t.Fatalf("the runs are %+v, want two ticks that succeeded", r)
 	}
 	if diff := cmp.Diff(map[string]any{
-		"added": 0.0, "modified": 0.0, "removed": 0.0, "decided": 0.0, "scanned": 0.0, "skipped": 0.0, "pending": 0.0,
+		"added": 0.0, "modified": 0.0, "removed": 0.0, "decided": 0.0, "scanned": 0.0, "skipped": 0.0, "refused": 0.0, "pending": 0.0,
 		"window_start": now.Add(-7 * day).Format(time.RFC3339), "window_end": now.Format(time.RFC3339), "reconciled": 2.0,
 	}, r[0].Counters, compare.Options); diff != "" {
 		t.Errorf("the first tick's counters (-want +got):\n%s", diff)
 	}
 	if diff := cmp.Diff(map[string]any{
-		"added": 3.0, "modified": 1.0, "removed": 1.0, "decided": 0.0, "scanned": 0.0, "skipped": 0.0, "pending": 0.0,
+		"added": 3.0, "modified": 1.0, "removed": 1.0, "decided": 0.0, "scanned": 0.0, "skipped": 0.0, "refused": 0.0, "pending": 0.0,
 	}, r[1].Counters, compare.Options); diff != "" {
 		t.Errorf("the second tick's counters (-want +got):\n%s", diff)
 	}
@@ -378,14 +378,15 @@ func waiting(id, address string, coded bool) fake.Message {
 // VERIFICATIONS' row for scanning what waits once backfill's second pass has ended. A tick over an
 // account whose second pass has ended decides every waiting message with the gate and records the
 // decision with its reason, scans a body the gate selects and records its verdict and its sender's
-// hit, skips a restricted sender's message without asking for its body, and leaves a body the
-// conversion refuses or the provider no longer has waiting, with a failed item. The backlog it reports
-// counts what waits after it (ADR-0104, ADR-0093, ADR-0008, ADR-0017).
+// hit, skips a restricted sender's message without asking for its body, records a body the port
+// refuses as past the bound as refused and leaves one the provider no longer has waiting, each with a
+// failed item. The backlog it reports counts what waits after it, and a later tick asks for the
+// refused body no more (ADR-0104, ADR-0093, ADR-0008, ADR-0133, ADR-0132).
 func TestOnceTheSecondPassHasEndedATickScansWhatWaits(t *testing.T) {
 	conn := superuser(t)
 	account := newAccount(t, conn, true)
 	refused := message("m5", "big@news.example", now.Add(-time.Hour))
-	refused.Body = mail.MessageBody{HTML: "<p>" + marker.Body("refused") + strings.Repeat(" padding", 512*1024/8) + "</p>"}
+	refused.Body = mail.MessageBody{HTML: "<p>" + marker.Body("refused") + strings.Repeat(" padding", mail.MaxBodyBytes/8) + "</p>"}
 	f := mailbox(t, account,
 		waiting("m1", "orders@shop.example", true),
 		waiting("m2", "hello@shop.example", false),
@@ -414,7 +415,7 @@ func TestOnceTheSecondPassHasEndedATickScansWhatWaits(t *testing.T) {
 		"m2": "scanned SCAN recent_small ",
 		"m3": "skipped_restricted SKIP restricted ",
 		"m4": "pending SCAN recent_small ",
-		"m5": "pending SCAN low_volume ",
+		"m5": "refused SCAN low_volume ",
 	}
 	if diff := cmp.Diff(want, states, compare.Options); diff != "" {
 		t.Errorf("each message's state, decision, reason and flags (-want +got):\n%s", diff)
@@ -429,24 +430,30 @@ func TestOnceTheSecondPassHasEndedATickScansWhatWaits(t *testing.T) {
 		t.Errorf("the shop has %d prior hits, want 1", n)
 	}
 	items := count(t, conn, `SELECT count(*) FROM job_run_failures WHERE account_id = $1 AND item_kind = 'message'
-		AND ((item_id = 'm4' AND error_class = 'gone' AND disposition = 'gone') OR (item_id = 'm5' AND error_class = 'validation' AND disposition = 'abandoned'))`, account)
+		AND ((item_id = 'm4' AND error_class = 'gone' AND disposition = 'gone') OR (item_id = 'm5' AND error_class = 'refused' AND disposition = 'refused'))`, account)
 	if items != 2 {
 		t.Errorf("found %d of the two failed items, the gone body and the refused one", items)
 	}
-	if !r.Scanning || r.Backlog != 2 {
-		t.Errorf("the tick reported scanning %v with a backlog of %d, want scanning and the two left waiting", r.Scanning, r.Backlog)
+	if !r.Scanning || r.Backlog != 1 {
+		t.Errorf("the tick reported scanning %v with a backlog of %d, want scanning and the one left waiting", r.Scanning, r.Backlog)
 	}
-	// The two bodies scanned are counted and their scans timed, and the one HTML body, which the
-	// conversion refused, has its conversion timed (ADR-0125).
+	// The two bodies scanned are counted, and each has its rendering and its scan timed, while the
+	// refused one, which never arrived, has neither (ADR-0125).
 	if r.Scanned != 2 {
 		t.Errorf("the tick counted %d messages scanned, want 2", r.Scanned)
 	}
-	if diff := cmp.Diff(map[string]uint64{series.StepConvert: 1, series.StepScan: 2}, processed(t, reg), compare.Options); diff != "" {
+	if diff := cmp.Diff(map[string]uint64{series.StepConvert: 2, series.StepScan: 2}, processed(t, reg), compare.Options); diff != "" {
 		t.Errorf("the steps timed (-want +got):\n%s", diff)
 	}
 	last := runs(t, conn, account)
-	if c := last[len(last)-1].Counters; c["decided"] != 5.0 || c["scanned"] != 2.0 || c["skipped"] != 1.0 || c["pending"] != 2.0 {
-		t.Errorf("the tick's counters are %v, want five decided, two scanned, one skipped and two pending", c)
+	if c := last[len(last)-1].Counters; c["decided"] != 5.0 || c["scanned"] != 2.0 || c["skipped"] != 1.0 || c["refused"] != 1.0 || c["pending"] != 1.0 {
+		t.Errorf("the tick's counters are %v, want five decided, two scanned, one skipped, one refused and one pending", c)
+	}
+
+	p.bodies = nil
+	mustTick(t, d, account)
+	if slices.Contains(p.bodies, "m5") || !slices.Contains(p.bodies, "m4") {
+		t.Errorf("a later tick asked for the bodies %v, want the one left waiting and not the refused one", p.bodies)
 	}
 }
 
@@ -475,7 +482,7 @@ func processed(t *testing.T, reg prometheus.Gatherer) map[string]uint64 {
 
 // Before backfill's second pass has ended, a tick adds what arrived and leaves it waiting, so the gate
 // never reads a cold index. The second pass decides it if its walk, which reads newest first, reaches
-// it, and the first ticks after the pass ends decide what the pass left waiting (ADR-0104, ADR-0017,
+// it, and the first ticks after the pass ends decide what the pass left waiting (ADR-0104, ADR-0133,
 // ADR-0126).
 func TestBeforeTheSecondPassHasEndedATickScansNothing(t *testing.T) {
 	conn := superuser(t)

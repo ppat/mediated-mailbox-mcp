@@ -53,6 +53,7 @@ export const scanState: Readonly<Record<string, string>> = {
   skipped_restricted: "restricted",
   skipped_gate: "gate skip",
   pending: "pending",
+  refused: "refused",
 };
 
 export const scanStateLong: Readonly<Record<string, string>> = {
@@ -60,6 +61,7 @@ export const scanStateLong: Readonly<Record<string, string>> = {
   skipped_restricted: "not scanned, restricted sender",
   skipped_gate: "released unscanned, gate skip",
   pending: "pending content scan",
+  refused: "not scanned, body refused",
 };
 
 export const errorClass: Readonly<Record<string, string>> = {
@@ -69,6 +71,7 @@ export const errorClass: Readonly<Record<string, string>> = {
   scanner_timeout: "scanner timeout",
   validation: "validation",
   authentication: "authentication",
+  refused: "body refused",
 };
 
 export const disposition: Readonly<Record<string, string>> = {
@@ -76,6 +79,7 @@ export const disposition: Readonly<Record<string, string>> = {
   pending: "pending",
   gone: "not found",
   abandoned: "abandoned",
+  refused: "refused",
 };
 
 export const auditAction: Readonly<Record<string, string>> = {

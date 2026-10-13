@@ -1,0 +1,19 @@
+control: Nothing past the bound is downloaded where the provider declares a part's size, nothing past it is returned, and a response past its cap is refused
+removes: a response past its read cap is returned cut at the cap and read as whole
+packages: ./provider/gmail
+tests: TestCapped
+scheduled-count: no
+
+diff --git a/provider/gmail/adapter.go b/provider/gmail/adapter.go
+index 1f399b56..d82e84f0 100644
+--- a/provider/gmail/adapter.go
++++ b/provider/gmail/adapter.go
+@@ -172,7 +172,7 @@ func responseCap(limit int) (int, error) {
+ func capped(r io.Reader, ceiling int) ([]byte, bool, error) {
+ 	data, err := io.ReadAll(io.LimitReader(r, int64(ceiling)+1))
+ 	if err == nil && len(data) > ceiling {
+-		return data[:ceiling], true, nil
++		return data[:ceiling], false, nil
+ 	}
+ 	return data, false, err
+ }

@@ -1,0 +1,18 @@
+control: Nothing past the bound is downloaded where the provider declares a part's size, nothing past it is returned, and a response past its cap is refused
+removes: a request is sent carrying every other request's cap whatever its builder gave it, so a body read is read to maxResponse and past it is the provider's failure
+packages: ./provider/gmail
+tests: TestEachRequestIsSentWithItsBuildersCap
+scheduled-count: no
+diff --git a/provider/gmail/adapter.go b/provider/gmail/adapter.go
+index eb35c3fb..dd5684f1 100644
+--- a/provider/gmail/adapter.go
++++ b/provider/gmail/adapter.go
+@@ -105,7 +105,7 @@ func (a *Adapter) send(ctx context.Context, r request) ([]byte, error) {
+ 	if r.Body != "" {
+ 		body = strings.NewReader(r.Body)
+ 	}
+-	req, err := http.NewRequestWithContext(withReadCap(ctx, r.Cap), r.Method, r.URL(), body)
++	req, err := http.NewRequestWithContext(withReadCap(ctx, anyReadCap()), r.Method, r.URL(), body)
+ 	if err != nil {
+ 		return nil, fmt.Errorf("gmail: building a request: %w", errors.Join(mail.ErrInvalid, err))
+ 	}

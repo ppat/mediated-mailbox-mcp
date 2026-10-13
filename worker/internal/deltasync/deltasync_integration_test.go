@@ -759,6 +759,42 @@ func TestEachTickBuildsItsSourcesFromTheClientAndTheAccountsToken(t *testing.T) 
 	}
 }
 
+// D4's part of VERIFICATIONS' row for delta sync holding its token source. Ticks reuse the account's
+// source while the stored credential is the one it was built from, so the access token one tick
+// refreshed serves the ticks after it, and a credential replaced in the account's row is built into a
+// new source at the next tick, as backfill's runs do (ADR-0089, ADR-0090).
+func TestTicksHoldTheirSourceUntilTheCredentialIsReplaced(t *testing.T) {
+	conn := superuser(t)
+	reset(t, conn)
+	ring, public := keys(t)
+	client(t, conn, public)
+	account(t, conn, "personal", gmailProvider, sealed(t, public, "personal-token", seal.AccountCredential("personal")), false)
+	var built []string
+	source := func(c session.Credentials) *gmail.TokenSource {
+		built = append(built, string(c.Credential))
+		return gmailSource(unreachable(t))(c)
+	}
+	j := newJobs()
+	d := kind(t, syncPool(t), ring, prometheus.NewRegistry(), slog.New(slog.DiscardHandler),
+		fakes(source, map[string]*fake.Fake{"personal": mailbox(t, "personal")}), j)
+
+	for range 3 {
+		if err := cycle(t, d, j); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if diff := cmp.Diff([]string{"personal-token"}, built, compare.Options); diff != "" {
+		t.Errorf("the credentials three ticks built sources from (-want +got):\n%s", diff)
+	}
+	must(t, conn, "UPDATE account_state SET credential = $2 WHERE account_id = $1", "personal", sealed(t, public, "replaced-token", seal.AccountCredential("personal")))
+	if err := cycle(t, d, j); err != nil {
+		t.Fatal(err)
+	}
+	if diff := cmp.Diff([]string{"personal-token", "replaced-token"}, built, compare.Options); diff != "" {
+		t.Errorf("the credentials the ticks built sources from once the credential was replaced (-want +got):\n%s", diff)
+	}
+}
+
 // bodyMarkers returns every body marker found in the account's rows of every table that has an
 // account column, each row read whole as JSON, and in logs.
 func bodyMarkers(t *testing.T, conn *pgx.Conn, account, logs string) []string {
@@ -803,10 +839,10 @@ func bodyMarkers(t *testing.T, conn *pgx.Conn, account, logs string) []string {
 // delta sync's logs. Ticks over fixtures whose every body carries a body marker add them, a gap is
 // recovered from, and once backfill's second pass has ended a tick scans what waits, through a
 // restricted sender's skip, a code flagged in a body, a clean HTML-only body and a body the conversion
-// refuses, with a logger that records everything delta sync logs. A search of the account's rows in
-// every table with an account column, each row read whole, and of the logs finds no body marker. The
-// same search, handed a row and a log line each planted with one, finds both, so its silence is
-// evidence (ADR-0009, ADR-0044).
+// refuses, recorded refused, with a logger that records everything delta sync logs. A search of the
+// account's rows in every table with an account column, each row read whole, and of the logs finds no
+// body marker. The same search, handed a row and a log line each planted with one, finds both, so its
+// silence is evidence (ADR-0009, ADR-0044).
 func TestNoBodyTextReachesTheIndexOrTheLogs(t *testing.T) {
 	conn := superuser(t)
 	reset(t, conn)
@@ -819,10 +855,10 @@ func TestNoBodyTextReachesTheIndexOrTheLogs(t *testing.T) {
 			t.Error(err)
 		}
 	})
-	refused := "<p>" + marker.Body("refused") + strings.Repeat(" padding", 512*1024/8) + "</p>"
+	refused := marker.Body("refused") + strings.Repeat("<div>", 600) + strings.Repeat("</div>", 600)
 	bodies := []struct{ from, text, html string }{
 		{"alerts@bank.example", marker.Body("bank") + " Your verification code is 419283.", ""},
-		{"orders@shop.example", marker.Body("shoptext") + " Your verification code is 419283.", "<p>" + marker.Body("shophtml") + "</p>"},
+		{"orders@shop.example", marker.Body("shoptext") + " Your verification code is 419283.", "<p>" + marker.Body("shophtml") + " Your verification code is 419283.</p>"},
 		{"hello@shop.example", "", "<p>" + marker.Body("welcome") + " Welcome aboard.</p>"},
 		{"big@news.example", "", refused},
 	}
@@ -860,7 +896,7 @@ func TestNoBodyTextReachesTheIndexOrTheLogs(t *testing.T) {
 		(SELECT count(*) FROM job_run_failures WHERE account_id = 'personal' AND item_kind = 'message')
 		FROM messages WHERE account_id = 'personal'`).Scan(&scanned, &skipped, &failed)
 	if err != nil || scanned != 1 || skipped != 1 || failed != 1 {
-		t.Fatalf("the ticks flagged %d bodies, skipped %d and failed %d (%v), want the shop's code flagged, the bank skipped and the large body refused", scanned, skipped, failed, err)
+		t.Fatalf("the ticks flagged %d bodies, skipped %d and failed %d (%v), want the shop's code flagged, the bank skipped and the body the conversion refuses refused", scanned, skipped, failed, err)
 	}
 	if n := len(slices.DeleteFunc(log.records(t), func(r record) bool { return r.Msg != "the account's tick ended" })); n != 3 {
 		t.Fatalf("the log holds %d ended ticks, want 3", n)

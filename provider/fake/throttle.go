@@ -128,11 +128,11 @@ func (t *Throttled) GetMessageMetadata(ctx context.Context, ids []string) ([]mai
 }
 
 // GetMessageBody implements the port.
-func (t *Throttled) GetMessageBody(ctx context.Context, id string) (mail.MessageBody, error) {
+func (t *Throttled) GetMessageBody(ctx context.Context, id string, part mail.BodyPart) (mail.MessageBody, error) {
 	if err := t.admit(ctx, mail.OpGetMessageBody, 1); err != nil {
 		return mail.MessageBody{}, err
 	}
-	return t.inner.GetMessageBody(ctx, id)
+	return t.inner.GetMessageBody(ctx, id, part)
 }
 
 // ListLabels implements the port.

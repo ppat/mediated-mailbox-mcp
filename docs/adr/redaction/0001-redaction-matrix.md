@@ -51,6 +51,7 @@ class ScanState(Enum):
     SCANNED            = "scanned"              # verdict recorded
     SKIPPED_RESTRICTED = "skipped_restricted"   # never scanned: sender restricted
     SKIPPED_GATE       = "skipped_gate"         # never scanned: accepted risk
+    REFUSED            = "refused"              # never scanned: body past the bound or unconvertible, ADR-0132
 
 @dataclass(frozen=True)
 class Sensitivity:

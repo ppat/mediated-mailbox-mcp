@@ -24,10 +24,10 @@ type Querier interface {
 	// (ADR-0120).
 	SecondRestart(ctx context.Context) (bool, error)
 	// Records that backfill's first pass has ended for the account, in the transaction that finishes the
-	// run which ended it (ADR-0017, ADR-0117).
+	// run which ended it (ADR-0133, ADR-0117).
 	SetBackfillFirstComplete(ctx context.Context) error
 	// Records that backfill's second pass has ended for the account, in the transaction that finishes the
-	// run which ended it (ADR-0017, ADR-0117).
+	// run which ended it (ADR-0133, ADR-0117).
 	SetBackfillSecondComplete(ctx context.Context) error
 }
 

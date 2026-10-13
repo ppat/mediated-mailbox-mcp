@@ -1,7 +1,7 @@
 -- name: RebuildSender :exec
 -- Rebuilds the statistics of the account's sender at domain from the messages the index holds for
 -- it, its volume, first and last message, List-Id share, label distribution, and the first twenty of
--- its local parts and display names in sorted order (ADR-0016, ADR-0017). They hold no class, which every
+-- its local parts and display names in sorted order (ADR-0016, ADR-0133). They hold no class, which every
 -- reader classifies when it reads (ADR-0136). The statistics are read from the stored messages rather
 -- than added to, so a page ingested twice leaves them as one ingestion does.
 INSERT INTO senders AS s (

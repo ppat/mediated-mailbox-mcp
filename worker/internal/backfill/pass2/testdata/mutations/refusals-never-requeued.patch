@@ -1,0 +1,19 @@
+control: A refusal returns to pending only when the bound it was refused under changes
+removes: the run-start step returns no refusal to pending, so a body refused under another bound stays refused
+packages: ./worker/internal/backfill/pass2
+tests: TestARefusalReturnsToPendingOnlyWhenItsBoundChanges
+scheduled-count: no
+integration: yes
+diff --git a/worker/internal/backfill/pass2/postgres.go b/worker/internal/backfill/pass2/postgres.go
+index 1d6d25fa..6ff7e5d3 100644
+--- a/worker/internal/backfill/pass2/postgres.go
++++ b/worker/internal/backfill/pass2/postgres.go
+@@ -233,7 +233,7 @@ func (s *Postgres) Reopen(ctx context.Context, account string, stamp index.Stamp
+ 				return fmt.Errorf("counting the prior hits of the sender at %q again changed %d rows, want 1", d, n)
+ 			}
+ 		}
+-		refusals, err := scan.New(t).RequeueRefusals(ctx, refusedBound)
++		refusals, err := int64(0), error(nil)
+ 		if err != nil {
+ 			return fmt.Errorf("returning the bodies refused under another size bound to pending scan: %w", err)
+ 		}

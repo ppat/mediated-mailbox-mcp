@@ -14,19 +14,19 @@ import (
 
 // The body operation's result names its reason by one token of a closed set, and the set its schema
 // states is exactly the tokens the operation can return, every reason of the gate and of the release
-// step a decision can reach and the conversion's refusal, so the contract neither lists a token
-// nothing returns nor misses one a client may receive (ADR-0101). The release step's undecided reason
-// is no token, since nothing returns a decision nobody made. The test reads unexported names, so it
-// sits in the package.
+// step a decision can reach, the conversion's refusal and the port's (ADR-0131), so the contract
+// neither lists a token nothing returns nor misses one a client may receive (ADR-0101). The release
+// step's undecided reason is no token, since nothing returns a decision nobody made. The test reads
+// unexported names, so it sits in the package.
 func TestTheReasonEnumIsTheTokensABodyDecisionReturns(t *testing.T) {
 	var returned []string
-	for _, r := range []redact.Reason{redact.InvalidState, redact.PendingScan, redact.SkippedRestricted, redact.RestrictedSender, redact.ContentFlagged, redact.Released} {
+	for _, r := range []redact.Reason{redact.InvalidState, redact.PendingScan, redact.SkippedRestricted, redact.RestrictedSender, redact.ContentFlagged, redact.Released, redact.BodyRefused} {
 		returned = append(returned, r.String())
 	}
 	for _, r := range []release.Reason{release.NotReleasable, release.NoScanner, release.PatternMatched, release.Released} {
 		returned = append(returned, r.String())
 	}
-	returned = append(returned, conversionRefused)
+	returned = append(returned, conversionRefused, bodyRefused)
 	slices.Sort(returned)
 	returned = slices.Compact(returned)
 

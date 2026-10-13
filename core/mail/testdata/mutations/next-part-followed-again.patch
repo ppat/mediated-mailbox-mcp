@@ -1,0 +1,19 @@
+control: The port returns a body's rendered part alone, and a part the provider holds apart takes exactly one more call
+removes: a part named in a second call that answers it is held apart again is followed by a third call, so a body's calls have no bound
+packages: ./core/mail
+tests: TestNextBodyPart
+scheduled-count: no
+
+diff --git a/core/mail/port.go b/core/mail/port.go
+index a2e31ac5..d5a6e0f2 100644
+--- a/core/mail/port.go
++++ b/core/mail/port.go
+@@ -104,7 +104,7 @@ func (e HeldApartError) Unwrap() error { return ErrHeldApart }
+ // itself held apart again included, so a body takes at most two calls.
+ func NextBodyPart(asked BodyPart, err error) (BodyPart, bool) {
+ 	var apart HeldApartError
+-	if asked != "" || !errors.As(err, &apart) || apart.Part == "" {
++	if !errors.As(err, &apart) || apart.Part == "" {
+ 		return "", false
+ 	}
+ 	return apart.Part, true

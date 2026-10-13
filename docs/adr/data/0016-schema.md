@@ -129,10 +129,12 @@ CREATE TABLE messages (
     CHECK (content_flags <@ '{mfa_code,login_link}'),
   rule_ids         text[] NOT NULL DEFAULT '{}',  -- the content rules that set content_flags
   scan_state       text NOT NULL DEFAULT 'pending'   -- ADR-0093's states
-    CHECK (scan_state IN ('scanned', 'skipped_restricted', 'skipped_gate', 'pending')),
+    CHECK (scan_state IN ('scanned', 'skipped_restricted', 'skipped_gate', 'pending', 'refused')),
   scanned_at       timestamptz,
   scanner_version  int,
   scanner_revision text,                   -- the scanner configuration's revision (ADR-0009)
+  refused_bound    int,                    -- the size bound in bytes a refusal was made under (ADR-0132)
+  CHECK ((scan_state = 'refused') = (refused_bound IS NOT NULL)),
   PRIMARY KEY (account_id, message_id),
   CHECK (cardinality(content_flags) = 0 OR scan_state = 'scanned')  -- only a scan sets a flag
 );
@@ -297,9 +299,10 @@ CREATE TABLE job_runs (                   -- every background job kind's runs (A
                                           --   milliseconds (ADR-0126), and a sync tick {after}, the last
                                           --   message identifier its scanning read (ADR-0104)
   counters      jsonb NOT NULL DEFAULT '{}',  -- per workload: pass1 pages, messages, remasked, refetched; pass2 pages,
-                                          --   decided, pending, scanned, skipped; sync added, modified, removed,
-                                          --   window_start, window_end, reconciled, and a tick's decided,
-                                          --   pending, scanned, skipped (ADR-0104, ADR-0105); apply ops_done,
+                                          --   decided, pending, scanned, skipped, refused; sync added, modified,
+                                          --   removed, window_start, window_end, reconciled, and a tick's
+                                          --   decided, pending, scanned, skipped, refused (ADR-0104, ADR-0105,
+                                          --   ADR-0132); apply ops_done,
                                           --   ops_total, failures; heuristics candidates
   last_error    text,                     -- provider or scanner text, never a body
   PRIMARY KEY (account_id, run_id),
@@ -332,12 +335,12 @@ CREATE TABLE job_run_failures (           -- a run's per-item failures
   item_kind     text NOT NULL,            -- page | message | op
   item_id       text NOT NULL,            -- the page number, or the message id for message and op items
   page          int,                      -- the page the item was processed on
-  error_class   text NOT NULL,            -- throttled | provider_error | gone | scanner_timeout | validation | authentication
+  error_class   text NOT NULL,            -- throttled | provider_error | gone | scanner_timeout | validation | authentication | refused
   error_summary text,                     -- provider or scanner text, never a body
   attempts      int NOT NULL DEFAULT 1,
   first_at      timestamptz NOT NULL,
   last_at       timestamptz NOT NULL,
-  disposition   text NOT NULL DEFAULT 'pending',  -- recovered | pending | gone | abandoned
+  disposition   text NOT NULL DEFAULT 'pending',  -- recovered | pending | gone | abandoned | refused
   recovered_by  text,                     -- the recovering run
   PRIMARY KEY (account_id, run_id, seq),
   FOREIGN KEY (account_id, run_id) REFERENCES job_runs ON DELETE CASCADE  -- a part of its run
@@ -357,7 +360,7 @@ CREATE TABLE audit_log (
     CHECK (reason IN ('released', 'pending_scan', 'skipped_restricted', 'restricted_sender',
                       'content_flagged', 'invalid_stored_state', 'scan_state_not_releasable',
                       'serve_time_check_no_scanner', 'serve_time_check_matched',
-                      'conversion_refused')),
+                      'conversion_refused', 'body_refused')),
   sender_class     text CHECK (sender_class IN ('normal', 'restricted')),
   class_rule_id    text,                  -- the policy rule behind sender_class
   class_rule_scope text CHECK (class_rule_scope IN ('base', 'account')),
@@ -365,7 +368,7 @@ CREATE TABLE audit_log (
   content_rule_ids text[],                -- the scanner rules behind the stored flags
   serve_rule_ids   text[],                -- the serve-time pattern check's rules, on a serve-time denial
   scan_state       text
-    CHECK (scan_state IN ('scanned', 'skipped_restricted', 'skipped_gate', 'pending')),
+    CHECK (scan_state IN ('scanned', 'skipped_restricted', 'skipped_gate', 'pending', 'refused')),
   scanner_version  int,                   -- the scanner the serve-time check ran under
   scanner_revision text,
   CHECK (action NOT IN ('READ_BODY', 'DENY_BODY')
@@ -500,8 +503,8 @@ The shape enforces these properties.
   the message, a release included, is the `serve` stage's, since the release step decides it last.
   The serve-time check's rules and the scanner pair are written when that check ran, on a release
   and on the check's denial, and are NULL when it did not run, which is every gate denial, a body
-  the conversion refused, a scan state the release step never releases, and a release step with no
-  scanner.
+  the port refused as it was fetched, a body the conversion refused, a scan state the release step
+  never releases, and a release step with no scanner.
 - **The background job kinds' runs, timeline events, and per-item failures are rows**
   ([ADR-0117](../operability/0117-one-background-worker-runs-every-job-kind.md)), and their free-text columns hold provider
   or scanner text and never a body, under the same comment that binds every table.

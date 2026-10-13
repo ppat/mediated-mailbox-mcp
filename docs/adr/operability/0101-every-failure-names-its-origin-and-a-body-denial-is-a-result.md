@@ -58,7 +58,12 @@ The UI's own read API already tells origins apart in one error shape
   denial is the gate working, and none of the three origins failed. The reasons are the gate's,
   pending content scan, skipped as restricted, restricted sender, content flagged and invalid stored
   state, and the release step's, the serve-time pattern check matched, no scanner for the check, a
-  scan state the release step never releases, and the conversion refused the body.
+  scan state the release step never releases, and the conversion refused the body. A body the
+  system refuses for its size or form is a denial too, the gate's for a message stored as refused
+  and the serve stage's when the port refuses it as it is fetched, since nothing failed and asking
+  again gets the same answer
+  ([ADR-0131](../provider/0131-the-body-is-one-rendered-part-bounded-by-one-size-constant.md),
+  [ADR-0132](../redaction/0132-a-body-refused-for-good-is-recorded-as-refused-not-left-pending.md)).
 - **A reason is a token of a closed set, and a released body's reason is `released`.** Each token
   is lowercase snake case and names one meaning, so a client branches on it while the note says
   why in words.
@@ -75,6 +80,7 @@ The UI's own read API already tells origins apart in one error shape
   | No scanner for the serve-time pattern check | `serve_time_check_no_scanner` |
   | The serve-time pattern check matched | `serve_time_check_matched` |
   | The conversion refused the body | `conversion_refused` |
+  | The body is refused for its size or form | `body_refused` |
 
   The same tokens are the audit row's reason, which its check holds to this set
   ([ADR-0016](../data/0016-schema.md)), and the reason label of the count of denied bodies, so one

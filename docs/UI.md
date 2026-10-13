@@ -783,7 +783,7 @@ account's pass-1 flag, and the run row supplies the numbers.
 
 | Card | Fields |
 | --- | --- |
-| Backfill | pass 1 with its outcome, message count, page count, duration, and completion time. Pass 2 with its run id, checkpoint page of total as a progress bar, decided of total, pending, scanned this run, skipped, started time, heartbeat age, estimated time left |
+| Backfill | pass 1 with its outcome, message count, page count, duration, and completion time. Pass 2 with its run id, checkpoint page of total as a progress bar, decided of total, pending, scanned this run, skipped, refused, started time, heartbeat age, estimated time left |
 | Delta sync | state, cadence, last tick time and duration, cursor age, last change set as added, modified, removed, gap recoveries in the last 7 days with the last one's time, window, and messages reconciled |
 | Reorg apply | state, the plan being applied with operations done of total, or `idle` with plans in DRAFT. Last run with its plan title, outcome, operations, failures, duration, date, and whether rollback is available (the plan is APPLIED, per ADR-0020's indefinite rollback) with the op log row count |
 | Heuristics | state, cadence, last run time and duration, candidates emitted, candidates awaiting review, next run time |
@@ -892,6 +892,14 @@ the panel lists the message's newest 50 audit rows the row detail carries, with 
 | pending | "{error class} on this item. It has not been retried yet. Its scan state stays pending, so its body is denied until a run reaches it." |
 | gone | "{error class}. Its scan state is {scan state}." When the index no longer holds the message, the last sentence is "The index no longer holds it." |
 | abandoned | "{error class} on this item after {attempts} attempts. The workload gave up. Its scan state stays pending, so its body is denied until a later run reaches it." |
+| refused | "{error class} on this item. Its body is larger than the system releases, or cannot be read or converted, so its scan state is refused and its body is denied. It is not fetched again unless the size limit changes or its sender is removed from a restriction." |
+
+A `refused` item is the second pass's or a delta sync tick's record of a body it will not scan
+([ADR-0132](./adr/redaction/0132-a-body-refused-for-good-is-recorded-as-refused-not-left-pending.md)).
+Its sentence states the two things that return such a message to pending, so the operator sees that
+the denial is permanent while the system stays as it is, and is not backlog a later run will clear.
+Reading the scan state from the row, as `recovered` does, was the alternative. It reads "not
+scanned, body refused" and leaves the operator to infer that no later run fetches the body again.
 
 Both passes of backfill record a `gone` item, and they differ in what follows. The second pass
 records one when a body fetch finds the message no longer at the provider, and the message waits
@@ -1929,7 +1937,7 @@ spelled as ADR-0016 stores it, and the registry declares each column's value set
 | --- | --- | --- |
 | plan status | DRAFT · APPROVED · APPLYING · APPLIED · ROLLED_BACK · REJECTED · APPLY_REFUSED | Awaiting approval · Approved, waiting to apply · Applying · Applied · Rolled back · Rejected · Apply refused |
 | candidate status | pending · confirmed · dismissed | Awaiting review · Confirmed · Dismissed |
-| scan state | scanned · skipped_restricted · skipped_gate · pending | in cells `scanned` · `restricted` · `gate skip` · `pending`; on hover and in L4 "scanned" · "not scanned, restricted sender" · "released unscanned, gate skip" · "pending content scan" |
+| scan state | scanned · skipped_restricted · skipped_gate · pending · refused | in cells `scanned` · `restricted` · `gate skip` · `pending` · `refused`; on hover and in L4 "scanned" · "not scanned, restricted sender" · "released unscanned, gate skip" · "pending content scan" · "not scanned, body refused" |
 | sender class | normal · restricted | normal · restricted |
 | content flag | mfa_code · login_link | mfa · link |
 | gate decision and reason | SCAN · SKIP, with the reason as ADR-0093's skip branches name it | scan · skip, with the reason as recorded |
@@ -1938,8 +1946,8 @@ spelled as ADR-0016 stores it, and the registry declares each column's value set
 | workload state (derived, not stored) | no run yet · a run in running · the last run finished | not started · running · idle |
 | backoff state (derived from `backoff_until`) | null · a future time | not in backoff · in backoff until {time} |
 | validation result | passed · failed | passed · failed |
-| error class | throttled · provider_error · gone · scanner_timeout · validation · authentication | provider throttled · provider error · not found at provider · scanner timeout · validation · authentication |
-| disposition | recovered · pending · gone · abandoned | recovered (with the run) · pending · not found · abandoned |
+| error class | throttled · provider_error · gone · scanner_timeout · validation · authentication · refused | provider throttled · provider error · not found at provider · scanner timeout · validation · authentication · body refused |
+| disposition | recovered · pending · gone · abandoned · refused | recovered (with the run) · pending · not found · abandoned · refused |
 | failure item kind | page · message · op | page · message · operation |
 | authentication outcome (ADR-0097) | succeeded · refused · failed · none recorded | accepted · refused · no answer · not used yet |
 | policy change action (ADR-0102) | added · edited · lifted · confirmed | added · edited · lifted · confirmed from a candidate |

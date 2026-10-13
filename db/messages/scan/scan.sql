@@ -69,6 +69,25 @@ UPDATE messages
 SET scan_state = @scan_state
 WHERE account_id = current_setting('app.account') AND message_id = @message_id AND scan_state = 'pending';
 
+-- name: RecordRefusal :execrows
+-- Records that a waiting message's body was refused for its size or by its conversion, with the size
+-- bound in bytes it was refused under, so it no longer waits for a scan and its body is denied
+-- (ADR-0132). A message no longer waiting is left as it is and counts no row.
+UPDATE messages
+SET scan_state = 'refused', refused_bound = @refused_bound
+WHERE account_id = current_setting('app.account') AND message_id = @message_id AND scan_state = 'pending';
+
+-- name: RequeueRefusals :execrows
+-- Returns each of the account's messages whose body was refused under another size bound than the one
+-- given to pending scan, its bound cleared, so the next scan fetches it again under the bound in force
+-- (ADR-0132). Backfill's run-start step makes it, beside the return of stale verdicts.
+UPDATE messages
+SET scan_state = 'pending', refused_bound = NULL
+WHERE
+    account_id = current_setting('app.account')
+    AND scan_state = 'refused'
+    AND refused_bound IS DISTINCT FROM @refused_bound::int;
+
 -- name: RestrictedDomains :many
 -- The sender domains of the account's messages the scan gate skipped as restricted, each once, which
 -- the delisting transition compares with the policy in force (ADR-0037). The index stores no sender

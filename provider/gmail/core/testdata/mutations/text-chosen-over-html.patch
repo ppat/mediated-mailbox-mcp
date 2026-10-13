@@ -1,0 +1,25 @@
+control: The port returns a body's rendered part alone, and a part the provider holds apart takes exactly one more call
+removes: the Gmail adapter returns a message's text part when it has an HTML part, so the part fetched is not the one release serves
+packages: ./provider/gmail/core
+tests: TestMessageBodyChoosesTheRenderedPart
+scheduled-count: no
+diff --git a/provider/gmail/core/body.go b/provider/gmail/core/body.go
+index 4fdb9acb..6e88d207 100644
+--- a/provider/gmail/core/body.go
++++ b/provider/gmail/core/body.go
+@@ -238,12 +238,12 @@ func stop(slot Slot, p Problem) Decision {
+ 
+ // rendered returns the rendered part and the slot it fills, and false when there is none.
+ func rendered(p Part) (Part, Slot, bool) {
+-	if html, ok := first(p, "text/html"); ok {
+-		return html, HTML, true
+-	}
+ 	if text, ok := first(p, "text/plain"); ok {
+ 		return text, Text, true
+ 	}
++	if html, ok := first(p, "text/html"); ok {
++		return html, HTML, true
++	}
+ 	return Part{}, "", false
+ }
+ 

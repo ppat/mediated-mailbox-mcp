@@ -1,0 +1,19 @@
+control: A part held apart is decoded from its declared charset, and a label the table does not name is refused
+removes: a part declaring x-user-defined is decoded, so its high bytes read as private-use characters
+packages: ./provider/gmail/core
+tests: TestPartText/a_user-defined_part
+scheduled-count: no
+
+diff --git a/provider/gmail/core/body.go b/provider/gmail/core/body.go
+index 4fdb9acb..77e31289 100644
+--- a/provider/gmail/core/body.go
++++ b/provider/gmail/core/body.go
+@@ -208,7 +208,7 @@ func PartText(data, charset string, labels Labels) (string, Problem) {
+ 		name, err = labels.Name(enc)
+ 	}
+ 	switch {
+-	case err != nil, name == "replacement", name == "utf-16le", name == "utf-16be", name == "x-user-defined":
++	case err != nil, name == "replacement", name == "utf-16le", name == "utf-16be":
+ 		return "", CharsetRefused
+ 	}
+ 	out, err := enc.NewDecoder().Bytes(raw)

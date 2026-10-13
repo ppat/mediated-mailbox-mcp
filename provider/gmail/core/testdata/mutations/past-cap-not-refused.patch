@@ -1,0 +1,21 @@
+control: Nothing past the bound is downloaded where the provider declares a part's size, nothing past it is returned, and a response past its cap is refused
+removes: an answer past a body read's cap is read as the provider's failure, so the message is fetched again on every tick rather than recorded refused
+packages: ./provider/gmail/core ./provider/gmail
+tests: TestTheReadCapsFollowTheBound TestABodyReadsAnswerPastItsCapIsRefused
+scheduled-count: no
+diff --git a/provider/gmail/core/body.go b/provider/gmail/core/body.go
+index 39e802dc..cb349e60 100644
+--- a/provider/gmail/core/body.go
++++ b/provider/gmail/core/body.go
+@@ -112,9 +112,9 @@ const (
+ // provider's failure, which a later call may not repeat.
+ func (p Problem) Refused() bool {
+ 	switch p {
+-	case PastBound, ContentTypeUnparsed, CharsetRefused, Undecodable, PastCap:
++	case PastBound, ContentTypeUnparsed, CharsetRefused, Undecodable:
+ 		return true
+-	case None, NotBase64:
++	case None, NotBase64, PastCap:
+ 		return false
+ 	}
+ 	return false

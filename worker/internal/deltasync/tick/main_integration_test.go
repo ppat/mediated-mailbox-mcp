@@ -193,12 +193,22 @@ func (d *direct) ListThreads(ctx context.Context, q mail.Query, page mail.PageTo
 	return d.port.ListThreads(ctx, q, page)
 }
 
+// GetMessageBody reads the body as a caller of the port does, a second call naming a part held apart
+// (ADR-0131).
 func (d *direct) GetMessageBody(ctx context.Context, id string) (mail.MessageBody, error) {
 	d.bodies = append(d.bodies, id)
 	if err, ok := d.failBody[id]; ok {
 		return mail.MessageBody{}, err
 	}
-	return d.port.GetMessageBody(ctx, id)
+	var part mail.BodyPart
+	for {
+		body, err := d.port.GetMessageBody(ctx, id, part)
+		next, due := mail.NextBodyPart(part, err)
+		if !due {
+			return body, err
+		}
+		part = next
+	}
 }
 
 // gate is the gate's thresholds in these tests, the defaults, under which a message of a sender of

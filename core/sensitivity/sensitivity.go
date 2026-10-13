@@ -66,6 +66,7 @@ const (
 	scanned
 	skippedGate
 	skippedRestricted
+	refused
 )
 
 // Pending returns the state of a message the scanner has not reached.
@@ -80,6 +81,10 @@ func SkippedGate() ScanState { return ScanState{state: skippedGate} }
 // SkippedRestricted returns the state of a message left unscanned because its sender is restricted.
 func SkippedRestricted() ScanState { return ScanState{state: skippedRestricted} }
 
+// Refused returns the state of a message whose body was refused for its size or by its conversion, so
+// it is never scanned or released while the bound it was refused under holds (ADR-0132).
+func Refused() ScanState { return ScanState{state: refused} }
+
 // String returns the state's name as the schema spells it (ADR-0016).
 func (s ScanState) String() string {
 	switch s.state {
@@ -89,6 +94,8 @@ func (s ScanState) String() string {
 		return "skipped_gate"
 	case skippedRestricted:
 		return "skipped_restricted"
+	case refused:
+		return "refused"
 	case pending:
 		return "pending"
 	default:
@@ -143,7 +150,7 @@ func (s Sensitivity) ReleasesBody() bool {
 	switch s.scan.state {
 	case scanned, skippedGate:
 		return true
-	case pending, skippedRestricted:
+	case pending, skippedRestricted, refused:
 		return false
 	default:
 		return false

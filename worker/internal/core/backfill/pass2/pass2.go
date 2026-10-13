@@ -1,4 +1,4 @@
-// Package pass2 holds the decisions of backfill's second pass, as values (ADR-0017, ADR-0040). The
+// Package pass2 holds the decisions of backfill's second pass, as values (ADR-0133, ADR-0040). The
 // shell reads the messages waiting for a scan a page at a time and enacts what this package decides.
 //
 // Begin decides how a run starts, and only once the first pass has ended for the account. The delisting
@@ -45,9 +45,10 @@ type Counters struct {
 	// Pages counts the pages made durable.
 	Pages int
 	// Decided counts the messages the gate decided, Scanned those whose scan verdict was recorded,
-	// Skipped those recorded as skipped, and Pending those left waiting for a scan, because the gate
-	// could not decide or their body could not be fetched or converted.
-	Decided, Scanned, Skipped, Pending int
+	// Skipped those recorded as skipped, Refused those whose body was refused for its size or by its
+	// conversion (ADR-0132), and Pending those left waiting for a scan, because the gate could not
+	// decide or their body could not be fetched.
+	Decided, Scanned, Skipped, Refused, Pending int
 }
 
 // Progress is a pass's checkpoint and counters, as a run records them.
@@ -58,7 +59,7 @@ type Progress struct {
 
 // Begin decides how a run of the pass starts. Until the first pass has ended for the account the run
 // is skipped, since the gate reads the statistics the first pass builds and the subjects it masks
-// (ADR-0017). After that it starts as the first pass's runs do. It is never found due again by itself,
+// (ADR-0133). After that it starts as the first pass's runs do. It is never found due again by itself,
 // since what a change of scanner makes stale for it, and the gate skips the gate no longer decides as
 // the same skip, the run-start step's Reopen records before the first pass (ADR-0120, ADR-0121).
 func Begin(firstEnded, ended bool, latest pass1.Latest[Progress]) pass1.Start[Progress] {
@@ -128,6 +129,9 @@ const (
 	Abandon
 	// FailRun fails the run without recording the message, since the failure is not the message's.
 	FailRun
+	// Refuse records the message as refused and goes on, since a later attempt would refuse it again
+	// (ADR-0132).
+	Refuse
 )
 
 // OnFailure decides what a run does after an attempt at a body fails. A throttled body is asked for
@@ -135,12 +139,15 @@ const (
 // is refusing the run rather than the message. A body the provider fails is asked for again until
 // pass1.MaxAttempts attempts and then abandoned, and one it no longer has is gone. Either way the
 // message stays waiting and the pass goes on, since a later run would ask for it the same way. A
-// refused request is abandoned the same way, and a refused credential stops the run. A failure that
-// is not the provider's fails the run.
+// refused request is abandoned the same way, and a refused credential stops the run. A body the port
+// refused is recorded as refused at its first attempt, since every attempt would refuse it
+// (ADR-0132). A failure that is not the provider's fails the run.
 func OnFailure(f Attempt) Next {
 	switch {
 	case f.Class == index.NotProvider:
 		return FailRun
+	case f.Class == index.Refused:
+		return Refuse
 	case f.Class == index.Throttled && f.Attempts < pass1.MaxAttempts:
 		return Backoff
 	case f.Class == index.ProviderError && f.Attempts < pass1.MaxAttempts:
@@ -175,6 +182,8 @@ func Advance(at Progress, p Page) Progress {
 		switch {
 		case o.Scanned != nil:
 			next.Counters.Scanned++
+		case o.Refused:
+			next.Counters.Refused++
 		case o.Verdict.Decided() && !o.Verdict.Scans():
 			next.Counters.Skipped++
 		default:

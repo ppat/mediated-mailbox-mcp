@@ -23,7 +23,8 @@ scans or classifies compares what the index stores with what it runs with, by ef
 the difference ([ADR-0037](../redaction/0037-delisting-transition.md),
 [ADR-0120](../redaction/0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md),
 [ADR-0121](../redaction/0121-the-run-start-step-decides-each-gate-skip-again.md)).
-Checkpoints commit with the work they cover ([ADR-0017](../data/0017-two-pass-backfill.md),
+Checkpoints commit with the work they cover
+([ADR-0133](../data/0133-backfill-is-full-history-and-two-pass.md),
 [ADR-0045](../engineering/0045-crash-injection-testing.md)), and a body is released only by the
 mediator's decision at fetch time ([ADR-0002](../redaction/0002-fetch-time-re-evaluation.md),
 [ADR-0099](../engineering/0099-a-body-request-loads-the-policy-before-it-decides.md)).
@@ -106,7 +107,11 @@ comparison inside the run.
   stops at its next unit boundary with its checkpoint durable. A later interrupt is a cancelled
   context. A later pause is a decision recorded through the UI that the due decision reads.
 - **A stuck run is not killed.** Its running time and its job's last success make it visible, and
-  the timeouts its own calls carry bound it.
+  the timeouts its own calls carry bound it. Each provider call a job kind makes through its lease
+  has 30 seconds to answer once the lease is issued, a constant of the rate limiter's leased call,
+  as the mediator's default provider timeout is 30 seconds. A call cut off while its run still
+  waits is the provider's failure, which the rate controller counts as a server error
+  ([ADR-0101](./0101-every-failure-names-its-origin-and-a-body-denial-is-a-result.md)).
 
 **Loaders.** Each job kind that holds credentials has its own account loader and policy loader,
 under its own role and on its own pool, reloaded about every minute, and writes back the credentials

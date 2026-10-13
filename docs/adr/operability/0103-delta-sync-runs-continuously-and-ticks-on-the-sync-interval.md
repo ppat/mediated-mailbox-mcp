@@ -35,7 +35,7 @@ platform runs ([ADR-0051](../engineering/0051-environment-contract.md)).
 - **A tick that starts records as failed the account's latest tick and latest gap recovery still
   recorded as running.** Ticks do not overlap, so a run still running when the next tick starts
   was stopped before it recorded its end, as backfill records a run it resumes after one stopped
-  ([ADR-0017](../data/0017-two-pass-backfill.md),
+  ([ADR-0133](../data/0133-backfill-is-full-history-and-two-pass.md),
   [ADR-0117](./0117-one-background-worker-runs-every-job-kind.md)).
 - **It serves the health probe and the metrics endpoint for its whole life**, so every series it
   emits stays in the scrape between ticks. The request cost and the hard cap of

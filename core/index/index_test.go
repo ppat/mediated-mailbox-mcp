@@ -166,6 +166,7 @@ func TestClassOf(t *testing.T) {
 		{mail.ErrAuthentication, index.Authentication},
 		{mail.ErrNotFound, index.Gone},
 		{mail.ErrInvalid, index.Validation},
+		{errors.Join(errors.New("a part too large"), mail.ErrRefused), index.Refused},
 		{errors.New("the database went away"), index.NotProvider},
 	}
 	for _, c := range cases {
@@ -246,9 +247,9 @@ func TestGate(t *testing.T) {
 	}
 }
 
-// A scanned body records a flag found in either part, the content rules that fired in either, each
-// once and sorted, and the scanner's version and revision. A scanner nobody built flags the body
-// (ADR-0009, ADR-0017).
+// A scanned body records the flags found in the Markdown its rendered part is released as, the
+// content rules that fired, each once and sorted, and the scanner's version and revision. A scanner
+// nobody built flags the body (ADR-0009, ADR-0131).
 func TestScan(t *testing.T) {
 	const code, link = "Your verification code is 419283.", "Sign in: https://x.example/login/h3J9dK2mQ8xR5tY1vB7nW4sZ6"
 	type got struct {
@@ -262,25 +263,23 @@ func TestScan(t *testing.T) {
 	}
 	s := scanner(t)
 	cases := []struct {
-		name           string
-		scanner        scan.Scanner
-		markdown, text string
-		want           got
+		name     string
+		scanner  scan.Scanner
+		rendered string
+		want     got
 	}{
-		{"a clean body", s, "Hello there.", "Hello there.", got{Rules: []string{}, Version: 1, Revision: "a-revision"}},
-		{"a code in the HTML part", s, code, "Hello there.", got{MFA: true, Rules: []string{scan.RuleTriggerWindow}, Version: 1, Revision: "a-revision"}},
-		{"a code in the text part", s, "Hello there.", code, got{MFA: true, Rules: []string{scan.RuleTriggerWindow}, Version: 1, Revision: "a-revision"}},
-		{"a code in both parts", s, code, code, got{MFA: true, Rules: []string{scan.RuleTriggerWindow}, Version: 1, Revision: "a-revision"}},
+		{"a clean body", s, "Hello there.", got{Rules: []string{}, Version: 1, Revision: "a-revision"}},
+		{"a code", s, code, got{MFA: true, Rules: []string{scan.RuleTriggerWindow}, Version: 1, Revision: "a-revision"}},
+		{"a link", s, link, got{Link: true, Rules: []string{scan.RuleLinkPath}, Version: 1, Revision: "a-revision"}},
 		{
-			"a code in one part and a link in the other", s, link, code,
+			"a code and a link", s, link + "\n\n" + code,
 			got{MFA: true, Link: true, Rules: []string{scan.RuleLinkPath, scan.RuleTriggerWindow}, Version: 1, Revision: "a-revision"},
 		},
-		{"a body with no HTML part", s, "", code, got{MFA: true, Rules: []string{scan.RuleTriggerWindow}, Version: 1, Revision: "a-revision"}},
-		{"a scanner nobody built", scan.Scanner{}, "Hello there.", "Hello there.", got{MFA: true, Link: true, Rules: []string{}}},
+		{"a scanner nobody built", scan.Scanner{}, "Hello there.", got{MFA: true, Link: true, Rules: []string{}}},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			if diff := cmp.Diff(c.want, observe(index.Scan(c.scanner, c.markdown, c.text)), compare.Options); diff != "" {
+			if diff := cmp.Diff(c.want, observe(index.Scan(c.scanner, c.rendered)), compare.Options); diff != "" {
 				t.Errorf("Scan (-want +got):\n%s", diff)
 			}
 		})

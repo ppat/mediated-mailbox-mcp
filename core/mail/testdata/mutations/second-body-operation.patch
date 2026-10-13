@@ -3,15 +3,14 @@ removes: the port gains a second operation returning the full body as a string
 packages: ./core/mail
 tests: TestOnlyTheBodyFetchReturnsABody
 scheduled-count: no
-
 diff --git a/core/mail/port.go b/core/mail/port.go
-index cd61424..ea6c366 100644
+index a2e31ac5..b68710c2 100644
 --- a/core/mail/port.go
 +++ b/core/mail/port.go
-@@ -23,6 +23,8 @@ type Port[C any] interface {
- 	// GetMessageBody returns a message's body, or ErrNotFound. It is the only operation that
+@@ -31,6 +31,8 @@ type Port[C any] interface {
+ 	// provider declares one, or for one it cannot decode (ADR-0131). It is the only operation that
  	// returns body content, and the gate guards every call to it (ADR-0002).
- 	GetMessageBody(ctx C, id string) (MessageBody, error)
+ 	GetMessageBody(ctx C, id string, part BodyPart) (MessageBody, error)
 +	// GetMessageRaw returns a message's full body as text.
 +	GetMessageRaw(ctx C, id string) (string, error)
  	// ListLabels returns every label the account has, Inbox, Trash and Spam included.

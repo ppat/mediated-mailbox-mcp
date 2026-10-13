@@ -2,7 +2,6 @@ package gmail
 
 import (
 	"cmp"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
+	"github.com/ppat/mediated-mailbox-mcp/provider/gmail/core"
 )
 
 // The system label identifiers that map to flags rather than to labels.
@@ -112,23 +112,11 @@ type gmailMessage struct {
 	Payload      gmailPart `json:"payload"`
 }
 
-type gmailPart struct {
-	MimeType string        `json:"mimeType"`
-	Filename string        `json:"filename"`
-	Headers  []gmailHeader `json:"headers"`
-	Body     gmailBody     `json:"body"`
-	Parts    []gmailPart   `json:"parts"`
-}
-
-type gmailHeader struct {
-	Name  string `json:"name"`
-	Value string `json:"value"`
-}
-
-type gmailBody struct {
-	AttachmentID string `json:"attachmentId"`
-	Data         string `json:"data"`
-}
+// The part tree's types are the body decision's, which reads them (ADR-0040).
+type (
+	gmailPart   = core.Part
+	gmailHeader = core.Header
+)
 
 // parseMessage reads a messages.get response.
 func parseMessage(body []byte) (gmailMessage, error) {
@@ -194,12 +182,7 @@ func metadata(account string, labels labelTable, m gmailMessage) mail.MessageMet
 
 // header returns the value of the first header named name, ignoring case.
 func header(headers []gmailHeader, name string) string {
-	for _, h := range headers {
-		if strings.EqualFold(h.Name, name) {
-			return h.Value
-		}
-	}
-	return ""
+	return core.HeaderValue(headers, name)
 }
 
 // address parses a single address. A value that does not parse keeps its decoded text as the name
@@ -309,53 +292,6 @@ func attachments(p gmailPart) []mail.AttachmentPart {
 		out = append(out, attachments(c)...)
 	}
 	return out
-}
-
-// messageBody maps a message read in the full format to its body. It takes the first plain text
-// part and the first HTML part that are not attachments, depth first, as Gmail returns their bytes.
-func messageBody(account string, m gmailMessage) (mail.MessageBody, error) {
-	out := mail.MessageBody{AccountID: account, MessageID: m.ID}
-	var walk func(p gmailPart) error
-	walk = func(p gmailPart) error {
-		if p.Filename == "" {
-			var slot *string
-			switch strings.ToLower(p.MimeType) {
-			case "text/plain":
-				slot = &out.Text
-			case "text/html":
-				slot = &out.HTML
-			}
-			if slot != nil && *slot == "" {
-				text, err := partData(p)
-				if err != nil {
-					return err
-				}
-				*slot = text
-			}
-		}
-		for _, c := range p.Parts {
-			if err := walk(c); err != nil {
-				return err
-			}
-		}
-		return nil
-	}
-	if err := walk(m.Payload); err != nil {
-		return mail.MessageBody{}, err
-	}
-	return out, nil
-}
-
-// partData decodes a part's body, which Gmail sends in URL-safe base64.
-func partData(p gmailPart) (string, error) {
-	if p.Body.Data == "" && p.Body.AttachmentID != "" {
-		return "", fmt.Errorf("gmail: a %s body part is held apart from the message: %w", p.MimeType, mail.ErrProvider)
-	}
-	b, err := base64.RawURLEncoding.DecodeString(strings.TrimRight(p.Body.Data, "="))
-	if err != nil {
-		return "", fmt.Errorf("gmail: decoding a %s body part: %w", p.MimeType, errors.Join(mail.ErrProvider, err))
-	}
-	return string(b), nil
 }
 
 // threads groups messages into the threads threadIDs names, in that order. Each thread holds its

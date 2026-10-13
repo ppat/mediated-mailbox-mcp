@@ -4,14 +4,13 @@ packages: ./mediate/app
 tests: TestAReleasedBodyIsCleanMarkdown
 scheduled-count: no
 integration: yes
-
 diff --git a/mediate/internal/service/body.go b/mediate/internal/service/body.go
-index b89bba9..f6053d1 100644
+index 2c5c8e77..4917fdbe 100644
 --- a/mediate/internal/service/body.go
 +++ b/mediate/internal/service/body.go
-@@ -225,7 +225,7 @@ func (s Sources) markdown(body mail.MessageBody, meta mail.MessageMetadata) (rel
- 		c.Body = s.Bodies.Literal(body.Text)
+@@ -245,7 +245,7 @@ func (s Sources) markdown(body mail.MessageBody, meta mail.MessageMetadata) (rel
  	}
+ 	c := release.Content{Body: rendered}
  	if meta.Snippet != "" {
 -		c.Snippet = s.Bodies.Literal(meta.Snippet)
 +		c.Snippet = meta.Snippet

@@ -1,0 +1,18 @@
+control: The port returns a body's rendered part alone, and a part the provider holds apart takes exactly one more call
+removes: an empty HTML part is chosen as the rendered part, so a message whose text part holds its content returns an empty body
+packages: ./provider/gmail/core
+tests: TestMessageBodyChoosesTheRenderedPart
+scheduled-count: no
+diff --git a/provider/gmail/core/body.go b/provider/gmail/core/body.go
+index 4fdb9acb..13ba00bc 100644
+--- a/provider/gmail/core/body.go
++++ b/provider/gmail/core/body.go
+@@ -249,7 +249,7 @@ func rendered(p Part) (Part, Slot, bool) {
+ 
+ // first returns the first part of mediaType without a file name that holds content, depth first.
+ func first(p Part, mediaType string) (Part, bool) {
+-	if p.Filename == "" && strings.EqualFold(p.MimeType, mediaType) && (p.Body.Data != "" || p.Body.AttachmentID != "") {
++	if p.Filename == "" && strings.EqualFold(p.MimeType, mediaType) {
+ 		return p, true
+ 	}
+ 	for _, c := range p.Parts {

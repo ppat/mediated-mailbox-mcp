@@ -1,0 +1,20 @@
+control: A refusal is not the provider's failure, so it never reaches the rate controller as a server error
+removes: the port's refusal wraps the provider's failure, so every caller reads a refused body as the provider failing
+packages: ./core/mail ./ratelimit/lease
+tests: TestThePortsErrorsAreDistinct TestABodyIsFetchedByPartAndARefusalTellsTheControllerNothing
+scheduled-count: no
+integration: yes
+
+diff --git a/core/mail/port.go b/core/mail/port.go
+index a2e31ac5..66cba37a 100644
+--- a/core/mail/port.go
++++ b/core/mail/port.go
+@@ -77,7 +77,7 @@ var (
+ 	// ErrRefused is a body the port will not return, its rendered part larger than MaxBodyBytes or in
+ 	// a form the implementation cannot decode. The provider did nothing wrong, and asking again
+ 	// refuses again while the message and MaxBodyBytes stay as they are (ADR-0131).
+-	ErrRefused = errors.New("mail: the body is refused, too large or not decodable")
++	ErrRefused = errors.Join(errors.New("mail: the body is refused, too large or not decodable"), ErrProvider)
+ 	// ErrHeldApart is a rendered part the provider holds apart from the message, which a second
+ 	// GetMessageBody call names. An error wrapping it is a HeldApartError naming the part.
+ 	ErrHeldApart = errors.New("mail: the body's rendered part is held apart from the message")

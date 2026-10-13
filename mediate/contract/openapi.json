@@ -663,6 +663,7 @@
                               "scan_state": {
                                 "enum": [
                                   "pending",
+                                  "refused",
                                   "scanned",
                                   "skipped_gate",
                                   "skipped_restricted"
@@ -873,6 +874,7 @@
                         "scan_state": {
                           "enum": [
                             "pending",
+                            "refused",
                             "scanned",
                             "skipped_gate",
                             "skipped_restricted"
@@ -1028,7 +1030,8 @@
                         "scan_state_not_releasable",
                         "serve_time_check_no_scanner",
                         "serve_time_check_matched",
-                        "conversion_refused"
+                        "conversion_refused",
+                        "body_refused"
                       ],
                       "type": "string"
                     },
@@ -1289,6 +1292,7 @@
                               "scan_state": {
                                 "enum": [
                                   "pending",
+                                  "refused",
                                   "scanned",
                                   "skipped_gate",
                                   "skipped_restricted"
@@ -1932,6 +1936,7 @@
                               "scan_state": {
                                 "enum": [
                                   "pending",
+                                  "refused",
                                   "scanned",
                                   "skipped_gate",
                                   "skipped_restricted"

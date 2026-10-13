@@ -15,7 +15,7 @@ import (
 func seed(mailbox []contract.Message) []fake.Message {
 	out := make([]fake.Message, len(mailbox))
 	for i, m := range mailbox {
-		out[i] = fake.Message{Metadata: m.Metadata, Body: m.Body}
+		out[i] = fake.Message{Metadata: m.Metadata, Body: m.Body, HeldApart: m.HeldApart}
 	}
 	return out
 }
@@ -47,7 +47,7 @@ func sized(pageSize int, wrap func(*fake.Fake) mail.Port[context.Context]) contr
 		return contract.Implementation{
 			Port: wrap(f),
 			Deliver: func(m contract.Message) (string, error) {
-				return m.Metadata.ID, f.Deliver(fake.Message{Metadata: m.Metadata, Body: m.Body})
+				return m.Metadata.ID, f.Deliver(fake.Message{Metadata: m.Metadata, Body: m.Body, HeldApart: m.HeldApart})
 			},
 			Remove: f.Remove,
 		}
@@ -88,7 +88,7 @@ func counting(pageSize int) contract.Harness {
 		return contract.Implementation{
 			Port: f,
 			Deliver: func(m contract.Message) (string, error) {
-				return m.Metadata.ID, f.Deliver(fake.Message{Metadata: m.Metadata, Body: m.Body})
+				return m.Metadata.ID, f.Deliver(fake.Message{Metadata: m.Metadata, Body: m.Body, HeldApart: m.HeldApart})
 			},
 			Remove: f.Remove,
 		}

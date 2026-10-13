@@ -10,8 +10,9 @@
 search and reason over the entire mailbox as structure, restricted mail included.
 [G2](../../../USE_CASES.md#g2--historical-understanding) asks that it derive the patterns already in
 the mailbox, label distributions, senders with no label and the senders behind most unfiled volume,
-from metadata alone. [ADR-0017](../data/0017-two-pass-backfill.md) builds per-sender aggregates in
-backfill's first pass for this, held in the `senders` table of [ADR-0016](../data/0016-schema.md).
+from metadata alone. [ADR-0133](../data/0133-backfill-is-full-history-and-two-pass.md) builds
+per-sender aggregates in backfill's first pass for this, held in the `senders` table of
+[ADR-0016](../data/0016-schema.md).
 
 The message and thread listings page the whole index newest first. Selecting, sorting, counting
 and grouping, and reading the sender aggregates, need operations beyond them, and which operations

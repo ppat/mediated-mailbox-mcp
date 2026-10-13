@@ -69,6 +69,7 @@ The Gmail unit weights are listed below, because two of their consequences shape
 | `messages.list` | 5 | 500 ids/call — enumeration nearly free |
 | `messages.get` (METADATA) | 20 | dominant backfill cost |
 | `messages.get` (FULL) | 20 | **same as metadata** — body fetch is quota-free relative |
+| `messages.attachments.get` | 20 | one part held apart from the message, a second body call ([ADR-0131](../provider/0131-the-body-is-one-rendered-part-bounded-by-one-size-constant.md)) |
 | `threads.get` | 40 | every message of one thread |
 | `batchModify` | 50 | 1000 ids/call — bulk reorg cheap per message |
 

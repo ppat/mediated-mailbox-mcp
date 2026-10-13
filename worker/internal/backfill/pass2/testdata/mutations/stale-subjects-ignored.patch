@@ -1,27 +1,20 @@
 control: A reopened first pass always leads to a run of the second pass
-removes: the run-start step reopens the second pass only when it returned a verdict or a skip to pending or masked a subject again, not when a subject stored masked leaves the first pass due again
+removes: the run-start step reopens the second pass only when it returned a verdict, a refusal or a skip to pending or masked a subject again, not when a subject stored masked leaves the first pass due again
 packages: ./worker/internal/backfill
 tests: TestAReopenedFirstPassLeadsToASecondPass
 scheduled-count: no
 integration: yes
-
 diff --git a/worker/internal/backfill/pass2/postgres.go b/worker/internal/backfill/pass2/postgres.go
-index 2b9ece79..fd433f3b 100644
+index 1d6d25fa..946cd0ad 100644
 --- a/worker/internal/backfill/pass2/postgres.go
 +++ b/worker/internal/backfill/pass2/postgres.go
-@@ -240,13 +240,14 @@ func (s *Postgres) Reopen(ctx context.Context, account string, stamp index.Stamp
- 			ScannerVersion: version(stamp.Version), ScannerRevision: stamp.Revision,
- 		})
- 		if err != nil {
+@@ -252,7 +252,8 @@ func (s *Postgres) Reopen(ctx context.Context, account string, stamp index.Stamp
  			return fmt.Errorf("reading whether a subject was masked under another scanner: %w", err)
  		}
- 		marked = Reopened{Verdicts: len(domains), Skips: skips, Subjects: subjects}
--		if marked.Verdicts == 0 && marked.Skips == 0 && marked.Subjects == 0 && !stale {
+ 		marked = Reopened{Verdicts: len(domains), Refusals: int(refusals), Skips: skips, Subjects: subjects}
+-		if marked.Verdicts == 0 && marked.Refusals == 0 && marked.Skips == 0 && marked.Subjects == 0 && !stale {
 +		_ = stale
-+		if marked.Verdicts == 0 && marked.Skips == 0 && marked.Subjects == 0 {
++		if marked.Verdicts == 0 && marked.Refusals == 0 && marked.Skips == 0 && marked.Subjects == 0 {
  			return nil
  		}
  		if err := completion.New(t).ReopenBackfillSecond(ctx); err != nil {
- 			return fmt.Errorf("recording the pass as due again: %w", err)
- 		}
- 		return nil

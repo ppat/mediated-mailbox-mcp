@@ -32,10 +32,12 @@ type Bodies struct {
 	// the request arrived, from which its waits for its leases are bounded (ADR-0130). It is called
 	// only once the gate has released the message, so a denial never reaches a provider (ADR-0002).
 	Open func(ctx context.Context, account string, arrived time.Time) (Provider, error)
-	// Convert converts a body's HTML part to clean Markdown, and refuses a body it will not convert
-	// (ADR-0036).
-	Convert func(html string) (string, error)
-	// Literal returns message text with no HTML form as Markdown that shows it exactly (ADR-0100).
+	// Render returns a body as the Markdown it is released as, its HTML part's conversion or its text
+	// part shown exactly, and refuses a body either form will not render, one above the port's bound
+	// included (ADR-0036, ADR-0100, ADR-0131).
+	Render func(body mail.MessageBody) (string, error)
+	// Literal returns message text with no HTML form, the snippet and a filename, as Markdown that
+	// shows it exactly (ADR-0100).
 	Literal func(text string) string
 	// Scanner runs the serve-time pattern check (ADR-0002).
 	Scanner scan.Scanner
@@ -46,7 +48,8 @@ type Bodies struct {
 // Provider is one body request's session with the account's provider, the request's unit of work.
 // Each call spends from the account's rate budget in the interactive class (ADR-0025).
 type Provider interface {
-	// Body returns the message's body.
+	// Body returns the message's body, or an error wrapping mail.ErrRefused for a body the port
+	// refuses (ADR-0131).
 	Body(ctx context.Context, messageID string) (mail.MessageBody, error)
 	// Metadata returns the message's metadata, which carries the snippet and the attachment
 	// filenames. It returns an error wrapping mail.ErrNotFound when the provider holds no such
@@ -81,9 +84,14 @@ const (
 const auditActor = "client"
 
 // conversionRefused is the reason a body the conversion refused is denied with. The gate's and the
-// release step's reasons are their String methods' tokens, and the three together are the closed set
+// release step's reasons are their String methods' tokens, and they with the two above are the closed set
 // bodySchema's enum and the audit row's check hold (ADR-0101, ADR-0016).
 const conversionRefused = "conversion_refused"
+
+// bodyRefused is the reason a body the port refused, for its size or because it cannot be decoded, is
+// denied with at serve time, the reason the gate gives a message stored as refused (ADR-0131,
+// ADR-0132).
+const bodyRefused = "body_refused"
 
 // releasedReason is the reason a released body carries.
 const releasedReason = "released"
@@ -106,7 +114,7 @@ const bodySchema = `{"type":"object","properties":{` +
 	`"account_id":{"type":"string"},"message_id":{"type":"string"},"released":{"type":"boolean"},` +
 	`"reason":{"type":"string","enum":["released","pending_scan","skipped_restricted","restricted_sender",` +
 	`"content_flagged","invalid_stored_state","scan_state_not_releasable","serve_time_check_no_scanner",` +
-	`"serve_time_check_matched","conversion_refused"]},` +
+	`"serve_time_check_matched","conversion_refused","body_refused"]},` +
 	`"note":{"type":["string","null"]},"body":{"type":["string","null"]},"snippet":{"type":["string","null"]},` +
 	`"attachment_names":{"type":["array","null"],"items":{"type":"string"}}},` +
 	`"required":["account_id","message_id","released","reason","note","body","snippet","attachment_names"]}`
@@ -184,6 +192,13 @@ func (s Sources) getMessageBody(ctx context.Context, account string, input json.
 		return nil, FromProvider(err)
 	}
 	body, err := session.Body(ctx, args.MessageID)
+	if errors.Is(err, mail.ErrRefused) {
+		if err := s.audit(ctx, account, args.MessageID, actionDeny, StageServe, bodyRefused, g, serveCheck{}); err != nil {
+			return nil, err
+		}
+		s.Bodies.Observe(account, Outcome{Stage: StageServe, Reason: bodyRefused})
+		return ok(deny(denied, bodyRefused))
+	}
 	if err != nil {
 		return nil, FromProvider(err)
 	}
@@ -220,20 +235,15 @@ func (s Sources) getMessageBody(ctx context.Context, account string, input json.
 }
 
 // markdown returns the message's content in the forms it is released in, and false when the
-// conversion refused the body. A body with an HTML part is released as that part's conversion, and
+// rendering refused the body. A body with an HTML part is released as that part's conversion, and
 // one without as its text part shown exactly, as the snippet and each filename are (ADR-0036,
-// ADR-0100).
+// ADR-0100, ADR-0131).
 func (s Sources) markdown(body mail.MessageBody, meta mail.MessageMetadata) (release.Content, bool) {
-	var c release.Content
-	if body.HTML != "" {
-		converted, err := s.Bodies.Convert(body.HTML)
-		if err != nil {
-			return release.Content{}, false
-		}
-		c.Body = converted
-	} else {
-		c.Body = s.Bodies.Literal(body.Text)
+	rendered, err := s.Bodies.Render(body)
+	if err != nil {
+		return release.Content{}, false
 	}
+	c := release.Content{Body: rendered}
 	if meta.Snippet != "" {
 		c.Snippet = s.Bodies.Literal(meta.Snippet)
 	}
@@ -269,6 +279,9 @@ func denialNote(reason string) string {
 		return "The message was never scanned, and the check run as it was served found a one-time code or a login link in it, so it is denied." + never
 	case conversionRefused:
 		return "The body could not be converted to clean Markdown, so it is denied." + never
+	case bodyRefused:
+		return "The body is larger than the system releases, or cannot be read or converted, so it is denied. " +
+			"The message's metadata stays available." + never
 	default:
 		return "The message's stored state does not let its body be released, so it is denied." + never
 	}

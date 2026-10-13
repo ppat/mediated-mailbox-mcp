@@ -55,6 +55,10 @@ candidates only where configuration could not reach. R7 and R8 broke ties.
   to set it against. 1 MiB and 2 MiB were weighed, at about 150 MB and 300 MB of memory for one
   body, against the risk of refusing a legitimate body heavy with inline images or quoted threads.
   The inline images a refused body most often carries would be dropped by the conversion anyway.
+  The limit is the port's bound on the rendered part, one constant the adapter, the conversion and
+  the literal form all read, so the port refuses a larger part before it is fetched where the
+  provider declares its size
+  ([ADR-0131](../provider/0131-the-body-is-one-rendered-part-bounded-by-one-size-constant.md)).
 - **A body the parser refuses is refused too.** The parser
   [refuses more than 512 open elements](https://cs.opensource.google/go/x/net/+/refs/tags/v0.59.0:html/parse.go;l=238),
   about 128 nested layout tables. A refused body produces no Markdown at all, never a part of one,

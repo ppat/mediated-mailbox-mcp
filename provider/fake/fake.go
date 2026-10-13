@@ -43,10 +43,14 @@ type Config struct {
 //
 // Metadata.ID and Metadata.ThreadID must be set, and the Fake keeps them. The Fake sets the account
 // on both values and the message identifier on the body. It derives the snippet, the first 100
-// characters of the text part, and the size, when either is left zero, as a provider would.
+// characters of the text part, and the size, when either is left zero, as a provider would. Body may
+// hold both parts, and GetMessageBody returns the rendered one alone, as the port requires.
 type Message struct {
 	Metadata mail.MessageMetadata
 	Body     mail.MessageBody
+	// HeldApart holds the message's rendered part apart from it, as Gmail holds a large part, so
+	// GetMessageBody returns it only to a second call naming it (ADR-0131).
+	HeldApart bool
 }
 
 // Fake is an in-memory mailbox implementing the Provider Port. It is safe for concurrent use.
@@ -64,9 +68,10 @@ type Fake struct {
 }
 
 type stored struct {
-	seq  int
-	meta mail.MessageMetadata
-	body mail.MessageBody
+	seq   int
+	meta  mail.MessageMetadata
+	body  mail.MessageBody
+	apart bool
 }
 
 type changeKind uint8
@@ -83,6 +88,9 @@ type change struct {
 }
 
 var _ mail.Port[context.Context] = (*Fake)(nil)
+
+// apartPrefix starts the part the Fake names for a rendered part it holds apart.
+const apartPrefix mail.BodyPart = "fake.part."
 
 // New returns a Fake holding messages, in the order given.
 func New(cfg Config, messages ...Message) (*Fake, error) {
@@ -167,7 +175,7 @@ func (f *Fake) insert(m Message) error {
 		f.labels[l] = true
 	}
 	f.seq++
-	f.byID[meta.ID] = &stored{seq: f.seq, meta: meta, body: body}
+	f.byID[meta.ID] = &stored{seq: f.seq, meta: meta, body: body, apart: m.HeldApart}
 	return nil
 }
 
@@ -240,7 +248,7 @@ func (f *Fake) GetMessageMetadata(ctx context.Context, ids []string) ([]mail.Mes
 }
 
 // GetMessageBody implements the port.
-func (f *Fake) GetMessageBody(ctx context.Context, id string) (mail.MessageBody, error) {
+func (f *Fake) GetMessageBody(ctx context.Context, id string, part mail.BodyPart) (mail.MessageBody, error) {
 	if err := ctx.Err(); err != nil {
 		return mail.MessageBody{}, err
 	}
@@ -250,7 +258,20 @@ func (f *Fake) GetMessageBody(ctx context.Context, id string) (mail.MessageBody,
 	if !ok {
 		return mail.MessageBody{}, fmt.Errorf("fake: message %q: %w", id, mail.ErrNotFound)
 	}
-	return s.body, nil
+	named := apartPrefix + mail.BodyPart(id)
+	switch {
+	case part != "" && part != named:
+		return mail.MessageBody{}, fmt.Errorf("fake: body part %q of message %q: %w", part, id, mail.ErrInvalid)
+	case len(s.body.HTML) > mail.MaxBodyBytes, s.body.HTML == "" && len(s.body.Text) > mail.MaxBodyBytes:
+		return mail.MessageBody{}, fmt.Errorf("fake: message %q's rendered part passes the bound: %w", id, mail.ErrRefused)
+	case s.apart && part == "":
+		return mail.MessageBody{}, mail.HeldApartError{Part: named}
+	}
+	out := mail.MessageBody{AccountID: s.body.AccountID, MessageID: s.body.MessageID, HTML: s.body.HTML}
+	if out.HTML == "" {
+		out.Text = s.body.Text
+	}
+	return out, nil
 }
 
 // ListLabels implements the port.

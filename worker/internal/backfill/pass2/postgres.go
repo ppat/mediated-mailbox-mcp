@@ -65,6 +65,7 @@ type counters struct {
 	Pending int `json:"pending"`
 	Scanned int `json:"scanned"`
 	Skipped int `json:"skipped"`
+	Refused int `json:"refused"`
 }
 
 func encode(p core.Progress) (cp, ct []byte, err error) {
@@ -74,7 +75,7 @@ func encode(p core.Progress) (cp, ct []byte, err error) {
 		return nil, nil, err
 	}
 	c := p.Counters
-	ct, err = json.Marshal(counters{Pages: c.Pages, Decided: c.Decided, Pending: c.Pending, Scanned: c.Scanned, Skipped: c.Skipped})
+	ct, err = json.Marshal(counters{Pages: c.Pages, Decided: c.Decided, Pending: c.Pending, Scanned: c.Scanned, Skipped: c.Skipped, Refused: c.Refused})
 	return cp, ct, err
 }
 
@@ -91,12 +92,16 @@ func decode(cp, ct []byte) (core.Progress, error) {
 	}
 	return core.Progress{
 		Checkpoint: core.Checkpoint{Page: c.Page, After: core.Position{SentAt: mail.UnixMilli(c.SentAt), ID: c.After}},
-		Counters:   core.Counters{Pages: n.Pages, Decided: n.Decided, Pending: n.Pending, Scanned: n.Scanned, Skipped: n.Skipped},
+		Counters:   core.Counters{Pages: n.Pages, Decided: n.Decided, Pending: n.Pending, Scanned: n.Scanned, Skipped: n.Skipped, Refused: n.Refused},
 	}, nil
 }
 
 // version returns a scanner version as the database stores it.
 func version(v int) int32 { return int32(min(max(v, 0), 1<<31-1)) } //nolint:gosec // Bounded.
+
+// refusedBound is the size bound a refusal records and the run-start step compares the stored ones
+// with, the port's bound on the rendered part (ADR-0131, ADR-0132).
+const refusedBound = int32(mail.MaxBodyBytes)
 
 // State implements Store.
 func (s *Postgres) State(ctx context.Context, account string) (bool, bool, bool, pass1core.Latest[core.Progress], error) {
@@ -200,6 +205,10 @@ func (s *Postgres) Reopen(ctx context.Context, account string, stamp index.Stamp
 				return fmt.Errorf("counting the prior hits of the sender at %q again changed %d rows, want 1", d, n)
 			}
 		}
+		refusals, err := scan.New(t).RequeueRefusals(ctx, refusedBound)
+		if err != nil {
+			return fmt.Errorf("returning the bodies refused under another size bound to pending scan: %w", err)
+		}
 		subjects, err := remaskStored(ctx, ingest.New(t), maskingrecord.New(t), stamp, remasked)
 		if err != nil {
 			return err
@@ -214,8 +223,8 @@ func (s *Postgres) Reopen(ctx context.Context, account string, stamp index.Stamp
 		if err != nil {
 			return fmt.Errorf("reading whether a subject was masked under another scanner: %w", err)
 		}
-		marked = Reopened{Verdicts: len(domains), Skips: skips, Subjects: subjects}
-		if marked.Verdicts == 0 && marked.Skips == 0 && marked.Subjects == 0 && !stale {
+		marked = Reopened{Verdicts: len(domains), Refusals: int(refusals), Skips: skips, Subjects: subjects}
+		if marked.Verdicts == 0 && marked.Refusals == 0 && marked.Skips == 0 && marked.Subjects == 0 && !stale {
 			return nil
 		}
 		if err := completion.New(t).ReopenBackfillSecond(ctx); err != nil {
@@ -397,8 +406,8 @@ func (s *Postgres) Commit(ctx context.Context, account, runID string, p core.Pag
 }
 
 // commitOutcome records what the run did with one message, which is the gate's decision when it
-// decided, and the verdict or skip state it leads to. A message the gate could not decide, or whose
-// body was not scanned, stays waiting.
+// decided, and the verdict, refusal or skip state it leads to. A message the gate could not decide,
+// or whose body was not scanned or refused, stays waiting.
 func commitOutcome(ctx context.Context, messages *scan.Queries, gate *gaterecord.Queries, o index.Outcome) error {
 	if !o.Verdict.Decided() {
 		return nil
@@ -432,6 +441,8 @@ func commitOutcome(ctx context.Context, messages *scan.Queries, gate *gaterecord
 			ScannerRevision: pgtype.Text{String: o.Scanned.Revision, Valid: true},
 			MessageID:       o.ID,
 		})
+	case o.Refused:
+		n, err = messages.RecordRefusal(ctx, scan.RecordRefusalParams{RefusedBound: pgtype.Int4{Int32: refusedBound, Valid: true}, MessageID: o.ID})
 	case !o.Verdict.Scans():
 		n, err = messages.RecordSkip(ctx, scan.RecordSkipParams{ScanState: o.Verdict.State().String(), MessageID: o.ID})
 	default:

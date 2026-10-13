@@ -55,7 +55,7 @@ type LatestRunRow struct {
 }
 
 // The account's latest run of one workload and pass, whatever its state, which a workload reads to
-// decide whether it resumes that run (ADR-0017, ADR-0117).
+// decide whether it resumes that run (ADR-0133, ADR-0117).
 func (q *Queries) LatestRun(ctx context.Context, arg LatestRunParams) (LatestRunRow, error) {
 	row := q.db.QueryRow(ctx, latestRun, arg.Workload, arg.Pass)
 	var i LatestRunRow

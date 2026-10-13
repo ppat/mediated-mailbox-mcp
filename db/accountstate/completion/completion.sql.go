@@ -72,7 +72,7 @@ WHERE account_id = current_setting('app.account')
 `
 
 // Records that backfill's first pass has ended for the account, in the transaction that finishes the
-// run which ended it (ADR-0017, ADR-0117).
+// run which ended it (ADR-0133, ADR-0117).
 func (q *Queries) SetBackfillFirstComplete(ctx context.Context) error {
 	_, err := q.db.Exec(ctx, setBackfillFirstComplete)
 	return err
@@ -85,7 +85,7 @@ WHERE account_id = current_setting('app.account')
 `
 
 // Records that backfill's second pass has ended for the account, in the transaction that finishes the
-// run which ended it (ADR-0017, ADR-0117).
+// run which ended it (ADR-0133, ADR-0117).
 func (q *Queries) SetBackfillSecondComplete(ctx context.Context) error {
 	_, err := q.db.Exec(ctx, setBackfillSecondComplete)
 	return err

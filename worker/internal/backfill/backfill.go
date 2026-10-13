@@ -2,7 +2,7 @@
 // account loader, policy loader and account sessions, on backfill's own connection pool under its own
 // runtime role (ADR-0118), and adds and drops one job per account its reload lists. Each job runs the
 // run-start step once in the process, then whichever pass has not ended, a page at a time, and is
-// otherwise a reconciler that finds nothing to do (ADR-0017, ADR-0120, ADR-0121).
+// otherwise a reconciler that finds nothing to do (ADR-0133, ADR-0120, ADR-0121).
 //
 // The worker's composition root builds it with New and ensures its reload job on the scheduler. Its
 // two passes are pass1 and pass2, and its due decision is worker/internal/core/backfill/due.
@@ -277,7 +277,7 @@ func (b *Backfill) policyFor(account string) func() classify.Policy {
 // run asks the account's due decision and does the work it names. The run-start step returns the
 // verdicts another scanner made and the gate skips the gate no longer decides as the same skip to
 // pending, and masks again from the store the subjects stored unmasked, then the first pass runs, and
-// the second once the first has ended (ADR-0120, ADR-0121, ADR-0017). Each page of either pass, and
+// the second once the first has ended (ADR-0120, ADR-0121, ADR-0133). Each page of either pass, and
 // each call of the first fetching stale subjects again, is a unit of work, which opens the account's
 // session over the active account snapshot, takes the active policy and ends the session's unit after
 // it, handing its token over and recording its latest attempt (ADR-0082, ADR-0090, ADR-0097). A page
@@ -310,7 +310,7 @@ func (b *Backfill) run(ctx context.Context, ask schedule.Ask, account string, st
 // decides as the same skip are denied whatever the first pass does, and the subjects stored unmasked
 // are masked again from the store, and records that the step was made in started. Then the first pass
 // runs, and the second once the first has ended, each page a unit of work over u (ADR-0120, ADR-0121,
-// ADR-0017).
+// ADR-0133).
 func backfillAccount(ctx context.Context, first pass1.Deps, second pass2.Deps, account string, m1 *pass1.Metrics, m2 *pass2.Metrics, u *unit,
 	ask schedule.Ask, logger *slog.Logger, start bool, started *bool,
 ) error {
@@ -509,6 +509,9 @@ func reopen(ctx context.Context, deps pass2.Deps, account string, logger *slog.L
 	if err != nil {
 		return err
 	}
+	if r.Refusals > 0 {
+		logger.Info("bodies refused under another size bound returned to pending", "messages", r.Refusals)
+	}
 	if r.Verdicts > 0 {
 		logger.Info("verdicts made under another scanner returned to pending", "messages", r.Verdicts)
 	}
@@ -563,13 +566,11 @@ func passAccount(ctx context.Context, deps pass1.Deps, account string, metrics *
 	}
 }
 
-// leasedBody returns the body fetch the second pass uses, a call of port's body read under a lease in
-// the batch class (ADR-0025).
+// leasedBody returns the body fetch the second pass uses, port's body read under leases in the batch
+// class, a second call naming a part held apart (ADR-0025, ADR-0131).
 func leasedBody(limiter *lease.Limiter, port mail.Port[context.Context], account string) pass2.Body {
 	return func(ctx context.Context, id string) (mail.MessageBody, error) {
-		return lease.Call(ctx, limiter, port, account, ratecore.Batch, mail.ProviderOp{Operation: mail.OpGetMessageBody}, func(ctx context.Context) (mail.MessageBody, error) {
-			return port.GetMessageBody(ctx, id)
-		})
+		return lease.Body(ctx, limiter, port, account, ratecore.Batch, id)
 	}
 }
 

@@ -1,5 +1,5 @@
 // Package pass1 runs backfill's first pass over one account, enumerating every page of the mailbox's
-// metadata and making each page durable with its checkpoint in one transaction (ADR-0017). Whenever
+// metadata and making each page durable with its checkpoint in one transaction (ADR-0133). Whenever
 // stored subjects are masked under another scanner, before it continues an enumeration and once the
 // enumeration has ended, it fetches them again by identifier, a call at a time, each call durable with
 // the run's progress in one transaction, and ends only once its enumeration has ended and no stored

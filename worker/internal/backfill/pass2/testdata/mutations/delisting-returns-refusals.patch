@@ -1,0 +1,24 @@
+control: A refusal returns to pending only when the bound it was refused under changes
+removes: the delisting transition returns a refused message of a delisted sender to pending with its bound cleared, so a change of the sender's class fetches a refused body again
+packages: ./worker/internal/backfill/pass2
+tests: TestARefusalReturnsToPendingOnlyWhenItsBoundChanges
+scheduled-count: no
+integration: yes
+diff --git a/db/messages/scan/scan.sql.go b/db/messages/scan/scan.sql.go
+index 43b1927d..53360f9a 100644
+--- a/db/messages/scan/scan.sql.go
++++ b/db/messages/scan/scan.sql.go
+@@ -91,11 +91,11 @@ func (q *Queries) GateSkips(ctx context.Context) ([]GateSkipsRow, error) {
+ 
+ const markDelisted = `-- name: MarkDelisted :execrows
+ UPDATE messages
+-SET scan_state = 'pending'
++SET scan_state = 'pending', refused_bound = NULL
+ WHERE
+     account_id = current_setting('app.account')
+     AND from_domain = $1
+-    AND scan_state = 'skipped_restricted'
++    AND scan_state IN ('skipped_restricted', 'refused')
+ `
+ 
+ // The delisting transition for one domain the policy in force no longer restricts. Its messages

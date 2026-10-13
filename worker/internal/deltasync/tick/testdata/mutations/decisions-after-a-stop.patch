@@ -4,9 +4,8 @@ packages: ./worker/internal/deltasync/tick
 tests: TestAThrottledBodyStopsTheAccountsScanning
 scheduled-count: no
 integration: yes
-
 diff --git a/worker/internal/deltasync/tick/tick.go b/worker/internal/deltasync/tick/tick.go
-index e6ff6ae0..b5c927dd 100644
+index 5c13dc1d..17ea73be 100644
 --- a/worker/internal/deltasync/tick/tick.go
 +++ b/worker/internal/deltasync/tick/tick.go
 @@ -378,7 +378,7 @@ func (t *ticker) page(ctx context.Context, waiting []index.Waiting) (bool, error
@@ -24,5 +23,5 @@ index e6ff6ae0..b5c927dd 100644
  				stop = true
 -				break
  			}
+ 			o.Refused = next == core.Refuse
  			if scanned != nil {
- 				o.Scanned = scanned

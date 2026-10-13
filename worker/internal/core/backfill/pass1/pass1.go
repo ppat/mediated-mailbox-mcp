@@ -1,4 +1,4 @@
-// Package pass1 holds the decisions of backfill's first pass, as values (ADR-0017, ADR-0040). The
+// Package pass1 holds the decisions of backfill's first pass, as values (ADR-0133, ADR-0040). The
 // shell enumerates the mailbox a page at a time and enacts what this package decides.
 //
 // Begin decides how a run starts from what the index holds, a fresh pass, a resumed one or none at

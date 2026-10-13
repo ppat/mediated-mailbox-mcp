@@ -4,16 +4,12 @@ packages: ./worker/internal/backfill
 tests: TestAReopenedFirstPassLeadsToASecondPass
 scheduled-count: no
 integration: yes
-
 diff --git a/worker/internal/backfill/pass2/postgres.go b/worker/internal/backfill/pass2/postgres.go
-index 2b9ece79..2772cba8 100644
+index 1d6d25fa..2a78b505 100644
 --- a/worker/internal/backfill/pass2/postgres.go
 +++ b/worker/internal/backfill/pass2/postgres.go
-@@ -243,13 +243,13 @@ func (s *Postgres) Reopen(ctx context.Context, account string, stamp index.Stamp
- 			return fmt.Errorf("reading whether a subject was masked under another scanner: %w", err)
- 		}
- 		marked = Reopened{Verdicts: len(domains), Skips: skips, Subjects: subjects}
- 		if marked.Verdicts == 0 && marked.Skips == 0 && marked.Subjects == 0 && !stale {
+@@ -255,7 +255,7 @@ func (s *Postgres) Reopen(ctx context.Context, account string, stamp index.Stamp
+ 		if marked.Verdicts == 0 && marked.Refusals == 0 && marked.Skips == 0 && marked.Subjects == 0 && !stale {
  			return nil
  		}
 -		if err := completion.New(t).ReopenBackfillSecond(ctx); err != nil {
@@ -21,6 +17,3 @@ index 2b9ece79..2772cba8 100644
  			return fmt.Errorf("recording the pass as due again: %w", err)
  		}
  		return nil
- 	})
- 	return marked, err
- }

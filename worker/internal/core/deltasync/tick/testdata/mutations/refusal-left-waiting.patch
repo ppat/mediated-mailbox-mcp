@@ -1,0 +1,20 @@
+control: A body the port or the conversion refuses is recorded refused, never scanned, and not fetched again
+removes: a tick leaves a body the port refuses waiting, so the next pass over the backlog fetches it again
+packages: ./worker/internal/core/deltasync/tick ./worker/internal/deltasync/tick
+tests: TestOnBodyFailure TestOnceTheSecondPassHasEndedATickScansWhatWaits
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/core/deltasync/tick/tick.go b/worker/internal/core/deltasync/tick/tick.go
+index b9438f8d..08036865 100644
+--- a/worker/internal/core/deltasync/tick/tick.go
++++ b/worker/internal/core/deltasync/tick/tick.go
+@@ -99,7 +99,7 @@ const (
+ func OnBodyFailure(class index.ErrorClass) Next {
+ 	switch class {
+ 	case index.Refused:
+-		return Refuse
++		return LeaveWaiting
+ 	case index.Throttled, index.Authentication:
+ 		return StopScanning
+ 	case index.ProviderError, index.Gone, index.Validation:

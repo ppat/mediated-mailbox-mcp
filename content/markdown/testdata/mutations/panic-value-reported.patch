@@ -3,9 +3,8 @@ removes: a recovered panic's value, which can carry body text, is written into t
 packages: ./content/markdown
 tests: TestGuardedFailsClosed/a_panic_carrying_body_text
 scheduled-count: no
-
 diff --git a/content/markdown/markdown.go b/content/markdown/markdown.go
-index e8737bb..3ed9949 100644
+index c4fbad4b..de8d3554 100644
 --- a/content/markdown/markdown.go
 +++ b/content/markdown/markdown.go
 @@ -28,6 +28,7 @@ package markdown
@@ -13,10 +12,10 @@ index e8737bb..3ed9949 100644
  import (
  	"errors"
 +	"fmt"
- 	"net/mail"
+ 	netmail "net/mail"
  	"net/url"
  	"strconv"
-@@ -87,8 +88,8 @@ func Convert(body string) (string, error) {
+@@ -90,8 +91,8 @@ func Convert(body string) (string, error) {
  // text, so the value is never included.
  func guarded(convert func() (string, error)) (out string, err error) {
  	defer func() {

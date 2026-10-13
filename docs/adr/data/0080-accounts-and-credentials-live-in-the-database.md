@@ -9,7 +9,8 @@ jointly with [ADR-0079](../operability/0079-secrets-arrive-as-mounted-files.md))
 
 Every deployable that calls a provider holds a full-mailbox provider credential. The mediator uses
 one to fetch a released body ([ADR-0002](../redaction/0002-fetch-time-re-evaluation.md)), backfill
-and delta sync to build and refresh the index ([ADR-0017](./0017-two-pass-backfill.md),
+and delta sync to build and refresh the index
+([ADR-0133](./0133-backfill-is-full-history-and-two-pass.md),
 [ADR-0018](./0018-delta-sync-polls.md)), and the reorganization workload to apply a plan
 ([ADR-0020](../mutation/0020-reorg-plan-approve-apply-rollback.md)).
 

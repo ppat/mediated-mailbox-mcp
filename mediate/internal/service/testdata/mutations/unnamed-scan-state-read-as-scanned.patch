@@ -3,15 +3,13 @@ removes: a stored scan state the schema does not name is read as scanned, so the
 packages: ./mediate/internal/service
 tests: TestAnUnnamedStoredStateReadsAsTheMostRestrictive
 scheduled-count: no
-
-
 diff --git a/mediate/internal/service/present.go b/mediate/internal/service/present.go
-index 38bb177..953e0e6 100644
+index d081c51c..ab69bee4 100644
 --- a/mediate/internal/service/present.go
 +++ b/mediate/internal/service/present.go
-@@ -88,7 +88,7 @@ func storedScanState(name string) sensitivity.ScanState {
- 	case "skipped_restricted":
- 		return sensitivity.SkippedRestricted()
+@@ -117,7 +117,7 @@ func storedScanState(name string) sensitivity.ScanState {
+ 	case "refused":
+ 		return sensitivity.Refused()
  	default:
 -		return sensitivity.Pending()
 +		return sensitivity.Scanned()

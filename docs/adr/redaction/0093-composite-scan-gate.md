@@ -17,7 +17,9 @@ constrain the answer.
 - Gmail charges the same quota for a metadata fetch as for a full fetch (see the cost table in
   [ADR-0023](../operability/0023-adapter-declares-cost.md)). **A body fetch is therefore quota-free
   relative to a metadata fetch**, so the gate is not a quota optimization and can afford to be
-  generous.
+  generous. The exception is a body whose rendered part the provider holds apart from the message,
+  which takes a second call of the same price
+  ([ADR-0131](../provider/0131-the-body-is-one-rendered-part-bounded-by-one-size-constant.md)).
 - The metadata index already holds cheap, high-signal predicates, which are sender volume,
   `List-Id` presence, local-part patterns and prior scan hits.
 
@@ -62,7 +64,7 @@ The rules above read their inputs, and the gate records its decisions, as follow
 - **The gate evaluates every message it decides.** No decision is memoized
   ([ADR-0094](./0094-scan-gate-decisions-are-not-memoized.md)).
 
-A message's relation to the scanner is a state of its own, because "not scanned" has three
+A message's relation to the scanner is a state of its own, because "not scanned" has four
 distinct meanings with different consequences.
 
 | State | Meaning | Body available? |
@@ -71,6 +73,7 @@ distinct meanings with different consequences.
 | `SKIPPED_RESTRICTED` | Sender restricted; scan pointless | No — denied by sender class |
 | `SKIPPED_GATE` | Gate said don't scan | **Yes** — accepted risk, after the serve-time pattern check ([ADR-0002](./0002-fetch-time-re-evaluation.md)) |
 | `PENDING` | Not yet scanned. Backfill or sync has not reached it, or delisting ([ADR-0037](./0037-delisting-transition.md)), a change of scanner ([ADR-0120](./0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md)) or a gate skip the gate no longer decides as the same skip ([ADR-0121](./0121-the-run-start-step-decides-each-gate-skip-again.md)) re-queued it | No — fail closed |
+| `REFUSED` | Never scanned, because the body is past the port's size bound or its conversion refuses it, and every later fetch would refuse it again ([ADR-0132](./0132-a-body-refused-for-good-is-recorded-as-refused-not-left-pending.md)) | No — denied as refused |
 
 `SKIPPED_GATE` is the compromise made explicit in the type system, the one state where a body is
 released without having been scanned.
@@ -118,7 +121,8 @@ misreports.
   part of the acceptance. Unmeasured, this decision would be out of compliance with
   [C3](../../../USE_CASES.md#c3--content-based-secrets-caught) even with zero leaks.
 - The gate needs sender statistics to evaluate, which is why backfill runs metadata-first
-  ([ADR-0017](../data/0017-two-pass-backfill.md)). The gate cannot run on a cold index.
+  ([ADR-0133](../data/0133-backfill-is-full-history-and-two-pass.md)). The gate cannot run on a
+  cold index.
 - Widening or narrowing the gate is a policy change with observable effect, not a redesign. A
   change of thresholds reaches the skips already stored at backfill's run-start step, which the
   worker makes when it starts with the new thresholds

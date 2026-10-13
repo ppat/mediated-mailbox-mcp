@@ -21,8 +21,9 @@
       "pages": 3065,
       "decided": 76610,
       "pending": 7602,
+      "refused": 20,
       "scanned": 70100,
-      "skipped": 6510
+      "skipped": 6490
     },
     "last_error": "\u003cscript\u003emmfieldmarker-runerror\u003c/script\u003e"
   },

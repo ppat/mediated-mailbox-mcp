@@ -385,6 +385,7 @@ func (t *ticker) page(ctx context.Context, waiting []index.Waiting) (bool, error
 				stop = true
 				break
 			}
+			o.Refused = next == core.Refuse
 			if scanned != nil {
 				o.Scanned = scanned
 				if scanned.Flags.Any() {
@@ -405,6 +406,8 @@ func (t *ticker) page(ctx context.Context, waiting []index.Waiting) (bool, error
 		switch {
 		case o.Scanned != nil:
 			next.Counters.Scanned++
+		case o.Refused:
+			next.Counters.Refused++
 		case o.Verdict.Decided() && !o.Verdict.Scans():
 			next.Counters.Skipped++
 		default:
@@ -419,9 +422,11 @@ func (t *ticker) page(ctx context.Context, waiting []index.Waiting) (bool, error
 	return stop, nil
 }
 
-// scan fetches the message's body, converts its HTML part and scans both parts. It returns what the
+// scan fetches the message's body, renders it as it is released and scans that. It returns what the
 // scan records, or the failed item that leaves the message waiting with what the tick does next, or
-// the error that ends the tick. The body is dropped when it returns.
+// the error that ends the tick. A body the port or the rendering refused returns its failed item with
+// Refuse, which records the message as refused rather than waiting (ADR-0132). The body is dropped
+// when it returns.
 func (t *ticker) scan(ctx context.Context, id string) (*index.Scanned, *Item, core.Next, error) {
 	body, err := t.deps.Provider.GetMessageBody(ctx, id)
 	if err != nil {
@@ -436,21 +441,18 @@ func (t *ticker) scan(ctx context.Context, id string) (*index.Scanned, *Item, co
 		now := t.deps.Now().UTC()
 		return nil, &Item{ID: id, Class: string(class), Summary: err.Error(), At: now, Disposition: core.Disposition(class)}, next, nil
 	}
-	var md string
-	if body.HTML != "" {
-		start := time.Now()
-		converted, err := markdown.Convert(body.HTML)
-		t.deps.Processing.Since(series.StepConvert, start)
-		if err != nil {
-			now := t.deps.Now().UTC()
-			return nil, &Item{
-				ID: id, Class: string(index.Validation), Summary: "the conversion refused the body: " + err.Error(), At: now, Disposition: "abandoned",
-			}, core.LeaveWaiting, nil
-		}
-		md = converted
-	}
 	start := time.Now()
-	scanned := index.Scan(t.deps.Scanner, md, body.Text)
+	rendered, err := markdown.Render(body)
+	t.deps.Processing.Since(series.StepConvert, start)
+	if err != nil {
+		now := t.deps.Now().UTC()
+		return nil, &Item{
+			ID: id, Class: string(index.Refused), Summary: "the conversion refused the body: " + err.Error(), At: now,
+			Disposition: core.Disposition(index.Refused),
+		}, core.Refuse, nil
+	}
+	start = time.Now()
+	scanned := index.Scan(t.deps.Scanner, rendered)
 	t.deps.Processing.Since(series.StepScan, start)
 	return &scanned, nil, core.LeaveWaiting, nil
 }

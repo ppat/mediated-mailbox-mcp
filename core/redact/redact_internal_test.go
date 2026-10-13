@@ -12,7 +12,7 @@ import (
 // branch and withholds the body (ADR-0042). It needs unexported access, because no exported path
 // builds a verdict around Decide.
 func TestAnUnhandledReasonWithholds(t *testing.T) {
-	v := Verdict{reason: Released + 1}
+	v := Verdict{reason: BodyRefused + 1}
 	got := []any{v.ReleasesBody(), v.ShowsSnippet(), v.ShowsAttachmentNames(), v.Reason().String()}
 	want := []any{false, false, false, "invalid_stored_state"}
 	if diff := cmp.Diff(want, got, compare.Options); diff != "" {

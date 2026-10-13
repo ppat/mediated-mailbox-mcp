@@ -1,0 +1,20 @@
+control: A body refused for its size or form is denied with the reason body_refused, by the gate and at serve
+removes: the body operation returns a body the port refuses as the provider's failure rather than a denial
+packages: ./mediate/app
+tests: TestABodyPastTheBoundIsDeniedAsRefused
+scheduled-count: no
+integration: yes
+
+diff --git a/mediate/internal/service/body.go b/mediate/internal/service/body.go
+index 2c5c8e77..31edad7d 100644
+--- a/mediate/internal/service/body.go
++++ b/mediate/internal/service/body.go
+@@ -192,7 +192,7 @@ func (s Sources) getMessageBody(ctx context.Context, account string, input json.
+ 		return nil, FromProvider(err)
+ 	}
+ 	body, err := session.Body(ctx, args.MessageID)
+-	if errors.Is(err, mail.ErrRefused) {
++	if errors.Is(err, mail.ErrRefused) && false {
+ 		if err := s.audit(ctx, account, args.MessageID, actionDeny, StageServe, bodyRefused, g, serveCheck{}); err != nil {
+ 			return nil, err
+ 		}

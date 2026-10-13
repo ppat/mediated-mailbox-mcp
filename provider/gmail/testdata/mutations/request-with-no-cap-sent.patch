@@ -1,0 +1,19 @@
+control: Nothing past the bound is downloaded where the provider declares a part's size, nothing past it is returned, and a response past its cap is refused
+removes: a request carrying no read cap is sent, so its answer is read to no cap it was given
+packages: ./provider/gmail
+tests: TestARequestWithNoReadCapIsNeverSent
+scheduled-count: no
+diff --git a/provider/gmail/adapter.go b/provider/gmail/adapter.go
+index edeea894..f178f537 100644
+--- a/provider/gmail/adapter.go
++++ b/provider/gmail/adapter.go
+@@ -136,9 +136,6 @@ func outcomeOf(err error) string {
+ // request that failed or was refused. A request carrying no read cap is refused as the provider's
+ // failure before it is sent, since only a request no builder made has none.
+ func (a *Adapter) exchange(ctx context.Context, req *http.Request) ([]byte, error) {
+-	if _, ok := readCapOf(req); !ok {
+-		return nil, fmt.Errorf("gmail: a request with no read cap: %w", mail.ErrProvider)
+-	}
+ 	res, err := a.client.Do(req)
+ 	if err != nil {
+ 		if ctx.Err() != nil {

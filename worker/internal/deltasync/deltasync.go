@@ -109,9 +109,12 @@ type Config struct {
 
 // DeltaSync is delta sync's job kind.
 type DeltaSync struct {
-	config   Config
-	limit    *schedule.Limit
-	loader   *accountload.Loader
+	config Config
+	limit  *schedule.Limit
+	loader *accountload.Loader
+	// sessions hold each account's token source across ticks while the stored credential is the one
+	// it was built from or the one it rotated to, as backfill's do, so an access token serves the
+	// ticks after the one it was issued in.
 	sessions *session.Holder
 	// policies is built at the first reload that lists an account, since a policy loader reads at
 	// least one, and never replaced. Every account job is ensured after it is built.
@@ -180,7 +183,7 @@ func build(c Config, connectors map[string]session.Connector) (*DeltaSync, error
 	loader := accountload.New(c.Pool, c.Keys, c.Logger, []string{gmailProvider})
 	return &DeltaSync{
 		config: c, limit: schedule.NewLimit(c.Concurrency), loader: loader,
-		sessions: session.New(session.Config{Loader: loader, DB: c.Pool, Logger: c.Logger, Connectors: connectors}),
+		sessions: session.New(session.Config{Loader: loader, DB: c.Pool, Logger: c.Logger, Connectors: connectors, Hold: true}),
 		ticks:    ticks, keyScan: keyScan, leases: leases, processing: processing,
 		lookups: classify.Lookups{ToUnicode: idna.Lookup.ToUnicode, ToASCII: idna.Lookup.ToASCII, Registrable: publicsuffix.EffectiveTLDPlusOne},
 	}, nil

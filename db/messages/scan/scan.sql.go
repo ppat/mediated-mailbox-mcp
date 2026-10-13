@@ -256,6 +256,28 @@ func (q *Queries) PendingPageNewestFirst(ctx context.Context, arg PendingPageNew
 	return items, nil
 }
 
+const recordRefusal = `-- name: RecordRefusal :execrows
+UPDATE messages
+SET scan_state = 'refused', refused_bound = $1
+WHERE account_id = current_setting('app.account') AND message_id = $2 AND scan_state = 'pending'
+`
+
+type RecordRefusalParams struct {
+	RefusedBound pgtype.Int4
+	MessageID    string
+}
+
+// Records that a waiting message's body was refused for its size or by its conversion, with the size
+// bound in bytes it was refused under, so it no longer waits for a scan and its body is denied
+// (ADR-0132). A message no longer waiting is left as it is and counts no row.
+func (q *Queries) RecordRefusal(ctx context.Context, arg RecordRefusalParams) (int64, error) {
+	result, err := q.db.Exec(ctx, recordRefusal, arg.RefusedBound, arg.MessageID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const recordSkip = `-- name: RecordSkip :execrows
 UPDATE messages
 SET scan_state = $1
@@ -328,6 +350,26 @@ WHERE
 // and counts no row.
 func (q *Queries) RequeueGateSkips(ctx context.Context, messageIds []string) (int64, error) {
 	result, err := q.db.Exec(ctx, requeueGateSkips, messageIds)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const requeueRefusals = `-- name: RequeueRefusals :execrows
+UPDATE messages
+SET scan_state = 'pending', refused_bound = NULL
+WHERE
+    account_id = current_setting('app.account')
+    AND scan_state = 'refused'
+    AND refused_bound IS DISTINCT FROM $1::int
+`
+
+// Returns each of the account's messages whose body was refused under another size bound than the one
+// given to pending scan, its bound cleared, so the next scan fetches it again under the bound in force
+// (ADR-0132). Backfill's run-start step makes it, beside the return of stale verdicts.
+func (q *Queries) RequeueRefusals(ctx context.Context, refusedBound int32) (int64, error) {
+	result, err := q.db.Exec(ctx, requeueRefusals, refusedBound)
 	if err != nil {
 		return 0, err
 	}

@@ -17,12 +17,17 @@ const (
 	Authentication ErrorClass = "authentication"
 	Gone           ErrorClass = "gone"
 	Validation     ErrorClass = "validation"
+	// Refused is a body refused for its size or by its conversion, or one the port refused, which a
+	// later attempt would refuse again (ADR-0132).
+	Refused ErrorClass = "refused"
 )
 
 // ClassOf returns the error class of a failure the provider reported, by the Provider Port's error it
 // wraps, and NotProvider for any other failure, such as the rate limiter failing to record a call.
 func ClassOf(err error) ErrorClass {
 	switch {
+	case errors.Is(err, mail.ErrRefused):
+		return Refused
 	case errors.Is(err, mail.ErrThrottled):
 		return Throttled
 	case errors.Is(err, mail.ErrProvider):

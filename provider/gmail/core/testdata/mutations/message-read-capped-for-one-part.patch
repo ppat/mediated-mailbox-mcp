@@ -1,0 +1,18 @@
+control: Nothing past the bound is downloaded where the provider declares a part's size, nothing past it is returned, and a response past its cap is refused
+removes: the message read is capped for one part at the bound rather than two, so a body whose rendered part and its alternative both come inline within the bound is refused
+packages: ./provider/gmail/core
+tests: TestTheReadCapsFollowTheBound
+scheduled-count: no
+diff --git a/provider/gmail/core/body.go b/provider/gmail/core/body.go
+index 39e802dc..d74d41e3 100644
+--- a/provider/gmail/core/body.go
++++ b/provider/gmail/core/body.go
+@@ -56,7 +56,7 @@ func HeaderValue(headers []Header, name string) string {
+ // part in base64, so it is capped at four thirds of the bound plus 64 KiB. An answer past its cap
+ // is PastCap, never truncated and misread.
+ const (
+-	MessageReadCap = 4*(2*mail.MaxBodyBytes)/3 + 256<<10
++	MessageReadCap = 4*mail.MaxBodyBytes/3 + 256<<10
+ 	PartReadCap    = 4*mail.MaxBodyBytes/3 + 64<<10
+ )
+ 

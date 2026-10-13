@@ -16,6 +16,7 @@ import (
 	netmail "net/mail"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -28,6 +29,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/provider/gmail"
 	"github.com/ppat/mediated-mailbox-mcp/provider/gmail/consent"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/livecontract"
+	"github.com/ppat/mediated-mailbox-mcp/testsupport/marker"
 )
 
 // The contract suite's run against real Gmail, on an account set aside for testing whose other
@@ -40,8 +42,8 @@ import (
 // each of the case's messages with off that message and moves it to the trash, where Gmail purges it
 // (ADR-0043). So the account holds about a month of runs, and a later run's scoped listing, which
 // reads the trash too, passes over them. The suite stops starting cases ten minutes before the
-// test's deadline, so the cases already run clean up. Only a run killed outright leaves messages
-// behind with their labels.
+// test's deadline, so the cases already run clean up. A run killed outright, and a cleanup Gmail
+// refuses, as it does past its per-minute quota, leave messages behind with their labels.
 //
 // Before it adds anything, the run confirms the credential belongs to the account
 // GMAIL_TEST_ACCOUNT names, and stops if it does not, so a grant made in a browser signed into
@@ -116,6 +118,206 @@ func TestTheAdapterPassesTheContractAgainstGmail(t *testing.T) {
 		// Gmail counts the mailbox on its profile, so every enumeration page carries a total.
 		ReportsTotal: true,
 	})
+	t.Run("Gmail holds large body parts apart, by graded sizes", func(t *testing.T) {
+		adapter, err := gmail.New(gmail.Config{Account: account, Client: client, Tokens: tokens, Metrics: metrics})
+		if err != nil {
+			t.Fatalf("New: %v", err)
+		}
+		gradedSizes(t, g, paced{port: adapter, pace: pace}, run)
+	})
+	t.Run("Gmail's inline threshold, by part and by message", func(t *testing.T) {
+		adapter, err := gmail.New(gmail.Config{Account: account, Client: client, Tokens: tokens, Metrics: metrics})
+		if err != nil {
+			t.Fatalf("New: %v", err)
+		}
+		inlineThreshold(t, g, paced{port: adapter, pace: pace}, run)
+	})
+}
+
+// The graded sizes of the HTML part gradedSizes sends, from below the size one observer saw come
+// inline to the size the same observer saw held apart, around the bound of 524288 bytes the operator
+// set (ADR-0131).
+var graded = []int{400000, 524288, 786432, 1 << 20, 2 << 20, 3 << 20}
+
+// gradedSizes inserts one marked message per graded size, an HTML part of that size beside a short
+// text alternative, and reports for each part whether Gmail sends it inline or holds it apart, and the
+// size it declares, which is how the share of bodies taking a second call is measured (ADR-0131). It
+// reads the parts through a mask naming no data, so the report reads no body. Each message's body
+// read through the adapter comes back whole within the bound, in two calls at most, and is refused
+// past it. Each message goes to the trash when the test ends.
+func gradedSizes(t *testing.T, g *provider, port mail.Port[context.Context], run string) {
+	ctx := t.Context()
+	for _, size := range graded {
+		if end, ok := t.Deadline(); ok && time.Until(end) < reserve {
+			t.Fatalf("stopped %s before the test's deadline, so the messages already inserted are discarded", reserve)
+		}
+		key := "graded" + sizeLetters(size)
+		html := "<p>" + contractBody(key, size-len("<p></p>")) + "</p>"
+		id, err := g.upload(ctx, gradedMessage(run, key, html))
+		if err != nil {
+			t.Fatalf("inserting the %d-byte message: %v", size, err)
+		}
+		t.Cleanup(func() { g.discard(t, id, nil) })
+		var parts struct {
+			Payload struct {
+				Parts []struct {
+					MimeType string `json:"mimeType"`
+					Body     struct {
+						Size         int64  `json:"size"`
+						AttachmentID string `json:"attachmentId"`
+					} `json:"body"`
+				} `json:"parts"`
+			} `json:"payload"`
+		}
+		query := url.Values{"format": {"full"}, "fields": {"payload(parts(mimeType,body(size,attachmentId)))"}}
+		if _, err := g.call(ctx, http.MethodGet, "messages/"+url.PathEscape(id), query, nil, &parts, unitsMessagesGet); err != nil {
+			t.Fatalf("reading the %d-byte message's parts: %v", size, err)
+		}
+		for _, part := range parts.Payload.Parts {
+			how := "inline"
+			if part.Body.AttachmentID != "" {
+				how = "held apart"
+			}
+			t.Logf("an HTML part of %d bytes: its %s part declares %d bytes and comes %s", size, part.MimeType, part.Body.Size, how)
+		}
+		got, calls, err := gmailBody(ctx, port, id)
+		switch {
+		case size <= mail.MaxBodyBytes && (err != nil || got.HTML != html):
+			t.Errorf("the %d-byte body returned %d bytes and %v, want it whole", size, len(got.HTML), err)
+		case size <= mail.MaxBodyBytes && calls > 2:
+			t.Errorf("the %d-byte body took %d calls, want two at most", size, calls)
+		case size > mail.MaxBodyBytes && !errors.Is(err, mail.ErrRefused):
+			t.Errorf("the %d-byte body returned %v, want an error wrapping %v", size, err, mail.ErrRefused)
+		}
+	}
+}
+
+// The messages inlineThreshold sends, each a set of parts without file names. Three hold an HTML
+// part and text parts, about 1.0, 1.2 and 1.8 MB in all, and the last is one text part alone, so
+// which parts come inline shows whether Gmail's threshold is on a part or on a message's parts in
+// all (ADR-0131).
+var thresholdProbes = []struct {
+	key   string
+	parts []int
+}{
+	{"probeone", []int{400000, 600000}},
+	{"probetwo", []int{400000, 800000}},
+	{"probethree", []int{400000, 700000, 700000}},
+	{"probefour", []int{700000}},
+}
+
+// inlineThreshold inserts one marked message per probe, an HTML part of the first size and a text
+// part of each size after it, or a text part alone, and reports for each part whether Gmail sends
+// it inline or holds it apart, through a mask naming no data. It asserts only that each message it
+// reads back is its own. Each message goes to the trash when the test ends.
+func inlineThreshold(t *testing.T, g *provider, port mail.Port[context.Context], run string) {
+	ctx := t.Context()
+	for _, probe := range thresholdProbes {
+		var parts []messagePart
+		for i, size := range probe.parts {
+			key := probe.key + sizeLetters(i)
+			if i == 0 && len(probe.parts) > 1 {
+				parts = append(parts, messagePart{`text/html; charset="utf-8"`, "<p>" + contractBody(key, size-len("<p></p>")) + "</p>"})
+				continue
+			}
+			parts = append(parts, messagePart{`text/plain; charset="utf-8"`, contractBody(key, size)})
+		}
+		subject := marker.Field("contract" + run + probe.key)
+		id, err := g.upload(ctx, markedMessage(run, probe.key, "Inline threshold", "multipart/mixed", parts))
+		if err != nil {
+			t.Fatalf("inserting the %s message: %v", probe.key, err)
+		}
+		t.Cleanup(func() { g.discard(t, id, nil) })
+		read, err := port.GetMessageMetadata(ctx, []string{id})
+		if err != nil || len(read) != 1 || !strings.Contains(read[0].Subject, subject) {
+			t.Fatalf("reading the %s message back returned %v and %v, want the run's own marked message", probe.key, read, err)
+		}
+		var got struct {
+			Payload struct {
+				Parts []struct {
+					MimeType string `json:"mimeType"`
+					Body     struct {
+						Size         int64  `json:"size"`
+						AttachmentID string `json:"attachmentId"`
+					} `json:"body"`
+				} `json:"parts"`
+			} `json:"payload"`
+		}
+		query := url.Values{"format": {"full"}, "fields": {"payload(parts(mimeType,body(size,attachmentId)))"}}
+		if _, err := g.call(ctx, http.MethodGet, "messages/"+url.PathEscape(id), query, nil, &got, unitsMessagesGet); err != nil {
+			t.Fatalf("reading the %s message's parts: %v", probe.key, err)
+		}
+		var total int64
+		for _, part := range got.Payload.Parts {
+			total += part.Body.Size
+		}
+		for _, part := range got.Payload.Parts {
+			how := "inline"
+			if part.Body.AttachmentID != "" {
+				how = "held apart"
+			}
+			t.Logf("a message of %d parts, %d bytes in all: its %s part declares %d bytes and comes %s", len(got.Payload.Parts), total, part.MimeType, part.Body.Size, how)
+		}
+	}
+}
+
+// gmailBody reads a body as a caller of the port does, as mail.NextBodyPart decides, and returns
+// how many calls it took.
+func gmailBody(ctx context.Context, port mail.Port[context.Context], id string) (mail.MessageBody, int, error) {
+	var part mail.BodyPart
+	for calls := 1; ; calls++ {
+		got, err := port.GetMessageBody(ctx, id, part)
+		next, due := mail.NextBodyPart(part, err)
+		if !due {
+			return got, calls, err
+		}
+		part = next
+	}
+}
+
+// contractBody returns n bytes of text that begin with the body marker for key.
+func contractBody(key string, n int) string {
+	head := marker.Body(key) + " "
+	return head + strings.Repeat("a", n-len(head))
+}
+
+// sizeLetters writes a size as lowercase letters, a for 0 to j for 9, since a marker's tag is letters.
+func sizeLetters(n int) string {
+	return strings.Map(func(r rune) rune { return 'a' + (r - '0') }, strconv.Itoa(n))
+}
+
+// gradedMessage writes a message carrying the run's mark with a short text part and html, as
+// multipart/alternative.
+func gradedMessage(run, key, html string) []byte {
+	return markedMessage(run, key, "Graded size", "multipart/alternative", []messagePart{
+		{`text/plain; charset="utf-8"`, marker.Body(key+"text") + " Graded size."},
+		{`text/html; charset="utf-8"`, html},
+	})
+}
+
+// messagePart is one part of a message markedMessage writes.
+type messagePart struct{ contentType, content string }
+
+// markedMessage writes a message carrying the run's mark under key, of the multipart type given,
+// each part in base64 and none with a file name.
+func markedMessage(run, key, subject, multipartType string, parts []messagePart) []byte {
+	var b bytes.Buffer
+	boundary := strings.ToLower(rand.Text())
+	fmt.Fprintf(&b, "From: Graded <graded@contract.example>\r\nTo: you@contract.example\r\n")
+	fmt.Fprintf(&b, "Subject: %s %s\r\n", subject, marker.Field("contract"+run+key))
+	fmt.Fprintf(&b, "Date: %s\r\nMessage-ID: <%s@contract.example>\r\nMIME-Version: 1.0\r\n", time.Now().UTC().Format(time.RFC1123Z), strings.ToLower(rand.Text()))
+	fmt.Fprintf(&b, "Content-Type: %s\r\n\r\n", mime.FormatMediaType(multipartType, map[string]string{"boundary": boundary}))
+	for _, p := range parts {
+		fmt.Fprintf(&b, "--%s\r\nContent-Type: %s\r\nContent-Transfer-Encoding: base64\r\n\r\n", boundary, p.contentType)
+		encoded := base64.StdEncoding.EncodeToString([]byte(p.content))
+		for len(encoded) > 76 {
+			b.WriteString(encoded[:76] + "\r\n")
+			encoded = encoded[76:]
+		}
+		b.WriteString(encoded + "\r\n")
+	}
+	fmt.Fprintf(&b, "--%s--\r\n", boundary)
+	return b.Bytes()
 }
 
 // attemptsAgainstGoogle checks the outcomes the token source reports against Google's real token
@@ -224,9 +426,9 @@ func (p paced) GetMessageMetadata(ctx context.Context, ids []string) ([]mail.Mes
 	return p.port.GetMessageMetadata(ctx, ids)
 }
 
-func (p paced) GetMessageBody(ctx context.Context, id string) (mail.MessageBody, error) {
+func (p paced) GetMessageBody(ctx context.Context, id string, part mail.BodyPart) (mail.MessageBody, error) {
 	p.hold(ctx, mail.OpGetMessageBody, 1)
-	return p.port.GetMessageBody(ctx, id)
+	return p.port.GetMessageBody(ctx, id, part)
 }
 
 func (p paced) ListLabels(ctx context.Context) ([]mail.Label, error) {
@@ -268,6 +470,7 @@ const (
 	unitsLabelsList     = 1
 	unitsLabelsCreate   = 5
 	unitsMessagesInsert = 25
+	unitsMessagesGet    = 20
 	unitsMessagesList   = 5
 	unitsMessagesModify = 5
 	unitsMessagesTrash  = 20
@@ -343,6 +546,43 @@ func (p *provider) call(ctx context.Context, method, path string, query url.Valu
 		return res.StatusCode, nil
 	}
 	return res.StatusCode, json.Unmarshal(data, out)
+}
+
+// upload adds raw, a whole message, to the account through messages.insert's media upload, which
+// takes a message larger than a JSON request carries, with no label. It returns the message's
+// identifier.
+func (p *provider) upload(ctx context.Context, raw []byte) (string, error) {
+	p.pace.wait(ctx, unitsMessagesInsert)
+	token, err := p.tokens.AccessToken(ctx)
+	if err != nil {
+		return "", err
+	}
+	target := "https://gmail.googleapis.com/upload/gmail/v1/users/me/messages?" +
+		url.Values{"uploadType": {"media"}, "internalDateSource": {"dateHeader"}}.Encode()
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, target, bytes.NewReader(raw))
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Content-Type", "message/rfc822")
+	res, err := p.client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	data, readErr := io.ReadAll(io.LimitReader(res.Body, 1<<20))
+	if err := errors.Join(readErr, res.Body.Close()); err != nil {
+		return "", err
+	}
+	if res.StatusCode < 200 || res.StatusCode > 299 {
+		return "", fmt.Errorf("uploading a message answered %s: %s", res.Status, bytes.TrimSpace(data))
+	}
+	var out struct {
+		ID string `json:"id"`
+	}
+	if err := json.Unmarshal(data, &out); err != nil || out.ID == "" {
+		return "", fmt.Errorf("reading the uploaded message's identifier: %w", err)
+	}
+	return out.ID, nil
 }
 
 // listLabels reads every label's name and identifier.
@@ -529,12 +769,23 @@ func rfc822(m contract.Message, messageID string, parent thread, inThread bool) 
 		disposition string
 		content     []byte
 	}
-	var parts []part
-	if m.Body.Text != "" {
-		parts = append(parts, part{contentType: `text/plain; charset="utf-8"`, content: []byte(m.Body.Text)})
+	charset, encode := "utf-8", func(text string) ([]byte, error) { return []byte(text), nil }
+	if m.Charset != "" {
+		charset, encode = m.Charset, latin1
+		if !strings.EqualFold(m.Charset, "iso-8859-1") {
+			return nil, fmt.Errorf("the message keyed %q declares %q, and the harness writes only UTF-8 and ISO-8859-1", md.ID, m.Charset)
+		}
 	}
-	if m.Body.HTML != "" {
-		parts = append(parts, part{contentType: `text/html; charset="utf-8"`, content: []byte(m.Body.HTML)})
+	var parts []part
+	for _, body := range []struct{ mediaType, text string }{{"text/plain", m.Body.Text}, {"text/html", m.Body.HTML}} {
+		if body.text == "" {
+			continue
+		}
+		content, err := encode(body.text)
+		if err != nil {
+			return nil, fmt.Errorf("the message keyed %q: %w", md.ID, err)
+		}
+		parts = append(parts, part{contentType: mime.FormatMediaType(body.mediaType, map[string]string{"charset": charset}), content: content})
 	}
 	for _, a := range m.Attachments {
 		parts = append(parts, part{
@@ -573,6 +824,18 @@ func rfc822(m contract.Message, messageID string, parent thread, inThread bool) 
 		b.WriteString("--" + boundary + "--\r\n")
 	}
 	return b.Bytes(), nil
+}
+
+// latin1 encodes text in ISO-8859-1, refusing a character it has no byte for.
+func latin1(text string) ([]byte, error) {
+	out := make([]byte, 0, len(text))
+	for _, r := range text {
+		if r > 0xff {
+			return nil, fmt.Errorf("%q has no ISO-8859-1 byte", r)
+		}
+		out = append(out, byte(r)) //nolint:gosec // r is at most 0xff, checked above
+	}
+	return out, nil
 }
 
 func address(a mail.Address) string {

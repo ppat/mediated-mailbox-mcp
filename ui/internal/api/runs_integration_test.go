@@ -202,6 +202,7 @@ func TestTheFailuresDatasetAnswersItsLevels(t *testing.T) {
 		{Key: "pending", Value: n(2), Link: link("pending")},
 		{Key: "gone", Value: n(1), Link: link("gone")},
 		{Key: "abandoned", Value: n(1), Link: link("abandoned")},
+		{Key: "refused", Value: n(0), Link: link("refused")},
 	}
 	if d := cmp.Diff(want, summary.Figures); d != "" {
 		t.Fatalf("the figures (-want +got):\n%s", d)

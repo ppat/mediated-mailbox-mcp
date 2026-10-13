@@ -169,6 +169,8 @@ linters:
           allow:
           - "bytes$"
           - "cmp$"
+          # The base64 a Gmail body part's data comes in, which the Gmail adapter's body decision decodes.
+          - "encoding/base64$"
           - "errors$"
           - "iter$"
           - "maps$"
@@ -186,6 +188,10 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/ratelimit/core/"
           - "github.com/ppat/mediated-mailbox-mcp/ui/internal/core/"
           - "github.com/ppat/mediated-mailbox-mcp/worker/internal/core/"
+          # The encoding interface a charset's decoder is, which the Gmail adapter's body decision decodes a part
+          # held apart through. The label table that maps a label to a decoder imports fmt, which imports os, so
+          # the adapter passes it in (ADR-0134).
+          - "golang.org/x/text/encoding$"
 
         # Test files of every pure-core package. What the non-test files may import, plus test tooling and the
         # functions a shell passes in.
@@ -197,6 +203,7 @@ linters:
           allow:
           - "bytes$"
           - "cmp$"
+          - "encoding/base64$"
           - "errors$"
           - "iter$"
           - "maps$"
@@ -225,6 +232,7 @@ linters:
           # The database connection's and the credential code's pure cores are one package each too.
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/core$"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core$"
+          - "github.com/ppat/mediated-mailbox-mcp/provider/gmail/core$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/marker$"
@@ -232,6 +240,12 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/property$"
           - "github.com/ppat/mediated-mailbox-mcp/ui/internal/core/"
           - "github.com/ppat/mediated-mailbox-mcp/worker/internal/core/"
+          # The encoding interface the Gmail adapter's body decision decodes through, and the media-type parser
+          # and the charset label table the adapter passes it, so its tests run against the real lookups. Neither
+          # of the last two is pure, so neither is on the pure-core list for non-test files.
+          - "golang.org/x/text/encoding$"
+          - "golang.org/x/text/encoding/htmlindex$"
+          - "mime$"
           - "pgregory.net/rapid$"
 
         # The account snapshot, every file, a package of the execution context family. It is a library, so it
@@ -457,6 +471,11 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/property$"
           - "github.com/prometheus/client_golang/prometheus$"
+          # The WHATWG Encoding Standard's charset labels, which the Gmail adapter decodes a body part held
+          # apart from its message by, since Gmail returns that part in its declared charset, and the encoding
+          # interface its body decision decodes through (ADR-0134).
+          - "golang.org/x/text/encoding$"
+          - "golang.org/x/text/encoding/htmlindex$"
           - "pgregory.net/rapid$"
 
         # Non-test files of the provider fake and the contract suite, which only tests use. The list for
@@ -1132,6 +1151,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/provider/gcal$"
           - "github.com/ppat/mediated-mailbox-mcp/provider/gmail$"
           - "github.com/ppat/mediated-mailbox-mcp/provider/gmail/consent$"
+          - "github.com/ppat/mediated-mailbox-mcp/provider/gmail/core$"
           - "github.com/ppat/mediated-mailbox-mcp/provider/jmap$"
           - "github.com/ppat/mediated-mailbox-mcp/ratelimit/"
           - "github.com/ppat/mediated-mailbox-mcp/ui/"
@@ -1148,6 +1168,9 @@ linters:
           # The sender classifier's domain functions, which the mediator's composition root passes it.
           - "golang.org/x/net/idna$"
           - "golang.org/x/net/publicsuffix$"
+          # The Gmail adapter's decoding of a part held apart in its declared charset (ADR-0134).
+          - "golang.org/x/text/encoding$"
+          - "golang.org/x/text/encoding/htmlindex$"
 
         # Every test file outside the shared test tooling that is not a property test or a crash sequence. rapid
         # and its test support stay out of these (ADR-0069). The shared test tooling's own tests meet its two lists
@@ -1204,6 +1227,9 @@ linters:
           - "go/"
           - "golang.org/x/net/idna$"
           - "golang.org/x/net/publicsuffix$"
+          # The charset label table the Gmail adapter passes to its body decision, which the decision's tests pass
+          # it too (ADR-0134).
+          - "golang.org/x/text/encoding/htmlindex$"
           - "google.golang.org/protobuf/reflect/protoreflect$"
 
         # Every Go file outside all components and outside every package of a family that has a list of its own, such
