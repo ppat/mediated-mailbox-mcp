@@ -138,6 +138,7 @@ func defaults() Configuration {
 func (d Database) connection(r Role) dbconnectcore.Config {
 	return dbconnectcore.Config{
 		Host: d.Host, Port: d.Port, Name: d.Name, User: r.User, SSLMode: d.SSLMode, SSLRootCert: d.SSLRootCert, PasswordFile: r.PasswordFile,
+		PoolSize: r.PoolSize,
 	}
 }
 
@@ -156,12 +157,11 @@ func validate(c Configuration) error {
 			return fmt.Errorf("database.%s.user is empty", kind.name)
 		case kind.role.PasswordFile == "":
 			return fmt.Errorf("database.%s.password_file is empty", kind.name)
+		case kind.role.PoolSize <= 0:
+			return fmt.Errorf("database.%s.pool_size %d is not positive", kind.name, kind.role.PoolSize)
 		}
 		if err := dbconnectcore.Validate(c.Database.connection(kind.role)); err != nil {
 			return err
-		}
-		if kind.role.PoolSize <= 0 {
-			return fmt.Errorf("database.%s.pool_size %d is not positive", kind.name, kind.role.PoolSize)
 		}
 	}
 	switch {
@@ -288,7 +288,6 @@ func connect(ctx context.Context, d Database, r Role, registry prometheus.Regist
 	if err != nil {
 		return nil, fmt.Errorf("configuring the database connection of %s: %w", r.User, err)
 	}
-	config.MaxConns = int32(min(r.PoolSize, 1<<31-1)) //nolint:gosec // Bounded above.
 	pool, err := dbmetrics.OpenPool(ctx, config, registry)
 	if err != nil {
 		return nil, fmt.Errorf("configuring the database connection of %s: %w", r.User, err)

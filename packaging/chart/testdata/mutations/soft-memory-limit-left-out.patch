@@ -1,0 +1,20 @@
+control: Each Go container gets only its own soft memory limit
+removes: the migration step's container never gets the soft memory limit set for it
+packages: ./packaging/chart
+tests: TestEachGoContainerGetsOnlyItsOwnSoftMemoryLimit
+scheduled-count: no
+
+diff --git a/packaging/chart/templates/migration/job.yaml b/packaging/chart/templates/migration/job.yaml
+--- a/packaging/chart/templates/migration/job.yaml
++++ b/packaging/chart/templates/migration/job.yaml
+@@ -55,10 +55,6 @@ spec:
+         env:
+         - name: GOOSE_DBSTRING
+           value: {{ printf "postgres://%s@%s:%v/%s?%s" (urlquery $v.database.user) (required "database.host is required" $d.host) $d.port (urlquery (required "database.name is required" $d.name)) (join "&" $query) | quote }}
+-        {{- with $v.goSoftMemoryLimit }}
+-        - name: GOMEMLIMIT
+-          value: {{ . | quote }}
+-        {{- end }}
+         securityContext:
+           {{- include "mm.securityContext" (list $ $v) | nindent 10 }}
+         {{- with $v.resources }}

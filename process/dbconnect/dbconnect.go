@@ -6,6 +6,7 @@ package dbconnect
 import (
 	"fmt"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -27,9 +28,17 @@ func RefusePasswordVariables(environ []string) error {
 	return nil
 }
 
-// PoolConfig renders every value of c into the connection string, an empty sslrootcert included,
-// so the driver takes none of them from its PG* variables. It sets the password read from the
-// password file, less one trailing newline, and refuses an empty one.
+// DefaultPoolSize is the pool size of a deployable whose configuration sets none, the driver's own
+// default, the larger of 4 and the processor count, so leaving the value unset opens as many
+// connections as the driver would by itself (ADR-0078).
+func DefaultPoolSize() int {
+	return max(4, runtime.NumCPU())
+}
+
+// PoolConfig renders every connection value of c into the connection string, an empty sslrootcert
+// included, so the driver takes none of them from its PG* variables, and caps the pool at c's pool
+// size. It sets the password read from the password file, less one trailing newline, and refuses an
+// empty one.
 func PoolConfig(c core.Config) (*pgxpool.Config, error) {
 	password, err := readPassword(c.PasswordFile)
 	if err != nil {
@@ -48,6 +57,7 @@ func PoolConfig(c core.Config) (*pgxpool.Config, error) {
 		return nil, err
 	}
 	config.ConnConfig.Password = password
+	config.MaxConns = int32(min(c.PoolSize, 1<<31-1)) //nolint:gosec // Bounded above.
 	return config, nil
 }
 

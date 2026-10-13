@@ -184,7 +184,9 @@ server, which is why the chainsaw suite tests with CloudNativePG alone.
 | `secrets.mediatorBearerToken`, `secrets.uiRequestTokenKey` | Your own Secrets holding the bearer token and the request token key, as [The Secrets the chart reads](#the-secrets-the-chart-reads) lists |
 | `mediator.ingress`, `mediator.httpRoute`, `ui.ingress`, `ui.httpRoute` | Exposure outside the cluster, off by default |
 | `monitoring` | The Prometheus Operator's resources and the Grafana dashboard |
-| `*.resources` | Requests are set, and no limit is, so set limits to suit your nodes |
+| `*.resources` | Requests are set, and no limit is, so set limits to suit your nodes. |
+| `*.goSoftMemoryLimit` | The Go runtime's soft memory limit for that container, its `GOMEMLIMIT`, unset by default. Go sets none by itself, so when you set a memory limit, set this below it, written in Go's units such as `460MiB`, not Kubernetes' `Mi`. Lower it with the limit, since an in-place resize changes only the limit |
+| `mediator.database.poolSize`, `ui.database.poolSize`, `worker.jobKinds.<kind>.database.poolSize` | The most connections each pool opens. Their sum across replicas is what PostgreSQL's connection limit must allow. Unset, the mediator and the UI open up to the larger of 4 and the node's processor count, and each of the worker's job kinds up to 4 |
 
 ### Quoting
 

@@ -5,13 +5,12 @@ tests: TestTheSectionIsPinned
 scheduled-count: no
 
 diff --git a/process/dbconnect/core/core.go b/process/dbconnect/core/core.go
-index c672e53..45ba8a4 100644
 --- a/process/dbconnect/core/core.go
 +++ b/process/dbconnect/core/core.go
-@@ -19,6 +19,7 @@ type Config struct {
- 	SSLMode      string `yaml:"sslmode"`
+@@ -21,6 +21,7 @@ type Config struct {
  	SSLRootCert  string `yaml:"sslrootcert"`
  	PasswordFile string `yaml:"password_file" settings:"required"`
+ 	PoolSize     int    `yaml:"pool_size"`
 +	ApplicationName string `yaml:"application_name"`
  }
  

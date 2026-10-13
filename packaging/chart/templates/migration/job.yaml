@@ -55,6 +55,10 @@ spec:
         env:
         - name: GOOSE_DBSTRING
           value: {{ printf "postgres://%s@%s:%v/%s?%s" (urlquery $v.database.user) (required "database.host is required" $d.host) $d.port (urlquery (required "database.name is required" $d.name)) (join "&" $query) | quote }}
+        {{- with $v.goSoftMemoryLimit }}
+        - name: GOMEMLIMIT
+          value: {{ . | quote }}
+        {{- end }}
         securityContext:
           {{- include "mm.securityContext" (list $ $v) | nindent 10 }}
         {{- with $v.resources }}

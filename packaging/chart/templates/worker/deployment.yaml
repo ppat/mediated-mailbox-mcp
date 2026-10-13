@@ -2,6 +2,7 @@
 The worker, which runs every background job kind (ADR-0117). Exactly one replica, with no value to change it, and a
 Recreate strategy, so a rollout stops the old pod before it starts the new one and never two run at once. The pod
 mounts its own configuration file and one projected volume holding each job kind's role password and the key pair.
+GOMEMLIMIT is set only from its soft memory limit when one is given (ADR-0052).
 */ -}}
 {{- $v := .Values.worker }}
 apiVersion: apps/v1
@@ -50,6 +51,11 @@ spec:
         imagePullPolicy: {{ .Values.global.image.pullPolicy }}
         args:
         - --config-file={{ include "mm.configDir" . }}/worker.yaml
+        {{- with $v.goSoftMemoryLimit }}
+        env:
+        - name: GOMEMLIMIT
+          value: {{ . | quote }}
+        {{- end }}
         ports:
         - name: metrics
           containerPort: {{ include "mm.port.metrics" . }}

@@ -7,16 +7,14 @@ scheduled-count: no
 diff --git a/worker/app/app.go b/worker/app/app.go
 --- a/worker/app/app.go
 +++ b/worker/app/app.go
-@@ -143,12 +143,6 @@
- 	}{{backfill.Kind, c.Database.Backfill}, {deltasync.Kind, c.Database.Sync}} {
+@@ -153,10 +153,6 @@ func validate(c Configuration) error {
  		// The role's own values are refused by their own paths, so the shared ones are all a refusal
  		// of the composed section can name, and its paths are the worker's too.
--		switch {
+ 		switch {
 -		case kind.role.User == "":
 -			return fmt.Errorf("database.%s.user is empty", kind.name)
 -		case kind.role.PasswordFile == "":
 -			return fmt.Errorf("database.%s.password_file is empty", kind.name)
--		}
- 		if err := dbconnectcore.Validate(c.Database.connection(kind.role)); err != nil {
- 			return err
+ 		case kind.role.PoolSize <= 0:
+ 			return fmt.Errorf("database.%s.pool_size %d is not positive", kind.name, kind.role.PoolSize)
  		}

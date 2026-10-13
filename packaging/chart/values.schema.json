@@ -523,10 +523,17 @@
           "properties": {
             "user": {
               "type": "string"
+            },
+            "poolSize": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 1
             }
           },
           "additionalProperties": false,
-          "description": "The connection's role. Its password is under secrets.databasePasswords."
+          "description": "The connection's role and pool size. Its password is under secrets.databasePasswords."
         },
         "config": {
           "type": "object",
@@ -680,6 +687,11 @@
         "resources": {
           "type": "object"
         },
+        "goSoftMemoryLimit": {
+          "type": "string",
+          "pattern": "^([0-9]+(B|KiB|MiB|GiB|TiB)?)?$",
+          "description": "GOMEMLIMIT in Go's form, such as 460MiB, or empty for none. Kubernetes' Mi and Gi are not Go's."
+        },
         "podAnnotations": {
           "type": "object"
         },
@@ -737,10 +749,17 @@
           "properties": {
             "user": {
               "type": "string"
+            },
+            "poolSize": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 1
             }
           },
           "additionalProperties": false,
-          "description": "The connection's role. Its password is under secrets.databasePasswords."
+          "description": "The connection's role and pool size. Its password is under secrets.databasePasswords."
         },
         "config": {
           "type": "object",
@@ -926,6 +945,11 @@
         "resources": {
           "type": "object"
         },
+        "goSoftMemoryLimit": {
+          "type": "string",
+          "pattern": "^([0-9]+(B|KiB|MiB|GiB|TiB)?)?$",
+          "description": "GOMEMLIMIT in Go's form, such as 460MiB, or empty for none. Kubernetes' Mi and Gi are not Go's."
+        },
         "podAnnotations": {
           "type": "object"
         },
@@ -1102,6 +1126,11 @@
         "resources": {
           "type": "object"
         },
+        "goSoftMemoryLimit": {
+          "type": "string",
+          "pattern": "^([0-9]+(B|KiB|MiB|GiB|TiB)?)?$",
+          "description": "GOMEMLIMIT in Go's form, such as 460MiB, or empty for none. Kubernetes' Mi and Gi are not Go's."
+        },
         "podAnnotations": {
           "type": "object"
         },
@@ -1169,6 +1198,11 @@
         },
         "resources": {
           "type": "object"
+        },
+        "goSoftMemoryLimit": {
+          "type": "string",
+          "pattern": "^([0-9]+(B|KiB|MiB|GiB|TiB)?)?$",
+          "description": "GOMEMLIMIT in Go's form, such as 460MiB, or empty for none. Kubernetes' Mi and Gi are not Go's."
         },
         "podAnnotations": {
           "type": "object"

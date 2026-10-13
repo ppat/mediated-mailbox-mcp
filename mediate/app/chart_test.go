@@ -52,7 +52,7 @@ func TestTheChartRendersAFileTheMediatorStartsWith(t *testing.T) {
 		AccountReloadInterval: 2 * time.Minute,
 		Database: dbconnectcore.Config{
 			Host: "db.example", Port: 6432, Name: "mediated_mailbox", User: "mailbox_mediator", SSLMode: "verify-ca",
-			SSLRootCert: mounted + "ca/ca.crt", PasswordFile: mounted + "database/password",
+			SSLRootCert: mounted + "ca/ca.crt", PasswordFile: mounted + "database/password", PoolSize: 9,
 		},
 		Credential: credentialcore.Config{
 			PublicKeyFile:   mounted + "credential-sealing-key-pair/credential.pub",

@@ -9,8 +9,9 @@ import (
 	"strconv"
 )
 
-// Config is the database section. Every value is rendered into the connection string on every
-// start, and the password comes from the mounted file PasswordFile names (ADR-0078, ADR-0079).
+// Config is the database section. Every value but the pool size is rendered into the connection
+// string on every start, the password comes from the mounted file PasswordFile names, and PoolSize
+// is the most connections the pool opens (ADR-0078, ADR-0079).
 type Config struct {
 	Host         string `yaml:"host" settings:"required"`
 	Port         int    `yaml:"port"`
@@ -19,10 +20,11 @@ type Config struct {
 	SSLMode      string `yaml:"sslmode"`
 	SSLRootCert  string `yaml:"sslrootcert"`
 	PasswordFile string `yaml:"password_file" settings:"required"`
+	PoolSize     int    `yaml:"pool_size"`
 }
 
 // Validate refuses an empty host, database name, user or password file path, a port outside 1 to
-// 65535, and a TLS mode the driver does not accept.
+// 65535, a pool size that is not positive, and a TLS mode the driver does not accept.
 func Validate(c Config) error {
 	switch {
 	case c.Host == "":
@@ -35,6 +37,8 @@ func Validate(c Config) error {
 		return errors.New("database.password_file is empty")
 	case c.Port < 1 || c.Port > 65535:
 		return errors.New("database.port " + strconv.Itoa(c.Port) + " is outside 1 to 65535")
+	case c.PoolSize < 1:
+		return errors.New("database.pool_size " + strconv.Itoa(c.PoolSize) + " is not positive")
 	}
 	switch c.SSLMode {
 	case "disable", "allow", "prefer", "require", "verify-ca", "verify-full":

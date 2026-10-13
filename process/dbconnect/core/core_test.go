@@ -12,7 +12,7 @@ import (
 
 func valid() core.Config {
 	//nolint:gosec // A mounted file's path, not a credential.
-	return core.Config{Host: "db.example", Port: 5432, Name: "mailbox", User: "mediated_mailbox_backfill", SSLMode: "verify-full", PasswordFile: "/run/secrets/password"}
+	return core.Config{Host: "db.example", Port: 5432, Name: "mailbox", User: "mediated_mailbox_backfill", SSLMode: "verify-full", PasswordFile: "/run/secrets/password", PoolSize: 4}
 }
 
 // A value that would let the driver substitute a default the operator never chose is refused.
@@ -28,6 +28,8 @@ func TestAnUnusableValueIsRefused(t *testing.T) {
 		{"an empty password file path", func(c *core.Config) { c.PasswordFile = "" }, "database.password_file is empty"},
 		{"port zero", func(c *core.Config) { c.Port = 0 }, "database.port 0 is outside 1 to 65535"},
 		{"a port above 65535", func(c *core.Config) { c.Port = 65536 }, "database.port 65536 is outside 1 to 65535"},
+		{"a pool size of zero", func(c *core.Config) { c.PoolSize = 0 }, "database.pool_size 0 is not positive"},
+		{"a negative pool size", func(c *core.Config) { c.PoolSize = -1 }, "database.pool_size -1 is not positive"},
 		{"an unknown TLS mode", func(c *core.Config) { c.SSLMode = "verify_full" }, `database.sslmode "verify_full" is not disable, allow, prefer, require, verify-ca or verify-full`},
 		{"an empty TLS mode", func(c *core.Config) { c.SSLMode = "" }, `database.sslmode "" is not disable, allow, prefer, require, verify-ca or verify-full`},
 	}
@@ -46,7 +48,8 @@ func TestAnUnusableValueIsRefused(t *testing.T) {
 	}
 }
 
-// Every value in range is accepted, the ports at either end and every TLS mode the driver takes.
+// Every value in range is accepted, the ports at either end, the smallest pool and every TLS mode
+// the driver takes.
 func TestAUsableValueIsAccepted(t *testing.T) {
 	for _, port := range []int{1, 65535} {
 		config := valid()
@@ -54,6 +57,11 @@ func TestAUsableValueIsAccepted(t *testing.T) {
 		if err := core.Validate(config); err != nil {
 			t.Errorf("port %d: %v", port, err)
 		}
+	}
+	config := valid()
+	config.PoolSize = 1
+	if err := core.Validate(config); err != nil {
+		t.Errorf("pool size 1: %v", err)
 	}
 	for _, mode := range []string{"disable", "allow", "prefer", "require", "verify-ca", "verify-full"} {
 		config := valid()
@@ -75,5 +83,6 @@ func TestTheSectionIsPinned(t *testing.T) {
 		"SSLMode string",
 		"SSLRootCert string",
 		"PasswordFile string",
+		"PoolSize int",
 	)
 }

@@ -185,6 +185,9 @@ mediator:
   database:
     # -- The role it connects as, mediated_mailbox_mediate when empty.
     user: ""
+    # -- The most connections its pool opens, the mediator's default when empty, the larger of 4 and the node's
+    # processor count.
+    poolSize: null
   # -- The mediator's own configuration keys: account_reload_interval, provider_timeout and log_level.
   config: {}
   serviceAccount:
@@ -236,6 +239,10 @@ mediator:
     requests:
       cpu: 50m
       memory: 64Mi
+  # -- The Go runtime's soft memory limit, its GOMEMLIMIT, in Go's form, bytes with an optional unit B, KiB, MiB, GiB
+  # or TiB, such as 460MiB. Go sets none by itself, so with a memory limit under resources set this below it, leaving
+  # room for memory the runtime does not count. Unset, the container gets no GOMEMLIMIT.
+  goSoftMemoryLimit: ""
   # -- Annotations on the pods.
   podAnnotations: {}
   # -- Labels on the pods.
@@ -269,6 +276,9 @@ ui:
   database:
     # -- The role it connects as, mediated_mailbox_ui when empty.
     user: ""
+    # -- The most connections its pool opens, the UI's default when empty, the larger of 4 and the node's processor
+    # count.
+    poolSize: null
   # -- The UI's own configuration keys: heuristics_interval, stream_interval, default_theme, stream_reconnect_max,
   # stream_poll_interval, attention_backlog_share, attention_mask_count, attention_serve_factor, attention_gap_days,
   # consent_redirect, identity_header, operator_name and log_level.
@@ -320,6 +330,10 @@ ui:
     requests:
       cpu: 50m
       memory: 64Mi
+  # -- The Go runtime's soft memory limit, its GOMEMLIMIT, in Go's form, bytes with an optional unit B, KiB, MiB, GiB
+  # or TiB, such as 460MiB. Go sets none by itself, so with a memory limit under resources set this below it, leaving
+  # room for memory the runtime does not count. Unset, the container gets no GOMEMLIMIT.
+  goSoftMemoryLimit: ""
   # -- Annotations on the pods.
   podAnnotations: {}
   # -- Labels on the pods.
@@ -384,6 +398,10 @@ worker:
     requests:
       cpu: 50m
       memory: 128Mi
+  # -- The Go runtime's soft memory limit, its GOMEMLIMIT, in Go's form, bytes with an optional unit B, KiB, MiB, GiB
+  # or TiB, such as 460MiB. Go sets none by itself, so with a memory limit under resources set this below it, leaving
+  # room for memory the runtime does not count. Unset, the container gets no GOMEMLIMIT.
+  goSoftMemoryLimit: ""
   # -- Annotations on the pod.
   podAnnotations: {}
   # -- Labels on the pod.
@@ -426,6 +444,10 @@ migration:
     requests:
       cpu: 50m
       memory: 64Mi
+  # -- The Go runtime's soft memory limit, its GOMEMLIMIT, in Go's form, bytes with an optional unit B, KiB, MiB, GiB
+  # or TiB, such as 460MiB. Go sets none by itself, so with a memory limit under resources set this below it, leaving
+  # room for memory the runtime does not count. Unset, the container gets no GOMEMLIMIT.
+  goSoftMemoryLimit: ""
   # -- Annotations on the pod.
   podAnnotations: {}
   # -- Labels on the pod.

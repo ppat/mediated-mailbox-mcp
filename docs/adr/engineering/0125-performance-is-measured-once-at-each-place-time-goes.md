@@ -25,7 +25,7 @@ When something in this system is slow, the time is in one of a handful of places
 
 | Place | Why time goes there |
 | --- | --- |
-| The database pool | Every unit of work acquires a connection, and the worker's pools are sized by `pool_size` while the mediator's and the UI's take pgx's default of the larger of 4 and the processor count |
+| The database pool | Every unit of work acquires a connection, and every pool is sized by its `pool_size`, the worker's set for each job kind and the mediator's and the UI's defaulting to pgx's default of the larger of 4 and the processor count |
 | A database statement | Every operation, page and tick runs statements, and [db/tx](../../../db/tx/tx.go) adds four round trips to each transaction to set and read back the account |
 | The policy load a body request waits on | [ADR-0099](./0099-a-body-request-loads-the-policy-before-it-decides.md) puts a coalesced load on the body request's path |
 | The rate lease | [ADR-0025](../operability/0025-priority-classes-and-leases.md)'s limiter makes a caller wait for its class, asking again at least every half second |
@@ -255,8 +255,8 @@ by `statement`, with buckets at 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1 and 5 seco
 
 - **Question.** Is time lost waiting for a connection rather than in the database, and is that wait
   for the pool's ceiling or for building connections? Is the worker's `pool_size` right, and is
-  pgx's processor-dependent default right for the mediator and the UI, which have no setting? Do
-  callers give up waiting?
+  pgx's processor-dependent default right for the mediator and the UI, whose `pool_size` defaults
+  to it? Do callers give up waiting?
 - **Reading.** An acquire that builds a new connection counts as waited, with its connect time,
   and pgx builds connections again after its idle and lifetime limits, such as after a quiet half
   hour. So waits that rise with `new_connections_total` are construction, which a larger pool does
@@ -264,8 +264,8 @@ by `statement`, with buckets at 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1 and 5 seco
   the same interval and `acquired_connections` reaches `max_connections`. Such waits with flat
   statement latency call for raising the pool or finding code holding a connection across other
   work. Such waits with rising statement latency mean the database is saturated, where a bigger
-  pool hurts. Sustained waits of that kind in the mediator or the UI are the evidence for a pool
-  size setting there.
+  pool hurts. Sustained waits of that kind in the mediator or the UI are the evidence for setting
+  its `pool_size` above the default.
 - **Evidence.** USE, HikariCP's sizing and metrics, and the Buttondown and Val Town postmortems.
 - **Capture.** A collector over every pool `process/dbmetrics` opens, which reads the pool only
   when scraped and adds nothing on the path of a statement.

@@ -388,6 +388,41 @@ func TestNothingOptionalRendersByDefault(t *testing.T) {
 	}
 }
 
+// goSoftMemoryLimits renders the chart with args and returns, for each container by name, the value of its GOMEMLIMIT
+// variable, empty when it has none.
+func goSoftMemoryLimits(t *testing.T, args ...string) map[string]string {
+	t.Helper()
+	limits := map[string]string{}
+	for _, w := range workloads(t, helmchart.Render(t, chartDir, args...)) {
+		for _, c := range list(w.spec["containers"]) {
+			name := dig[string](c, "name")
+			limits[name] = ""
+			for _, e := range list(dig[any](c, "env")) {
+				if dig[string](e, "name") == "GOMEMLIMIT" {
+					limits[name] = dig[string](e, "value")
+				}
+			}
+		}
+	}
+	return limits
+}
+
+// TestEachGoContainerGetsOnlyItsOwnSoftMemoryLimit checks ADR-0052's soft memory limit. No container has a GOMEMLIMIT
+// by default, and each Go container given a soft memory limit gets exactly its own, so one component's value never
+// reaches another and the Helm test never gets one.
+func TestEachGoContainerGetsOnlyItsOwnSoftMemoryLimit(t *testing.T) {
+	if diff := cmp.Diff(map[string]string{"mediator": "", "ui": "", "worker": "", "migration": "", "smoke": ""}, goSoftMemoryLimits(t)); diff != "" {
+		t.Errorf("GOMEMLIMIT by default (-want +got):\n%s", diff)
+	}
+	limits := goSoftMemoryLimits(t,
+		"--set", "mediator.goSoftMemoryLimit=101MiB", "--set", "ui.goSoftMemoryLimit=102MiB",
+		"--set", "worker.goSoftMemoryLimit=103MiB", "--set", "migration.goSoftMemoryLimit=104MiB")
+	want := map[string]string{"mediator": "101MiB", "ui": "102MiB", "worker": "103MiB", "migration": "104MiB", "smoke": ""}
+	if diff := cmp.Diff(want, limits); diff != "" {
+		t.Errorf("GOMEMLIMIT with each component's own value (-want +got):\n%s", diff)
+	}
+}
+
 // accessCredentials is the Secret the chart creates for whichever of the mediator's bearer token and the UI's request
 // token key no Secret is named for.
 const accessCredentials = "release-mediated-mailbox-access-credentials"
@@ -492,6 +527,9 @@ func TestTheSchemaRefusesWhatHelmOrTheProcessesWouldChange(t *testing.T) {
 		{"a job kind the worker does not run", "worker:\n  jobKinds:\n    organize:\n      database: {user: x}\n", "additional properties 'organize' not allowed"},
 		{"a password for a job kind the worker does not run", "secrets:\n  databasePasswords:\n    worker:\n      organize: {existingSecret: x}\n", "additional properties 'organize' not allowed"},
 		{"a misspelled key", "mediator:\n  config:\n    provider_timout: 1m\n", "additional properties 'provider_timout' not allowed"},
+		{"a Kubernetes quantity as a Go soft memory limit", "mediator:\n  goSoftMemoryLimit: 460Mi\n", "does not match pattern"},
+		{"a number as a Go soft memory limit", "worker:\n  goSoftMemoryLimit: 1073741824\n", "got number, want string"},
+		{"a pool size of zero", "ui:\n  database:\n    poolSize: 0\n", "minimum: got 0, want 1"},
 	} {
 		path := filepath.Join(t.TempDir(), "values.yaml")
 		if err := os.WriteFile(path, []byte(c.values), 0o600); err != nil {
