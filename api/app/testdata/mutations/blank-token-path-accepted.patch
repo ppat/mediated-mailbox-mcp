@@ -1,0 +1,20 @@
+control: The API server refuses a configuration it cannot serve with before anything is read or connected
+removes: a token file path of spaces is accepted
+packages: ./api/app
+tests: TestAConfigurationTheAPIServerCannotServeWithIsRefused
+scheduled-count: no
+
+
+diff --git a/api/app/app.go b/api/app/app.go
+index b19c6f2b..197d28ea 100644
+--- a/api/app/app.go
++++ b/api/app/app.go
+@@ -142,7 +142,7 @@ func validate(c Configuration) error {
+ 		}
+ 		return fmt.Errorf("%s is set and %s is not, and the API server serves TLS with both or plain HTTP with neither", set, missing)
+ 	}
+-	if strings.TrimSpace(c.TokenFile) == "" {
++	if c.TokenFile == "" {
+ 		return errors.New("token_file is empty")
+ 	}
+ 	if c.AccountReloadInterval <= 0 {

@@ -12,7 +12,7 @@ import { changedPaths, labelChanges, parseComponents, wantedLabels } from './lab
 
 // A throwaway repository shaped like a pull request whose head merged a newer base commit. `main`
 // starts at `fork`, the head moves a file out of provider/ and adds a file with a non-ASCII name
-// under core/, `main` then gains a commit under mediate/, the head merges `main`, and `main` gains
+// under core/, `main` then gains a commit under api/, the head merges `main`, and `main` gains
 // one more commit the head lacks. The event's base commit is `fork`. The caller's global and system
 // git configuration are shut out, because commit signing or a hooks path there can break the setup,
 // and `core.quotepath=false` there would let the quoted-path case pass without `-z`.
@@ -35,11 +35,11 @@ function scratchRepository(dir) {
   git('mv', 'provider/moved.go', 'moved.go')
   commit('core/é.go', 'head')
   git('switch', '-q', 'main')
-  commit('mediate/main.go', 'base moves')
+  commit('api/main.go', 'base moves')
   git('switch', '-q', 'head')
   git('merge', '-q', '--no-edit', 'main')
   git('switch', '-q', 'main')
-  commit('mediate/later.go', 'base moves after the merge')
+  commit('api/later.go', 'base moves after the merge')
   git('switch', '-q', 'head')
   return { dir, fork }
 }
@@ -69,14 +69,14 @@ const table = (rows) => [
 
 const directories = parseComponents(table([
   '| `core/` | Library | `mediated-mailbox-core` | The shared pure library |',
-  '| `mediate/` | Deployable | `mediated-mailbox-mediate` | The mediator |',
+  '| `api/` | Deployable | `mediated-mailbox-api` | The API server |',
   '| `packaging/chart/` | Packaging | `mediated-mailbox` | The Helm chart |',
   '| `packaging/tests/chainsaw/` | System tests | | The chainsaw suite |',
 ]))
 
 const cases = [
   ['the table is read up to its end and no further', () =>
-    deepStrictEqual(directories, ['core/', 'mediate/', 'packaging/chart/', 'packaging/tests/chainsaw/'])],
+    deepStrictEqual(directories, ['core/', 'api/', 'packaging/chart/', 'packaging/tests/chainsaw/'])],
 
   ['a second table in the same section is not read as components', () =>
     deepStrictEqual(parseComponents([
@@ -87,8 +87,8 @@ const cases = [
     ].join('\n')), ['core/'])],
 
   ['a diff spanning two components calls for both labels', () =>
-    deepStrictEqual(wantedLabels(['core/mail/port.go', 'mediate/main.go', 'ROADMAP.md'], directories),
-      ['component:core', 'component:mediate'])],
+    deepStrictEqual(wantedLabels(['core/mail/port.go', 'api/main.go', 'ROADMAP.md'], directories),
+      ['component:api', 'component:core'])],
 
   ['a directory of several segments keeps every segment in its label', () =>
     deepStrictEqual(wantedLabels(['packaging/chart/Chart.yaml', 'packaging/tests/chainsaw/.chainsaw.yaml'], directories),
@@ -98,7 +98,7 @@ const cases = [
     deepStrictEqual(wantedLabels(['packaging/README.md', 'packaging/tests/README.md'], directories), [])],
 
   ['a directory whose name starts with a component\'s name is no component', () =>
-    deepStrictEqual(wantedLabels(['core-extra/x.go', 'mediated/x.go', 'core'], directories), [])],
+    deepStrictEqual(wantedLabels(['core-extra/x.go', 'apis/x.go', 'core'], directories), [])],
 
   ['a diff touching no component calls for no label', () =>
     deepStrictEqual(wantedLabels(['CLAUDE.md', 'docs/adr/README.md', '.github/workflows/lint.yaml', 'go.mod'], directories), [])],
@@ -107,8 +107,8 @@ const cases = [
     deepStrictEqual(wantedLabels(['core/a.go', 'core/b/c.go'], directories), ['component:core'])],
 
   ['a stale component label is removed and a missing one added', () =>
-    deepStrictEqual(labelChanges(['unit:F4', 'component:ui', 'component:core'], ['component:core', 'component:mediate']),
-      { add: ['component:mediate'], remove: ['component:ui'] })],
+    deepStrictEqual(labelChanges(['unit:F4', 'component:ui', 'component:core'], ['component:core', 'component:api']),
+      { add: ['component:api'], remove: ['component:ui'] })],
 
   ['labels outside the component prefix are never touched', () =>
     deepStrictEqual(labelChanges(['unit:F4', 'automerge:off', 'componentry'], []), { add: [], remove: [] })],
@@ -147,7 +147,7 @@ const cases = [
   // The reason the workflow diffs against the branch. Against the event's older base commit, the
   // merged base commit counts as the head's own. If this stops holding, the case above proves less.
   ['the diff against an older base commit counts the merged base commit as the head\'s own', () =>
-    deepStrictEqual(changedPaths(scratch.fork, 'head', scratch.dir).sort(), ['core/é.go', 'mediate/main.go', 'moved.go', 'provider/moved.go'])],
+    deepStrictEqual(changedPaths(scratch.fork, 'head', scratch.dir).sort(), ['api/main.go', 'core/é.go', 'moved.go', 'provider/moved.go'])],
 
   // The repository's own table must parse, or the workflow would fail on every pull request.
   ['CLAUDE.md in this tree parses', () => {

@@ -21,7 +21,7 @@ import (
 // functions or methods on the mux beneath the recorder, or on a second mux, is reported anywhere else.
 // Not reported are a registration through reflection, one an imported package makes on the default
 // mux when it is initialised, such as net/http/pprof's, and one through an interface method one of
-// whose parameter types is a type parameter, which ADR-0071 leaves to review. The mediator is out of
+// whose parameter types is a type parameter, which ADR-0071 leaves to review. The API server is out of
 // scope. Its registrations are its roots' generators and its composition root, which ADR-0071 leaves
 // to its import lists and review.
 var Routes = &analysis.Analyzer{

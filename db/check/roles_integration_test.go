@@ -21,12 +21,12 @@ import (
 // the test able to run and nothing reaches the other tests of this package.
 
 // migrationRole owns the schema (ADR-0048).
-const migrationRole = "mediated_mailbox_migrate"
+const migrationRole = "mediated_mailbox_migrator"
 
 // runtimeRoles is one role per deployable, and inside the worker one per job kind (ADR-0118).
 var runtimeRoles = []string{
 	"mediated_mailbox_backfill",
-	"mediated_mailbox_mediate",
+	"mediated_mailbox_api",
 	"mediated_mailbox_organize",
 	"mediated_mailbox_propose",
 	"mediated_mailbox_sync",

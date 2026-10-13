@@ -1,0 +1,19 @@
+control: The client surface is served over TLS when the configuration names a key pair and over plain HTTP when it names none, with the key pair read from its mounted files
+removes: a TLS path of spaces counts as set when the start chooses its transport, so an API server given two blank paths tries TLS and never serves
+packages: ./api/app
+tests: TestTheSurfaceGivenNoKeyPairIsPlain/both_blank
+scheduled-count: no
+
+diff --git a/api/app/app.go b/api/app/app.go
+index 175bd9d6..832e3d7e 100644
+--- a/api/app/app.go
++++ b/api/app/app.go
+@@ -649,7 +649,7 @@ func bearer(tokenFile string, logger *slog.Logger, next http.Handler) http.Handl
+ // servesTLS reports whether the configuration names a key pair. validate has refused one that names
+ // only one of its two files, so the certificate alone decides.
+ func servesTLS(c Configuration) bool {
+-	return strings.TrimSpace(c.TLSCert) != ""
++	return c.TLSCert != ""
+ }
+ 
+ // tlsConfig returns the client surface's TLS configuration, which reads the key pair from its

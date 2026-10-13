@@ -22,7 +22,7 @@ in `markdown` alone.
 **What does not belong.** Anything that stores content, any statement, and any decision about what
 is released. What is released around the Markdown, the untrusted-content delimiters and the
 serve-time pattern check ([ADR-0002](../docs/adr/redaction/0002-fetch-time-re-evaluation.md)), is
-the mediator's alone and sits in its own pure core, and what is withheld is the Content Scanner's
+the API server's alone and sits in its own pure core, and what is withheld is the Content Scanner's
 and the gates'.
 
 ## The conversion to Markdown, `markdown`
@@ -30,17 +30,17 @@ and the gates'.
 Every released body is HTML converted to clean Markdown by an existing library
 ([ADR-0036](../docs/adr/redaction/0036-released-bodies-are-clean-markdown.md)), and the Content
 Scanner reads the same Markdown ([ADR-0005](../docs/adr/classification/0005-tiered-detection.md)).
-The mediator converts a body when it serves it, and backfill and delta sync convert it before
-scanning. A verdict recorded at either is trusted when the mediator later serves the body, so the
+The API server converts a body when it serves it, and backfill and delta sync convert it before
+scanning. A verdict recorded at either is trusted when the API server later serves the body, so the
 conversions must produce the same Markdown from the same HTML. The conversion calls outside code, so
 it cannot sit in `core/`, and a copy of its configuration in each deployable could drift apart
-unseen. So one package holds it, `content/markdown`, and the mediator, backfill and delta sync each
-import it. Text from a message that has no HTML form is released as a fenced code block that shows
-it exactly
+unseen. So one package holds it, `content/markdown`, and the API server, backfill and delta sync
+each import it. Text from a message that has no HTML form is released as a fenced code block that
+shows it exactly
 ([ADR-0100](../docs/adr/redaction/0100-message-text-without-html-is-released-as-a-literal-code-block.md)),
 and that form is `content/markdown`'s too, so every Markdown a client receives from a message comes
 from this package. One function renders a body in the form it is released in, its HTML part's
-conversion or its text part's literal form, and the mediator releases and the worker scans exactly
+conversion or its text part's literal form, and the API server releases and the worker scans exactly
 what it returns, both held to the port's bound on the rendered part
 ([ADR-0131](../docs/adr/provider/0131-the-body-is-one-rendered-part-bounded-by-one-size-constant.md)).
 

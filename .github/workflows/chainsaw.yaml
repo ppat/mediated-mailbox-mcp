@@ -26,7 +26,7 @@ permissions:
   contents: read
 
 env:
-  IMAGES: mediate migrate ui worker
+  IMAGES: api migrator ui worker
 
 jobs:
   resolve:

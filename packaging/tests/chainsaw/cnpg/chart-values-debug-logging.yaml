@@ -7,8 +7,8 @@ sharedConfig:
   log_level: debug
 secrets:
   databasePasswords:
-    mediator:
-      existingSecret: mediate-db
+    api:
+      existingSecret: api-db
     ui:
       existingSecret: ui-db
     worker:

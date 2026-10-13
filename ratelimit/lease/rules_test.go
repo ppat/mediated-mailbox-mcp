@@ -46,7 +46,7 @@ func run(t *testing.T, tool string, args ...string) (string, error) {
 // processes emitted for the account over those two minutes, whatever the provider and after the
 // process has gone. The missing-threshold rule fires on cost counted with no hard cap. Collapse
 // fires on five minutes at the floor, the stall rule on five minutes with nothing granted, neither
-// while no class has asked in the last minute, and the absence rule when the mediator's series are
+// while no class has asked in the last minute, and the absence rule when the API server's series are
 // missing.
 func TestAlertingRules(t *testing.T) {
 	if out, err := run(t, "promtool", "test", "rules", "testdata/alerting-rules-test.yaml"); err != nil {

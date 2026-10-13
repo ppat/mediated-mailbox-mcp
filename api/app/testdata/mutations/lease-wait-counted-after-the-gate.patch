@@ -1,0 +1,28 @@
+control: A body request waits for its leases no longer than its deadline for them, and a wait cut off by it is the API server's failure
+removes: the request's arrival is taken once the gate has released the message, after the policy load and the gate's read, so the time they take does not count against the wait
+packages: ./api/app
+tests: TestARequestWaitsForItsLeasesNoLongerThanItsDeadline
+scheduled-count: no
+integration: yes
+
+diff --git a/api/internal/service/body.go b/api/internal/service/body.go
+--- a/api/internal/service/body.go
++++ b/api/internal/service/body.go
+@@ -136,9 +136,6 @@ func (s Sources) bodyOperation() Operation {
+ // and a gate-skipped message's body, snippet and filenames. Nothing is released before its audit row
+ // is written, so an audit write that fails releases nothing.
+ func (s Sources) getMessageBody(ctx context.Context, account string, input json.RawMessage) (json.RawMessage, error) {
+-	// The request's arrival is taken before the policy load and the gate's read, so the time they take
+-	// counts against the request's waits for its leases (ADR-0130).
+-	arrived := time.Now()
+ 	var args struct {
+ 		MessageID string `json:"message_id"`
+ 	}
+@@ -172,6 +169,7 @@ func (s Sources) getMessageBody(ctx context.Context, account string, input json.
+ 		return ok(deny(denied, reason))
+ 	}
+ 
++	arrived := time.Now()
+ 	session, err := s.Bodies.Open(ctx, account, arrived)
+ 	if err != nil {
+ 		return nil, err

@@ -68,7 +68,7 @@ reading below says which preference and on what.
 - **The distributed binary is not minimal.** The tree the command form keeps out of this project's
   binaries is still inside the runner binary itself unless it is built with the tags that exclude
   other databases. That is a property of the step, not of anything this project ships, so the
-  migration step's image builds goose from source with those tags.
+  migrator, the migration step's image, builds goose from source with those tags.
 - **Neither `go tool` nor a `tool` directive in the project's module suits the step.** `go tool`
   ignores build tags, so it cannot build the tagged runner, and a `tool` directive in the project's
   own module takes part in version selection, so goose's requirements raise shared dependency

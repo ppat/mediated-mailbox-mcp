@@ -4,19 +4,19 @@ packages: ./packaging/chart
 tests: TestNothingOptionalRendersByDefault
 scheduled-count: no
 
-diff --git a/packaging/chart/templates/mediator/ingress.yaml b/packaging/chart/templates/mediator/ingress.yaml
+diff --git a/packaging/chart/templates/api/ingress.yaml b/packaging/chart/templates/api/ingress.yaml
 index 14bcfaaa..65243f80 100644
---- a/packaging/chart/templates/mediator/ingress.yaml
-+++ b/packaging/chart/templates/mediator/ingress.yaml
+--- a/packaging/chart/templates/api/ingress.yaml
++++ b/packaging/chart/templates/api/ingress.yaml
 @@ -1,8 +1,8 @@
- {{- /* The Ingress in front of the mediator's client surface, rendered only when enabled. */ -}}
- {{- $v := .Values.mediator }}
+ {{- /* The Ingress in front of the API server's client surface, rendered only when enabled. */ -}}
+ {{- $v := .Values.api }}
 -{{- if $v.ingress.enabled }}
 +{{- if and $v.ingress.enabled false }}
  apiVersion: networking.k8s.io/v1
  kind: Ingress
  metadata:
-   name: {{ include "mm.componentName" (list $ "mediator") }}
+   name: {{ include "mm.componentName" (list $ "api") }}
    namespace: {{ .Release.Namespace }}
 diff --git a/packaging/chart/templates/ui/ingress.yaml b/packaging/chart/templates/ui/ingress.yaml
 index 2f468a45..5dbc7213 100644

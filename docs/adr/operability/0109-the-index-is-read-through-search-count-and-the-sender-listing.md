@@ -81,13 +81,13 @@ operation one route, a structured read a `:search` route, and a read with only s
   its use there is held by review rather than by a test.
 - **Every timestamp crossing the three is UTC with the `Z` suffix**, and one given with any other
   offset is refused ([ADR-0033](./0033-utc-only-timestamps.md)).
-- **The mediator reads the statistics through the data-access subsection for senders, and the
+- **The API server reads the statistics through the data-access subsection for senders, and the
   rebuild of the statistics and the counts of prior scan hits sit in a subsection below it**, which
   only the deployables that build the statistics admit, as
   [ADR-0066](../data/0066-data-access-generated-from-sql.md) places a statement a role admitted to
   its table's subsection may not be granted. Delta sync's removal of the statistics of a sender with
-  no stored message sits in its own subsection for a message's changes, which the mediator does not
-  admit either. The mediator's role holds a read of the sender domain on messages and of the
+  no stored message sits in its own subsection for a message's changes, which the API server does
+  not admit either. The API server's role holds a read of the sender domain on messages and of the
   statistics' columns, apart from the prior scan hits
   ([ADR-0118](../data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)).
 

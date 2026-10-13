@@ -1,0 +1,19 @@
+control: Each failure names its origin, with the status the origin gives, and no detail of an API server or provider failure reaches the client
+removes: a provider call's failure is returned as it is, so it reads as the API server's
+packages: ./api/app
+tests: TestEachOriginIsToldApartOnBothRoots TestARefusedCredentialIsReadAgainBeforeTheRefusalIsReported
+scheduled-count: no
+integration: yes
+diff --git a/api/internal/service/body.go b/api/internal/service/body.go
+index 2c5c8e77..8e553377 100644
+--- a/api/internal/service/body.go
++++ b/api/internal/service/body.go
+@@ -189,7 +189,7 @@ func (s Sources) getMessageBody(ctx context.Context, account string, input json.
+ 	// decided and served, and not across the wait for a second lease (ADR-0130).
+ 	meta, err := session.Metadata(ctx, args.MessageID)
+ 	if err != nil {
+-		return nil, FromProvider(err)
++		return nil, err
+ 	}
+ 	body, err := session.Body(ctx, args.MessageID)
+ 	if errors.Is(err, mail.ErrRefused) {

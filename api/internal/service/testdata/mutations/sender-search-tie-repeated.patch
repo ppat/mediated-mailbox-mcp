@@ -1,0 +1,33 @@
+control: A listing's cursor continues only the listing, account and filter it came from, and paging serves every row once
+removes: a search sorted by sender continues from its last row's message identifier inclusive, so that row is served again
+packages: ./api/internal/service
+tests: TestAnIndexReadPagesThroughEveryRowOnce
+scheduled-count: no
+integration: yes
+
+diff --git a/db/messages/search.sql b/db/messages/search.sql
+index 818eddd1..e7b5a504 100644
+--- a/db/messages/search.sql
++++ b/db/messages/search.sql
+@@ -72,7 +72,7 @@ WHERE
+         OR (
+             @sort_by::text = 'sender' AND @descending::boolean AND (
+                 m.from_email < @after_sender::citext
+-                OR (m.from_email = @after_sender::citext AND m.message_id > @after_message_id::text)
++                OR (m.from_email = @after_sender::citext AND m.message_id >= @after_message_id::text)
+             )
+         )
+         OR (
+diff --git a/db/messages/search.sql.go b/db/messages/search.sql.go
+index f09d49bc..ff876322 100644
+--- a/db/messages/search.sql.go
++++ b/db/messages/search.sql.go
+@@ -569,7 +569,7 @@ WHERE
+         OR (
+             $15::text = 'sender' AND $16::boolean AND (
+                 m.from_email < $19::citext
+-                OR (m.from_email = $19::citext AND m.message_id > $18::text)
++                OR (m.from_email = $19::citext AND m.message_id >= $18::text)
+             )
+         )
+         OR (

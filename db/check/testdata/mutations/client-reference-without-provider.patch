@@ -15,6 +15,6 @@ index f40c7fd3..16892329 100644
      oauth_client text,
 -    FOREIGN KEY (oauth_client, provider) REFERENCES oauth_clients (name, provider),
 +    FOREIGN KEY (oauth_client) REFERENCES oauth_clients (name),
-     -- No account identifier is exactly ., .. or /, which the mediator's API root cannot address as a
+     -- No account identifier is exactly ., .. or /, which the API server's API root cannot address as a
      -- path segment (ADR-0087). Account setup refuses them first, with its own wording.
      CONSTRAINT accounts_account_id_addressable CHECK (account_id NOT IN ('.', '..', '/'))

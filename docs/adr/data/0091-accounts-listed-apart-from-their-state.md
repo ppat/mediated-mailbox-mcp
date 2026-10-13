@@ -9,17 +9,17 @@
 Every table keys on its account, and every statement reaches only the account its transaction names
 ([ADR-0016](./0016-schema.md),
 [ADR-0135](./0135-every-statement-reads-its-account-from-the-transaction.md)). Several processes
-need the list of every account. The UI's account selector, the mediator's accounts listing and the
-account snapshot each deployable loads
+need the list of every account. The UI's account selector, the API server's accounts listing and
+the account snapshot each deployable loads
 ([ADR-0090](../operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md)) all need each
 account's identifier and provider. Where the provider authenticates through an OAuth client, two
 readers also need the client the account connects through
 ([ADR-0106](../provider/0106-accounts-of-a-provider-connect-through-any-of-its-oauth-clients.md)).
 The account snapshot builds each account's token source from that client, and the UI's installation
-screens name the accounts a client serves before it is replaced or removed. The mediator's accounts
-listing gives its clients the identifier and provider alone. No listing needs anything else. An
-account also carries its own state, the backfill flags, the sync cursor and the last authentication,
-and the sealed credential and rate target the account setup writes
+screens name the accounts a client serves before it is replaced or removed. The API server's
+accounts listing gives its clients the identifier and provider alone. No listing needs anything
+else. An account also carries its own state, the backfill flags, the sync cursor and the last
+authentication, and the sealed credential and rate target the account setup writes
 ([ADR-0080](./0080-accounts-and-credentials-live-in-the-database.md)).
 
 A listing that read every row of one table holding both would reach every column the listing role
@@ -31,10 +31,10 @@ grant cannot tell the two reads apart.
 - **`accounts` holds each account's identifier, its provider and the OAuth client it connects
   through, and nothing else.** The roles that list accounts read all of its rows, through the one
   statement the account predicate exempts and their column grants. They are the UI's, for its
-  account selector, and the mediator's, backfill's, delta sync's and the reorg workload's, for their
-  account snapshots. How the heuristics job finds its accounts is not decided here and is tracked in
-  [ROADMAP.md's open decisions](../../../ROADMAP.md#open-decisions). Writes stay confined to the
-  transaction's account, as on every other account-keyed table.
+  account selector, and the API server's, backfill's, delta sync's and the reorg workload's, for
+  their account snapshots. How the heuristics job finds its accounts is not decided here and is
+  tracked in [ROADMAP.md's open decisions](../../../ROADMAP.md#open-decisions). Writes stay confined
+  to the transaction's account, as on every other account-keyed table.
 - **`account_state` holds everything else an account carries**, one row per account, which every
   statement reaches through the transaction's account. That is the sealed credential, the mailbox
   address it remembers, the rate target, the backfill flags, the sync cursor and the last

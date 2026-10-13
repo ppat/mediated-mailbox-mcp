@@ -10,12 +10,12 @@
 --
 -- The migration role owns every table, so no runtime role can change the schema (ADR-0048).
 
--- The mediator (ADR-0118).
+-- The API server (ADR-0118).
 --
 -- Its read operations and its system status read the index and the recorded state through the
 -- subsections its list admits, db/messages, db/maskingevents, db/senders, db/jobruns and
--- db/accountstate. The mediator writes none of these tables and holds no grant on the sealed
--- credential. The index stores no sender class, so nothing the mediator reads can stand in for the
+-- db/accountstate. The API server writes none of these tables and holds no grant on the sealed
+-- credential. The index stores no sender class, so nothing the API server reads can stand in for the
 -- class the Redaction Gate decides at fetch time (ADR-0002, ADR-0136).
 --
 -- The sender domain term, the grouping by sender domain and the read of the distinct senders the
@@ -38,13 +38,13 @@ GRANT SELECT (
     content_flags,
     rule_ids,
     scan_state
-) ON messages TO mediated_mailbox_mediate;
-GRANT SELECT (account_id, message_id, media_type, extension) ON attachment_media TO mediated_mailbox_mediate;
+) ON messages TO mediated_mailbox_api;
+GRANT SELECT (account_id, message_id, media_type, extension) ON attachment_media TO mediated_mailbox_api;
 GRANT SELECT (id, account_id, message_id, field, rule_id, tier, masked_at) ON masking_events
-TO mediated_mailbox_mediate;
+TO mediated_mailbox_api;
 -- The sender listing reads every column of the sender statistics but the prior scan hits, which no
 -- read serves (ADR-0118). The rebuild of the statistics and the counts of prior scan hits sit in
--- db/senders/statistics, which the mediator's list does not admit.
+-- db/senders/statistics, which the API server's list does not admit.
 GRANT SELECT (
     account_id,
     domain,
@@ -55,9 +55,9 @@ GRANT SELECT (
     last_seen,
     has_list_id_ratio,
     label_distribution
-) ON senders TO mediated_mailbox_mediate;
+) ON senders TO mediated_mailbox_api;
 -- The account's progress for the system status, and the lowered target it will spend under. At the end
--- of each body request the mediator records the authentication attempt its adapter reports, only over
+-- of each body request the API server records the authentication attempt its adapter reports, only over
 -- an older one, through db/accountstate/authentication (ADR-0097).
 GRANT SELECT (
     account_id,
@@ -68,9 +68,9 @@ GRANT SELECT (
     last_auth_outcome,
     lowered_target_rate
 ),
-UPDATE (last_auth_at, last_auth_outcome) ON account_state TO mediated_mailbox_mediate;
+UPDATE (last_auth_at, last_auth_outcome) ON account_state TO mediated_mailbox_api;
 -- The runs, their timelines and their failures' dispositions, which the system status and the UI's
--- reads in db/jobruns, the tables' own subsection, read. Reads beyond the mediator's own need are
+-- reads in db/jobruns, the tables' own subsection, read. Reads beyond the API server's own need are
 -- accepted by ADR-0118's three lines, and none of these columns is one a record forbids it.
 GRANT SELECT (
     account_id,
@@ -86,17 +86,17 @@ GRANT SELECT (
     checkpoint,
     counters,
     last_error
-) ON job_runs TO mediated_mailbox_mediate;
-GRANT SELECT (account_id, run_id, seq, kind, at, page, detail) ON job_run_events TO mediated_mailbox_mediate;
-GRANT SELECT (account_id, run_id, disposition, recovered_by) ON job_run_failures TO mediated_mailbox_mediate;
-GRANT SELECT (account_id, plan_id, description, status) ON reorg_plans TO mediated_mailbox_mediate;
+) ON job_runs TO mediated_mailbox_api;
+GRANT SELECT (account_id, run_id, seq, kind, at, page, detail) ON job_run_events TO mediated_mailbox_api;
+GRANT SELECT (account_id, run_id, disposition, recovered_by) ON job_run_failures TO mediated_mailbox_api;
+GRANT SELECT (account_id, plan_id, description, status) ON reorg_plans TO mediated_mailbox_api;
 -- Each serve and each denial of a body is recorded through db/auditlog/record, which only the
--- mediator's list admits, as an insert and nothing else (ADR-0002, ADR-0016).
+-- API server's list admits, as an insert and nothing else (ADR-0002, ADR-0016).
 GRANT INSERT (
     account_id, actor, action, message_id, stage, reason, sender_class, class_rule_id, class_rule_scope, content_flags,
     content_rule_ids, serve_rule_ids, scan_state, scanner_version, scanner_revision
-) ON audit_log TO mediated_mailbox_mediate;
-GRANT USAGE ON SEQUENCE audit_log_id_seq TO mediated_mailbox_mediate;
+) ON audit_log TO mediated_mailbox_api;
+GRANT USAGE ON SEQUENCE audit_log_id_seq TO mediated_mailbox_api;
 
 -- Backfill (ADR-0118, ADR-0133).
 --
@@ -504,7 +504,7 @@ GRANT SELECT, INSERT ON policy_changes TO mediated_mailbox_ui;
 GRANT USAGE ON SEQUENCE policy_changes_id_seq TO mediated_mailbox_ui;
 
 -- The rate limiter's statements, in db/ratestate, run under the role of each deployable or job kind
--- that spends from the budget (ADR-0118), the mediator, backfill and delta sync. The grants also name
+-- that spends from the budget (ADR-0118), the API server, backfill and delta sync. The grants also name
 -- mediated_mailbox_organize, the role of reorg apply and rollback (ADR-0118), a job kind that spends
 -- from the budget. They insert the account's rate state when it has none, read it, and update every
 -- column but the account. They read, insert and delete grants, and move a grant stamped ahead of the
@@ -528,28 +528,28 @@ UPDATE (
     classes,
     updated_at
 ) ON rate_state
-TO mediated_mailbox_mediate, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
+TO mediated_mailbox_api, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
 GRANT SELECT, INSERT (account_id, class, tokens, issued_at), UPDATE (issued_at), DELETE ON rate_grants
-TO mediated_mailbox_mediate, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
+TO mediated_mailbox_api, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
 
 -- The policy loader's statement, in db/policyrules, runs under the role of each deployable or job kind that loads
--- policy (ADR-0118), the mediator, backfill and delta sync. It reads the account, the identifier, the
+-- policy (ADR-0118), the API server, backfill and delta sync. It reads the account, the identifier, the
 -- class and the domain suffixes of the base rules and the account's own, so the roles get SELECT on
 -- exactly those columns. Who created a rule and when stay out of their reach. The statement reads the
 -- base rules and the rules of the transaction's account alone (ADR-0135).
 GRANT SELECT (account_id, rule_id, class, domain_suffix) ON policy_rules
-TO mediated_mailbox_mediate, mediated_mailbox_backfill, mediated_mailbox_sync;
+TO mediated_mailbox_api, mediated_mailbox_backfill, mediated_mailbox_sync;
 
 -- The account snapshot's statements in db/accounts, db/accountstate/credential and db/oauthclients run
 -- under the role of each deployable or job kind that calls a provider, whose list admits accountload
--- (ADR-0118, ADR-0090), the mediator, backfill and delta sync. The grants also name
+-- (ADR-0118, ADR-0090), the API server, backfill and delta sync. The grants also name
 -- mediated_mailbox_organize, the role of reorg apply and rollback (ADR-0118), a job kind that calls a
 -- provider. Each lists the accounts with the client each names, reads an account's sealed credential,
 -- writes a rotated credential back by compare-and-set on the bytes it last knew (ADR-0082, ADR-0089),
 -- and reads every OAuth client.
 GRANT SELECT (account_id, provider, oauth_client) ON accounts
-TO mediated_mailbox_mediate, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
+TO mediated_mailbox_api, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
 GRANT SELECT (account_id, credential), UPDATE (credential) ON account_state
-TO mediated_mailbox_mediate, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
+TO mediated_mailbox_api, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
 GRANT SELECT (name, provider, client_id, client_secret) ON oauth_clients
-TO mediated_mailbox_mediate, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
+TO mediated_mailbox_api, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;

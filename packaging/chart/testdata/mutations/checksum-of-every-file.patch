@@ -15,7 +15,7 @@ index 4e9c15f5..8822e395 100644
      metadata:
        annotations:
 -        checksum/config: {{ include "mm.config.worker" . | sha256sum }}
-+        checksum/config: {{ list (include "mm.config.mediator" .) (include "mm.config.ui" .) (include "mm.config.worker" .) | join "" | sha256sum }}
++        checksum/config: {{ list (include "mm.config.api" .) (include "mm.config.ui" .) (include "mm.config.worker" .) | join "" | sha256sum }}
          {{- with $v.podAnnotations }}
          {{- toYaml . | nindent 8 }}
          {{- end }}

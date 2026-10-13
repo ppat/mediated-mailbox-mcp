@@ -55,7 +55,7 @@ database:
   sslmode: verify-full
 
 # Every Secret the chart reads, each entry named for what it holds. global.imagePullSecrets and the tls entries of
-# mediator.ingress and ui.ingress keep Kubernetes' own shape outside secrets, because the chart never reads those
+# api.ingress and ui.ingress keep Kubernetes' own shape outside secrets, because the chart never reads those
 # Secrets and only passes them through to kubelet and the ingress controller. Each entry's existingSecret names a Secret
 # in the release's namespace, and its secretKeys name, for each value the chart reads from it, the key holding that
 # value. A Secret can come from anything, such as external-secrets, sealed-secrets or kubectl. The chart never creates
@@ -64,8 +64,8 @@ database:
 secrets:
   # Each database role's password, one entry per role, mounted only into the process that connects as it.
   databasePasswords:
-    mediator:
-      # -- The Secret holding the mediator role's password. Required.
+    api:
+      # -- The Secret holding the API server role's password. Required.
       existingSecret: ""
       secretKeys:
         # -- The key holding the password alone.
@@ -105,7 +105,7 @@ secrets:
     secretKeys:
       # -- The key holding the CA certificate.
       certificate: ca.crt
-  # The key pair stored credentials are sealed to (ADR-0081, ADR-0088), mounted into the mediator, the worker and the
+  # The key pair stored credentials are sealed to (ADR-0081, ADR-0088), mounted into the API server, the worker and the
   # UI and no other pod. Write it with the keygen binary attached to each release, which writes credential.key and
   # credential.pub. Helm cannot generate it.
   credentialSealingKeyPair:
@@ -118,8 +118,8 @@ secrets:
       # one (ADR-0092).
       privateKeys:
       - credential.key
-  # The bearer token clients present to the mediator's API and MCP roots.
-  mediatorBearerToken:
+  # The bearer token clients present to the API server's API and MCP roots.
+  apiBearerToken:
     # -- The Secret holding the token. When empty, the chart generates one into its own Secret,
     # <release>-mediated-mailbox-access-credentials, which holds whichever of this token and uiRequestTokenKey no
     # Secret is named for, keeps that Secret when the release is uninstalled, and reads each value back on every later
@@ -128,18 +128,18 @@ secrets:
     existingSecret: ""
     secretKeys:
       # -- The key holding the token.
-      bearerToken: mediator-bearer-token
+      bearerToken: api-bearer-token
   # The key the UI signs its request tokens with, which its replicas share and which must outlive a restart
   # (ADR-0061, ADR-0111).
   uiRequestTokenKey:
     # -- The Secret holding the key, at least 32 bytes. When empty, the chart generates one into its own Secret, as
-    # mediatorBearerToken describes.
+    # apiBearerToken describes.
     existingSecret: ""
     secretKeys:
       # -- The key holding the request token key.
       requestTokenKey: ui-request-token-key
-  # The certificate chain and private key the mediator's client surface serves TLS with (ADR-0127).
-  mediatorTls:
+  # The certificate chain and private key the API server's client surface serves TLS with (ADR-0127).
+  apiTls:
     # -- A Secret holding them, such as a kubernetes.io/tls Secret. Empty, the client surface serves plain HTTP.
     existingSecret: ""
     secretKeys:
@@ -165,33 +165,33 @@ sharedConfig:
   # -- How often delta sync ticks for each account, rendered into the worker's sync section and the UI, which shows
   # it.
   sync_interval: 5m
-  # -- The scanner's vocabulary and tuning (ADR-0005), rendered identically into the mediator and the worker, since
+  # -- The scanner's vocabulary and tuning (ADR-0005), rendered identically into the API server and the worker, since
   # every verdict records the section's revision. Empty, both use the vocabulary the application ships. Keys:
   # triggers (a map from language to words, a language written in [a-z0-9_] such as pt_br, and the code no quoted),
   # link_words, link_params, window, dense_length, dense_entropy, weights, threshold, subject_threshold.
   scanner: {}
 
-mediator:
-  # -- How many mediator pods run.
+api:
+  # -- How many API server pods run.
   replicaCount: 1
   image:
     # -- The image's repository under global.image.registry.
-    repository: mediated-mailbox-mediate
+    repository: mediated-mailbox-api
     # -- The tag, the chart's appVersion when empty.
     tag: ""
     # -- A digest that pins the image whatever the tag.
     digest: ""
-  # The mediator's connection to the database server above. Its password is secrets.databasePasswords.mediator.
+  # The API server's connection to the database server above. Its password is secrets.databasePasswords.api.
   database:
-    # -- The role it connects as, mediated_mailbox_mediate when empty.
+    # -- The role it connects as, mediated_mailbox_api when empty.
     user: ""
-    # -- The most connections its pool opens, the mediator's default when empty, the larger of 4 and the node's
+    # -- The most connections its pool opens, the API server's default when empty, the larger of 4 and the node's
     # processor count.
     poolSize: null
-  # -- The mediator's own configuration keys: account_reload_interval, provider_timeout and log_level.
+  # -- The API server's own configuration keys: account_reload_interval, provider_timeout and log_level.
   config: {}
   serviceAccount:
-    # -- Whether the chart creates the mediator's ServiceAccount. Its token is never mounted.
+    # -- Whether the chart creates the API server's ServiceAccount. Its token is never mounted.
     create: true
     # -- The ServiceAccount's name, generated when empty.
     name: ""
@@ -228,7 +228,7 @@ mediator:
     parentRefs: []
     # -- Host names it matches.
     hostnames: []
-    # -- Rules, each {matches, filters}. The backend is always the mediator's Service.
+    # -- Rules, each {matches, filters}. The backend is always the API server's Service.
     rules:
     - matches:
       - path:
@@ -425,7 +425,7 @@ worker:
 migration:
   image:
     # -- The image's repository under global.image.registry.
-    repository: mediated-mailbox-migrate
+    repository: mediated-mailbox-migrator
     # -- The tag, the chart's appVersion when empty.
     tag: ""
     # -- A digest that pins the image whatever the tag.
@@ -433,7 +433,7 @@ migration:
   database:
     # -- The migration role, which owns the schema (ADR-0048). Its password file is
     # secrets.databasePasswords.migration.
-    user: mediated_mailbox_migrate
+    user: mediated_mailbox_migrator
   # -- How many times a failed run is retried, enough to outlast roles created within the release's timeout. Helm
   # waits on the migration only up to that timeout, five minutes unless --timeout says otherwise.
   backoffLimit: 10

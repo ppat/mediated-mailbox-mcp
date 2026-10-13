@@ -1,0 +1,18 @@
+control: A released body sits inside delimiters it cannot close
+removes: characters between the letters break a match
+packages: ./api/internal/core/release
+tests: TestABodyCannotCloseTheDelimiters/the_closing_line TestABodyCannotCloseTheDelimiters/a_zero-width_space_between_the_words TestTheReleasedBodysForm
+scheduled-count: no
+
+diff --git a/api/internal/core/release/release.go b/api/internal/core/release/release.go
+--- a/api/internal/core/release/release.go
++++ b/api/internal/core/release/release.go
+@@ -179,7 +179,7 @@ func neutralize(text string) string {
+ 	var b strings.Builder
+ 	written := 0
+ 	for i, r := range text {
+-		if !unicode.IsLetter(r) {
++		if r == 0 {
+ 			continue
+ 		}
+ 		ring[(head+count)%len(keyword)] = letter{i, i + utf8.RuneLen(r)}

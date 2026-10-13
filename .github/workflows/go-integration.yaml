@@ -18,7 +18,7 @@ on:
     - core/**
     - db/**
     - executioncontext/**
-    - mediate/**
+    - api/**
     - packaging/chart/rules/alerting-rules.yaml
     - process/**
     - provider/**

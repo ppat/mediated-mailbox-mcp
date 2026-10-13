@@ -1,7 +1,7 @@
 // Package probes serves the health probe and the metrics endpoint of a process that runs work rather
 // than serving requests, on a listener of its own (ADR-0051). /healthz answers 200 while the process
 // runs, and /metrics serves the process's registry, between units of work as during them. A process
-// whose readiness changes while it runs, such as the mediator, serves its own probes, because its
+// whose readiness changes while it runs, such as the API server, serves its own probes, because its
 // /readyz answers from state only it holds.
 package probes
 

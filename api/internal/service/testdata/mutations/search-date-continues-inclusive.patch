@@ -1,0 +1,33 @@
+control: A listing's cursor continues only the listing, account and filter it came from, and paging serves every row once
+removes: a search by date, oldest first, continues from its last row inclusive, so that row is served again
+packages: ./api/internal/service
+tests: TestAnIndexReadPagesThroughEveryRowOnce
+scheduled-count: no
+integration: yes
+
+diff --git a/db/messages/search.sql b/db/messages/search.sql
+index 173bebc3..bb03c4a4 100644
+--- a/db/messages/search.sql
++++ b/db/messages/search.sql
+@@ -65,7 +65,7 @@ WHERE
+         )
+         OR (
+             @sort_by::text = 'date' AND NOT @descending::boolean
+-            AND (m.sent_at, m.message_id) > (@after_sent_at::timestamptz, @after_message_id::text)
++            AND (m.sent_at, m.message_id) >= (@after_sent_at::timestamptz, @after_message_id::text)
+         )
+         OR (
+             @sort_by::text = 'sender' AND @descending::boolean AND (
+diff --git a/db/messages/search.sql.go b/db/messages/search.sql.go
+index de36bd5e..0e52fc82 100644
+--- a/db/messages/search.sql.go
++++ b/db/messages/search.sql.go
+@@ -595,7 +595,7 @@ WHERE
+         )
+         OR (
+             $15::text = 'date' AND NOT $16::boolean
+-            AND (m.sent_at, m.message_id) > ($17::timestamptz, $18::text)
++            AND (m.sent_at, m.message_id) >= ($17::timestamptz, $18::text)
+         )
+         OR (
+             $15::text = 'sender' AND $16::boolean AND (

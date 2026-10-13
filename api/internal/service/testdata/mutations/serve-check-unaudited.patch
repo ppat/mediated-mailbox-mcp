@@ -1,0 +1,20 @@
+control: Every body serve and denial writes its audit row, and nothing is released without it
+removes: no audit row records the serve-time pattern check's run or the scanner it ran under
+packages: ./api/app
+tests: TestAReleasedBodyIsCleanMarkdown TestTheServeTimeCheckReadsEverythingReleased
+scheduled-count: no
+integration: yes
+
+diff --git a/api/internal/service/body.go b/api/internal/service/body.go
+index b868a7c7..2a7a35b8 100644
+--- a/api/internal/service/body.go
++++ b/api/internal/service/body.go
+@@ -353,7 +353,7 @@ func (s Sources) audit(ctx context.Context, account, messageID, action, stage, r
+ 		ContentFlags: g.contentFlags, ContentRuleIds: g.contentRules,
+ 		ScanState: pgtype.Text{String: g.scanState, Valid: true},
+ 	}
+-	if c.ran {
++	if false && c.ran {
+ 		params.ServeRuleIds = c.rules
+ 		params.ScannerVersion = pgtype.Int4{Int32: c.version, Valid: true}
+ 		params.ScannerRevision = pgtype.Text{String: c.revision, Valid: true}

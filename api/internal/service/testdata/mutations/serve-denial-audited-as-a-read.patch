@@ -1,0 +1,20 @@
+control: Every body serve and denial writes its audit row, and nothing is released without it
+removes: a serve-time denial is audited as a read
+packages: ./api/app
+tests: TestTheServeTimeCheckReadsEverythingReleased TestABodyTheConversionRefusesIsDenied
+scheduled-count: no
+integration: yes
+
+diff --git a/api/internal/service/body.go b/api/internal/service/body.go
+index b868a7c7..96772fbf 100644
+--- a/api/internal/service/body.go
++++ b/api/internal/service/body.go
+@@ -192,7 +192,7 @@ func (s Sources) getMessageBody(ctx context.Context, account string, input json.
+ 		if !converted {
+ 			reason = conversionRefused
+ 		}
+-		if err := s.audit(ctx, account, args.MessageID, actionDeny, StageServe, reason, g, check); err != nil {
++		if err := s.audit(ctx, account, args.MessageID, actionRead, StageServe, reason, g, check); err != nil {
+ 			return nil, err
+ 		}
+ 		s.Bodies.Observe(account, Outcome{Stage: StageServe, Reason: reason})

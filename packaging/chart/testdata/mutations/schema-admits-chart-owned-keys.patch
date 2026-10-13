@@ -1,5 +1,5 @@
 control: The values schema refuses a value Helm or a process would change
-removes: the mediator's own block accepts any key
+removes: the API server's own block accepts any key
 packages: ./packaging/chart
 tests: TestTheSchemaRefusesWhatHelmOrTheProcessesWouldChange
 scheduled-count: no
@@ -16,7 +16,7 @@ index dd3f86af..d9442c27 100644
            },
 -          "additionalProperties": false,
 +          "additionalProperties": true,
-           "description": "The mediator's own configuration keys. Keys the chart renders itself are refused here."
+           "description": "The API server's own configuration keys. Keys the chart renders itself are refused here."
          },
          "serviceAccount": {
            "type": "object",

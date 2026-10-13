@@ -1,5 +1,5 @@
 // Package markdown converts a message body's HTML to the clean Markdown every released body is
-// served as, and that the Content Scanner reads (ADR-0036, ADR-0005). The mediator converts at serve
+// served as, and that the Content Scanner reads (ADR-0036, ADR-0005). The API server converts at serve
 // time and the Backfill Job converts before scanning, so the scanner reads exactly the Markdown a
 // client would receive.
 //

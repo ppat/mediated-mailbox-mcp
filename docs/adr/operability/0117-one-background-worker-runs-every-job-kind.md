@@ -171,15 +171,16 @@ roles with each one.
   ([ADR-0079](./0079-secrets-arrive-as-mounted-files.md),
   [ADR-0081](./0081-credentials-sealed-to-a-public-key.md)).
 - **The trust anchor gains the heuristics run's code and loses processes.** The processes holding
-  credentials are the mediator, the worker and the UI, against five with a process per job kind.
+  credentials are the API server, the worker and the UI, against five with a process per job kind.
   Each still yields the full mailbox, so fewer of them lowers the places an attacker can enter
   without raising what any one yields
   ([ADR-0028](./0028-trust-anchor-hardening.md)).
 - **What the scanner and the thresholds must agree on is read once.** Backfill's and delta sync's
   scanner section comes from one configuration load, and their gate thresholds are one value in
   one process, so both agree by construction rather than by two processes being given the same.
-- **Cross-job coordination of the rate budget stays.** The mediator still spends from each account's
-  budget, so leases stay in the database ([ADR-0025](./0025-priority-classes-and-leases.md)).
+- **Cross-job coordination of the rate budget stays.** The API server still spends from each
+  account's budget, so leases stay in the database
+  ([ADR-0025](./0025-priority-classes-and-leases.md)).
 - **Undoing it is a packaging change.** Each job kind keeps its own entry, so moving one out of the
   worker later moves its wiring into a root of its own, and the role per job kind already exists.
   What cannot be undone is what a window records, which is series written without a job label, and

@@ -1,0 +1,22 @@
+control: The API server refuses a configuration it cannot serve with before anything is read or connected
+removes: the database section is never validated
+packages: ./api/app
+tests: TestAConfigurationTheAPIServerCannotServeWithIsRefused
+scheduled-count: no
+
+
+diff --git a/api/app/app.go b/api/app/app.go
+index 8f9657ee..b510043c 100644
+--- a/api/app/app.go
++++ b/api/app/app.go
+@@ -155,9 +155,7 @@ func validate(c Configuration) error {
+ 	if c.ProviderTimeout <= 0 || c.ProviderTimeout > maxProviderTimeout {
+ 		return fmt.Errorf("provider_timeout %s is not positive and at most %s", c.ProviderTimeout, maxProviderTimeout)
+ 	}
+-	if err := dbconnectcore.Validate(c.Database); err != nil {
+-		return err
+-	}
++	_ = dbconnectcore.Validate
+ 	return credentialcore.Validate(c.Credential)
+ }
+ 

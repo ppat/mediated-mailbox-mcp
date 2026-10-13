@@ -149,7 +149,7 @@ func TestOneClientIsNeverStoredTwice(t *testing.T) {
 	}
 }
 
-// M7's row for an account identifier the mediator's API root cannot address, and F11's grammar that
+// M7's row for an account identifier the API server's API root cannot address, and F11's grammar that
 // replaced its check. Storing an account whose identifier is exactly ., .. or /, or any identifier
 // outside the grammar of one lowercase DNS label, is refused by the schema, whatever writes it, and an
 // identifier inside the grammar is stored, so the refusal is the grammar's alone (ADR-0087, ADR-0016).

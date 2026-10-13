@@ -1,5 +1,5 @@
 ---
-# The one Helm chart that stands up every deployable of the system (ADR-0052): the migration step, the mediator, the
+# The one Helm chart that stands up every deployable of the system (ADR-0052): the migration step, the API server, the
 # worker and the UI. README.md beside this file is its usage guide, and values.yaml documents every value.
 #
 # version and appVersion are both the release version, so the chart and every image carry one version

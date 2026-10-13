@@ -8,7 +8,7 @@
 
 [ADR-0075](./0075-one-runtime-role-per-deployable.md) gave every deployable a runtime role of its
 own, so that what a compromised deployable can do in the database is bounded by its own role's
-grants. It named six roles, for the mediator, backfill, delta sync, the reorganization workload,
+grants. It named six roles, for the API server, backfill, delta sync, the reorganization workload,
 the heuristics job and the UI, beside the migration role of
 [ADR-0048](./0048-forward-only-migrations.md), and held each to three lines: its writes are its own
 statements', it holds no grant on a sealed credential or an OAuth client secret unless it opens
@@ -30,11 +30,11 @@ connects as is held in one place in `db/check`.
 ## Decision
 
 - **Every deployable connects as a runtime role of its own, and inside the worker every job kind
-  does.** The roles are `mediated_mailbox_mediate` and `mediated_mailbox_ui` for the mediator and the
+  does.** The roles are `mediated_mailbox_api` and `mediated_mailbox_ui` for the API server and the
   UI, and `mediated_mailbox_backfill`, `mediated_mailbox_sync`, `mediated_mailbox_organize` and
   `mediated_mailbox_propose` for the worker's job kinds backfill, delta sync, reorg apply and
-  rollback, and the heuristics run, beside the migration role `mediated_mailbox_migrate`. A job kind
-  added to the worker brings a role of its own.
+  rollback, and the heuristics run, beside the migration role `mediated_mailbox_migrator`. A job
+  kind added to the worker brings a role of its own.
 - **Each job kind's code runs under its own role, through its own connection pool**, and each job
   kind's import list maps to its role in the grant check, as each deployable's does.
 - **Each role's grants hold three lines.** Its writes are exactly what its own statements write. It
@@ -42,7 +42,7 @@ connects as is held in one place in `db/check`.
   holds no grant on a column a record forbids it to act on
   ([ADR-0002](../redaction/0002-fetch-time-re-evaluation.md)). Reads beyond those lines are
   acceptable.
-- **What the roles bound, stated plainly.** Between processes, the mediator, the worker and the
+- **What the roles bound, stated plainly.** Between processes, the API server, the worker and the
   UI, a role bounds what a compromised process can do in the database. Inside the worker, the
   roles bound what a buggy job can do in the database. They do not bound a compromised worker,
   which holds every role's credential, so its reach is the union of its job kinds' roles.

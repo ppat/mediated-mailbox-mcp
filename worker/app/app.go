@@ -112,7 +112,7 @@ type Sync struct {
 
 // defaults are the worker's defaults. Each job kind's user is its own runtime role (ADR-0118), and the
 // TLS mode is the one that fails closed. Each pool's size is set explicitly, since the driver's default
-// follows the node's processors and not the worker's limit. The reload interval is the mediator's, the
+// follows the node's processors and not the worker's limit. The reload interval is the API server's, the
 // sync interval ADR-0018's, the first window ADR-0105's, and the bound on the waiting messages a tick
 // decides the top of ADR-0018's steady-state tick. The key files and the password files have no
 // default, since a default path assumes the environment. The scanner's vocabulary and tuning are the

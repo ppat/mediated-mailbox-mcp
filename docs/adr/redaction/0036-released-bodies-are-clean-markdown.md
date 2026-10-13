@@ -51,7 +51,7 @@ agent, and the agent remains free to act on what it reads.
 ## Alternatives considered
 
 - **Serve bodies raw and rely on the agent's own injection defenses.** No case was tabled for
-  it. Rejected: the agent is untrusted by assumption, and the mediator is the last hop the
+  it. Rejected: the agent is untrusted by assumption, and the API server is the last hop the
   operator controls.
 - **Serve original HTML for fidelity.** Its case: fidelity. Rejected: markup is where payloads
   and rendering tricks live, this surface serves triage rather than reading pleasure, and HTML
@@ -81,7 +81,7 @@ agent, and the agent remains free to act on what it reads.
   content of a form is dropped with the form. Delimiter words written in letters that do not fold
   to them, such as fullwidth, mathematical or modifier forms of the same letters or look-alike
   letters from another script, or paraphrased, are not caught.
-- Assumptions about other components. The mediator converts a body when it serves it, and
+- Assumptions about other components. The API server converts a body when it serves it, and
   backfill converts it before the scanner reads it, both through the same shared conversion
   ([content/README.md](../../../content/README.md)), so a verdict holds for what is served. A body
   with no HTML part must not pass through the conversion as HTML, which would drop any text in

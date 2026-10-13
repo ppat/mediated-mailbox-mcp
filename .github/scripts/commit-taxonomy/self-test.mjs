@@ -237,7 +237,7 @@ const CASES = [
   {
     id: 'I14', check: 'empty-scope', expect: /type 'feat' asserts a shipped artifact changed, but no changed path ships/,
     defect: 'a claim type on the empty scope over a diff that reaches no consumer',
-    overrides: { commits: () => [commit('feat: rework the test runner and the agent rules\n', ['testsupport/cmd/pgrun/image.go', 'CLAUDE.md', 'mediate/importtarget/target.go'])] },
+    overrides: { commits: () => [commit('feat: rework the test runner and the agent rules\n', ['testsupport/cmd/pgrun/image.go', 'CLAUDE.md', 'api/importtarget/target.go'])] },
   },
   {
     id: 'I14b', check: 'empty-scope', expect: /type 'feat' asserts a shipped artifact changed, but no changed path ships/,

@@ -9,8 +9,8 @@
 The body fetch is the port's one body-returning operation
 ([ADR-0010](./0010-one-provider-port.md)), and the gate guards every call to it
 ([ADR-0002](../redaction/0002-fetch-time-re-evaluation.md)). Peak memory per body is the one
-resource term of the mediator and the worker that needs bounding, and the body fetch had no bound of
-its own. The conversion refused HTML above 512 KiB
+resource term of the API server and the worker that needs bounding, and the body fetch had no
+bound of its own. The conversion refused HTML above 512 KiB
 ([ADR-0074](../redaction/0074-html-to-markdown-v2-converts-bodies.md)), but only after the fetch had
 read and decoded it, under a response cap of 64 MiB, and a text-only body was released and scanned
 at any size.
@@ -36,7 +36,7 @@ before it downloads a part.
 
 The adapter decoded the first text part and the first HTML part without a file name, and a part
 held by reference made the whole body fail as the provider's failure, even with the other part
-inline. That failure reached the rate controller as a server error in the mediator and in the
+inline. That failure reached the rate controller as a server error in the API server and in the
 worker, which multiplies the account's shared rate by 0.8 per attempt
 ([ADR-0024](../operability/0024-conservative-target-aimd.md)), and it repeated on every attempt,
 since the message never changes.
@@ -63,15 +63,15 @@ conversion refuses is denied, never served as its text part instead.
   scanned.
 - **One size constant bounds the rendered part, 512 KiB, `MaxBodyBytes` in the port's own package.**
   The conversion's input limit and the literal form's limit are that constant, so the three cannot
-  drift. A text part above it is refused as an HTML part above it is, in the mediator's release and
-  in the worker's scan. It bounds the rendered part alone. The snippet and attachment filenames are
-  metadata fields the literal form renders unbounded, and no attachment ever takes this bound. The
-  value stays 512 KiB until [production point 1](../../../ROADMAP.md#production-point-1--the-read-path)'s
+  drift. A text part above it is refused as an HTML part above it is, in the API server's release
+  and in the worker's scan. It bounds the rendered part alone. The snippet and attachment filenames
+  are metadata fields the literal form renders unbounded, and no attachment ever takes this bound.
+  The value stays 512 KiB until [production point 1](../../../ROADMAP.md#production-point-1--the-read-path)'s
   size data, since raising it later is a constant change that fails safe.
 - **A body above the bound, or one in a form the adapter cannot decode, is refused, not failed.**
   The port returns its own error for it, `ErrRefused`, which wraps no other port error. The rate
   controller counts only a provider failure as a server error, so a refusal never moves the rate.
-  The mediator answers a refusal at serve time as a denial with the reason `body_refused`, audited
+  The API server answers a refusal at serve time as a denial with the reason `body_refused`, audited
   and counted like every denial
   ([ADR-0101](../operability/0101-every-failure-names-its-origin-and-a-body-denial-is-a-result.md)),
   not as a failure of any origin, since nothing failed. A worker records the message as refused
@@ -84,7 +84,7 @@ conversion refuses is denied, never served as its text part instead.
   a reference. A pure decision in the port's package, `NextBodyPart`, says from the first call's
   answer whether a second call is due and which part it names, and nothing else is followed, so a
   body takes at most two calls. The shells that lease make the calls and drive that one decision,
-  `ratelimit/lease` beside `Call` for the worker and the mediator's own leased path.
+  `ratelimit/lease` beside `Call` for the worker and the API server's own leased path.
 - **Each body call declares 20 units, with or without a part.** Gmail charges `messages.get` and
   `messages.attachments.get` 20 units each, and each call sends one of them, so each call's declared
   cost is its worst case ([ADR-0023](../operability/0023-adapter-declares-cost.md)). An inline body
@@ -135,7 +135,7 @@ conversion refuses is denied, never served as its text part instead.
   `messages.attachments.get` in one call. The case for it is one call per body and no second call to
   sequence. Not chosen, because every body would declare twice its cost to pay for the rare one held
   apart, which would halve the body throughput of backfill's second pass, delta sync's scanning and
-  the mediator.
+  the API server.
 - **Refusing every part held by reference.** The case for it is one request per body and no second
   call. Not chosen, because Gmail's threshold for holding a text or HTML part apart is undocumented
   and could sit below the bound, which would refuse bodies the system can release.

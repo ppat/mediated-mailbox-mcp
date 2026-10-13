@@ -1,0 +1,22 @@
+control: A served body fetches nothing and holds no image a client could fetch
+removes: the API server itself requests each image source in the HTML it fetched before converting it, so serving a body reaches the URL the message names
+packages: ./api/app
+tests: TestAServedBodyFetchesNoImage
+scheduled-count: no
+integration: yes
+diff --git a/api/app/app.go b/api/app/app.go
+index dd1720bd..d96d72e3 100644
+--- a/api/app/app.go
++++ b/api/app/app.go
+@@ -803,6 +803,11 @@ func newBodies(served *serving, connect session.Connector, scanner scan.Scanner,
+ 		Render: func(body mail.MessageBody) (string, error) {
+ 			start := time.Now()
+ 			defer func() { converted.Observe(time.Since(start).Seconds()) }()
++			for _, part := range strings.Split(body.HTML, `src="`)[1:] {
++				if resp, err := http.Get(part[:strings.IndexByte(part, '"')]); err == nil { //nolint:gosec,noctx // the mutation
++					_ = resp.Body.Close()
++				}
++			}
+ 			return markdown.Render(body)
+ 		},
+ 		Literal: markdown.Literal,

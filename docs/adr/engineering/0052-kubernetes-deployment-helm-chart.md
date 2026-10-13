@@ -26,9 +26,9 @@ the chart may assume about the user's cluster.
   system's secrets ([ADR-0079](../operability/0079-secrets-arrive-as-mounted-files.md)) arrive as
   Helm values or pre-existing Secrets. A pre-existing Secret can come from anything, and the chart
   reads only the keys it names in it. A secret value the system generates and must keep across
-  upgrades, such as the mediator's bearer token, comes from a Secret the user names, or else from
-  one Secret the chart creates once, keeps on uninstall, and reads back on every later render rather
-  than generating it again. Policy is not a chart input. It lives in the
+  upgrades, such as the API server's bearer token, comes from a Secret the user names, or else
+  from one Secret the chart creates once, keeps on uninstall, and reads back on every later render
+  rather than generating it again. Policy is not a chart input. It lives in the
   database, and it is imported from a file and exported to one through the UI
   ([ADR-0004](../classification/0004-sender-list-decides.md),
   [ADR-0041](./0041-policy-as-immutable-snapshots.md)). Beyond core Kubernetes, neither the chart
@@ -65,8 +65,9 @@ the chart may assume about the user's cluster.
   resource requests the user can override and no limits, which the user may set. Go sets no memory
   limit of its own, so a user who sets a memory limit can also give each container's Go runtime a
   soft memory limit below it, which no container has by default. Exposure outside the cluster is
-  the user's choice of an Ingress or a Gateway API HTTPRoute, for the mediator and the UI each,
-  with the user's annotations passed through, and nothing is exposed until the user enables one.
+  the user's choice of an Ingress or a Gateway API HTTPRoute, for the API server and the UI
+  each, with the user's annotations passed through, and nothing is exposed until the user enables
+  one.
 - **Tests travel with the chart.** They are standard Helm tests in this repository, unit tests that
   render the chart, rule unit tests over the alerting rules it ships, and a chainsaw suite,
   declarative Kubernetes end-to-end tests, that deploys the chart onto an ephemeral kind cluster and exercises it. The

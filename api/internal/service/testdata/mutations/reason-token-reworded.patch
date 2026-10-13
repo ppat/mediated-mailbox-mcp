@@ -1,0 +1,19 @@
+control: A body decision's reason is a token of the closed set the contract states
+removes: the gate names a pending scan as a phrase rather than its token
+packages: ./api/internal/service
+tests: TestTheReasonEnumIsTheTokensABodyDecisionReturns
+scheduled-count: no
+
+diff --git a/core/redact/redact.go b/core/redact/redact.go
+index f9245dd4..151a275d 100644
+--- a/core/redact/redact.go
++++ b/core/redact/redact.go
+@@ -50,7 +50,7 @@ const (
+ func (r Reason) String() string {
+ 	switch r {
+ 	case PendingScan:
+-		return "pending_scan"
++		return "pending content scan"
+ 	case SkippedRestricted:
+ 		return "skipped_restricted"
+ 	case RestrictedSender:

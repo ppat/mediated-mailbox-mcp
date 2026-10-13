@@ -6,7 +6,7 @@ is a library like this one that argues its own case
 conventions it shares with every component are
 [CLAUDE.md](../CLAUDE.md#code-layout-and-conventions)'s.
 
-The mediator fetches released bodies, backfill and delta sync build and refresh the index, and the
+The API server fetches released bodies, backfill and delta sync build and refresh the index, and the
 reorg job kind applies plans, all through the Provider Port
 ([ADR-0010](../docs/adr/provider/0010-one-provider-port.md)). Deployables never import each other,
 so the adapters are shared code, and they do network I/O, so they cannot sit in `core/`. Writing an

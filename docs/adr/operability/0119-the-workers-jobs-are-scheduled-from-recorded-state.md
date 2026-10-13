@@ -26,7 +26,7 @@ the difference ([ADR-0037](../redaction/0037-delisting-transition.md),
 Checkpoints commit with the work they cover
 ([ADR-0133](../data/0133-backfill-is-full-history-and-two-pass.md),
 [ADR-0045](../engineering/0045-crash-injection-testing.md)), and a body is released only by the
-mediator's decision at fetch time ([ADR-0002](../redaction/0002-fetch-time-re-evaluation.md),
+API server's decision at fetch time ([ADR-0002](../redaction/0002-fetch-time-re-evaluation.md),
 [ADR-0099](../engineering/0099-a-body-request-loads-the-policy-before-it-decides.md)).
 
 A backfill run that loads the policy once at its start and holds it for every page of both passes,
@@ -109,7 +109,7 @@ comparison inside the run.
 - **A stuck run is not killed.** Its running time and its job's last success make it visible, and
   the timeouts its own calls carry bound it. Each provider call a job kind makes through its lease
   has 30 seconds to answer once the lease is issued, a constant of the rate limiter's leased call,
-  as the mediator's default provider timeout is 30 seconds. A call cut off while its run still
+  as the API server's default provider timeout is 30 seconds. A call cut off while its run still
   waits is the provider's failure, which the rate controller counts as a server error
   ([ADR-0101](./0101-every-failure-names-its-origin-and-a-body-denial-is-a-result.md)).
 
@@ -192,9 +192,9 @@ the reader and ask whether the row still means something.
 replicas, only the claim step changes. Its candidates are a lease row in PostgreSQL, with an
 expiry renewed while the job runs, or an expiring key in a platform-supplied Redis or Dragonfly. A
 session advisory lock is not one, since it fails behind a transaction-mode pooler, and a
-transaction-scoped lock lasts one transaction. A single binary that also holds the mediator and
-the UI composes the same scheduler, from the worker's entry package, and needs no external store.
-It lacks the platform's guarantee of a
+transaction-scoped lock lasts one transaction. A single binary that also holds the API server
+and the UI composes the same scheduler, from the worker's entry package, and needs no external
+store. It lacks the platform's guarantee of a
 single copy, so a guard against two copies is that build shape's choice.
 
 **No framework.** The scheduler is hand-written on Go's standard library, behind four calls,

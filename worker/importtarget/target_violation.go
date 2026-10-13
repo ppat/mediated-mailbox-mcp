@@ -1,6 +1,6 @@
 //go:build banproof
 
-// Package importtarget exists only when the banproof tag is set, as the mediator's list's target.
+// Package importtarget exists only when the banproof tag is set, as the API server's list's target.
 package importtarget
 
 // A violation file must state a want, so this one also imports the comparison library tests use into

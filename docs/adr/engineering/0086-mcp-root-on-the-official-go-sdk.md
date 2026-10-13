@@ -23,10 +23,10 @@ in front of both roots. Argument validation, UTC timestamps
 ([ADR-0033](../operability/0033-utc-only-timestamps.md)) and the shape of a failure belong to the
 service layer, shared by both roots. What is left for this choice is who implements the protocol,
 how its correctness is proven, what surface the root exposes, and what it links into the
-mediator, a process that holds full-mailbox credentials.
+API server, a process that holds full-mailbox credentials.
 
 The choice looks like picking a library. It is really whether outside code implements the
-protocol inside the mediator at all.
+protocol inside the API server at all.
 
 | Requirement | What it demands | From |
 | --- | --- | --- |
@@ -40,7 +40,7 @@ protocol inside the mediator at all.
 | R8 Arguments untouched | Arguments reach the service layer as the client sent them | ADR-0030, no logic in a frontend |
 | R9 Stateless | No session or stream kept between requests | [ADR-0051](./0051-environment-contract.md), any process killed at any point |
 | R10 Failures intact | A failed call's structured result reaches the client | [O5](../../../USE_CASES.md#o5--clients-can-tell-failures-apart) |
-| R11 Mounting | An `http.Handler` behind the mediator's transport and bearer check | ADR-0030, [ADR-0127](../operability/0127-tls-when-given-a-key-pair-plain-http-otherwise.md) |
+| R11 Mounting | An `http.Handler` behind the API server's transport and bearer check | ADR-0030, [ADR-0127](../operability/0127-tls-when-given-a-key-pair-plain-http-otherwise.md) |
 | R12 Environment | No undeclared environment input | ADR-0051, [O6](../../../USE_CASES.md#o6--deployable) |
 | R13 Annotations | All four hints, `readOnlyHint`, `destructiveHint`, `idempotentHint` and `openWorldHint`, set explicitly from data on raw registration and reaching the client with the meaning the registry derived | ADR-0087 |
 
@@ -90,16 +90,16 @@ it.
 | Construction | Harm | What stops it |
 | --- | --- | --- |
 | A server built with no options | It advertises logging and a changing tool list, and each agent parks an open stream against a stateless server | A test asserting the advertised capabilities are exactly tools at both the legacy and the 2026-07-28 revision, with a mutation removing the option |
-| A prompt, a resource or a log level answered | Surface on one root that the other lacks | The receiving middleware, and a test that sends each and a request with a case-variant method key, and expects every one refused. The root refuses a batch before the SDK reads it, at every revision ([ADR-0130](../operability/0130-the-mediator-bounds-what-one-request-can-make-it-hold.md)) |
+| A prompt, a resource or a log level answered | Surface on one root that the other lacks | The receiving middleware, and a test that sends each and a request with a case-variant method key, and expects every one refused. The root refuses a batch before the SDK reads it, at every revision ([ADR-0130](../operability/0130-the-api-server-bounds-what-one-request-can-make-it-hold.md)) |
 | Typed tool registration | Arguments validated or reshaped in the frontend | A root that uses raw handlers only, reviewed in its one generator file |
 | The SDK imported outside the root's generator | Protocol code spread into the service layer | The import lists and their violation files ([ADR-0071](./0071-static-enforcement-toolchain.md)) |
 | A tool registered with a hint pointer left nil | The client reads the tool as destructive and open-world | A test asserting the literal annotations of one tool per effect class at both revisions, with mutations dropping each pointer |
-| `MCPGODEBUG` set in the mediator's environment | SDK behaviour switched without a change here. `allowsessionsinstateless` puts sessions back into the stateless handler, and `hintomitempty` changes the annotation bytes the literal test pins, though not their meaning, since both hints it omits default to false | The mediator refuses to start while it is set, even to an empty value, proven by a test with a mutation removing the refusal |
+| `MCPGODEBUG` set in the API server's environment | SDK behaviour switched without a change here. `allowsessionsinstateless` puts sessions back into the stateless handler, and `hintomitempty` changes the annotation bytes the literal test pins, though not their meaning, since both hints it omits default to false | The API server refuses to start while it is set, even to an empty value, proven by a test with a mutation removing the refusal |
 | The `x-mcp-header` keyword in a registry schema | The SDK binds a header to an argument, and the account's binding differs between revisions | A registry rule refuses it at generation, proven by a violation case |
 
 | Requirement | Met by |
 | --- | --- |
-| R1 Footprint | Accepted at seven modules and about 1.8 MB on a mediator of sixteen modules and about 13.9 MB |
+| R1 Footprint | Accepted at seven modules and about 1.8 MB on an API server of sixteen modules and about 13.9 MB |
 | R2 Revisions | The SDK, Tier 1 |
 | R3 Proof | The SDK's own conformance CI, and the root's tests at both revision eras |
 | R4 Tools only | The capabilities option, the receiving middleware, the import fence and a literal test |
@@ -110,7 +110,7 @@ it.
 | R9 Stateless | `Stateless` plus the capabilities option |
 | R10 Failures intact | Error results carrying the service layer's structured content |
 | R11 Mounting | The streamable HTTP handler is an `http.Handler` |
-| R12 Environment | The mediator refuses to start while `MCPGODEBUG` is set |
+| R12 Environment | The API server refuses to start while `MCPGODEBUG` is set |
 | R13 Annotations | `ToolAnnotations` with all four hints set, and the literal annotation test |
 
 An implementer would otherwise pay to discover these.
@@ -127,7 +127,7 @@ An implementer would otherwise pay to discover these.
   `tools/list` reply also carries `ttlMs` and `cacheScope`, which a literal test of the listing
   expects.
 - The SDK parses `MCPGODEBUG` in its package initialisation and panics on a malformed value, before
-  the mediator's own refusal runs. The mediator still does not start, but the message is the
+  the API server's own refusal runs. The API server still does not start, but the message is the
   SDK's.
 
 ## Alternatives considered
@@ -157,8 +157,8 @@ The grid shows the following.
 - mcp-go is dominated by the SDK, lower on revisions, proof, governance, registration, arguments
   and statelessness and equal elsewhere. jrpc2 under an owned layer is dominated by the hand-written
   root, no better anywhere and a module worse.
-- R8 to R12 separated no one among the survivors, because the service layer and the mediator's own
-  front already carry what they ask. Every survivor passes R13, and mcp-go's 3 there orders it
+- R8 to R12 separated no one among the survivors, because the service layer and the API server's
+  own front already carry what they ask. Every survivor passes R13, and mcp-go's 3 there orders it
   below the SDK without separating the two leaders.
 - The SDK and the hand-written root tie on proof. The SDK's own CI passes the whole suite on its
   reference server, while the configuration this record picks, run through the suite, failed one
@@ -173,8 +173,8 @@ The grid shows the following.
 | --- | --- | --- |
 | Who implements the next revision | The SDK, before the specification ships | The project |
 | Who proves conformance | The SDK's CI, plus the root's tests | The project's CI, running a pre-release third-party suite |
-| Modules added to the mediator | 7 | 0 |
-| Bytes added to the mediator | about 1.8 MB | about 53 KB |
+| Modules added to the API server | 7 | 0 |
+| Bytes added to the API server | about 1.8 MB | about 53 KB |
 | Lines the project owns in the root | about 50, plus the receiving middleware | about 275 |
 
 The reading. Neither leader has a 1. Each has two cells at 2, and they share R3. The SDK's other
@@ -229,7 +229,7 @@ detachable, since the same suite can run against a hand-written root, while its 
   The SDK's flag documentation gives each flag the release that removes it
   ([`mcpgodebug.md`](https://github.com/modelcontextprotocol/go-sdk/blob/main/docs/mcpgodebug.md)).
 - What one request can make the root hold is bounded by
-  [ADR-0130](../operability/0130-the-mediator-bounds-what-one-request-can-make-it-hold.md), which
+  [ADR-0130](../operability/0130-the-api-server-bounds-what-one-request-can-make-it-hold.md), which
   has the root refuse a JSON-RPC batch before the SDK reads it and ask the SDK to follow a
   request's cancellation.
 - Assumptions about other components. The service layer validates arguments, rejects timestamps

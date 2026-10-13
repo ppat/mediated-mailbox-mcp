@@ -10,8 +10,8 @@ metadata:
   labels:
     {{- include "mm.sharedLabels" . | nindent 4 }}
 data:
-  mediator.yaml: |
-    {{- include "mm.config.mediator" . | nindent 4 }}
+  api.yaml: |
+    {{- include "mm.config.api" . | nindent 4 }}
   ui.yaml: |
     {{- include "mm.config.ui" . | nindent 4 }}
   worker.yaml: |

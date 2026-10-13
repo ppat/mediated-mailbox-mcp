@@ -22,7 +22,7 @@ on:
     - core/**
     - db/**
     - executioncontext/**
-    - mediate/**
+    - api/**
     - process/**
     - provider/**
     - ratelimit/**

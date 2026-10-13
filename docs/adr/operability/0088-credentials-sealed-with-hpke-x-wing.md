@@ -91,7 +91,7 @@ released recently and none is deprecated.
   ([ADR-0054](../engineering/0054-one-repository-flat-layout-naming-convention.md)), so it has no
   image of its own. Wherever the credential code sits, the command sits under it. Carrying it in
   an existing image would give that image a second, unrelated job. The UI must never carry key
-  material, and the migration image holds none of this project's Go code by design. A signed
+  material, and the migrator holds none of this project's Go code by design. A signed
   release binary is a published artifact, so the system still comes up from published artifacts
   alone ([O6](../../../USE_CASES.md#o6--deployable)). The platforms the binaries are built for are
   the release workflow's ([CLAUDE.md](../../../CLAUDE.md#ci-workflows)).

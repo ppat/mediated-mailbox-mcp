@@ -46,9 +46,9 @@ on:
     - process/**
     - provider/**
     - ratelimit/**
-    - mediate/main.go
-    - mediate/app/**
-    - mediate/internal/**
+    - api/main.go
+    - api/app/**
+    - api/internal/**
     - ui/main.go
     - ui/app/**
     - ui/internal/**
@@ -109,7 +109,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        image: [mediate, migrate, ui, worker]
+        image: [api, migrator, ui, worker]
     steps:
     - name: Checkout
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

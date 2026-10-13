@@ -447,7 +447,7 @@ func TestAFailedBodyFetch(t *testing.T) {
 }
 
 // releaseReason returns why the Redaction Gate releases or withholds a stored message's body under the
-// world's policy, from the stored flags and scan state, as the mediator decides it (ADR-0002).
+// world's policy, from the stored flags and scan state, as the API server decides it (ADR-0002).
 func releaseReason(t *testing.T, w *world, id string, st stored) redact.Reason {
 	t.Helper()
 	states := map[string]sensitivity.ScanState{

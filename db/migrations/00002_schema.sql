@@ -39,7 +39,7 @@ CREATE TABLE accounts (
     -- NULL for a provider without an OAuth client.
     oauth_client text,
     FOREIGN KEY (oauth_client, provider) REFERENCES oauth_clients (name, provider),
-    -- No account identifier is exactly ., .. or /, which the mediator's API root cannot address as a
+    -- No account identifier is exactly ., .. or /, which the API server's API root cannot address as a
     -- path segment (ADR-0087). Account setup refuses them first, with its own wording.
     CONSTRAINT accounts_account_id_addressable CHECK (account_id NOT IN ('.', '..', '/'))
 );

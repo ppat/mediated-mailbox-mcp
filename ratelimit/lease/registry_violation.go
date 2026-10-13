@@ -5,7 +5,7 @@ package lease
 // This file registers and serves metrics through client_golang's default registry on purpose, each
 // way the ban refuses. The last three statements use the process's own registry, which the ban
 // allows, so a ban grown too wide reports a finding no annotation wants. The list for non-test code
-// admits promhttp, because the mediator serves its metrics endpoint through promhttp.HandlerFor.
+// admits promhttp, because the API server serves its metrics endpoint through promhttp.HandlerFor.
 import (
 	"net/http"
 

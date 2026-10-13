@@ -1,0 +1,20 @@
+control: The API server loads the policy of the accounts it serves, and of none when it serves none
+removes: the policy loader's reload-failure series is registered on a registry the API server does not serve, so its metrics endpoint never carries the alarm's series
+packages: ./api/app
+tests: TestAFailedPolicyLoadStillFollowsTheSnapshot
+scheduled-count: no
+integration: yes
+
+diff --git a/api/app/app.go b/api/app/app.go
+index 164cc08c..ec456aef 100644
+--- a/api/app/app.go
++++ b/api/app/app.go
+@@ -420,7 +420,7 @@ func (s *serving) loadPolicy(ctx context.Context, accounts []string) error {
+ 	}
+ 	policies := s.policies.Load()
+ 	if policies == nil {
+-		built, err := policyload.New(s.pool, accounts, s.metrics, lookups())
++		built, err := policyload.New(s.pool, accounts, prometheus.NewRegistry(), lookups())
+ 		if err != nil {
+ 			return err
+ 		}

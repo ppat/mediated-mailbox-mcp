@@ -3,7 +3,7 @@ One ServiceMonitor per deployable, scraping its plain-HTTP metrics port. They re
 ServiceMonitor kind, or when monitoring.serviceMonitor.enabled forces them on, and never when it is false.
 */ -}}
 {{- if include "mm.monitoringEnabled" (list $ .Values.monitoring.serviceMonitor.enabled "monitoring.coreos.com/v1/ServiceMonitor") }}
-{{- range $component := list "mediator" "ui" "worker" }}
+{{- range $component := list "api" "ui" "worker" }}
 ---
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor

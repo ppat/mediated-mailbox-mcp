@@ -7,9 +7,9 @@ jointly with [ADR-0079](../operability/0079-secrets-arrive-as-mounted-files.md))
 
 ## Context
 
-Every deployable that calls a provider holds a full-mailbox provider credential. The mediator uses
-one to fetch a released body ([ADR-0002](../redaction/0002-fetch-time-re-evaluation.md)), backfill
-and delta sync to build and refresh the index
+Every deployable that calls a provider holds a full-mailbox provider credential. The API server uses
+one to fetch a released body ([ADR-0002](../redaction/0002-fetch-time-re-evaluation.md)),
+backfill and delta sync to build and refresh the index
 ([ADR-0133](./0133-backfill-is-full-history-and-two-pass.md),
 [ADR-0018](./0018-delta-sync-polls.md)), and the reorganization workload to apply a plan
 ([ADR-0020](../mutation/0020-reorg-plan-approve-apply-rollback.md)).
@@ -49,8 +49,8 @@ needed, through a guided flow in the UI rather than a set of manual steps that a
   each provider that has them, and the credentials from the database.**
   A provider rotating a credential is written back there, as
   [ADR-0082](../operability/0082-rotation-writeback-to-the-database.md) decides.
-- **No provider credential ever crosses the client boundary.** Clients authenticate to the mediator
-  with a bearer token distinct from every provider credential. Each deployable that calls a
+- **No provider credential ever crosses the client boundary.** Clients authenticate to the API
+  server with a bearer token distinct from every provider credential. Each deployable that calls a
   provider authenticates to that provider. Two trust domains that never mix.
 
 ## Alternatives considered

@@ -1,0 +1,18 @@
+control: The MCP root refuses a JSON-RPC batch before any of its calls runs, at every revision
+removes: the check reads the first byte as it comes, so whitespace before the bracket hides a batch
+packages: ./api/internal/mcp
+tests: TestABatchIsRefusedAtEveryRevision
+scheduled-count: no
+
+diff --git a/api/internal/mcp/mcp.go b/api/internal/mcp/mcp.go
+--- a/api/internal/mcp/mcp.go
++++ b/api/internal/mcp/mcp.go
+@@ -81,7 +81,7 @@ func refuseBatches(next http.Handler) http.Handler {
+ 				http.Error(w, "failed to read body", http.StatusBadRequest)
+ 				return
+ 			}
+-			if c == ' ' || c == '\t' || c == '\n' || c == '\r' {
++			if false {
+ 				continue
+ 			}
+ 			if c == '[' {

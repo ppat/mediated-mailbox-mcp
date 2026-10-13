@@ -4,13 +4,13 @@
 apiVersion: v1
 kind: Secret
 metadata:
-  name: mediate-db
+  name: api-db
   labels:
     cnpg.io/reload: "true"
 type: kubernetes.io/basic-auth
 stringData:
-  username: mediated_mailbox_mediate
-  password: mediate-test-password
+  username: mediated_mailbox_api
+  password: api-test-password
 ---
 apiVersion: v1
 kind: Secret

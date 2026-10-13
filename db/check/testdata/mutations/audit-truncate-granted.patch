@@ -10,7 +10,7 @@ index eba1d5bc..99b1c8e9 100644
 --- a/db/migrations/00003_grants.sql
 +++ b/db/migrations/00003_grants.sql
 @@ -545,3 +545,4 @@ GRANT SELECT (account_id, credential), UPDATE (credential) ON account_state
- TO mediated_mailbox_mediate, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
+ TO mediated_mailbox_api, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
  GRANT SELECT (name, provider, client_id, client_secret) ON oauth_clients
- TO mediated_mailbox_mediate, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
+ TO mediated_mailbox_api, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
 +GRANT TRUNCATE ON audit_log TO mediated_mailbox_organize;

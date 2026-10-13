@@ -42,9 +42,9 @@ tests:
     values: '0+3000x10'
   - series: 'mediated_mailbox_provider_hard_cap{account="shared",provider="gmail",instance="backfill"}'
     values: '80x10'
-  - series: 'mediated_mailbox_provider_request_cost_total{account="shared",provider="gmail",instance="mediate"}'
+  - series: 'mediated_mailbox_provider_request_cost_total{account="shared",provider="gmail",instance="api"}'
     values: '0+3000x10'
-  - series: 'mediated_mailbox_provider_hard_cap{account="shared",provider="gmail",instance="mediate"}'
+  - series: 'mediated_mailbox_provider_hard_cap{account="shared",provider="gmail",instance="api"}'
     values: '80x10'
   alert_rule_test:
   - eval_time: 5m
@@ -325,7 +325,7 @@ tests:
     alertname: MediatedMailboxIssuanceStalled
     exp_alerts: []
 
-# The mediator's series absent. Only a job workload's series is present, and the absence rule fires after five
+# The API server's series absent. Only a job workload's series is present, and the absence rule fires after five
 # minutes.
 - interval: 15s
   input_series:
@@ -341,4 +341,4 @@ tests:
     - exp_labels:
         severity: warning
       exp_annotations:
-        summary: The mediator's account-level rate series are missing.
+        summary: The API server's account-level rate series are missing.

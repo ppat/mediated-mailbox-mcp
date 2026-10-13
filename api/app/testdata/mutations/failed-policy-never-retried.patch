@@ -1,0 +1,40 @@
+control: The API server serves the accounts each account snapshot it reloads lists, and keeps them when a reload's read fails
+removes: a reload loads the policy only when its accounts differ from the ones the last load was tried for, so a load that failed is never retried and a policy edit never reaches the metadata reads
+packages: ./api/app
+tests: TestAFailedPolicyLoadStillFollowsTheSnapshot TestEveryReloadLoadsThePolicy
+scheduled-count: no
+integration: yes
+
+diff --git a/api/app/app.go b/api/app/app.go
+index 00212862..4dc7d5d7 100644
+--- a/api/app/app.go
++++ b/api/app/app.go
+@@ -38,6 +38,7 @@ import (
+ 	"net"
+ 	"net/http"
+ 	"os"
++	"slices"
+ 	"strings"
+ 	"sync/atomic"
+ 	"time"
+@@ -372,6 +373,7 @@ type serving struct {
+ 	registry service.Registry
+ 	// snapshot is the account snapshot the registry serves.
+ 	snapshot atomic.Pointer[accountload.Snapshot]
++	tried    []string
+ }
+ 
+ // newServing returns the serving state, serving no account until its first reload, and registers on
+@@ -405,7 +407,11 @@ func (s *serving) reload(ctx context.Context) error {
+ 	}
+ 	next := s.loader.Snapshot()
+ 	ids := idsOf(next)
+-	failed := s.loadPolicy(ctx, ids)
++	var failed error
++	if !slices.Equal(ids, s.tried) {
++		s.tried = ids
++		failed = s.loadPolicy(ctx, ids)
++	}
+ 	s.snapshot.Store(next)
+ 	s.registry.Serve(ids)
+ 	s.logger.Info("accounts served", "accounts", len(ids))

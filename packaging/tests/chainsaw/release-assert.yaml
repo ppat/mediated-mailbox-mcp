@@ -14,7 +14,7 @@ status:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: (join('-', [$release, 'mediated-mailbox-mediator']))
+  name: (join('-', [$release, 'mediated-mailbox-api']))
   namespace: ($namespace)
 status:
   readyReplicas: 1

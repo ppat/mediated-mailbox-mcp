@@ -78,7 +78,7 @@ func Decode(t *testing.T, out string) []Object {
 }
 
 // ConfigFile returns the text of one process's configuration file from the chart's ConfigMap, such as
-// mediator.yaml.
+// api.yaml.
 func ConfigFile(t *testing.T, objects []Object, file string) string {
 	t.Helper()
 	for _, o := range objects {
@@ -98,7 +98,7 @@ func ConfigFile(t *testing.T, objects []Object, file string) string {
 }
 
 // SchemaKeys returns the property names of the object at path in the chart's values schema, sorted, such as
-// SchemaKeys(t, chartDir, "mediator", "config").
+// SchemaKeys(t, chartDir, "api", "config").
 func SchemaKeys(t *testing.T, chartDir string, path ...string) []string {
 	t.Helper()
 	src, err := os.ReadFile(filepath.Join(chartDir, "values.schema.json"))

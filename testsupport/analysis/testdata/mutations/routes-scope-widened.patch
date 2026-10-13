@@ -1,5 +1,5 @@
 control: The routes analyser refuses a route the UI registers on a mux other than through its recording mux
-removes: every package of the module is checked, the mediator included
+removes: every package of the module is checked, the API server included
 packages: ./testsupport/analysis
 tests: TestRoutes
 scheduled-count: no

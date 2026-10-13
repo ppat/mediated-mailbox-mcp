@@ -1,7 +1,7 @@
 # mediated-mailbox chart
 
-Stands up the mediated mailbox system on Kubernetes: the migration step, the mediator, the worker and
-the UI ([ADR-0052](https://github.com/ppat/mediated-mailbox-mcp/blob/main/docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md)). The chart
+Stands up the mediated mailbox system on Kubernetes: the migration step, the API server, the worker
+and the UI ([ADR-0052](https://github.com/ppat/mediated-mailbox-mcp/blob/main/docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md)). The chart
 deploys these workloads and nothing else. PostgreSQL, the key pair stored credentials are sealed to,
 and each database role's password are inputs you supply. Accounts and policy are set up through the
 UI once the system runs.
@@ -14,11 +14,11 @@ would not read.
 | Object | Runs | Reads |
 | --- | --- | --- |
 | Job `<release>-mediated-mailbox-migration` | The migration chain, as a Helm hook before install and before every upgrade ([ADR-0129](https://github.com/ppat/mediated-mailbox-mcp/blob/main/docs/adr/data/0129-the-chart-runs-the-migration-step-as-a-pre-install-and-pre-upgrade-hook-job.md)) | The migration role's password file, the CA certificate |
-| Deployment `<release>-mediated-mailbox-mediator` | The client surface agents call, over MCP and HTTP | Its role's password, the key pair, the bearer token, the CA certificate, its TLS pair |
+| Deployment `<release>-mediated-mailbox-api` | The client surface agents call, over MCP and HTTP | Its role's password, the key pair, the bearer token, the CA certificate, its TLS pair |
 | Deployment `<release>-mediated-mailbox-worker` | Every background job kind, as exactly one pod | Each job kind's role password, the key pair, the CA certificate |
 | Deployment `<release>-mediated-mailbox-ui` | The operator's UI | Its role's password, the key pair, the request token's key, the CA certificate, its TLS pair |
 | ConfigMap `<release>-mediated-mailbox-config` | One configuration file per process | |
-| Secret `<release>-mediated-mailbox-access-credentials` | Whichever of the mediator's bearer token and the UI's request token key you name no Secret for | |
+| Secret `<release>-mediated-mailbox-access-credentials` | Whichever of the API server's bearer token and the UI's request token key you name no Secret for | |
 
 Each pod mounts only the secret keys its process reads, and runs under the restricted Pod Security
 Standard with a read-only root filesystem and no ServiceAccount token.
@@ -27,8 +27,8 @@ Standard with a read-only root filesystem and no ServiceAccount token.
 
 1. **PostgreSQL** with the roles the migration chain grants to, and a database owned by the migration
    role ([ADR-0048](https://github.com/ppat/mediated-mailbox-mcp/blob/main/docs/adr/data/0048-forward-only-migrations.md)). The roles are those of
-   `db/bootstrap/roles.sql` in this repository: `mediated_mailbox_migrate` owns the database, and
-   `mediated_mailbox_mediate`, `mediated_mailbox_ui`, `mediated_mailbox_backfill`,
+   `db/bootstrap/roles.sql` in this repository: `mediated_mailbox_migrator` owns the database, and
+   `mediated_mailbox_api`, `mediated_mailbox_ui`, `mediated_mailbox_backfill`,
    `mediated_mailbox_sync`, `mediated_mailbox_organize` and `mediated_mailbox_propose` are the runtime
    roles. The migration fails until every runtime role exists, and its Job retries. Helm, and Flux
    running Helm, wait on the migration only up to the release's timeout, five minutes unless set
@@ -47,7 +47,7 @@ Standard with a read-only root filesystem and no ServiceAccount token.
 ## The Secrets the chart reads
 
 Every Secret the chart reads is an entry under `secrets`, named for what it holds.
-`global.imagePullSecrets`, and the `tls` entries of `mediator.ingress` and `ui.ingress`, each
+`global.imagePullSecrets`, and the `tls` entries of `api.ingress` and `ui.ingress`, each
 `{secretName, hosts}`, keep Kubernetes' own shape outside `secrets`, because the chart never reads
 those Secrets and only passes them through to kubelet and the ingress controller. An entry's
 `existingSecret` names a Secret in the release's namespace, and its `secretKeys` name the key in it
@@ -57,15 +57,15 @@ reads only the keys it names, and mounts each one only into the pods whose proce
 
 | Entry under `secrets` | Holds, under the key named, with its default | Mounted into | Required |
 | --- | --- | --- | --- |
-| `databasePasswords.mediator` | The mediator role's password alone, `secretKeys.password: password` | the mediator | yes |
+| `databasePasswords.api` | The API server role's password alone, `secretKeys.password: password` | the API server | yes |
 | `databasePasswords.ui` | The UI role's password alone, `secretKeys.password: password` | the UI | yes |
 | `databasePasswords.worker.backfill`, `databasePasswords.worker.sync` | Each job kind's role password alone, `secretKeys.password: password` | the worker | yes |
 | `databasePasswords.migration` | The migration role's password as a libpq password file, `host:port:database:user:password`, `secretKeys.passwordFile: pgpass`. Its host, port, database and user match `database.host`, `database.port`, `database.name` and `migration.database.user`, or are `*` | the migration Job | yes |
-| `credentialSealingKeyPair` | The key pair stored credentials are sealed to: the public key, `secretKeys.publicKey: credential.pub`, and every private key of the keyring, `secretKeys.privateKeys: [credential.key]` | the mediator, the worker and the UI | yes |
+| `credentialSealingKeyPair` | The key pair stored credentials are sealed to: the public key, `secretKeys.publicKey: credential.pub`, and every private key of the keyring, `secretKeys.privateKeys: [credential.key]` | the API server, the worker and the UI | yes |
 | `databaseCaCertificate` | The CA certificate the database server's certificate is checked against, `secretKeys.certificate: ca.crt` | every process and the migration Job | no |
-| `mediatorBearerToken` | The bearer token clients present to the mediator, `secretKeys.bearerToken: mediator-bearer-token` | the mediator | no, the chart generates one when empty |
+| `apiBearerToken` | The bearer token clients present to the API server, `secretKeys.bearerToken: api-bearer-token` | the API server | no, the chart generates one when empty |
 | `uiRequestTokenKey` | The key the UI signs its request tokens with, at least 32 bytes, `secretKeys.requestTokenKey: ui-request-token-key` | the UI | no, the chart generates one when empty |
-| `mediatorTls`, `uiTls` | A certificate chain, `secretKeys.certificate: tls.crt`, and its private key, `secretKeys.privateKey: tls.key`, such as a `kubernetes.io/tls` Secret holds | the mediator, the UI | no, plain HTTP when empty |
+| `apiTls`, `uiTls` | A certificate chain, `secretKeys.certificate: tls.crt`, and its private key, `secretKeys.privateKey: tls.key`, such as a `kubernetes.io/tls` Secret holds | the API server, the UI | no, plain HTTP when empty |
 
 ## With a CloudNativePG cluster
 
@@ -78,12 +78,12 @@ of every pod.
 apiVersion: v1
 kind: Secret
 metadata:
-  name: mediate-db
+  name: api-db
   labels:
     cnpg.io/reload: "true"
 type: kubernetes.io/basic-auth
 stringData:
-  username: mediated_mailbox_mediate
+  username: mediated_mailbox_api
   password: <a password>
 # ...and likewise ui-db, backfill-db and sync-db for mediated_mailbox_ui,
 # mediated_mailbox_backfill and mediated_mailbox_sync.
@@ -99,13 +99,13 @@ spec:
   bootstrap:
     initdb:
       database: mediated_mailbox
-      owner: mediated_mailbox_migrate
+      owner: mediated_mailbox_migrator
   managed:
     roles:
-    - name: mediated_mailbox_mediate
+    - name: mediated_mailbox_api
       login: true
       passwordSecret:
-        name: mediate-db
+        name: api-db
     - name: mediated_mailbox_ui
       login: true
       passwordSecret:
@@ -139,8 +139,8 @@ database:
   name: mediated_mailbox
 secrets:
   databasePasswords:
-    mediator:
-      existingSecret: mediate-db
+    api:
+      existingSecret: api-db
     ui:
       existingSecret: ui-db
     worker:
@@ -179,14 +179,14 @@ server, which is why the chainsaw suite tests with CloudNativePG alone.
 | Value | Holds |
 | --- | --- |
 | `sharedConfig.log_level`, `sharedConfig.sync_interval`, `sharedConfig.scanner` | Configuration several processes read, given once and rendered into each |
-| `mediator.config`, `ui.config`, `worker.config`, `worker.jobKinds.<kind>.config` | Each process's own configuration keys, named as the process reads them |
-| `secrets.mediatorTls`, `secrets.uiTls` | A Secret holding a certificate chain and its key, such as a `kubernetes.io/tls` Secret. Named, the process serves TLS, and empty, plain HTTP ([ADR-0127](https://github.com/ppat/mediated-mailbox-mcp/blob/main/docs/adr/operability/0127-tls-when-given-a-key-pair-plain-http-otherwise.md)) |
-| `secrets.mediatorBearerToken`, `secrets.uiRequestTokenKey` | Your own Secrets holding the bearer token and the request token key, as [The Secrets the chart reads](#the-secrets-the-chart-reads) lists |
-| `mediator.ingress`, `mediator.httpRoute`, `ui.ingress`, `ui.httpRoute` | Exposure outside the cluster, off by default |
+| `api.config`, `ui.config`, `worker.config`, `worker.jobKinds.<kind>.config` | Each process's own configuration keys, named as the process reads them |
+| `secrets.apiTls`, `secrets.uiTls` | A Secret holding a certificate chain and its key, such as a `kubernetes.io/tls` Secret. Named, the process serves TLS, and empty, plain HTTP ([ADR-0127](https://github.com/ppat/mediated-mailbox-mcp/blob/main/docs/adr/operability/0127-tls-when-given-a-key-pair-plain-http-otherwise.md)) |
+| `secrets.apiBearerToken`, `secrets.uiRequestTokenKey` | Your own Secrets holding the bearer token and the request token key, as [The Secrets the chart reads](#the-secrets-the-chart-reads) lists |
+| `api.ingress`, `api.httpRoute`, `ui.ingress`, `ui.httpRoute` | Exposure outside the cluster, off by default |
 | `monitoring` | The Prometheus Operator's resources and the Grafana dashboard |
 | `*.resources` | Requests are set, and no limit is, so set limits to suit your nodes. |
 | `*.goSoftMemoryLimit` | The Go runtime's soft memory limit for that container, its `GOMEMLIMIT`, unset by default. Go sets none by itself, so when you set a memory limit, set this below it, written in Go's units such as `460MiB`, not Kubernetes' `Mi`. Lower it with the limit, since an in-place resize changes only the limit |
-| `mediator.database.poolSize`, `ui.database.poolSize`, `worker.jobKinds.<kind>.database.poolSize` | The most connections each pool opens. Their sum across replicas is what PostgreSQL's connection limit must allow. Unset, the mediator and the UI open up to the larger of 4 and the node's processor count, and each of the worker's job kinds up to 4 |
+| `api.database.poolSize`, `ui.database.poolSize`, `worker.jobKinds.<kind>.database.poolSize` | The most connections each pool opens. Their sum across replicas is what PostgreSQL's connection limit must allow. Unset, the API server and the UI open up to the larger of 4 and the node's processor count, and each of the worker's job kinds up to 4 |
 
 ### Quoting
 
@@ -204,25 +204,25 @@ sharedConfig:
 
 ### The bearer token and the request token key
 
-For whichever of `secrets.mediatorBearerToken` and `secrets.uiRequestTokenKey` names no Secret, the
+For whichever of `secrets.apiBearerToken` and `secrets.uiRequestTokenKey` names no Secret, the
 chart generates the value into its own Secret, `<release>-mediated-mailbox-access-credentials`,
 keeps that Secret when the release is uninstalled, and reads each value back on every later install and upgrade, so the
 values stay the same. Read the bearer token agents present with:
 
 ```sh
 kubectl get secret <release>-mediated-mailbox-access-credentials \
-  --output jsonpath='{.data.mediator-bearer-token}' | base64 --decode
+  --output jsonpath='{.data.api-bearer-token}' | base64 --decode
 ```
 
 A renderer that cannot read the cluster, such as `helm template` or Argo CD, would generate new
 values on every render. Under one, supply both Secrets by any means, such as external-secrets, and
-name them in `secrets.mediatorBearerToken` and `secrets.uiRequestTokenKey`.
+name them in `secrets.apiBearerToken` and `secrets.uiRequestTokenKey`.
 
 ## Exposure
 
-Nothing is exposed outside the cluster until you enable an Ingress or an HTTPRoute, for the mediator
-or the UI or both. Their annotations pass through untouched, so a controller's or cert-manager's go
-there. An HTTPRoute's TLS terminates on its Gateway's listener.
+Nothing is exposed outside the cluster until you enable an Ingress or an HTTPRoute, for the API
+server or the UI or both. Their annotations pass through untouched, so a controller's or
+cert-manager's go there. An HTTPRoute's TLS terminates on its Gateway's listener.
 
 **The UI has no login of its own.** Expose it only behind an authenticating proxy, and set
 `ui.config.identity_header` to the header the proxy forwards the operator's identity in.
@@ -260,6 +260,6 @@ idempotent or conditional.
 
 ## Tests
 
-`helm test <release>` runs a pod that checks through each Service that the mediator and the UI
-report ready, the worker reports healthy, the mediator refuses a request without the bearer token,
+`helm test <release>` runs a pod that checks through each Service that the API server and the UI
+report ready, the worker reports healthy, the API server refuses a request without the bearer token,
 and the UI serves its page.

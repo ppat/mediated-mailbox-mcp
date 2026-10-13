@@ -4,7 +4,7 @@ The demonstrations of the controls whose patches sit in `content/`. [MUTATIONS.m
 
 ## A body that cannot be converted is refused with no Markdown
 
-- **Date · evidence:** 2026-09-24 · [pull request #152](https://github.com/ppat/mediated-mailbox-mcp/pull/152), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-13 at RAPID_SEED=1, after the body fetch by part and the refused scan state changed the code, tests or patches the row rests on · [pull request #369](https://github.com/ppat/mediated-mailbox-mcp/pull/369)
+- **Date · evidence:** 2026-09-24 · [pull request #152](https://github.com/ppat/mediated-mailbox-mcp/pull/152), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-13 at RAPID_SEED=1, after the body fetch by part and the refused scan state changed the code, tests or patches the row rests on · [pull request #369](https://github.com/ppat/mediated-mailbox-mcp/pull/369), and every break again on 2026-10-13 at RAPID_SEED=1, after the rename of the API server and the migrator moved the code, tests or patches the row rests on · [pull request #376](https://github.com/ppat/mediated-mailbox-mcp/pull/376), in run [38440944897](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/38440944897) of the `mutation-demonstrations` workflow
 - **Break (1):** a panic in the conversion is no longer recovered
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/content/markdown`:** `TestGuardedFailsClosed`, `TestGuardedFailsClosed/a_panic_carrying_body_text`
 - **Break (2):** a recovered panic's value, which can carry body text, is written into the error
@@ -20,7 +20,7 @@ The demonstrations of the controls whose patches sit in `content/`. [MUTATIONS.m
 
 ## A link keeps its target only when the target is an absolute http or https URL with a host, or a mailto URL of bare addresses and nothing else
 
-- **Date · evidence:** 2026-09-24 · [pull request #152](https://github.com/ppat/mediated-mailbox-mcp/pull/152), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
+- **Date · evidence:** 2026-09-24 · [pull request #152](https://github.com/ppat/mediated-mailbox-mcp/pull/152), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-13 at RAPID_SEED=1, after the rename of the API server and the migrator moved the code, tests or patches the row rests on · [pull request #376](https://github.com/ppat/mediated-mailbox-mcp/pull/376), in run [38440944897](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/38440944897) of the `mutation-demonstrations` workflow
 - **Break (1):** an http or https target without a host is kept
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/content/markdown`:** `TestLinkTargets`, `TestLinkTargets/an_http_target_with_no_host`
 - **Break (2):** a mailto target without a query is kept whatever its recipients are, none included
@@ -36,7 +36,7 @@ The demonstrations of the controls whose patches sit in `content/`. [MUTATIONS.m
 
 ## A released body carries no markup
 
-- **Date · evidence:** 2026-09-24 · [pull request #152](https://github.com/ppat/mediated-mailbox-mcp/pull/152), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
+- **Date · evidence:** 2026-09-24 · [pull request #152](https://github.com/ppat/mediated-mailbox-mcp/pull/152), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-13 at RAPID_SEED=1, after the rename of the API server and the migrator moved the code, tests or patches the row rests on · [pull request #376](https://github.com/ppat/mediated-mailbox-mcp/pull/376), in run [38440944897](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/38440944897) of the `mutation-demonstrations` workflow
 - **Break (1):** the pass writing code as escaped text is never registered
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/content/markdown`:** `TestNoMarkupInTheOutput`, `TestNoMarkupInTheOutput/a_code_block_in_a_blockquote`, `TestNoMarkupInTheOutput/inline_code`, `TestNoMarkupInTheOutput/preformatted_lines`, `TestNoMarkupInTheOutput/preformatted_markup_in_a_blockquote`, `TestNoMarkupInTheOutput/preformatted_markup_in_a_blockquote_in_a_list`, `TestNoMarkupInTheOutput/the_library's_own_marker_characters_in_text`, `TestTheConvertedBodysForm`
 - **Break (2):** a preformatted block's line breaks are written as the text of a br tag instead of as br elements
@@ -50,7 +50,7 @@ The demonstrations of the controls whose patches sit in `content/`. [MUTATIONS.m
 
 ## Elements that execute, embed, style or collect input are dropped with their content
 
-- **Date · evidence:** 2026-09-24 · [pull request #152](https://github.com/ppat/mediated-mailbox-mcp/pull/152), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
+- **Date · evidence:** 2026-09-24 · [pull request #152](https://github.com/ppat/mediated-mailbox-mcp/pull/152), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-13 at RAPID_SEED=1, after the rename of the API server and the migrator moved the code, tests or patches the row rests on · [pull request #376](https://github.com/ppat/mediated-mailbox-mcp/pull/376), in run [38440944897](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/38440944897) of the `mutation-demonstrations` workflow
 - **Break (1):** every element on the list is kept as a block with its content instead of dropped
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/content/markdown`:** `TestActiveContentIsDropped`, `TestActiveContentIsDropped/a_canvas_and_its_fallback`, `TestActiveContentIsDropped/a_form_and_its_controls`, `TestActiveContentIsDropped/a_math_element`, `TestActiveContentIsDropped/a_noscript_fallback`, `TestActiveContentIsDropped/a_script`, `TestActiveContentIsDropped/a_select_and_its_options`, `TestActiveContentIsDropped/a_style`, `TestActiveContentIsDropped/a_template`, `TestActiveContentIsDropped/a_text_area`, `TestActiveContentIsDropped/a_title_in_the_head`, `TestActiveContentIsDropped/a_video_and_its_fallback`, `TestActiveContentIsDropped/an_audio_and_its_fallback`, `TestActiveContentIsDropped/an_iframe`, `TestActiveContentIsDropped/an_object_and_its_fallback`, `TestActiveContentIsDropped/an_svg_and_its_text`, `TestImagesAreDropped`, `TestImagesAreDropped/a_link_holding_only_an_image`, `TestImagesAreDropped/a_picture_with_sources`, `TestImagesAreDropped/a_remote_image`, `TestImagesAreDropped/an_embedded_cid:_image`, `TestImagesAreDropped/an_inline_data:_image`, `TestRawHTMLALinkAndARemoteImage`, `TestTheConvertedBodysForm`
 - **Break (2):** no element on the list is dropped, leaving only the library's defaults
@@ -58,7 +58,7 @@ The demonstrations of the controls whose patches sit in `content/`. [MUTATIONS.m
 
 ## Every image is dropped from a released body
 
-- **Date · evidence:** 2026-09-24 · [pull request #152](https://github.com/ppat/mediated-mailbox-mcp/pull/152), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
+- **Date · evidence:** 2026-09-24 · [pull request #152](https://github.com/ppat/mediated-mailbox-mcp/pull/152), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-13 at RAPID_SEED=1, after the rename of the API server and the migrator moved the code, tests or patches the row rests on · [pull request #376](https://github.com/ppat/mediated-mailbox-mcp/pull/376), in run [38440944897](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/38440944897) of the `mutation-demonstrations` workflow
 - **Break (1):** images are no longer on the list of dropped elements
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/content/markdown`:** `TestImagesAreDropped`, `TestImagesAreDropped/a_link_holding_only_an_image`, `TestImagesAreDropped/a_remote_image`, `TestImagesAreDropped/an_embedded_cid:_image`, `TestImagesAreDropped/an_inline_data:_image`, `TestRawHTMLALinkAndARemoteImage`, `TestTheConvertedBodysForm`
 - **Break (2):** an image is dropped but its alternative text is left in its place
@@ -76,7 +76,7 @@ The demonstrations of the controls whose patches sit in `content/`. [MUTATIONS.m
 
 ## One constant bounds the rendered part, the conversion's input and the literal form's alike
 
-- **Date · evidence:** 2026-10-13 · [pull request #369](https://github.com/ppat/mediated-mailbox-mcp/pull/369), at RAPID_SEED=1
+- **Date · evidence:** 2026-10-13 · [pull request #369](https://github.com/ppat/mediated-mailbox-mcp/pull/369), at RAPID_SEED=1, and every break again on 2026-10-13 at RAPID_SEED=1, after the rename of the API server and the migrator moved the code, tests or patches the row rests on · [pull request #376](https://github.com/ppat/mediated-mailbox-mcp/pull/376), in run [38440944897](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/38440944897) of the `mutation-demonstrations` workflow
 - **Break (1):** a body holding both parts renders as its HTML part's conversion followed by its text part
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/content/markdown`:** `TestRenderTakesTheReleasedForm`, `TestRenderTakesTheReleasedForm/both_parts`
 - **Break (2):** the conversion's input bound is a constant of its own, twice the port's, so the two drift apart
@@ -86,7 +86,7 @@ The demonstrations of the controls whose patches sit in `content/`. [MUTATIONS.m
 
 ## The conversion writes the structure the Content Scanner reads
 
-- **Date · evidence:** 2026-09-24 · [pull request #152](https://github.com/ppat/mediated-mailbox-mcp/pull/152), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
+- **Date · evidence:** 2026-09-24 · [pull request #152](https://github.com/ppat/mediated-mailbox-mcp/pull/152), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-13 at RAPID_SEED=1, after the rename of the API server and the migrator moved the code, tests or patches the row rests on · [pull request #376](https://github.com/ppat/mediated-mailbox-mcp/pull/376), in run [38440944897](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/38440944897) of the `mutation-demonstrations` workflow
 - **Break (1):** the cells of a table the table plugin refuses run together on one line
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/content/markdown`:** `TestStructureTheScannerReads`, `TestStructureTheScannerReads/a_layout_table`
 - **Break (2):** headings are written underlined instead of as lines starting with #

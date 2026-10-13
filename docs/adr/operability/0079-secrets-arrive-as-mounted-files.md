@@ -23,7 +23,7 @@ restarts.
 - **No deployable fetches these secrets itself.** Something outside the deployables delivers the
   files.
 - **Only the processes that use a secret can read its file.** In particular, only the processes
-  that open credentials to call a provider, the mediator and the worker whose job kinds include
+  that open credentials to call a provider, the API server and the worker whose job kinds include
   backfill, delta sync and reorg apply
   ([ADR-0117](./0117-one-background-worker-runs-every-job-kind.md)), and the UI, whose one isolated
   part opens an OAuth client's secret with it

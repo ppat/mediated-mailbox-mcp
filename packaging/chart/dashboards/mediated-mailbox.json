@@ -39,7 +39,7 @@
     {
       "id": 1,
       "type": "row",
-      "title": "Mediator",
+      "title": "API server",
       "collapsed": false,
       "gridPos": {
         "x": 0,
@@ -82,7 +82,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "histogram_quantile(0.95, sum by (le, operation) (rate(mediated_mailbox_mediate_operation_duration_seconds_bucket{namespace=\"$namespace\"}[$__rate_interval])))",
+          "expr": "histogram_quantile(0.95, sum by (le, operation) (rate(mediated_mailbox_api_operation_duration_seconds_bucket{namespace=\"$namespace\"}[$__rate_interval])))",
           "legendFormat": "{{operation}}"
         }
       ]
@@ -120,12 +120,12 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (account) (rate(mediated_mailbox_mediate_bodies_served_total{namespace=\"$namespace\"}[$__rate_interval]))",
+          "expr": "sum by (account) (rate(mediated_mailbox_api_bodies_served_total{namespace=\"$namespace\"}[$__rate_interval]))",
           "legendFormat": "served {{account}}"
         },
         {
           "refId": "B",
-          "expr": "sum by (account, reason) (rate(mediated_mailbox_mediate_bodies_denied_total{namespace=\"$namespace\"}[$__rate_interval]))",
+          "expr": "sum by (account, reason) (rate(mediated_mailbox_api_bodies_denied_total{namespace=\"$namespace\"}[$__rate_interval]))",
           "legendFormat": "denied {{account}} {{reason}}"
         }
       ]

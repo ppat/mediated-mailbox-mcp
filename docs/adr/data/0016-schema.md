@@ -494,7 +494,7 @@ The shape enforces these properties.
   decided, the reason, the sender class with the rule behind it and that rule's scope, the content
   flags with the scanner rules behind them kept apart from the serve-time check's, the scan state,
   and the scanner the serve-time check ran under. On evidence no runtime role can ever correct, a
-  closed vocabulary fails at insert, and a check reads a column plainly. The mediator writes the
+  closed vocabulary fails at insert, and a check reads a column plainly. The API server writes the
   audit row before it releases anything, so a token the check does not know fails the request
   closed and loudly and never serves a body without its record. The reason is the token the client
   surface returns

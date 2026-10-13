@@ -69,7 +69,7 @@ func TestATickAppliesTheChangesSinceItsCursor(t *testing.T) {
 	d := deps(t, syncPool(t), p, listing(t, "bank.example"), account)
 
 	first := mustTick(t, d, account)
-	// The statistics hold exactly the domains the index stores, which the mediator's sender class term
+	// The statistics hold exactly the domains the index stores, which the API server's sender class term
 	// reads the domains it classifies from (ADR-0109).
 	sameDomains := func(after string, want []string) {
 		t.Helper()

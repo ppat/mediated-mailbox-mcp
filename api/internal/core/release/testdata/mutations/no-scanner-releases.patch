@@ -1,0 +1,19 @@
+control: The release step withholds a body it cannot decide on
+removes: a gate-skipped body with no scanner to check it is released
+packages: ./api/internal/core/release
+tests: TestFailClosed/a_gate-skipped_body_and_a_scanner_nobody_built TestFailClosed/a_gate-skipped_login_link_and_a_scanner_nobody_built
+scheduled-count: no
+
+diff --git a/api/internal/core/release/release.go b/api/internal/core/release/release.go
+index 8fdca71..a08607e 100644
+--- a/api/internal/core/release/release.go
++++ b/api/internal/core/release/release.go
+@@ -138,7 +138,7 @@ func Decide(c Content, state sensitivity.ScanState, s scan.Scanner) Decision {
+ 	for _, text := range checked {
+ 		v := s.ScanPatterns(text)
+ 		if v.Version() == 0 {
+-			return Decision{reason: NoScanner}
++			return Decision{reason: Released, content: Content{Body: wrap(c.Body)}}
+ 		}
+ 		if v.Flags().Any() {
+ 			rules = append(rules, v.Rules()...)

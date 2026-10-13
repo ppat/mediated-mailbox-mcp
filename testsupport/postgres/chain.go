@@ -15,7 +15,7 @@ import (
 )
 
 // MigrationRole is the role db/bootstrap/roles.sql creates to own the schema and run the chain.
-const MigrationRole = "mediated_mailbox_migrate"
+const MigrationRole = "mediated_mailbox_migrator"
 
 // ApplyChain applies a migration chain from an empty database, as pgrun does for every test run
 // (ADR-0048). It creates the database name owned by the migration role and runs goose up over the

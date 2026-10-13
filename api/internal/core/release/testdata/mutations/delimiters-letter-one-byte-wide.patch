@@ -1,0 +1,18 @@
+control: A released body sits inside delimiters it cannot close
+removes: each letter's byte range is one byte wide, so a letter wider than a byte inside the words breaks the match
+packages: ./api/internal/core/release
+tests: TestTheWindowedNeutralizerReplacesWhatTheFullScanDid TestABodyCannotCloseTheDelimiters/the_long_s,_which_folds_to_s
+scheduled-count: no
+
+diff --git a/api/internal/core/release/release.go b/api/internal/core/release/release.go
+--- a/api/internal/core/release/release.go
++++ b/api/internal/core/release/release.go
+@@ -182,7 +182,7 @@ func neutralize(text string) string {
+ 		if !unicode.IsLetter(r) {
+ 			continue
+ 		}
+-		ring[(head+count)%len(keyword)] = letter{i, i + utf8.RuneLen(r)}
++		ring[(head+count)%len(keyword)] = letter{i, i + 1}
+ 		if count < len(keyword) {
+ 			count++
+ 		} else {

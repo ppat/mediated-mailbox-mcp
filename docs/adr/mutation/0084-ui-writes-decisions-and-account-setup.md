@@ -19,7 +19,7 @@ both.
 
 ## Decision
 
-**A read-mostly web UI, deployed and privileged separately from the mediator. Its writes are two
+**A read-mostly web UI, deployed and privileged separately from the API server. Its writes are two
 decision verbs, a rollback request, OAuth client setup, account setup and policy management.**
 
 | View | Purpose |
@@ -86,7 +86,7 @@ These constraints keep it safe to exist.
   provider ([ADR-0028](../operability/0028-trust-anchor-hardening.md)).
 - **It never displays message bodies**, structurally, because it reads a database with no body
   columns ([ADR-0016](../data/0016-schema.md)). Stated here so nobody later adds a "preview"
-  feature by proxying through the mediator.
+  feature by proxying through the API server.
 - **The UI carries no authentication of its own.** The operator may place the UI behind an
   ingress that forwards to an authentication service and sets a cookie, with the identity header
   above. Authentication by the UI itself (OpenID Connect, say) is left open. The UI's transport is
@@ -98,8 +98,8 @@ a rollback request, connecting accounts and keeping the policy. Its design is
 
 ## Alternatives considered
 
-- **Approval through the mediator's client surface (a privileged human token).** No case was tabled
-  for it. Rejected. It puts the approval verb back into the surface clients speak, one
+- **Approval through the API server's client surface (a privileged human token).** No case was
+  tabled for it. Rejected. It puts the approval verb back into the surface clients speak, one
   credential-handling bug away from a client's reach. Separate surface, separate process, separate
   identity.
 - **CLI-only approval, no UI.** Workable for the approve verb alone, and acceptable as an interim.

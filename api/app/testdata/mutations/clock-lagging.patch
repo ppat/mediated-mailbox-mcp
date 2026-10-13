@@ -1,0 +1,20 @@
+control: The read operations read the accounts and the policy the serving state holds in force, and a clock within thirty seconds of the real one when the read is made
+removes: the read operations are given a clock ten minutes behind the real one, so a sync cursor written an hour ago reads fifty minutes old
+packages: ./api/app
+tests: TestTheReadOperationsReadTheServingState
+scheduled-count: no
+integration: yes
+
+diff --git a/api/app/app.go b/api/app/app.go
+index 22468459..562a6f6f 100644
+--- a/api/app/app.go
++++ b/api/app/app.go
+@@ -338,7 +338,7 @@ func sources(pool *pgxpool.Pool, served *serving, bodies service.Bodies) service
+ 		DB:       pool,
+ 		Accounts: served.accounts,
+ 		Policy:   served.policy,
+-		Now:      time.Now,
++		Now:      func() time.Time { return time.Now().Add(-10 * time.Minute) },
+ 		Bodies:   bodies,
+ 	}
+ }

@@ -30,7 +30,7 @@ immutable snapshot that a process reloads and that a unit of work takes once
   builds the snapshot. It loads the snapshot at start. A process that runs until stopped reloads it
   on a schedule its configuration sets
   ([ADR-0078](../engineering/0078-configuration-layers-through-an-owned-library.md)), as the
-  mediator does, and as the worker does with one loader for each job kind that calls a provider,
+  API server does, and as the worker does with one loader for each job kind that calls a provider,
   under that job kind's own role
   ([ADR-0119](./0119-the-workers-jobs-are-scheduled-from-recorded-state.md)). Every unit of work
   takes the latest snapshot its loader holds when it starts, whether the unit is a body request, a
@@ -68,7 +68,7 @@ immutable snapshot that a process reloads and that a unit of work takes once
 
 - A new account starts being served within one reload interval, or at the next run of a process
   that runs and exits, and a re-authorized credential at its next refused call.
-- The policy loader and the mediator's set of served accounts take their account set from each
+- The policy loader and the API server's set of served accounts take their account set from each
   snapshot, so they are built for a set that changes.
 - Assumptions about other components. The database is reachable when a reload runs, and a reload
   that cannot reach it leaves the process on its previous snapshot.
