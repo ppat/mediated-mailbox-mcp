@@ -177,14 +177,14 @@ func TestTheRegistryRefusesWhatItDoesNotDeclare(t *testing.T) {
 // the per-account row).
 func TestEveryReadIsPerAccount(t *testing.T) {
 	s, _ := server(t)
-	for _, p := range []string{"/api/lens?dataset=plans", "/api/system", "/api/attention", "/api/jobs", "/api/events", "/api/jobs/r-0912", "/api/failures/1?run=r-0912"} {
+	for _, p := range []string{"/api/lens?dataset=plans", "/api/system", "/api/corpus", "/api/attention", "/api/jobs", "/api/events", "/api/jobs/r-0912", "/api/failures/1?run=r-0912"} {
 		r := get(t, s.Handler(), p)
 		if origin, code := errorOf(t, r); r.status != http.StatusNotFound || origin != "client" || code != "not_found" {
 			t.Errorf("%s answered %d %s %s, want 404", p, r.status, origin, code)
 		}
 	}
 	for account, want := range map[string]string{"all": "all_accounts", "nobody": "unknown_account"} {
-		for _, route := range []string{"lens?dataset=plans", "system", "attention", "jobs", "events", "jobs/r-0912", "failures/1?run=r-0912", "lens?dataset=runs", "lens?dataset=failures&run=r-0912"} {
+		for _, route := range []string{"lens?dataset=plans", "system", "corpus", "attention", "jobs", "events", "jobs/r-0912", "failures/1?run=r-0912", "lens?dataset=runs", "lens?dataset=failures&run=r-0912"} {
 			r := get(t, s.Handler(), "/api/"+account+"/"+route)
 			if origin, code := errorOf(t, r); r.status != http.StatusBadRequest || origin != "client" || code != want {
 				t.Errorf("/api/%s/%s answered %d %s %s, want 400 %s", account, route, r.status, origin, code, want)
@@ -197,7 +197,7 @@ func TestEveryReadIsPerAccount(t *testing.T) {
 	}
 	for _, p := range []string{
 		"/api/personal/lens?dataset=plans&level=3", "/api/personal/lens?dataset=candidates&level=3",
-		"/api/personal/lens?dataset=plans&level=0", "/api/personal/system", "/api/personal/jobs", "/api/personal/attention",
+		"/api/personal/lens?dataset=plans&level=0", "/api/personal/system", "/api/personal/corpus", "/api/personal/jobs", "/api/personal/attention",
 		"/api/personal/lens?dataset=runs&level=3&range=all", "/api/personal/lens?dataset=runs&level=1&group=workload&range=all",
 		"/api/personal/lens?dataset=failures&run=r-0912&level=3", "/api/personal/lens?dataset=failures&run=r-0912&level=1&group=sender",
 		"/api/personal/failures/1?run=r-0912", "/api/personal/jobs/r-0912",
@@ -321,6 +321,116 @@ func TestTheMetricsCarryReadsAndSubscribers(t *testing.T) {
 		if !strings.Contains(string(r.body), want) {
 			t.Errorf("the metrics lack %s:\n%s", want, r.body)
 		}
+	}
+}
+
+// TestTheStreamForgetsRunsItNoLongerReads moves a run the stream has sent out of what its poll reads,
+// waits for polls that do not read it, and brings the run back exactly as it was sent. The stream
+// remembers only what its latest poll read, so it sends the run again, where a stream that remembered
+// every run it ever sent would hold the run's state for as long as it stays open and send nothing
+// (docs/UI.md section 17.5).
+func TestTheStreamForgetsRunsItNoLongerReads(t *testing.T) {
+	s, _ := server(t)
+	ts := httptest.NewServer(s.Handler())
+	t.Cleanup(ts.Close)
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, ts.URL+"/api/personal/events", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			t.Error(err)
+		}
+	}()
+	runs := make(chan string, 64)
+	var keepAlives atomic.Int64
+	go func() {
+		defer close(runs)
+		scanner := bufio.NewScanner(resp.Body)
+		var name string
+		for scanner.Scan() {
+			line := scanner.Text()
+			if line == ": keep-alive" {
+				keepAlives.Add(1)
+			} else if n, ok := strings.CutPrefix(line, "event: "); ok {
+				name = n
+			} else if d, ok := strings.CutPrefix(line, "data: "); ok && name == "run" {
+				runs <- d
+			}
+		}
+	}()
+	sentRun := func() (string, bool) {
+		t.Helper()
+		select {
+		case d, ok := <-runs:
+			if !ok {
+				t.Fatal("the stream ended")
+			}
+			var e struct {
+				RunID string `json:"run_id"`
+			}
+			if err := json.Unmarshal([]byte(d), &e); err != nil {
+				t.Fatal(err)
+			}
+			return e.RunID + " " + d, true
+		case <-time.After(5 * time.Second):
+			return "", false
+		}
+	}
+	var first string
+	for range 2 {
+		e, ok := sentRun()
+		if !ok {
+			t.Fatal("the first poll sent fewer than two runs")
+		}
+		if id, data, _ := strings.Cut(e, " "); id == "r-0908" {
+			first = data
+		}
+	}
+	if first == "" {
+		t.Fatal("the first poll did not send r-0908")
+	}
+	polled := func() {
+		t.Helper()
+		before := keepAlives.Load()
+		deadline := time.Now().Add(5 * time.Second)
+		for keepAlives.Load() < before+2 {
+			if time.Now().After(deadline) {
+				t.Fatal("the stream polled no more")
+			}
+			time.Sleep(10 * time.Millisecond)
+		}
+	}
+
+	admin, err := pgx.Connect(t.Context(), postgres.URL(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := admin.Close(context.Background()); err != nil {
+			t.Error(err)
+		}
+	}()
+	// Finished at its start, long before the poll's window, the run is read by no poll.
+	if _, err := admin.Exec(t.Context(), `UPDATE job_runs SET state = 'succeeded', finished_at = started_at WHERE run_id = 'r-0908'`); err != nil {
+		t.Fatal(err)
+	}
+	polled()
+	if _, err := admin.Exec(t.Context(), `UPDATE job_runs SET state = 'running', finished_at = NULL WHERE run_id = 'r-0908'`); err != nil {
+		t.Fatal(err)
+	}
+	e, ok := sentRun()
+	if !ok {
+		t.Fatal("the run read again exactly as it was sent was not sent again")
+	}
+	if id, data, _ := strings.Cut(e, " "); id != "r-0908" || data != first {
+		t.Fatalf("the stream sent %s, want r-0908 as it was first sent:\n%s", e, first)
 	}
 }
 

@@ -10,6 +10,7 @@ import {
   readAttempt,
   readInstallation,
   readAttention,
+  readCorpus,
   readBaseHistory,
   readBaseMatch,
   readRelease,
@@ -27,6 +28,7 @@ import {
   type Attention,
   type BaseHistory,
   type BaseMatchAnswer,
+  type Corpus,
   type Counts,
   type BasePolicy,
   type FailureDetail,
@@ -84,6 +86,9 @@ export type Deps = {
   streams: Streams;
   accounts: Cache<Accounts>;
   system: Cache<System>;
+  // corpus is Home's alone, its corpus figures, which count every message of the account (docs/UI.md
+  // section 9).
+  corpus: Cache<Corpus>;
   attention: Cache<Attention>;
   lens: Cache<LensAnswer>;
   jobs: Cache<Jobs>;
@@ -126,6 +131,7 @@ export function makeDeps(
     streams: new Streams(connect),
     accounts: new Cache((path, signal) => readAccounts(fetch, path, signal), now),
     system: new Cache((path, signal) => readSystem(fetch, path, signal), now),
+    corpus: new Cache((path, signal) => readCorpus(fetch, path, signal), now),
     attention: new Cache((path, signal) => readAttention(fetch, path, signal), now),
     lens: new Cache((path, signal) => readLens(fetch, path, signal), now),
     jobs: new Cache((path, signal) => readJobs(fetch, path, signal), now),

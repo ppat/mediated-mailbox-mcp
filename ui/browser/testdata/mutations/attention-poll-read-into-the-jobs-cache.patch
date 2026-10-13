@@ -1,0 +1,21 @@
+control: A screen's text, rows, cursor, focus, range fields and loading timers follow the route, answers, range and read in view
+removes: a poll reads the attention endpoint again into the jobs cache, which worth a look does not render from, so its cards keep what Home first read
+packages: ./ui/browser/test/home.test.tsx
+tests: a run event for a run the strip does not show reads the jobs endpoint again, and a poll every read
+scheduled-count: no
+runner: bun
+
+diff --git a/ui/browser/src/app/router.tsx b/ui/browser/src/app/router.tsx
+index f8ee5c3e..f1b076e3 100644
+--- a/ui/browser/src/app/router.tsx
++++ b/ui/browser/src/app/router.tsx
+@@ -302,9 +302,6 @@ function refetchPath(deps: Deps, path: string): Promise<unknown> {
+   if (path.includes("/lens?")) {
+     return deps.lens.refresh(path);
+   }
+-  if (path.endsWith("/attention")) {
+-    return deps.attention.refresh(path);
+-  }
+   if (path.endsWith("/system")) {
+     return deps.system.refresh(path);
+   }

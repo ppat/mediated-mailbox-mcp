@@ -1,0 +1,20 @@
+control: every account-scoped read refuses a request with no account, with the value meaning every account, or with an unknown account
+removes: the corpus route is declared without its account, so no account check admits its requests
+packages: ./ui/internal/api
+tests: TestEveryReadIsPerAccount
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/api/routes.go b/ui/internal/api/routes.go
+index 1c0db6ce..7a1453cb 100644
+--- a/ui/internal/api/routes.go
++++ b/ui/internal/api/routes.go
+@@ -71,7 +71,7 @@ func Bespoke() []Route {
+ 			Response: systemType(),
+ 		},
+ 		{
+-			Pattern: "/api/{account}/corpus", Operation: "getCorpus", Scoped: true,
++			Pattern: "/api/{account}/corpus", Operation: "getCorpus",
+ 			Summary:  "Home's corpus figures, which count every message of the account, and the time they were read",
+ 			Response: corpusType(),
+ 		},

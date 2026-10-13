@@ -308,6 +308,12 @@ func starting() attention.Thresholds {
 // serverWith is serverAs with the worth-a-look rules' thresholds given.
 func serverWith(t *testing.T, pool *pgxpool.Pool, thresholds attention.Thresholds) (*api.Server, *prometheus.Registry) {
 	t.Helper()
+	return serverAt(t, pool, thresholds, now)
+}
+
+// serverAt is serverWith with the server's clock reading at, for a recording made before now.
+func serverAt(t *testing.T, pool *pgxpool.Pool, thresholds attention.Thresholds, at time.Time) (*api.Server, *prometheus.Registry) {
+	t.Helper()
 	reg := prometheus.NewRegistry()
 	s, err := api.New(api.Options{
 		Bundle:         os.DirFS(filepath.Join("..", "..", "browser", "dist")),
@@ -315,7 +321,7 @@ func serverWith(t *testing.T, pool *pgxpool.Pool, thresholds attention.Threshold
 		Datasets:       registry.Datasets(lookups),
 		Logger:         slog.New(slog.NewJSONHandler(io.Discard, nil)),
 		Metrics:        reg,
-		Clock:          func() time.Time { return now },
+		Clock:          func() time.Time { return at },
 		Cadences:       api.Cadences{Sync: 5 * time.Minute, Heuristics: 24 * time.Hour},
 		StreamInterval: 50 * time.Millisecond,
 		Attention:      thresholds,

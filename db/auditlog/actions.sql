@@ -1,6 +1,6 @@
 -- name: AuditActionCounts :many
--- The audit rows written since a time, counted per action, for the system endpoint's corpus block
--- (docs/UI.md section 8.1). An action with no row has no count.
+-- The audit rows written since a time, counted per action, for the corpus endpoint (docs/UI.md
+-- section 8.1). An action with no row has no count.
 SELECT
     a.action,
     count(*) AS entries

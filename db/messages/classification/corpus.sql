@@ -1,5 +1,6 @@
 -- name: CorpusFigures :one
--- The account's corpus at a glance, for the system endpoint's corpus block (docs/UI.md section 8.1).
+-- The account's corpus at a glance, for the corpus endpoint and the attention endpoint's backlog rule
+-- (docs/UI.md sections 8.1 and 17.4).
 -- Unfiled is a message with no label, and restricted one whose sender class reads restricted now.
 SELECT
     count(*) AS messages,

@@ -1,0 +1,50 @@
+control: A screen's text, rows, cursor, focus, range fields and loading timers follow the route, answers, range and read in view
+removes: the partial-index banner reads the corpus endpoint again with every read of the system endpoint, so a backfill run event on a screen that shows no corpus row still sends the full-corpus count
+packages: ./ui/browser/test/home.test.tsx
+tests: the strip and the banner share the account's one connection, which closes with the screen
+scheduled-count: no
+runner: bun
+
+diff --git a/ui/browser/src/app/frame.tsx b/ui/browser/src/app/frame.tsx
+index 599524ae..f19e7a67 100644
+--- a/ui/browser/src/app/frame.tsx
++++ b/ui/browser/src/app/frame.tsx
+@@ -6,7 +6,7 @@
+ import type { ComponentChildren } from "preact";
+ import { useCallback, useEffect, useRef, useState } from "preact/hooks";
+ import { useLocation } from "preact-iso";
+-import { accountsPath, systemPath, type Account, type Run, type System } from "./api.ts";
++import { accountsPath, corpusPath, systemPath, type Account, type Run, type System } from "./api.ts";
+ import type { State } from "./cache.ts";
+ import { useDeps } from "./deps.ts";
+ import { count, share, utc } from "./format.ts";
+@@ -481,7 +481,7 @@ export const unknownIndex =
+ // the stream's fallback, so its figures move with the pass. It is not a live surface and shows no live
+ // indicator (docs/UI.md section 9).
+ function PartialIndexBanner(props: { account: string }) {
+-  const { system, streams } = useDeps();
++  const { system, corpus, streams } = useDeps();
+   const { account } = props;
+   const path = systemPath(account);
+   const text = bannerText(system.read(path).value);
+@@ -490,7 +490,10 @@ function PartialIndexBanner(props: { account: string }) {
+     if (!showing) {
+       return undefined;
+     }
+-    const refresh = () => void system.refresh(path);
++    const refresh = () => {
++      void system.refresh(path);
++      void corpus.refresh(corpusPath(account));
++    };
+     const following = streams.follow(account, {
+       onRun: (run) => {
+         if (run.workload === "backfill") {
+@@ -500,7 +503,7 @@ function PartialIndexBanner(props: { account: string }) {
+       refetch: refresh,
+     });
+     return following.stop;
+-  }, [showing, account, path, system, streams]);
++  }, [showing, account, path, system, corpus, streams]);
+   return text === undefined ? null : (
+     <p class="banner" role="status">
+       {text} <a href={screenPath(account, "jobs")}>See Jobs</a>

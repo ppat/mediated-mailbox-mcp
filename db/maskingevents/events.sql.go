@@ -22,8 +22,7 @@ type MaskingEventCountParams struct {
 	Since     pgtype.Timestamptz
 }
 
-// The masking events recorded since a time, for the system endpoint's corpus block (docs/UI.md
-// section 8.1).
+// The masking events recorded since a time, for the corpus endpoint (docs/UI.md section 8.1).
 func (q *Queries) MaskingEventCount(ctx context.Context, arg MaskingEventCountParams) (int64, error) {
 	row := q.db.QueryRow(ctx, maskingEventCount, arg.AccountID, arg.Since)
 	var events int64

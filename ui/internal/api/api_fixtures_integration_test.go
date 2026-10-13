@@ -28,6 +28,8 @@ func fixtures() map[string]string {
 		"accounts.json":                               "/api/accounts",
 		"system-other.json":                           "/api/other/system",
 		"system.json":                                 "/api/personal/system",
+		"corpus.json":                                 "/api/personal/corpus",
+		"corpus-other.json":                           "/api/other/corpus",
 		"jobs.json":                                   "/api/personal/jobs",
 		"plans-summary.json":                          "/api/personal/lens?dataset=plans&level=0&range=all&sort=created_at,desc",
 		"plans-rows.json":                             "/api/personal/lens?dataset=plans&level=3&range=all&sort=created_at,desc&page=1",
@@ -82,6 +84,11 @@ func TestTheRecordedFixturesMatchTheServer(t *testing.T) {
 		t.Fatal(err)
 	}
 	record(t, s, doc, fixtures())
+	// Home's as-of line must show the corpus read's time when that read is the older, so the corpus
+	// answer is recorded once more from a server whose clock reads a minute earlier (docs/UI.md
+	// section 8.1).
+	earlier, _ := serverAt(t, uiPool(t, "mediated_mailbox_ui"), starting(), now.Add(-time.Minute))
+	record(t, earlier, doc, map[string]string{"corpus-earlier.json": "/api/personal/corpus"})
 	// The live screens' tests read some paths again after the recorded state has moved on, so those
 	// paths are recorded a second time after it moves (docs/UI.md sections 8.3 and 9).
 	advance(t)
@@ -222,14 +229,17 @@ func startPass2(t *testing.T) {
 func laterFixtures() map[string]string {
 	return map[string]string{
 		"jobs-later.json":         "/api/personal/jobs",
+		"corpus-later.json":       "/api/personal/corpus",
+		"attention-later.json":    "/api/personal/attention",
 		"runs-summary-later.json": "/api/personal/lens?dataset=runs&level=0&range=7d&sort=started_at,desc&pass=!tick",
 		"runs-rows-later.json":    "/api/personal/lens?dataset=runs&level=3&range=7d&sort=started_at,desc&page=1&pass=!tick",
 	}
 }
 
 // advance moves the recorded state on as the workloads would. The running gap recovery finishes, a new
-// delta-sync tick finishes, pass 2's checkpoint moves, and another gap recovery starts, which takes the
-// runs table's first place.
+// delta-sync tick finishes, pass 2's checkpoint moves, another gap recovery starts, which takes the
+// runs table's first place, and one more message of a thread of its own is stored, already scanned,
+// which moves the corpus figures and leaves the scan backlog as it was.
 func advance(t *testing.T) {
 	t.Helper()
 	conn, err := pgx.Connect(t.Context(), postgres.URL(t))
@@ -259,6 +269,11 @@ func advance(t *testing.T) {
 			($1, 'r-0916', 'sync', 'tick', 'succeeded', $2, $3, $3, '{"added": 5, "modified": 0, "removed": 2}'),
 			($1, 'r-0917', 'sync', 'gap_recovery', 'running', $4, NULL, $4, '{}')`,
 			[]any{personal, at(90 * time.Second), at(time.Minute), at(30 * time.Second)},
+		},
+		{
+			`INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, from_name, subject, sent_at, labels, has_attachments, sender_class, content_flags, scan_state) VALUES
+			($1, 'm-later', 't-later', 'later@newsletter.example', 'newsletter.example', 'Later', 'Later', $2, '{INBOX}', false, 'normal', '{}', 'scanned')`,
+			[]any{personal, at(time.Hour)},
 		},
 	} {
 		if _, err := conn.Exec(t.Context(), st.sql, st.args...); err != nil {

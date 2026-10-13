@@ -363,6 +363,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/{account}/corpus": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Home's corpus figures, which count every message of the account, and the time they were read */
+        get: operations["getCorpus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/{account}/events": {
         parameters: {
             query?: never;
@@ -608,7 +625,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** The account's operational, corpus and decisions blocks */
+        /** The account's operational and decisions blocks */
         get: operations["getSystem"];
         put?: never;
         post?: never;
@@ -821,6 +838,9 @@ export interface components {
             mailbox: string;
         };
         Corpus: {
+            account: string;
+            /** Format: date-time */
+            as_of: string;
             audit_24h: {
                 [key: string]: number;
             };
@@ -1657,7 +1677,6 @@ export interface components {
             account: string;
             /** Format: date-time */
             as_of: string;
-            corpus: components["schemas"]["Corpus"];
             decisions: components["schemas"]["Decisions"];
             operational: components["schemas"]["Operational"];
             provider: string;
@@ -3379,6 +3398,65 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Attention"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getCorpus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The account every read is scoped to. all and an unknown account are refused */
+                account: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Corpus"];
                 };
             };
             /** @description Bad Request */

@@ -4,38 +4,29 @@ import (
 	"context"
 	"net/http"
 	"slices"
-	"time"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/ppat/mediated-mailbox-mcp/db/accounts"
 	"github.com/ppat/mediated-mailbox-mcp/db/accountstate"
-	"github.com/ppat/mediated-mailbox-mcp/db/auditlog"
 	"github.com/ppat/mediated-mailbox-mcp/db/jobruns"
-	"github.com/ppat/mediated-mailbox-mcp/db/maskingevents"
 	"github.com/ppat/mediated-mailbox-mcp/db/messages"
-	messageclassification "github.com/ppat/mediated-mailbox-mcp/db/messages/classification"
 	"github.com/ppat/mediated-mailbox-mcp/db/policycandidates"
 	"github.com/ppat/mediated-mailbox-mcp/db/ratestate"
 	"github.com/ppat/mediated-mailbox-mcp/db/reorgplans"
-	"github.com/ppat/mediated-mailbox-mcp/db/scangatedecisions"
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/schema"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/registry"
 )
 
-// auditActions are the audit actions as stored (ADR-0016), which the corpus block counts, each
-// present with zero when no row has it.
-func auditActions() []string { return []string{"READ_BODY", "DENY_BODY", "MUTATE", "DENY_MUTATE"} }
-
-// systemResponse is the system endpoint's three blocks (docs/UI.md sections 8.1, 8.8 and 17.4).
+// systemResponse is the system endpoint's two blocks (docs/UI.md sections 8.1, 8.8 and 17.4). It
+// counts nothing over every message of the account, since the partial-index banner reads it again on
+// every backfill run event (docs/UI.md section 9). Home's corpus figures are the corpus endpoint's.
 type systemResponse struct {
 	Account     string           `json:"account"`
 	Provider    string           `json:"provider"`
 	AsOf        string           `json:"as_of"`
 	Operational operationalBlock `json:"operational"`
-	Corpus      corpusBlock      `json:"corpus"`
 	Decisions   decisionsBlock   `json:"decisions"`
 }
 
@@ -57,18 +48,6 @@ type operationalBlock struct {
 	Rate                     *rateBlock `json:"rate"`
 	LastAuthAt               *string    `json:"last_auth_at"`
 	LastAuthOutcome          *string    `json:"last_auth_outcome"`
-}
-
-// corpusBlock is Home's at-a-glance figures. Audit24h counts the audit rows of the last 24 hours by
-// action as stored.
-type corpusBlock struct {
-	Messages        int64            `json:"messages"`
-	Threads         int64            `json:"threads"`
-	Unfiled         int64            `json:"unfiled"`
-	Restricted      int64            `json:"restricted"`
-	Audit24h        map[string]int64 `json:"audit_24h"`
-	MaskingEvents7d int64            `json:"masking_events_7d"`
-	GateSkips7d     int64            `json:"gate_skips_7d"`
 }
 
 // decisionsBlock is what the chrome's counters read.
@@ -99,15 +78,6 @@ func systemType() schema.Type {
 			schema.F("last_auth_at", nullTime),
 			schema.F("last_auth_outcome", schema.Null(schema.Str())),
 		)),
-		schema.F("corpus", schema.Obj("Corpus",
-			schema.F("messages", schema.Int()),
-			schema.F("threads", schema.Int()),
-			schema.F("unfiled", schema.Int()),
-			schema.F("restricted", schema.Int()),
-			schema.F("audit_24h", schema.MapOf(schema.Int())),
-			schema.F("masking_events_7d", schema.Int()),
-			schema.F("gate_skips_7d", schema.Int()),
-		)),
 		schema.F("decisions", schema.Obj("Decisions",
 			schema.F("plans_draft", schema.Int()),
 			schema.F("candidates_pending", schema.Int()),
@@ -136,9 +106,8 @@ func (s *Server) getSystem(w http.ResponseWriter, r *http.Request) {
 		out.AsOf = registry.Stamp(now)
 		return s.system(r.Context(), systemQueries{
 			state: accountstate.New(t), rate: ratestate.New(t), runs: jobruns.New(t), messages: messages.New(t),
-			classification: messageclassification.New(t), audit: auditlog.New(t), masking: maskingevents.New(t),
-			gate: scangatedecisions.New(t), plans: reorgplans.New(t), candidates: policycandidates.New(t),
-		}, account, now, &out)
+			plans: reorgplans.New(t), candidates: policycandidates.New(t),
+		}, account, &out)
 	})
 	if err != nil {
 		s.databaseFailure(w, r, err)
@@ -150,22 +119,15 @@ func (s *Server) getSystem(w http.ResponseWriter, r *http.Request) {
 // systemQueries are the statements the system endpoint runs, built inside the literal passed the
 // transaction helper (ADR-0047).
 type systemQueries struct {
-	state          *accountstate.Queries
-	rate           *ratestate.Queries
-	runs           *jobruns.Queries
-	messages       *messages.Queries
-	classification *messageclassification.Queries
-	audit          *auditlog.Queries
-	masking        *maskingevents.Queries
-	gate           *scangatedecisions.Queries
-	plans          *reorgplans.Queries
-	candidates     *policycandidates.Queries
+	state      *accountstate.Queries
+	rate       *ratestate.Queries
+	runs       *jobruns.Queries
+	messages   *messages.Queries
+	plans      *reorgplans.Queries
+	candidates *policycandidates.Queries
 }
 
-func (s *Server) system(ctx context.Context, q systemQueries, account string, now time.Time, out *systemResponse) error {
-	day := pgtype.Timestamptz{Time: now.Add(-24 * time.Hour), Valid: true}
-	week := pgtype.Timestamptz{Time: now.Add(-7 * 24 * time.Hour), Valid: true}
-
+func (s *Server) system(ctx context.Context, q systemQueries, account string, out *systemResponse) error {
 	progress, err := s.progress(ctx, q.state, account)
 	if err != nil {
 		return err
@@ -217,33 +179,6 @@ func (s *Server) system(ctx context.Context, q systemQueries, account string, no
 	if op.PendingScan, err = q.messages.ScanBacklog(ctx, account); err != nil {
 		return err
 	}
-	corpus, err := q.classification.CorpusFigures(ctx, account)
-	if err != nil {
-		return err
-	}
-	c := &out.Corpus
-	c.Messages, c.Threads, c.Unfiled, c.Restricted = corpus.Messages, corpus.Threads, corpus.Unfiled, corpus.Restricted
-
-	actions, err := q.audit.AuditActionCounts(ctx, auditlog.AuditActionCountsParams{AccountID: account, Since: day})
-	if err != nil {
-		return err
-	}
-	c.Audit24h = map[string]int64{}
-	for _, a := range auditActions() {
-		c.Audit24h[a] = 0
-	}
-	for _, row := range actions {
-		c.Audit24h[row.Action] = row.Entries
-	}
-	if c.MaskingEvents7d, err = q.masking.MaskingEventCount(ctx, maskingevents.MaskingEventCountParams{AccountID: account, Since: week}); err != nil {
-		return err
-	}
-	if c.GateSkips7d, err = q.gate.GateDecisionCount(ctx, scangatedecisions.GateDecisionCountParams{
-		AccountID: account, Decision: "SKIP", Since: week,
-	}); err != nil {
-		return err
-	}
-
 	plans, err := q.plans.PlanStatusCounts(ctx, reorgplans.PlanStatusCountsParams{AccountID: account, StatusIn: []string{"DRAFT"}})
 	if err != nil {
 		return err

@@ -284,6 +284,22 @@ func writeBanner(stderr io.Writer, text string, logger *slog.Logger) {
 	}
 }
 
+// idleTimeout is how long the UI's server keeps a connection open between requests (docs/UI.md
+// section 17.5).
+const idleTimeout = 2 * time.Minute
+
+// uiServer is the UI's HTTP server. Requests take ctx as their base, so an open event stream ends
+// when the process is told to stop rather than holding the shutdown until its timeout. It closes a
+// connection idle between requests, and sets no read or write timeout, which would cut an open event
+// stream, one response that never ends.
+func uiServer(ctx context.Context, handler http.Handler, tlsConf *tls.Config, logger *slog.Logger) *http.Server {
+	return &http.Server{
+		Handler: handler, ReadHeaderTimeout: 10 * time.Second, IdleTimeout: idleTimeout, TLSConfig: tlsConf,
+		BaseContext: func(net.Listener) context.Context { return ctx },
+		ErrorLog:    logging.ServerErrorLog(logger),
+	}
+}
+
 // serve serves handler on uiListener, over TLS when the configuration names a key pair and over
 // plain HTTP when it names none (ADR-0127), and probes on probeListener over plain HTTP, until ctx
 // ends or either fails, then shuts both down. When the configuration names a key pair, it is loaded
@@ -298,13 +314,7 @@ func serve(ctx context.Context, c Configuration, uiListener, probeListener net.L
 		}
 		tlsConf = tlsConfig(c.TLSCert, c.TLSKey)
 	}
-	// Requests take ctx as their base, so an open event stream ends when the process is told to stop
-	// rather than holding the shutdown until its timeout.
-	ui := &http.Server{
-		Handler: handler, ReadHeaderTimeout: 10 * time.Second, TLSConfig: tlsConf,
-		BaseContext: func(net.Listener) context.Context { return ctx },
-		ErrorLog:    logging.ServerErrorLog(logger),
-	}
+	ui := uiServer(ctx, handler, tlsConf, logger)
 	probeServer := &http.Server{Handler: probes, ReadHeaderTimeout: 10 * time.Second, ErrorLog: logging.ServerErrorLog(logger)}
 	errs := make(chan error, 2)
 	go func() {
