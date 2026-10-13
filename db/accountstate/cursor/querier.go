@@ -6,16 +6,18 @@ package cursor
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Querier interface {
 	// Stores the account's change cursor and records the instant it was written, in the transaction that
 	// made the changes it follows durable, so the cursor never runs ahead of the index (ADR-0018). An
 	// account with no state row counts no row.
-	AdvanceCursor(ctx context.Context, arg AdvanceCursorParams) (int64, error)
+	AdvanceCursor(ctx context.Context, syncCursor pgtype.Text) (int64, error)
 	// The account's change cursor and when delta sync last wrote it, both null before its first tick
 	// (ADR-0016). A gap's recovery starts its window from the write time (ADR-0105).
-	SyncCursor(ctx context.Context, accountID string) (SyncCursorRow, error)
+	SyncCursor(ctx context.Context) (SyncCursorRow, error)
 }
 
 var _ Querier = (*Queries)(nil)

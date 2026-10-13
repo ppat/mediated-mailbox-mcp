@@ -15,18 +15,13 @@ const opLogCount = `-- name: OpLogCount :one
 SELECT count(*) AS operations
 FROM reorg_op_log AS l
 INNER JOIN reorg_plans AS p ON l.plan_id = p.plan_id
-WHERE p.account_id = $1 AND l.plan_id = $2
+WHERE p.account_id = current_setting('app.account') AND l.plan_id = $1
 `
-
-type OpLogCountParams struct {
-	AccountID string
-	PlanID    pgtype.UUID
-}
 
 // The op log's row count for one of the account's plans, shown beside the rollback that replays it
 // (docs/UI.md section 8.3). The op log carries no account, so the plan scopes it.
-func (q *Queries) OpLogCount(ctx context.Context, arg OpLogCountParams) (int64, error) {
-	row := q.db.QueryRow(ctx, opLogCount, arg.AccountID, arg.PlanID)
+func (q *Queries) OpLogCount(ctx context.Context, planID pgtype.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, opLogCount, planID)
 	var operations int64
 	err := row.Scan(&operations)
 	return operations, err

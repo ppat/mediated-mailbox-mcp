@@ -17,7 +17,7 @@ SELECT
     s.sender_class,
     s.message_count
 FROM senders AS s
-WHERE s.account_id = $1
+WHERE s.account_id = current_setting('app.account')
 ORDER BY s.domain
 `
 
@@ -30,8 +30,8 @@ type SenderClassesRow struct {
 // Every one of the account's senders with its stored class and message count, which the policy
 // screens match against the rules to count what each rule matches and restricts (docs/UI.md section
 // 8.7). Matching a sender against a rule is the sender classifier's, so it is made in the UI's server.
-func (q *Queries) SenderClasses(ctx context.Context, accountID string) ([]SenderClassesRow, error) {
-	rows, err := q.db.Query(ctx, senderClasses, accountID)
+func (q *Queries) SenderClasses(ctx context.Context) ([]SenderClassesRow, error) {
+	rows, err := q.db.Query(ctx, senderClasses)
 	if err != nil {
 		return nil, err
 	}
@@ -56,14 +56,9 @@ SELECT
     coalesce(sum(s.message_count), 0)::bigint AS messages
 FROM senders AS s
 WHERE
-    s.account_id = $1
-    AND ($2::text = '' OR strpos(s.domain::text, $2::text) > 0)
+    s.account_id = current_setting('app.account')
+    AND ($1::text = '' OR strpos(s.domain::text, $1::text) > 0)
 `
-
-type SenderSearchFiguresParams struct {
-	AccountID string
-	Search    string
-}
 
 type SenderSearchFiguresRow struct {
 	Senders  int64
@@ -74,8 +69,8 @@ type SenderSearchFiguresRow struct {
 // (docs/UI.md section 8.7). The search is a substring of the stored domain, given in the form the
 // index stores a domain in, so it ignores case as the domains do with no statement lowercasing
 // (ADR-0016). An empty search matches every sender.
-func (q *Queries) SenderSearchFigures(ctx context.Context, arg SenderSearchFiguresParams) (SenderSearchFiguresRow, error) {
-	row := q.db.QueryRow(ctx, senderSearchFigures, arg.AccountID, arg.Search)
+func (q *Queries) SenderSearchFigures(ctx context.Context, search string) (SenderSearchFiguresRow, error) {
+	row := q.db.QueryRow(ctx, senderSearchFigures, search)
 	var i SenderSearchFiguresRow
 	err := row.Scan(&i.Senders, &i.Messages)
 	return i, err
@@ -92,17 +87,16 @@ SELECT
     s.scan_hit_count
 FROM senders AS s
 WHERE
-    s.account_id = $1
-    AND ($2::text = '' OR strpos(s.domain::text, $2::text) > 0)
+    s.account_id = current_setting('app.account')
+    AND ($1::text = '' OR strpos(s.domain::text, $1::text) > 0)
 ORDER BY
-    CASE WHEN $3::boolean THEN s.message_count END DESC,
-    CASE WHEN NOT $3::boolean THEN s.message_count END ASC,
+    CASE WHEN $2::boolean THEN s.message_count END DESC,
+    CASE WHEN NOT $2::boolean THEN s.message_count END ASC,
     s.domain ASC
-LIMIT 50 OFFSET $4
+LIMIT 50 OFFSET $3
 `
 
 type SenderSearchRowsParams struct {
-	AccountID  string
 	Search     string
 	Descending bool
 	RowOffset  int32
@@ -122,12 +116,7 @@ type SenderSearchRowsRow struct {
 // (docs/UI.md section 7.2), the sender with the most messages first by default, the domain ending the
 // sort.
 func (q *Queries) SenderSearchRows(ctx context.Context, arg SenderSearchRowsParams) ([]SenderSearchRowsRow, error) {
-	rows, err := q.db.Query(ctx, senderSearchRows,
-		arg.AccountID,
-		arg.Search,
-		arg.Descending,
-		arg.RowOffset,
-	)
+	rows, err := q.db.Query(ctx, senderSearchRows, arg.Search, arg.Descending, arg.RowOffset)
 	if err != nil {
 		return nil, err
 	}

@@ -76,8 +76,8 @@ type selection struct {
 // readQuery reads the query argument. A null or missing query selects every message. A term the
 // schema does not declare, one named in another case, a null term, an empty address, domain or
 // subject, a sender class outside the two, and a timestamp that is not UTC are refused.
-func readQuery(account string, raw json.RawMessage) (selection, error) {
-	sel := selection{params: messages.SearchSummaryParams{AccountID: account}}
+func readQuery(raw json.RawMessage) (selection, error) {
+	sel := selection{params: messages.SearchSummaryParams{}}
 	var q indexQuery
 	if len(raw) > 0 {
 		if err := strictObject(raw, &q, "query", queryTerms...); err != nil {

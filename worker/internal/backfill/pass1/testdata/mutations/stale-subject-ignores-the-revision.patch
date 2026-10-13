@@ -6,11 +6,11 @@ scheduled-count: no
 integration: yes
 
 diff --git a/db/messages/ingest/ingest.sql b/db/messages/ingest/ingest.sql
-index 00c07741..e349040b 100644
+index 2e264c23..98755a70 100644
 --- a/db/messages/ingest/ingest.sql
 +++ b/db/messages/ingest/ingest.sql
-@@ -74,7 +74,7 @@ WHERE
-     m.account_id = @account_id
+@@ -93,7 +93,7 @@ WHERE
+     m.account_id = current_setting('app.account')
      AND (
          m.subject_scanner_version IS DISTINCT FROM @scanner_version::int
 -        OR m.subject_scanner_revision IS DISTINCT FROM @scanner_revision::text
@@ -19,15 +19,15 @@ index 00c07741..e349040b 100644
  
  -- name: StaleSubjects :many
 diff --git a/db/messages/ingest/ingest.sql.go b/db/messages/ingest/ingest.sql.go
-index d69a713c..9896d3cc 100644
+index 6cd31418..22e3863a 100644
 --- a/db/messages/ingest/ingest.sql.go
 +++ b/db/messages/ingest/ingest.sql.go
 @@ -18,7 +18,7 @@ WHERE
-     m.account_id = $1
+     m.account_id = current_setting('app.account')
      AND (
-         m.subject_scanner_version IS DISTINCT FROM $2::int
--        OR m.subject_scanner_revision IS DISTINCT FROM $3::text
-+        OR false AND m.subject_scanner_revision IS DISTINCT FROM $3::text
+         m.subject_scanner_version IS DISTINCT FROM $1::int
+-        OR m.subject_scanner_revision IS DISTINCT FROM $2::text
++        OR false AND m.subject_scanner_revision IS DISTINCT FROM $2::text
      )
  `
  

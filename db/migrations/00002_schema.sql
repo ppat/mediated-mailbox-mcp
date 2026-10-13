@@ -180,9 +180,8 @@ CREATE TABLE messages (
     PRIMARY KEY (account_id, message_id)
 );
 
--- No index over labels or the subject. Array operators, ILIKE and trigram matching have no leakproof
--- form, so under row-level security no runtime role could use one (ADR-0016). The partial indexes
--- serve a statement that states their predicate exactly.
+-- No index over labels or the subject, which no read filters on often enough to need one yet
+-- (ADR-0016). The partial indexes serve a statement that states their predicate exactly.
 CREATE INDEX ON messages (account_id, from_domain);
 CREATE INDEX ON messages (account_id, sent_at DESC);
 CREATE INDEX ON messages (account_id, sent_at) WHERE labels = '{}';
@@ -204,7 +203,8 @@ CREATE TABLE attachment_media (
     FOREIGN KEY (account_id, message_id) REFERENCES messages ON DELETE CASCADE
 );
 
--- Makes ADR-0093's residual auditable.
+-- Makes ADR-0093's residual auditable. A decision is the message's current state, replaced on each
+-- decision, so a message removed takes its decision with it (ADR-0016).
 CREATE TABLE scan_gate_decisions (
     account_id text NOT NULL,
     message_id text NOT NULL,
@@ -212,12 +212,13 @@ CREATE TABLE scan_gate_decisions (
     -- restricted | high_volume_no_hits | ..., a vocabulary tuning grows, so not checked.
     reason text NOT NULL,
     decided_at timestamptz NOT NULL DEFAULT now(),
-    PRIMARY KEY (account_id, message_id)
+    PRIMARY KEY (account_id, message_id),
+    FOREIGN KEY (account_id, message_id) REFERENCES messages ON DELETE CASCADE
 );
 
 -- The heuristic review queue (ADR-0004).
 CREATE TABLE policy_candidates (
-    account_id text NOT NULL,
+    account_id text NOT NULL REFERENCES accounts,
     -- Stored lowercase, as senders.domain is.
     domain text NOT NULL CHECK (domain = lower(domain COLLATE "C")),
     -- One entry per heuristic that fired, with its evidence, in the shape ADR-0016 gives.
@@ -268,10 +269,12 @@ CREATE TABLE policy_changes (
 );
 CREATE INDEX ON policy_changes (account_id, ts DESC);
 
+-- Append-only history kept across re-masks, so it outlives its message and references only its
+-- account (ADR-0120, ADR-0016).
 CREATE TABLE masking_events (
     id bigserial PRIMARY KEY,
     -- Indexed below with masked_at.
-    account_id text NOT NULL,
+    account_id text NOT NULL REFERENCES accounts,
     message_id text NOT NULL,
     field text NOT NULL CHECK (field IN ('subject')),
     rule_id text NOT NULL,
@@ -334,7 +337,7 @@ CREATE TABLE reorg_op_log (
     PRIMARY KEY (plan_id, seq)
 );
 
--- Every background job kind's runs (ADR-0117). The run indexes are 00006's.
+-- Every background job kind's runs (ADR-0117). The run indexes are 00005's.
 CREATE TABLE job_runs (
     account_id text NOT NULL REFERENCES accounts,
     -- A short opaque string.
@@ -365,7 +368,7 @@ CREATE TABLE job_runs (
     )
 );
 
--- A run's timeline.
+-- A run's timeline. Its rows are parts of the run and go with it (ADR-0016).
 CREATE TABLE job_run_events (
     account_id text NOT NULL,
     run_id text NOT NULL,
@@ -378,10 +381,12 @@ CREATE TABLE job_run_events (
     page int,
     -- Provider or scanner text, never a body.
     detail text,
-    PRIMARY KEY (account_id, run_id, seq)
+    PRIMARY KEY (account_id, run_id, seq),
+    FOREIGN KEY (account_id, run_id) REFERENCES job_runs ON DELETE CASCADE
 );
 
--- A run's per-item failures. Its vocabularies grow with new job kinds, so none is checked.
+-- A run's per-item failures, parts of the run that go with it (ADR-0016). Its vocabularies grow with
+-- new job kinds, so none is checked.
 CREATE TABLE job_run_failures (
     account_id text NOT NULL,
     run_id text NOT NULL,
@@ -403,16 +408,18 @@ CREATE TABLE job_run_failures (
     disposition text NOT NULL DEFAULT 'pending',
     -- The recovering run.
     recovered_by text,
-    PRIMARY KEY (account_id, run_id, seq)
+    PRIMARY KEY (account_id, run_id, seq),
+    FOREIGN KEY (account_id, run_id) REFERENCES job_runs ON DELETE CASCADE
 );
 
--- No runtime role holds UPDATE or DELETE here. Append-only is the grant, not a convention.
+-- No runtime role holds UPDATE or DELETE here. Append-only is the grant, not a convention. Evidence
+-- outlives everything, so an account with audit rows cannot be deleted (ADR-0016).
 -- A body decision's row records what the decision rests on in typed columns, each closed vocabulary
 -- checked, since a wrong spelling written here stays for good (ADR-0016).
 CREATE TABLE audit_log (
     id bigserial PRIMARY KEY,
     ts timestamptz NOT NULL DEFAULT now(),
-    account_id text NOT NULL,
+    account_id text NOT NULL REFERENCES accounts ON DELETE RESTRICT,
     actor text NOT NULL,
     action text NOT NULL
     CHECK (action IN ('READ_BODY', 'DENY_BODY', 'MUTATE', 'DENY_MUTATE')),

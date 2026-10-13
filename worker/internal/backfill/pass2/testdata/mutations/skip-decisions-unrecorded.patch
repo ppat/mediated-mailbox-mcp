@@ -6,17 +6,24 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/backfill/pass2/postgres.go b/worker/internal/backfill/pass2/postgres.go
+index 2b9ece79..3b0809a5 100644
 --- a/worker/internal/backfill/pass2/postgres.go
 +++ b/worker/internal/backfill/pass2/postgres.go
-@@ -227,7 +227,10 @@ func commitOutcome(ctx context.Context, messages *scan.Queries, gate *decisions.
+@@ -432,13 +432,16 @@ func commitOutcome(ctx context.Context, messages *scan.Queries, gate *gaterecord
+ 		return nil
+ 	}
+ 	decision := "SKIP"
  	if o.Verdict.Scans() {
  		decision = "SCAN"
  	}
--	err := gate.RecordDecision(ctx, gaterecord.RecordDecisionParams{AccountID: account, MessageID: o.ID, Decision: decision, Reason: o.Verdict.Reason().String()})
+-	err := gate.RecordDecision(ctx, gaterecord.RecordDecisionParams{MessageID: o.ID, Decision: decision, Reason: o.Verdict.Reason().String()})
 +	var err error
 +	if o.Verdict.Scans() {
-+		err = gate.RecordDecision(ctx, gaterecord.RecordDecisionParams{AccountID: account, MessageID: o.ID, Decision: decision, Reason: o.Verdict.Reason().String()})
++		err = gate.RecordDecision(ctx, gaterecord.RecordDecisionParams{MessageID: o.ID, Decision: decision, Reason: o.Verdict.Reason().String()})
 +	}
  	if err != nil {
  		return fmt.Errorf("recording the gate's decision: %w", err)
  	}
+ 	var n int64
+ 	switch {
+ 	case o.Scanned != nil:

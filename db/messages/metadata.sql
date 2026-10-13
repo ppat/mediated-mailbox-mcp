@@ -29,7 +29,7 @@ SELECT
     ), '{}')::text[] AS attachment_extensions
 FROM messages AS m
 WHERE
-    m.account_id = @account_id
+    m.account_id = current_setting('app.account')
     AND (
         @after_sent_at::timestamptz IS NULL
         OR (m.sent_at, m.message_id) < (@after_sent_at::timestamptz, @after_message_id::text)
@@ -65,7 +65,7 @@ SELECT
         WHERE x.account_id = m.account_id AND x.message_id = m.message_id
     ), '{}')::text[] AS attachment_extensions
 FROM messages AS m
-WHERE m.account_id = @account_id AND m.message_id = @message_id;
+WHERE m.account_id = current_setting('app.account') AND m.message_id = @message_id;
 
 -- name: ThreadMessages :many
 -- Every message of one of the account's threads, oldest first, with the same columns as a page. No
@@ -95,7 +95,7 @@ SELECT
         WHERE x.account_id = m.account_id AND x.message_id = m.message_id
     ), '{}')::text[] AS attachment_extensions
 FROM messages AS m
-WHERE m.account_id = @account_id AND m.thread_id = @thread_id
+WHERE m.account_id = current_setting('app.account') AND m.thread_id = @thread_id
 ORDER BY m.sent_at ASC, m.message_id ASC;
 
 -- name: ThreadPage :many
@@ -107,7 +107,7 @@ SELECT
     count(*) AS messages,
     max(m.sent_at)::timestamptz AS latest_at
 FROM messages AS m
-WHERE m.account_id = @account_id
+WHERE m.account_id = current_setting('app.account')
 GROUP BY m.thread_id
 HAVING
     @before_latest_at::timestamptz IS NULL
@@ -121,5 +121,5 @@ LIMIT @page_size;
 SELECT DISTINCT l.label::text AS label
 FROM messages AS m
 CROSS JOIN LATERAL unnest(m.labels) AS l (label)
-WHERE m.account_id = @account_id
+WHERE m.account_id = current_setting('app.account')
 ORDER BY label;

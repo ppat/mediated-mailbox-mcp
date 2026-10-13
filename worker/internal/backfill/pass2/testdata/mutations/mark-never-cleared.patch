@@ -6,15 +6,21 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/backfill/pass2/postgres.go b/worker/internal/backfill/pass2/postgres.go
-index 53b4947..c2a5aaf 100644
+index 2b9ece79..9b7075f3 100644
 --- a/worker/internal/backfill/pass2/postgres.go
 +++ b/worker/internal/backfill/pass2/postgres.go
-@@ -118,7 +118,7 @@ func (s *Postgres) Start(ctx context.Context, account, runID string, start pass1
+@@ -128,13 +128,13 @@ func (s *Postgres) State(ctx context.Context, account string) (bool, bool, bool,
+ func (s *Postgres) Start(ctx context.Context, account, runID string, start pass1core.Start[core.Progress]) error {
+ 	cp, ct, err := encode(start.From)
+ 	if err != nil {
  		return err
  	}
  	return tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
--		if err := completion.New(t).ClearSecondRestart(ctx, account); err != nil {
+-		if err := completion.New(t).ClearSecondRestart(ctx); err != nil {
 +		if err := error(nil); err != nil {
  			return fmt.Errorf("clearing the mark that starts the pass over: %w", err)
  		}
- 		return pass1.StartRun(ctx, runrecord.New(t), account, pass1.Starting{
+ 		return pass1.StartRun(ctx, runrecord.New(t), pass1.Starting{
+ 			Pass: pass, RunID: runID, ResumedFrom: start.ResumedFrom, Abandon: start.Abandon,
+ 			Checkpoint: cp, Counters: ct, Page: start.From.Checkpoint.Page,
+ 		})

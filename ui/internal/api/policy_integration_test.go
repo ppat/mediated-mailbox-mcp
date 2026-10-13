@@ -283,9 +283,9 @@ func TestABaseLiftNeedsTheIdentifierTyped(t *testing.T) {
 	}
 }
 
-// Under one account, another account's rule is unknown to an edit and a lift, never a stale conflict,
-// and nothing is written. A stale edit of the account's own rule is a conflict (ADR-0084, VERIFICATIONS,
-// the row on a write row-level security empties).
+// Under one account, another account's rule is unknown to an edit and a lift, never a stale
+// conflict, and nothing is written. A stale edit of the account's own rule is a conflict (ADR-0084,
+// ADR-0135).
 func TestAnotherAccountsRuleIsUnknown(t *testing.T) {
 	r := newRig(t)
 	r.seedPolicy()

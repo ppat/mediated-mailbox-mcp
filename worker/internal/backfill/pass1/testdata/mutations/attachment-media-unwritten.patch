@@ -6,14 +6,14 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/backfill/pass1/postgres.go b/worker/internal/backfill/pass1/postgres.go
-index 0e5eb5ee..4558761d 100644
+index c902fbdc..134d0849 100644
 --- a/worker/internal/backfill/pass1/postgres.go
 +++ b/worker/internal/backfill/pass1/postgres.go
-@@ -253,7 +253,7 @@ func insert(ctx context.Context, q *messageingest.Queries, account string, m ind
+@@ -259,7 +259,7 @@ func insert(ctx context.Context, q *messageingest.Queries, m index.Message) (boo
  	if err != nil {
  		return false, err
  	}
--	return true, media(ctx, q, account, m)
+-	return true, media(ctx, q, m)
 +	return true, nil
  }
  

@@ -60,11 +60,8 @@ Throughput inside the budget comes from overlap, not rate. The stages (fetch →
 persist) are pipelined as bounded async queues so network waits overlap CPU work, and database
 writes are batched at 500 to 1000 rows so single-row inserts never become the bottleneck the API
 is not. The batched write is a multi-row upsert, expressed as one insert selecting from unnested
-array parameters. `COPY` is not available. PostgreSQL refuses it on a table with row-level security
-for any role the policy applies to, which is every runtime role here
-([ADR-0016](../data/0016-schema.md)). It would not serve this design in any case, because backfill
-resumes at page granularity and replays the partial page
-([ADR-0017](../data/0017-two-pass-backfill.md),
+array parameters, not `COPY`, which would not serve this design, because backfill resumes at page
+granularity and replays the partial page ([ADR-0017](../data/0017-two-pass-backfill.md),
 [ADR-0045](../engineering/0045-crash-injection-testing.md)) so every bulk write is idempotent by
 decision, and `COPY` cannot upsert. At steady state the controller sits at target with nothing to
 adapt to, and the sync tick fits comfortably inside its reservation.

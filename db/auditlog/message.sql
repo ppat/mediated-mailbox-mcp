@@ -7,7 +7,7 @@ SELECT
     a.actor,
     a.action
 FROM audit_log AS a
-WHERE a.account_id = @account_id AND a.message_id = @message_id
+WHERE a.account_id = current_setting('app.account') AND a.message_id = @message_id
 ORDER BY a.ts DESC, a.id DESC
 LIMIT 50;
 
@@ -15,4 +15,4 @@ LIMIT 50;
 -- How many audit rows one message has, beside the newest fifty a row detail lists.
 SELECT count(*) AS entries
 FROM audit_log AS a
-WHERE a.account_id = @account_id AND a.message_id = @message_id;
+WHERE a.account_id = current_setting('app.account') AND a.message_id = @message_id;

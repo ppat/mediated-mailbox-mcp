@@ -43,25 +43,24 @@ type scopeWrites struct {
 }
 
 // accountWrites are the account's own rules' statements, built from the account's transaction.
-func accountWrites(rulesQ *manage.Queries, changesQ *policychanges.Queries, account string) scopeWrites {
-	scope := pgtype.Text{String: account, Valid: true}
+func accountWrites(rulesQ *manage.Queries, changesQ *policychanges.Queries) scopeWrites {
 	return scopeWrites{
 		stored: func(ctx context.Context) ([]registry.StoredRule, error) {
-			all, err := registry.ComposedRules(ctx, rulesQ, account)
+			all, err := registry.ComposedRules(ctx, rulesQ)
 			return slices.DeleteFunc(all, func(r registry.StoredRule) bool { return r.Base }), err
 		},
 		add: func(ctx context.Context, r rules.Rule, actor string) error {
-			return rulesQ.AddRule(ctx, manage.AddRuleParams{AccountID: scope, RuleID: r.ID, Class: policy.Restricted, DomainSuffix: r.Suffixes, Source: sourceOperator, CreatedBy: actor})
+			return rulesQ.AddRule(ctx, manage.AddRuleParams{RuleID: r.ID, Class: policy.Restricted, DomainSuffix: r.Suffixes, Source: sourceOperator, CreatedBy: actor})
 		},
 		edit: func(ctx context.Context, id string, before, after []string) (int64, error) {
-			return rulesQ.EditRule(ctx, manage.EditRuleParams{DomainSuffix: after, AccountID: scope, RuleID: id, SuffixesBefore: before})
+			return rulesQ.EditRule(ctx, manage.EditRuleParams{DomainSuffix: after, RuleID: id, SuffixesBefore: before})
 		},
 		lift: func(ctx context.Context, id string, before []string) (int64, error) {
-			return rulesQ.LiftRule(ctx, manage.LiftRuleParams{AccountID: scope, RuleID: id, SuffixesBefore: before})
+			return rulesQ.LiftRule(ctx, manage.LiftRuleParams{RuleID: id, SuffixesBefore: before})
 		},
 		record: func(ctx context.Context, action, id string, before, after []string, actor string) error {
 			return changesQ.RecordChange(ctx, policychanges.RecordChangeParams{
-				AccountID: scope, Actor: actor, Action: action, RuleID: id, SuffixesBefore: nonNil(before), SuffixesAfter: nonNil(after),
+				Actor: actor, Action: action, RuleID: id, SuffixesBefore: nonNil(before), SuffixesAfter: nonNil(after),
 			})
 		},
 	}
@@ -115,7 +114,7 @@ func (s *Server) inScope(ctx context.Context, account string, isBase bool, fn fu
 		return tx.RunBase(ctx, s.opts.Database, func(t pgx.Tx) error { return fn(baseWrites(base.New(t))) })
 	}
 	return tx.Run(ctx, s.opts.Database, account, func(t pgx.Tx) error {
-		return fn(accountWrites(manage.New(t), policychanges.New(t), account))
+		return fn(accountWrites(manage.New(t), policychanges.New(t)))
 	})
 }
 
@@ -607,11 +606,11 @@ func (s *Server) getMatch(w http.ResponseWriter, r *http.Request) {
 	suffixes := r.URL.Query()["suffix"]
 	out := MatchAnswer{Suffixes: []SuffixMatch{}}
 	err := s.inAccount(r.Context(), account, func(q registry.Queries) error {
-		stored, err := registry.ComposedRules(r.Context(), q.Rules, account)
+		stored, err := registry.ComposedRules(r.Context(), q.Rules)
 		if err != nil {
 			return err
 		}
-		senders, _, err := registry.SenderClasses(r.Context(), q, account, s.opts.Lookups)
+		senders, _, err := registry.SenderClasses(r.Context(), q, s.opts.Lookups)
 		if err != nil {
 			return err
 		}
@@ -719,14 +718,14 @@ func (s *Server) getRelease(w http.ResponseWriter, r *http.Request) {
 	id := q.Get("rule")
 	var out registry.Counts
 	err := s.inAccount(r.Context(), account, func(rq registry.Queries) error {
-		stored, err := registry.ComposedRules(r.Context(), rq.Rules, account)
+		stored, err := registry.ComposedRules(r.Context(), rq.Rules)
 		if err != nil {
 			return err
 		}
 		if !slices.ContainsFunc(stored, func(x registry.StoredRule) bool { return x.Base == isBase && x.ID == id }) {
 			return errUnknownRule
 		}
-		senders, _, err := registry.SenderClasses(r.Context(), rq, account, s.opts.Lookups)
+		senders, _, err := registry.SenderClasses(r.Context(), rq, s.opts.Lookups)
 		if err != nil {
 			return err
 		}

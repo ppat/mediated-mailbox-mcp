@@ -39,13 +39,12 @@ SELECT
 FROM job_run_failures AS f
 LEFT JOIN messages AS m
     ON f.account_id = m.account_id AND f.item_id = m.message_id AND f.item_kind IN ('message', 'op')
-WHERE f.account_id = $1 AND f.run_id = $2 AND f.seq = $3
+WHERE f.account_id = current_setting('app.account') AND f.run_id = $1 AND f.seq = $2
 `
 
 type FailureDetailParams struct {
-	AccountID string
-	RunID     string
-	Seq       int64
+	RunID string
+	Seq   int64
 }
 
 type FailureDetailRow struct {
@@ -79,7 +78,7 @@ type FailureDetailRow struct {
 // content rules that set its flags, the time it was scanned and the scanner version (docs/UI.md
 // sections 7.1, 8.4 and 17.1).
 func (q *Queries) FailureDetail(ctx context.Context, arg FailureDetailParams) (FailureDetailRow, error) {
-	row := q.db.QueryRow(ctx, failureDetail, arg.AccountID, arg.RunID, arg.Seq)
+	row := q.db.QueryRow(ctx, failureDetail, arg.RunID, arg.Seq)
 	var i FailureDetailRow
 	err := row.Scan(
 		&i.Seq,
@@ -119,32 +118,31 @@ FROM job_run_failures AS f
 LEFT JOIN messages AS m
     ON f.account_id = m.account_id AND f.item_id = m.message_id AND f.item_kind IN ('message', 'op')
 WHERE
-    f.account_id = $1
-    AND f.run_id = $2
-    AND ($3::text[] IS NULL OR f.error_class = any($3::text[]))
-    AND ($4::text[] IS NULL OR f.error_class != all($4::text[]))
-    AND ($5::text[] IS NULL OR f.disposition = any($5::text[]))
-    AND ($6::text[] IS NULL OR f.disposition != all($6::text[]))
+    f.account_id = current_setting('app.account')
+    AND f.run_id = $1
+    AND ($2::text[] IS NULL OR f.error_class = any($2::text[]))
+    AND ($3::text[] IS NULL OR f.error_class != all($3::text[]))
+    AND ($4::text[] IS NULL OR f.disposition = any($4::text[]))
+    AND ($5::text[] IS NULL OR f.disposition != all($5::text[]))
     AND (
-        ($7::text[] IS NULL AND NOT $8::boolean)
-        OR m.from_domain = any($7::text[])
-        OR ($8::boolean AND m.from_domain IS NULL)
+        ($6::text[] IS NULL AND NOT $7::boolean)
+        OR m.from_domain = any($6::text[])
+        OR ($7::boolean AND m.from_domain IS NULL)
     )
-    AND ($9::text[] IS NULL OR m.from_domain IS NULL OR m.from_domain != all($9::text[]))
-    AND (NOT $10::boolean OR m.from_domain IS NOT NULL)
+    AND ($8::text[] IS NULL OR m.from_domain IS NULL OR m.from_domain != all($8::text[]))
+    AND (NOT $9::boolean OR m.from_domain IS NOT NULL)
     AND (
-        ($11::integer[] IS NULL AND NOT $12::boolean)
-        OR f.page = any($11::integer[])
-        OR ($12::boolean AND f.page IS NULL)
+        ($10::integer[] IS NULL AND NOT $11::boolean)
+        OR f.page = any($10::integer[])
+        OR ($11::boolean AND f.page IS NULL)
     )
-    AND ($13::integer[] IS NULL OR f.page IS NULL OR f.page != all($13::integer[]))
-    AND (NOT $14::boolean OR f.page IS NOT NULL)
+    AND ($12::integer[] IS NULL OR f.page IS NULL OR f.page != all($12::integer[]))
+    AND (NOT $13::boolean OR f.page IS NOT NULL)
 GROUP BY f.disposition
 ORDER BY f.disposition
 `
 
 type FailureFiguresParams struct {
-	AccountID      string
 	RunID          string
 	ErrorClassIn   []string
 	ErrorClassOut  []string
@@ -174,7 +172,6 @@ type FailureFiguresRow struct {
 // array is no filter. The none flags select or exclude the items with no sender or no page.
 func (q *Queries) FailureFigures(ctx context.Context, arg FailureFiguresParams) ([]FailureFiguresRow, error) {
 	rows, err := q.db.Query(ctx, failureFigures,
-		arg.AccountID,
 		arg.RunID,
 		arg.ErrorClassIn,
 		arg.ErrorClassOut,
@@ -236,38 +233,37 @@ FROM job_run_failures AS f
 LEFT JOIN messages AS m
     ON f.account_id = m.account_id AND f.item_id = m.message_id AND f.item_kind IN ('message', 'op')
 WHERE
-    f.account_id = $1
-    AND f.run_id = $2
-    AND ($3::text[] IS NULL OR f.error_class = any($3::text[]))
-    AND ($4::text[] IS NULL OR f.error_class != all($4::text[]))
-    AND ($5::text[] IS NULL OR f.disposition = any($5::text[]))
-    AND ($6::text[] IS NULL OR f.disposition != all($6::text[]))
+    f.account_id = current_setting('app.account')
+    AND f.run_id = $1
+    AND ($2::text[] IS NULL OR f.error_class = any($2::text[]))
+    AND ($3::text[] IS NULL OR f.error_class != all($3::text[]))
+    AND ($4::text[] IS NULL OR f.disposition = any($4::text[]))
+    AND ($5::text[] IS NULL OR f.disposition != all($5::text[]))
     AND (
-        ($7::text[] IS NULL AND NOT $8::boolean)
-        OR m.from_domain = any($7::text[])
-        OR ($8::boolean AND m.from_domain IS NULL)
+        ($6::text[] IS NULL AND NOT $7::boolean)
+        OR m.from_domain = any($6::text[])
+        OR ($7::boolean AND m.from_domain IS NULL)
     )
-    AND ($9::text[] IS NULL OR m.from_domain IS NULL OR m.from_domain != all($9::text[]))
-    AND (NOT $10::boolean OR m.from_domain IS NOT NULL)
+    AND ($8::text[] IS NULL OR m.from_domain IS NULL OR m.from_domain != all($8::text[]))
+    AND (NOT $9::boolean OR m.from_domain IS NOT NULL)
     AND (
-        ($11::integer[] IS NULL AND NOT $12::boolean)
-        OR f.page = any($11::integer[])
-        OR ($12::boolean AND f.page IS NULL)
+        ($10::integer[] IS NULL AND NOT $11::boolean)
+        OR f.page = any($10::integer[])
+        OR ($11::boolean AND f.page IS NULL)
     )
-    AND ($13::integer[] IS NULL OR f.page IS NULL OR f.page != all($13::integer[]))
-    AND (NOT $14::boolean OR f.page IS NOT NULL)
+    AND ($12::integer[] IS NULL OR f.page IS NULL OR f.page != all($12::integer[]))
+    AND (NOT $13::boolean OR f.page IS NOT NULL)
 ORDER BY
-    CASE WHEN $15::text = 'last_at' AND $16::boolean THEN f.last_at END DESC,
-    CASE WHEN $15::text = 'last_at' AND NOT $16::boolean THEN f.last_at END ASC,
-    CASE WHEN $15::text = 'attempts' AND $16::boolean THEN f.attempts END DESC,
-    CASE WHEN $15::text = 'attempts' AND NOT $16::boolean THEN f.attempts END ASC,
+    CASE WHEN $14::text = 'last_at' AND $15::boolean THEN f.last_at END DESC,
+    CASE WHEN $14::text = 'last_at' AND NOT $15::boolean THEN f.last_at END ASC,
+    CASE WHEN $14::text = 'attempts' AND $15::boolean THEN f.attempts END DESC,
+    CASE WHEN $14::text = 'attempts' AND NOT $15::boolean THEN f.attempts END ASC,
     f.run_id ASC,
     f.seq ASC
-LIMIT 50 OFFSET $17
+LIMIT 50 OFFSET $16
 `
 
 type FailureRowsParams struct {
-	AccountID      string
 	RunID          string
 	ErrorClassIn   []string
 	ErrorClassOut  []string
@@ -313,7 +309,6 @@ type FailureRowsRow struct {
 // ends the sort.
 func (q *Queries) FailureRows(ctx context.Context, arg FailureRowsParams) ([]FailureRowsRow, error) {
 	rows, err := q.db.Query(ctx, failureRows,
-		arg.AccountID,
 		arg.RunID,
 		arg.ErrorClassIn,
 		arg.ErrorClassOut,
@@ -378,32 +373,31 @@ FROM job_run_failures AS f
 LEFT JOIN messages AS m
     ON f.account_id = m.account_id AND f.item_id = m.message_id AND f.item_kind IN ('message', 'op')
 WHERE
-    f.account_id = $1
-    AND f.run_id = $2
-    AND ($3::text[] IS NULL OR f.error_class = any($3::text[]))
-    AND ($4::text[] IS NULL OR f.error_class != all($4::text[]))
-    AND ($5::text[] IS NULL OR f.disposition = any($5::text[]))
-    AND ($6::text[] IS NULL OR f.disposition != all($6::text[]))
+    f.account_id = current_setting('app.account')
+    AND f.run_id = $1
+    AND ($2::text[] IS NULL OR f.error_class = any($2::text[]))
+    AND ($3::text[] IS NULL OR f.error_class != all($3::text[]))
+    AND ($4::text[] IS NULL OR f.disposition = any($4::text[]))
+    AND ($5::text[] IS NULL OR f.disposition != all($5::text[]))
     AND (
-        ($7::text[] IS NULL AND NOT $8::boolean)
-        OR m.from_domain = any($7::text[])
-        OR ($8::boolean AND m.from_domain IS NULL)
+        ($6::text[] IS NULL AND NOT $7::boolean)
+        OR m.from_domain = any($6::text[])
+        OR ($7::boolean AND m.from_domain IS NULL)
     )
-    AND ($9::text[] IS NULL OR m.from_domain IS NULL OR m.from_domain != all($9::text[]))
-    AND (NOT $10::boolean OR m.from_domain IS NOT NULL)
+    AND ($8::text[] IS NULL OR m.from_domain IS NULL OR m.from_domain != all($8::text[]))
+    AND (NOT $9::boolean OR m.from_domain IS NOT NULL)
     AND (
-        ($11::integer[] IS NULL AND NOT $12::boolean)
-        OR f.page = any($11::integer[])
-        OR ($12::boolean AND f.page IS NULL)
+        ($10::integer[] IS NULL AND NOT $11::boolean)
+        OR f.page = any($10::integer[])
+        OR ($11::boolean AND f.page IS NULL)
     )
-    AND ($13::integer[] IS NULL OR f.page IS NULL OR f.page != all($13::integer[]))
-    AND (NOT $14::boolean OR f.page IS NOT NULL)
+    AND ($12::integer[] IS NULL OR f.page IS NULL OR f.page != all($12::integer[]))
+    AND (NOT $13::boolean OR f.page IS NOT NULL)
 GROUP BY f.disposition
 ORDER BY failures DESC, f.disposition ASC NULLS LAST
 `
 
 type FailuresByDispositionParams struct {
-	AccountID      string
 	RunID          string
 	ErrorClassIn   []string
 	ErrorClassOut  []string
@@ -429,7 +423,6 @@ type FailuresByDispositionRow struct {
 // Every group of a run's failures by disposition, as FailuresByErrorClass.
 func (q *Queries) FailuresByDisposition(ctx context.Context, arg FailuresByDispositionParams) ([]FailuresByDispositionRow, error) {
 	rows, err := q.db.Query(ctx, failuresByDisposition,
-		arg.AccountID,
 		arg.RunID,
 		arg.ErrorClassIn,
 		arg.ErrorClassOut,
@@ -477,32 +470,31 @@ FROM job_run_failures AS f
 LEFT JOIN messages AS m
     ON f.account_id = m.account_id AND f.item_id = m.message_id AND f.item_kind IN ('message', 'op')
 WHERE
-    f.account_id = $1
-    AND f.run_id = $2
-    AND ($3::text[] IS NULL OR f.error_class = any($3::text[]))
-    AND ($4::text[] IS NULL OR f.error_class != all($4::text[]))
-    AND ($5::text[] IS NULL OR f.disposition = any($5::text[]))
-    AND ($6::text[] IS NULL OR f.disposition != all($6::text[]))
+    f.account_id = current_setting('app.account')
+    AND f.run_id = $1
+    AND ($2::text[] IS NULL OR f.error_class = any($2::text[]))
+    AND ($3::text[] IS NULL OR f.error_class != all($3::text[]))
+    AND ($4::text[] IS NULL OR f.disposition = any($4::text[]))
+    AND ($5::text[] IS NULL OR f.disposition != all($5::text[]))
     AND (
-        ($7::text[] IS NULL AND NOT $8::boolean)
-        OR m.from_domain = any($7::text[])
-        OR ($8::boolean AND m.from_domain IS NULL)
+        ($6::text[] IS NULL AND NOT $7::boolean)
+        OR m.from_domain = any($6::text[])
+        OR ($7::boolean AND m.from_domain IS NULL)
     )
-    AND ($9::text[] IS NULL OR m.from_domain IS NULL OR m.from_domain != all($9::text[]))
-    AND (NOT $10::boolean OR m.from_domain IS NOT NULL)
+    AND ($8::text[] IS NULL OR m.from_domain IS NULL OR m.from_domain != all($8::text[]))
+    AND (NOT $9::boolean OR m.from_domain IS NOT NULL)
     AND (
-        ($11::integer[] IS NULL AND NOT $12::boolean)
-        OR f.page = any($11::integer[])
-        OR ($12::boolean AND f.page IS NULL)
+        ($10::integer[] IS NULL AND NOT $11::boolean)
+        OR f.page = any($10::integer[])
+        OR ($11::boolean AND f.page IS NULL)
     )
-    AND ($13::integer[] IS NULL OR f.page IS NULL OR f.page != all($13::integer[]))
-    AND (NOT $14::boolean OR f.page IS NOT NULL)
+    AND ($12::integer[] IS NULL OR f.page IS NULL OR f.page != all($12::integer[]))
+    AND (NOT $13::boolean OR f.page IS NOT NULL)
 GROUP BY f.error_class
 ORDER BY failures DESC, f.error_class ASC NULLS LAST
 `
 
 type FailuresByErrorClassParams struct {
-	AccountID      string
 	RunID          string
 	ErrorClassIn   []string
 	ErrorClassOut  []string
@@ -529,7 +521,6 @@ type FailuresByErrorClassRow struct {
 // by the group's key, the order the bars draw (docs/UI.md section 17.1).
 func (q *Queries) FailuresByErrorClass(ctx context.Context, arg FailuresByErrorClassParams) ([]FailuresByErrorClassRow, error) {
 	rows, err := q.db.Query(ctx, failuresByErrorClass,
-		arg.AccountID,
 		arg.RunID,
 		arg.ErrorClassIn,
 		arg.ErrorClassOut,
@@ -577,32 +568,31 @@ FROM job_run_failures AS f
 LEFT JOIN messages AS m
     ON f.account_id = m.account_id AND f.item_id = m.message_id AND f.item_kind IN ('message', 'op')
 WHERE
-    f.account_id = $1
-    AND f.run_id = $2
-    AND ($3::text[] IS NULL OR f.error_class = any($3::text[]))
-    AND ($4::text[] IS NULL OR f.error_class != all($4::text[]))
-    AND ($5::text[] IS NULL OR f.disposition = any($5::text[]))
-    AND ($6::text[] IS NULL OR f.disposition != all($6::text[]))
+    f.account_id = current_setting('app.account')
+    AND f.run_id = $1
+    AND ($2::text[] IS NULL OR f.error_class = any($2::text[]))
+    AND ($3::text[] IS NULL OR f.error_class != all($3::text[]))
+    AND ($4::text[] IS NULL OR f.disposition = any($4::text[]))
+    AND ($5::text[] IS NULL OR f.disposition != all($5::text[]))
     AND (
-        ($7::text[] IS NULL AND NOT $8::boolean)
-        OR m.from_domain = any($7::text[])
-        OR ($8::boolean AND m.from_domain IS NULL)
+        ($6::text[] IS NULL AND NOT $7::boolean)
+        OR m.from_domain = any($6::text[])
+        OR ($7::boolean AND m.from_domain IS NULL)
     )
-    AND ($9::text[] IS NULL OR m.from_domain IS NULL OR m.from_domain != all($9::text[]))
-    AND (NOT $10::boolean OR m.from_domain IS NOT NULL)
+    AND ($8::text[] IS NULL OR m.from_domain IS NULL OR m.from_domain != all($8::text[]))
+    AND (NOT $9::boolean OR m.from_domain IS NOT NULL)
     AND (
-        ($11::integer[] IS NULL AND NOT $12::boolean)
-        OR f.page = any($11::integer[])
-        OR ($12::boolean AND f.page IS NULL)
+        ($10::integer[] IS NULL AND NOT $11::boolean)
+        OR f.page = any($10::integer[])
+        OR ($11::boolean AND f.page IS NULL)
     )
-    AND ($13::integer[] IS NULL OR f.page IS NULL OR f.page != all($13::integer[]))
-    AND (NOT $14::boolean OR f.page IS NOT NULL)
+    AND ($12::integer[] IS NULL OR f.page IS NULL OR f.page != all($12::integer[]))
+    AND (NOT $13::boolean OR f.page IS NOT NULL)
 GROUP BY f.page
 ORDER BY failures DESC, f.page ASC NULLS LAST
 `
 
 type FailuresByPageParams struct {
-	AccountID      string
 	RunID          string
 	ErrorClassIn   []string
 	ErrorClassOut  []string
@@ -629,7 +619,6 @@ type FailuresByPageRow struct {
 // FailuresByErrorClass, with the items that have none in a null group.
 func (q *Queries) FailuresByPage(ctx context.Context, arg FailuresByPageParams) ([]FailuresByPageRow, error) {
 	rows, err := q.db.Query(ctx, failuresByPage,
-		arg.AccountID,
 		arg.RunID,
 		arg.ErrorClassIn,
 		arg.ErrorClassOut,
@@ -678,32 +667,31 @@ FROM job_run_failures AS f
 LEFT JOIN messages AS m
     ON f.account_id = m.account_id AND f.item_id = m.message_id AND f.item_kind IN ('message', 'op')
 WHERE
-    f.account_id = $1
-    AND f.run_id = $2
-    AND ($3::text[] IS NULL OR f.error_class = any($3::text[]))
-    AND ($4::text[] IS NULL OR f.error_class != all($4::text[]))
-    AND ($5::text[] IS NULL OR f.disposition = any($5::text[]))
-    AND ($6::text[] IS NULL OR f.disposition != all($6::text[]))
+    f.account_id = current_setting('app.account')
+    AND f.run_id = $1
+    AND ($2::text[] IS NULL OR f.error_class = any($2::text[]))
+    AND ($3::text[] IS NULL OR f.error_class != all($3::text[]))
+    AND ($4::text[] IS NULL OR f.disposition = any($4::text[]))
+    AND ($5::text[] IS NULL OR f.disposition != all($5::text[]))
     AND (
-        ($7::text[] IS NULL AND NOT $8::boolean)
-        OR m.from_domain = any($7::text[])
-        OR ($8::boolean AND m.from_domain IS NULL)
+        ($6::text[] IS NULL AND NOT $7::boolean)
+        OR m.from_domain = any($6::text[])
+        OR ($7::boolean AND m.from_domain IS NULL)
     )
-    AND ($9::text[] IS NULL OR m.from_domain IS NULL OR m.from_domain != all($9::text[]))
-    AND (NOT $10::boolean OR m.from_domain IS NOT NULL)
+    AND ($8::text[] IS NULL OR m.from_domain IS NULL OR m.from_domain != all($8::text[]))
+    AND (NOT $9::boolean OR m.from_domain IS NOT NULL)
     AND (
-        ($11::integer[] IS NULL AND NOT $12::boolean)
-        OR f.page = any($11::integer[])
-        OR ($12::boolean AND f.page IS NULL)
+        ($10::integer[] IS NULL AND NOT $11::boolean)
+        OR f.page = any($10::integer[])
+        OR ($11::boolean AND f.page IS NULL)
     )
-    AND ($13::integer[] IS NULL OR f.page IS NULL OR f.page != all($13::integer[]))
-    AND (NOT $14::boolean OR f.page IS NOT NULL)
+    AND ($12::integer[] IS NULL OR f.page IS NULL OR f.page != all($12::integer[]))
+    AND (NOT $13::boolean OR f.page IS NOT NULL)
 GROUP BY m.from_domain
 ORDER BY failures DESC, m.from_domain ASC NULLS LAST
 `
 
 type FailuresBySenderParams struct {
-	AccountID      string
 	RunID          string
 	ErrorClassIn   []string
 	ErrorClassOut  []string
@@ -734,7 +722,6 @@ type FailuresBySenderRow struct {
 // domain is a group of its own, keyed empty, apart from the null group.
 func (q *Queries) FailuresBySender(ctx context.Context, arg FailuresBySenderParams) ([]FailuresBySenderRow, error) {
 	rows, err := q.db.Query(ctx, failuresBySender,
-		arg.AccountID,
 		arg.RunID,
 		arg.ErrorClassIn,
 		arg.ErrorClassOut,

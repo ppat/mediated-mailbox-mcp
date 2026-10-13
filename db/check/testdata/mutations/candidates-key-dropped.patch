@@ -1,0 +1,20 @@
+control: Every log table references what it belongs to
+removes: the candidates lose their key to accounts, so a candidate of an account that does not exist is stored
+packages: ./db/check
+tests: TestEveryLogTableRefusesAnOrphan TestEveryLogTableRefusesAnOrphan/a_candidate
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00002_schema.sql b/db/migrations/00002_schema.sql
+index 16df97b3..7d517bb4 100644
+--- a/db/migrations/00002_schema.sql
++++ b/db/migrations/00002_schema.sql
+@@ -218,7 +218,7 @@ CREATE TABLE scan_gate_decisions (
+ 
+ -- The heuristic review queue (ADR-0004).
+ CREATE TABLE policy_candidates (
+-    account_id text NOT NULL REFERENCES accounts,
++    account_id text NOT NULL,
+     -- Stored lowercase, as senders.domain is.
+     domain text NOT NULL CHECK (domain = lower(domain COLLATE "C")),
+     -- One entry per heuristic that fired, with its evidence, in the shape ADR-0016 gives.

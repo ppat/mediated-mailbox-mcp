@@ -25,7 +25,7 @@ INSERT INTO messages (
     subject_scanner_version,
     subject_scanner_revision
 ) VALUES (
-    @account_id,
+    current_setting('app.account'),
     @message_id,
     @thread_id,
     @from_email,
@@ -55,7 +55,7 @@ RETURNING message_id;
 -- stored, so a pair already stored is left as it is.
 INSERT INTO attachment_media (account_id, message_id, media_type, extension)
 SELECT
-    @account_id,
+    current_setting('app.account') AS account_id,
     @message_id,
     u.media_type,
     u.extension
@@ -74,7 +74,7 @@ SELECT exists(
     SELECT 1
     FROM messages AS m
     WHERE
-        m.account_id = @account_id
+        m.account_id = current_setting('app.account')
         AND (
             m.subject_scanner_version IS DISTINCT FROM @scanner_version::int
             OR m.subject_scanner_revision IS DISTINCT FROM @scanner_revision::text
@@ -90,7 +90,7 @@ SELECT exists(
 SELECT count(*) AS stale
 FROM messages AS m
 WHERE
-    m.account_id = @account_id
+    m.account_id = current_setting('app.account')
     AND (
         m.subject_scanner_version IS DISTINCT FROM @scanner_version::int
         OR m.subject_scanner_revision IS DISTINCT FROM @scanner_revision::text
@@ -107,7 +107,7 @@ SELECT
     coalesce(m.subject, '')::text AS subject
 FROM messages AS m
 WHERE
-    m.account_id = @account_id
+    m.account_id = current_setting('app.account')
     AND (
         m.subject_scanner_version IS DISTINCT FROM @scanner_version::int
         OR m.subject_scanner_revision IS DISTINCT FROM @scanner_revision::text
@@ -126,7 +126,7 @@ SELECT
     coalesce(m.subject, '')::text AS subject
 FROM messages AS m
 WHERE
-    m.account_id = @account_id
+    m.account_id = current_setting('app.account')
     AND NOT m.subject_masked
     AND (
         m.subject_scanner_version IS DISTINCT FROM @scanner_version::int
@@ -156,7 +156,7 @@ FROM (
         unnest(@subjects_masked::boolean[]) AS subject_masked
 ) AS r
 WHERE
-    m.account_id = @account_id
+    m.account_id = current_setting('app.account')
     AND m.message_id = r.message_id
     AND NOT m.subject_masked
     AND (
@@ -176,7 +176,7 @@ SET
     subject_scanner_version = @scanner_version::int,
     subject_scanner_revision = @scanner_revision::text
 WHERE
-    account_id = @account_id
+    account_id = current_setting('app.account')
     AND message_id = @message_id
     AND (
         subject_scanner_version IS DISTINCT FROM @scanner_version::int

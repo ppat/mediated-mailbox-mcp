@@ -6,15 +6,15 @@ scheduled-count: no
 integration: yes
 
 diff --git a/db/accountstate/credential/sealed.sql.go b/db/accountstate/credential/sealed.sql.go
-index c64c6fe..b3f7df6 100644
+index 467b9a91..ffe19995 100644
 --- a/db/accountstate/credential/sealed.sql.go
 +++ b/db/accountstate/credential/sealed.sql.go
 @@ -12,7 +12,7 @@ import (
  const replaceSealed = `-- name: ReplaceSealed :execrows
  UPDATE account_state
  SET credential = $1
--WHERE account_id = $2 AND credential = $3
-+WHERE account_id = $2 AND $3::bytea IS NOT NULL
+-WHERE account_id = current_setting('app.account') AND credential = $2
++WHERE account_id = current_setting('app.account') AND $2::bytea IS NOT NULL
  `
  
  type ReplaceSealedParams struct {

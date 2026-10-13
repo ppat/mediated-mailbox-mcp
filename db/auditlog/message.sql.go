@@ -14,17 +14,12 @@ import (
 const messageAuditCount = `-- name: MessageAuditCount :one
 SELECT count(*) AS entries
 FROM audit_log AS a
-WHERE a.account_id = $1 AND a.message_id = $2
+WHERE a.account_id = current_setting('app.account') AND a.message_id = $1
 `
 
-type MessageAuditCountParams struct {
-	AccountID string
-	MessageID pgtype.Text
-}
-
 // How many audit rows one message has, beside the newest fifty a row detail lists.
-func (q *Queries) MessageAuditCount(ctx context.Context, arg MessageAuditCountParams) (int64, error) {
-	row := q.db.QueryRow(ctx, messageAuditCount, arg.AccountID, arg.MessageID)
+func (q *Queries) MessageAuditCount(ctx context.Context, messageID pgtype.Text) (int64, error) {
+	row := q.db.QueryRow(ctx, messageAuditCount, messageID)
 	var entries int64
 	err := row.Scan(&entries)
 	return entries, err
@@ -37,15 +32,10 @@ SELECT
     a.actor,
     a.action
 FROM audit_log AS a
-WHERE a.account_id = $1 AND a.message_id = $2
+WHERE a.account_id = current_setting('app.account') AND a.message_id = $1
 ORDER BY a.ts DESC, a.id DESC
 LIMIT 50
 `
-
-type MessageAuditRowsParams struct {
-	AccountID string
-	MessageID pgtype.Text
-}
 
 type MessageAuditRowsRow struct {
 	ID     int64
@@ -56,8 +46,8 @@ type MessageAuditRowsRow struct {
 
 // The newest fifty audit rows of one message, which a row detail lists (docs/UI.md sections 7.1 and
 // 17.1), newest first, the row's identity ending the sort.
-func (q *Queries) MessageAuditRows(ctx context.Context, arg MessageAuditRowsParams) ([]MessageAuditRowsRow, error) {
-	rows, err := q.db.Query(ctx, messageAuditRows, arg.AccountID, arg.MessageID)
+func (q *Queries) MessageAuditRows(ctx context.Context, messageID pgtype.Text) ([]MessageAuditRowsRow, error) {
+	rows, err := q.db.Query(ctx, messageAuditRows, messageID)
 	if err != nil {
 		return nil, err
 	}

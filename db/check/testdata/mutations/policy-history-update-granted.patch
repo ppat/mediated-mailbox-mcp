@@ -5,10 +5,10 @@ tests: TestNoRuntimeRoleCanAlterThePolicyHistory TestNoRuntimeRoleCanAlterThePol
 scheduled-count: no
 integration: yes
 
-diff --git a/db/migrations/00004_grants.sql b/db/migrations/00004_grants.sql
+diff --git a/db/migrations/00003_grants.sql b/db/migrations/00003_grants.sql
 index de2c2d24..8d6a3131 100644
---- a/db/migrations/00004_grants.sql
-+++ b/db/migrations/00004_grants.sql
+--- a/db/migrations/00003_grants.sql
++++ b/db/migrations/00003_grants.sql
 @@ -495,7 +495,7 @@ DELETE ON oauth_clients TO mediated_mailbox_ui;
  GRANT INSERT, UPDATE (domain_suffix), DELETE ON policy_rules TO mediated_mailbox_ui;
  -- Each policy write appends its history row, and the policy screens read the history. Insert alone,

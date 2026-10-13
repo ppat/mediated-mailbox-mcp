@@ -16,13 +16,8 @@ SELECT
     m.scan_state,
     m.rule_ids
 FROM messages AS m
-WHERE m.account_id = $1 AND m.message_id = $2
+WHERE m.account_id = current_setting('app.account') AND m.message_id = $1
 `
-
-type BodyGateParams struct {
-	AccountID string
-	MessageID string
-}
 
 type BodyGateRow struct {
 	FromEmail    string
@@ -35,8 +30,8 @@ type BodyGateRow struct {
 // classifies again under the policy in force, the content flags and scan state the index stores, and
 // the content rules that set the flags, which the request's audit row names. Never the stored sender
 // class. No row means the account holds no such message.
-func (q *Queries) BodyGate(ctx context.Context, arg BodyGateParams) ([]BodyGateRow, error) {
-	rows, err := q.db.Query(ctx, bodyGate, arg.AccountID, arg.MessageID)
+func (q *Queries) BodyGate(ctx context.Context, messageID string) ([]BodyGateRow, error) {
+	rows, err := q.db.Query(ctx, bodyGate, messageID)
 	if err != nil {
 		return nil, err
 	}

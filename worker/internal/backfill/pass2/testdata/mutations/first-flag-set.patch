@@ -6,14 +6,21 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/backfill/pass2/postgres.go b/worker/internal/backfill/pass2/postgres.go
+index 2b9ece79..20bb9e34 100644
 --- a/worker/internal/backfill/pass2/postgres.go
 +++ b/worker/internal/backfill/pass2/postgres.go
-@@ -270,7 +270,7 @@ func commitOutcome(ctx context.Context, messages *scan.Queries, gate *decisions.
+@@ -474,13 +474,13 @@ func commitOutcome(ctx context.Context, messages *scan.Queries, gate *gaterecord
+ 	return nil
+ }
+ 
  // Finish implements Store.
  func (s *Postgres) Finish(ctx context.Context, account, runID string) error {
  	return tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
--		if err := completion.New(t).SetBackfillSecondComplete(ctx, account); err != nil {
-+		if err := completion.New(t).SetBackfillFirstComplete(ctx, account); err != nil {
+-		if err := completion.New(t).SetBackfillSecondComplete(ctx); err != nil {
++		if err := completion.New(t).SetBackfillFirstComplete(ctx); err != nil {
  			return fmt.Errorf("setting the completion flag: %w", err)
  		}
- 		return pass1.SucceedRun(ctx, runrecord.New(t), account, runID)
+ 		return pass1.SucceedRun(ctx, runrecord.New(t), runID)
+ 	})
+ }
+ 

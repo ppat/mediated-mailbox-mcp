@@ -15,7 +15,7 @@ SELECT
     )[1], '')::text AS last_failure_run
 FROM job_runs AS r
 WHERE
-    r.account_id = @account_id
+    r.account_id = current_setting('app.account')
     AND (@range_start::timestamptz IS NULL OR r.started_at >= @range_start::timestamptz)
     AND (@range_end::timestamptz IS NULL OR r.started_at < @range_end::timestamptz)
     AND (@workload_in::text[] IS NULL OR r.workload = any(@workload_in::text[]))
@@ -35,7 +35,7 @@ SELECT
     count(*) AS runs
 FROM job_runs AS r
 WHERE
-    r.account_id = @account_id
+    r.account_id = current_setting('app.account')
     AND (@range_start::timestamptz IS NULL OR r.started_at >= @range_start::timestamptz)
     AND (@range_end::timestamptz IS NULL OR r.started_at < @range_end::timestamptz)
     AND (@workload_in::text[] IS NULL OR r.workload = any(@workload_in::text[]))
@@ -56,7 +56,7 @@ SELECT
     count(*) AS runs
 FROM job_runs AS r
 WHERE
-    r.account_id = @account_id
+    r.account_id = current_setting('app.account')
     AND (@range_start::timestamptz IS NULL OR r.started_at >= @range_start::timestamptz)
     AND (@range_end::timestamptz IS NULL OR r.started_at < @range_end::timestamptz)
     AND (@workload_in::text[] IS NULL OR r.workload = any(@workload_in::text[]))
@@ -77,7 +77,7 @@ SELECT
     count(*) AS runs
 FROM job_runs AS r
 WHERE
-    r.account_id = @account_id
+    r.account_id = current_setting('app.account')
     AND (@range_start::timestamptz IS NULL OR r.started_at >= @range_start::timestamptz)
     AND (@range_end::timestamptz IS NULL OR r.started_at < @range_end::timestamptz)
     AND (@workload_in::text[] IS NULL OR r.workload = any(@workload_in::text[]))
@@ -102,7 +102,7 @@ WITH failure_counts AS (
         f.run_id,
         count(*) AS failures
     FROM job_run_failures AS f
-    WHERE f.account_id = @account_id
+    WHERE f.account_id = current_setting('app.account')
     GROUP BY f.run_id
 )
 
@@ -126,7 +126,7 @@ FROM job_runs AS r
 LEFT JOIN reorg_plans AS pl ON r.account_id = pl.account_id AND r.plan_id = pl.plan_id
 LEFT JOIN failure_counts AS fc ON r.run_id = fc.run_id
 WHERE
-    r.account_id = @account_id
+    r.account_id = current_setting('app.account')
     AND (@range_start::timestamptz IS NULL OR r.started_at >= @range_start::timestamptz)
     AND (@range_end::timestamptz IS NULL OR r.started_at < @range_end::timestamptz)
     AND (@workload_in::text[] IS NULL OR r.workload = any(@workload_in::text[]))

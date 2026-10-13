@@ -11,13 +11,12 @@ import (
 
 const recordDecision = `-- name: RecordDecision :exec
 INSERT INTO scan_gate_decisions AS d (account_id, message_id, decision, reason)
-VALUES ($1, $2, $3, $4)
+VALUES (current_setting('app.account'), $1, $2, $3)
 ON CONFLICT (account_id, message_id) DO UPDATE
     SET decision = excluded.decision, reason = excluded.reason, decided_at = now()
 `
 
 type RecordDecisionParams struct {
-	AccountID string
 	MessageID string
 	Decision  string
 	Reason    string
@@ -27,11 +26,6 @@ type RecordDecisionParams struct {
 // (ADR-0093). A message decided again, as one the delisting transition returned to pending scan is,
 // has its decision replaced.
 func (q *Queries) RecordDecision(ctx context.Context, arg RecordDecisionParams) error {
-	_, err := q.db.Exec(ctx, recordDecision,
-		arg.AccountID,
-		arg.MessageID,
-		arg.Decision,
-		arg.Reason,
-	)
+	_, err := q.db.Exec(ctx, recordDecision, arg.MessageID, arg.Decision, arg.Reason)
 	return err
 }

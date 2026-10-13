@@ -6,42 +6,66 @@ scheduled-count: no
 integration: yes
 
 diff --git a/db/messages/ingest/ingest.sql b/db/messages/ingest/ingest.sql
-index d48602f4..18b57862 100644
+index 2e264c23..9cf50cd9 100644
 --- a/db/messages/ingest/ingest.sql
 +++ b/db/messages/ingest/ingest.sql
-@@ -108,7 +108,6 @@ SELECT
+@@ -124,13 +124,12 @@ LIMIT @batch_size;
+ SELECT
+     m.message_id,
+     coalesce(m.subject, '')::text AS subject
  FROM messages AS m
  WHERE
-     m.account_id = @account_id
+     m.account_id = current_setting('app.account')
 -    AND NOT m.subject_masked
      AND (
          m.subject_scanner_version IS DISTINCT FROM @scanner_version::int
          OR m.subject_scanner_revision IS DISTINCT FROM @scanner_revision::text
-@@ -139,7 +138,6 @@ FROM (
+     )
+     AND m.message_id > @after
+ ORDER BY m.message_id
+@@ -155,13 +154,12 @@ FROM (
+         unnest(@subjects::text[]) AS subject,
+         unnest(@subjects_masked::boolean[]) AS subject_masked
+ ) AS r
  WHERE
-     m.account_id = @account_id
+     m.account_id = current_setting('app.account')
      AND m.message_id = r.message_id
 -    AND NOT m.subject_masked
      AND (
          m.subject_scanner_version IS DISTINCT FROM @scanner_version::int
          OR m.subject_scanner_revision IS DISTINCT FROM @scanner_revision::text
+     );
+ 
+ -- name: RemaskSubject :execrows
 diff --git a/db/messages/ingest/ingest.sql.go b/db/messages/ingest/ingest.sql.go
-index bb55d1ad..6d790d05 100644
+index 6cd31418..3601e293 100644
 --- a/db/messages/ingest/ingest.sql.go
 +++ b/db/messages/ingest/ingest.sql.go
-@@ -155,7 +155,6 @@ FROM (
+@@ -180,13 +180,12 @@ FROM (
+         unnest($4::text[]) AS subject,
+         unnest($5::boolean[]) AS subject_masked
+ ) AS r
  WHERE
-     m.account_id = $3
+     m.account_id = current_setting('app.account')
      AND m.message_id = r.message_id
 -    AND NOT m.subject_masked
      AND (
          m.subject_scanner_version IS DISTINCT FROM $1::int
          OR m.subject_scanner_revision IS DISTINCT FROM $2::text
-@@ -329,7 +328,6 @@ SELECT
+     )
+ `
+ 
+@@ -343,13 +342,12 @@ const staleUnmaskedSubjects = `-- name: StaleUnmaskedSubjects :many
+ SELECT
+     m.message_id,
+     coalesce(m.subject, '')::text AS subject
  FROM messages AS m
  WHERE
-     m.account_id = $1
+     m.account_id = current_setting('app.account')
 -    AND NOT m.subject_masked
      AND (
-         m.subject_scanner_version IS DISTINCT FROM $2::int
-         OR m.subject_scanner_revision IS DISTINCT FROM $3::text
+         m.subject_scanner_version IS DISTINCT FROM $1::int
+         OR m.subject_scanner_revision IS DISTINCT FROM $2::text
+     )
+     AND m.message_id > $3
+ ORDER BY m.message_id

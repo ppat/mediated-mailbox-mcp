@@ -10,4 +10,4 @@ SELECT
     r.last_throttle_at,
     r.classes
 FROM rate_state AS r
-WHERE r.account_id = @account_id;
+WHERE r.account_id = current_setting('app.account');

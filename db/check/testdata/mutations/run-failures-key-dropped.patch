@@ -1,0 +1,23 @@
+control: Every log table references what it belongs to
+removes: a run's failures lose their key to the run, so a failure of a run never recorded is stored and a removed run leaves its failures
+packages: ./db/check
+tests: TestEveryLogTableRefusesAnOrphan TestEveryLogTableRefusesAnOrphan/a_run's_failure TestAMessageOrRunRemovedTakesItsPartsWithIt
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00002_schema.sql b/db/migrations/00002_schema.sql
+index 16df97b3..c4d36389 100644
+--- a/db/migrations/00002_schema.sql
++++ b/db/migrations/00002_schema.sql
+@@ -407,10 +407,9 @@ CREATE TABLE job_run_failures (
+     -- recovered | pending | gone | abandoned
+     disposition text NOT NULL DEFAULT 'pending',
+     -- The recovering run.
+     recovered_by text,
+-    PRIMARY KEY (account_id, run_id, seq),
+-    FOREIGN KEY (account_id, run_id) REFERENCES job_runs ON DELETE CASCADE
++    PRIMARY KEY (account_id, run_id, seq)
+ );
+ 
+ -- No runtime role holds UPDATE or DELETE here. Append-only is the grant, not a convention. Evidence
+ -- outlives everything, so an account with audit rows cannot be deleted (ADR-0016).

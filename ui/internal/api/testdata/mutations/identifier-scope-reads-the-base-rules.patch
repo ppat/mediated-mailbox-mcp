@@ -6,15 +6,15 @@ scheduled-count: no
 integration: yes
 
 diff --git a/ui/internal/api/rules.go b/ui/internal/api/rules.go
-index 60da4717..6cd6dbd3 100644
+index 0ddfe1bb..1c327096 100644
 --- a/ui/internal/api/rules.go
 +++ b/ui/internal/api/rules.go
-@@ -48,7 +48,7 @@ func accountWrites(t pgx.Tx, account string) scopeWrites {
+@@ -47,7 +47,7 @@ func accountWrites(rulesQ *manage.Queries, changesQ *policychanges.Queries) scop
  	return scopeWrites{
  		stored: func(ctx context.Context) ([]registry.StoredRule, error) {
- 			all, err := registry.ComposedRules(ctx, rulesQ, account)
+ 			all, err := registry.ComposedRules(ctx, rulesQ)
 -			return slices.DeleteFunc(all, func(r registry.StoredRule) bool { return r.Base }), err
 +			return slices.DeleteFunc(all, func(r registry.StoredRule) bool { return !r.Base }), err
  		},
  		add: func(ctx context.Context, r rules.Rule, actor string) error {
- 			return rulesQ.AddRule(ctx, manage.AddRuleParams{AccountID: scope, RuleID: r.ID, Class: policy.Restricted, DomainSuffix: r.Suffixes, Source: sourceOperator, CreatedBy: actor})
+ 			return rulesQ.AddRule(ctx, manage.AddRuleParams{RuleID: r.ID, Class: policy.Restricted, DomainSuffix: r.Suffixes, Source: sourceOperator, CreatedBy: actor})

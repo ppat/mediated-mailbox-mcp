@@ -146,7 +146,7 @@ CREATE INDEX ON messages (account_id, from_domain);
 CREATE INDEX ON messages (account_id, sent_at DESC);
 CREATE INDEX ON messages (account_id, sent_at) WHERE labels = '{}';
 CREATE INDEX ON messages (account_id) WHERE scan_state = 'pending';
--- no index over labels or subject: no leakproof comparison serves either under row-level security
+-- no index over labels or subject: no read filters on either often enough to need one yet
 
 CREATE TABLE attachment_media (           -- the inputs of a message's attachment types (ADR-0123)
   account_id  text NOT NULL,
@@ -166,11 +166,12 @@ CREATE TABLE scan_gate_decisions (        -- makes ADR-0093's residual auditable
   decision    text NOT NULL CHECK (decision IN ('SCAN', 'SKIP')),
   reason      text NOT NULL,              -- restricted | high_volume_no_hits | ...
   decided_at  timestamptz NOT NULL DEFAULT now(),
-  PRIMARY KEY (account_id, message_id)
+  PRIMARY KEY (account_id, message_id),
+  FOREIGN KEY (account_id, message_id) REFERENCES messages ON DELETE CASCADE  -- the message's current state
 );
 
 CREATE TABLE policy_candidates (          -- heuristic review queue (ADR-0004)
-  account_id   text NOT NULL,
+  account_id   text NOT NULL REFERENCES accounts,
   domain       text NOT NULL CHECK (domain = lower(domain COLLATE "C")),
   signals      jsonb NOT NULL,            -- one entry per heuristic that fired, with its evidence, as
                                           --   [{heuristic, evidence}], heuristic one of display_name,
@@ -222,7 +223,8 @@ CREATE INDEX ON policy_changes (account_id, ts DESC);
 
 CREATE TABLE masking_events (
   id          bigserial PRIMARY KEY,
-  account_id  text NOT NULL,             -- indexed below with masked_at
+  account_id  text NOT NULL REFERENCES accounts,  -- indexed below with masked_at; history that outlives
+                                          --   its message, kept across re-masks (ADR-0120)
   message_id  text NOT NULL,
   field       text NOT NULL CHECK (field IN ('subject')),
   rule_id     text NOT NULL,
@@ -320,7 +322,8 @@ CREATE TABLE job_run_events (             -- a run's timeline
   at         timestamptz NOT NULL DEFAULT now(),
   page       int,                         -- progress events carry the checkpoint page
   detail     text,                        -- provider or scanner text, never a body
-  PRIMARY KEY (account_id, run_id, seq)
+  PRIMARY KEY (account_id, run_id, seq),
+  FOREIGN KEY (account_id, run_id) REFERENCES job_runs ON DELETE CASCADE  -- a part of its run
 );
 
 CREATE TABLE job_run_failures (           -- a run's per-item failures
@@ -337,13 +340,14 @@ CREATE TABLE job_run_failures (           -- a run's per-item failures
   last_at       timestamptz NOT NULL,
   disposition   text NOT NULL DEFAULT 'pending',  -- recovered | pending | gone | abandoned
   recovered_by  text,                     -- the recovering run
-  PRIMARY KEY (account_id, run_id, seq)
+  PRIMARY KEY (account_id, run_id, seq),
+  FOREIGN KEY (account_id, run_id) REFERENCES job_runs ON DELETE CASCADE  -- a part of its run
 );
 
 CREATE TABLE audit_log (
   id               bigserial PRIMARY KEY,
   ts               timestamptz NOT NULL DEFAULT now(),
-  account_id       text NOT NULL,
+  account_id       text NOT NULL REFERENCES accounts ON DELETE RESTRICT,  -- evidence outlives its account
   actor            text NOT NULL,
   action           text NOT NULL
     CHECK (action IN ('READ_BODY', 'DENY_BODY', 'MUTATE', 'DENY_MUTATE')),
@@ -385,15 +389,17 @@ The shape enforces these properties.
   [ADR-0123](../provider/0123-attachment-types-are-words-of-a-closed-vocabulary.md)'s mapping,
   which derives the types a client sees when read, and they reach a client only as those types,
   as that record states.
-- **Every table keys on `account_id`.** All access goes through a repository layer that requires
-  an account, every statement against an account-keyed table carries an account predicate
-  ([ADR-0047](./0047-schema-first-data-access.md)), and row-level security stands behind both as a
-  third, independent layer. The policies read the transaction-local setting `app.account`, which
-  every process sets before reading, by an ordinary statement and never by database-resident code
-  ([ADR-0060](../engineering/0060-no-code-in-the-database.md)). Four exceptions are stated.
+- **Every table keys on `account_id`.** All access goes through a repository layer that requires an
+  account, and every statement against an account-keyed table compares its account with the
+  transaction's ([ADR-0047](./0047-schema-first-data-access.md),
+  [ADR-0135](./0135-every-statement-reads-its-account-from-the-transaction.md)). The statements read
+  the transaction-local setting `app.account`, which every process sets before reading, by an
+  ordinary statement and never by database-resident code
+  ([ADR-0060](../engineering/0060-no-code-in-the-database.md)). No table carries a row-level
+  security policy. Four exceptions are stated.
   - `accounts` holds only each account's identifier, provider and the OAuth client it connects
-    through, and is read in full by the roles that list accounts, while its writes stay confined
-    ([ADR-0091](./0091-accounts-listed-apart-from-their-state.md)).
+    through, and is read in full by the roles that list accounts, while its writes stay confined to
+    the transaction's account ([ADR-0091](./0091-accounts-listed-apart-from-their-state.md)).
   - `oauth_clients` belongs to no account and carries no account column, so grants alone decide
     who reaches it. The four roles that call a provider read it in full. The UI's role reads it in
     full too, its `name`, `provider`, `client_id` and `project_id` since it runs the consent with a
@@ -411,24 +417,30 @@ The shape enforces these properties.
     null account are the changes to it
     ([ADR-0102](../mutation/0102-policy-changes-recorded-in-an-append-only-history.md)). Every
     account reads them, and only the UI's role writes them, in a transaction that names no account
-    and sets the base policy's own setting, `app.base`
     ([ADR-0112](./0112-the-base-policy-is-written-and-read-in-a-transaction-of-its-own.md)).
-  - `reorg_op_log` carries no account column at all and is scoped through its plan, by a policy
-    whose predicate reaches the plan's account. That policy's parent lookup is evaluated once per
-    statement rather than once per row, so scoping it costs materially less than the foreign key
-    the same writes already carry.
-- **The deny state of that third layer is silent, and the application compensates.** Once a
-  connection has set `app.account`, Postgres keeps the parameter known and resets it to the empty
-  string between transactions rather than to unrecognised. A statement that then omits the setting
-  raises on a connection drawn fresh and returns no rows without error on one drawn warm, so under
-  a pool the behaviour depends on which connection was drawn. No policy expression can raise,
+  - `reorg_op_log` carries no account column at all and is reached only through its plan, by a join
+    to a plan the statement ties to the transaction's account
+    ([ADR-0135](./0135-every-statement-reads-its-account-from-the-transaction.md)).
+- **An unset account is silent, and the application compensates.** Once a connection has set
+  `app.account`, Postgres keeps the parameter known and resets it to the empty string between
+  transactions rather than to unrecognised. A statement that then reads the setting without setting
+  it raises on a connection drawn fresh and matches no row without error on one drawn warm, so under
+  a pool the behaviour depends on which connection was drawn. No statement can raise instead,
   because [ADR-0060](../engineering/0060-no-code-in-the-database.md) bars the database-resident
-  function that would. The shared transaction helper therefore reads the setting back after
-  setting it and fails the transaction when it is empty. Its one transaction whose account is
-  deliberately empty is the base policy's, which runs only the base policy's statements
-  ([ADR-0112](./0112-the-base-policy-is-written-and-read-in-a-transaction-of-its-own.md)). The
-  asymmetry behind this holds generally. An insert a policy refuses raises, while a select or
-  update a policy empties returns quietly.
+  function that would. The shared transaction helper therefore reads the setting back after setting
+  it and fails the transaction when it is empty. Its one transaction whose account is deliberately
+  empty is the base policy's, which runs only the base policy's statements
+  ([ADR-0112](./0112-the-base-policy-is-written-and-read-in-a-transaction-of-its-own.md)). A select,
+  update or delete that matches no row returns quietly, as it does for an account with no rows.
+- **Every log table references what it belongs to.** A gate decision is its message's current state,
+  replaced on each decision, so it references the message and goes when the message does, as the
+  attachment media do. A run's events and failures are parts of the run, so they reference the run
+  and go with it. Masking events are history kept across re-masks, which outlives its message
+  ([ADR-0120](../redaction/0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md)), so
+  they reference the account, as the candidates do. The audit log references the account and refuses
+  the account's deletion, because evidence must outlive everything, and an account's removal must
+  deal with its evidence deliberately. A cascade runs with the table owner's rights, so a role that
+  deletes a message needs no delete on its decision.
 - **The stored spellings of every enumerated column are the ones the DDL shows**, in
   lowercase snake case where a record names the state in capitals (`skipped_gate` for
   [ADR-0093](../redaction/0093-composite-scan-gate.md)'s `SKIPPED_GATE`). Plan statuses keep
@@ -513,9 +525,8 @@ The shape enforces these properties.
   restricted leaves the old identifier. A message stored before the migration that adds
   `class_rule_id` holds NULL as well, and nothing fills it in.
 - **Masked subjects are stored masked** — the index never holds a live code.
-- **The partial indexes target unfiled volume** (`labels = '{}'`) **and scan backlog**
-  (`scan_state = 'pending'`) directly. A partial index serves a runtime role when the statement
-  states its predicate exactly, even where the predicate's operator is not leakproof.
+- **The partial indexes target unfiled volume** (`labels = '{}'`) **and scan backlog** (`scan_state
+  = 'pending'`) directly. A partial index serves a statement that states its predicate exactly.
 - **The run indexes serve the reads that repeat**, every tick's latest run, the jobs screen's
   latest run per job kind and pass, the event stream, the runs dataset, and the job mechanism's due
   decisions, and the audit index serves a message's audit rows. `job_runs.pass` is never null, so
@@ -550,25 +561,19 @@ The shape enforces these properties.
   thousands of operations by flow, sender, and sensitivity in SQL
   ([ADR-0056](../operability/0056-ui-organized-around-the-operators-work.md)).
 - The corpus is assumed to stay on the order of 100k messages per account, and nothing is
-  partitioned, because at that size partitioning earns nothing that the account predicate and
-  row-level security do not already carry. Millions would not change the store choice but would
-  make partitioning, retention, and backfill planning real design work rather than a schema
-  detail, and would also make the enumerated statement shape of
-  [ADR-0066](./0066-data-access-generated-from-sql.md) stop being free. That assumption is
-  recorded as a known limit in [DESIGN.md](../../../DESIGN.md#3-known-limits).
+  partitioned, because at that size partitioning earns nothing that the account predicate does not
+  already carry. Millions would not change the store choice but would make partitioning, retention,
+  and backfill planning real design work rather than a schema detail, and would also make the
+  enumerated statement shape of [ADR-0066](./0066-data-access-generated-from-sql.md) stop being
+  free. That assumption is recorded as a known limit in
+  [DESIGN.md](../../../DESIGN.md#3-known-limits).
 - Retention of the audit log has no owner while no runtime role can delete from it. Nothing in the
   running system trims the table, and whether it is ever trimmed is an open decision in
   [ROADMAP.md](../../../ROADMAP.md).
 - Schema evolution is by migration, and the DDL's no-body comment binds every future one.
-- **Row-level security costs indexes.** PostgreSQL uses a predicate as an index condition ahead of
-  a policy only when every function it applies to the row's columns is leakproof, so an index over
-  a column compared with an operator that is not leakproof goes unused by every runtime role. That
-  is why the sender domains are `text`, served by a leakproof `text` index, and why no index over
-  labels or the subject exists: array operators, `ILIKE` and trigram matching have no leakproof
-  form, so reads over labels and the subject filter after the account index. Marking a function
-  leakproof is refused. The rule a statement keeps is
-  [ADR-0066](./0066-data-access-generated-from-sql.md)'s. Whether row-level security stays is
-  reconsidered after the third production point ([ROADMAP.md](../../../ROADMAP.md)).
+- **No index over labels or the subject exists yet.** Reads over them filter after the account
+  index, which serves while no read filters on them often. The unit that makes such a filter
+  frequent adds the index it needs ([ROADMAP.md](../../../ROADMAP.md)).
 - **A new account-keyed table** leads its key with `account_id text NOT NULL REFERENCES accounts`,
-  carries a policy on `app.account`, compares its keys with leakproof operators, checks its closed
-  vocabularies, has its grants per role in the migration that creates it, and holds no body column.
+  or references the row it is a part of, checks its closed vocabularies, has its grants per role in
+  the migration that creates it, and holds no body column.

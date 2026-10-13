@@ -18,7 +18,7 @@ SELECT
     class,
     domain_suffix
 FROM policy_rules
-WHERE account_id = $1::text OR account_id IS NULL
+WHERE account_id = current_setting('app.account') OR account_id IS NULL
 ORDER BY rule_id
 `
 
@@ -32,8 +32,8 @@ type PolicyRulesRow struct {
 // The rules the account's policy is composed from, the base rules every account inherits and the
 // account's own, in one read (ADR-0004, ADR-0026). A base rule carries a null account, so the
 // account predicate is the account or null (ADR-0047). The account is null for a base rule.
-func (q *Queries) PolicyRules(ctx context.Context, accountID string) ([]PolicyRulesRow, error) {
-	rows, err := q.db.Query(ctx, policyRules, accountID)
+func (q *Queries) PolicyRules(ctx context.Context) ([]PolicyRulesRow, error) {
+	rows, err := q.db.Query(ctx, policyRules)
 	if err != nil {
 		return nil, err
 	}

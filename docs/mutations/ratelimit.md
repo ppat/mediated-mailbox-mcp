@@ -12,9 +12,9 @@ The demonstrations of the controls whose patches sit in `ratelimit/`. [MUTATIONS
 
 ## A lease counts against its class's share until it expires one second after it was issued
 
-- **Date · evidence:** 2026-09-25 · [pull request #161](https://github.com/ppat/mediated-mailbox-mcp/pull/161), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and every break again on 2026-10-11 at RAPID_SEED=1, after the performance measurements changed the code, tests or patches the row rests on · [pull request #341](https://github.com/ppat/mediated-mailbox-mcp/pull/341)
+- **Date · evidence:** 2026-09-25 · [pull request #161](https://github.com/ppat/mediated-mailbox-mcp/pull/161), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and every break again on 2026-10-11 at RAPID_SEED=1, after the performance measurements changed the code, tests or patches the row rests on · [pull request #341](https://github.com/ppat/mediated-mailbox-mcp/pull/341), and breaks 1 and 3 again on 2026-10-13 at RAPID_SEED=1, with their patches regenerated after every statement came to read its account from the transaction · [pull request #370](https://github.com/ppat/mediated-mailbox-mcp/pull/370)
 - **Break (1):** a stored grant is kept for a minute and its lease counts against its class's share all that time
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ratelimit/lease`:** `TestACrashedWorkersLeaseStopsCountingAtItsExpiry`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ratelimit/lease`:** `TestACrashedWorkersLeaseStopsCountingAtItsExpiry`, `TestACutComesOutOfBatchWhileInteractiveKeepsItsShare`
 - **Break (2):** a stored grant's lease expires the instant it is issued, so it never counts against its class's share
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/ratelimit/lease`:** `TestACrashedWorkersLeaseStopsCountingAtItsExpiry`, `TestALiveLeaseCountsAgainstItsClassShare`
 - **Break (3):** every grant is stored as batch's, so a lease counts against the wrong class's share
@@ -104,11 +104,11 @@ The demonstrations of the controls whose patches sit in `ratelimit/`. [MUTATIONS
 
 ## A worker that waited on the account's lock is stamped with the clock read after it got the lock
 
-- **Date · evidence:** 2026-09-24 · [pull request #157](https://github.com/ppat/mediated-mailbox-mcp/pull/157), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and every break again on 2026-10-11 at RAPID_SEED=1, after the performance measurements changed the code, tests or patches the row rests on · [pull request #341](https://github.com/ppat/mediated-mailbox-mcp/pull/341)
+- **Date · evidence:** 2026-09-24 · [pull request #157](https://github.com/ppat/mediated-mailbox-mcp/pull/157), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and every break again on 2026-10-11 at RAPID_SEED=1, after the performance measurements changed the code, tests or patches the row rests on · [pull request #341](https://github.com/ppat/mediated-mailbox-mcp/pull/341), and breaks 1 and 2 again on 2026-10-13 at RAPID_SEED=1, with their patches regenerated after every statement came to read its account from the transaction · [pull request #370](https://github.com/ppat/mediated-mailbox-mcp/pull/370)
 - **Break (1):** the clock is read before the lock is taken, so a worker that waited is stamped early
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/ratelimit/lease`:** `TestAWorkerThatWaitedOnTheLockIsStampedAfterIt`
 - **Break (2):** no lock is taken, so issuers for one account do not take turns
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ratelimit/lease`:** `TestACutComesOutOfBatchWhileInteractiveKeepsItsShare`, `TestAStoredCapAboveTheCeilingDoesNotRaiseIssuance`, `TestAWorkerThatWaitedOnTheLockIsStampedAfterIt`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ratelimit/lease`:** `TestACrashedWorkersLeaseStopsCountingAtItsExpiry`, `TestACutComesOutOfBatchWhileInteractiveKeepsItsShare`, `TestAStoredCapAboveTheCeilingDoesNotRaiseIssuance`, `TestAWorkerThatWaitedOnTheLockIsStampedAfterIt`
 
 ## Additive increase grows the rate by 2% of the target times the call's cost over the current rate
 
@@ -166,7 +166,7 @@ The demonstrations of the controls whose patches sit in `ratelimit/`. [MUTATIONS
 
 ## Every grant of the last second is stored and counted in the one-second window
 
-- **Date · evidence:** 2026-09-29 · [pull request #196](https://github.com/ppat/mediated-mailbox-mcp/pull/196), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and every break again on 2026-10-11 at RAPID_SEED=1, after the performance measurements changed the code, tests or patches the row rests on · [pull request #341](https://github.com/ppat/mediated-mailbox-mcp/pull/341)
+- **Date · evidence:** 2026-09-29 · [pull request #196](https://github.com/ppat/mediated-mailbox-mcp/pull/196), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and every break again on 2026-10-11 at RAPID_SEED=1, after the performance measurements changed the code, tests or patches the row rests on · [pull request #341](https://github.com/ppat/mediated-mailbox-mcp/pull/341), and break (2) again on 2026-10-13 at RAPID_SEED=1, with its patch regenerated after every statement came to read its account from the transaction · [pull request #370](https://github.com/ppat/mediated-mailbox-mcp/pull/370)
 - **Break (1):** the stored grants are not read into the window, so it counts none of them
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/ratelimit/lease`:** `TestAStoredCapAboveTheCeilingDoesNotRaiseIssuance`, `TestAWorkerThatWaitedOnTheLockIsStampedAfterIt`
 - **Break (2):** the grants of the last second are deleted with the old ones, so the window loses them
@@ -182,7 +182,7 @@ The demonstrations of the controls whose patches sit in `ratelimit/`. [MUTATIONS
 
 ## Issuance holds to the hard cap the declared ceiling gives, whatever the rate state stores
 
-- **Date · evidence:** 2026-09-29 · [pull request #196](https://github.com/ppat/mediated-mailbox-mcp/pull/196), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and every break again on 2026-10-11 at RAPID_SEED=1, after the performance measurements changed the code, tests or patches the row rests on · [pull request #341](https://github.com/ppat/mediated-mailbox-mcp/pull/341)
+- **Date · evidence:** 2026-09-29 · [pull request #196](https://github.com/ppat/mediated-mailbox-mcp/pull/196), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and every break again on 2026-10-11 at RAPID_SEED=1, after the performance measurements changed the code, tests or patches the row rests on · [pull request #341](https://github.com/ppat/mediated-mailbox-mcp/pull/341), and breaks 1 and 2 again on 2026-10-13 at RAPID_SEED=1, with their patches regenerated after every statement came to read its account from the transaction · [pull request #370](https://github.com/ppat/mediated-mailbox-mcp/pull/370)
 - **Break (1):** the ceiling is read back from the stored hard cap, and the limits it gives are written back, so the cap column is the cap
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/ratelimit/lease`:** `TestAStoredCapAboveTheCeilingDoesNotRaiseIssuance`
 - **Break (2):** the ceiling is read back from the stored target, and the limits it gives are written back, so raising the target raises the cap

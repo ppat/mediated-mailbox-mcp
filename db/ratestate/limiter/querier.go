@@ -12,26 +12,26 @@ type Querier interface {
 	// Moves a grant stamped later than the instant issuance has reached back to that instant, as the rules
 	// take it (ratelimit/core). It then counts for one second from there, rather than for as long as its
 	// stamp lies ahead.
-	ClampGrants(ctx context.Context, arg ClampGrantsParams) error
+	ClampGrants(ctx context.Context, nowMs int64) error
 	// The database's clock in Unix milliseconds. It is read in its own statement after the lock is held,
 	// because now() is fixed when the transaction starts and a worker that waited on the lock would stamp
 	// its lease early (ADR-0025).
 	ClockMillis(ctx context.Context) (int64, error)
 	// Deletes the grants issued at or before the cutoff, one second before the clock the issuer read.
-	DeleteGrantsBefore(ctx context.Context, arg DeleteGrantsBeforeParams) error
+	DeleteGrantsBefore(ctx context.Context, cutoffMs int64) error
 	// Every grant the account holds a row for, which the issuer keeps to the last second.
-	Grants(ctx context.Context, accountID string) ([]GrantsRow, error)
+	Grants(ctx context.Context) ([]GrantsRow, error)
 	InsertGrant(ctx context.Context, arg InsertGrantParams) error
 	// Gives an account its rate state the first time it spends. An account that already has one keeps it.
 	InsertRateState(ctx context.Context, arg InsertRateStateParams) error
 	// Holds the account's rate state until the transaction ends, so the issuer and the controller take
 	// turns on one account (ADR-0025). The key is derived from the account, and two accounts whose keys
 	// collide only take turns with each other.
-	LockRateState(ctx context.Context, accountID string) error
+	LockRateState(ctx context.Context) error
 	// The rate state the rules decide from, with every instant in Unix milliseconds and zero for an instant
 	// never set. target_rate, hard_cap, baseline_p50_ms and classes are left out, because they are written
 	// only for display and the rules recompute them (ADR-0024).
-	RateState(ctx context.Context, accountID string) (RateStateRow, error)
+	RateState(ctx context.Context) (RateStateRow, error)
 	// Stores the controller's state after a call's outcome. A throttled_ms of zero leaves the latest
 	// throttle as it was, and a baseline of zero stores none.
 	UpdateController(ctx context.Context, arg UpdateControllerParams) error

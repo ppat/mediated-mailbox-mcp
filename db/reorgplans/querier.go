@@ -6,6 +6,8 @@ package reorgplans
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Querier interface {
@@ -21,7 +23,7 @@ type Querier interface {
 	// The plans the event stream follows, every plan applying and each plan it already sent, so a plan
 	// that leaves APPLYING is sent once more with its new status (ADR-0058). applied counts the op log's
 	// rows, which the op log scopes through its plan, and total the plan's operations.
-	StreamPlans(ctx context.Context, arg StreamPlansParams) ([]StreamPlansRow, error)
+	StreamPlans(ctx context.Context, known []pgtype.UUID) ([]StreamPlansRow, error)
 }
 
 var _ Querier = (*Queries)(nil)

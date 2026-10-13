@@ -6,15 +6,21 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/deltasync/tick/postgres.go b/worker/internal/deltasync/tick/postgres.go
-index 7ecc8e20..03e1790b 100644
+index 42bc74ff..bbdd730c 100644
 --- a/worker/internal/deltasync/tick/postgres.go
 +++ b/worker/internal/deltasync/tick/postgres.go
-@@ -252,7 +252,7 @@ func insert(ctx context.Context, q *ingest.Queries, account string, m index.Mess
+@@ -248,13 +248,13 @@ func insert(ctx context.Context, q *ingest.Queries, m index.Message) (bool, erro
+ 	if errors.Is(err, pgx.ErrNoRows) {
+ 		return false, nil
+ 	}
  	if err != nil {
  		return false, err
  	}
--	return true, media(ctx, q, account, m)
+-	return true, media(ctx, q, m)
 +	return true, nil
  }
  
  // media adds the media of a message's attachments, which the index stores once, with the message
+ // (ADR-0123).
+ func media(ctx context.Context, q *ingest.Queries, m index.Message) error {
+ 	if len(m.AttachmentMedia) == 0 {

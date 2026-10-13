@@ -6,6 +6,8 @@ package change
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Querier interface {
@@ -16,15 +18,15 @@ type Querier interface {
 	// Removes the statistics of the account's sender at domain once the index stores none of its
 	// messages, after delta sync removed its last one, since rebuilding them from no messages writes
 	// nothing (ADR-0016).
-	DropEmptySender(ctx context.Context, arg DropEmptySenderParams) (int64, error)
+	DropEmptySender(ctx context.Context, domain string) (int64, error)
 	// The identifiers of the account's stored messages dated at or after since, which a gap recovery
 	// compares with what its listing of the window returned, to find a message removed during the gap
 	// (ADR-0105).
-	MessagesSince(ctx context.Context, arg MessagesSinceParams) ([]string, error)
+	MessagesSince(ctx context.Context, since pgtype.Timestamptz) ([]string, error)
 	// Removes from the index each of the given messages the change feed reports the provider no longer
 	// holds, so the index tracks the live mailbox (ADR-0018). It returns each removed message's sender
 	// domain, whose statistics the caller rebuilds. A message the index does not hold is no row.
-	RemoveMessages(ctx context.Context, arg RemoveMessagesParams) ([]string, error)
+	RemoveMessages(ctx context.Context, messageIds []string) ([]string, error)
 }
 
 var _ Querier = (*Queries)(nil)

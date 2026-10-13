@@ -44,7 +44,7 @@ func TestMain(m *testing.M) {
 	postgres.Main(m)
 }
 
-// The role delta sync connects as, so row-level security and its grants apply as in production.
+// The role delta sync connects as, so its grants apply as in production.
 const role = "mediated_mailbox_sync"
 
 // syncPool returns a pool connecting as role.
@@ -63,7 +63,7 @@ func syncPool(t *testing.T) *pgxpool.Pool {
 	return p
 }
 
-// superuser returns a connection that bypasses row-level security, to write what the UI's setups
+// superuser returns a connection that holds every privilege, to write what the UI's setups
 // would write and to break what the tests break.
 func superuser(t *testing.T) *pgx.Conn {
 	t.Helper()
@@ -868,7 +868,7 @@ func TestNoBodyTextReachesTheIndexOrTheLogs(t *testing.T) {
 	if found := bodyMarkers(t, conn, "personal", log.String()); len(found) != 0 {
 		t.Errorf("fixture body text reached the index or the logs:\n%s", strings.Join(found, "\n"))
 	}
-	must(t, conn, "INSERT INTO job_run_events (account_id, run_id, kind, detail) VALUES ('personal', 'run1', 'retry', $1)", marker.Body("planted"))
+	must(t, conn, "INSERT INTO job_run_events (account_id, run_id, kind, detail) SELECT account_id, run_id, 'retry', $1 FROM job_runs WHERE account_id = 'personal' ORDER BY run_id LIMIT 1", marker.Body("planted"))
 	planted := log.String() + `{"msg":"` + marker.Body("plantedlog") + `"}` + "\n"
 	if found := bodyMarkers(t, conn, "personal", planted); len(found) != 2 {
 		t.Errorf("the search found %d of the two planted body markers:\n%s", len(found), strings.Join(found, "\n"))

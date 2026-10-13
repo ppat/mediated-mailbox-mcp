@@ -12,54 +12,54 @@ import (
 const clearSecondRestart = `-- name: ClearSecondRestart :exec
 UPDATE account_state
 SET backfill_pass2_restart = false
-WHERE account_id = $1
+WHERE account_id = current_setting('app.account')
 `
 
 // Clears the mark that starts backfill's second pass over, in the transaction that records the start of
 // the second pass run that starts, which reads it first (ADR-0120).
-func (q *Queries) ClearSecondRestart(ctx context.Context, accountID string) error {
-	_, err := q.db.Exec(ctx, clearSecondRestart, accountID)
+func (q *Queries) ClearSecondRestart(ctx context.Context) error {
+	_, err := q.db.Exec(ctx, clearSecondRestart)
 	return err
 }
 
 const reopenBackfillFirst = `-- name: ReopenBackfillFirst :exec
 UPDATE account_state
 SET backfill_pass1_complete = false
-WHERE account_id = $1
+WHERE account_id = current_setting('app.account')
 `
 
 // Records that backfill's first pass is due again for the account, in the transaction that starts the
 // run which runs it again (ADR-0120).
-func (q *Queries) ReopenBackfillFirst(ctx context.Context, accountID string) error {
-	_, err := q.db.Exec(ctx, reopenBackfillFirst, accountID)
+func (q *Queries) ReopenBackfillFirst(ctx context.Context) error {
+	_, err := q.db.Exec(ctx, reopenBackfillFirst)
 	return err
 }
 
 const reopenBackfillSecond = `-- name: ReopenBackfillSecond :exec
 UPDATE account_state
 SET backfill_pass2_complete = false, backfill_pass2_restart = true
-WHERE account_id = $1
+WHERE account_id = current_setting('app.account')
 `
 
 // Records that backfill's second pass is due again for the account and marks it to start over from the
 // first message waiting for a scan, in the transaction backfill's run-start step makes before its
 // first pass to return the verdicts another scanner made and the overturned gate skips to pending
 // (ADR-0120, ADR-0121).
-func (q *Queries) ReopenBackfillSecond(ctx context.Context, accountID string) error {
-	_, err := q.db.Exec(ctx, reopenBackfillSecond, accountID)
+func (q *Queries) ReopenBackfillSecond(ctx context.Context) error {
+	_, err := q.db.Exec(ctx, reopenBackfillSecond)
 	return err
 }
 
 const secondRestart = `-- name: SecondRestart :one
 SELECT a.backfill_pass2_restart
 FROM account_state AS a
-WHERE a.account_id = $1
+WHERE a.account_id = current_setting('app.account')
 `
 
 // Whether backfill's second pass is marked to start over from the first message waiting for a scan
 // (ADR-0120).
-func (q *Queries) SecondRestart(ctx context.Context, accountID string) (bool, error) {
-	row := q.db.QueryRow(ctx, secondRestart, accountID)
+func (q *Queries) SecondRestart(ctx context.Context) (bool, error) {
+	row := q.db.QueryRow(ctx, secondRestart)
 	var backfill_pass2_restart bool
 	err := row.Scan(&backfill_pass2_restart)
 	return backfill_pass2_restart, err
@@ -68,25 +68,25 @@ func (q *Queries) SecondRestart(ctx context.Context, accountID string) (bool, er
 const setBackfillFirstComplete = `-- name: SetBackfillFirstComplete :exec
 UPDATE account_state
 SET backfill_pass1_complete = true
-WHERE account_id = $1
+WHERE account_id = current_setting('app.account')
 `
 
 // Records that backfill's first pass has ended for the account, in the transaction that finishes the
 // run which ended it (ADR-0017, ADR-0117).
-func (q *Queries) SetBackfillFirstComplete(ctx context.Context, accountID string) error {
-	_, err := q.db.Exec(ctx, setBackfillFirstComplete, accountID)
+func (q *Queries) SetBackfillFirstComplete(ctx context.Context) error {
+	_, err := q.db.Exec(ctx, setBackfillFirstComplete)
 	return err
 }
 
 const setBackfillSecondComplete = `-- name: SetBackfillSecondComplete :exec
 UPDATE account_state
 SET backfill_pass2_complete = true
-WHERE account_id = $1
+WHERE account_id = current_setting('app.account')
 `
 
 // Records that backfill's second pass has ended for the account, in the transaction that finishes the
 // run which ended it (ADR-0017, ADR-0117).
-func (q *Queries) SetBackfillSecondComplete(ctx context.Context, accountID string) error {
-	_, err := q.db.Exec(ctx, setBackfillSecondComplete, accountID)
+func (q *Queries) SetBackfillSecondComplete(ctx context.Context) error {
+	_, err := q.db.Exec(ctx, setBackfillSecondComplete)
 	return err
 }

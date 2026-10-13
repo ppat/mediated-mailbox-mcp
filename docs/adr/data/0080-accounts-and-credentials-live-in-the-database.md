@@ -74,5 +74,6 @@ needed, through a guided flow in the UI rather than a set of manual steps that a
   [ADR-0090](../operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md) decides.
 - The schema of [ADR-0016](./0016-schema.md) carries what an account's rows must hold, laid out by
   [ADR-0091](./0091-accounts-listed-apart-from-their-state.md).
-- Assumptions about other components. Row-level security on the account tables lets a transaction
-  that set the account write that account's own rows, and nothing else.
+- Assumptions about other components. Every statement on the account tables reaches only the
+  transaction's account, so a transaction that set the account writes that account's own rows, and
+  nothing else ([ADR-0135](./0135-every-statement-reads-its-account-from-the-transaction.md)).

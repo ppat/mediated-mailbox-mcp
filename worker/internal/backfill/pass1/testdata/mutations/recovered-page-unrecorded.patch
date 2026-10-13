@@ -6,14 +6,15 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/backfill/pass1/postgres.go b/worker/internal/backfill/pass1/postgres.go
+index c902fbdc..9615b926 100644
 --- a/worker/internal/backfill/pass1/postgres.go
 +++ b/worker/internal/backfill/pass1/postgres.go
-@@ -183,7 +183,7 @@ func (s *Postgres) Commit(ctx context.Context, account, runID string, p core.Pag
+@@ -190,7 +190,7 @@ func (s *Postgres) Commit(ctx context.Context, account, runID string, p index.Pa
  			}
  		}
  		q := runrecord.New(t)
 -		if recovered != nil {
 +		if false && recovered != nil {
- 			if err := recordFailure(ctx, q, account, runID, *recovered); err != nil {
+ 			if err := recordFailure(ctx, q, runID, *recovered); err != nil {
  				return fmt.Errorf("recording the page's recovered failure: %w", err)
  			}

@@ -26,26 +26,28 @@ decisions take everything as parameters
 - **Reads go through per-query result types, so each query has its own result shape.** A
   metadata query's row type therefore has no body field to populate. There is no field a body
   could hide in, which is the unconstructability pillar's own wording, applied to the data layer.
-- **Every data-access signature requires the account identifier.** The repository-layer rule
-  [ADR-0016](./0016-schema.md) states becomes a fact of the function signatures, so omitting the
-  account is a compile error, not a runtime surprise.
-- **And every statement against an account-keyed table carries an account predicate.** The
-  signature rule above guarantees the account reaches the function. It does not guarantee the
-  account reaches the query, and a function that takes the account and omits the predicate
-  compiles and passes review. The predicate rule closes that gap and is the second of three
-  layers, between the signature the compiler checks and the row-level security
-  [ADR-0016](./0016-schema.md) keeps behind both. The rule reaches every statement, insert and
-  delete included, where an insert supplies the account as a column value rather than as a
-  predicate. The rule has three exceptions, and they are exceptions to this predicate rule alone.
-  [ADR-0016](./0016-schema.md) names separately the tables excepted from its own keying and
-  isolation rule, because a table can be keyed on the account and still be reached without a
-  predicate of its own. Base policy rows carry a null account and are inherited by every
-  account, so the predicate there is the account or null
-  ([ADR-0004](../classification/0004-sender-list-decides.md)). The accounts listing is
-  deliberately unscoped ([docs/UI.md](../../UI.md#17-the-read-api),
-  [ADR-0091](./0091-accounts-listed-apart-from-their-state.md)). And the operation log carries
-  no account column at all, so it is reached through its plan rather than by a predicate of its
-  own.
+- **Every unit of data access names its account in its signature.** The repository-layer rule
+  [ADR-0016](./0016-schema.md) states becomes a fact of the transaction helper's signature, which
+  every data-access call runs inside
+  ([ADR-0071](../engineering/0071-static-enforcement-toolchain.md)), so omitting the account is a
+  compile error, not a runtime surprise. The generated functions take no account of their own
+  ([ADR-0135](./0135-every-statement-reads-its-account-from-the-transaction.md)).
+- **And every statement against an account-keyed table compares its account with the
+  transaction's.** The signature rule above guarantees the account reaches the transaction. It does
+  not guarantee the account reaches the query, and a statement that omits the predicate compiles and
+  passes review. The predicate rule closes that gap. The predicate reads the transaction's own
+  setting rather than a parameter, so no statement can be given an account other than its
+  transaction's ([ADR-0135](./0135-every-statement-reads-its-account-from-the-transaction.md)). The
+  rule reaches every statement, insert and delete included, where an insert takes the account from
+  the same setting as a column value. The rule has three exceptions, and they are exceptions to this
+  predicate rule alone. [ADR-0016](./0016-schema.md) names separately the tables excepted from its
+  own keying and isolation rule, because a table can be keyed on the account and still be reached
+  without a predicate of its own. Base policy rows carry a null account and are inherited by every
+  account, so the predicate there is the transaction's account or null
+  ([ADR-0004](../classification/0004-sender-list-decides.md)). The accounts listing is deliberately
+  unscoped ([docs/UI.md](../../UI.md#17-the-read-api),
+  [ADR-0091](./0091-accounts-listed-apart-from-their-state.md)). And the operation log carries no
+  account column at all, so it is reached through its plan rather than by a predicate of its own.
   **How the rule is checked is a mechanism question and belongs to
   [ADR-0066](./0066-data-access-generated-from-sql.md)**, which also records why a query set
   declared as files is checkable by a build step where statements assembled at run time are not.
@@ -53,17 +55,17 @@ decisions take everything as parameters
   table with an account column is account-keyed, with the exceptions above named explicitly and
   the list of exceptions itself checked against the schema. A hand-kept list goes stale the first
   time a migration adds a table and nobody remembers.
-- **Every unit of data access runs in a transaction that has set the account and has verified it
-  is set.** The verification is not ceremony. [ADR-0016](./0016-schema.md) records why the
-  database cannot raise here and why the resulting deny is silent, and this is where the
-  compensating assertion lives. The accounts listing, the read of `oauth_clients`, delta sync's
-  re-seal of a client secret and the UI's OAuth client setup are not account-scoped, so they are
-  exempt, and each is written as one chained call
-  ([ADR-0091](./0091-accounts-listed-apart-from-their-state.md),
+- **Every unit of data access runs in a transaction that has set the account and has verified it is
+  set.** The verification is not ceremony. [ADR-0016](./0016-schema.md) records why the database
+  cannot raise here and why the resulting deny is silent, and this is where the compensating
+  assertion lives. The accounts listing, the read of `oauth_clients`, delta sync's re-seal of a
+  client secret and the UI's OAuth client setup are not account-scoped, so they are exempt, and each
+  is written as one chained call ([ADR-0091](./0091-accounts-listed-apart-from-their-state.md),
   [ADR-0092](../operability/0092-key-replacement-by-keyring-and-re-seal.md),
   [ADR-0106](../provider/0106-accounts-of-a-provider-connect-through-any-of-its-oauth-clients.md)).
   The base policy, which belongs to no account, is read and written through the helper's second
-  entry point, which sets no account and verifies that, and runs only the base policy's statements
+  entry point, which sets the account empty and verifies that, and runs only the base policy's
+  statements
   ([ADR-0112](./0112-the-base-policy-is-written-and-read-in-a-transaction-of-its-own.md)).
 - **One data-access library, produced from the one schema, serves every component,** so drift
   between the schema, the queries, and the result types is a build failure everywhere at once
@@ -73,9 +75,6 @@ decisions take everything as parameters
   ([db/README.md](../../../db/README.md)). Whether its accessors are generated or hand-written
   under the same discipline, and by which tool, is decided by
   [ADR-0066](./0066-data-access-generated-from-sql.md).
-- **Row-level security stays the independent third layer**, behind the signature rule and the
-  predicate rule, exactly as [ADR-0016](./0016-schema.md) names it. Nothing here substitutes for
-  it.
 
 ## Alternatives considered
 

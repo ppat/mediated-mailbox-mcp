@@ -5,7 +5,7 @@ SELECT
     count(*) AS serves,
     min(a.ts)::timestamptz AS first_at
 FROM audit_log AS a
-WHERE a.account_id = @account_id AND a.action = 'READ_BODY' AND a.ts >= @since;
+WHERE a.account_id = current_setting('app.account') AND a.action = 'READ_BODY' AND a.ts >= @since;
 
 -- name: BodyServesByDay :many
 -- The bodies served on each UTC day from one time up to another, one row per day that has a serve, the
@@ -15,7 +15,7 @@ SELECT
     count(*) AS serves
 FROM audit_log AS a
 WHERE
-    a.account_id = @account_id
+    a.account_id = current_setting('app.account')
     AND a.action = 'READ_BODY'
     AND a.ts >= @range_start
     AND a.ts < @range_end

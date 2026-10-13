@@ -5,10 +5,10 @@ tests: TestNoAccountIdentifierIsAPathSegmentThePathCannotHold TestTheDatabaseKee
 scheduled-count: no
 integration: yes
 
-diff --git a/db/migrations/00005_account_identifier_grammar.sql b/db/migrations/00005_account_identifier_grammar.sql
+diff --git a/db/migrations/00004_account_identifier_grammar.sql b/db/migrations/00004_account_identifier_grammar.sql
 index b9f33379..0195f536 100644
---- a/db/migrations/00005_account_identifier_grammar.sql
-+++ b/db/migrations/00005_account_identifier_grammar.sql
+--- a/db/migrations/00004_account_identifier_grammar.sql
++++ b/db/migrations/00004_account_identifier_grammar.sql
 @@ -6,4 +6,4 @@
  -- rewrites it, since an account is system-of-record data (ADR-0048).
  ALTER TABLE accounts

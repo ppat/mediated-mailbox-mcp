@@ -98,7 +98,7 @@ throughput and latency, because the corpus assumption puts them out of reach of 
   | No case expression over a parameter in a grouping position | It generates and runs, types the group key as an empty interface, and lets an undeclared dimension reach the database and return one row with a null key, turning a refusal into silent wrong data | Text |
   | No text cast on either side of a comparison between a case-insensitive column and a parameter | A cast to text, of the parameter or of the column, makes the same question return no rows or fewer, with no error, and the generated Go is identical either way. A parameter cast to the case-insensitive type leaves the comparison as it is | Text |
   | Every paged read's sort ends with the row's own identity | [ADR-0057](../operability/0057-one-dataset-endpoint-behind-a-registry.md) requires the total order and leaves the check here. Whether a sort's final term is a dataset's identity column is a question about the statement's shape rather than its text | Structural |
-  | The account predicate is present | [ADR-0047](./0047-schema-first-data-access.md)'s rule. A text match cannot tell a predicate on the account from a mention of it in a projection | Structural |
+  | The account predicate is present, reading the transaction's account | [ADR-0047](./0047-schema-first-data-access.md)'s rule, in [ADR-0135](./0135-every-statement-reads-its-account-from-the-transaction.md)'s form, so an account compared with or taken from a parameter is refused. A text match cannot tell a predicate on the account from a mention of it in a projection | Structural |
 
   The generator's own per-query suppression annotation appears in no statement file, because a
   suppression is refused wherever a check stands in for a control
@@ -107,14 +107,6 @@ throughput and latency, because the corpus assumption puts them out of reach of 
   case-insensitive text and the case-insensitive matches over a sender domain column that its scope
   names, for a rule [ADR-0016](./0016-schema.md) states
   ([db/README.md](../../../db/README.md#the-checks)).
-- **An indexed column is compared only with leakproof operators.** Every runtime role reads under
-  row-level security ([ADR-0016](./0016-schema.md)), and PostgreSQL uses a predicate as an index
-  condition ahead of a policy only when every function it applies to the row's columns is
-  leakproof. Equality and range on `text`, numbers, `boolean`, `timestamptz` and `uuid` are.
-  Case-insensitive text, array operators, `ILIKE`, patterns and JSON operators are not, so an index
-  over a column compared with one of them goes unused by every runtime role. A value matched
-  without regard to case is therefore stored in one normalized form as `text`, as the sender domains
-  are ([ADR-0016](./0016-schema.md)).
 - **Generated code sits in the one data-access directory, in subsections organized by concern rather
   than per role.** One generated package per subsection, all from the one schema. A statement may be
   needed by more than one role, so grouping by role would duplicate it. The role boundary is held by
@@ -169,11 +161,10 @@ from the generator's issue tracker rather than from having been run.
 | Carrying the grouping dimension as a value into a case expression is a **rejected option** | It generates and runs, types the group key as an empty interface, and lets an undeclared dimension reach the database and return one row with a null key. It converts a refusal into silent wrong data |
 | A null-guarded filter parameter needs a cast to the column's type, **known from the generator's issue tracker rather than from a run** | Without it the generator refuses to generate. The array form of the same idiom loses nullability inference, so the generated parameter is a plain slice and a nil slice is the absent case |
 | The natural multi-argument `unnest` form is refused by the generator's analyzer | Write it as a common table expression with parallel single-argument `unnest` calls |
-| `COPY` is refused by PostgreSQL on any table with row-level security, for every role the policy applies to | And it would not serve this design regardless. [ADR-0025](../operability/0025-priority-classes-and-leases.md) carries both halves of that argument |
-| Case-insensitive text needs no type registration and works in every driver mode | But a text cast on either side of a comparison between such a column and a parameter makes the same question return no rows or fewer, with no error, and the generated Go is identical either way. Under a policy, a composite index over such a column degrades to one column plus a filter, because the comparison operator is not leakproof |
+| Case-insensitive text needs no type registration and works in every driver mode | But a text cast on either side of a comparison between such a column and a parameter makes the same question return no rows or fewer, with no error, and the generated Go is identical either way |
 | The account setting's deny state is silent | Once a connection has set it, PostgreSQL resets it to the empty string between transactions rather than to unrecognised, so a statement omitting it returns no rows without error on a warm connection and raises on a fresh one. The shared transaction helper reads it back and fails the transaction when it is empty. [ADR-0016](./0016-schema.md) carries the schema half |
-| A grant refusal and a policy exclusion behave oppositely | A grant the role lacks raises, naming the table and not the column, so it carries nothing the operator can act on. A policy excluding the row empties the statement, which succeeds having changed nothing |
-| The plain execute annotation discards the command tag | Every statement whose predicate a policy can empty uses the row-counting annotation instead, and zero rows affected is a failure. The four decision writes behind [ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)'s two decision verbs are such statements |
+| A grant refusal and a predicate that matches no row behave oppositely | A grant the role lacks raises, naming the table and not the column, so it carries nothing the operator can act on. A predicate matching no row, because the row is another account's or its state moved on, empties the statement, which succeeds having changed nothing |
+| The plain execute annotation discards the command tag | Every write whose predicate can match no row uses the row-counting annotation instead, and zero rows affected is a failure. The four decision writes behind [ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)'s two decision verbs are such statements |
 | If a connection pooler is placed in front of PostgreSQL | Statement mode is unusable because it forbids transaction blocks. Transaction and session modes both preserve isolation. The driver's prepared statements require the pooler to permit them, which is preferred over disabling them, because disabling them discards the cached plans the isolation result was measured under |
 
 ## Alternatives considered

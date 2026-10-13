@@ -51,7 +51,7 @@ func TestMain(m *testing.M) {
 	postgres.Main(m)
 }
 
-// The role backfill connects as, so row-level security and its grants apply as in production.
+// The role backfill connects as, so its grants apply as in production.
 const role = "mediated_mailbox_backfill"
 
 // backfillPool returns a pool connecting as role.
@@ -70,7 +70,7 @@ func backfillPool(t *testing.T) *pgxpool.Pool {
 	return p
 }
 
-// superuser returns a connection that bypasses row-level security, to write what the UI's setups
+// superuser returns a connection that holds every privilege, to write what the UI's setups
 // would write and to break what the tests break.
 func superuser(t *testing.T) *pgx.Conn {
 	t.Helper()
@@ -955,7 +955,7 @@ func lastAuthentication(t *testing.T, pool *pgxpool.Pool, account string) (*time
 	var at *time.Time
 	var outcome *string
 	err := tx.Run(t.Context(), pool, account, func(q pgx.Tx) error {
-		progress, err := accountstate.New(q).AccountProgress(t.Context(), account)
+		progress, err := accountstate.New(q).AccountProgress(t.Context())
 		if err != nil {
 			return err
 		}

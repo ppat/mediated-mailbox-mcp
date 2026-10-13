@@ -10,13 +10,13 @@ import (
 )
 
 const lockRateState = `-- name: LockRateState :exec
-SELECT pg_advisory_xact_lock(hashtextextended($1::text, 0))
+SELECT pg_advisory_xact_lock(hashtextextended(current_setting('app.account'), 0))
 `
 
 // Holds the account's rate state until the transaction ends, so the issuer and the controller take
 // turns on one account (ADR-0025). The key is derived from the account, and two accounts whose keys
 // collide only take turns with each other.
-func (q *Queries) LockRateState(ctx context.Context, accountID string) error {
-	_, err := q.db.Exec(ctx, lockRateState, accountID)
+func (q *Queries) LockRateState(ctx context.Context) error {
+	_, err := q.db.Exec(ctx, lockRateState)
 	return err
 }

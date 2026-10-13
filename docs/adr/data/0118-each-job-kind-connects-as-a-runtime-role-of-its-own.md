@@ -80,9 +80,10 @@ connects as is held in one place in `db/check`.
   Delta sync's role also updates each OAuth client's sealed secret, because delta sync re-seals it
   when a key is replaced ([ADR-0092](../operability/0092-key-replacement-by-keyring-and-re-seal.md)).
   The heuristics run's role holds no grant on a sealed credential.
-- A role whose statements touch the operation log also reads the plan columns that
-  [ADR-0016](./0016-schema.md)'s policy on the log looks up, because PostgreSQL runs a policy's
-  lookup with the querying role's privileges. Those columns are part of what its statements need.
+- A role whose statements touch the operation log also reads the plan columns its statements join
+  the log to, since every statement reaches the log through its plan
+  ([ADR-0135](./0135-every-statement-reads-its-account-from-the-transaction.md)). Those columns are
+  part of what its statements need.
 - The bug bound inside the worker holds only while each job kind's code receives its own pool. The
   composition root wires that, since the grant check sees which statements a list admits, not which
   pool reaches the code. A test of the composition root holds the pools it opens and the pool it

@@ -6,28 +6,40 @@ scheduled-count: no
 integration: yes
 
 diff --git a/db/messages/scan/scan.sql b/db/messages/scan/scan.sql
-index 8c12699..cdaafa6 100644
+index 6a8cb3d2..70078447 100644
 --- a/db/messages/scan/scan.sql
 +++ b/db/messages/scan/scan.sql
-@@ -97,7 +97,7 @@ RETURNING from_domain;
+@@ -142,13 +142,13 @@ RETURNING from_domain;
+ 
+ -- name: RequeueSignalledSkips :execrows
+ -- Returns each of the account's messages the gate skipped whose subject is now masked to pending scan,
  -- since the gate decided without that signal (ADR-0120, ADR-0093).
  UPDATE messages
  SET scan_state = 'pending'
--WHERE account_id = @account_id AND scan_state = 'skipped_gate' AND subject_masked;
-+WHERE account_id = @account_id AND scan_state = 'skipped_gate';
+-WHERE account_id = current_setting('app.account') AND scan_state = 'skipped_gate' AND subject_masked;
++WHERE account_id = current_setting('app.account') AND scan_state = 'skipped_gate';
  
  -- name: GateSkips :many
  -- The account's messages the scan gate skipped, in the order of their identifiers, each with what the
+ -- gate reads of it and of its sender, the sender's volume and prior hits, read as PendingPage reads
+ -- them, so backfill's run-start step decides each skip again under the gate it holds (ADR-0121). A
+ -- message with no sender statistics reads a volume and hits of zero.
 diff --git a/db/messages/scan/scan.sql.go b/db/messages/scan/scan.sql.go
-index 06153b5..f134147 100644
+index cb71bfe0..b19e003f 100644
 --- a/db/messages/scan/scan.sql.go
 +++ b/db/messages/scan/scan.sql.go
-@@ -271,7 +271,7 @@ func (q *Queries) RequeueGateSkips(ctx context.Context, arg RequeueGateSkipsPara
+@@ -386,13 +386,13 @@ func (q *Queries) RequeueGateSkips(ctx context.Context, messageIds []string) (in
+ 	return result.RowsAffected(), nil
+ }
+ 
  const requeueSignalledSkips = `-- name: RequeueSignalledSkips :execrows
  UPDATE messages
  SET scan_state = 'pending'
--WHERE account_id = $1 AND scan_state = 'skipped_gate' AND subject_masked
-+WHERE account_id = $1 AND scan_state = 'skipped_gate'
+-WHERE account_id = current_setting('app.account') AND scan_state = 'skipped_gate' AND subject_masked
++WHERE account_id = current_setting('app.account') AND scan_state = 'skipped_gate'
  `
  
  // Returns each of the account's messages the gate skipped whose subject is now masked to pending scan,
+ // since the gate decided without that signal (ADR-0120, ADR-0093).
+ func (q *Queries) RequeueSignalledSkips(ctx context.Context) (int64, error) {
+ 	result, err := q.db.Exec(ctx, requeueSignalledSkips)

@@ -6,7 +6,7 @@ scheduled-count: no
 integration: yes
 
 diff --git a/executioncontext/session/session.go b/executioncontext/session/session.go
-index f4fb328a..d571ad31 100644
+index 4a1c137e..1e10a212 100644
 --- a/executioncontext/session/session.go
 +++ b/executioncontext/session/session.go
 @@ -265,7 +265,7 @@ func recordAttempt(ctx context.Context, db tx.Beginner, account string, attempt
@@ -15,6 +15,6 @@ index f4fb328a..d571ad31 100644
  			AttemptedAt: pgtype.Timestamptz{Time: time.UnixMilli(int64(attempt.At)).UTC(), Valid: true},
 -			Outcome:     pgtype.Text{String: string(attempt.Outcome), Valid: true},
 +			Outcome:     pgtype.Text{String: string(mail.AuthFailed), Valid: true},
- 			AccountID:   account,
  		})
  	})
+ 	if err != nil {

@@ -8,5 +8,5 @@ SELECT
     class,
     domain_suffix
 FROM policy_rules
-WHERE account_id = @account_id::text OR account_id IS NULL
+WHERE account_id = current_setting('app.account') OR account_id IS NULL
 ORDER BY rule_id;

@@ -85,6 +85,8 @@ the credential it stores
   than when a workload next makes an attempt with the new credential.
 - Assumptions about other components. Each deployable that calls a provider reads its adapter's
   latest attempt at the end of each unit of work. The UI's role holds the write grant on the two
-  columns ([ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)). The database,
-  not the deployable, decides which attempt is the latest, through the statement's predicate.
-  Row-level security scopes the write to the account the transaction set.
+  columns ([ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)). The database, not
+  the deployable, decides which attempt is the latest, through the statement's predicate. The
+  statement compares the account with the transaction's, so the write reaches only the account the
+  transaction set
+  ([ADR-0135](../data/0135-every-statement-reads-its-account-from-the-transaction.md)).

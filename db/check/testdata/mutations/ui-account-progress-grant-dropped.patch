@@ -1,14 +1,14 @@
 control: Only the roles that call a provider read oauth_clients and their own account's state, and the UI reads its account's progress and never a credential
 removes: the UI's role loses the read of the progress columns its statement in db/accountstate needs
 packages: ./db/check
-tests: TestGrantsCoverAdmittedSubsections TestTheProviderCallingRolesReadOnlyTheirAccountsState TestTheProviderCallingRolesReadOnlyTheirAccountsState/mediated_mailbox_ui/reads_its_own_account's_progress
+tests: TestGrantsCoverAdmittedSubsections TestTheProviderCallingRolesReadTheirAccountsState TestTheProviderCallingRolesReadTheirAccountsState/mediated_mailbox_ui/reads_its_own_account's_progress
 scheduled-count: no
 integration: yes
 
-diff --git a/db/migrations/00004_grants.sql b/db/migrations/00004_grants.sql
+diff --git a/db/migrations/00003_grants.sql b/db/migrations/00003_grants.sql
 index eba1d5bc..f7bb83c0 100644
---- a/db/migrations/00004_grants.sql
-+++ b/db/migrations/00004_grants.sql
+--- a/db/migrations/00003_grants.sql
++++ b/db/migrations/00003_grants.sql
 @@ -466,12 +466,7 @@ GRANT INSERT (account_id, provider, oauth_client), UPDATE (oauth_client) ON acco
  GRANT SELECT (
      account_id,

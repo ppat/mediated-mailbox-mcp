@@ -1,14 +1,14 @@
 control: The UI's role writes exactly the policy writes policy management makes, each with its history row
 removes: the UI's role loses the delete on policy_rules, so lifting a rule is refused
 packages: ./db/check
-tests: TestTheUIWritesOnlyItsDecisionColumnsAndPolicyRules TestTheUIWritesOnlyItsDecisionColumnsAndPolicyRules/add,_edit_and_lift_an_account's_rule_with_its_history TestTheBasePolicyIsWrittenOnlyInABasePolicyTransaction
+tests: TestTheUIWritesOnlyItsDecisionColumnsAndPolicyRules TestTheUIWritesOnlyItsDecisionColumnsAndPolicyRules/add,_edit_and_lift_an_account's_rule_with_its_history TestOnlyTheUIWritesThePolicy TestOnlyTheUIWritesThePolicy/mediated_mailbox_ui/lift_a_base_rule
 scheduled-count: no
 integration: yes
 
-diff --git a/db/migrations/00004_grants.sql b/db/migrations/00004_grants.sql
+diff --git a/db/migrations/00003_grants.sql b/db/migrations/00003_grants.sql
 index eba1d5bc..67ddd013 100644
---- a/db/migrations/00004_grants.sql
-+++ b/db/migrations/00004_grants.sql
+--- a/db/migrations/00003_grants.sql
++++ b/db/migrations/00003_grants.sql
 @@ -492,7 +492,7 @@ DELETE ON oauth_clients TO mediated_mailbox_ui;
  -- An edit changes a rule's domain suffixes alone, since its scope and identifier never change. Its
  -- statements sit in db/policyrules/manage for an account's rules and db/policyrules/base for the base

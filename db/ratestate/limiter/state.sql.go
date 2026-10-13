@@ -11,12 +11,11 @@ import (
 
 const insertRateState = `-- name: InsertRateState :exec
 INSERT INTO rate_state (account_id, current_rate, target_rate, hard_cap)
-VALUES ($1, $2, $3, $4)
+VALUES (current_setting('app.account'), $1, $2, $3)
 ON CONFLICT (account_id) DO NOTHING
 `
 
 type InsertRateStateParams struct {
-	AccountID   string
 	CurrentRate float32
 	TargetRate  float32
 	HardCap     float32
@@ -24,12 +23,7 @@ type InsertRateStateParams struct {
 
 // Gives an account its rate state the first time it spends. An account that already has one keeps it.
 func (q *Queries) InsertRateState(ctx context.Context, arg InsertRateStateParams) error {
-	_, err := q.db.Exec(ctx, insertRateState,
-		arg.AccountID,
-		arg.CurrentRate,
-		arg.TargetRate,
-		arg.HardCap,
-	)
+	_, err := q.db.Exec(ctx, insertRateState, arg.CurrentRate, arg.TargetRate, arg.HardCap)
 	return err
 }
 
@@ -48,7 +42,7 @@ SELECT
     coalesce(latency_samples, '{}')::integer[] AS latency_samples,
     coalesce(latency_medians, '{}')::real[] AS latency_medians
 FROM rate_state
-WHERE account_id = $1
+WHERE account_id = current_setting('app.account')
 `
 
 type RateStateRow struct {
@@ -69,8 +63,8 @@ type RateStateRow struct {
 // The rate state the rules decide from, with every instant in Unix milliseconds and zero for an instant
 // never set. target_rate, hard_cap, baseline_p50_ms and classes are left out, because they are written
 // only for display and the rules recompute them (ADR-0024).
-func (q *Queries) RateState(ctx context.Context, accountID string) (RateStateRow, error) {
-	row := q.db.QueryRow(ctx, rateState, accountID)
+func (q *Queries) RateState(ctx context.Context) (RateStateRow, error) {
+	row := q.db.QueryRow(ctx, rateState)
 	var i RateStateRow
 	err := row.Scan(
 		&i.CurrentRate,
@@ -106,7 +100,7 @@ SET
     latency_medians = $9::real[],
     baseline_p50_ms = nullif($10::real, 0),
     updated_at = timestamptz 'epoch' + ($11::bigint) * interval '1 millisecond'
-WHERE account_id = $12
+WHERE account_id = current_setting('app.account')
 `
 
 type UpdateControllerParams struct {
@@ -121,7 +115,6 @@ type UpdateControllerParams struct {
 	LatencyMedians       []float32
 	BaselineMs           float32
 	NowMs                int64
-	AccountID            string
 }
 
 // Stores the controller's state after a call's outcome. A throttled_ms of zero leaves the latest
@@ -139,7 +132,6 @@ func (q *Queries) UpdateController(ctx context.Context, arg UpdateControllerPara
 		arg.LatencyMedians,
 		arg.BaselineMs,
 		arg.NowMs,
-		arg.AccountID,
 	)
 	return err
 }
@@ -161,7 +153,7 @@ SET
     ),
     classes = $9,
     updated_at = timestamptz 'epoch' + ($10::bigint) * interval '1 millisecond'
-WHERE account_id = $11
+WHERE account_id = current_setting('app.account')
 `
 
 type UpdateIssuanceParams struct {
@@ -175,7 +167,6 @@ type UpdateIssuanceParams struct {
 	GrantedMs          int64
 	Classes            []byte
 	NowMs              int64
-	AccountID          string
 }
 
 // Stores what issuance keeps after one request, whether or not it was granted. A granted_ms of zero
@@ -192,7 +183,6 @@ func (q *Queries) UpdateIssuance(ctx context.Context, arg UpdateIssuanceParams) 
 		arg.GrantedMs,
 		arg.Classes,
 		arg.NowMs,
-		arg.AccountID,
 	)
 	return err
 }

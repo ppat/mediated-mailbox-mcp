@@ -26,12 +26,6 @@
 // no row it read. Its error is returned, the active snapshot stays, and the series the alarm reads
 // says so.
 //
-// One fault is outside what the loader can see. A migration that drops or narrows the row-level
-// security policy showing every account the base rules, policy_rules_base, makes the base rules read
-// as absent with no error, and the loader takes that as a policy with no base rules. That is a
-// schema change. Review and this package's integration tests, which read the base rules under a
-// deployable's role, catch it, and nothing does at run time.
-//
 // A reload its caller cancelled is not a failed reload. It returns the cancellation, keeps the
 // active snapshot, and leaves the alarm's series as it was, so a process shutting down mid-reload
 // raises no alarm. A reload whose deadline passed is a failed read like any other, because a caller
@@ -200,7 +194,7 @@ func (l *Loader) read(ctx context.Context) ([]policy.Row, error) {
 	for i, account := range l.accounts {
 		var inherited, own []policy.Row
 		err := tx.Run(ctx, l.db, account, func(t pgx.Tx) error {
-			read, err := policyrules.New(t).PolicyRules(ctx, account)
+			read, err := policyrules.New(t).PolicyRules(ctx)
 			if err != nil {
 				return fmt.Errorf("reading the rules: %w", err)
 			}

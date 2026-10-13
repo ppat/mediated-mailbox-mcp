@@ -14,13 +14,13 @@ import (
 const backlog = `-- name: Backlog :one
 SELECT count(*) AS pending
 FROM messages AS m
-WHERE m.account_id = $1 AND m.scan_state = 'pending'
+WHERE m.account_id = current_setting('app.account') AND m.scan_state = 'pending'
 `
 
 // How many of the account's messages wait for their content scan, the scan backlog depth a scanning
 // workload emits as a metric (ADR-0093).
-func (q *Queries) Backlog(ctx context.Context, accountID string) (int64, error) {
-	row := q.db.QueryRow(ctx, backlog, accountID)
+func (q *Queries) Backlog(ctx context.Context) (int64, error) {
+	row := q.db.QueryRow(ctx, backlog)
 	var pending int64
 	err := row.Scan(&pending)
 	return pending, err
@@ -39,7 +39,7 @@ SELECT
     coalesce(s.scan_hit_count, 0)::bigint AS sender_hits
 FROM messages AS m
 LEFT JOIN senders AS s ON m.account_id = s.account_id AND m.from_domain = s.domain
-WHERE m.account_id = $1 AND m.scan_state = 'skipped_gate'
+WHERE m.account_id = current_setting('app.account') AND m.scan_state = 'skipped_gate'
 ORDER BY m.message_id
 `
 
@@ -59,8 +59,8 @@ type GateSkipsRow struct {
 // gate reads of it and of its sender, the sender's volume and prior hits, read as PendingPage reads
 // them, so backfill's run-start step decides each skip again under the gate it holds (ADR-0121). A
 // message with no sender statistics reads a volume and hits of zero.
-func (q *Queries) GateSkips(ctx context.Context, accountID string) ([]GateSkipsRow, error) {
-	rows, err := q.db.Query(ctx, gateSkips, accountID)
+func (q *Queries) GateSkips(ctx context.Context) ([]GateSkipsRow, error) {
+	rows, err := q.db.Query(ctx, gateSkips)
 	if err != nil {
 		return nil, err
 	}
@@ -93,21 +93,16 @@ const markDelisted = `-- name: MarkDelisted :execrows
 UPDATE messages
 SET sender_class = 'normal', class_rule_id = NULL, scan_state = 'pending'
 WHERE
-    account_id = $1
-    AND from_domain = $2
+    account_id = current_setting('app.account')
+    AND from_domain = $1
     AND (sender_class = 'restricted' OR scan_state = 'skipped_restricted')
 `
-
-type MarkDelistedParams struct {
-	AccountID string
-	Domain    string
-}
 
 // The delisting transition for one domain the policy in force no longer restricts. Its messages stored
 // restricted or skipped as restricted return to a normal sender class with no rule naming it, and to
 // pending scan (ADR-0037, ADR-0016).
-func (q *Queries) MarkDelisted(ctx context.Context, arg MarkDelistedParams) (int64, error) {
-	result, err := q.db.Exec(ctx, markDelisted, arg.AccountID, arg.Domain)
+func (q *Queries) MarkDelisted(ctx context.Context, domain string) (int64, error) {
+	result, err := q.db.Exec(ctx, markDelisted, domain)
 	if err != nil {
 		return 0, err
 	}
@@ -117,12 +112,11 @@ func (q *Queries) MarkDelisted(ctx context.Context, arg MarkDelistedParams) (int
 const markListed = `-- name: MarkListed :execrows
 UPDATE messages
 SET sender_class = 'restricted', class_rule_id = $1
-WHERE account_id = $2 AND from_domain = $3 AND sender_class = 'normal'
+WHERE account_id = current_setting('app.account') AND from_domain = $2 AND sender_class = 'normal'
 `
 
 type MarkListedParams struct {
 	ClassRuleID pgtype.Text
-	AccountID   string
 	Domain      string
 }
 
@@ -130,7 +124,7 @@ type MarkListedParams struct {
 // messages stored as normal take the restricted class and the rule that sets it, and their scan state
 // is left as it is (ADR-0113, ADR-0016).
 func (q *Queries) MarkListed(ctx context.Context, arg MarkListedParams) (int64, error) {
-	result, err := q.db.Exec(ctx, markListed, arg.ClassRuleID, arg.AccountID, arg.Domain)
+	result, err := q.db.Exec(ctx, markListed, arg.ClassRuleID, arg.Domain)
 	if err != nil {
 		return 0, err
 	}
@@ -140,15 +134,15 @@ func (q *Queries) MarkListed(ctx context.Context, arg MarkListedParams) (int64, 
 const normalDomains = `-- name: NormalDomains :many
 SELECT DISTINCT m.from_domain
 FROM messages AS m
-WHERE m.account_id = $1 AND m.sender_class = 'normal'
+WHERE m.account_id = current_setting('app.account') AND m.sender_class = 'normal'
 ORDER BY m.from_domain
 `
 
 // The sender domains of the account whose messages the index stores as normal, each once, which every
 // scanning workload compares with the policy in force, so a rule added since restricts the stored
 // classes (ADR-0113).
-func (q *Queries) NormalDomains(ctx context.Context, accountID string) ([]string, error) {
-	rows, err := q.db.Query(ctx, normalDomains, accountID)
+func (q *Queries) NormalDomains(ctx context.Context) ([]string, error) {
+	rows, err := q.db.Query(ctx, normalDomains)
 	if err != nil {
 		return nil, err
 	}
@@ -180,15 +174,14 @@ SELECT
     coalesce(s.scan_hit_count, 0)::bigint AS sender_hits
 FROM messages AS m
 LEFT JOIN senders AS s ON m.account_id = s.account_id AND m.from_domain = s.domain
-WHERE m.account_id = $1 AND m.scan_state = 'pending' AND m.message_id > $2
+WHERE m.account_id = current_setting('app.account') AND m.scan_state = 'pending' AND m.message_id > $1
 ORDER BY m.message_id
-LIMIT $3
+LIMIT $2
 `
 
 type PendingPageParams struct {
-	AccountID string
-	After     string
-	PageSize  int32
+	After    string
+	PageSize int32
 }
 
 type PendingPageRow struct {
@@ -209,7 +202,7 @@ type PendingPageRow struct {
 // no sender statistics reads a volume and hits of zero. The page is keyed on the identifier, so a
 // message left waiting is read once per pass over the backlog.
 func (q *Queries) PendingPage(ctx context.Context, arg PendingPageParams) ([]PendingPageRow, error) {
-	rows, err := q.db.Query(ctx, pendingPage, arg.AccountID, arg.After, arg.PageSize)
+	rows, err := q.db.Query(ctx, pendingPage, arg.After, arg.PageSize)
 	if err != nil {
 		return nil, err
 	}
@@ -252,15 +245,14 @@ SELECT
 FROM messages AS m
 LEFT JOIN senders AS s ON m.account_id = s.account_id AND m.from_domain = s.domain
 WHERE
-    m.account_id = $1
+    m.account_id = current_setting('app.account')
     AND m.scan_state = 'pending'
-    AND (m.sent_at, m.message_id) < ($2::timestamptz, $3::text)
+    AND (m.sent_at, m.message_id) < ($1::timestamptz, $2::text)
 ORDER BY m.sent_at DESC, m.message_id DESC
-LIMIT $4
+LIMIT $3
 `
 
 type PendingPageNewestFirstParams struct {
-	AccountID      string
 	AfterSentAt    pgtype.Timestamptz
 	AfterMessageID string
 	PageSize       int32
@@ -287,12 +279,7 @@ type PendingPageNewestFirstRow struct {
 // nullable position, the comparison is applied as a filter and a page's cost grows with progress. The
 // page is keyed on the position, so a message left waiting is read once per pass.
 func (q *Queries) PendingPageNewestFirst(ctx context.Context, arg PendingPageNewestFirstParams) ([]PendingPageNewestFirstRow, error) {
-	rows, err := q.db.Query(ctx, pendingPageNewestFirst,
-		arg.AccountID,
-		arg.AfterSentAt,
-		arg.AfterMessageID,
-		arg.PageSize,
-	)
+	rows, err := q.db.Query(ctx, pendingPageNewestFirst, arg.AfterSentAt, arg.AfterMessageID, arg.PageSize)
 	if err != nil {
 		return nil, err
 	}
@@ -324,19 +311,18 @@ func (q *Queries) PendingPageNewestFirst(ctx context.Context, arg PendingPageNew
 const recordSkip = `-- name: RecordSkip :execrows
 UPDATE messages
 SET scan_state = $1
-WHERE account_id = $2 AND message_id = $3 AND scan_state = 'pending'
+WHERE account_id = current_setting('app.account') AND message_id = $2 AND scan_state = 'pending'
 `
 
 type RecordSkipParams struct {
 	ScanState string
-	AccountID string
 	MessageID string
 }
 
 // Records that the scan gate skipped a waiting message, as skipped_restricted or skipped_gate
 // (ADR-0093). A message no longer waiting is left as it is and counts no row.
 func (q *Queries) RecordSkip(ctx context.Context, arg RecordSkipParams) (int64, error) {
-	result, err := q.db.Exec(ctx, recordSkip, arg.ScanState, arg.AccountID, arg.MessageID)
+	result, err := q.db.Exec(ctx, recordSkip, arg.ScanState, arg.MessageID)
 	if err != nil {
 		return 0, err
 	}
@@ -352,7 +338,7 @@ SET
     scanned_at = now(),
     scanner_version = $3,
     scanner_revision = $4
-WHERE account_id = $5 AND message_id = $6 AND scan_state = 'pending'
+WHERE account_id = current_setting('app.account') AND message_id = $5 AND scan_state = 'pending'
 `
 
 type RecordVerdictParams struct {
@@ -360,7 +346,6 @@ type RecordVerdictParams struct {
 	RuleIds         []string
 	ScannerVersion  pgtype.Int4
 	ScannerRevision pgtype.Text
-	AccountID       string
 	MessageID       string
 }
 
@@ -373,7 +358,6 @@ func (q *Queries) RecordVerdict(ctx context.Context, arg RecordVerdictParams) (i
 		arg.RuleIds,
 		arg.ScannerVersion,
 		arg.ScannerRevision,
-		arg.AccountID,
 		arg.MessageID,
 	)
 	if err != nil {
@@ -385,19 +369,17 @@ func (q *Queries) RecordVerdict(ctx context.Context, arg RecordVerdictParams) (i
 const requeueGateSkips = `-- name: RequeueGateSkips :execrows
 UPDATE messages
 SET scan_state = 'pending'
-WHERE account_id = $1 AND scan_state = 'skipped_gate' AND message_id = any($2::text[])
+WHERE
+    account_id = current_setting('app.account')
+    AND scan_state = 'skipped_gate'
+    AND message_id = any($1::text[])
 `
-
-type RequeueGateSkipsParams struct {
-	AccountID  string
-	MessageIds []string
-}
 
 // Returns to pending scan each of the given messages the scan gate skipped, the skips the gate no
 // longer decides as the same skip (ADR-0121). A message no longer skipped by the gate is left as it is
 // and counts no row.
-func (q *Queries) RequeueGateSkips(ctx context.Context, arg RequeueGateSkipsParams) (int64, error) {
-	result, err := q.db.Exec(ctx, requeueGateSkips, arg.AccountID, arg.MessageIds)
+func (q *Queries) RequeueGateSkips(ctx context.Context, messageIds []string) (int64, error) {
+	result, err := q.db.Exec(ctx, requeueGateSkips, messageIds)
 	if err != nil {
 		return 0, err
 	}
@@ -407,13 +389,13 @@ func (q *Queries) RequeueGateSkips(ctx context.Context, arg RequeueGateSkipsPara
 const requeueSignalledSkips = `-- name: RequeueSignalledSkips :execrows
 UPDATE messages
 SET scan_state = 'pending'
-WHERE account_id = $1 AND scan_state = 'skipped_gate' AND subject_masked
+WHERE account_id = current_setting('app.account') AND scan_state = 'skipped_gate' AND subject_masked
 `
 
 // Returns each of the account's messages the gate skipped whose subject is now masked to pending scan,
 // since the gate decided without that signal (ADR-0120, ADR-0093).
-func (q *Queries) RequeueSignalledSkips(ctx context.Context, accountID string) (int64, error) {
-	result, err := q.db.Exec(ctx, requeueSignalledSkips, accountID)
+func (q *Queries) RequeueSignalledSkips(ctx context.Context) (int64, error) {
+	result, err := q.db.Exec(ctx, requeueSignalledSkips)
 	if err != nil {
 		return 0, err
 	}
@@ -430,17 +412,16 @@ SET
     scanner_version = NULL,
     scanner_revision = NULL
 WHERE
-    account_id = $1
+    account_id = current_setting('app.account')
     AND scan_state = 'scanned'
     AND (
-        scanner_version IS DISTINCT FROM $2::int
-        OR scanner_revision IS DISTINCT FROM $3::text
+        scanner_version IS DISTINCT FROM $1::int
+        OR scanner_revision IS DISTINCT FROM $2::text
     )
 RETURNING from_domain
 `
 
 type RequeueStaleVerdictsParams struct {
-	AccountID       string
 	ScannerVersion  int32
 	ScannerRevision string
 }
@@ -451,7 +432,7 @@ type RequeueStaleVerdictsParams struct {
 // before the first pass. It returns each message's sender domain, whose prior hits the caller counts
 // again.
 func (q *Queries) RequeueStaleVerdicts(ctx context.Context, arg RequeueStaleVerdictsParams) ([]string, error) {
-	rows, err := q.db.Query(ctx, requeueStaleVerdicts, arg.AccountID, arg.ScannerVersion, arg.ScannerRevision)
+	rows, err := q.db.Query(ctx, requeueStaleVerdicts, arg.ScannerVersion, arg.ScannerRevision)
 	if err != nil {
 		return nil, err
 	}
@@ -473,7 +454,9 @@ func (q *Queries) RequeueStaleVerdicts(ctx context.Context, arg RequeueStaleVerd
 const restrictedDomains = `-- name: RestrictedDomains :many
 SELECT DISTINCT m.from_domain
 FROM messages AS m
-WHERE m.account_id = $1 AND (m.sender_class = 'restricted' OR m.scan_state = 'skipped_restricted')
+WHERE
+    m.account_id = current_setting('app.account')
+    AND (m.sender_class = 'restricted' OR m.scan_state = 'skipped_restricted')
 ORDER BY m.from_domain
 `
 
@@ -482,8 +465,8 @@ ORDER BY m.from_domain
 // A rule added after a message was stored can leave its stored class normal while the gate skips it as
 // restricted, until the comparison for an added rule restricts the stored class (ADR-0113), so the
 // skip state is read as well.
-func (q *Queries) RestrictedDomains(ctx context.Context, accountID string) ([]string, error) {
-	rows, err := q.db.Query(ctx, restrictedDomains, accountID)
+func (q *Queries) RestrictedDomains(ctx context.Context) ([]string, error) {
+	rows, err := q.db.Query(ctx, restrictedDomains)
 	if err != nil {
 		return nil, err
 	}

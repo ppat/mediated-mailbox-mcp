@@ -69,7 +69,7 @@ which lists the increment's tickets by unit. Each increment's issue is a sub-iss
 re-dated whenever the checklists are reconciled against the tickets, so staleness is detectable
 instead of silent.
 
-**Position: 2026-10-12.**
+**Position: 2026-10-13.**
 
 ## Delivery posture
 
@@ -226,6 +226,7 @@ its part, and the rows it added. Which rows it proved are the rows whose Status 
 | [#363](https://github.com/ppat/mediated-mailbox-mcp/pull/363) | D3 | D3's later work, the mediator bounding what one request can make it hold ([ADR-0130](./docs/adr/operability/0130-the-mediator-bounds-what-one-request-can-make-it-hold.md)), the release step's neutralizer keeping a window of the last letters, a released body's metadata fetched before its body, the MCP root refusing a JSON-RPC batch at every revision and following a client's cancellation, one deadline on a body request's lease waits, and the HTTP servers closing idle and slow connections | The rows it adds for a batch refused before the SDK, an abandoned call cancelled, the lease-wait deadline and the connection limits, and D3's part of the row for serving clean Markdown again for the delimiters | The controls of those rows, the delimiters' control, the serve-time check's, the MCP root's tools-only control, the origin of each failure, the interactive leases, the TLS transport and the provider timeout, again after the change moved their code or tests |
 | [#364](https://github.com/ppat/mediated-mailbox-mcp/pull/364) | M3 | M3's later work, Home's corpus figures moved from the system endpoint to a read of their own, `GET /api/{account}/corpus`, which Home reads again on every backfill run event and every change of a run's state, so the system endpoint the partial-index banner reads again on every backfill run event counts nothing over every message of the account and every surface refreshes as often as before, the event stream remembering only the objects its latest poll read, and the UI's server closing a connection idle for two minutes ([docs/UI.md sections 9 and 17.5](./docs/UI.md#9-live-surfaces)) | M3's rows for every account-scoped read refusing a request without its account and for a screen following the answers in view, proven again for the corpus route, Home's corpus rows and Home's poll | The account-scoped read refusal with a break added for the corpus route, Home's corpus reads and Home's poll on a screen following the answers in view with eight breaks added, the corpus read only on a change of state, on every run event, only for a backfill run and with the banner's reads as well, and Home's poll leaving out the corpus or the attention read or reading either into the jobs cache, the stream's whole state, the attention rules' demonstrations whose tests record the fixtures, every demonstration of the UI's entry package, whose server gained the idle timeout, with the configuration type's two breaks now also turning the chart's tests red, and every browser demonstration whose tests read Home's code or the system endpoint's recordings, those of Home, the system, jobs, lens, run, policy and setup screens and the stream client, demonstrated again and held, 103 demonstrations in all, with the three patches whose context moved regenerated |
 | [#365](https://github.com/ppat/mediated-mailbox-mcp/pull/365) | S1 | S1's later work, the sender classifier comparing each sender with a policy `classify.Prepare` builds, every rule's suffixes converted once and the lookups they were converted with held for the sender, which the policy loader builds for each account it read in the reload that swaps the snapshot in and holds in that snapshot, so a classification converts only the sender. The UI's rules core converts the rules it reads once per request | The S1 row for the policy list alone deciding sender class proven again, and the rows it adds and proves for the prepared policy being swapped with its snapshot and for a sender being normalized only with its policy's own lookups | Those of the classifier, the policy loader, the Redaction Gate's policy and parameters and the stored-class comparisons, with the patches whose context or code the prepared policy moved regenerated, and new breaks for the prepared policy keeping the suffixes as written, a reload keeping the prepared policies of the snapshot it replaces, and the classifier taking a second set of lookups for the sender |
+| [#370](https://github.com/ppat/mediated-mailbox-mcp/pull/370) | F2 | F2's later work, every statement reading its account from the transaction with the statement check requiring that form and reaching the operation log only through its plan, no row-level security policy, `tx.RunBase` setting only an empty account, and the log tables' foreign keys ([ADR-0135](./docs/adr/data/0135-every-statement-reads-its-account-from-the-transaction.md)) | F2's rows for the statement form, the operation log, the policy grants, the base-policy transaction, the listing and state reads and the three foreign-key rows it adds, and M8's row for another account's rule | Those of the statement form, the operation log, the policy grants, the foreign keys and the base-policy transaction, and every db/ demonstration again, with the demonstrations whose patches the change moved regenerated |
 
 ### What each composition root runs
 
@@ -325,38 +326,49 @@ What the code on `main` runs today, per composition root, none of it yet release
   bounded crash runs keep gating every pull request in a workflow of their own, which clarified
   [ADR-0045](./docs/adr/engineering/0045-crash-injection-testing.md) in place.
 - [x] **F2 — The data layer** → [G1](./USE_CASES.md#g1--whole-mailbox-visibility) ·
-  [V2](#v2--the-corpus-can-be-acquired) · finished at tested
-  Delivered by pull request [#153](https://github.com/ppat/mediated-mailbox-mcp/pull/153), which
-  closed its ticket [#70](https://github.com/ppat/mediated-mailbox-mcp/issues/70), and not yet
-  released. PostgreSQL as the one store
-  ([ADR-0015](./docs/adr/data/0015-postgres-not-a-kv-store.md)), the schema with no body column and
-  every table account-keyed ([ADR-0016](./docs/adr/data/0016-schema.md)), and the forward-only
-  migration chain under its own role, applied from empty on every test run
+  [V2](#v2--the-corpus-can-be-acquired) · finished at tested Delivered by pull request
+  [#153](https://github.com/ppat/mediated-mailbox-mcp/pull/153), which closed its ticket
+  [#70](https://github.com/ppat/mediated-mailbox-mcp/issues/70), and not yet released. PostgreSQL as
+  the one store ([ADR-0015](./docs/adr/data/0015-postgres-not-a-kv-store.md)), the schema with no
+  body column and every table account-keyed ([ADR-0016](./docs/adr/data/0016-schema.md)), and the
+  forward-only migration chain under its own role, applied from empty on every test run
   ([ADR-0048](./docs/adr/data/0048-forward-only-migrations.md),
   [ADR-0067](./docs/adr/data/0067-migration-runner-goose.md)), holding no database-resident code
   ([ADR-0060](./docs/adr/engineering/0060-no-code-in-the-database.md)). The runtime roles, one per
   deployable and one per job kind of the worker
   ([ADR-0118](./docs/adr/data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)), the
   UI's decision grants
-  ([ADR-0084](./docs/adr/mutation/0084-ui-writes-decisions-and-account-setup.md)),
-  the audit log append-only to every
-  runtime role, row-level security on every account-keyed table with the operation log scoped
-  through its plan, and the transaction helper that sets and verifies the account
+  ([ADR-0084](./docs/adr/mutation/0084-ui-writes-decisions-and-account-setup.md)), the audit log
+  append-only to every runtime role, and the transaction helper that sets and verifies the account
   ([ADR-0016](./docs/adr/data/0016-schema.md),
   [ADR-0047](./docs/adr/data/0047-schema-first-data-access.md)). Integration-tested against a real
-  PostgreSQL container ([ADR-0068](./docs/adr/engineering/0068-test-substrate-containers-directly.md)),
-  and the mutation demonstration runner now runs integration tests. Every verification row keyed to
-  it is proven for its part, the generated data-access functions' part by the `txhelper` analyser
-  of [#181](https://github.com/ppat/mediated-mailbox-mcp/pull/181), and every control it delivered
-  has its mutation demonstration. **What it did not
-  deliver.** Any statement file or the generator's configuration, which the unit whose code first
-  calls a statement writes, together with the grants that statement needs. The map from component to
-  database role, whose entries arrive with the first import list that admits a data-access
-  subsection, because the check refuses a role that no such list names. Backfill and the UI connect
-  to the database through their runtime roles. **Later work.** After
-  [production point 3](#production-point-3--a-second-of-everything), row-level security is
-  reconsidered, with the label and subject indexes it rules out, since no index over an operator
-  that is not leakproof serves a runtime role ([ADR-0016](./docs/adr/data/0016-schema.md)).
+  PostgreSQL container
+  ([ADR-0068](./docs/adr/engineering/0068-test-substrate-containers-directly.md)), and the mutation
+  demonstration runner now runs integration tests. Every verification row keyed to it is proven for
+  its part, the generated data-access functions' part by the `txhelper` analyser of
+  [#181](https://github.com/ppat/mediated-mailbox-mcp/pull/181), and every control it delivered has
+  its mutation demonstration. **What it did not deliver.** Any statement file or the generator's
+  configuration, which the unit whose code first calls a statement writes, together with the grants
+  that statement needs. The map from component to database role, whose entries arrive with the first
+  import list that admits a data-access subsection, because the check refuses a role that no such
+  list names. Backfill and the UI connect to the database through their runtime roles. **Later
+  work**, placed before [production point 1](#production-point-1--the-read-path) and delivered by
+  pull request [#370](https://github.com/ppat/mediated-mailbox-mcp/pull/370), which closed its
+  ticket [#298](https://github.com/ppat/mediated-mailbox-mcp/issues/298), and not yet released.
+  Every statement reads its account from the transaction, so no statement can be given an account
+  other than its transaction's, the statement check requires that form and reaches the operation log
+  only through its plan, and no table carries a row-level security policy
+  ([ADR-0135](./docs/adr/data/0135-every-statement-reads-its-account-from-the-transaction.md)). The
+  log tables reference what they belong to, a gate decision its message and a run's events and
+  failures their run, each going with its parent, and masking events, candidates and the audit log
+  the account, the audit log refusing the account's deletion
+  ([ADR-0016](./docs/adr/data/0016-schema.md)). The schema baseline is three files, edited in place,
+  and the migrations after it are numbered on from `00004`. **What the later work did not deliver.**
+  The operation log's account column and key, which are [M2](#group-m--mutation-and-approval)'s. An
+  index over labels, the subject or a sender address, which the unit that makes those filters
+  frequent adds, likely [M6](#group-m--mutation-and-approval). Stopping storing the sender class,
+  which is [M8](#delivered-mapped-to-outcomes)'s later work, and the measured query and index fixes,
+  which are [D3](#delivered-mapped-to-outcomes)'s and [M3](#delivered-mapped-to-outcomes)'s.
 - [x] **F5 — The Gmail adapter** → [G1](./USE_CASES.md#g1--whole-mailbox-visibility) ·
   [V2](#v2--the-corpus-can-be-acquired) · finished at tested
   Delivered by pull requests [#154](https://github.com/ppat/mediated-mailbox-mcp/pull/154),
@@ -1484,11 +1496,9 @@ point.
 
 ### V6 — The learned tier
 
-**Units:** [X1](#group-x--expansion), and the later work recorded under
-[F2](#delivered-mapped-to-outcomes) that is placed after
-[production point 3](#production-point-3--a-second-of-everything). **Value shipped:** the learned
-detection tier, trained on examples confirmed from the real mailbox's masking events and gate
-decisions, shipped as a version bump behind the scanner-version flag. **Why it is last:** the tier is trained on labels only the
+**Units:** [X1](#group-x--expansion). **Value shipped:** the learned detection tier, trained on
+examples confirmed from the real mailbox's masking events and gate decisions, shipped as a version
+bump behind the scanner-version flag. **Why it is last:** the tier is trained on labels only the
 real mailbox produces ([ADR-0006](./docs/adr/classification/0006-tier-3-local-model-deferred.md)),
 and confirming them needs the feedback verb that is open against [X1](#group-x--expansion).
 
@@ -1510,17 +1520,19 @@ holds, with an entry naming the point.
 - **After:** [F4](#delivered-mapped-to-outcomes) · [S1](#delivered-mapped-to-outcomes) ·
   [S2](#delivered-mapped-to-outcomes) · [S3](#delivered-mapped-to-outcomes) ·
   [F2](#delivered-mapped-to-outcomes) · [F5](#delivered-mapped-to-outcomes) ·
-  [F3](#delivered-mapped-to-outcomes) · [F6](#delivered-mapped-to-outcomes) · [D1](#delivered-mapped-to-outcomes) ·
-  [D2](#delivered-mapped-to-outcomes) · [D3](#delivered-mapped-to-outcomes) · [D4](#delivered-mapped-to-outcomes) ·
+  [F3](#delivered-mapped-to-outcomes) · [F6](#delivered-mapped-to-outcomes) ·
+  [D1](#delivered-mapped-to-outcomes) · [D2](#delivered-mapped-to-outcomes) ·
+  [D3](#delivered-mapped-to-outcomes) · [D4](#delivered-mapped-to-outcomes) ·
   [M3](#delivered-mapped-to-outcomes) · [M7](#delivered-mapped-to-outcomes) ·
   [M8](#delivered-mapped-to-outcomes) · [F9](#delivered-mapped-to-outcomes) ·
-  [F8](#delivered-mapped-to-outcomes) · [F10](#delivered-mapped-to-outcomes) · [F11](#delivered-mapped-to-outcomes) ·
-  [F12](#delivered-mapped-to-outcomes) · [R1](#delivered-mapped-to-outcomes), the end of
-  [V3](#v3--the-agent-arrives-read-only), and the later work recorded under
-  [F4](#delivered-mapped-to-outcomes), [S1](#delivered-mapped-to-outcomes),
-  [D1](#delivered-mapped-to-outcomes), [D2](#delivered-mapped-to-outcomes),
-  [D3](#delivered-mapped-to-outcomes), [M3](#delivered-mapped-to-outcomes) and
-  [M7](#delivered-mapped-to-outcomes) that is placed before this point.
+  [F8](#delivered-mapped-to-outcomes) · [F10](#delivered-mapped-to-outcomes) ·
+  [F11](#delivered-mapped-to-outcomes) · [F12](#delivered-mapped-to-outcomes) ·
+  [R1](#delivered-mapped-to-outcomes), the end of [V3](#v3--the-agent-arrives-read-only), and the later work
+  recorded under [F4](#delivered-mapped-to-outcomes), [S1](#delivered-mapped-to-outcomes),
+  [F2](#delivered-mapped-to-outcomes), [D1](#delivered-mapped-to-outcomes),
+  [D2](#delivered-mapped-to-outcomes), [D3](#delivered-mapped-to-outcomes),
+  [M3](#delivered-mapped-to-outcomes) and [M7](#delivered-mapped-to-outcomes) that is placed before
+  this point.
 - **Supplied there:**
   - PostgreSQL with the roles created, which needs the privilege to create roles and no superuser
     step inside the application database, the migration role, and the credentials of the runtime
@@ -2075,7 +2087,7 @@ lands in is the [value path](#the-value-path)'s.
 | F9 → F8 | The entry package per deployable, which takes the logger and its level from `main.go`, and the process family `process/logging` joins |
 | F8 → F10 | The logger and level variable each entry package takes, from which the worker derives each job's logger with its job kind and account ([ADR-0122](./docs/adr/engineering/0122-logs-through-slog-at-a-configured-level-handed-to-shells.md)) |
 | D1 → F10, D2 → F10, D4 → F10 | Backfill's two passes and delta sync, the job kinds the worker runs from the start |
-| F11 → D1's attachment-types later work, F11 → D3's audit-row later work, F11 → M7's identifier-grammar later work | The flattened chain and schema baseline each edits in place before production point 1, the schema, row-level security and grants in `00002`, `00003` and `00004` that the attachment media's table, its policy and its grants are added to, the `audit_log` in `00002` whose columns become typed and checked, and the check on `accounts.account_id` in the kept migration `00005` whose grammar the UI's proposal and the server check follow |
+| F11 → D1's attachment-types later work, F11 → D3's audit-row later work, F11 → M7's identifier-grammar later work | The flattened chain and schema baseline each edits in place before production point 1, the schema and grants in `00002` and `00003` that the attachment media's table and its grants are added to, the `audit_log` in `00002` whose columns become typed and checked, and the check on `accounts.account_id` in the kept migration `00004` whose grammar the UI's proposal and the server check follow |
 | F10 → D4's deletion later work, F11 → D4's deletion later work | The worker the index's reflection of deleted messages runs in as a job kind, with its scheduler, and the schema baseline whose closed set of `job_runs (workload, pass)` pairs a new pair joins with its migration |
 | D3 → S1's later work | Classification per sender domain in the class-filtered read, which S1's later work measures its saving against |
 | D3's statement-timeout later work → M3's statement-timeout later work | The bounded transaction in `db/tx` the UI's dataset reads run in |
@@ -2276,6 +2288,6 @@ index](./docs/adr/README.md).
 | How a per-project throttle reaches other accounts in the same Google Cloud project | X3 | [ADR-0023](./docs/adr/operability/0023-adapter-declares-cost.md) gives a per-project throttle the same response as a per-user one while one account uses a project. [ADR-0106](./docs/adr/provider/0106-accounts-of-a-provider-connect-through-any-of-its-oauth-clients.md) lets accounts share an OAuth client and so its Cloud project, and Gmail counts its limit per user per project. X3 brings the second account, so it is decided there |
 | Whether the rate may rise above the target so a ceiling above the declared one can be found | X4 | [ADR-0024](./docs/adr/operability/0024-conservative-target-aimd.md) keeps the rate between the floor and the target, which is half the declared ceiling, so the controller can find only a lower real ceiling. [ADR-0023](./docs/adr/operability/0023-adapter-declares-cost.md) has the controller discover JMAP's budget from a conservative guess, which needs finding a higher one, and [ADR-0024](./docs/adr/operability/0024-conservative-target-aimd.md)'s own alternatives count discovery as the only way to find JMAP's. ADR-0024's token bucket and one-second window are sized from the hard cap, which the answer does not move. Gmail publishes its ceiling, so only the JMAP adapter depends on the answer, and it is decided there |
 | What taking a message out of view means for the label verbs | M1 | [ADR-0019](./docs/adr/mutation/0019-asymmetric-mutation.md) lets restricted mail be labelled and moved but "nothing that removes a message from view: no archive, trash, or spam", and [USE_CASES A1](./USE_CASES.md#a1--asymmetric-mutation) is falsified if a restricted message cannot be moved. Label verbs can reach what the refused verbs do. A label or move into the trash or spam label trashes or spams a message in one operation, and an unlabel of the inbox archives it in one. A move out of the inbox followed by an unlabel of the new label reaches archive's end state over two operations, which a check of one operation at a time cannot see. M1 runs the verbs with the Mutation Authorizer and whole-batch validation, and decides where the line falls and how it is enforced |
-| How the heuristics workload finds its accounts | M4 | [ADR-0080](./docs/adr/data/0080-accounts-and-credentials-live-in-the-database.md) takes no account from configuration, and [ADR-0091](./docs/adr/data/0091-accounts-listed-apart-from-their-state.md) grants the read of every account in `accounts` only to the roles whose consumer is decided, which leaves out the heuristics workload's. It proposes from each account's sender statistics, which row-level security confines to one account, so it needs the list. The heuristics workload is built in M4, so it is decided there. If the workload reads `accounts`, its role joins ADR-0091's list of roles |
+| How the heuristics workload finds its accounts | M4 | [ADR-0080](./docs/adr/data/0080-accounts-and-credentials-live-in-the-database.md) takes no account from configuration, and [ADR-0091](./docs/adr/data/0091-accounts-listed-apart-from-their-state.md) grants the read of every account in `accounts` only to the roles whose consumer is decided, which leaves out the heuristics workload's. It proposes from each account's sender statistics, which every statement confines to its transaction's account ([ADR-0135](./docs/adr/data/0135-every-statement-reads-its-account-from-the-transaction.md)), so it needs the list. The heuristics workload is built in M4, so it is decided there. If the workload reads `accounts`, its role is granted the listing's columns, as ADR-0091's roles are, and needs nothing else |
 | Whether the audit log is ever trimmed, and by what | nothing yet | No runtime role may delete from it ([ADR-0016](./docs/adr/data/0016-schema.md)), so nothing in the running system trims it. Never trimming is affordable at the stated corpus and is the strongest form of the surviving-evidence claim. If trimming is ever wanted it is a forward migration plus a step under a role that does not exist today |
 | How long run history is kept, and what trims it | nothing yet | Delta sync records about 105,000 runs a year per account at the default interval **[inferred]**, with two timeline events each, and one pass 1 run on a seed of 100,000 messages records 33,334 events. No runtime role may delete run rows ([ADR-0016](./docs/adr/data/0016-schema.md)), and the schema baseline's indexes keep the reads of them [F11](#delivered-mapped-to-outcomes) measured fast through the first year. So nothing trims them, and no unit needs a trim yet. A ticket is cut when the run tables' size or a read's time shows a need |

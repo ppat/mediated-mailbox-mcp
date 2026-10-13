@@ -12,17 +12,16 @@ import (
 const addSenderMessages = `-- name: AddSenderMessages :execrows
 UPDATE fixture_senders
 SET message_count = message_count + $1
-WHERE account_id = $2 AND domain = $3
+WHERE account_id = current_setting('app.account') AND domain = $2
 `
 
 type AddSenderMessagesParams struct {
-	Added     int64
-	AccountID string
-	Domain    string
+	Added  int64
+	Domain string
 }
 
 func (q *Queries) AddSenderMessages(ctx context.Context, arg AddSenderMessagesParams) (int64, error) {
-	result, err := q.db.Exec(ctx, addSenderMessages, arg.Added, arg.AccountID, arg.Domain)
+	result, err := q.db.Exec(ctx, addSenderMessages, arg.Added, arg.Domain)
 	if err != nil {
 		return 0, err
 	}

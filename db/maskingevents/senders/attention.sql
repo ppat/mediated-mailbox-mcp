@@ -15,7 +15,7 @@ FROM masking_events AS e
 INNER JOIN messages AS m
     ON e.account_id = m.account_id AND e.message_id = m.message_id
 WHERE
-    e.account_id = @account_id
+    e.account_id = current_setting('app.account')
     AND e.masked_at >= @since
     AND e.scanner_version IS NOT DISTINCT FROM m.subject_scanner_version
     AND e.scanner_revision IS NOT DISTINCT FROM m.subject_scanner_revision

@@ -23,21 +23,20 @@ SELECT
     )[1], '')::text AS last_failure_run
 FROM job_runs AS r
 WHERE
-    r.account_id = $1
-    AND ($2::timestamptz IS NULL OR r.started_at >= $2::timestamptz)
-    AND ($3::timestamptz IS NULL OR r.started_at < $3::timestamptz)
-    AND ($4::text[] IS NULL OR r.workload = any($4::text[]))
-    AND ($5::text[] IS NULL OR r.workload != all($5::text[]))
-    AND ($6::text[] IS NULL OR r.state = any($6::text[]))
-    AND ($7::text[] IS NULL OR r.state != all($7::text[]))
-    AND ($8::text[] IS NULL OR r.pass = any($8::text[]))
-    AND ($9::text[] IS NULL OR r.pass IS NULL OR r.pass != all($9::text[]))
-    AND ($10::date[] IS NULL OR (r.started_at AT TIME ZONE 'UTC')::date = any($10::date[]))
-    AND ($11::date[] IS NULL OR (r.started_at AT TIME ZONE 'UTC')::date != all($11::date[]))
+    r.account_id = current_setting('app.account')
+    AND ($1::timestamptz IS NULL OR r.started_at >= $1::timestamptz)
+    AND ($2::timestamptz IS NULL OR r.started_at < $2::timestamptz)
+    AND ($3::text[] IS NULL OR r.workload = any($3::text[]))
+    AND ($4::text[] IS NULL OR r.workload != all($4::text[]))
+    AND ($5::text[] IS NULL OR r.state = any($5::text[]))
+    AND ($6::text[] IS NULL OR r.state != all($6::text[]))
+    AND ($7::text[] IS NULL OR r.pass = any($7::text[]))
+    AND ($8::text[] IS NULL OR r.pass IS NULL OR r.pass != all($8::text[]))
+    AND ($9::date[] IS NULL OR (r.started_at AT TIME ZONE 'UTC')::date = any($9::date[]))
+    AND ($10::date[] IS NULL OR (r.started_at AT TIME ZONE 'UTC')::date != all($10::date[]))
 `
 
 type RunFiguresParams struct {
-	AccountID   string
 	RangeStart  pgtype.Timestamptz
 	RangeEnd    pgtype.Timestamptz
 	WorkloadIn  []string
@@ -65,7 +64,6 @@ type RunFiguresRow struct {
 // test in a pass exclusion matches no run, and a day is the UTC date its run started on.
 func (q *Queries) RunFigures(ctx context.Context, arg RunFiguresParams) (RunFiguresRow, error) {
 	row := q.db.QueryRow(ctx, runFigures,
-		arg.AccountID,
 		arg.RangeStart,
 		arg.RangeEnd,
 		arg.WorkloadIn,
@@ -94,7 +92,7 @@ WITH failure_counts AS (
         f.run_id,
         count(*) AS failures
     FROM job_run_failures AS f
-    WHERE f.account_id = $1
+    WHERE f.account_id = current_setting('app.account')
     GROUP BY f.run_id
 )
 
@@ -118,36 +116,35 @@ FROM job_runs AS r
 LEFT JOIN reorg_plans AS pl ON r.account_id = pl.account_id AND r.plan_id = pl.plan_id
 LEFT JOIN failure_counts AS fc ON r.run_id = fc.run_id
 WHERE
-    r.account_id = $1
-    AND ($2::timestamptz IS NULL OR r.started_at >= $2::timestamptz)
-    AND ($3::timestamptz IS NULL OR r.started_at < $3::timestamptz)
-    AND ($4::text[] IS NULL OR r.workload = any($4::text[]))
-    AND ($5::text[] IS NULL OR r.workload != all($5::text[]))
-    AND ($6::text[] IS NULL OR r.state = any($6::text[]))
-    AND ($7::text[] IS NULL OR r.state != all($7::text[]))
-    AND ($8::text[] IS NULL OR r.pass = any($8::text[]))
-    AND ($9::text[] IS NULL OR r.pass IS NULL OR r.pass != all($9::text[]))
-    AND ($10::date[] IS NULL OR (r.started_at AT TIME ZONE 'UTC')::date = any($10::date[]))
-    AND ($11::date[] IS NULL OR (r.started_at AT TIME ZONE 'UTC')::date != all($11::date[]))
+    r.account_id = current_setting('app.account')
+    AND ($1::timestamptz IS NULL OR r.started_at >= $1::timestamptz)
+    AND ($2::timestamptz IS NULL OR r.started_at < $2::timestamptz)
+    AND ($3::text[] IS NULL OR r.workload = any($3::text[]))
+    AND ($4::text[] IS NULL OR r.workload != all($4::text[]))
+    AND ($5::text[] IS NULL OR r.state = any($5::text[]))
+    AND ($6::text[] IS NULL OR r.state != all($6::text[]))
+    AND ($7::text[] IS NULL OR r.pass = any($7::text[]))
+    AND ($8::text[] IS NULL OR r.pass IS NULL OR r.pass != all($8::text[]))
+    AND ($9::date[] IS NULL OR (r.started_at AT TIME ZONE 'UTC')::date = any($9::date[]))
+    AND ($10::date[] IS NULL OR (r.started_at AT TIME ZONE 'UTC')::date != all($10::date[]))
 ORDER BY
-    CASE WHEN $12::text = 'started_at' AND $13::boolean THEN r.started_at END DESC,
-    CASE WHEN $12::text = 'started_at' AND NOT $13::boolean THEN r.started_at END ASC,
+    CASE WHEN $11::text = 'started_at' AND $12::boolean THEN r.started_at END DESC,
+    CASE WHEN $11::text = 'started_at' AND NOT $12::boolean THEN r.started_at END ASC,
     CASE
-        WHEN $12::text = 'duration' AND $13::boolean
-            THEN coalesce(r.finished_at, $14::timestamptz) - r.started_at
+        WHEN $11::text = 'duration' AND $12::boolean
+            THEN coalesce(r.finished_at, $13::timestamptz) - r.started_at
     END DESC,
     CASE
-        WHEN $12::text = 'duration' AND NOT $13::boolean
-            THEN coalesce(r.finished_at, $14::timestamptz) - r.started_at
+        WHEN $11::text = 'duration' AND NOT $12::boolean
+            THEN coalesce(r.finished_at, $13::timestamptz) - r.started_at
     END ASC,
-    CASE WHEN $12::text = 'failures' AND $13::boolean THEN coalesce(fc.failures, 0) END DESC,
-    CASE WHEN $12::text = 'failures' AND NOT $13::boolean THEN coalesce(fc.failures, 0) END ASC,
+    CASE WHEN $11::text = 'failures' AND $12::boolean THEN coalesce(fc.failures, 0) END DESC,
+    CASE WHEN $11::text = 'failures' AND NOT $12::boolean THEN coalesce(fc.failures, 0) END ASC,
     r.run_id ASC
-LIMIT 50 OFFSET $15
+LIMIT 50 OFFSET $14
 `
 
 type RunRowsParams struct {
-	AccountID   string
 	RangeStart  pgtype.Timestamptz
 	RangeEnd    pgtype.Timestamptz
 	WorkloadIn  []string
@@ -189,7 +186,6 @@ type RunRowsRow struct {
 // while the run has none.
 func (q *Queries) RunRows(ctx context.Context, arg RunRowsParams) ([]RunRowsRow, error) {
 	rows, err := q.db.Query(ctx, runRows,
-		arg.AccountID,
 		arg.RangeStart,
 		arg.RangeEnd,
 		arg.WorkloadIn,
@@ -245,23 +241,22 @@ SELECT
     count(*) AS runs
 FROM job_runs AS r
 WHERE
-    r.account_id = $1
-    AND ($2::timestamptz IS NULL OR r.started_at >= $2::timestamptz)
-    AND ($3::timestamptz IS NULL OR r.started_at < $3::timestamptz)
-    AND ($4::text[] IS NULL OR r.workload = any($4::text[]))
-    AND ($5::text[] IS NULL OR r.workload != all($5::text[]))
-    AND ($6::text[] IS NULL OR r.state = any($6::text[]))
-    AND ($7::text[] IS NULL OR r.state != all($7::text[]))
-    AND ($8::text[] IS NULL OR r.pass = any($8::text[]))
-    AND ($9::text[] IS NULL OR r.pass IS NULL OR r.pass != all($9::text[]))
-    AND ($10::date[] IS NULL OR (r.started_at AT TIME ZONE 'UTC')::date = any($10::date[]))
-    AND ($11::date[] IS NULL OR (r.started_at AT TIME ZONE 'UTC')::date != all($11::date[]))
+    r.account_id = current_setting('app.account')
+    AND ($1::timestamptz IS NULL OR r.started_at >= $1::timestamptz)
+    AND ($2::timestamptz IS NULL OR r.started_at < $2::timestamptz)
+    AND ($3::text[] IS NULL OR r.workload = any($3::text[]))
+    AND ($4::text[] IS NULL OR r.workload != all($4::text[]))
+    AND ($5::text[] IS NULL OR r.state = any($5::text[]))
+    AND ($6::text[] IS NULL OR r.state != all($6::text[]))
+    AND ($7::text[] IS NULL OR r.pass = any($7::text[]))
+    AND ($8::text[] IS NULL OR r.pass IS NULL OR r.pass != all($8::text[]))
+    AND ($9::date[] IS NULL OR (r.started_at AT TIME ZONE 'UTC')::date = any($9::date[]))
+    AND ($10::date[] IS NULL OR (r.started_at AT TIME ZONE 'UTC')::date != all($10::date[]))
 GROUP BY day
 ORDER BY runs DESC, day ASC
 `
 
 type RunsByDayParams struct {
-	AccountID   string
 	RangeStart  pgtype.Timestamptz
 	RangeEnd    pgtype.Timestamptz
 	WorkloadIn  []string
@@ -282,7 +277,6 @@ type RunsByDayRow struct {
 // Every group of the runs dataset by the UTC day each run started on, as RunsByWorkload.
 func (q *Queries) RunsByDay(ctx context.Context, arg RunsByDayParams) ([]RunsByDayRow, error) {
 	rows, err := q.db.Query(ctx, runsByDay,
-		arg.AccountID,
 		arg.RangeStart,
 		arg.RangeEnd,
 		arg.WorkloadIn,
@@ -318,23 +312,22 @@ SELECT
     count(*) AS runs
 FROM job_runs AS r
 WHERE
-    r.account_id = $1
-    AND ($2::timestamptz IS NULL OR r.started_at >= $2::timestamptz)
-    AND ($3::timestamptz IS NULL OR r.started_at < $3::timestamptz)
-    AND ($4::text[] IS NULL OR r.workload = any($4::text[]))
-    AND ($5::text[] IS NULL OR r.workload != all($5::text[]))
-    AND ($6::text[] IS NULL OR r.state = any($6::text[]))
-    AND ($7::text[] IS NULL OR r.state != all($7::text[]))
-    AND ($8::text[] IS NULL OR r.pass = any($8::text[]))
-    AND ($9::text[] IS NULL OR r.pass IS NULL OR r.pass != all($9::text[]))
-    AND ($10::date[] IS NULL OR (r.started_at AT TIME ZONE 'UTC')::date = any($10::date[]))
-    AND ($11::date[] IS NULL OR (r.started_at AT TIME ZONE 'UTC')::date != all($11::date[]))
+    r.account_id = current_setting('app.account')
+    AND ($1::timestamptz IS NULL OR r.started_at >= $1::timestamptz)
+    AND ($2::timestamptz IS NULL OR r.started_at < $2::timestamptz)
+    AND ($3::text[] IS NULL OR r.workload = any($3::text[]))
+    AND ($4::text[] IS NULL OR r.workload != all($4::text[]))
+    AND ($5::text[] IS NULL OR r.state = any($5::text[]))
+    AND ($6::text[] IS NULL OR r.state != all($6::text[]))
+    AND ($7::text[] IS NULL OR r.pass = any($7::text[]))
+    AND ($8::text[] IS NULL OR r.pass IS NULL OR r.pass != all($8::text[]))
+    AND ($9::date[] IS NULL OR (r.started_at AT TIME ZONE 'UTC')::date = any($9::date[]))
+    AND ($10::date[] IS NULL OR (r.started_at AT TIME ZONE 'UTC')::date != all($10::date[]))
 GROUP BY r.state
 ORDER BY runs DESC, r.state ASC
 `
 
 type RunsByStateParams struct {
-	AccountID   string
 	RangeStart  pgtype.Timestamptz
 	RangeEnd    pgtype.Timestamptz
 	WorkloadIn  []string
@@ -355,7 +348,6 @@ type RunsByStateRow struct {
 // Every group of the runs dataset by run state, as RunsByWorkload.
 func (q *Queries) RunsByState(ctx context.Context, arg RunsByStateParams) ([]RunsByStateRow, error) {
 	rows, err := q.db.Query(ctx, runsByState,
-		arg.AccountID,
 		arg.RangeStart,
 		arg.RangeEnd,
 		arg.WorkloadIn,
@@ -391,23 +383,22 @@ SELECT
     count(*) AS runs
 FROM job_runs AS r
 WHERE
-    r.account_id = $1
-    AND ($2::timestamptz IS NULL OR r.started_at >= $2::timestamptz)
-    AND ($3::timestamptz IS NULL OR r.started_at < $3::timestamptz)
-    AND ($4::text[] IS NULL OR r.workload = any($4::text[]))
-    AND ($5::text[] IS NULL OR r.workload != all($5::text[]))
-    AND ($6::text[] IS NULL OR r.state = any($6::text[]))
-    AND ($7::text[] IS NULL OR r.state != all($7::text[]))
-    AND ($8::text[] IS NULL OR r.pass = any($8::text[]))
-    AND ($9::text[] IS NULL OR r.pass IS NULL OR r.pass != all($9::text[]))
-    AND ($10::date[] IS NULL OR (r.started_at AT TIME ZONE 'UTC')::date = any($10::date[]))
-    AND ($11::date[] IS NULL OR (r.started_at AT TIME ZONE 'UTC')::date != all($11::date[]))
+    r.account_id = current_setting('app.account')
+    AND ($1::timestamptz IS NULL OR r.started_at >= $1::timestamptz)
+    AND ($2::timestamptz IS NULL OR r.started_at < $2::timestamptz)
+    AND ($3::text[] IS NULL OR r.workload = any($3::text[]))
+    AND ($4::text[] IS NULL OR r.workload != all($4::text[]))
+    AND ($5::text[] IS NULL OR r.state = any($5::text[]))
+    AND ($6::text[] IS NULL OR r.state != all($6::text[]))
+    AND ($7::text[] IS NULL OR r.pass = any($7::text[]))
+    AND ($8::text[] IS NULL OR r.pass IS NULL OR r.pass != all($8::text[]))
+    AND ($9::date[] IS NULL OR (r.started_at AT TIME ZONE 'UTC')::date = any($9::date[]))
+    AND ($10::date[] IS NULL OR (r.started_at AT TIME ZONE 'UTC')::date != all($10::date[]))
 GROUP BY r.workload
 ORDER BY runs DESC, r.workload ASC
 `
 
 type RunsByWorkloadParams struct {
-	AccountID   string
 	RangeStart  pgtype.Timestamptz
 	RangeEnd    pgtype.Timestamptz
 	WorkloadIn  []string
@@ -429,7 +420,6 @@ type RunsByWorkloadRow struct {
 // the group's key, the order the bars draw (docs/UI.md section 17.1).
 func (q *Queries) RunsByWorkload(ctx context.Context, arg RunsByWorkloadParams) ([]RunsByWorkloadRow, error) {
 	rows, err := q.db.Query(ctx, runsByWorkload,
-		arg.AccountID,
 		arg.RangeStart,
 		arg.RangeEnd,
 		arg.WorkloadIn,

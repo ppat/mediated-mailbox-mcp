@@ -338,7 +338,7 @@ func readImport(w http.ResponseWriter, r *http.Request, scope string, preview bo
 // preview computes what making a scope's stored rules equal to file would change. For an account's
 // scope each lift carries what it alone releases in the account, and the whole import's release is
 // counted (docs/UI.md section 8.7).
-func (s *Server) preview(ctx context.Context, q registry.Queries, account string, isBase bool, stored []registry.StoredRule, file []fileRule) (Preview, rules.Diff, error) {
+func (s *Server) preview(ctx context.Context, q registry.Queries, isBase bool, stored []registry.StoredRule, file []fileRule) (Preview, rules.Diff, error) {
 	list := make([]rules.Rule, len(file))
 	for i, f := range file {
 		list[i] = f.rule
@@ -349,10 +349,10 @@ func (s *Server) preview(ctx context.Context, q registry.Queries, account string
 	var senders rules.Senders
 	if !isBase {
 		var err error
-		if composed, err = registry.ComposedRules(ctx, q.Rules, account); err != nil {
+		if composed, err = registry.ComposedRules(ctx, q.Rules); err != nil {
 			return Preview{}, d, err
 		}
-		if senders, _, err = registry.SenderClasses(ctx, q, account, s.opts.Lookups); err != nil {
+		if senders, _, err = registry.SenderClasses(ctx, q, s.opts.Lookups); err != nil {
 			return Preview{}, d, err
 		}
 	}
@@ -411,7 +411,7 @@ func (s *Server) writePreview(w http.ResponseWriter, r *http.Request, account st
 	var out Preview
 	err := s.readScope(r.Context(), account, isBase, func(q registry.Queries, stored []registry.StoredRule) error {
 		var err error
-		out, _, err = s.preview(r.Context(), q, account, isBase, stored, file)
+		out, _, err = s.preview(r.Context(), q, isBase, stored, file)
 		return err
 	})
 	if err != nil {
@@ -565,7 +565,7 @@ func (s *Server) readScope(ctx context.Context, account string, isBase bool, fn 
 		})
 	}
 	return s.inAccount(ctx, account, func(q registry.Queries) error {
-		all, err := registry.ComposedRules(ctx, q.Rules, account)
+		all, err := registry.ComposedRules(ctx, q.Rules)
 		if err != nil {
 			return err
 		}

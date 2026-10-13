@@ -219,7 +219,7 @@ func (s Sources) listLabels(ctx context.Context, account string, input json.RawM
 	var labels []string
 	err := tx.Run(ctx, s.DB, account, func(t pgx.Tx) error {
 		var err error
-		labels, err = messages.New(t).Labels(ctx, account)
+		labels, err = messages.New(t).Labels(ctx)
 		return err
 	})
 	if err != nil {
@@ -244,7 +244,7 @@ func (s Sources) listMessages(ctx context.Context, account string, input json.Ra
 	if err != nil {
 		return nil, err
 	}
-	params := messages.MessagePageParams{AccountID: account, PageSize: pageSize}
+	params := messages.MessagePageParams{PageSize: pageSize}
 	if from != nil {
 		params.AfterSentAt = pgtype.Timestamptz{Time: at, Valid: true}
 		params.AfterMessageID = from.Key
@@ -285,7 +285,7 @@ func (s Sources) getMessage(ctx context.Context, account string, input json.RawM
 	var rows []messages.MessageRow
 	err := tx.Run(ctx, s.DB, account, func(t pgx.Tx) error {
 		var err error
-		rows, err = messages.New(t).Message(ctx, messages.MessageParams{AccountID: account, MessageID: args.MessageID})
+		rows, err = messages.New(t).Message(ctx, args.MessageID)
 		return err
 	})
 	if err != nil {
@@ -312,7 +312,7 @@ func (s Sources) listThreads(ctx context.Context, account string, input json.Raw
 	if err != nil {
 		return nil, err
 	}
-	params := messages.ThreadPageParams{AccountID: account, PageSize: pageSize}
+	params := messages.ThreadPageParams{PageSize: pageSize}
 	if from != nil {
 		params.BeforeLatestAt = pgtype.Timestamptz{Time: at, Valid: true}
 		params.BeforeThreadID = from.Key
@@ -352,7 +352,7 @@ func (s Sources) getThread(ctx context.Context, account string, input json.RawMe
 	var rows []messages.ThreadMessagesRow
 	err := tx.Run(ctx, s.DB, account, func(t pgx.Tx) error {
 		var err error
-		rows, err = messages.New(t).ThreadMessages(ctx, messages.ThreadMessagesParams{AccountID: account, ThreadID: args.ThreadID})
+		rows, err = messages.New(t).ThreadMessages(ctx, args.ThreadID)
 		return err
 	})
 	if err != nil {
@@ -388,7 +388,7 @@ func (s Sources) listMaskingEvents(ctx context.Context, account string, input js
 	if err := arguments(input, &args, "since", "cursor"); err != nil {
 		return nil, err
 	}
-	params := maskingevents.MaskingEventPageParams{AccountID: account, PageSize: pageSize}
+	params := maskingevents.MaskingEventPageParams{PageSize: pageSize}
 	filter := ""
 	if args.Since != nil {
 		since, err := parseUTC("since", *args.Since)
@@ -546,7 +546,7 @@ func (s Sources) getSystemStatus(ctx context.Context, account string, input json
 	out := status{AccountID: account}
 	now := s.Now()
 	err := tx.Run(ctx, s.DB, account, func(t pgx.Tx) error {
-		progress, err := accountstate.New(t).AccountProgress(ctx, account)
+		progress, err := accountstate.New(t).AccountProgress(ctx)
 		switch {
 		case errors.Is(err, pgx.ErrNoRows):
 		case err != nil:
@@ -560,7 +560,7 @@ func (s Sources) getSystemStatus(ctx context.Context, account string, input json
 			}
 			out.LastAuth = &lastAuth{At: timestamp(progress.LastAuthAt), Outcome: text(progress.LastAuthOutcome)}
 		}
-		tick, err := jobruns.New(t).LastSucceededTick(ctx, account)
+		tick, err := jobruns.New(t).LastSucceededTick(ctx)
 		if err != nil {
 			return err
 		}
@@ -570,10 +570,10 @@ func (s Sources) getSystemStatus(ctx context.Context, account string, input json
 			}
 			out.Sync.LastSucceededTickAt = timestamp(tick)
 		}
-		if out.ScanBacklog, err = messages.New(t).ScanBacklog(ctx, account); err != nil {
+		if out.ScanBacklog, err = messages.New(t).ScanBacklog(ctx); err != nil {
 			return err
 		}
-		rate, err := ratestate.New(t).RateStatus(ctx, account)
+		rate, err := ratestate.New(t).RateStatus(ctx)
 		switch {
 		case errors.Is(err, pgx.ErrNoRows):
 		case err != nil:

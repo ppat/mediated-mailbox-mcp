@@ -254,7 +254,7 @@ func (s *Server) client(w http.ResponseWriter, r *http.Request, name string) (cl
 func (s *Server) accountSetup(ctx context.Context, account string) (accountsetup.AccountSetupRow, error) {
 	var held accountsetup.AccountSetupRow
 	err := tx.Run(ctx, s.opts.Database, account, func(t pgx.Tx) error {
-		rows, err := accountsetup.New(t).AccountSetup(ctx, account)
+		rows, err := accountsetup.New(t).AccountSetup(ctx)
 		if err != nil {
 			return err
 		}
@@ -447,7 +447,7 @@ func (s *Server) store(ctx context.Context, clients *clientsetup.Queries, q *acc
 	mailbox := pgtype.Text{String: a.Mailbox, Valid: true}
 	switch a.Kind {
 	case attemptConnect:
-		if err := q.AddAccount(ctx, accountsetup.AddAccountParams{AccountID: a.Account, Provider: a.Provider, OauthClient: client}); err != nil {
+		if err := q.AddAccount(ctx, accountsetup.AddAccountParams{Provider: a.Provider, OauthClient: client}); err != nil {
 			return err
 		}
 		if err := s.fault("between the account's two rows"); err != nil {
@@ -457,12 +457,12 @@ func (s *Server) store(ctx context.Context, clients *clientsetup.Queries, q *acc
 		if a.LoweredTarget != nil {
 			target = pgtype.Float4{Float32: float32(*a.LoweredTarget), Valid: true}
 		}
-		if err := q.AddState(ctx, accountsetup.AddStateParams{AccountID: a.Account, Credential: sealed, Mailbox: mailbox, LoweredTarget: target}); err != nil {
+		if err := q.AddState(ctx, accountsetup.AddStateParams{Credential: sealed, Mailbox: mailbox, LoweredTarget: target}); err != nil {
 			return err
 		}
 	default:
 		if a.Kind == attemptMove {
-			n, err := q.MoveAccount(ctx, accountsetup.MoveAccountParams{OauthClient: client, AccountID: a.Account, Provider: a.Provider})
+			n, err := q.MoveAccount(ctx, accountsetup.MoveAccountParams{OauthClient: client, Provider: a.Provider})
 			if err != nil {
 				return err
 			}
@@ -473,12 +473,12 @@ func (s *Server) store(ctx context.Context, clients *clientsetup.Queries, q *acc
 				return err
 			}
 		}
-		n, err := q.Reauthorize(ctx, accountsetup.ReauthorizeParams{Credential: sealed, Mailbox: a.Mailbox, AccountID: a.Account})
+		n, err := q.Reauthorize(ctx, accountsetup.ReauthorizeParams{Credential: sealed, Mailbox: a.Mailbox})
 		if err != nil {
 			return err
 		}
 		if n == 0 {
-			if err := q.AddState(ctx, accountsetup.AddStateParams{AccountID: a.Account, Credential: sealed, Mailbox: mailbox}); err != nil {
+			if err := q.AddState(ctx, accountsetup.AddStateParams{Credential: sealed, Mailbox: mailbox}); err != nil {
 				return err
 			}
 		}
@@ -486,7 +486,6 @@ func (s *Server) store(ctx context.Context, clients *clientsetup.Queries, q *acc
 	return auth.RecordAuthentication(ctx, authentication.RecordAuthenticationParams{
 		AttemptedAt: pgtype.Timestamptz{Time: started, Valid: true},
 		Outcome:     pgtype.Text{String: string(mail.AuthSucceeded), Valid: true},
-		AccountID:   a.Account,
 	})
 }
 

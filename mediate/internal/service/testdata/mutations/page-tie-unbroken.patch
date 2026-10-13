@@ -5,13 +5,12 @@ tests: TestAListingPagesThroughEveryRowOnce
 scheduled-count: no
 integration: yes
 
-
 diff --git a/db/messages/metadata.sql b/db/messages/metadata.sql
-index e70a9af..c477f6f 100644
+index 5894a432..d444cb00 100644
 --- a/db/messages/metadata.sql
 +++ b/db/messages/metadata.sql
-@@ -21,7 +21,7 @@ WHERE
-     m.account_id = @account_id
+@@ -32,7 +32,7 @@ WHERE
+     m.account_id = current_setting('app.account')
      AND (
          @after_sent_at::timestamptz IS NULL
 -        OR (m.sent_at, m.message_id) < (@after_sent_at::timestamptz, @after_message_id::text)
@@ -20,15 +19,15 @@ index e70a9af..c477f6f 100644
  ORDER BY m.sent_at DESC, m.message_id DESC
  LIMIT @page_size;
 diff --git a/db/messages/metadata.sql.go b/db/messages/metadata.sql.go
-index 6a11930..33eaa36 100644
+index eb85deb9..8dee6f3a 100644
 --- a/db/messages/metadata.sql.go
 +++ b/db/messages/metadata.sql.go
-@@ -133,7 +133,7 @@ WHERE
-     m.account_id = $1
+@@ -152,7 +152,7 @@ WHERE
+     m.account_id = current_setting('app.account')
      AND (
-         $2::timestamptz IS NULL
--        OR (m.sent_at, m.message_id) < ($2::timestamptz, $3::text)
-+        OR (m.sent_at < $2::timestamptz AND $3::text IS NOT NULL)
+         $1::timestamptz IS NULL
+-        OR (m.sent_at, m.message_id) < ($1::timestamptz, $2::text)
++        OR (m.sent_at < $1::timestamptz AND $2::text IS NOT NULL)
      )
  ORDER BY m.sent_at DESC, m.message_id DESC
- LIMIT $4
+ LIMIT $3

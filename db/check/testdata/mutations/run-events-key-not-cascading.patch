@@ -1,0 +1,22 @@
+control: Every log table references what it belongs to
+removes: a run's events' key refuses the run's removal rather than removing its events
+packages: ./db/check
+tests: TestAMessageOrRunRemovedTakesItsPartsWithIt
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00002_schema.sql b/db/migrations/00002_schema.sql
+index 16df97b3..89956cdf 100644
+--- a/db/migrations/00002_schema.sql
++++ b/db/migrations/00002_schema.sql
+@@ -381,9 +381,9 @@ CREATE TABLE job_run_events (
+     page int,
+     -- Provider or scanner text, never a body.
+     detail text,
+     PRIMARY KEY (account_id, run_id, seq),
+-    FOREIGN KEY (account_id, run_id) REFERENCES job_runs ON DELETE CASCADE
++    FOREIGN KEY (account_id, run_id) REFERENCES job_runs
+ );
+ 
+ -- A run's per-item failures, parts of the run that go with it (ADR-0016). Its vocabularies grow with
+ -- new job kinds, so none is checked.

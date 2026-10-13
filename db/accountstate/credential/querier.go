@@ -15,7 +15,7 @@ type Querier interface {
 	ReplaceSealed(ctx context.Context, arg ReplaceSealedParams) (int64, error)
 	// The account's sealed credential, as its state row holds it. No row means the account has no state
 	// row and is not connected, and a null credential means it holds none (ADR-0091).
-	Sealed(ctx context.Context, accountID string) ([][]byte, error)
+	Sealed(ctx context.Context) ([][]byte, error)
 }
 
 var _ Querier = (*Queries)(nil)

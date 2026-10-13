@@ -6,13 +6,15 @@ package accountsetup
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Querier interface {
 	// What account setup and account settings read of the account, its provider and client, whether it
 	// has a state row, the mailbox it remembers and its lowered target. It reads no credential (ADR-0084,
 	// ADR-0091). No row means no account holds the identifier.
-	AccountSetup(ctx context.Context, accountID string) ([]AccountSetupRow, error)
+	AccountSetup(ctx context.Context) ([]AccountSetupRow, error)
 	// Writes a new account's listing row with the client it connects through, in the transaction that
 	// writes its state row (ADR-0091, ADR-0106). The primary key refuses an identifier another account
 	// holds.
@@ -29,7 +31,7 @@ type Querier interface {
 	Reauthorize(ctx context.Context, arg ReauthorizeParams) (int64, error)
 	// Stores the lowered target the operator set, a fraction of the provider's declared ceiling, or NULL
 	// for none (ADR-0024). No row means the account has no state row.
-	SetLoweredTarget(ctx context.Context, arg SetLoweredTargetParams) (int64, error)
+	SetLoweredTarget(ctx context.Context, loweredTarget pgtype.Float4) (int64, error)
 }
 
 var _ Querier = (*Queries)(nil)

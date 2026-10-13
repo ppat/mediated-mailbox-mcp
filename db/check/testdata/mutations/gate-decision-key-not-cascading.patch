@@ -1,0 +1,20 @@
+control: Every log table references what it belongs to
+removes: the gate decisions' key to messages refuses the message's removal rather than removing its decision
+packages: ./db/check
+tests: TestAMessageOrRunRemovedTakesItsPartsWithIt
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00002_schema.sql b/db/migrations/00002_schema.sql
+index 16df97b3..2340fb63 100644
+--- a/db/migrations/00002_schema.sql
++++ b/db/migrations/00002_schema.sql
+@@ -213,7 +213,7 @@ CREATE TABLE scan_gate_decisions (
+     reason text NOT NULL,
+     decided_at timestamptz NOT NULL DEFAULT now(),
+     PRIMARY KEY (account_id, message_id),
+-    FOREIGN KEY (account_id, message_id) REFERENCES messages ON DELETE CASCADE
++    FOREIGN KEY (account_id, message_id) REFERENCES messages
+ );
+ 
+ -- The heuristic review queue (ADR-0004).

@@ -26,8 +26,8 @@ type Recorded struct {
 }
 
 // LatestRun reads the account's latest run of the pass, in the transaction q runs in.
-func LatestRun(ctx context.Context, q *runrecord.Queries, account, pass string) (Recorded, error) {
-	row, err := q.LatestRun(ctx, runrecord.LatestRunParams{AccountID: account, Workload: Workload, Pass: pass})
+func LatestRun(ctx context.Context, q *runrecord.Queries, pass string) (Recorded, error) {
+	row, err := q.LatestRun(ctx, runrecord.LatestRunParams{Workload: Workload, Pass: pass})
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Recorded{}, nil
 	}
@@ -60,17 +60,17 @@ type Starting struct {
 
 // StartRun records a run as it starts, in the transaction q runs in, with a start event, or a resume
 // event naming the checkpoint page.
-func StartRun(ctx context.Context, q *runrecord.Queries, account string, s Starting) error {
+func StartRun(ctx context.Context, q *runrecord.Queries, s Starting) error {
 	if s.Abandon {
 		err := q.EndRun(ctx, runrecord.EndRunParams{
-			State: "failed", LastError: text("the run stopped before it recorded its end"), AccountID: account, RunID: s.ResumedFrom,
+			State: "failed", LastError: text("the run stopped before it recorded its end"), RunID: s.ResumedFrom,
 		})
 		if err != nil {
 			return fmt.Errorf("recording the stopped run: %w", err)
 		}
 	}
 	err := q.StartRun(ctx, runrecord.StartRunParams{
-		AccountID: account, RunID: s.RunID, Workload: Workload, Pass: s.Pass,
+		RunID: s.RunID, Workload: Workload, Pass: s.Pass,
 		ResumedFrom: text(s.ResumedFrom), Checkpoint: s.Checkpoint, Counters: s.Counters,
 	})
 	if err != nil {
@@ -80,38 +80,38 @@ func StartRun(ctx context.Context, q *runrecord.Queries, account string, s Start
 	if s.ResumedFrom != "" {
 		kind = "resume"
 	}
-	return q.RecordEvent(ctx, runrecord.RecordEventParams{AccountID: account, RunID: s.RunID, Kind: kind, Page: page(s.Page)})
+	return q.RecordEvent(ctx, runrecord.RecordEventParams{RunID: s.RunID, Kind: kind, Page: page(s.Page)})
 }
 
 // RecordProgress records a running run's checkpoint and counters with a progress event naming the
 // checkpoint page, in the transaction that made the work they count durable.
-func RecordProgress(ctx context.Context, q *runrecord.Queries, account, runID string, checkpoint, counters []byte, at int) error {
-	if err := q.RecordProgress(ctx, runrecord.RecordProgressParams{Checkpoint: checkpoint, Counters: counters, AccountID: account, RunID: runID}); err != nil {
+func RecordProgress(ctx context.Context, q *runrecord.Queries, runID string, checkpoint, counters []byte, at int) error {
+	if err := q.RecordProgress(ctx, runrecord.RecordProgressParams{Checkpoint: checkpoint, Counters: counters, RunID: runID}); err != nil {
 		return fmt.Errorf("recording the checkpoint: %w", err)
 	}
-	return q.RecordEvent(ctx, runrecord.RecordEventParams{AccountID: account, RunID: runID, Kind: "progress", Page: page(at)})
+	return q.RecordEvent(ctx, runrecord.RecordEventParams{RunID: runID, Kind: "progress", Page: page(at)})
 }
 
 // SucceedRun records that the run ended its pass, with a finish event.
-func SucceedRun(ctx context.Context, q *runrecord.Queries, account, runID string) error {
-	if err := q.EndRun(ctx, runrecord.EndRunParams{State: "succeeded", AccountID: account, RunID: runID}); err != nil {
+func SucceedRun(ctx context.Context, q *runrecord.Queries, runID string) error {
+	if err := q.EndRun(ctx, runrecord.EndRunParams{State: "succeeded", RunID: runID}); err != nil {
 		return fmt.Errorf("recording the run's end: %w", err)
 	}
-	return q.RecordEvent(ctx, runrecord.RecordEventParams{AccountID: account, RunID: runID, Kind: "finish"})
+	return q.RecordEvent(ctx, runrecord.RecordEventParams{RunID: runID, Kind: "finish"})
 }
 
 // FailRun records the run as failed with its last error, and a failure event.
-func FailRun(ctx context.Context, q *runrecord.Queries, account, runID, cause string) error {
-	if err := q.EndRun(ctx, runrecord.EndRunParams{State: "failed", LastError: text(cause), AccountID: account, RunID: runID}); err != nil {
+func FailRun(ctx context.Context, q *runrecord.Queries, runID, cause string) error {
+	if err := q.EndRun(ctx, runrecord.EndRunParams{State: "failed", LastError: text(cause), RunID: runID}); err != nil {
 		return err
 	}
-	return q.RecordEvent(ctx, runrecord.RecordEventParams{AccountID: account, RunID: runID, Kind: "failure", Detail: text(cause)})
+	return q.RecordEvent(ctx, runrecord.RecordEventParams{RunID: runID, Kind: "failure", Detail: text(cause)})
 }
 
 // RecordEvent adds an event to the run's timeline.
-func RecordEvent(ctx context.Context, q *runrecord.Queries, account, runID string, e Event) error {
+func RecordEvent(ctx context.Context, q *runrecord.Queries, runID string, e Event) error {
 	return q.RecordEvent(ctx, runrecord.RecordEventParams{
-		AccountID: account, RunID: runID, Kind: e.Kind, Page: page(e.Page), Detail: text(e.Detail),
+		RunID: runID, Kind: e.Kind, Page: page(e.Page), Detail: text(e.Detail),
 	})
 }
 
@@ -133,9 +133,8 @@ type Item struct {
 }
 
 // RecordItem records one failed item in the transaction q runs in.
-func RecordItem(ctx context.Context, q *runrecord.Queries, account, runID string, it Item) error {
+func RecordItem(ctx context.Context, q *runrecord.Queries, runID string, it Item) error {
 	return q.RecordFailure(ctx, runrecord.RecordFailureParams{
-		AccountID:    account,
 		RunID:        runID,
 		ItemKind:     it.Kind,
 		ItemID:       it.ID,

@@ -6,15 +6,15 @@ scheduled-count: no
 integration: yes
 
 diff --git a/ui/internal/api/attention.go b/ui/internal/api/attention.go
-index 50b29ec..738ba1f 100644
+index be39be29..9152298b 100644
 --- a/ui/internal/api/attention.go
 +++ b/ui/internal/api/attention.go
-@@ -155,7 +155,7 @@ func (s *Server) attentionInputs(ctx context.Context, q attentionQueries, accoun
+@@ -154,7 +154,7 @@ func (s *Server) attentionInputs(ctx context.Context, q attentionQueries, now ti
+ 		}
  	}
  	if th.GapDays > 0 {
- 		runs, err := q.runs.GapRecoveriesSince(ctx, jobruns.GapRecoveriesSinceParams{
--			AccountID: account, Since: at(now.Add(-time.Duration(th.GapDays) * 24 * time.Hour)),
-+			AccountID: account, Since: at(now.Add(-7 * 24 * time.Hour)),
- 		})
+-		runs, err := q.runs.GapRecoveriesSince(ctx, at(now.Add(-time.Duration(th.GapDays)*24*time.Hour)))
++		runs, err := q.runs.GapRecoveriesSince(ctx, at(now.Add(-7 * 24 * time.Hour)))
  		if err != nil {
  			return in, err
+ 		}

@@ -14,17 +14,12 @@ import (
 const maskingEventCount = `-- name: MaskingEventCount :one
 SELECT count(*) AS events
 FROM masking_events AS e
-WHERE e.account_id = $1 AND e.masked_at >= $2
+WHERE e.account_id = current_setting('app.account') AND e.masked_at >= $1
 `
 
-type MaskingEventCountParams struct {
-	AccountID string
-	Since     pgtype.Timestamptz
-}
-
 // The masking events recorded since a time, for the corpus endpoint (docs/UI.md section 8.1).
-func (q *Queries) MaskingEventCount(ctx context.Context, arg MaskingEventCountParams) (int64, error) {
-	row := q.db.QueryRow(ctx, maskingEventCount, arg.AccountID, arg.Since)
+func (q *Queries) MaskingEventCount(ctx context.Context, since pgtype.Timestamptz) (int64, error) {
+	row := q.db.QueryRow(ctx, maskingEventCount, since)
 	var events int64
 	err := row.Scan(&events)
 	return events, err

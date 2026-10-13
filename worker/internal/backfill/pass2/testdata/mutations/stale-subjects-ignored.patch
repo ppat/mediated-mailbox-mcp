@@ -6,10 +6,13 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/backfill/pass2/postgres.go b/worker/internal/backfill/pass2/postgres.go
-index e076d2bb..9262a254 100644
+index 2b9ece79..fd433f3b 100644
 --- a/worker/internal/backfill/pass2/postgres.go
 +++ b/worker/internal/backfill/pass2/postgres.go
-@@ -237,7 +237,8 @@ func (s *Postgres) Reopen(ctx context.Context, account string, stamp index.Stamp
+@@ -240,13 +240,14 @@ func (s *Postgres) Reopen(ctx context.Context, account string, stamp index.Stamp
+ 			ScannerVersion: version(stamp.Version), ScannerRevision: stamp.Revision,
+ 		})
+ 		if err != nil {
  			return fmt.Errorf("reading whether a subject was masked under another scanner: %w", err)
  		}
  		marked = Reopened{Verdicts: len(domains), Skips: skips, Subjects: subjects}
@@ -18,4 +21,7 @@ index e076d2bb..9262a254 100644
 +		if marked.Verdicts == 0 && marked.Skips == 0 && marked.Subjects == 0 {
  			return nil
  		}
- 		if err := completion.New(t).ReopenBackfillSecond(ctx, account); err != nil {
+ 		if err := completion.New(t).ReopenBackfillSecond(ctx); err != nil {
+ 			return fmt.Errorf("recording the pass as due again: %w", err)
+ 		}
+ 		return nil

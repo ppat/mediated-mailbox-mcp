@@ -25,22 +25,21 @@ SELECT
 FROM policy_candidates AS c
 LEFT JOIN senders AS s ON c.account_id = s.account_id AND c.domain = s.domain
 WHERE
-    c.account_id = $1
-    AND ($2::timestamptz IS NULL OR c.created_at >= $2::timestamptz)
-    AND ($3::timestamptz IS NULL OR c.created_at < $3::timestamptz)
-    AND ($4::text[] IS NULL OR c.status = any($4::text[]))
-    AND ($5::text[] IS NULL OR c.status != all($5::text[]))
+    c.account_id = current_setting('app.account')
+    AND ($1::timestamptz IS NULL OR c.created_at >= $1::timestamptz)
+    AND ($2::timestamptz IS NULL OR c.created_at < $2::timestamptz)
+    AND ($3::text[] IS NULL OR c.status = any($3::text[]))
+    AND ($4::text[] IS NULL OR c.status != all($4::text[]))
 ORDER BY
-    CASE WHEN $6::boolean AND $7::boolean THEN c.score END DESC,
-    CASE WHEN $6::boolean AND NOT $7::boolean THEN c.score END ASC,
-    CASE WHEN NOT $6::boolean AND $7::boolean THEN c.created_at END DESC,
-    CASE WHEN NOT $6::boolean AND NOT $7::boolean THEN c.created_at END ASC,
+    CASE WHEN $5::boolean AND $6::boolean THEN c.score END DESC,
+    CASE WHEN $5::boolean AND NOT $6::boolean THEN c.score END ASC,
+    CASE WHEN NOT $5::boolean AND $6::boolean THEN c.created_at END DESC,
+    CASE WHEN NOT $5::boolean AND NOT $6::boolean THEN c.created_at END ASC,
     c.domain ASC
-LIMIT 50 OFFSET $8
+LIMIT 50 OFFSET $7
 `
 
 type CandidateRowsParams struct {
-	AccountID  string
 	RangeStart pgtype.Timestamptz
 	RangeEnd   pgtype.Timestamptz
 	StatusIn   []string
@@ -67,7 +66,6 @@ type CandidateRowsRow struct {
 // columns are score and created_at, in either direction, and the candidate's domain ends the sort.
 func (q *Queries) CandidateRows(ctx context.Context, arg CandidateRowsParams) ([]CandidateRowsRow, error) {
 	rows, err := q.db.Query(ctx, candidateRows,
-		arg.AccountID,
 		arg.RangeStart,
 		arg.RangeEnd,
 		arg.StatusIn,
@@ -110,17 +108,16 @@ SELECT
     count(*) AS candidates
 FROM policy_candidates AS c
 WHERE
-    c.account_id = $1
-    AND ($2::timestamptz IS NULL OR c.created_at >= $2::timestamptz)
-    AND ($3::timestamptz IS NULL OR c.created_at < $3::timestamptz)
-    AND ($4::text[] IS NULL OR c.status = any($4::text[]))
-    AND ($5::text[] IS NULL OR c.status != all($5::text[]))
+    c.account_id = current_setting('app.account')
+    AND ($1::timestamptz IS NULL OR c.created_at >= $1::timestamptz)
+    AND ($2::timestamptz IS NULL OR c.created_at < $2::timestamptz)
+    AND ($3::text[] IS NULL OR c.status = any($3::text[]))
+    AND ($4::text[] IS NULL OR c.status != all($4::text[]))
 GROUP BY c.status
 ORDER BY c.status
 `
 
 type CandidateStatusCountsParams struct {
-	AccountID  string
 	RangeStart pgtype.Timestamptz
 	RangeEnd   pgtype.Timestamptz
 	StatusIn   []string
@@ -137,7 +134,6 @@ type CandidateStatusCountsRow struct {
 // range bound is no bound, and a null status array no filter.
 func (q *Queries) CandidateStatusCounts(ctx context.Context, arg CandidateStatusCountsParams) ([]CandidateStatusCountsRow, error) {
 	rows, err := q.db.Query(ctx, candidateStatusCounts,
-		arg.AccountID,
 		arg.RangeStart,
 		arg.RangeEnd,
 		arg.StatusIn,

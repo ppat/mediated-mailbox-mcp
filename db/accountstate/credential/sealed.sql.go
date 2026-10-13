@@ -12,12 +12,11 @@ import (
 const replaceSealed = `-- name: ReplaceSealed :execrows
 UPDATE account_state
 SET credential = $1
-WHERE account_id = $2 AND credential = $3
+WHERE account_id = current_setting('app.account') AND credential = $2
 `
 
 type ReplaceSealedParams struct {
 	Credential []byte
-	AccountID  string
 	Known      []byte
 }
 
@@ -25,7 +24,7 @@ type ReplaceSealedParams struct {
 // or wrote, so a value the operator replaced is never put back (ADR-0089). A write that finds other
 // bytes changes no row.
 func (q *Queries) ReplaceSealed(ctx context.Context, arg ReplaceSealedParams) (int64, error) {
-	result, err := q.db.Exec(ctx, replaceSealed, arg.Credential, arg.AccountID, arg.Known)
+	result, err := q.db.Exec(ctx, replaceSealed, arg.Credential, arg.Known)
 	if err != nil {
 		return 0, err
 	}
@@ -35,13 +34,13 @@ func (q *Queries) ReplaceSealed(ctx context.Context, arg ReplaceSealedParams) (i
 const sealed = `-- name: Sealed :many
 SELECT credential
 FROM account_state
-WHERE account_id = $1
+WHERE account_id = current_setting('app.account')
 `
 
 // The account's sealed credential, as its state row holds it. No row means the account has no state
 // row and is not connected, and a null credential means it holds none (ADR-0091).
-func (q *Queries) Sealed(ctx context.Context, accountID string) ([][]byte, error) {
-	rows, err := q.db.Query(ctx, sealed, accountID)
+func (q *Queries) Sealed(ctx context.Context) ([][]byte, error) {
+	rows, err := q.db.Query(ctx, sealed)
 	if err != nil {
 		return nil, err
 	}

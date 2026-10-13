@@ -6,10 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/backfill/pass1/postgres.go b/worker/internal/backfill/pass1/postgres.go
-index 8866214..b445093 100644
+index c902fbdc..077d5fc0 100644
 --- a/worker/internal/backfill/pass1/postgres.go
 +++ b/worker/internal/backfill/pass1/postgres.go
-@@ -141,8 +141,8 @@ func (s *Postgres) Start(ctx context.Context, account, runID string, start core.
+@@ -157,8 +157,8 @@ func (s *Postgres) Start(ctx context.Context, account, runID string, start core.
  // Commit implements Store.
  func (s *Postgres) Commit(ctx context.Context, account, runID string, p index.Page, recovered *Failure, advance func(int, int) core.Progress) (Committed, error) {
  	var c Committed
@@ -18,8 +18,8 @@ index 8866214..b445093 100644
 -		added, remasked, unclassified := 0, 0, 0
  		messages, events := messageingest.New(t), maskingrecord.New(t)
  		for _, m := range p.Messages {
- 			ok, err := insert(ctx, messages, account, m)
-@@ -173,6 +173,12 @@ func (s *Postgres) Commit(ctx context.Context, account, runID string, p index.Pa
+ 			ok, err := insert(ctx, messages, m)
+@@ -189,6 +189,12 @@ func (s *Postgres) Commit(ctx context.Context, account, runID string, p index.Pa
  				return fmt.Errorf("rebuilding the statistics of the sender at %q: %w", domain, err)
  			}
  		}
@@ -31,4 +31,4 @@ index 8866214..b445093 100644
 +	err = tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
  		q := runrecord.New(t)
  		if recovered != nil {
- 			if err := recordFailure(ctx, q, account, runID, *recovered); err != nil {
+ 			if err := recordFailure(ctx, q, runID, *recovered); err != nil {

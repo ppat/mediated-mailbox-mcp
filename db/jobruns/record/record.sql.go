@@ -14,25 +14,19 @@ import (
 const endRun = `-- name: EndRun :exec
 UPDATE job_runs
 SET state = $1, finished_at = now(), heartbeat_at = now(), last_error = $2
-WHERE account_id = $3 AND run_id = $4 AND state = 'running'
+WHERE account_id = current_setting('app.account') AND run_id = $3 AND state = 'running'
 `
 
 type EndRunParams struct {
 	State     string
 	LastError pgtype.Text
-	AccountID string
 	RunID     string
 }
 
 // Records that a running run ended, succeeded or failed, with its last error. A run that is no longer
 // running is left as it is, so a run a later one found stopped keeps the state that run gave it.
 func (q *Queries) EndRun(ctx context.Context, arg EndRunParams) error {
-	_, err := q.db.Exec(ctx, endRun,
-		arg.State,
-		arg.LastError,
-		arg.AccountID,
-		arg.RunID,
-	)
+	_, err := q.db.Exec(ctx, endRun, arg.State, arg.LastError, arg.RunID)
 	return err
 }
 
@@ -43,15 +37,14 @@ SELECT
     r.checkpoint,
     r.counters
 FROM job_runs AS r
-WHERE r.account_id = $1 AND r.workload = $2 AND r.pass = $3
+WHERE r.account_id = current_setting('app.account') AND r.workload = $1 AND r.pass = $2
 ORDER BY r.started_at DESC, r.run_id DESC
 LIMIT 1
 `
 
 type LatestRunParams struct {
-	AccountID string
-	Workload  string
-	Pass      string
+	Workload string
+	Pass     string
 }
 
 type LatestRunRow struct {
@@ -64,7 +57,7 @@ type LatestRunRow struct {
 // The account's latest run of one workload and pass, whatever its state, which a workload reads to
 // decide whether it resumes that run (ADR-0017, ADR-0117).
 func (q *Queries) LatestRun(ctx context.Context, arg LatestRunParams) (LatestRunRow, error) {
-	row := q.db.QueryRow(ctx, latestRun, arg.AccountID, arg.Workload, arg.Pass)
+	row := q.db.QueryRow(ctx, latestRun, arg.Workload, arg.Pass)
 	var i LatestRunRow
 	err := row.Scan(
 		&i.RunID,
@@ -77,22 +70,20 @@ func (q *Queries) LatestRun(ctx context.Context, arg LatestRunParams) (LatestRun
 
 const recordEvent = `-- name: RecordEvent :exec
 INSERT INTO job_run_events (account_id, run_id, kind, page, detail)
-VALUES ($1, $2, $3, $4, $5)
+VALUES (current_setting('app.account'), $1, $2, $3, $4)
 `
 
 type RecordEventParams struct {
-	AccountID string
-	RunID     string
-	Kind      string
-	Page      pgtype.Int4
-	Detail    pgtype.Text
+	RunID  string
+	Kind   string
+	Page   pgtype.Int4
+	Detail pgtype.Text
 }
 
 // Adds one event to a run's timeline. A progress event carries the checkpoint page. The detail is
 // provider or scanner text, never a body (ADR-0117).
 func (q *Queries) RecordEvent(ctx context.Context, arg RecordEventParams) error {
 	_, err := q.db.Exec(ctx, recordEvent,
-		arg.AccountID,
 		arg.RunID,
 		arg.Kind,
 		arg.Page,
@@ -115,6 +106,7 @@ INSERT INTO job_run_failures (
     last_at,
     disposition
 ) VALUES (
+    current_setting('app.account'),
     $1,
     $2,
     $3,
@@ -124,13 +116,11 @@ INSERT INTO job_run_failures (
     $7,
     $8,
     $9,
-    $10,
-    $11
+    $10
 )
 `
 
 type RecordFailureParams struct {
-	AccountID    string
 	RunID        string
 	ItemKind     string
 	ItemID       string
@@ -147,7 +137,6 @@ type RecordFailureParams struct {
 // and last were, and what became of it (ADR-0117).
 func (q *Queries) RecordFailure(ctx context.Context, arg RecordFailureParams) error {
 	_, err := q.db.Exec(ctx, recordFailure,
-		arg.AccountID,
 		arg.RunID,
 		arg.ItemKind,
 		arg.ItemID,
@@ -165,25 +154,19 @@ func (q *Queries) RecordFailure(ctx context.Context, arg RecordFailureParams) er
 const recordProgress = `-- name: RecordProgress :exec
 UPDATE job_runs
 SET checkpoint = $1, counters = $2, heartbeat_at = now()
-WHERE account_id = $3 AND run_id = $4
+WHERE account_id = current_setting('app.account') AND run_id = $3
 `
 
 type RecordProgressParams struct {
 	Checkpoint []byte
 	Counters   []byte
-	AccountID  string
 	RunID      string
 }
 
 // Records a running run's checkpoint and counters, in the transaction that made the work they count
 // durable, and its heartbeat.
 func (q *Queries) RecordProgress(ctx context.Context, arg RecordProgressParams) error {
-	_, err := q.db.Exec(ctx, recordProgress,
-		arg.Checkpoint,
-		arg.Counters,
-		arg.AccountID,
-		arg.RunID,
-	)
+	_, err := q.db.Exec(ctx, recordProgress, arg.Checkpoint, arg.Counters, arg.RunID)
 	return err
 }
 
@@ -194,25 +177,20 @@ SELECT
             SELECT max(e.at)
             FROM job_run_events AS e
             INNER JOIN job_runs AS r ON e.account_id = r.account_id AND e.run_id = r.run_id
-            WHERE r.account_id = $1 AND r.workload = $2 AND e.kind = 'progress'
+            WHERE r.account_id = current_setting('app.account') AND r.workload = $1 AND e.kind = 'progress'
         ),
         (
             SELECT max(r.finished_at)
             FROM job_runs AS r
-            WHERE r.account_id = $1 AND r.workload = $2 AND r.state = 'succeeded'
+            WHERE r.account_id = current_setting('app.account') AND r.workload = $1 AND r.state = 'succeeded'
         )
     )::timestamptz AS latest_success,
     (
         SELECT min(r.started_at)
         FROM job_runs AS r
-        WHERE r.account_id = $1 AND r.workload = $2
+        WHERE r.account_id = current_setting('app.account') AND r.workload = $1
     )::timestamptz AS earliest_start
 `
-
-type RecordedSuccessParams struct {
-	AccountID string
-	Workload  string
-}
 
 type RecordedSuccessRow struct {
 	LatestSuccess pgtype.Timestamptz
@@ -224,8 +202,8 @@ type RecordedSuccessRow struct {
 // succeeded, and the start of its earliest run, each null when no run records one. The worker's late
 // alert counts a job from them at its start, so a restart leaves a job that does not succeed ageing
 // (ADR-0119).
-func (q *Queries) RecordedSuccess(ctx context.Context, arg RecordedSuccessParams) (RecordedSuccessRow, error) {
-	row := q.db.QueryRow(ctx, recordedSuccess, arg.AccountID, arg.Workload)
+func (q *Queries) RecordedSuccess(ctx context.Context, workload string) (RecordedSuccessRow, error) {
+	row := q.db.QueryRow(ctx, recordedSuccess, workload)
 	var i RecordedSuccessRow
 	err := row.Scan(&i.LatestSuccess, &i.EarliestStart)
 	return i, err
@@ -235,21 +213,20 @@ const startRun = `-- name: StartRun :exec
 INSERT INTO job_runs (
     account_id, run_id, workload, pass, state, resumed_from, started_at, heartbeat_at, checkpoint, counters
 ) VALUES (
+    current_setting('app.account'),
     $1,
     $2,
     $3,
-    $4,
     'running',
+    $4,
+    now(),
+    now(),
     $5,
-    now(),
-    now(),
-    $6,
-    $7
+    $6
 )
 `
 
 type StartRunParams struct {
-	AccountID   string
 	RunID       string
 	Workload    string
 	Pass        string
@@ -262,7 +239,6 @@ type StartRunParams struct {
 // if any (ADR-0117).
 func (q *Queries) StartRun(ctx context.Context, arg StartRunParams) error {
 	_, err := q.db.Exec(ctx, startRun,
-		arg.AccountID,
 		arg.RunID,
 		arg.Workload,
 		arg.Pass,

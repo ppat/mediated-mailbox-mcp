@@ -7,7 +7,7 @@ SELECT
     count(*) AS candidates
 FROM policy_candidates AS c
 WHERE
-    c.account_id = @account_id
+    c.account_id = current_setting('app.account')
     AND (@range_start::timestamptz IS NULL OR c.created_at >= @range_start::timestamptz)
     AND (@range_end::timestamptz IS NULL OR c.created_at < @range_end::timestamptz)
     AND (@status_in::text[] IS NULL OR c.status = any(@status_in::text[]))
@@ -32,7 +32,7 @@ SELECT
 FROM policy_candidates AS c
 LEFT JOIN senders AS s ON c.account_id = s.account_id AND c.domain = s.domain
 WHERE
-    c.account_id = @account_id
+    c.account_id = current_setting('app.account')
     AND (@range_start::timestamptz IS NULL OR c.created_at >= @range_start::timestamptz)
     AND (@range_end::timestamptz IS NULL OR c.created_at < @range_end::timestamptz)
     AND (@status_in::text[] IS NULL OR c.status = any(@status_in::text[]))

@@ -134,15 +134,15 @@ a rollback request, connecting accounts and keeping the policy. Its design is
   those requests through the operator's browser. It does not stop a person on the network.
 - The UI reaches the provider's token endpoint and the mailbox profile it checks a grant against,
   so its egress includes those endpoints.
-- A write that changed nothing must not reach the operator as a successful one. The two ways a
-  write can fail here behave oppositely. A grant the role does not hold raises, so it is visible on
-  its own. A policy that excludes the row instead empties the statement, which succeeds having
-  changed nothing, and without care that reaches the operator as the stale-status conflict the
-  expected-status check produces, which is the wrong account of what happened. Telling those apart
-  is a mechanism question and belongs to
-  [ADR-0066](../data/0066-data-access-generated-from-sql.md). One consequence of the grant being
-  the control is that its refusal names the table and not the column, so it carries nothing the
-  operator could act on and maps to the internal-fault origin of the error contract rather than to
-  a client fault.
+- A write that changed nothing must not reach the operator as a successful one. The two ways a write
+  can fail here behave oppositely. A grant the role does not hold raises, so it is visible on its
+  own. A predicate that matches no row, because the row is another account's, instead empties the
+  statement, which succeeds having changed nothing, and without care that reaches the operator as
+  the stale-status conflict the expected-status check produces, which is the wrong account of what
+  happened. Telling those apart is a mechanism question and belongs to
+  [ADR-0066](../data/0066-data-access-generated-from-sql.md). One consequence of the grant being the
+  control is that its refusal names the table and not the column, so it carries nothing the operator
+  could act on and maps to the internal-fault origin of the error contract rather than to a client
+  fault.
 - The UI is where the operator's standing duties live, plan review, candidate review, masking
   review and keeping accounts connected, so its legibility is a safety property, not a nicety.

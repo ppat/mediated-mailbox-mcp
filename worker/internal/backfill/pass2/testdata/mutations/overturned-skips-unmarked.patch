@@ -6,16 +6,22 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/backfill/pass2/postgres.go b/worker/internal/backfill/pass2/postgres.go
-index 86c762e..9b81a6d 100644
+index 2b9ece79..2e9b3490 100644
 --- a/worker/internal/backfill/pass2/postgres.go
 +++ b/worker/internal/backfill/pass2/postgres.go
-@@ -207,6 +207,9 @@ func (s *Postgres) Reopen(ctx context.Context, account string, stamp pass1core.S
- 		if err := completion.New(t).ReopenBackfillSecond(ctx, account); err != nil {
+@@ -246,12 +246,15 @@ func (s *Postgres) Reopen(ctx context.Context, account string, stamp index.Stamp
+ 		if marked.Verdicts == 0 && marked.Skips == 0 && marked.Subjects == 0 && !stale {
+ 			return nil
+ 		}
+ 		if err := completion.New(t).ReopenBackfillSecond(ctx); err != nil {
  			return fmt.Errorf("recording the pass as due again: %w", err)
  		}
 +		if marked.Verdicts == 0 && !stale {
-+			return completion.New(t).ClearSecondRestart(ctx, account)
++			return completion.New(t).ClearSecondRestart(ctx)
 +		}
  		return nil
  	})
  	return marked, err
+ }
+ 
+ // remaskStored masks again every stale subject the account stores unmasked, from the subject stored,

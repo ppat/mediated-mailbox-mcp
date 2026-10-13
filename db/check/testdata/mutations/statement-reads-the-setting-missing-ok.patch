@@ -1,0 +1,18 @@
+control: Every statement takes its account from the transaction
+removes: a statement of the sender listing reads the account with the missing-ok argument, so an unset account reads as null rather than raising
+packages: ./db/check
+tests: TestStatementFiles
+scheduled-count: no
+integration: no
+
+diff --git a/db/senders/listing.sql b/db/senders/listing.sql
+index 09d3048c..ef39c0e9 100644
+--- a/db/senders/listing.sql
++++ b/db/senders/listing.sql
+@@ -31,5 +31,5 @@ LIMIT @page_size;
+ -- to the statement (ADR-0108).
+ SELECT s.domain
+ FROM senders AS s
+-WHERE s.account_id = current_setting('app.account')
++WHERE s.account_id = current_setting('app.account', true)
+ ORDER BY s.domain;

@@ -6,13 +6,13 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/backfill/pass1/postgres.go b/worker/internal/backfill/pass1/postgres.go
-index f2756aa..290b33e 100644
+index c902fbdc..24f42f6c 100644
 --- a/worker/internal/backfill/pass1/postgres.go
 +++ b/worker/internal/backfill/pass1/postgres.go
-@@ -250,8 +250,6 @@ func recordMasks(ctx context.Context, q *maskingrecord.Queries, account string,
+@@ -293,8 +293,6 @@ func recordMasks(ctx context.Context, q *maskingrecord.Queries, m index.Message)
  	for _, mask := range m.Masks {
  		err := q.RecordMaskingEvent(ctx, maskingrecord.RecordMaskingEventParams{
- 			AccountID: account, MessageID: m.ID, RuleID: mask.Rule, Tier: int32(mask.Tier), //nolint:gosec // A tier is 0, 1 or 2.
+ 			MessageID: m.ID, RuleID: mask.Rule, Tier: int32(mask.Tier), //nolint:gosec // A tier is 0, 1 or 2.
 -			ScannerVersion:  pgtype.Int4{Int32: version(m.Stamp.Version), Valid: true},
 -			ScannerRevision: pgtype.Text{String: m.Stamp.Revision, Valid: true},
  		})

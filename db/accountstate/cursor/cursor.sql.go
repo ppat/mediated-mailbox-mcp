@@ -14,19 +14,14 @@ import (
 const advanceCursor = `-- name: AdvanceCursor :execrows
 UPDATE account_state
 SET sync_cursor = $1, sync_cursor_at = now()
-WHERE account_id = $2
+WHERE account_id = current_setting('app.account')
 `
-
-type AdvanceCursorParams struct {
-	SyncCursor pgtype.Text
-	AccountID  string
-}
 
 // Stores the account's change cursor and records the instant it was written, in the transaction that
 // made the changes it follows durable, so the cursor never runs ahead of the index (ADR-0018). An
 // account with no state row counts no row.
-func (q *Queries) AdvanceCursor(ctx context.Context, arg AdvanceCursorParams) (int64, error) {
-	result, err := q.db.Exec(ctx, advanceCursor, arg.SyncCursor, arg.AccountID)
+func (q *Queries) AdvanceCursor(ctx context.Context, syncCursor pgtype.Text) (int64, error) {
+	result, err := q.db.Exec(ctx, advanceCursor, syncCursor)
 	if err != nil {
 		return 0, err
 	}
@@ -38,7 +33,7 @@ SELECT
     s.sync_cursor,
     s.sync_cursor_at
 FROM account_state AS s
-WHERE s.account_id = $1
+WHERE s.account_id = current_setting('app.account')
 `
 
 type SyncCursorRow struct {
@@ -48,8 +43,8 @@ type SyncCursorRow struct {
 
 // The account's change cursor and when delta sync last wrote it, both null before its first tick
 // (ADR-0016). A gap's recovery starts its window from the write time (ADR-0105).
-func (q *Queries) SyncCursor(ctx context.Context, accountID string) (SyncCursorRow, error) {
-	row := q.db.QueryRow(ctx, syncCursor, accountID)
+func (q *Queries) SyncCursor(ctx context.Context) (SyncCursorRow, error) {
+	row := q.db.QueryRow(ctx, syncCursor)
 	var i SyncCursorRow
 	err := row.Scan(&i.SyncCursor, &i.SyncCursorAt)
 	return i, err

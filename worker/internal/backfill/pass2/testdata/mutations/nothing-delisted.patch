@@ -6,14 +6,21 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/backfill/pass2/postgres.go b/worker/internal/backfill/pass2/postgres.go
+index 2b9ece79..ffef6908 100644
 --- a/worker/internal/backfill/pass2/postgres.go
 +++ b/worker/internal/backfill/pass2/postgres.go
-@@ -128,7 +128,7 @@ func (s *Postgres) Delist(ctx context.Context, account, runID string, delisted f
+@@ -148,13 +148,13 @@ func (s *Postgres) Delist(ctx context.Context, account, runID string, delisted f
+ 		marked = 0
+ 		q := scan.New(t)
+ 		restricted, err := q.RestrictedDomains(ctx)
  		if err != nil {
  			return fmt.Errorf("reading the domains stored as restricted or skipped as restricted: %w", err)
  		}
 -		domains := delisted(restricted)
 +		domains := delisted(restricted[:0])
  		for _, d := range domains {
- 			n, err := q.MarkDelisted(ctx, scan.MarkDelistedParams{AccountID: account, Domain: d})
+ 			n, err := q.MarkDelisted(ctx, d)
  			if err != nil {
+ 				return fmt.Errorf("returning the messages of %q to pending scan: %w", d, err)
+ 			}
+ 			if err := statistics.New(t).RebuildSender(ctx, d); err != nil {

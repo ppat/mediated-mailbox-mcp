@@ -6,10 +6,14 @@ scheduled-count: no
 integration: yes
 
 diff --git a/db/messages/search.sql b/db/messages/search.sql
-index 9f99b323..b4a8445f 100644
+index 818eddd1..7ff84f1b 100644
 --- a/db/messages/search.sql
 +++ b/db/messages/search.sql
-@@ -100,20 +100,21 @@ LIMIT @page_size;
+@@ -107,28 +107,29 @@ LIMIT @page_size;
+ -- name: SearchSummary :one
+ -- The number of messages the query selects, of their threads, of the unread among them and of those
+ -- with attachments, and the dates of the oldest and the newest. A message whose flags do not say it
+ -- was read counts as unread.
  SELECT
      count(*) AS messages,
      count(DISTINCT m.thread_id) AS threads,
@@ -19,7 +23,7 @@ index 9f99b323..b4a8445f 100644
      max(m.sent_at)::timestamptz AS newest_at
  FROM messages AS m
  WHERE
-     m.account_id = @account_id
+     m.account_id = current_setting('app.account')
 +    AND m.scan_state != 'pending'
      AND (@after::timestamptz IS NULL OR m.sent_at >= @after::timestamptz)
      AND (@before::timestamptz IS NULL OR m.sent_at < @before::timestamptz)
@@ -31,11 +35,19 @@ index 9f99b323..b4a8445f 100644
      AND (@subject_patterns::text[] IS NULL OR m.subject ILIKE all(@subject_patterns::text[]))
      AND (
          @unread::boolean[] IS NULL
+         OR (NOT coalesce((m.flags ->> 'read')::boolean, FALSE)) = any(@unread::boolean[])
+     )
+     AND (
+         @starred::boolean[] IS NULL
 diff --git a/db/messages/search.sql.go b/db/messages/search.sql.go
-index c65924c5..bd9d17e5 100644
+index f09d49bc..874ed805 100644
 --- a/db/messages/search.sql.go
 +++ b/db/messages/search.sql.go
-@@ -702,20 +702,21 @@ const searchSummary = `-- name: SearchSummary :one
+@@ -701,28 +701,29 @@ func (q *Queries) SearchPage(ctx context.Context, arg SearchPageParams) ([]Searc
+ 	return items, nil
+ }
+ 
+ const searchSummary = `-- name: SearchSummary :one
  SELECT
      count(*) AS messages,
      count(DISTINCT m.thread_id) AS threads,
@@ -45,15 +57,19 @@ index c65924c5..bd9d17e5 100644
      max(m.sent_at)::timestamptz AS newest_at
  FROM messages AS m
  WHERE
-     m.account_id = $1
+     m.account_id = current_setting('app.account')
 +    AND m.scan_state != 'pending'
-     AND ($2::timestamptz IS NULL OR m.sent_at >= $2::timestamptz)
-     AND ($3::timestamptz IS NULL OR m.sent_at < $3::timestamptz)
-     AND ($4::citext[] IS NULL OR m.from_email = any($4::citext[]))
-     AND ($5::text[] IS NULL OR m.from_domain = any($5::text[]))
-     AND ($6::text[] IS NULL OR m.labels @> $6::text[])
-     AND ($7::text[] IS NULL OR NOT m.labels && $7::text[])
-     AND ($8::text[] IS NULL OR m.labels <@ $8::text[])
-     AND ($9::text[] IS NULL OR m.subject ILIKE all($9::text[]))
+     AND ($1::timestamptz IS NULL OR m.sent_at >= $1::timestamptz)
+     AND ($2::timestamptz IS NULL OR m.sent_at < $2::timestamptz)
+     AND ($3::citext[] IS NULL OR m.from_email = any($3::citext[]))
+     AND ($4::text[] IS NULL OR m.from_domain = any($4::text[]))
+     AND ($5::text[] IS NULL OR m.labels @> $5::text[])
+     AND ($6::text[] IS NULL OR NOT m.labels && $6::text[])
+     AND ($7::text[] IS NULL OR m.labels <@ $7::text[])
+     AND ($8::text[] IS NULL OR m.subject ILIKE all($8::text[]))
+     AND (
+         $9::boolean[] IS NULL
+         OR (NOT coalesce((m.flags ->> 'read')::boolean, FALSE)) = any($9::boolean[])
+     )
      AND (
          $10::boolean[] IS NULL

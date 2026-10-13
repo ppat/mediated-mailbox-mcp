@@ -107,7 +107,7 @@ func (s Sources) searchMessages(ctx context.Context, account string, input json.
 	if err := arguments(input, &args, "query", "sort", "order", "cursor"); err != nil {
 		return nil, err
 	}
-	sel, err := readQuery(account, args.Query)
+	sel, err := readQuery(args.Query)
 	if err != nil {
 		return nil, err
 	}
@@ -149,7 +149,7 @@ func (s Sources) searchMessages(ctx context.Context, account string, input json.
 	var rows []messages.SearchPageRow
 	err = tx.Run(ctx, tx.Snapshot(s.DB), account, func(t pgx.Tx) error {
 		q := messages.New(t)
-		c, err := s.classesFor(ctx, senders.New(t), account, sel.needsClasses(), p)
+		c, err := s.classesFor(ctx, senders.New(t), sel.needsClasses(), p)
 		if err != nil {
 			return err
 		}
@@ -187,7 +187,7 @@ func (s Sources) searchMessages(ctx context.Context, account string, input json.
 
 // withFilter sets the filter terms of a search page's parameters from f.
 func withFilter(p *messages.SearchPageParams, f messages.SearchSummaryParams) {
-	p.AccountID, p.After, p.Before = f.AccountID, f.After, f.Before
+	p.After, p.Before = f.After, f.Before
 	p.FromEmails, p.FromDomains = f.FromEmails, f.FromDomains
 	p.Labels, p.ExcludedLabels, p.LabelsWithin = f.Labels, f.ExcludedLabels, f.LabelsWithin
 	p.SubjectPatterns, p.Unread, p.Starred, p.HasAttachments = f.SubjectPatterns, f.Unread, f.Starred, f.HasAttachments
@@ -197,11 +197,11 @@ func withFilter(p *messages.SearchPageParams, f messages.SearchSummaryParams) {
 // classesFor classifies the account's sender domains under p when needed is set, and otherwise returns
 // no classes, which no term reads. The domains are read from the sender statistics, which hold exactly
 // the domains the account's messages are stored under (ADR-0109).
-func (s Sources) classesFor(ctx context.Context, q *senders.Queries, account string, needed bool, p classify.Policy) (classes, error) {
+func (s Sources) classesFor(ctx context.Context, q *senders.Queries, needed bool, p classify.Policy) (classes, error) {
 	if !needed {
 		return classes{}, nil
 	}
-	domains, err := q.SenderDomains(ctx, account)
+	domains, err := q.SenderDomains(ctx)
 	if err != nil {
 		return classes{}, err
 	}
@@ -239,7 +239,7 @@ func (s Sources) countMessages(ctx context.Context, account string, input json.R
 	if err := arguments(input, &args, "query", "group_by", "cursor"); err != nil {
 		return nil, err
 	}
-	sel, err := readQuery(account, args.Query)
+	sel, err := readQuery(args.Query)
 	if err != nil {
 		return nil, err
 	}
@@ -257,7 +257,7 @@ func (s Sources) countMessages(ctx context.Context, account string, input json.R
 	var next *string
 	err = tx.Run(ctx, tx.Snapshot(s.DB), account, func(t pgx.Tx) error {
 		q := messages.New(t)
-		c, err := s.classesFor(ctx, senders.New(t), account, sel.needsClasses() || args.GroupBy == "sender_class", p)
+		c, err := s.classesFor(ctx, senders.New(t), sel.needsClasses() || args.GroupBy == "sender_class", p)
 		if err != nil {
 			return err
 		}
@@ -315,7 +315,7 @@ func (s Sources) pagedGroups(ctx context.Context, q *messages.Queries, by string
 	out := []group{}
 	if by == "sender" {
 		params := messages.CountBySenderParams{FirstPage: !found, AfterCount: from.Count, AfterKey: from.Key, PageSize: pageSize}
-		params.AccountID, params.After, params.Before = f.AccountID, f.After, f.Before
+		params.After, params.Before = f.After, f.Before
 		params.FromEmails, params.FromDomains = f.FromEmails, f.FromDomains
 		params.Labels, params.ExcludedLabels, params.LabelsWithin = f.Labels, f.ExcludedLabels, f.LabelsWithin
 		params.SubjectPatterns, params.Unread, params.Starred, params.HasAttachments = f.SubjectPatterns, f.Unread, f.Starred, f.HasAttachments
@@ -331,7 +331,7 @@ func (s Sources) pagedGroups(ctx context.Context, q *messages.Queries, by string
 		return out, nil
 	}
 	params := messages.CountBySenderDomainParams{FirstPage: !found, AfterCount: from.Count, AfterKey: from.Key, PageSize: pageSize}
-	params.AccountID, params.After, params.Before = f.AccountID, f.After, f.Before
+	params.After, params.Before = f.After, f.Before
 	params.FromEmails, params.FromDomains = f.FromEmails, f.FromDomains
 	params.Labels, params.ExcludedLabels, params.LabelsWithin = f.Labels, f.ExcludedLabels, f.LabelsWithin
 	params.SubjectPatterns, params.Unread, params.Starred, params.HasAttachments = f.SubjectPatterns, f.Unread, f.Starred, f.HasAttachments
@@ -467,7 +467,7 @@ func (s Sources) listSenders(ctx context.Context, account string, input json.Raw
 	if err != nil {
 		return nil, err
 	}
-	params := senders.SenderPageParams{AccountID: account, FirstPage: !found, AfterCount: from.Count, AfterDomain: from.Key, PageSize: pageSize}
+	params := senders.SenderPageParams{FirstPage: !found, AfterCount: from.Count, AfterDomain: from.Key, PageSize: pageSize}
 	p := s.Policy(account)
 	var rows []senders.SenderPageRow
 	err = tx.Run(ctx, tx.Snapshot(s.DB), account, func(t pgx.Tx) error {

@@ -11,8 +11,8 @@ CREATE ROLE mediated_mailbox_migrate LOGIN;
 
 -- One runtime role for the mediator, one for the UI, and one for each job kind of the worker,
 -- backfill, delta sync, reorg apply and rollback, and the heuristics run (ADR-0118). None owns
--- anything, bypasses row-level security or belongs to another role, so each holds only the grants the
--- chain gives it.
+-- anything, holds an attribute beyond LOGIN or belongs to another role, so each holds only the grants
+-- the chain gives it.
 CREATE ROLE mediated_mailbox_mediate LOGIN;
 CREATE ROLE mediated_mailbox_backfill LOGIN;
 CREATE ROLE mediated_mailbox_sync LOGIN;

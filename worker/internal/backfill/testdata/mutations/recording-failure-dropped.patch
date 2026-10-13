@@ -6,11 +6,11 @@ scheduled-count: no
 integration: yes
 
 diff --git a/executioncontext/session/session.go b/executioncontext/session/session.go
-index f4fb328a..b1ebb7ea 100644
+index 4a1c137e..40c86067 100644
 --- a/executioncontext/session/session.go
 +++ b/executioncontext/session/session.go
-@@ -269,8 +269,6 @@ func recordAttempt(ctx context.Context, db tx.Beginner, account string, attempt
- 			AccountID:   account,
+@@ -268,8 +268,6 @@ func recordAttempt(ctx context.Context, db tx.Beginner, account string, attempt
+ 			Outcome:     pgtype.Text{String: string(attempt.Outcome), Valid: true},
  		})
  	})
 -	if err != nil {

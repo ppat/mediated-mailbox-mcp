@@ -21,18 +21,17 @@ SELECT
     e.masked_at
 FROM masking_events AS e
 WHERE
-    e.account_id = $1
-    AND ($2::timestamptz IS NULL OR e.masked_at >= $2::timestamptz)
+    e.account_id = current_setting('app.account')
+    AND ($1::timestamptz IS NULL OR e.masked_at >= $1::timestamptz)
     AND (
-        $3::timestamptz IS NULL
-        OR (e.masked_at, e.id) < ($3::timestamptz, $4::bigint)
+        $2::timestamptz IS NULL
+        OR (e.masked_at, e.id) < ($2::timestamptz, $3::bigint)
     )
 ORDER BY e.masked_at DESC, e.id DESC
-LIMIT $5
+LIMIT $4
 `
 
 type MaskingEventPageParams struct {
-	AccountID      string
 	Since          pgtype.Timestamptz
 	BeforeMaskedAt pgtype.Timestamptz
 	BeforeID       int64
@@ -53,7 +52,6 @@ type MaskingEventPageRow struct {
 // the rule and tier that fired and never the text it matched (ADR-0003).
 func (q *Queries) MaskingEventPage(ctx context.Context, arg MaskingEventPageParams) ([]MaskingEventPageRow, error) {
 	rows, err := q.db.Query(ctx, maskingEventPage,
-		arg.AccountID,
 		arg.Since,
 		arg.BeforeMaskedAt,
 		arg.BeforeID,

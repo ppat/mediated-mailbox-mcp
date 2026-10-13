@@ -35,7 +35,7 @@ var runtimeRoles = []string{
 
 const uiRole = "mediated_mailbox_ui"
 
-// The rows every test below starts from, written by the superuser, whom no policy applies to.
+// The rows every test below starts from, written by the superuser the tests connect as.
 const (
 	accountA  = "acct-a"
 	accountB  = "acct-b"
@@ -103,25 +103,19 @@ func as(ctx context.Context, tx pgx.Tx, role, account, sql string, args ...any) 
 }
 
 // refusedByGrant reports whether err is PostgreSQL refusing a privilege the role does not hold,
-// either a grant or the ownership that DDL needs. A policy's refusal shares the error code and is not
-// one.
+// either a grant or the ownership that DDL needs.
 func refusedByGrant(err error) bool {
 	var pgErr *pgconn.PgError
 	return errors.As(err, &pgErr) && pgErr.Code == "42501" &&
 		(strings.HasPrefix(pgErr.Message, "permission denied") || strings.HasPrefix(pgErr.Message, "must be owner"))
 }
 
-// refusedByPolicy reports whether err is a row-level security policy refusing a written row.
-func refusedByPolicy(err error) bool {
-	var pgErr *pgconn.PgError
-	return errors.As(err, &pgErr) && pgErr.Code == "42501" && strings.HasPrefix(pgErr.Message, "new row violates row-level security policy")
-}
-
 // TestTheBootstrapCreatesOneRuntimeRolePerDeployable requires the bootstrap's roles to be exactly the
 // migration role and ADR-0118's runtime roles, so the tests below, which run under each runtime role
-// in turn, cannot miss one. A runtime role must also hold nothing beyond its grants. It must not be a
-// superuser, bypass row-level security, create roles or databases, or belong to another role, since a
-// member acts with that role's privileges.
+// in turn, cannot miss one. A runtime role must also hold nothing beyond its grants, so no role
+// attribute but LOGIN. It must not be a superuser, bypass row-level security, create roles or
+// databases or replicate, each a power no grant gives or takes away, and it must not belong to another
+// role, since a member acts with that role's privileges.
 func TestTheBootstrapCreatesOneRuntimeRolePerDeployable(t *testing.T) {
 	ctx := t.Context()
 	conn := connect(t)
@@ -166,8 +160,8 @@ func TestRuntimeRolesCannotChangeTheSchema(t *testing.T) {
 		"add a body column":    "ALTER TABLE messages ADD COLUMN body text",
 		"drop a table":         "DROP TABLE audit_log",
 		"create an index":      "CREATE INDEX ON messages (subject)",
-		"drop a policy":        "DROP POLICY reorg_op_log_plan ON reorg_op_log",
-		"disable a policy":     "ALTER TABLE messages DISABLE ROW LEVEL SECURITY",
+		"create a policy":      "CREATE POLICY schema_probe ON messages USING (true)",
+		"enable row security":  "ALTER TABLE messages ENABLE ROW LEVEL SECURITY",
 		"create a schema":      "CREATE SCHEMA schema_probe",
 		"create a function":    "CREATE FUNCTION schema_probe() RETURNS int LANGUAGE sql AS 'SELECT 1'",
 		"change a table owner": "ALTER TABLE audit_log OWNER TO " + uiRole,
@@ -184,9 +178,9 @@ func TestRuntimeRolesCannotChangeTheSchema(t *testing.T) {
 }
 
 // TestNoRuntimeRoleCanAlterTheAuditLog attempts to update, delete and truncate the audit log under
-// each runtime role in turn, with the account set to the audit row's own, so a policy cannot be what
-// stops the statement. The statements read no column, so an UPDATE or DELETE grant alone would let
-// them through. Each must be refused for want of a grant (ADR-0016).
+// each runtime role in turn, with the account set to the audit row's own. The statements read no
+// column, so an UPDATE or DELETE grant alone would let them through. Each must be refused for want of a
+// grant (ADR-0016).
 func TestNoRuntimeRoleCanAlterTheAuditLog(t *testing.T) {
 	ctx := t.Context()
 	tx := seeded(t)
@@ -207,9 +201,9 @@ func TestNoRuntimeRoleCanAlterTheAuditLog(t *testing.T) {
 }
 
 // TestNoRuntimeRoleCanAlterThePolicyHistory attempts to update, delete and truncate the policy
-// history under each runtime role in turn, with the account set to the history row's own, so a policy
-// cannot be what stops the statement. Each must be refused for want of a grant, so who lifted a
-// restriction survives a compromise of the process that wrote it (ADR-0102).
+// history under each runtime role in turn, with the account set to the history row's own. Each must be
+// refused for want of a grant, so who lifted a restriction survives a compromise of the process that
+// wrote it (ADR-0102).
 func TestNoRuntimeRoleCanAlterThePolicyHistory(t *testing.T) {
 	ctx := t.Context()
 	tx := seeded(t)
@@ -409,21 +403,20 @@ func TestTheUIWritesOnlyItsDecisionColumnsAndPolicyRules(t *testing.T) {
 }
 
 // opLogWriter stands in for a role whose statements write the operation log. No runtime role writes
-// it yet, and the policy applies to every role alike. It holds the plan columns the policy looks up
-// (ADR-0118).
+// it yet. It holds the plan columns the join to a plan reads (ADR-0135).
 const opLogWriter = "check_op_log_writer"
 
-// TestTheOperationLogIsScopedThroughItsPlan reads and writes the operation log under an account that
-// does not own the entry's plan, and again under the account that does. The log has no account column,
-// so only its policy, which reaches the plan's account, can tell the two apart (ADR-0016). The reads
-// run as the UI's role, which reads the log. A read the policy refuses returns no row, and a write
-// raises.
-func TestTheOperationLogIsScopedThroughItsPlan(t *testing.T) {
+// TestTheOperationLogIsReachedThroughItsPlan reads and appends to the operation log in the form the
+// statement check requires of it, through a join to its plan tied to the transaction's account, under
+// an account that does not own the entry's plan and again under the account that does. The log has no
+// account column, so only the plan can tell the two apart (ADR-0135). The reads run as the UI's role,
+// which reads the log. Under the other account the read finds no entry and the append writes none.
+func TestTheOperationLogIsReachedThroughItsPlan(t *testing.T) {
 	ctx := t.Context()
 	tx := seeded(t)
 	for _, sql := range []string{
 		"CREATE ROLE " + opLogWriter + " NOLOGIN",
-		"GRANT SELECT, INSERT, UPDATE ON reorg_op_log TO " + opLogWriter,
+		"GRANT SELECT, INSERT ON reorg_op_log TO " + opLogWriter,
 		"GRANT USAGE ON SEQUENCE reorg_op_log_seq_seq TO " + opLogWriter,
 		"GRANT SELECT (plan_id, account_id) ON reorg_plans TO " + opLogWriter,
 	} {
@@ -431,43 +424,34 @@ func TestTheOperationLogIsScopedThroughItsPlan(t *testing.T) {
 			t.Fatalf("%s: %v", sql, err)
 		}
 	}
-	read := func(account string) (n int, err error) {
-		err = asRole(ctx, tx, uiRole, account, func(sp pgx.Tx) error {
-			return sp.QueryRow(ctx, "SELECT count(*) FROM reorg_op_log WHERE plan_id = $1", planA).Scan(&n)
-		})
+	const read = `SELECT count(*) FROM reorg_op_log AS l INNER JOIN reorg_plans AS p ON l.plan_id = p.plan_id
+		WHERE p.account_id = current_setting('app.account') AND l.plan_id = $1`
+	const appendOp = `INSERT INTO reorg_op_log (plan_id, message_id, labels_before, labels_after)
+		SELECT p.plan_id, 'm-2', '{}', '{Receipts}' FROM reorg_plans AS p
+		WHERE p.account_id = current_setting('app.account') AND p.plan_id = $1`
+	count := func(account string) (n int, err error) {
+		err = asRole(ctx, tx, uiRole, account, func(sp pgx.Tx) error { return sp.QueryRow(ctx, read, planA).Scan(&n) })
 		return n, err
 	}
-	const insert = "INSERT INTO reorg_op_log (plan_id, message_id, labels_before, labels_after) VALUES ($1, 'm-2', '{}', '{Receipts}')"
-	const update = "UPDATE reorg_op_log SET labels_after = '{Archive}' WHERE plan_id = $1"
 
 	t.Run("read by another account", func(t *testing.T) {
-		if n, err := read(accountB); err != nil || n != 0 {
+		if n, err := count(accountB); err != nil || n != 0 {
 			t.Errorf("read %d entries with error %v, want none and no error", n, err)
 		}
 	})
 	t.Run("read by the plan's account", func(t *testing.T) {
-		if n, err := read(accountA); err != nil || n != 1 {
+		if n, err := count(accountA); err != nil || n != 1 {
 			t.Errorf("read %d entries with error %v, want 1 and no error", n, err)
 		}
 	})
-	t.Run("insert by another account", func(t *testing.T) {
-		if _, err := as(ctx, tx, opLogWriter, accountB, insert, planA); !refusedByPolicy(err) {
-			t.Errorf("got %v, want the policy to refuse the row", err)
+	t.Run("append by another account", func(t *testing.T) {
+		if n, err := as(ctx, tx, opLogWriter, accountB, appendOp, planA); err != nil || n != 0 {
+			t.Errorf("appended %d entries with error %v, want none and no error", n, err)
 		}
 	})
-	t.Run("insert by the plan's account", func(t *testing.T) {
-		if n, err := as(ctx, tx, opLogWriter, accountA, insert, planA); err != nil || n != 1 {
-			t.Errorf("inserted %d rows with error %v, want 1 and no error", n, err)
-		}
-	})
-	t.Run("update by another account", func(t *testing.T) {
-		if n, err := as(ctx, tx, opLogWriter, accountB, update, planA); err != nil || n != 0 {
-			t.Errorf("updated %d rows with error %v, want none and no error", n, err)
-		}
-	})
-	t.Run("update by the plan's account", func(t *testing.T) {
-		if n, err := as(ctx, tx, opLogWriter, accountA, update, planA); err != nil || n != 1 {
-			t.Errorf("updated %d rows with error %v, want 1 and no error", n, err)
+	t.Run("append by the plan's account", func(t *testing.T) {
+		if n, err := as(ctx, tx, opLogWriter, accountA, appendOp, planA); err != nil || n != 1 {
+			t.Errorf("appended %d entries with error %v, want 1 and no error", n, err)
 		}
 	})
 }

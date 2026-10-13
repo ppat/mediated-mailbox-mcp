@@ -6,10 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/db/migrations/00002_schema.sql b/db/migrations/00002_schema.sql
-index f40c7fd3..a6d6404b 100644
+index 16df97b3..dcc543f7 100644
 --- a/db/migrations/00002_schema.sql
 +++ b/db/migrations/00002_schema.sql
-@@ -342,12 +342,7 @@ CREATE TABLE job_runs (
+@@ -360,12 +360,7 @@ CREATE TABLE job_runs (
      counters jsonb NOT NULL DEFAULT '{}',
      -- Provider or scanner text, never a body.
      last_error text,
@@ -22,4 +22,4 @@ index f40c7fd3..a6d6404b 100644
 +    PRIMARY KEY (account_id, run_id)
  );
  
- -- A run's timeline.
+ -- A run's timeline. Its rows are parts of the run and go with it (ADR-0016).

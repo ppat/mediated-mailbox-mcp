@@ -6,10 +6,10 @@ every component are [CLAUDE.md](../CLAUDE.md#code-layout-and-conventions)'s.
 
 | Path | Holds |
 | --- | --- |
-| `db/migrations/` | The migration chain ([ADR-0048](../docs/adr/data/0048-forward-only-migrations.md)). A baseline of four files, the one extension the schema needs, which the migration role creates since it is trusted, every table in [ADR-0016](../docs/adr/data/0016-schema.md)'s order, the row-level security policies, and the grants with one section per runtime role followed by one per shared library, then the migrations after it, each tested over rows the chain before it wrote |
+| `db/migrations/` | The migration chain ([ADR-0048](../docs/adr/data/0048-forward-only-migrations.md)). A baseline of three files, the one extension the schema needs, which the migration role creates since it is trusted, every table in [ADR-0016](../docs/adr/data/0016-schema.md)'s order, and the grants with one section per runtime role followed by one per shared library, then the migrations after it, each tested over rows the chain before it wrote |
 | `db/bootstrap/` | `roles.sql`, run once per cluster before the chain by a role allowed to create roles, the one privileged step a deployment takes, since nothing runs inside the application database before the chain ([ADR-0048](../docs/adr/data/0048-forward-only-migrations.md)). It is also the contract a deployment platform follows. It grants nothing on the schema, so confining schema change to the migration role rests on PostgreSQL 15 or later, where PUBLIC holds no CREATE on the public schema. PUBLIC keeps TEMP on the database on every version, so a runtime role can create temporary objects in its own session |
 | `db/<subsection>/` | One subsection per table or closely related group of tables of [ADR-0016](../docs/adr/data/0016-schema.md), each holding its statement files and the package generated from them ([ADR-0066](../docs/adr/data/0066-data-access-generated-from-sql.md)). A table's statements sit in the table's subsection. A statement that a role admitted to that subsection may not be granted under [ADR-0118](../docs/adr/data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)'s three lines sits one directory further down, in a subsection named for what it holds, which only the roles that may run it admit. They are listed under [Subsections one directory down](#subsections-one-directory-down). `db/policychanges` is the policy history's own subsection, which only the UI admits. How each subsection's package is named is under [Package names](#package-names) |
-| `db/tx/` | The shared transaction helper that sets and verifies the account ([ADR-0047](../docs/adr/data/0047-schema-first-data-access.md)). `Run` opens its transaction at the database's default isolation level, where each statement reads the state committed when it starts. A unit whose statements must read one state passes `Run` the source `Snapshot` wraps, whose transactions are repeatable read and read-only, as the client surface's index reads do ([ADR-0109](../docs/adr/operability/0109-the-index-is-read-through-search-count-and-the-sender-listing.md)). The wrapper takes only a pool or a connection, never a transaction, so it cannot hide one from `Run`'s refusal. `RunBase` opens the base-policy transaction, which sets the account empty and `app.base` on and reads both back, the one unit of data access that names no account ([ADR-0112](../docs/adr/data/0112-the-base-policy-is-written-and-read-in-a-transaction-of-its-own.md)). Each statement it runs starts with a `-- name:` comment, as a generated statement does, so its latency is measured under that name ([ADR-0125](../docs/adr/engineering/0125-performance-is-measured-once-at-each-place-time-goes.md)) |
+| `db/tx/` | The shared transaction helper that sets and verifies the account, which every statement reads as `current_setting('app.account')` ([ADR-0047](../docs/adr/data/0047-schema-first-data-access.md), [ADR-0135](../docs/adr/data/0135-every-statement-reads-its-account-from-the-transaction.md)). `Run` opens its transaction at the database's default isolation level, where each statement reads the state committed when it starts. A unit whose statements must read one state passes `Run` the source `Snapshot` wraps, whose transactions are repeatable read and read-only, as the client surface's index reads do ([ADR-0109](../docs/adr/operability/0109-the-index-is-read-through-search-count-and-the-sender-listing.md)). The wrapper takes only a pool or a connection, never a transaction, so it cannot hide one from `Run`'s refusal. `RunBase` opens the base-policy transaction, which sets the account empty and reads it back, the one unit of data access that names no account ([ADR-0112](../docs/adr/data/0112-the-base-policy-is-written-and-read-in-a-transaction-of-its-own.md)). Each statement it runs starts with a `-- name:` comment, as a generated statement does, so its latency is measured under that name ([ADR-0125](../docs/adr/engineering/0125-performance-is-measured-once-at-each-place-time-goes.md)) |
 | `db/check/` | The checks over the library's own files, run as Go tests, listed under [The checks](#the-checks). Their test inputs, including a small library of their own and the SQL violation files, sit under `db/check/testdata/`. Each check runs over the real library, which must be clean, and over that test library, which must produce exactly its listed problems, so no check passes over an empty input |
 
 The generator's configuration sits at `db/sqlc.yaml`, which joins the library with its first
@@ -81,7 +81,21 @@ being unique in the library.
   regular expression functions, an embedded `(?i)` in a pattern, a case-insensitive collation, and
   any other form that folds case or matches approximately, full-text search among them.
 - The migration lint.
-- The derived account-keyed table list and its exceptions.
+- The derived account-keyed table list and its exceptions, the accounts listing, the base policy's
+  statements, which compare the account `IS NULL`, and the operation log, which carries no account
+  and is reached through a join from its plan column to a plan tied to the transaction's account
+  ([ADR-0135](../docs/adr/data/0135-every-statement-reads-its-account-from-the-transaction.md)).
+  Every other statement against an account-keyed table compares `account_id` with
+  `current_setting('app.account')` in a conjunction of equalities, and an insert takes it from
+  there. An account column compared with a parameter is refused, and so is any update of an account
+  column, an upsert's included, whatever the value. A reference the check cannot show tied to the
+  transaction's account, such as one tied only under `OR`, through a subquery's comparison or
+  through a common table expression's output, is refused rather than accepted. The check reads
+  selects, inserts, updates and deletes and the queries nested in the clauses it reads, refuses
+  every other kind of statement, `MERGE` and `TRUNCATE` among them, and refuses a reference to an
+  account-keyed table, or to the operation log, in any clause it does not read. It reads the tables
+  a statement names in its parse tree, so a table named only inside a string of SQL that a function
+  runs, such as `query_to_xml`, is left to review.
 - The no-table-types assertion.
 - The check that every generated file has its statement file.
 - The check that no hand-written non-test Go file other than a `doc.go` sits in a subsection's
@@ -103,7 +117,8 @@ being unique in the library.
   other shared libraries that admit it, as the account session's list admits the account snapshot's
   package, and every role names a list that names such subsections or admits a library's list that
   does.
-- The integration tests that hold each runtime role and the operation log's policy to their grants.
+- The integration tests that hold each runtime role to its grants, every account-keyed table to the
+  transaction's account in the statements' form, and the log tables to their foreign keys.
 - The grant check, which plans each statement under the role of every deployable or job kind whose
   list admits its subsection, directly or through the lists of one or more shared libraries.
 

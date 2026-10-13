@@ -6,4 +6,4 @@ SELECT
     domain,
     message_count
 FROM fixture_senders
-WHERE account_id = @account_id AND domain = @domain;
+WHERE account_id = current_setting('app.account') AND domain = @domain;

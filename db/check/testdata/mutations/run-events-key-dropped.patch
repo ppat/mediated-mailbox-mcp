@@ -1,0 +1,23 @@
+control: Every log table references what it belongs to
+removes: a run's events lose their key to the run, so an event of a run never recorded is stored and a removed run leaves its events
+packages: ./db/check
+tests: TestEveryLogTableRefusesAnOrphan TestEveryLogTableRefusesAnOrphan/a_run's_event TestAMessageOrRunRemovedTakesItsPartsWithIt
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00002_schema.sql b/db/migrations/00002_schema.sql
+index 16df97b3..5132b796 100644
+--- a/db/migrations/00002_schema.sql
++++ b/db/migrations/00002_schema.sql
+@@ -380,10 +380,9 @@ CREATE TABLE job_run_events (
+     -- Progress events carry the checkpoint page.
+     page int,
+     -- Provider or scanner text, never a body.
+     detail text,
+-    PRIMARY KEY (account_id, run_id, seq),
+-    FOREIGN KEY (account_id, run_id) REFERENCES job_runs ON DELETE CASCADE
++    PRIMARY KEY (account_id, run_id, seq)
+ );
+ 
+ -- A run's per-item failures, parts of the run that go with it (ADR-0016). Its vocabularies grow with
+ -- new job kinds, so none is checked.

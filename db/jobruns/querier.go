@@ -13,15 +13,15 @@ import (
 type Querier interface {
 	// A run's item failures counted per disposition, for the run summary's L0 (docs/UI.md section 8.4). A
 	// disposition with no failure has no row.
-	FailureDispositions(ctx context.Context, arg FailureDispositionsParams) ([]FailureDispositionsRow, error)
+	FailureDispositions(ctx context.Context, runID string) ([]FailureDispositionsRow, error)
 	// The delta sync gap recoveries that succeeded and started since a time, oldest first, for the sync-gap
 	// rule of Home's worth-a-look cards (docs/UI.md section 8.1). Each carries its counters, which record
 	// the window it re-enumerated and the messages it reconciled (ADR-0016).
-	GapRecoveriesSince(ctx context.Context, arg GapRecoveriesSinceParams) ([]GapRecoveriesSinceRow, error)
+	GapRecoveriesSince(ctx context.Context, since pgtype.Timestamptz) ([]GapRecoveriesSinceRow, error)
 	// When the account's latest delta sync tick that succeeded finished, null when none has (ADR-0034).
-	LastSucceededTick(ctx context.Context, accountID string) (pgtype.Timestamptz, error)
+	LastSucceededTick(ctx context.Context) (pgtype.Timestamptz, error)
 	// The latest run whose resumed_from names a run, the run summary's resumer (docs/UI.md section 8.4).
-	LatestResumer(ctx context.Context, arg LatestResumerParams) (LatestResumerRow, error)
+	LatestResumer(ctx context.Context, runID pgtype.Text) (LatestResumerRow, error)
 	// The latest run of one workload and pass whose state is one of the given states. The jobs cards read
 	// the last finished run beside a running one, and the system screen the last successful sync tick
 	// (docs/UI.md sections 8.3 and 8.8).
@@ -38,13 +38,13 @@ type Querier interface {
 	ProgressSince(ctx context.Context, arg ProgressSinceParams) (ProgressSinceRow, error)
 	// The runs that recovered a run's items, each with how many it recovered, for the run summary's L0
 	// (docs/UI.md section 8.4).
-	RecoveringRuns(ctx context.Context, arg RecoveringRunsParams) ([]RecoveringRunsRow, error)
+	RecoveringRuns(ctx context.Context, runID string) ([]RecoveringRunsRow, error)
 	// One run with its plan's description and status, the run summary endpoint's run (docs/UI.md section
 	// 17.4), in the shape the jobs endpoint sends a run.
-	RunByID(ctx context.Context, arg RunByIDParams) (RunByIDRow, error)
+	RunByID(ctx context.Context, runID string) (RunByIDRow, error)
 	// Every event of a run's timeline in the order recorded, which the run timeline draws (docs/UI.md
 	// sections 7.3 and 8.4).
-	RunEvents(ctx context.Context, arg RunEventsParams) ([]RunEventsRow, error)
+	RunEvents(ctx context.Context, runID string) ([]RunEventsRow, error)
 	// The runs dataset's figures under its range and filters (docs/UI.md sections 8.3 and 17.1). runs is
 	// also the count the row pages count from. The last failure is the latest failed run's finish, or its
 	// start while it has none, with its identity for the figure's link, empty with no failed run. A null
@@ -71,7 +71,7 @@ type Querier interface {
 	// (ADR-0058), each with its whole recorded state, the plan an apply or rollback run carries included,
 	// the same shape the jobs endpoint sends. The stream sends a run whenever it differs from the last
 	// state sent.
-	StreamRuns(ctx context.Context, arg StreamRunsParams) ([]StreamRunsRow, error)
+	StreamRuns(ctx context.Context, since pgtype.Timestamptz) ([]StreamRunsRow, error)
 }
 
 var _ Querier = (*Queries)(nil)

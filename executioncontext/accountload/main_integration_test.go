@@ -27,8 +27,7 @@ func TestMain(m *testing.M) {
 // library's statements reach, as the mediator's and the worker's other job kinds' do (ADR-0118).
 const role = "mediated_mailbox_sync"
 
-// pool returns a pool connecting as role, so row-level security and the role's grants apply as they
-// do in production.
+// pool returns a pool connecting as role, so the role's grants apply as they do in production.
 func pool(t *testing.T) *pgxpool.Pool {
 	t.Helper()
 	cfg, err := pgxpool.ParseConfig(postgres.URL(t))
@@ -44,7 +43,7 @@ func pool(t *testing.T) *pgxpool.Pool {
 	return p
 }
 
-// superuser returns a connection that bypasses row-level security, to write what the UI's setups and
+// superuser returns a connection that holds every privilege, to write what the UI's setups and
 // the operator would write, and to break what the tests break.
 func superuser(t *testing.T) *pgx.Conn {
 	t.Helper()

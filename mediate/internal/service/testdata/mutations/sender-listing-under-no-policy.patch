@@ -6,13 +6,13 @@ scheduled-count: no
 integration: yes
 
 diff --git a/mediate/internal/service/index.go b/mediate/internal/service/index.go
-index 4fac786f..81729554 100644
+index 18c44b2f..6e94cb03 100644
 --- a/mediate/internal/service/index.go
 +++ b/mediate/internal/service/index.go
-@@ -469,7 +469,7 @@ func (s Sources) listSenders(ctx context.Context, account string, input json.Raw
+@@ -468,7 +468,7 @@ func (s Sources) listSenders(ctx context.Context, account string, input json.Raw
  		return nil, err
  	}
- 	params := senders.SenderPageParams{AccountID: account, FirstPage: !found, AfterCount: from.Count, AfterDomain: from.Key, PageSize: pageSize}
+ 	params := senders.SenderPageParams{FirstPage: !found, AfterCount: from.Count, AfterDomain: from.Key, PageSize: pageSize}
 -	p := s.Policy(account)
 +	p := classify.Policy{}
  	var rows []senders.SenderPageRow

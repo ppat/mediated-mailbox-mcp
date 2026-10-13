@@ -17,13 +17,13 @@ INSERT INTO audit_log (
     content_flags, content_rule_ids, serve_rule_ids, scan_state, scanner_version, scanner_revision
 )
 VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9,
-    $10, $11, $12, $13, $14, $15
+    current_setting('app.account'), $1, $2, $3, $4, $5, $6,
+    $7, $8, $9, $10, $11, $12,
+    $13, $14
 )
 `
 
 type RecordBodyDecisionParams struct {
-	AccountID       string
 	Actor           string
 	Action          string
 	MessageID       pgtype.Text
@@ -48,7 +48,6 @@ type RecordBodyDecisionParams struct {
 // the only write it takes.
 func (q *Queries) RecordBodyDecision(ctx context.Context, arg RecordBodyDecisionParams) error {
 	_, err := q.db.Exec(ctx, recordBodyDecision,
-		arg.AccountID,
 		arg.Actor,
 		arg.Action,
 		arg.MessageID,

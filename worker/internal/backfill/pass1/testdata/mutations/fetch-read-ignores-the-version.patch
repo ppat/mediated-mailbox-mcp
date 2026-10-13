@@ -6,12 +6,12 @@ scheduled-count: no
 integration: yes
 
 diff --git a/db/messages/ingest/ingest.sql b/db/messages/ingest/ingest.sql
-index d48602f4..26c0620d 100644
+index 2e264c23..85b76419 100644
 --- a/db/messages/ingest/ingest.sql
 +++ b/db/messages/ingest/ingest.sql
-@@ -90,7 +90,7 @@ FROM messages AS m
+@@ -109,7 +109,7 @@ FROM messages AS m
  WHERE
-     m.account_id = @account_id
+     m.account_id = current_setting('app.account')
      AND (
 -        m.subject_scanner_version IS DISTINCT FROM @scanner_version::int
 +        false AND m.subject_scanner_version IS DISTINCT FROM @scanner_version::int
@@ -19,15 +19,15 @@ index d48602f4..26c0620d 100644
      )
  ORDER BY m.message_id
 diff --git a/db/messages/ingest/ingest.sql.go b/db/messages/ingest/ingest.sql.go
-index bb55d1ad..5132c68e 100644
+index 6cd31418..fa109f31 100644
 --- a/db/messages/ingest/ingest.sql.go
 +++ b/db/messages/ingest/ingest.sql.go
-@@ -273,7 +273,7 @@ FROM messages AS m
+@@ -296,7 +296,7 @@ FROM messages AS m
  WHERE
-     m.account_id = $1
+     m.account_id = current_setting('app.account')
      AND (
--        m.subject_scanner_version IS DISTINCT FROM $2::int
-+        false AND m.subject_scanner_version IS DISTINCT FROM $2::int
-         OR m.subject_scanner_revision IS DISTINCT FROM $3::text
+-        m.subject_scanner_version IS DISTINCT FROM $1::int
++        false AND m.subject_scanner_version IS DISTINCT FROM $1::int
+         OR m.subject_scanner_revision IS DISTINCT FROM $2::text
      )
  ORDER BY m.message_id

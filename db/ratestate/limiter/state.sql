@@ -1,7 +1,7 @@
 -- name: InsertRateState :exec
 -- Gives an account its rate state the first time it spends. An account that already has one keeps it.
 INSERT INTO rate_state (account_id, current_rate, target_rate, hard_cap)
-VALUES (@account_id, @current_rate, @target_rate, @hard_cap)
+VALUES (current_setting('app.account'), @current_rate, @target_rate, @hard_cap)
 ON CONFLICT (account_id) DO NOTHING;
 
 -- name: RateState :one
@@ -22,7 +22,7 @@ SELECT
     coalesce(latency_samples, '{}')::integer[] AS latency_samples,
     coalesce(latency_medians, '{}')::real[] AS latency_medians
 FROM rate_state
-WHERE account_id = @account_id;
+WHERE account_id = current_setting('app.account');
 
 -- name: UpdateIssuance :exec
 -- Stores what issuance keeps after one request, whether or not it was granted. A granted_ms of zero
@@ -43,7 +43,7 @@ SET
     ),
     classes = @classes,
     updated_at = timestamptz 'epoch' + (@now_ms::bigint) * interval '1 millisecond'
-WHERE account_id = @account_id;
+WHERE account_id = current_setting('app.account');
 
 -- name: UpdateController :exec
 -- Stores the controller's state after a call's outcome. A throttled_ms of zero leaves the latest
@@ -64,4 +64,4 @@ SET
     latency_medians = @latency_medians::real[],
     baseline_p50_ms = nullif(@baseline_ms::real, 0),
     updated_at = timestamptz 'epoch' + (@now_ms::bigint) * interval '1 millisecond'
-WHERE account_id = @account_id;
+WHERE account_id = current_setting('app.account');

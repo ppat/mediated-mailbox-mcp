@@ -1,0 +1,20 @@
+control: Every log table references what it belongs to
+removes: the audit log loses its key to accounts, so an audit row of an account that does not exist is stored and an account with audit rows is deleted
+packages: ./db/check
+tests: TestEveryLogTableRefusesAnOrphan TestEveryLogTableRefusesAnOrphan/an_audit_row TestAnAccountWithEvidenceCannotBeDeleted
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00002_schema.sql b/db/migrations/00002_schema.sql
+index 16df97b3..c937161e 100644
+--- a/db/migrations/00002_schema.sql
++++ b/db/migrations/00002_schema.sql
+@@ -419,7 +419,7 @@ CREATE TABLE job_run_failures (
+ CREATE TABLE audit_log (
+     id bigserial PRIMARY KEY,
+     ts timestamptz NOT NULL DEFAULT now(),
+-    account_id text NOT NULL REFERENCES accounts ON DELETE RESTRICT,
++    account_id text NOT NULL,
+     actor text NOT NULL,
+     action text NOT NULL
+     CHECK (action IN ('READ_BODY', 'DENY_BODY', 'MUTATE', 'DENY_MUTATE')),

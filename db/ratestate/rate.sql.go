@@ -20,7 +20,7 @@ SELECT
     r.last_throttle_at,
     r.classes
 FROM rate_state AS r
-WHERE r.account_id = $1
+WHERE r.account_id = current_setting('app.account')
 `
 
 type RateStatusRow struct {
@@ -35,8 +35,8 @@ type RateStatusRow struct {
 // The rate state the UI's jobs screen and event stream show, the current rate, the target, the cap,
 // the backoff and the last throttle, and each priority class's reservation and use as the limiter
 // records them (ADR-0024, ADR-0025, docs/UI.md section 8.3).
-func (q *Queries) RateStatus(ctx context.Context, accountID string) (RateStatusRow, error) {
-	row := q.db.QueryRow(ctx, rateStatus, accountID)
+func (q *Queries) RateStatus(ctx context.Context) (RateStatusRow, error) {
+	row := q.db.QueryRow(ctx, rateStatus)
 	var i RateStatusRow
 	err := row.Scan(
 		&i.CurrentRate,

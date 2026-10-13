@@ -6,23 +6,23 @@ scheduled-count: no
 integration: yes
 
 diff --git a/db/accountstate/authentication/authentication.sql b/db/accountstate/authentication/authentication.sql
-index fd62f74..36c3422 100644
+index 8f25cd0c..1d562782 100644
 --- a/db/accountstate/authentication/authentication.sql
 +++ b/db/accountstate/authentication/authentication.sql
 @@ -8,4 +8,4 @@ SET
      last_auth_outcome = @outcome
  WHERE
-     account_id = @account_id
+     account_id = current_setting('app.account')
 -    AND (last_auth_at IS NULL OR last_auth_at < @attempted_at);
 +    AND (last_auth_at IS NULL OR last_auth_at > @attempted_at);
 diff --git a/db/accountstate/authentication/authentication.sql.go b/db/accountstate/authentication/authentication.sql.go
-index bf400c6..e786507 100644
+index 48f0ca65..ec2cd881 100644
 --- a/db/accountstate/authentication/authentication.sql.go
 +++ b/db/accountstate/authentication/authentication.sql.go
 @@ -18,7 +18,7 @@ SET
      last_auth_outcome = $2
  WHERE
-     account_id = $3
+     account_id = current_setting('app.account')
 -    AND (last_auth_at IS NULL OR last_auth_at < $1)
 +    AND (last_auth_at IS NULL OR last_auth_at > $1)
  `

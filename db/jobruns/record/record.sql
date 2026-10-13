@@ -7,7 +7,7 @@ SELECT
     r.checkpoint,
     r.counters
 FROM job_runs AS r
-WHERE r.account_id = @account_id AND r.workload = @workload AND r.pass = @pass
+WHERE r.account_id = current_setting('app.account') AND r.workload = @workload AND r.pass = @pass
 ORDER BY r.started_at DESC, r.run_id DESC
 LIMIT 1;
 
@@ -23,18 +23,18 @@ SELECT
             SELECT max(e.at)
             FROM job_run_events AS e
             INNER JOIN job_runs AS r ON e.account_id = r.account_id AND e.run_id = r.run_id
-            WHERE r.account_id = @account_id AND r.workload = @workload AND e.kind = 'progress'
+            WHERE r.account_id = current_setting('app.account') AND r.workload = @workload AND e.kind = 'progress'
         ),
         (
             SELECT max(r.finished_at)
             FROM job_runs AS r
-            WHERE r.account_id = @account_id AND r.workload = @workload AND r.state = 'succeeded'
+            WHERE r.account_id = current_setting('app.account') AND r.workload = @workload AND r.state = 'succeeded'
         )
     )::timestamptz AS latest_success,
     (
         SELECT min(r.started_at)
         FROM job_runs AS r
-        WHERE r.account_id = @account_id AND r.workload = @workload
+        WHERE r.account_id = current_setting('app.account') AND r.workload = @workload
     )::timestamptz AS earliest_start;
 
 -- name: StartRun :exec
@@ -43,7 +43,7 @@ SELECT
 INSERT INTO job_runs (
     account_id, run_id, workload, pass, state, resumed_from, started_at, heartbeat_at, checkpoint, counters
 ) VALUES (
-    @account_id,
+    current_setting('app.account'),
     @run_id,
     @workload,
     @pass,
@@ -60,20 +60,20 @@ INSERT INTO job_runs (
 -- durable, and its heartbeat.
 UPDATE job_runs
 SET checkpoint = @checkpoint, counters = @counters, heartbeat_at = now()
-WHERE account_id = @account_id AND run_id = @run_id;
+WHERE account_id = current_setting('app.account') AND run_id = @run_id;
 
 -- name: EndRun :exec
 -- Records that a running run ended, succeeded or failed, with its last error. A run that is no longer
 -- running is left as it is, so a run a later one found stopped keeps the state that run gave it.
 UPDATE job_runs
 SET state = @state, finished_at = now(), heartbeat_at = now(), last_error = sqlc.narg(last_error)
-WHERE account_id = @account_id AND run_id = @run_id AND state = 'running';
+WHERE account_id = current_setting('app.account') AND run_id = @run_id AND state = 'running';
 
 -- name: RecordEvent :exec
 -- Adds one event to a run's timeline. A progress event carries the checkpoint page. The detail is
 -- provider or scanner text, never a body (ADR-0117).
 INSERT INTO job_run_events (account_id, run_id, kind, page, detail)
-VALUES (@account_id, @run_id, @kind, sqlc.narg(page), sqlc.narg(detail));
+VALUES (current_setting('app.account'), @run_id, @kind, sqlc.narg(page), sqlc.narg(detail));
 
 -- name: RecordFailure :exec
 -- Records one item a run failed on, with its error class, how many attempts it took, when the first
@@ -91,7 +91,7 @@ INSERT INTO job_run_failures (
     last_at,
     disposition
 ) VALUES (
-    @account_id,
+    current_setting('app.account'),
     @run_id,
     @item_kind,
     @item_id,

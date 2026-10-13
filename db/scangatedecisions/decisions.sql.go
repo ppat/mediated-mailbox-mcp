@@ -14,19 +14,18 @@ import (
 const gateDecisionCount = `-- name: GateDecisionCount :one
 SELECT count(*) AS decisions
 FROM scan_gate_decisions AS d
-WHERE d.account_id = $1 AND d.decision = $2 AND d.decided_at >= $3
+WHERE d.account_id = current_setting('app.account') AND d.decision = $1 AND d.decided_at >= $2
 `
 
 type GateDecisionCountParams struct {
-	AccountID string
-	Decision  string
-	Since     pgtype.Timestamptz
+	Decision string
+	Since    pgtype.Timestamptz
 }
 
 // The scan gate's decisions of one kind since a time, the skips the corpus endpoint counts (docs/UI.md
 // section 8.1).
 func (q *Queries) GateDecisionCount(ctx context.Context, arg GateDecisionCountParams) (int64, error) {
-	row := q.db.QueryRow(ctx, gateDecisionCount, arg.AccountID, arg.Decision, arg.Since)
+	row := q.db.QueryRow(ctx, gateDecisionCount, arg.Decision, arg.Since)
 	var decisions int64
 	err := row.Scan(&decisions)
 	return decisions, err

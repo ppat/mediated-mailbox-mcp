@@ -16,21 +16,21 @@ import (
 // statement run this way can run in a transaction that did not set the account, where it sees no
 // rows and raises nothing.
 func outsideTheHelper(ctx context.Context, db tx.Beginner, pool policyrules.DBTX, account string) error {
-	if _, err := policyrules.New(pool).PolicyRules(ctx, account); err != nil { // want vetcheck "calls policyrules.New outside a function literal passed to tx.Run"
+	if _, err := policyrules.New(pool).PolicyRules(ctx); err != nil { // want vetcheck "calls policyrules.New outside a function literal passed to tx.Run"
 		return err
 	}
 	build := policyrules.New // want vetcheck "uses policyrules.New as a value"
 	_ = build
 	if err := tx.Run(ctx, db, account, func(t pgx.Tx) error {
 		_ = t
-		_, err := policyrules.New(pool).PolicyRules(ctx, account) // want vetcheck "calls policyrules.New on a handle other than the transaction tx.Run hands the enclosing literal"
+		_, err := policyrules.New(pool).PolicyRules(ctx) // want vetcheck "calls policyrules.New on a handle other than the transaction tx.Run hands the enclosing literal"
 		return err
 	}); err != nil {
 		return err
 	}
 	if err := tx.Run(ctx, db, account, func(t pgx.Tx) error {
 		rebound := policyrules.New(t)
-		_, err := rebound.WithTx(t).PolicyRules(ctx, account) // want vetcheck "rebinds policyrules queries with WithTx"
+		_, err := rebound.WithTx(t).PolicyRules(ctx) // want vetcheck "rebinds policyrules queries with WithTx"
 		return err
 	}); err != nil {
 		return err
@@ -38,7 +38,7 @@ func outsideTheHelper(ctx context.Context, db tx.Beginner, pool policyrules.DBTX
 	if err := tx.Run(ctx, db, account, func(t pgx.Tx) error {
 		return tx.Run(ctx, db, "another", func(inner pgx.Tx) error {
 			_ = inner
-			_, err := policyrules.New(t).PolicyRules(ctx, account) // want vetcheck "calls policyrules.New on the transaction of an enclosing literal passed to tx.Run, not the innermost one"
+			_, err := policyrules.New(t).PolicyRules(ctx) // want vetcheck "calls policyrules.New on the transaction of an enclosing literal passed to tx.Run, not the innermost one"
 			return err
 		})
 	}); err != nil {
@@ -48,7 +48,7 @@ func outsideTheHelper(ctx context.Context, db tx.Beginner, pool policyrules.DBTX
 		held := &t // want vetcheck "takes the address of the transaction tx.Run hands the literal"
 		*held = nil
 		t = nil // want vetcheck "assigns to the transaction tx.Run hands the literal"
-		_, err := policyrules.New(t).PolicyRules(ctx, account)
+		_, err := policyrules.New(t).PolicyRules(ctx)
 		return err
 	}); err != nil {
 		return err

@@ -17,11 +17,15 @@ const (
 	checkCitextCast = "citext-parameter-cast"
 	checkPagedSort  = "paged-sort-identity"
 	checkAccount    = "account-predicate"
+	checkAccountArg = "account-parameter"
+	checkAccountSet = "account-update"
+	checkKind       = "statement-kind"
+	checkUnread     = "unread-position"
 	checkSuppress   = "suppression-annotation"
 	checkDomainCase = "domain-sql-case"
 )
 
-var statementChecks = []string{checkStar, checkGroupCase, checkCitextCast, checkPagedSort, checkAccount, checkSuppress, checkDomainCase}
+var statementChecks = []string{checkStar, checkGroupCase, checkCitextCast, checkPagedSort, checkAccount, checkAccountArg, checkAccountSet, checkKind, checkUnread, checkSuppress, checkDomainCase}
 
 // suppressionAnnotation is sqlc's per-query switch that turns its rule surface off. ADR-0066 bans it
 // from statement files, and it cannot reach this pass.
@@ -42,6 +46,10 @@ func checkStatements(s schema, f sqlFile) []finding {
 		c.domainCases()
 		c.query(raw.GetStmt(), nil)
 		c.resolveObligations()
+		// A statement of a kind the check does not read is already refused whole.
+		if !slices.ContainsFunc(c.findings, func(f finding) bool { return f.check == checkKind }) {
+			c.unreadTables()
+		}
 		out = append(out, c.findings...)
 	}
 	return out
@@ -68,8 +76,8 @@ func statementName(f sqlFile, raw *pg.RawStmt) string {
 // baseSubsection is the directory name of the base policy's subsection, db/policyrules/base, whose
 // statements run only in a base-policy transaction, which names no account (ADR-0112). There a
 // reference to a table in nullAccountTables is scoped by the null account alone, an IS NULL test on its
-// account column, or the literal NULL in an insert, and an account parameter scopes nothing, so a base
-// statement never reaches an account's rows. Everywhere else a null test alone scopes nothing.
+// account column, or the literal NULL in an insert, and the transaction's account scopes nothing, so a
+// base statement never reaches an account's rows. Everywhere else a null test alone scopes nothing.
 const baseSubsection = "base"
 
 // base reports whether the statement sits in the base policy's subsection.
@@ -90,9 +98,12 @@ type statementCheck struct {
 	// name is the statement's name, from its name comment.
 	name     string
 	findings []finding
-	// obligations are the account-keyed table references that need an account predicate. They are
-	// resolved once the whole statement is read, because a subquery can tie its table to a table of
-	// the query around it.
+	// visited holds every table reference the check read, so unreadTables can refuse one in a clause
+	// it never reached.
+	visited map[*pg.RangeVar]bool
+	// obligations are the account-keyed table references, and the references to a table in
+	// scopedThrough, that need tying to the transaction's account. They are resolved once the whole
+	// statement is read, because a subquery can tie its table to a table of the query around it.
 	obligations []*rangeRef
 }
 
@@ -123,18 +134,19 @@ var caseFunctions = []string{"lower", "upper", "casefold", "initcap"}
 // their operators, and the case-insensitive regular expression matches.
 var caseOperators = []string{"~~*", "!~~*", "~*", "!~*"}
 
-// domainCases refuses the forms of folding a sender domain's case in SQL that it matches (ADR-0016).
-// It reports a case-folding function or a cast to the case-insensitive type applied to an expression
-// holding a domain column, a case-folding function or a cast to the case-insensitive type in one
-// direct operand of a comparison or a function call whose other operand holds a domain column, such
-// as a parameter lowered or cast to citext to match a domain or a domain searched for a lowered
-// parameter, and a case-insensitive match with a domain column in either operand. PostgreSQL's lower()
-// is not the Go normalizer and depends on the database's collation, citext compares through lower(),
-// and none of these is leakproof on an indexed column, so under row-level security each turns the
-// index off (ADR-0066). Outside what it matches, and held by review, are a fold inside a nested query
-// whose output is compared with a domain, a domain column read under another name, the 'i' flag of
-// the regular expression functions, an embedded (?i) in a pattern, a case-insensitive collation, and
-// any other form that folds case or matches approximately, full-text search among them.
+// domainCases refuses the forms of folding a sender domain's case in SQL that it matches
+// (ADR-0016). It reports a case-folding function or a cast to the case-insensitive type applied to
+// an expression holding a domain column, a case-folding function or a cast to the case-insensitive
+// type in one direct operand of a comparison or a function call whose other operand holds a domain
+// column, such as a parameter lowered or cast to citext to match a domain or a domain searched for
+// a lowered parameter, and a case-insensitive match with a domain column in either operand.
+// PostgreSQL's lower() is not the Go normalizer and depends on the database's collation, citext
+// compares through lower(), and a fold over an indexed column keeps the column's index from serving
+// the comparison (ADR-0066). Outside what it matches, and held by review, are a fold inside a
+// nested query whose output is compared with a domain, a domain column read under another name, the
+// 'i' flag of the regular expression functions, an embedded (?i) in a pattern, a case-insensitive
+// collation, and any other form that folds case or matches approximately, full-text search among
+// them.
 func (c *statementCheck) domainCases() {
 	reported := map[int32]bool{}
 	reportAt := func(location int32, what string) {
@@ -292,7 +304,7 @@ type rangeRef struct {
 	alias    string
 	table    *table // nil when the reference is not a table of the schema, such as a common table expression
 	location int32
-	// connected is set once the reference is known to be tied to an account parameter.
+	// connected is set once the reference is known to be tied to the transaction's account.
 	connected bool
 	// through lists references of enclosing queries this one is tied to by equality.
 	through []*rangeRef
@@ -366,11 +378,16 @@ func (c *statementCheck) addFrom(sc *scope, item *pg.Node, outer *scope) []*pg.N
 			conds = append(conds, j.GetQuals())
 		}
 		return conds
+	case item.GetRangeTableSample() != nil:
+		// A sampled table is the table itself, held to the same tie.
+		return c.addFrom(sc, item.GetRangeTableSample().GetRelation(), outer)
 	case item.GetRangeSubselect() != nil:
 		rs := item.GetRangeSubselect()
 		c.query(rs.GetSubquery(), outer)
 		sc.refs = append(sc.refs, &rangeRef{alias: rs.GetAlias().GetAliasname()})
 	default:
+		// A function or other row source the check does not model. Its rows are opaque, and any query
+		// nested in its arguments is read like any other.
 		alias := ""
 		walk(item, func(n *pg.Node) bool {
 			if a := n.GetAlias(); a != nil && alias == "" {
@@ -378,27 +395,50 @@ func (c *statementCheck) addFrom(sc *scope, item *pg.Node, outer *scope) []*pg.N
 			}
 			return true
 		})
+		c.expression(sc, item)
 		sc.refs = append(sc.refs, &rangeRef{alias: alias})
 	}
 	return nil
 }
 
 func (c *statementCheck) rangeVar(sc *scope, rv *pg.RangeVar) *rangeRef {
+	if c.visited == nil {
+		c.visited = map[*pg.RangeVar]bool{}
+	}
+	c.visited[rv] = true
 	r := &rangeRef{name: rv.GetRelname(), alias: rv.GetAlias().GetAliasname(), location: rv.GetLocation()}
 	if (rv.GetSchemaname() == "" || rv.GetSchemaname() == "public") && !sc.isCTE(r.name) {
 		r.table = c.schema[r.name]
 	}
 	if r.table != nil {
-		if _, keyed := r.table.columns[accountColumn]; keyed {
-			if !c.exempt(r.name) {
-				c.obligations = append(c.obligations, r)
-			}
+		_, keyed := r.table.columns[accountColumn]
+		_, through := scopedThrough[r.name]
+		if (keyed || through) && !c.exempt(r.name) {
+			c.obligations = append(c.obligations, r)
 		}
 	}
 	return r
 }
 
-// query checks one select, insert, update or delete, and every query nested in it.
+// accountScoped reports whether a reference is to an account-keyed table or to one reached through
+// its parent, whose inserts insertAccount and insertThrough read.
+func accountScoped(r *rangeRef) bool {
+	if r.table == nil {
+		return false
+	}
+	_, keyed := r.table.columns[accountColumn]
+	_, through := scopedThrough[r.name]
+	return keyed || through
+}
+
+// statementKind names the kind of a statement node for a finding, MERGE for a MergeStmt.
+func statementKind(n *pg.Node) string {
+	kind := strings.TrimPrefix(fmt.Sprintf("%T", n.GetNode()), "*pg_query.Node_")
+	return strings.ToUpper(strings.TrimSuffix(kind, "Stmt"))
+}
+
+// query checks one select, insert, update or delete, and every query nested in the clauses it reads.
+// Any other kind of statement is refused, and unreadTables refuses a table in a clause it skips.
 func (c *statementCheck) query(n *pg.Node, outer *scope) {
 	sc := &scope{outer: outer}
 	var with *pg.WithClause
@@ -435,8 +475,15 @@ func (c *statementCheck) query(n *pg.Node, outer *scope) {
 		c.withClause(sc, ins.GetWithClause())
 		target := c.rangeVar(sc, ins.GetRelation())
 		c.insertAccount(sc, target, ins)
+		c.insertThrough(sc, target, ins)
+		// An insert into a table that is neither account-keyed nor reached through a parent has its
+		// source read as any other query, so a query it copies from is held to the same ties.
+		if !accountScoped(target) && ins.GetSelectStmt() != nil {
+			c.query(ins.GetSelectStmt(), sc)
+		}
 		exprs = append(exprs, ins.GetReturningList()...)
 		if oc := ins.GetOnConflictClause(); oc != nil {
+			c.accountSets(target, oc.GetTargetList())
 			exprs = append(exprs, oc.GetTargetList()...)
 			exprs = append(exprs, oc.GetWhereClause())
 		}
@@ -444,7 +491,9 @@ func (c *statementCheck) query(n *pg.Node, outer *scope) {
 	case n.GetUpdateStmt() != nil:
 		up := n.GetUpdateStmt()
 		c.withClause(sc, up.GetWithClause())
-		sc.refs = append(sc.refs, c.rangeVar(sc, up.GetRelation()))
+		updated := c.rangeVar(sc, up.GetRelation())
+		c.accountSets(updated, up.GetTargetList())
+		sc.refs = append(sc.refs, updated)
 		for _, item := range up.GetFromClause() {
 			conds = append(conds, c.addFrom(sc, item, outer)...)
 		}
@@ -465,6 +514,9 @@ func (c *statementCheck) query(n *pg.Node, outer *scope) {
 		}
 		exprs = append(exprs, del.GetReturningList()...)
 	default:
+		// A kind the check does not read, such as MERGE or TRUNCATE, is refused rather than passed
+		// unexamined, so no statement reaches an account-keyed table in a form the check never saw.
+		c.report(-1, checkKind, "a %s statement is a kind the check does not read, so it is refused; write it as a select, insert, update or delete", statementKind(n))
 		return
 	}
 	c.accountEqualities(sc, conds, n.GetSelectStmt() != nil)
@@ -482,20 +534,74 @@ func (c *statementCheck) withClause(sc *scope, with *pg.WithClause) {
 	}
 }
 
-// expression checks casts compared against case-insensitive columns within one expression, and
-// checks each query nested in it against the scope it sits in.
+// expression checks casts compared against case-insensitive columns and account columns compared with
+// a parameter within one expression, and checks each query nested in it against the scope it sits in.
 func (c *statementCheck) expression(sc *scope, e *pg.Node) {
 	walk(e, func(n *pg.Node) bool {
 		if n.GetSelectStmt() != nil || n.GetInsertStmt() != nil || n.GetUpdateStmt() != nil || n.GetDeleteStmt() != nil {
 			c.query(n, sc)
 			return false
 		}
-		if a := n.GetAExpr(); a != nil && a.GetLexpr() != nil {
+		if a := n.GetAExpr(); a != nil && a.GetLexpr() != nil && !isParameter(n) {
 			c.citextComparison(sc, a, a.GetLexpr(), a.GetRexpr())
 			c.citextComparison(sc, a, a.GetRexpr(), a.GetLexpr())
+			if isAccountColumn(a.GetLexpr()) && containsParameter(a.GetRexpr()) || isAccountColumn(a.GetRexpr()) && containsParameter(a.GetLexpr()) {
+				c.report(a.GetLocation(), checkAccountArg, "an account column compared with a parameter could name another account than the transaction's, which every statement reads as current_setting('%s')", transactionAccount)
+			}
 		}
 		return true
 	})
+}
+
+// accountSets refuses an update, or an upsert's update, that sets the account column of an
+// account-keyed table, whatever the value. Such a write moves a row to another account or between the
+// base policy and an account, and no statement of the library makes one (ADR-0135).
+func (c *statementCheck) accountSets(target *rangeRef, targets []*pg.Node) {
+	if target.table == nil {
+		return
+	}
+	if _, keyed := target.table.columns[accountColumn]; !keyed {
+		return
+	}
+	for _, t := range targets {
+		if rt := t.GetResTarget(); rt != nil && rt.GetName() == accountColumn {
+			c.report(rt.GetLocation(), checkAccountSet, "an update sets %s.%s, which moves a row to another account or between the base policy and an account", target.name, accountColumn)
+		}
+	}
+}
+
+// isAccountColumn reports whether n is a reference to an account column, bare, qualified or under a
+// cast. A parameter is never one, though @account_id parses as an operator applied to a column
+// reference of that name.
+func isAccountColumn(n *pg.Node) bool {
+	if tc := n.GetTypeCast(); tc != nil {
+		n = tc.GetArg()
+	}
+	ref := n.GetColumnRef()
+	if ref == nil {
+		return false
+	}
+	fields := names(ref.GetFields())
+	return len(fields) > 0 && fields[len(fields)-1] == accountColumn
+}
+
+// transactionAccount is the setting the transaction helper sets to the unit's account and reads back
+// (ADR-0047, ADR-0135).
+const transactionAccount = "app.account"
+
+// isTransactionAccount reports whether n is the transaction's account as every statement reads it,
+// current_setting('app.account') with no second argument, so a connection that never set it raises.
+func isTransactionAccount(n *pg.Node) bool {
+	fc := n.GetFuncCall()
+	if fc == nil || len(fc.GetArgs()) != 1 {
+		return false
+	}
+	fn := names(fc.GetFuncname())
+	if !slices.Equal(fn, []string{"current_setting"}) && !slices.Equal(fn, []string{"pg_catalog", "current_setting"}) {
+		return false
+	}
+	k := fc.GetArgs()[0].GetAConst()
+	return k != nil && k.GetSval() != nil && k.GetSval().GetSval() == transactionAccount
 }
 
 // citextComparison refuses a text cast on either side of a comparison with a case-insensitive column
@@ -541,7 +647,7 @@ func (c *statementCheck) citextComparison(sc *scope, a *pg.A_Expr, columnSide, p
 	}
 }
 
-// accountEqualities records which references the conditions tie to an account parameter, through
+// accountEqualities records which references the conditions tie to the transaction's account, through
 // equalities joined by AND. A predicate under OR or NOT does not restrict the rows, so it is not
 // followed, apart from the account-or-null form accountOrNull accepts when reads is set. Only a
 // select reads, so an update, a delete or an insert from a query never takes that form, since each
@@ -577,14 +683,17 @@ func (c *statementCheck) accountEqualities(sc *scope, conds []*pg.Node, reads bo
 	for changed := true; changed; {
 		changed = false
 		for _, eq := range equalities {
-			l, lParam := c.accountSide(sc, eq[0])
-			r, rParam := c.accountSide(sc, eq[1])
+			l, lTx := c.accountSide(sc, eq[0])
+			r, rTx := c.accountSide(sc, eq[1])
+			if l == nil && r == nil {
+				l, r = c.parentSides(sc, eq[0], eq[1])
+			}
 			switch {
-			case l != nil && rParam:
+			case l != nil && rTx:
 				if inScope(sc, l) && !l.connected && !c.base() {
 					l.connected, changed = true, true
 				}
-			case r != nil && lParam:
+			case r != nil && lTx:
 				if inScope(sc, r) && !r.connected && !c.base() {
 					r.connected, changed = true, true
 				}
@@ -605,9 +714,38 @@ func (c *statementCheck) accountEqualities(sc *scope, conds []*pg.Node, reads bo
 
 func inScope(sc *scope, r *rangeRef) bool { return slices.Contains(sc.refs, r) }
 
-// accountOrNull returns the equality inside n when n is exactly the predicate ADR-0047 states for a
-// table in nullAccountTables, the account column equal to a parameter OR the same column IS NULL,
-// in either order. Anything looser, such as a null test alone, a null test on another column or
+// parentSides returns the two references an equality joins when it compares a table in scopedThrough
+// by its parent's key with that parent's own key column, in either order, and nil otherwise.
+func (c *statementCheck) parentSides(sc *scope, a, b *pg.Node) (*rangeRef, *rangeRef) {
+	resolve := func(n *pg.Node) (*rangeRef, string) {
+		ref := n.GetColumnRef()
+		if ref == nil {
+			return nil, ""
+		}
+		r, col, known := sc.resolve(ref)
+		if !known {
+			return nil, ""
+		}
+		return r, col
+	}
+	ra, ca := resolve(a)
+	rb, cb := resolve(b)
+	if ra == nil || rb == nil {
+		return nil, nil
+	}
+	joins := func(child *rangeRef, childCol string, parent *rangeRef, parentCol string) bool {
+		p, ok := scopedThrough[child.name]
+		return ok && childCol == p.column && parent.name == p.parent && parentCol == p.parentColumn
+	}
+	if joins(ra, ca, rb, cb) || joins(rb, cb, ra, ca) {
+		return ra, rb
+	}
+	return nil, nil
+}
+
+// accountOrNull returns the equality inside n when n is exactly the predicate ADR-0135 states for a
+// table in nullAccountTables, the account column equal to the transaction's account OR the same column
+// IS NULL, in either order. Anything looser, such as a null test alone, a null test on another column or
 // reference, or the form on any other table, is not accepted.
 func (c *statementCheck) accountOrNull(sc *scope, n *pg.Node) ([2]*pg.Node, bool) {
 	b := n.GetBoolExpr()
@@ -627,16 +765,16 @@ func (c *statementCheck) accountOrNull(sc *scope, n *pg.Node) ([2]*pg.Node, bool
 	if eq == nil || null == nil {
 		return [2]*pg.Node{}, false
 	}
-	nulled, nullParam := c.accountSide(sc, null.GetArg())
-	if nulled == nil || nullParam {
+	nulled, nullTx := c.accountSide(sc, null.GetArg())
+	if nulled == nil || nullTx {
 		return [2]*pg.Node{}, false
 	}
 	if _, listed := nullAccountTables[nulled.name]; !listed || nulled.table == nil {
 		return [2]*pg.Node{}, false
 	}
-	l, lParam := c.accountSide(sc, eq.GetLexpr())
-	r, rParam := c.accountSide(sc, eq.GetRexpr())
-	if l == nulled && rParam || r == nulled && lParam {
+	l, lTx := c.accountSide(sc, eq.GetLexpr())
+	r, rTx := c.accountSide(sc, eq.GetRexpr())
+	if l == nulled && rTx || r == nulled && lTx {
 		return [2]*pg.Node{eq.GetLexpr(), eq.GetRexpr()}, true
 	}
 	return [2]*pg.Node{}, false
@@ -649,8 +787,8 @@ func (c *statementCheck) nullAccount(sc *scope, n *pg.Node) (*rangeRef, bool) {
 	if t == nil || t.GetNulltesttype() != pg.NullTestType_IS_NULL {
 		return nil, false
 	}
-	r, param := c.accountSide(sc, t.GetArg())
-	if r == nil || param || r.table == nil {
+	r, tx := c.accountSide(sc, t.GetArg())
+	if r == nil || tx || r.table == nil {
 		return nil, false
 	}
 	if _, listed := nullAccountTables[r.name]; !listed {
@@ -659,9 +797,10 @@ func (c *statementCheck) nullAccount(sc *scope, n *pg.Node) (*rangeRef, bool) {
 	return r, true
 }
 
-// accountSide returns the reference whose account column n names, or whether n is a parameter.
+// accountSide returns the reference whose account column n names, or whether n is the transaction's
+// account. A parameter is neither, so it ties nothing.
 func (c *statementCheck) accountSide(sc *scope, n *pg.Node) (*rangeRef, bool) {
-	if isParameter(n) || isCastParameter(n) {
+	if isTransactionAccount(n) {
 		return nil, true
 	}
 	if ref := n.GetColumnRef(); ref != nil {
@@ -672,8 +811,8 @@ func (c *statementCheck) accountSide(sc *scope, n *pg.Node) (*rangeRef, bool) {
 	return nil, false
 }
 
-// insertAccount checks that an insert into an account-keyed table supplies the account as a
-// parameter, or from an account column its query ties to a parameter.
+// insertAccount checks that an insert into an account-keyed table takes the account from the
+// transaction, or from an account column its query ties to the transaction's account.
 func (c *statementCheck) insertAccount(sc *scope, target *rangeRef, ins *pg.InsertStmt) {
 	if target.table == nil {
 		return
@@ -698,8 +837,8 @@ func (c *statementCheck) insertAccount(sc *scope, target *rangeRef, ins *pg.Inse
 				}
 				continue
 			}
-			if index >= len(items) || !isParameter(items[index]) && !isCastParameter(items[index]) {
-				c.report(target.location, checkAccount, "an insert into account-keyed table %s must take %s from a parameter", target.name, accountColumn)
+			if index >= len(items) || !isTransactionAccount(items[index]) {
+				c.report(target.location, checkAccount, "an insert into account-keyed table %s must take %s from the transaction's account, current_setting('%s')", target.name, accountColumn, transactionAccount)
 			}
 		}
 		target.connected = true
@@ -725,7 +864,7 @@ func (c *statementCheck) insertAccount(sc *scope, target *rangeRef, ins *pg.Inse
 	targets := sel.GetTargetList()
 	if index < len(targets) {
 		value := targets[index].GetResTarget().GetVal()
-		if r, param := c.accountSide(inner, value); param {
+		if r, tx := c.accountSide(inner, value); tx {
 			target.connected = true
 		} else if r != nil {
 			target.insertValue = r
@@ -733,12 +872,101 @@ func (c *statementCheck) insertAccount(sc *scope, target *rangeRef, ins *pg.Inse
 		}
 	}
 	if !target.connected {
-		c.report(target.location, checkAccount, "an insert into account-keyed table %s must take %s from a parameter or a tied account column", target.name, accountColumn)
+		c.report(target.location, checkAccount, "an insert into account-keyed table %s must take %s from the transaction's account or a tied account column", target.name, accountColumn)
 		target.connected = true
 	}
 }
 
-// resolveObligations reports every account-keyed reference not tied to an account parameter.
+// insertThrough checks that an insert into a table in scopedThrough takes its parent's key from a
+// reference to the parent that the query ties to the transaction's account. A key from a parameter or a
+// value list could name another account's parent, so it is refused.
+func (c *statementCheck) insertThrough(sc *scope, target *rangeRef, ins *pg.InsertStmt) {
+	p, ok := scopedThrough[target.name]
+	if !ok || target.table == nil {
+		return
+	}
+	refuse := func() {
+		c.report(target.location, checkAccount, "an insert into %s must take %s from a %s row its query ties to the transaction's account", target.name, p.column, p.parent)
+		target.connected = true
+	}
+	index := slices.IndexFunc(ins.GetCols(), func(n *pg.Node) bool { return n.GetResTarget().GetName() == p.column })
+	sel := ins.GetSelectStmt().GetSelectStmt()
+	if index < 0 || len(sel.GetValuesLists()) > 0 {
+		for _, row := range sel.GetValuesLists() {
+			c.expression(sc, row)
+		}
+		refuse()
+		return
+	}
+	inner := &scope{outer: sc}
+	c.withClause(inner, sel.GetWithClause())
+	var conds []*pg.Node
+	for _, item := range sel.GetFromClause() {
+		conds = append(conds, c.addFrom(inner, item, sc)...)
+	}
+	if sel.GetWhereClause() != nil {
+		conds = append(conds, sel.GetWhereClause())
+	}
+	c.accountEqualities(inner, conds, false)
+	for _, e := range append(sel.GetTargetList(), conds...) {
+		c.expression(inner, e)
+	}
+	if targets := sel.GetTargetList(); index < len(targets) {
+		if ref := targets[index].GetResTarget().GetVal().GetColumnRef(); ref != nil {
+			if r, col, known := inner.resolve(ref); known && r.name == p.parent && col == p.parentColumn {
+				target.insertValue = r
+				return
+			}
+		}
+	}
+	refuse()
+}
+
+// unreadTables refuses every reference to an account-keyed table, or to one reached through its
+// parent, that the check never read, whatever clause holds it. The check reads the clauses it names
+// and ties each reference it reads, so a reference anywhere else, in a clause read today or one a
+// later PostgreSQL adds, fails closed rather than passing untied. A name a common table expression of
+// the statement defines is not a table, unless the schema also holds a table of that name, and the
+// accounts listing's exception holds here as it does for a read reference. A table named only inside
+// a string, such as SQL handed to query_to_xml, is outside the parse tree and so outside the check.
+func (c *statementCheck) unreadTables() {
+	ctes := map[string]bool{}
+	walk(c.raw.GetStmt(), func(n *pg.Node) bool {
+		if cte := n.GetCommonTableExpr(); cte != nil {
+			ctes[cte.GetCtename()] = true
+		}
+		return true
+	})
+	walk(c.raw.GetStmt(), func(n *pg.Node) bool {
+		rv := n.GetRangeVar()
+		if rv == nil || c.visited[rv] {
+			return true
+		}
+		if s := rv.GetSchemaname(); s != "" && s != "public" {
+			return true
+		}
+		name := rv.GetRelname()
+		tb := c.schema[name]
+		// A common table expression's name is not a table, unless it shadows one. A name that is
+		// both is not skipped, since a reference to it may be the real table outside the
+		// expression's scope, and shadowing a table is a shape no statement needs.
+		if rv.GetSchemaname() == "" && ctes[name] && tb == nil {
+			return true
+		}
+		if tb == nil || c.exempt(name) {
+			return true
+		}
+		_, keyed := tb.columns[accountColumn]
+		_, through := scopedThrough[name]
+		if keyed || through {
+			c.report(rv.GetLocation(), checkUnread, "%s is referenced in a clause the check does not read, so its account cannot be shown tied to the transaction's and it is refused", name)
+		}
+		return true
+	})
+}
+
+// resolveObligations reports every account-keyed reference, and every reference to a table in
+// scopedThrough, not tied to the transaction's account.
 func (c *statementCheck) resolveObligations() {
 	var tied func(r *rangeRef, seen []*rangeRef) bool
 	tied = func(r *rangeRef, seen []*rangeRef) bool {
@@ -756,7 +984,11 @@ func (c *statementCheck) resolveObligations() {
 	}
 	for _, r := range c.obligations {
 		if !tied(r, nil) {
-			c.report(r.location, checkAccount, "no account predicate ties %s.%s to a parameter", r.name, accountColumn)
+			if p, ok := scopedThrough[r.name]; ok {
+				c.report(r.location, checkAccount, "no join on %s.%s ties %s to a %s row tied to the transaction's account", r.name, p.column, r.name, p.parent)
+				continue
+			}
+			c.report(r.location, checkAccount, "no account predicate ties %s.%s to the transaction's account", r.name, accountColumn)
 		}
 	}
 }

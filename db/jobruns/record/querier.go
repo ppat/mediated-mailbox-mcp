@@ -29,7 +29,7 @@ type Querier interface {
 	// succeeded, and the start of its earliest run, each null when no run records one. The worker's late
 	// alert counts a job from them at its start, so a restart leaves a job that does not succeed ageing
 	// (ADR-0119).
-	RecordedSuccess(ctx context.Context, arg RecordedSuccessParams) (RecordedSuccessRow, error)
+	RecordedSuccess(ctx context.Context, workload string) (RecordedSuccessRow, error)
 	// Records a run as it starts, with the checkpoint and counters it starts from and the run it resumes,
 	// if any (ADR-0117).
 	StartRun(ctx context.Context, arg StartRunParams) error

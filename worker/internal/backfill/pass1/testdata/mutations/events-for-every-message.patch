@@ -6,11 +6,11 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/backfill/pass1/postgres.go b/worker/internal/backfill/pass1/postgres.go
-index f2756aa..9847f65 100644
+index c902fbdc..190d1cfc 100644
 --- a/worker/internal/backfill/pass1/postgres.go
 +++ b/worker/internal/backfill/pass1/postgres.go
-@@ -155,10 +155,9 @@ func (s *Postgres) Commit(ctx context.Context, account, runID string, p core.Pag
- 				if ok, err = remask(ctx, messages, account, m); err != nil {
+@@ -174,10 +174,9 @@ func (s *Postgres) Commit(ctx context.Context, account, runID string, p index.Pa
+ 				if ok, err = remask(ctx, messages, m); err != nil {
  					return fmt.Errorf("masking the subject of message %s again: %w", m.ID, err)
  				}
 -				if !ok {
@@ -20,5 +20,5 @@ index f2756aa..9847f65 100644
  				}
 -				remasked++
  			}
- 			if err := recordMasks(ctx, events, account, m); err != nil {
+ 			if err := recordMasks(ctx, events, m); err != nil {
  				return err

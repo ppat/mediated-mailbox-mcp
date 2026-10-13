@@ -6,10 +6,13 @@ scheduled-count: no
 integration: yes
 
 diff --git a/db/messages/scan/scan.sql b/db/messages/scan/scan.sql
-index 615ead7..cd7164b 100644
+index 6a8cb3d2..2966d1e8 100644
 --- a/db/messages/scan/scan.sql
 +++ b/db/messages/scan/scan.sql
-@@ -87,7 +87,7 @@ WHERE
+@@ -133,13 +133,13 @@ SET
+     scanner_revision = NULL
+ WHERE
+     account_id = current_setting('app.account')
      AND scan_state = 'scanned'
      AND (
          scanner_version IS DISTINCT FROM @scanner_version::int
@@ -18,16 +21,25 @@ index 615ead7..cd7164b 100644
      )
  RETURNING from_domain;
  
+ -- name: RequeueSignalledSkips :execrows
+ -- Returns each of the account's messages the gate skipped whose subject is now masked to pending scan,
+ -- since the gate decided without that signal (ADR-0120, ADR-0093).
 diff --git a/db/messages/scan/scan.sql.go b/db/messages/scan/scan.sql.go
-index 3868ecd..3f0869b 100644
+index cb71bfe0..23f21eaa 100644
 --- a/db/messages/scan/scan.sql.go
 +++ b/db/messages/scan/scan.sql.go
-@@ -212,7 +212,7 @@ WHERE
+@@ -413,13 +413,13 @@ SET
+     scanner_revision = NULL
+ WHERE
+     account_id = current_setting('app.account')
      AND scan_state = 'scanned'
      AND (
-         scanner_version IS DISTINCT FROM $2::int
--        OR scanner_revision IS DISTINCT FROM $3::text
-+        OR false AND scanner_revision IS DISTINCT FROM @scanner_revision::text
+         scanner_version IS DISTINCT FROM $1::int
+-        OR scanner_revision IS DISTINCT FROM $2::text
++        OR false AND scanner_revision IS DISTINCT FROM $2::text
      )
  RETURNING from_domain
  `
+ 
+ type RequeueStaleVerdictsParams struct {
+ 	ScannerVersion  int32

@@ -136,7 +136,7 @@ The demonstrations of the controls whose patches sit in `executioncontext/`. [MU
 
 ## A write of a sealed value by a deployable is a compare-and-set on the bytes it last knew
 
-- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
+- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and break (3) again on 2026-10-13 at RAPID_SEED=1, with its patch regenerated after every statement came to read its account from the transaction · [pull request #370](https://github.com/ppat/mediated-mailbox-mcp/pull/370)
 - **Break (1):** the re-seal compares against bytes it reads just before writing rather than the bytes it last knew, so it puts back a value the operator replaced
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/executioncontext/accountload`:** `TestAStaleReSealIsRefused`
 - **Break (2):** a write-back that found other bytes keeps its own credential rather than reading the stored one again

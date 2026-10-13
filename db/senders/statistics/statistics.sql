@@ -39,7 +39,7 @@ SELECT
     ) AS label_distribution,
     CASE WHEN bool_or(m.sender_class = 'restricted') THEN 'restricted' ELSE 'normal' END AS sender_class
 FROM messages AS m
-WHERE m.account_id = @account_id AND m.from_domain = @domain
+WHERE m.account_id = current_setting('app.account') AND m.from_domain = @domain
 GROUP BY m.account_id, m.from_domain
 ON CONFLICT (account_id, domain) DO UPDATE
     SET
@@ -57,7 +57,7 @@ ON CONFLICT (account_id, domain) DO UPDATE
 -- sender at domain, which the scan gate reads (ADR-0093).
 UPDATE senders
 SET scan_hit_count = scan_hit_count + @hits
-WHERE account_id = @account_id AND domain = @domain;
+WHERE account_id = current_setting('app.account') AND domain = @domain;
 
 -- name: RecountScanHits :execrows
 -- Counts the prior hits of the account's sender at domain again from the stored messages whose scan
@@ -69,9 +69,9 @@ SET
         SELECT count(*)
         FROM messages AS m
         WHERE
-            m.account_id = @account_id
+            m.account_id = current_setting('app.account')
             AND m.from_domain = @domain
             AND m.scan_state = 'scanned'
             AND cardinality(m.content_flags) > 0
     )
-WHERE s.account_id = @account_id AND s.domain = @domain;
+WHERE s.account_id = current_setting('app.account') AND s.domain = @domain;

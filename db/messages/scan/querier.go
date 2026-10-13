@@ -11,16 +11,16 @@ import (
 type Querier interface {
 	// How many of the account's messages wait for their content scan, the scan backlog depth a scanning
 	// workload emits as a metric (ADR-0093).
-	Backlog(ctx context.Context, accountID string) (int64, error)
+	Backlog(ctx context.Context) (int64, error)
 	// The account's messages the scan gate skipped, in the order of their identifiers, each with what the
 	// gate reads of it and of its sender, the sender's volume and prior hits, read as PendingPage reads
 	// them, so backfill's run-start step decides each skip again under the gate it holds (ADR-0121). A
 	// message with no sender statistics reads a volume and hits of zero.
-	GateSkips(ctx context.Context, accountID string) ([]GateSkipsRow, error)
+	GateSkips(ctx context.Context) ([]GateSkipsRow, error)
 	// The delisting transition for one domain the policy in force no longer restricts. Its messages stored
 	// restricted or skipped as restricted return to a normal sender class with no rule naming it, and to
 	// pending scan (ADR-0037, ADR-0016).
-	MarkDelisted(ctx context.Context, arg MarkDelistedParams) (int64, error)
+	MarkDelisted(ctx context.Context, domain string) (int64, error)
 	// Restricts the stored class of one domain the policy in force now restricts under a rule. Its
 	// messages stored as normal take the restricted class and the rule that sets it, and their scan state
 	// is left as it is (ADR-0113, ADR-0016).
@@ -28,7 +28,7 @@ type Querier interface {
 	// The sender domains of the account whose messages the index stores as normal, each once, which every
 	// scanning workload compares with the policy in force, so a rule added since restricts the stored
 	// classes (ADR-0113).
-	NormalDomains(ctx context.Context, accountID string) ([]string, error)
+	NormalDomains(ctx context.Context) ([]string, error)
 	// The account's messages waiting for their content scan after the message identified by after, in
 	// the order of their identifiers, each with what the scan gate reads of it and of its sender, the
 	// sender's volume and prior hits, which delta sync's tick reads (ADR-0093, ADR-0104). A message with
@@ -54,10 +54,10 @@ type Querier interface {
 	// Returns to pending scan each of the given messages the scan gate skipped, the skips the gate no
 	// longer decides as the same skip (ADR-0121). A message no longer skipped by the gate is left as it is
 	// and counts no row.
-	RequeueGateSkips(ctx context.Context, arg RequeueGateSkipsParams) (int64, error)
+	RequeueGateSkips(ctx context.Context, messageIds []string) (int64, error)
 	// Returns each of the account's messages the gate skipped whose subject is now masked to pending scan,
 	// since the gate decided without that signal (ADR-0120, ADR-0093).
-	RequeueSignalledSkips(ctx context.Context, accountID string) (int64, error)
+	RequeueSignalledSkips(ctx context.Context) (int64, error)
 	// Returns each of the account's scanned messages whose verdict was made under another scanner version
 	// or configuration revision than the one given to pending scan, its verdict cleared, so the Redaction
 	// Gate denies its body as pending its content scan (ADR-0120). Backfill's run-start step makes it,
@@ -69,7 +69,7 @@ type Querier interface {
 	// A rule added after a message was stored can leave its stored class normal while the gate skips it as
 	// restricted, until the comparison for an added rule restricts the stored class (ADR-0113), so the
 	// skip state is read as well.
-	RestrictedDomains(ctx context.Context, accountID string) ([]string, error)
+	RestrictedDomains(ctx context.Context) ([]string, error)
 }
 
 var _ Querier = (*Queries)(nil)

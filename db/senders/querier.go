@@ -14,7 +14,7 @@ type Querier interface {
 	// of each domain it touched in the same transaction (ADR-0109). The service layer classifies each under
 	// the policy in force before a read that selects or groups by sender class, and passes the normal ones
 	// to the statement (ADR-0108).
-	SenderDomains(ctx context.Context, accountID string) ([]string, error)
+	SenderDomains(ctx context.Context) ([]string, error)
 	// One page of the account's sender statistics, the sender with the most messages first, after the
 	// position a cursor names or from the start when it names none (ADR-0017). The stored sender class and
 	// the prior scan hits are not read. The class is decided again against the policy in force (ADR-0002),

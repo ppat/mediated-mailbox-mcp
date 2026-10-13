@@ -15,15 +15,15 @@ const lastSucceededTick = `-- name: LastSucceededTick :one
 SELECT max(r.finished_at)::timestamptz AS finished_at
 FROM job_runs AS r
 WHERE
-    r.account_id = $1
+    r.account_id = current_setting('app.account')
     AND r.workload = 'sync'
     AND r.pass = 'tick'
     AND r.state = 'succeeded'
 `
 
 // When the account's latest delta sync tick that succeeded finished, null when none has (ADR-0034).
-func (q *Queries) LastSucceededTick(ctx context.Context, accountID string) (pgtype.Timestamptz, error) {
-	row := q.db.QueryRow(ctx, lastSucceededTick, accountID)
+func (q *Queries) LastSucceededTick(ctx context.Context) (pgtype.Timestamptz, error) {
+	row := q.db.QueryRow(ctx, lastSucceededTick)
 	var finished_at pgtype.Timestamptz
 	err := row.Scan(&finished_at)
 	return finished_at, err

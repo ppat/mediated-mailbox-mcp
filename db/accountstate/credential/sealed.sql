@@ -3,7 +3,7 @@
 -- row and is not connected, and a null credential means it holds none (ADR-0091).
 SELECT credential
 FROM account_state
-WHERE account_id = @account_id;
+WHERE account_id = current_setting('app.account');
 
 -- name: ReplaceSealed :execrows
 -- Writes a sealed credential back only if the stored bytes are still the ones the process last read
@@ -11,4 +11,4 @@ WHERE account_id = @account_id;
 -- bytes changes no row.
 UPDATE account_state
 SET credential = @credential
-WHERE account_id = @account_id AND credential = @known;
+WHERE account_id = current_setting('app.account') AND credential = @known;

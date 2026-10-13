@@ -1,4 +1,4 @@
-control: A write row-level security empties is reported as a rule the account does not hold
+control: A write that reaches no row because the rule is another account's is reported as a rule the account does not hold
 removes: an edit of a rule the account does not hold is reported as a stale conflict
 packages: ./ui/internal/api
 tests: TestAnotherAccountsRuleIsUnknown

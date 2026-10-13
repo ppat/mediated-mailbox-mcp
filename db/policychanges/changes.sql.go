@@ -22,23 +22,22 @@ SELECT
     ) AS lifted
 FROM policy_changes AS c
 WHERE
-    (c.account_id = $1::text OR c.account_id IS NULL)
-    AND ($2::boolean OR c.account_id IS NOT NULL)
-    AND ($3::boolean OR c.account_id IS NULL)
-    AND ($4::timestamptz IS NULL OR c.ts >= $4::timestamptz)
-    AND ($5::timestamptz IS NULL OR c.ts < $5::timestamptz)
-    AND ($6::text[] IS NULL OR c.action = any($6::text[]))
-    AND ($7::text[] IS NULL OR c.action != all($7::text[]))
-    AND ($8::text[] IS NULL OR c.actor = any($8::text[]))
-    AND ($9::text[] IS NULL OR c.actor != all($9::text[]))
-    AND ($10::text[] IS NULL OR c.rule_id = any($10::text[]))
-    AND ($11::text[] IS NULL OR c.rule_id != all($11::text[]))
-    AND ($12::date[] IS NULL OR (c.ts AT TIME ZONE 'UTC')::date = any($12::date[]))
-    AND ($13::date[] IS NULL OR (c.ts AT TIME ZONE 'UTC')::date != all($13::date[]))
+    (c.account_id = current_setting('app.account') OR c.account_id IS NULL)
+    AND ($1::boolean OR c.account_id IS NOT NULL)
+    AND ($2::boolean OR c.account_id IS NULL)
+    AND ($3::timestamptz IS NULL OR c.ts >= $3::timestamptz)
+    AND ($4::timestamptz IS NULL OR c.ts < $4::timestamptz)
+    AND ($5::text[] IS NULL OR c.action = any($5::text[]))
+    AND ($6::text[] IS NULL OR c.action != all($6::text[]))
+    AND ($7::text[] IS NULL OR c.actor = any($7::text[]))
+    AND ($8::text[] IS NULL OR c.actor != all($8::text[]))
+    AND ($9::text[] IS NULL OR c.rule_id = any($9::text[]))
+    AND ($10::text[] IS NULL OR c.rule_id != all($10::text[]))
+    AND ($11::date[] IS NULL OR (c.ts AT TIME ZONE 'UTC')::date = any($11::date[]))
+    AND ($12::date[] IS NULL OR (c.ts AT TIME ZONE 'UTC')::date != all($12::date[]))
 `
 
 type ChangeFiguresParams struct {
-	AccountID  string
 	BaseRows   bool
 	OwnRows    bool
 	RangeStart pgtype.Timestamptz
@@ -66,7 +65,6 @@ type ChangeFiguresRow struct {
 // filter keeps. A null array is no filter.
 func (q *Queries) ChangeFigures(ctx context.Context, arg ChangeFiguresParams) (ChangeFiguresRow, error) {
 	row := q.db.QueryRow(ctx, changeFigures,
-		arg.AccountID,
 		arg.BaseRows,
 		arg.OwnRows,
 		arg.RangeStart,
@@ -97,28 +95,27 @@ SELECT
     c.suffixes_after
 FROM policy_changes AS c
 WHERE
-    (c.account_id = $1::text OR c.account_id IS NULL)
-    AND ($2::boolean OR c.account_id IS NOT NULL)
-    AND ($3::boolean OR c.account_id IS NULL)
-    AND ($4::timestamptz IS NULL OR c.ts >= $4::timestamptz)
-    AND ($5::timestamptz IS NULL OR c.ts < $5::timestamptz)
-    AND ($6::text[] IS NULL OR c.action = any($6::text[]))
-    AND ($7::text[] IS NULL OR c.action != all($7::text[]))
-    AND ($8::text[] IS NULL OR c.actor = any($8::text[]))
-    AND ($9::text[] IS NULL OR c.actor != all($9::text[]))
-    AND ($10::text[] IS NULL OR c.rule_id = any($10::text[]))
-    AND ($11::text[] IS NULL OR c.rule_id != all($11::text[]))
-    AND ($12::date[] IS NULL OR (c.ts AT TIME ZONE 'UTC')::date = any($12::date[]))
-    AND ($13::date[] IS NULL OR (c.ts AT TIME ZONE 'UTC')::date != all($13::date[]))
+    (c.account_id = current_setting('app.account') OR c.account_id IS NULL)
+    AND ($1::boolean OR c.account_id IS NOT NULL)
+    AND ($2::boolean OR c.account_id IS NULL)
+    AND ($3::timestamptz IS NULL OR c.ts >= $3::timestamptz)
+    AND ($4::timestamptz IS NULL OR c.ts < $4::timestamptz)
+    AND ($5::text[] IS NULL OR c.action = any($5::text[]))
+    AND ($6::text[] IS NULL OR c.action != all($6::text[]))
+    AND ($7::text[] IS NULL OR c.actor = any($7::text[]))
+    AND ($8::text[] IS NULL OR c.actor != all($8::text[]))
+    AND ($9::text[] IS NULL OR c.rule_id = any($9::text[]))
+    AND ($10::text[] IS NULL OR c.rule_id != all($10::text[]))
+    AND ($11::date[] IS NULL OR (c.ts AT TIME ZONE 'UTC')::date = any($11::date[]))
+    AND ($12::date[] IS NULL OR (c.ts AT TIME ZONE 'UTC')::date != all($12::date[]))
 ORDER BY
-    CASE WHEN $14::boolean THEN c.ts END DESC,
-    CASE WHEN NOT $14::boolean THEN c.ts END ASC,
+    CASE WHEN $13::boolean THEN c.ts END DESC,
+    CASE WHEN NOT $13::boolean THEN c.ts END ASC,
     c.id ASC
-LIMIT 50 OFFSET $15
+LIMIT 50 OFFSET $14
 `
 
 type ChangeRowsParams struct {
-	AccountID  string
 	BaseRows   bool
 	OwnRows    bool
 	RangeStart pgtype.Timestamptz
@@ -150,7 +147,6 @@ type ChangeRowsRow struct {
 // the change's identifier ending the sort.
 func (q *Queries) ChangeRows(ctx context.Context, arg ChangeRowsParams) ([]ChangeRowsRow, error) {
 	rows, err := q.db.Query(ctx, changeRows,
-		arg.AccountID,
 		arg.BaseRows,
 		arg.OwnRows,
 		arg.RangeStart,
@@ -199,25 +195,24 @@ SELECT
     count(*) AS changes
 FROM policy_changes AS c
 WHERE
-    (c.account_id = $1::text OR c.account_id IS NULL)
-    AND ($2::boolean OR c.account_id IS NOT NULL)
-    AND ($3::boolean OR c.account_id IS NULL)
-    AND ($4::timestamptz IS NULL OR c.ts >= $4::timestamptz)
-    AND ($5::timestamptz IS NULL OR c.ts < $5::timestamptz)
-    AND ($6::text[] IS NULL OR c.action = any($6::text[]))
-    AND ($7::text[] IS NULL OR c.action != all($7::text[]))
-    AND ($8::text[] IS NULL OR c.actor = any($8::text[]))
-    AND ($9::text[] IS NULL OR c.actor != all($9::text[]))
-    AND ($10::text[] IS NULL OR c.rule_id = any($10::text[]))
-    AND ($11::text[] IS NULL OR c.rule_id != all($11::text[]))
-    AND ($12::date[] IS NULL OR (c.ts AT TIME ZONE 'UTC')::date = any($12::date[]))
-    AND ($13::date[] IS NULL OR (c.ts AT TIME ZONE 'UTC')::date != all($13::date[]))
+    (c.account_id = current_setting('app.account') OR c.account_id IS NULL)
+    AND ($1::boolean OR c.account_id IS NOT NULL)
+    AND ($2::boolean OR c.account_id IS NULL)
+    AND ($3::timestamptz IS NULL OR c.ts >= $3::timestamptz)
+    AND ($4::timestamptz IS NULL OR c.ts < $4::timestamptz)
+    AND ($5::text[] IS NULL OR c.action = any($5::text[]))
+    AND ($6::text[] IS NULL OR c.action != all($6::text[]))
+    AND ($7::text[] IS NULL OR c.actor = any($7::text[]))
+    AND ($8::text[] IS NULL OR c.actor != all($8::text[]))
+    AND ($9::text[] IS NULL OR c.rule_id = any($9::text[]))
+    AND ($10::text[] IS NULL OR c.rule_id != all($10::text[]))
+    AND ($11::date[] IS NULL OR (c.ts AT TIME ZONE 'UTC')::date = any($11::date[]))
+    AND ($12::date[] IS NULL OR (c.ts AT TIME ZONE 'UTC')::date != all($12::date[]))
 GROUP BY c.action
 ORDER BY changes DESC, c.action ASC
 `
 
 type ChangesByActionParams struct {
-	AccountID  string
 	BaseRows   bool
 	OwnRows    bool
 	RangeStart pgtype.Timestamptz
@@ -241,7 +236,6 @@ type ChangesByActionRow struct {
 // then by the group's key, the order the bars draw (docs/UI.md section 17.1).
 func (q *Queries) ChangesByAction(ctx context.Context, arg ChangesByActionParams) ([]ChangesByActionRow, error) {
 	rows, err := q.db.Query(ctx, changesByAction,
-		arg.AccountID,
 		arg.BaseRows,
 		arg.OwnRows,
 		arg.RangeStart,
@@ -279,25 +273,24 @@ SELECT
     count(*) AS changes
 FROM policy_changes AS c
 WHERE
-    (c.account_id = $1::text OR c.account_id IS NULL)
-    AND ($2::boolean OR c.account_id IS NOT NULL)
-    AND ($3::boolean OR c.account_id IS NULL)
-    AND ($4::timestamptz IS NULL OR c.ts >= $4::timestamptz)
-    AND ($5::timestamptz IS NULL OR c.ts < $5::timestamptz)
-    AND ($6::text[] IS NULL OR c.action = any($6::text[]))
-    AND ($7::text[] IS NULL OR c.action != all($7::text[]))
-    AND ($8::text[] IS NULL OR c.actor = any($8::text[]))
-    AND ($9::text[] IS NULL OR c.actor != all($9::text[]))
-    AND ($10::text[] IS NULL OR c.rule_id = any($10::text[]))
-    AND ($11::text[] IS NULL OR c.rule_id != all($11::text[]))
-    AND ($12::date[] IS NULL OR (c.ts AT TIME ZONE 'UTC')::date = any($12::date[]))
-    AND ($13::date[] IS NULL OR (c.ts AT TIME ZONE 'UTC')::date != all($13::date[]))
+    (c.account_id = current_setting('app.account') OR c.account_id IS NULL)
+    AND ($1::boolean OR c.account_id IS NOT NULL)
+    AND ($2::boolean OR c.account_id IS NULL)
+    AND ($3::timestamptz IS NULL OR c.ts >= $3::timestamptz)
+    AND ($4::timestamptz IS NULL OR c.ts < $4::timestamptz)
+    AND ($5::text[] IS NULL OR c.action = any($5::text[]))
+    AND ($6::text[] IS NULL OR c.action != all($6::text[]))
+    AND ($7::text[] IS NULL OR c.actor = any($7::text[]))
+    AND ($8::text[] IS NULL OR c.actor != all($8::text[]))
+    AND ($9::text[] IS NULL OR c.rule_id = any($9::text[]))
+    AND ($10::text[] IS NULL OR c.rule_id != all($10::text[]))
+    AND ($11::date[] IS NULL OR (c.ts AT TIME ZONE 'UTC')::date = any($11::date[]))
+    AND ($12::date[] IS NULL OR (c.ts AT TIME ZONE 'UTC')::date != all($12::date[]))
 GROUP BY c.actor
 ORDER BY changes DESC, c.actor ASC
 `
 
 type ChangesByActorParams struct {
-	AccountID  string
 	BaseRows   bool
 	OwnRows    bool
 	RangeStart pgtype.Timestamptz
@@ -320,7 +313,6 @@ type ChangesByActorRow struct {
 // Every group of the policy_changes dataset by the identity that made the change, as ChangesByAction.
 func (q *Queries) ChangesByActor(ctx context.Context, arg ChangesByActorParams) ([]ChangesByActorRow, error) {
 	rows, err := q.db.Query(ctx, changesByActor,
-		arg.AccountID,
 		arg.BaseRows,
 		arg.OwnRows,
 		arg.RangeStart,
@@ -358,25 +350,24 @@ SELECT
     count(*) AS changes
 FROM policy_changes AS c
 WHERE
-    (c.account_id = $1::text OR c.account_id IS NULL)
-    AND ($2::boolean OR c.account_id IS NOT NULL)
-    AND ($3::boolean OR c.account_id IS NULL)
-    AND ($4::timestamptz IS NULL OR c.ts >= $4::timestamptz)
-    AND ($5::timestamptz IS NULL OR c.ts < $5::timestamptz)
-    AND ($6::text[] IS NULL OR c.action = any($6::text[]))
-    AND ($7::text[] IS NULL OR c.action != all($7::text[]))
-    AND ($8::text[] IS NULL OR c.actor = any($8::text[]))
-    AND ($9::text[] IS NULL OR c.actor != all($9::text[]))
-    AND ($10::text[] IS NULL OR c.rule_id = any($10::text[]))
-    AND ($11::text[] IS NULL OR c.rule_id != all($11::text[]))
-    AND ($12::date[] IS NULL OR (c.ts AT TIME ZONE 'UTC')::date = any($12::date[]))
-    AND ($13::date[] IS NULL OR (c.ts AT TIME ZONE 'UTC')::date != all($13::date[]))
+    (c.account_id = current_setting('app.account') OR c.account_id IS NULL)
+    AND ($1::boolean OR c.account_id IS NOT NULL)
+    AND ($2::boolean OR c.account_id IS NULL)
+    AND ($3::timestamptz IS NULL OR c.ts >= $3::timestamptz)
+    AND ($4::timestamptz IS NULL OR c.ts < $4::timestamptz)
+    AND ($5::text[] IS NULL OR c.action = any($5::text[]))
+    AND ($6::text[] IS NULL OR c.action != all($6::text[]))
+    AND ($7::text[] IS NULL OR c.actor = any($7::text[]))
+    AND ($8::text[] IS NULL OR c.actor != all($8::text[]))
+    AND ($9::text[] IS NULL OR c.rule_id = any($9::text[]))
+    AND ($10::text[] IS NULL OR c.rule_id != all($10::text[]))
+    AND ($11::date[] IS NULL OR (c.ts AT TIME ZONE 'UTC')::date = any($11::date[]))
+    AND ($12::date[] IS NULL OR (c.ts AT TIME ZONE 'UTC')::date != all($12::date[]))
 GROUP BY day
 ORDER BY changes DESC, day ASC
 `
 
 type ChangesByDayParams struct {
-	AccountID  string
 	BaseRows   bool
 	OwnRows    bool
 	RangeStart pgtype.Timestamptz
@@ -399,7 +390,6 @@ type ChangesByDayRow struct {
 // Every group of the policy_changes dataset by the UTC day of the change, as ChangesByAction.
 func (q *Queries) ChangesByDay(ctx context.Context, arg ChangesByDayParams) ([]ChangesByDayRow, error) {
 	rows, err := q.db.Query(ctx, changesByDay,
-		arg.AccountID,
 		arg.BaseRows,
 		arg.OwnRows,
 		arg.RangeStart,
@@ -437,25 +427,24 @@ SELECT
     count(*) AS changes
 FROM policy_changes AS c
 WHERE
-    (c.account_id = $1::text OR c.account_id IS NULL)
-    AND ($2::boolean OR c.account_id IS NOT NULL)
-    AND ($3::boolean OR c.account_id IS NULL)
-    AND ($4::timestamptz IS NULL OR c.ts >= $4::timestamptz)
-    AND ($5::timestamptz IS NULL OR c.ts < $5::timestamptz)
-    AND ($6::text[] IS NULL OR c.action = any($6::text[]))
-    AND ($7::text[] IS NULL OR c.action != all($7::text[]))
-    AND ($8::text[] IS NULL OR c.actor = any($8::text[]))
-    AND ($9::text[] IS NULL OR c.actor != all($9::text[]))
-    AND ($10::text[] IS NULL OR c.rule_id = any($10::text[]))
-    AND ($11::text[] IS NULL OR c.rule_id != all($11::text[]))
-    AND ($12::date[] IS NULL OR (c.ts AT TIME ZONE 'UTC')::date = any($12::date[]))
-    AND ($13::date[] IS NULL OR (c.ts AT TIME ZONE 'UTC')::date != all($13::date[]))
+    (c.account_id = current_setting('app.account') OR c.account_id IS NULL)
+    AND ($1::boolean OR c.account_id IS NOT NULL)
+    AND ($2::boolean OR c.account_id IS NULL)
+    AND ($3::timestamptz IS NULL OR c.ts >= $3::timestamptz)
+    AND ($4::timestamptz IS NULL OR c.ts < $4::timestamptz)
+    AND ($5::text[] IS NULL OR c.action = any($5::text[]))
+    AND ($6::text[] IS NULL OR c.action != all($6::text[]))
+    AND ($7::text[] IS NULL OR c.actor = any($7::text[]))
+    AND ($8::text[] IS NULL OR c.actor != all($8::text[]))
+    AND ($9::text[] IS NULL OR c.rule_id = any($9::text[]))
+    AND ($10::text[] IS NULL OR c.rule_id != all($10::text[]))
+    AND ($11::date[] IS NULL OR (c.ts AT TIME ZONE 'UTC')::date = any($11::date[]))
+    AND ($12::date[] IS NULL OR (c.ts AT TIME ZONE 'UTC')::date != all($12::date[]))
 GROUP BY c.account_id
 ORDER BY changes DESC, c.account_id ASC NULLS LAST
 `
 
 type ChangesByScopeParams struct {
-	AccountID  string
 	BaseRows   bool
 	OwnRows    bool
 	RangeStart pgtype.Timestamptz
@@ -479,7 +468,6 @@ type ChangesByScopeRow struct {
 // are the null group, last.
 func (q *Queries) ChangesByScope(ctx context.Context, arg ChangesByScopeParams) ([]ChangesByScopeRow, error) {
 	rows, err := q.db.Query(ctx, changesByScope,
-		arg.AccountID,
 		arg.BaseRows,
 		arg.OwnRows,
 		arg.RangeStart,
@@ -514,13 +502,13 @@ func (q *Queries) ChangesByScope(ctx context.Context, arg ChangesByScopeParams) 
 const latestChange = `-- name: LatestChange :one
 SELECT max(c.ts)::timestamptz AS latest
 FROM policy_changes AS c
-WHERE c.account_id = $1::text OR c.account_id IS NULL
+WHERE c.account_id = current_setting('app.account') OR c.account_id IS NULL
 `
 
 // When the account's policy last changed, its own rules or the base policy's, null before its first
 // change, for the policy screen's L0 strip.
-func (q *Queries) LatestChange(ctx context.Context, accountID string) (pgtype.Timestamptz, error) {
-	row := q.db.QueryRow(ctx, latestChange, accountID)
+func (q *Queries) LatestChange(ctx context.Context) (pgtype.Timestamptz, error) {
+	row := q.db.QueryRow(ctx, latestChange)
 	var latest pgtype.Timestamptz
 	err := row.Scan(&latest)
 	return latest, err
@@ -528,11 +516,10 @@ func (q *Queries) LatestChange(ctx context.Context, accountID string) (pgtype.Ti
 
 const recordChange = `-- name: RecordChange :exec
 INSERT INTO policy_changes (account_id, actor, action, rule_id, suffixes_before, suffixes_after)
-VALUES ($1, $2, $3, $4, $5, $6)
+VALUES (current_setting('app.account'), $1, $2, $3, $4, $5)
 `
 
 type RecordChangeParams struct {
-	AccountID      pgtype.Text
 	Actor          string
 	Action         string
 	RuleID         string
@@ -544,7 +531,6 @@ type RecordChangeParams struct {
 // made it (ADR-0102).
 func (q *Queries) RecordChange(ctx context.Context, arg RecordChangeParams) error {
 	_, err := q.db.Exec(ctx, recordChange,
-		arg.AccountID,
 		arg.Actor,
 		arg.Action,
 		arg.RuleID,
@@ -566,16 +552,15 @@ SELECT
     c.suffixes_after
 FROM policy_changes AS c
 WHERE
-    (c.account_id = $1::text OR c.account_id IS NULL)
-    AND c.rule_id = $2
-    AND $3::boolean = (c.account_id IS NULL)
+    (c.account_id = current_setting('app.account') OR c.account_id IS NULL)
+    AND c.rule_id = $1
+    AND $2::boolean = (c.account_id IS NULL)
 ORDER BY c.ts DESC, c.id DESC
 `
 
 type RuleHistoryParams struct {
-	AccountID string
-	RuleID    string
-	Base      bool
+	RuleID string
+	Base   bool
 }
 
 type RuleHistoryRow struct {
@@ -592,7 +577,7 @@ type RuleHistoryRow struct {
 // One rule's changes, newest first, the changes recorded under its identifier and its scope, the
 // account's own when base is false and the base policy's when it is true (docs/UI.md section 8.7).
 func (q *Queries) RuleHistory(ctx context.Context, arg RuleHistoryParams) ([]RuleHistoryRow, error) {
-	rows, err := q.db.Query(ctx, ruleHistory, arg.AccountID, arg.RuleID, arg.Base)
+	rows, err := q.db.Query(ctx, ruleHistory, arg.RuleID, arg.Base)
 	if err != nil {
 		return nil, err
 	}

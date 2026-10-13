@@ -3,7 +3,7 @@
 -- that detected what was masked and never the text (ADR-0003), and the scanner version and
 -- configuration revision the masking ran under (ADR-0120).
 INSERT INTO masking_events (account_id, message_id, field, rule_id, tier, scanner_version, scanner_revision)
-VALUES (@account_id, @message_id, 'subject', @rule_id, @tier, @scanner_version, @scanner_revision);
+VALUES (current_setting('app.account'), @message_id, 'subject', @rule_id, @tier, @scanner_version, @scanner_revision);
 
 -- name: RecordMaskingEvents :exec
 -- Records a batch of masks applied to the subjects of the account's messages, one row for each
@@ -12,7 +12,7 @@ VALUES (@account_id, @message_id, 'subject', @rule_id, @tier, @scanner_version, 
 -- backfill's run-start step masks the stored subjects again in batches (ADR-0120).
 INSERT INTO masking_events (account_id, message_id, field, rule_id, tier, scanner_version, scanner_revision)
 SELECT
-    @account_id,
+    current_setting('app.account') AS account_id,
     e.message_id,
     'subject' AS field,
     e.rule_id,

@@ -48,7 +48,7 @@ type tb interface {
 	Failed() bool
 }
 
-// The role backfill connects as, so row-level security and its grants apply as in production.
+// The role backfill connects as, so its grants apply as in production.
 const role = "mediated_mailbox_backfill"
 
 var (
@@ -77,7 +77,7 @@ func backfillPool(t testing.TB) *pgxpool.Pool {
 	return pools.Load()
 }
 
-// superuser returns a connection that bypasses row-level security, to write what account setup would
+// superuser returns a connection that holds every privilege, to write what account setup would
 // write and to read what a check reads.
 func superuser(t testing.TB) *pgx.Conn {
 	t.Helper()

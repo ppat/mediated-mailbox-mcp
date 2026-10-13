@@ -155,9 +155,7 @@ func (s *Server) poll(ctx context.Context, account string, st *streamState) ([]e
 		return nil
 	}
 	err := tx.Run(ctx, s.opts.Database, account, func(t pgx.Tx) error {
-		runs, err := jobruns.New(t).StreamRuns(ctx, jobruns.StreamRunsParams{
-			AccountID: account, Since: pgtype.Timestamptz{Time: st.since, Valid: true},
-		})
+		runs, err := jobruns.New(t).StreamRuns(ctx, pgtype.Timestamptz{Time: st.since, Valid: true})
 		if err != nil {
 			return err
 		}
@@ -174,7 +172,7 @@ func (s *Server) poll(ctx context.Context, account string, st *streamState) ([]e
 				return err
 			}
 		}
-		rate, err := s.rate(ctx, ratestate.New(t), account)
+		rate, err := s.rate(ctx, ratestate.New(t))
 		if err != nil {
 			return err
 		}
@@ -191,7 +189,7 @@ func (s *Server) poll(ctx context.Context, account string, st *streamState) ([]e
 			}
 			known = append(known, u)
 		}
-		plans, err := reorgplans.New(t).StreamPlans(ctx, reorgplans.StreamPlansParams{AccountID: account, Known: known})
+		plans, err := reorgplans.New(t).StreamPlans(ctx, known)
 		if err != nil {
 			return err
 		}

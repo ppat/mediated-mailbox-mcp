@@ -161,7 +161,7 @@ type jobsQueries struct {
 
 func (s *Server) jobs(ctx context.Context, jq jobsQueries, account string, now time.Time) (jobsResponse, error) {
 	q := jq.runs
-	latest, err := latestRuns(ctx, q, account)
+	latest, err := latestRuns(ctx, q)
 	if err != nil {
 		return jobsResponse{}, err
 	}
@@ -187,11 +187,11 @@ func (s *Server) jobs(ctx context.Context, jq jobsQueries, account string, now t
 		}
 		return result
 	}
-	progress, err := s.progress(ctx, jq.state, account)
+	progress, err := s.progress(ctx, jq.state)
 	if err != nil {
 		return jobsResponse{}, err
 	}
-	rate, err := s.rate(ctx, jq.rate, account)
+	rate, err := s.rate(ctx, jq.rate)
 	if err != nil {
 		return jobsResponse{}, err
 	}
@@ -209,7 +209,7 @@ func (s *Server) jobs(ctx context.Context, jq jobsQueries, account string, now t
 			continue
 		}
 		p.block.Run = latestRun(*row)
-		if p.block.EtaSeconds, err = eta(ctx, q, account, *row, now); err != nil {
+		if p.block.EtaSeconds, err = eta(ctx, q, *row, now); err != nil {
 			return jobsResponse{}, err
 		}
 	}
@@ -223,7 +223,7 @@ func (s *Server) jobs(ctx context.Context, jq jobsQueries, account string, now t
 	}
 	since := pgtype.Timestamptz{Time: now.Add(-7 * 24 * time.Hour), Valid: true}
 	if out.Sync.GapRecoveries7d, err = q.RunsStartedSince(ctx, jobruns.RunsStartedSinceParams{
-		AccountID: account, Workload: "sync", Pass: "gap_recovery", Since: since,
+		Workload: "sync", Pass: "gap_recovery", Since: since,
 	}); err != nil {
 		return jobsResponse{}, err
 	}
@@ -232,7 +232,7 @@ func (s *Server) jobs(ctx context.Context, jq jobsQueries, account string, now t
 	if row := find("apply", "apply"); row != nil && row.State == "running" {
 		out.Apply.Running = latestRun(*row)
 	}
-	last, err := finished(ctx, q, account, "apply", "apply", "succeeded", "failed")
+	last, err := finished(ctx, q, "apply", "apply", "succeeded", "failed")
 	if err != nil {
 		return jobsResponse{}, err
 	}
@@ -243,7 +243,7 @@ func (s *Server) jobs(ctx context.Context, jq jobsQueries, account string, now t
 			if err := plan.Scan(*last.PlanID); err != nil {
 				return jobsResponse{}, err
 			}
-			rows, err := jq.oplog.OpLogCount(ctx, reorgoplog.OpLogCountParams{AccountID: account, PlanID: plan})
+			rows, err := jq.oplog.OpLogCount(ctx, plan)
 			if err != nil {
 				return jobsResponse{}, err
 			}
@@ -256,7 +256,7 @@ func (s *Server) jobs(ctx context.Context, jq jobsQueries, account string, now t
 	// No heuristics pair is in the closed set the schema's check holds, and every recorded pass is
 	// named, so the empty pass finds no run. The job kind that adds its pair names its pass here
 	// (ADR-0016).
-	if out.Heuristics.Last, err = finished(ctx, q, account, "heuristics", "", "succeeded", "failed"); err != nil {
+	if out.Heuristics.Last, err = finished(ctx, q, "heuristics", "", "succeeded", "failed"); err != nil {
 		return jobsResponse{}, err
 	}
 	if out.Heuristics.Last != nil {
@@ -271,9 +271,9 @@ func (s *Server) jobs(ctx context.Context, jq jobsQueries, account string, now t
 }
 
 // finished is the latest run of a workload and pass in one of the given states, nil for none.
-func finished(ctx context.Context, q *jobruns.Queries, account, workload, pass string, states ...string) (*run, error) {
+func finished(ctx context.Context, q *jobruns.Queries, workload, pass string, states ...string) (*run, error) {
 	row, err := q.LatestRunInStates(ctx, jobruns.LatestRunInStatesParams{
-		AccountID: account, Workload: workload, Pass: pass, States: states,
+		Workload: workload, Pass: pass, States: states,
 	})
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
@@ -291,9 +291,9 @@ func finished(ctx context.Context, q *jobruns.Queries, account, workload, pass s
 }
 
 // latestRuns is the latest run of each workload and pass the built job kinds record.
-func latestRuns(ctx context.Context, q *jobruns.Queries, account string) ([]jobruns.LatestRunsRow, error) {
+func latestRuns(ctx context.Context, q *jobruns.Queries) ([]jobruns.LatestRunsRow, error) {
 	workloads, passes := registry.RecordedRuns()
-	return q.LatestRuns(ctx, jobruns.LatestRunsParams{Workloads: workloads, Passes: passes, AccountID: account})
+	return q.LatestRuns(ctx, jobruns.LatestRunsParams{Workloads: workloads, Passes: passes})
 }
 
 func latestRun(row jobruns.LatestRunsRow) *run {
@@ -310,7 +310,7 @@ func latestRun(row jobruns.LatestRunsRow) *run {
 // the last ten minutes of the run, read from its progress events (docs/UI.md section 8.1). It is nil
 // for a run that is not running, has less than ten minutes of history or completed no page in the
 // window, or whose checkpoint is not a page of pages.
-func eta(ctx context.Context, q *jobruns.Queries, account string, row jobruns.LatestRunsRow, now time.Time) (*int64, error) {
+func eta(ctx context.Context, q *jobruns.Queries, row jobruns.LatestRunsRow, now time.Time) (*int64, error) {
 	windowStart := now.Add(-etaWindow)
 	if row.State != "running" || row.StartedAt.Time.After(windowStart) {
 		return nil, nil
@@ -323,7 +323,7 @@ func eta(ctx context.Context, q *jobruns.Queries, account string, row jobruns.La
 		return nil, nil
 	}
 	p, err := q.ProgressSince(ctx, jobruns.ProgressSinceParams{
-		AccountID: account, RunID: row.RunID, Since: pgtype.Timestamptz{Time: windowStart, Valid: true},
+		RunID: row.RunID, Since: pgtype.Timestamptz{Time: windowStart, Valid: true},
 	})
 	if err != nil {
 		return nil, err

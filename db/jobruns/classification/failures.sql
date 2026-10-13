@@ -13,7 +13,7 @@ FROM job_run_failures AS f
 LEFT JOIN messages AS m
     ON f.account_id = m.account_id AND f.item_id = m.message_id AND f.item_kind IN ('message', 'op')
 WHERE
-    f.account_id = @account_id
+    f.account_id = current_setting('app.account')
     AND f.run_id = @run_id
     AND (@error_class_in::text[] IS NULL OR f.error_class = any(@error_class_in::text[]))
     AND (@error_class_out::text[] IS NULL OR f.error_class != all(@error_class_out::text[]))
@@ -48,7 +48,7 @@ FROM job_run_failures AS f
 LEFT JOIN messages AS m
     ON f.account_id = m.account_id AND f.item_id = m.message_id AND f.item_kind IN ('message', 'op')
 WHERE
-    f.account_id = @account_id
+    f.account_id = current_setting('app.account')
     AND f.run_id = @run_id
     AND (@error_class_in::text[] IS NULL OR f.error_class = any(@error_class_in::text[]))
     AND (@error_class_out::text[] IS NULL OR f.error_class != all(@error_class_out::text[]))
@@ -87,7 +87,7 @@ FROM job_run_failures AS f
 LEFT JOIN messages AS m
     ON f.account_id = m.account_id AND f.item_id = m.message_id AND f.item_kind IN ('message', 'op')
 WHERE
-    f.account_id = @account_id
+    f.account_id = current_setting('app.account')
     AND f.run_id = @run_id
     AND (@error_class_in::text[] IS NULL OR f.error_class = any(@error_class_in::text[]))
     AND (@error_class_out::text[] IS NULL OR f.error_class != all(@error_class_out::text[]))
@@ -122,7 +122,7 @@ FROM job_run_failures AS f
 LEFT JOIN messages AS m
     ON f.account_id = m.account_id AND f.item_id = m.message_id AND f.item_kind IN ('message', 'op')
 WHERE
-    f.account_id = @account_id
+    f.account_id = current_setting('app.account')
     AND f.run_id = @run_id
     AND (@error_class_in::text[] IS NULL OR f.error_class = any(@error_class_in::text[]))
     AND (@error_class_out::text[] IS NULL OR f.error_class != all(@error_class_out::text[]))
@@ -156,7 +156,7 @@ FROM job_run_failures AS f
 LEFT JOIN messages AS m
     ON f.account_id = m.account_id AND f.item_id = m.message_id AND f.item_kind IN ('message', 'op')
 WHERE
-    f.account_id = @account_id
+    f.account_id = current_setting('app.account')
     AND f.run_id = @run_id
     AND (@error_class_in::text[] IS NULL OR f.error_class = any(@error_class_in::text[]))
     AND (@error_class_out::text[] IS NULL OR f.error_class != all(@error_class_out::text[]))
@@ -207,7 +207,7 @@ FROM job_run_failures AS f
 LEFT JOIN messages AS m
     ON f.account_id = m.account_id AND f.item_id = m.message_id AND f.item_kind IN ('message', 'op')
 WHERE
-    f.account_id = @account_id
+    f.account_id = current_setting('app.account')
     AND f.run_id = @run_id
     AND (@error_class_in::text[] IS NULL OR f.error_class = any(@error_class_in::text[]))
     AND (@error_class_out::text[] IS NULL OR f.error_class != all(@error_class_out::text[]))
@@ -268,4 +268,4 @@ SELECT
 FROM job_run_failures AS f
 LEFT JOIN messages AS m
     ON f.account_id = m.account_id AND f.item_id = m.message_id AND f.item_kind IN ('message', 'op')
-WHERE f.account_id = @account_id AND f.run_id = @run_id AND f.seq = @seq;
+WHERE f.account_id = current_setting('app.account') AND f.run_id = @run_id AND f.seq = @seq;

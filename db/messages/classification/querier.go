@@ -12,7 +12,7 @@ type Querier interface {
 	// The account's corpus at a glance, for the corpus endpoint and the attention endpoint's backlog rule
 	// (docs/UI.md sections 8.1 and 17.4).
 	// Unfiled is a message with no label, and restricted one whose sender class reads restricted now.
-	CorpusFigures(ctx context.Context, accountID string) (CorpusFiguresRow, error)
+	CorpusFigures(ctx context.Context) (CorpusFiguresRow, error)
 }
 
 var _ Querier = (*Queries)(nil)

@@ -167,19 +167,6 @@ func isCitext(t *pg.TypeName) bool {
 	return len(n) > 0 && n[len(n)-1] == "citext"
 }
 
-// isCastParameter reports whether n is a parameter under a type cast. @name::text parses as @ applied
-// to name::text, because the cast binds tighter than the prefix operator, so both shapes are cast
-// parameters.
-func isCastParameter(n *pg.Node) bool {
-	if c := n.GetTypeCast(); c != nil {
-		return isParameter(c.GetArg())
-	}
-	if e := n.GetAExpr(); e != nil && isParameter(n) {
-		return e.GetRexpr().GetTypeCast() != nil
-	}
-	return false
-}
-
 // containsParameter reports whether n or any node under it is a parameter.
 func containsParameter(n *pg.Node) bool {
 	found := false

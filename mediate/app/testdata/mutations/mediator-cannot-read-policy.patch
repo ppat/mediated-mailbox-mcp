@@ -5,13 +5,13 @@ tests: TestTheMediatorServesTheAccountsEachReloadLists
 scheduled-count: no
 integration: yes
 
-diff --git a/db/migrations/00004_grants.sql b/db/migrations/00004_grants.sql
-index de2c2d24..02a684b1 100644
---- a/db/migrations/00004_grants.sql
-+++ b/db/migrations/00004_grants.sql
-@@ -533,7 +533,7 @@ TO mediated_mailbox_mediate, mediated_mailbox_backfill, mediated_mailbox_sync, m
- -- exactly those columns. Who created a rule and when stay out of their reach. Row-level security still
- -- shows each only the base rules and its transaction's account's rules.
+diff --git a/db/migrations/00003_grants.sql b/db/migrations/00003_grants.sql
+index 7312c97c..b8a5ed17 100644
+--- a/db/migrations/00003_grants.sql
++++ b/db/migrations/00003_grants.sql
+@@ -550,7 +550,7 @@ TO mediated_mailbox_mediate, mediated_mailbox_backfill, mediated_mailbox_sync, m
+ -- exactly those columns. Who created a rule and when stay out of their reach. The statement reads the
+ -- base rules and the rules of the transaction's account alone (ADR-0135).
  GRANT SELECT (account_id, rule_id, class, domain_suffix) ON policy_rules
 -TO mediated_mailbox_mediate, mediated_mailbox_backfill, mediated_mailbox_sync;
 +TO mediated_mailbox_backfill, mediated_mailbox_sync;

@@ -6,11 +6,13 @@ package maskingevents
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Querier interface {
 	// The masking events recorded since a time, for the corpus endpoint (docs/UI.md section 8.1).
-	MaskingEventCount(ctx context.Context, arg MaskingEventCountParams) (int64, error)
+	MaskingEventCount(ctx context.Context, since pgtype.Timestamptz) (int64, error)
 	// One page of the account's masking events, the latest first, masked at or after a time when one is
 	// given, and after the position a cursor names or from the start when it names none. An event records
 	// the rule and tier that fired and never the text it matched (ADR-0003).

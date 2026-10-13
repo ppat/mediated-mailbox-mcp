@@ -79,7 +79,7 @@ func (s *Server) getRun(w http.ResponseWriter, r *http.Request) {
 		q := jobruns.New(t)
 		// as_of is the time the read transaction began.
 		out = runSummary{Account: account, AsOf: registry.Stamp(s.opts.Clock()), RecoveredBy: []recoveringRun{}, Events: []timelineEvent{}}
-		row, err := q.RunByID(r.Context(), jobruns.RunByIDParams{AccountID: account, RunID: id})
+		row, err := q.RunByID(r.Context(), id)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return errUnknownRun
 		}
@@ -87,7 +87,7 @@ func (s *Server) getRun(w http.ResponseWriter, r *http.Request) {
 			return err
 		}
 		out.Run = *latestRun(jobruns.LatestRunsRow(row))
-		resumer, err := q.LatestResumer(r.Context(), jobruns.LatestResumerParams{AccountID: account, RunID: pgtype.Text{String: id, Valid: true}})
+		resumer, err := q.LatestResumer(r.Context(), pgtype.Text{String: id, Valid: true})
 		switch {
 		case errors.Is(err, pgx.ErrNoRows):
 		case err != nil:
@@ -95,7 +95,7 @@ func (s *Server) getRun(w http.ResponseWriter, r *http.Request) {
 		default:
 			out.Resumer = latestRun(jobruns.LatestRunsRow(resumer))
 		}
-		counts, err := q.FailureDispositions(r.Context(), jobruns.FailureDispositionsParams{AccountID: account, RunID: id})
+		counts, err := q.FailureDispositions(r.Context(), id)
 		if err != nil {
 			return err
 		}
@@ -104,14 +104,14 @@ func (s *Server) getRun(w http.ResponseWriter, r *http.Request) {
 			out.Failures.Dispositions[c.Disposition] = c.Failures
 			out.Failures.Count += c.Failures
 		}
-		recovering, err := q.RecoveringRuns(r.Context(), jobruns.RecoveringRunsParams{AccountID: account, RunID: id})
+		recovering, err := q.RecoveringRuns(r.Context(), id)
 		if err != nil {
 			return err
 		}
 		for _, c := range recovering {
 			out.RecoveredBy = append(out.RecoveredBy, recoveringRun{RunID: c.RecoveredBy.String, Recovered: c.Recovered})
 		}
-		events, err := q.RunEvents(r.Context(), jobruns.RunEventsParams{AccountID: account, RunID: id})
+		events, err := q.RunEvents(r.Context(), id)
 		if err != nil {
 			return err
 		}

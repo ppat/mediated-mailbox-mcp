@@ -16,7 +16,7 @@ SELECT
     coalesce(s.scan_hit_count, 0)::bigint AS sender_hits
 FROM messages AS m
 LEFT JOIN senders AS s ON m.account_id = s.account_id AND m.from_domain = s.domain
-WHERE m.account_id = @account_id AND m.scan_state = 'pending' AND m.message_id > @after
+WHERE m.account_id = current_setting('app.account') AND m.scan_state = 'pending' AND m.message_id > @after
 ORDER BY m.message_id
 LIMIT @page_size;
 
@@ -42,7 +42,7 @@ SELECT
 FROM messages AS m
 LEFT JOIN senders AS s ON m.account_id = s.account_id AND m.from_domain = s.domain
 WHERE
-    m.account_id = @account_id
+    m.account_id = current_setting('app.account')
     AND m.scan_state = 'pending'
     AND (m.sent_at, m.message_id) < (@after_sent_at::timestamptz, @after_message_id::text)
 ORDER BY m.sent_at DESC, m.message_id DESC
@@ -60,14 +60,14 @@ SET
     scanned_at = now(),
     scanner_version = @scanner_version,
     scanner_revision = @scanner_revision
-WHERE account_id = @account_id AND message_id = @message_id AND scan_state = 'pending';
+WHERE account_id = current_setting('app.account') AND message_id = @message_id AND scan_state = 'pending';
 
 -- name: RecordSkip :execrows
 -- Records that the scan gate skipped a waiting message, as skipped_restricted or skipped_gate
 -- (ADR-0093). A message no longer waiting is left as it is and counts no row.
 UPDATE messages
 SET scan_state = @scan_state
-WHERE account_id = @account_id AND message_id = @message_id AND scan_state = 'pending';
+WHERE account_id = current_setting('app.account') AND message_id = @message_id AND scan_state = 'pending';
 
 -- name: RestrictedDomains :many
 -- The sender domains of the account whose messages the index stores as restricted or holds skipped as
@@ -77,7 +77,9 @@ WHERE account_id = @account_id AND message_id = @message_id AND scan_state = 'pe
 -- skip state is read as well.
 SELECT DISTINCT m.from_domain
 FROM messages AS m
-WHERE m.account_id = @account_id AND (m.sender_class = 'restricted' OR m.scan_state = 'skipped_restricted')
+WHERE
+    m.account_id = current_setting('app.account')
+    AND (m.sender_class = 'restricted' OR m.scan_state = 'skipped_restricted')
 ORDER BY m.from_domain;
 
 -- name: MarkDelisted :execrows
@@ -87,7 +89,7 @@ ORDER BY m.from_domain;
 UPDATE messages
 SET sender_class = 'normal', class_rule_id = NULL, scan_state = 'pending'
 WHERE
-    account_id = @account_id
+    account_id = current_setting('app.account')
     AND from_domain = @domain
     AND (sender_class = 'restricted' OR scan_state = 'skipped_restricted');
 
@@ -97,7 +99,7 @@ WHERE
 -- classes (ADR-0113).
 SELECT DISTINCT m.from_domain
 FROM messages AS m
-WHERE m.account_id = @account_id AND m.sender_class = 'normal'
+WHERE m.account_id = current_setting('app.account') AND m.sender_class = 'normal'
 ORDER BY m.from_domain;
 
 -- name: MarkListed :execrows
@@ -106,14 +108,14 @@ ORDER BY m.from_domain;
 -- is left as it is (ADR-0113, ADR-0016).
 UPDATE messages
 SET sender_class = 'restricted', class_rule_id = @class_rule_id
-WHERE account_id = @account_id AND from_domain = @domain AND sender_class = 'normal';
+WHERE account_id = current_setting('app.account') AND from_domain = @domain AND sender_class = 'normal';
 
 -- name: Backlog :one
 -- How many of the account's messages wait for their content scan, the scan backlog depth a scanning
 -- workload emits as a metric (ADR-0093).
 SELECT count(*) AS pending
 FROM messages AS m
-WHERE m.account_id = @account_id AND m.scan_state = 'pending';
+WHERE m.account_id = current_setting('app.account') AND m.scan_state = 'pending';
 
 -- name: RequeueStaleVerdicts :many
 -- Returns each of the account's scanned messages whose verdict was made under another scanner version
@@ -130,7 +132,7 @@ SET
     scanner_version = NULL,
     scanner_revision = NULL
 WHERE
-    account_id = @account_id
+    account_id = current_setting('app.account')
     AND scan_state = 'scanned'
     AND (
         scanner_version IS DISTINCT FROM @scanner_version::int
@@ -143,7 +145,7 @@ RETURNING from_domain;
 -- since the gate decided without that signal (ADR-0120, ADR-0093).
 UPDATE messages
 SET scan_state = 'pending'
-WHERE account_id = @account_id AND scan_state = 'skipped_gate' AND subject_masked;
+WHERE account_id = current_setting('app.account') AND scan_state = 'skipped_gate' AND subject_masked;
 
 -- name: GateSkips :many
 -- The account's messages the scan gate skipped, in the order of their identifiers, each with what the
@@ -162,7 +164,7 @@ SELECT
     coalesce(s.scan_hit_count, 0)::bigint AS sender_hits
 FROM messages AS m
 LEFT JOIN senders AS s ON m.account_id = s.account_id AND m.from_domain = s.domain
-WHERE m.account_id = @account_id AND m.scan_state = 'skipped_gate'
+WHERE m.account_id = current_setting('app.account') AND m.scan_state = 'skipped_gate'
 ORDER BY m.message_id;
 
 -- name: RequeueGateSkips :execrows
@@ -171,4 +173,7 @@ ORDER BY m.message_id;
 -- and counts no row.
 UPDATE messages
 SET scan_state = 'pending'
-WHERE account_id = @account_id AND scan_state = 'skipped_gate' AND message_id = any(@message_ids::text[]);
+WHERE
+    account_id = current_setting('app.account')
+    AND scan_state = 'skipped_gate'
+    AND message_id = any(@message_ids::text[]);

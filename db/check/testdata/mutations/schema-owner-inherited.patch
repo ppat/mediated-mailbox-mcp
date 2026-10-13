@@ -1,7 +1,7 @@
 control: Schema change is confined to the migration role
 removes: the bootstrap makes a runtime role a member of the migration role, so it acts as the schema's owner
 packages: ./db/check
-tests: TestRuntimeRolesCannotChangeTheSchema TestRuntimeRolesCannotChangeTheSchema/mediated_mailbox_mediate/add_a_body_column TestRuntimeRolesCannotChangeTheSchema/mediated_mailbox_mediate/drop_a_table TestRuntimeRolesCannotChangeTheSchema/mediated_mailbox_mediate/drop_a_policy
+tests: TestRuntimeRolesCannotChangeTheSchema TestRuntimeRolesCannotChangeTheSchema/mediated_mailbox_mediate/add_a_body_column TestRuntimeRolesCannotChangeTheSchema/mediated_mailbox_mediate/drop_a_table TestRuntimeRolesCannotChangeTheSchema/mediated_mailbox_mediate/create_a_policy
 scheduled-count: no
 integration: yes
 

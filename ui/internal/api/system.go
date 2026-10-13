@@ -128,7 +128,7 @@ type systemQueries struct {
 }
 
 func (s *Server) system(ctx context.Context, q systemQueries, account string, out *systemResponse) error {
-	progress, err := s.progress(ctx, q.state, account)
+	progress, err := s.progress(ctx, q.state)
 	if err != nil {
 		return err
 	}
@@ -139,12 +139,12 @@ func (s *Server) system(ctx context.Context, q systemQueries, account string, ou
 	op.SyncCursorAt = progress.SyncCursorAt
 	op.LastAuthAt = progress.LastAuthAt
 	op.LastAuthOutcome = progress.LastAuthOutcome
-	if op.Rate, err = s.rate(ctx, q.rate, account); err != nil {
+	if op.Rate, err = s.rate(ctx, q.rate); err != nil {
 		return err
 	}
 
 	runs := q.runs
-	latest, err := latestRuns(ctx, runs, account)
+	latest, err := latestRuns(ctx, runs)
 	if err != nil {
 		return err
 	}
@@ -161,14 +161,14 @@ func (s *Server) system(ctx context.Context, q systemQueries, account string, ou
 		}
 	}
 	out.Decisions.WorkloadsRunning = int64(len(running))
-	tick, err := finished(ctx, runs, account, "sync", "tick", "succeeded")
+	tick, err := finished(ctx, runs, "sync", "tick", "succeeded")
 	if err != nil {
 		return err
 	}
 	if tick != nil {
 		op.LastSuccessfulTickAt = tick.FinishedAt
 	}
-	pass1, err := finished(ctx, runs, account, "backfill", "pass1", "succeeded")
+	pass1, err := finished(ctx, runs, "backfill", "pass1", "succeeded")
 	if err != nil {
 		return err
 	}
@@ -176,17 +176,17 @@ func (s *Server) system(ctx context.Context, q systemQueries, account string, ou
 		op.BackfillPass1SucceededAt = pass1.FinishedAt
 	}
 
-	if op.PendingScan, err = q.messages.ScanBacklog(ctx, account); err != nil {
+	if op.PendingScan, err = q.messages.ScanBacklog(ctx); err != nil {
 		return err
 	}
-	plans, err := q.plans.PlanStatusCounts(ctx, reorgplans.PlanStatusCountsParams{AccountID: account, StatusIn: []string{"DRAFT"}})
+	plans, err := q.plans.PlanStatusCounts(ctx, reorgplans.PlanStatusCountsParams{StatusIn: []string{"DRAFT"}})
 	if err != nil {
 		return err
 	}
 	if i := slices.IndexFunc(plans, func(p reorgplans.PlanStatusCountsRow) bool { return p.Status == "DRAFT" }); i >= 0 {
 		out.Decisions.PlansDraft = plans[i].Plans
 	}
-	candidates, err := q.candidates.CandidateStatusCounts(ctx, policycandidates.CandidateStatusCountsParams{AccountID: account, StatusIn: []string{"pending"}})
+	candidates, err := q.candidates.CandidateStatusCounts(ctx, policycandidates.CandidateStatusCountsParams{StatusIn: []string{"pending"}})
 	if err != nil {
 		return err
 	}

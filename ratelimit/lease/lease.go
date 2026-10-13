@@ -148,7 +148,7 @@ func (l *Limiter) issue(ctx context.Context, account string, req core.Request) (
 	limits := l.limitsFor(account)
 	err := tx.Run(ctx, l.db, account, func(t pgx.Tx) error {
 		q := limiter.New(t)
-		now, err := l.lock(ctx, q, account)
+		now, err := l.lock(ctx, q)
 		if err != nil {
 			return err
 		}
@@ -156,7 +156,7 @@ func (l *Limiter) issue(ctx context.Context, account string, req core.Request) (
 		if err != nil {
 			return err
 		}
-		grants, err := q.Grants(ctx, account)
+		grants, err := q.Grants(ctx)
 		if err != nil {
 			return fmt.Errorf("reading the grants: %w", err)
 		}
@@ -185,10 +185,10 @@ func (l *Limiter) issue(ctx context.Context, account string, req core.Request) (
 // deleted, a grant stamped ahead of the instant issuance reached is moved back to it as the rules take
 // it, and a granted lease gets its row.
 func (l *Limiter) storeIssuance(ctx context.Context, q *limiter.Queries, account string, st core.State, next core.Issuance, held []core.Lease, d core.Decision, now int64) error {
-	if err := q.DeleteGrantsBefore(ctx, limiter.DeleteGrantsBeforeParams{AccountID: account, CutoffMs: stored(now - leaseMillis)}); err != nil {
+	if err := q.DeleteGrantsBefore(ctx, stored(now-leaseMillis)); err != nil {
 		return fmt.Errorf("deleting old grants: %w", err)
 	}
-	if err := q.ClampGrants(ctx, limiter.ClampGrantsParams{AccountID: account, NowMs: stored(next.At)}); err != nil {
+	if err := q.ClampGrants(ctx, stored(next.At)); err != nil {
 		return fmt.Errorf("moving grants stamped ahead: %w", err)
 	}
 	var grantedAt int64
@@ -196,10 +196,9 @@ func (l *Limiter) storeIssuance(ctx context.Context, q *limiter.Queries, account
 		grantedAt = stored(next.At)
 		held = append(held, d.Lease)
 		err := q.InsertGrant(ctx, limiter.InsertGrantParams{
-			AccountID: account,
-			Class:     className(d.Lease.Class),
-			Tokens:    float32(d.Lease.Tokens),
-			IssuedMs:  grantedAt,
+			Class:    className(d.Lease.Class),
+			Tokens:   float32(d.Lease.Tokens),
+			IssuedMs: grantedAt,
 		})
 		if err != nil {
 			return fmt.Errorf("storing the grant: %w", err)
@@ -211,7 +210,6 @@ func (l *Limiter) storeIssuance(ctx context.Context, q *limiter.Queries, account
 		return err
 	}
 	return q.UpdateIssuance(ctx, limiter.UpdateIssuanceParams{
-		AccountID:          account,
 		TargetRate:         float32(limits.Target()),
 		HardCap:            float32(limits.HardCap()),
 		BucketLevel:        roundDown32(next.Level),
@@ -292,7 +290,7 @@ func (l *Limiter) control(ctx context.Context, account string, decide func(core.
 	limits := l.limitsFor(account)
 	err := tx.Run(ctx, l.db, account, func(t pgx.Tx) error {
 		q := limiter.New(t)
-		now, err := l.lock(ctx, q, account)
+		now, err := l.lock(ctx, q)
 		if err != nil {
 			return err
 		}
@@ -303,7 +301,6 @@ func (l *Limiter) control(ctx context.Context, account string, decide func(core.
 		st, lat, throttledAt := decide(stateOf(row), latencyOf(row), now)
 		rate = st.Rate
 		return q.UpdateController(ctx, limiter.UpdateControllerParams{
-			AccountID:            account,
 			CurrentRate:          float32(st.Rate),
 			TargetRate:           float32(limits.Target()),
 			HardCap:              float32(limits.HardCap()),
@@ -325,8 +322,8 @@ func (l *Limiter) control(ctx context.Context, account string, decide func(core.
 
 // lock takes the account's lock and then reads the database's clock in a statement of its own, so a
 // worker that waited on the lock is stamped with the time it got it (ADR-0025).
-func (l *Limiter) lock(ctx context.Context, q *limiter.Queries, account string) (int64, error) {
-	if err := q.LockRateState(ctx, account); err != nil {
+func (l *Limiter) lock(ctx context.Context, q *limiter.Queries) (int64, error) {
+	if err := q.LockRateState(ctx); err != nil {
 		return 0, fmt.Errorf("locking the rate state: %w", err)
 	}
 	now, err := q.ClockMillis(ctx)
@@ -341,7 +338,6 @@ func (l *Limiter) lock(ctx context.Context, q *limiter.Queries, account string) 
 func (l *Limiter) read(ctx context.Context, q *limiter.Queries, account string) (limiter.RateStateRow, error) {
 	limits := l.limitsFor(account)
 	err := q.InsertRateState(ctx, limiter.InsertRateStateParams{
-		AccountID:   account,
 		CurrentRate: float32(limits.Target()),
 		TargetRate:  float32(limits.Target()),
 		HardCap:     float32(limits.HardCap()),
@@ -349,7 +345,7 @@ func (l *Limiter) read(ctx context.Context, q *limiter.Queries, account string) 
 	if err != nil {
 		return limiter.RateStateRow{}, fmt.Errorf("giving the account its rate state: %w", err)
 	}
-	row, err := q.RateState(ctx, account)
+	row, err := q.RateState(ctx)
 	if err != nil {
 		return limiter.RateStateRow{}, fmt.Errorf("reading the rate state: %w", err)
 	}

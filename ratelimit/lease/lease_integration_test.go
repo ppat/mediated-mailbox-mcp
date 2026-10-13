@@ -96,7 +96,7 @@ func TestAWorkerThatWaitedOnTheLockIsStampedAfterIt(t *testing.T) {
 	go func() {
 		holder <- tx.Run(ctx, pool, account, func(t pgx.Tx) error {
 			q := limiter.New(t)
-			if err := q.LockRateState(ctx, account); err != nil {
+			if err := q.LockRateState(ctx); err != nil {
 				return err
 			}
 			close(held)

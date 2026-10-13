@@ -6,10 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/db/messages/search.sql b/db/messages/search.sql
-index c369b93..f8b4c00 100644
+index 818eddd1..e7b5a504 100644
 --- a/db/messages/search.sql
 +++ b/db/messages/search.sql
-@@ -56,7 +56,7 @@ WHERE
+@@ -72,7 +72,7 @@ WHERE
          OR (
              @sort_by::text = 'sender' AND @descending::boolean AND (
                  m.from_email < @after_sender::citext
@@ -19,15 +19,15 @@ index c369b93..f8b4c00 100644
          )
          OR (
 diff --git a/db/messages/search.sql.go b/db/messages/search.sql.go
-index e052b44..fcf3666 100644
+index f09d49bc..ff876322 100644
 --- a/db/messages/search.sql.go
 +++ b/db/messages/search.sql.go
-@@ -541,7 +541,7 @@ WHERE
+@@ -569,7 +569,7 @@ WHERE
          OR (
-             $16::text = 'sender' AND $17::boolean AND (
-                 m.from_email < $20::citext
--                OR (m.from_email = $20::citext AND m.message_id > $19::text)
-+                OR (m.from_email = $20::citext AND m.message_id >= $19::text)
+             $15::text = 'sender' AND $16::boolean AND (
+                 m.from_email < $19::citext
+-                OR (m.from_email = $19::citext AND m.message_id > $18::text)
++                OR (m.from_email = $19::citext AND m.message_id >= $18::text)
              )
          )
          OR (

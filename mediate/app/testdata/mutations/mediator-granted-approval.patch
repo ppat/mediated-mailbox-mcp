@@ -6,10 +6,10 @@ scheduled-count: no
 integration: yes
 
 
-diff --git a/db/migrations/00004_grants.sql b/db/migrations/00004_grants.sql
+diff --git a/db/migrations/00003_grants.sql b/db/migrations/00003_grants.sql
 index 912d38ff..498830c2 100644
---- a/db/migrations/00004_grants.sql
-+++ b/db/migrations/00004_grants.sql
+--- a/db/migrations/00003_grants.sql
++++ b/db/migrations/00003_grants.sql
 @@ -92,6 +92,7 @@ GRANT SELECT (
  GRANT SELECT (account_id, run_id, seq, kind, at, page, detail) ON job_run_events TO mediated_mailbox_mediate;
  GRANT SELECT (account_id, run_id, disposition, recovered_by) ON job_run_failures TO mediated_mailbox_mediate;
