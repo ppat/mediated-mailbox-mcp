@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
@@ -124,13 +125,19 @@ func newRigAt(t *testing.T, redirect string) *rig {
 // obtains its client's secret from the client-secret package, as the composition root wires it.
 func (r *rig) server(key []byte) *api.Server {
 	r.t.Helper()
+	return r.serverOver(key, func(pool *pgxpool.Pool) api.Database { return pool })
+}
+
+// serverOver is server with the database the server reads through wrapped by over.
+func (r *rig) serverOver(key []byte, over func(*pgxpool.Pool) api.Database) *api.Server {
+	r.t.Helper()
 	pool := uiPool(r.t, "mediated_mailbox_ui")
 	secrets, err := clientsecret.Load(r.publicFile, []string{r.privateFile}, pool)
 	if err != nil {
 		r.t.Fatal(err)
 	}
 	s, err := api.New(api.Options{
-		Bundle: r.bundle, Database: pool, Datasets: registry.Datasets(lookups),
+		Bundle: r.bundle, Database: over(pool), Datasets: registry.Datasets(lookups),
 		Logger: slog.New(slog.NewJSONHandler(&r.log, nil)), Metrics: prometheus.NewRegistry(),
 		Clock: func() time.Time { return r.clock }, StreamInterval: time.Second, TokenKey: key, Seal: r.public,
 		Consents: map[string]mail.Consent[context.Context]{"gmail": r.consent}, ClientSecrets: secrets,

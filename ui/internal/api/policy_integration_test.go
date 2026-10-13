@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -19,9 +20,13 @@ import (
 
 // seedPolicy writes the policy the policy tests start from, as the superuser. The base policy holds
 // base.bank, restricting bank.example, and personal holds operator.lender.example, restricting
-// lender.example, and other holds a rule of its own. Each rule has the history row its add wrote.
+// lender.example, and other holds a rule of its own. Each rule has the history row its add wrote. It
+// replaces the rule the general seed writes, and keeps personal's statistics of the bank and the
+// lender alone, which the policy tests count over.
 func (r *rig) seedPolicy() {
 	r.t.Helper()
+	r.exec("TRUNCATE policy_rules, policy_changes RESTART IDENTITY")
+	r.exec(`DELETE FROM senders WHERE account_id = $1 AND domain NOT IN ('bank.example', 'lender.example')`, personal)
 	r.exec(`INSERT INTO policy_rules (account_id, rule_id, class, domain_suffix, source, created_by, created_at) VALUES
 		(NULL, 'base.bank', 'restricted', '{bank.example}', 'operator', 'operator', $1),
 		($2, 'operator.lender.example', 'restricted', '{lender.example}', 'operator', 'operator', $1),
@@ -34,12 +39,11 @@ func (r *rig) seedPolicy() {
 
 // policyRow is a rules dataset row as a test reads it.
 type policyRow struct {
-	Scope      string   `json:"scope"`
-	RuleID     string   `json:"rule_id"`
-	Suffixes   []string `json:"suffixes"`
-	Senders    int64    `json:"senders"`
-	Restricted int64    `json:"restricted"`
-	Messages   int64    `json:"messages"`
+	Scope    string   `json:"scope"`
+	RuleID   string   `json:"rule_id"`
+	Suffixes []string `json:"suffixes"`
+	Senders  int64    `json:"senders"`
+	Messages int64    `json:"messages"`
 }
 
 type rowsPage[T any] struct {
@@ -110,8 +114,8 @@ func TestThePolicyDatasetsAnswer(t *testing.T) {
 
 	page := decode[rowsPage[policyRow]](t, b.get("/api/personal/lens?dataset=rules&level=3"))
 	want := []policyRow{
-		{Scope: "base", RuleID: "base.bank", Suffixes: []string{"bank.example"}, Senders: 1, Restricted: 1, Messages: 1},
-		{Scope: "account", RuleID: "operator.lender.example", Suffixes: []string{"lender.example"}, Senders: 1, Restricted: 0, Messages: 4},
+		{Scope: "base", RuleID: "base.bank", Suffixes: []string{"bank.example"}, Senders: 1, Messages: 1},
+		{Scope: "account", RuleID: "operator.lender.example", Suffixes: []string{"lender.example"}, Senders: 1, Messages: 4},
 	}
 	if diff := cmp.Diff(want, page.Rows, compare.Options); diff != "" {
 		t.Errorf("the rules (-want +got):\n%s", diff)
@@ -728,5 +732,75 @@ func TestAPolicyWriteWithAnEmptyIdentityIsRefused(t *testing.T) {
 	refused(t, b.post("/api/setup/policy/rules", map[string]any{"rule_id": "base.shop", "suffixes": []string{"shop.example"}}), http.StatusForbidden, "identity_missing")
 	if got := r.stored(); got != stored {
 		t.Errorf("a write with no identity wrote:\nbefore %s\nafter  %s", stored, got)
+	}
+}
+
+// M8's row for the UI's figures and rows classified under the policy in force. Home's restricted
+// messages, the policy screen's senders restricted, the sender picker's classes, the failures
+// dataset's restricted counts and a failure's rule each follow the account's composed policy as the
+// read finds it, a sender the classifier cannot read restricted with no rule, and lifting one rule and
+// adding others moves every one of them on the next read, since the index stores no class to lag
+// (ADR-0136).
+func TestTheUIClassifiesEverySenderUnderThePolicyInForce(t *testing.T) {
+	r := newRig(t)
+	r.exec("DELETE FROM senders WHERE account_id = $1", personal)
+	r.exec(`INSERT INTO senders (account_id, domain, message_count) VALUES
+		($1, 'bank.example', 1), ($1, 'lender.example', 4), ($1, 'newsletter.example', 2), ($1, '', 1)`, personal)
+	b := r.browser()
+	type view struct {
+		Restricted, SendersRestricted, FailuresRestricted int64
+		Classes                                           map[string]string
+		Rules                                             map[int]string
+	}
+	look := func() view {
+		t.Helper()
+		v := view{Classes: map[string]string{}, Rules: map[int]string{}}
+		v.Restricted = decode[struct {
+			Restricted int64 `json:"restricted"`
+		}](t, b.get("/api/personal/corpus")).Restricted
+		for _, f := range decode[struct {
+			Figures []figure `json:"figures"`
+		}](t, b.get("/api/personal/lens?dataset=rules&level=0")).Figures {
+			if f.Key == "restricted" {
+				v.SendersRestricted = *f.Value
+			}
+		}
+		for _, s := range decode[rowsPage[struct {
+			Domain      string `json:"domain"`
+			SenderClass string `json:"sender_class"`
+		}]](t, b.get("/api/personal/lens?dataset=senders&level=3")).Rows {
+			v.Classes[s.Domain] = s.SenderClass
+		}
+		v.FailuresRestricted = *decode[groups](t, b.get("/api/personal/lens?dataset=failures&run=r-0912&level=1&group=sender")).Total.Restricted
+		for _, seq := range []int{1, 5} {
+			if rule := decode[struct {
+				ClassRuleID *string `json:"class_rule_id"`
+			}](t, b.get("/api/personal/failures/"+strconv.Itoa(seq)+"?run=r-0912")).ClassRuleID; rule != nil {
+				v.Rules[seq] = *rule
+			}
+		}
+		return v
+	}
+
+	want := view{
+		Restricted: 2, SendersRestricted: 2, FailuresRestricted: 1,
+		Classes: map[string]string{"bank.example": "restricted", "lender.example": "normal", "newsletter.example": "normal", "": "restricted"},
+		Rules:   map[int]string{1: "rule.bank"},
+	}
+	if diff := cmp.Diff(want, look(), compare.Options); diff != "" {
+		t.Errorf("under the rule for the bank (-want +got):\n%s", diff)
+	}
+
+	r.exec("DELETE FROM policy_rules WHERE account_id = $1 AND rule_id = 'rule.bank'", personal)
+	r.exec(`INSERT INTO policy_rules (account_id, rule_id, class, domain_suffix, source, created_by) VALUES
+		($1, 'rule.lender', 'restricted', '{lender.example}', 'operator', 'operator'),
+		($1, 'rule.news', 'restricted', '{newsletter.example}', 'operator', 'operator')`, personal)
+	want = view{
+		Restricted: 7, SendersRestricted: 3, FailuresRestricted: 2,
+		Classes: map[string]string{"bank.example": "normal", "lender.example": "restricted", "newsletter.example": "restricted", "": "restricted"},
+		Rules:   map[int]string{5: "rule.news"},
+	}
+	if diff := cmp.Diff(want, look(), compare.Options); diff != "" {
+		t.Errorf("with the bank's rule lifted and rules for the lender and the newsletter added (-want +got):\n%s", diff)
 	}
 }

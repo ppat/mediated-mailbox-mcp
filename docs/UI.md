@@ -71,7 +71,8 @@ to start. Any record cited in a section and not listed here is read when that se
 5. ADR-0020, ADR-0032, ADR-0019, ADR-0004, ADR-0093, ADR-0005, ADR-0003, ADR-0002, ADR-0034,
    ADR-0117, ADR-0025, ADR-0018, for the mechanisms the screens display, and ADR-0080, ADR-0081,
    ADR-0106, ADR-0107, ADR-0091, ADR-0097, ADR-0024, ADR-0037, ADR-0041, ADR-0102, ADR-0110, ADR-0112,
-   ADR-0113 and ADR-0114 for the setups, the account settings and the policy writes. Read each when building the screen that shows it.
+   ADR-0114 and ADR-0136 for the setups, the account settings and the policy writes. Read each when
+   building the screen that shows it.
 6. [TESTING.md](../TESTING.md), ADR-0043, ADR-0044, and the UI's rows in
    [docs/VERIFICATIONS.md](./VERIFICATIONS.md), before writing a test.
 7. [ROADMAP.md's open decisions](../ROADMAP.md#open-decisions) and
@@ -402,23 +403,26 @@ never hidden. The browser's counterpart to ADR-0042's rule that an unhandled var
 that an unhandled value is shown, not dropped.
 
 The row detail (L4) shows the same fields as a two-column list, then a sensitivity block (sender
-class with the rule id that set it, linking to the account's policy searched for that identifier,
-which lists the base rule and the account's own rule when both scopes hold it, since the index
-records the identifier and not its scope (ADR-0110), content flags with the rule ids that fired, and scan state with
-the time scanned and the scanner version), then the audit rows for this message as an L3 list,
-then, when reached from a plan, what the plan does to it and why. Never a body, never a snippet. The
-database has no column to show (ADR-0016). Each axis shows the rule behind it, as the index records
-them (ADR-0016, ADR-0001). Sender class and content flags are separate questions with separate
-consequences ([DESIGN.md](../DESIGN.md#sensitivity-is-two-independent-axes)). The sender class
+class with the rule id that restricts the sender, linking to the account's policy searched for that
+identifier, which lists the base rule and the account's own rule when both scopes hold it, since
+the rule is named by its identifier and not its scope (ADR-0110), content flags with the rule ids
+that fired, and scan state with the time scanned and the scanner version), then the audit rows for
+this message as an L3 list, then, when reached from a plan, what the plan does to it and why. Never
+a body, never a snippet. The database has no column to show (ADR-0016). Each axis shows the rule
+behind it, the content rules as the index records them and the sender's rule as the policy in
+force restricts it when the screen reads (ADR-0016, ADR-0136, ADR-0001). Sender class and content
+flags are separate questions with separate consequences
+([DESIGN.md](../DESIGN.md#sensitivity-is-two-independent-axes)). The sender class
 decides whether the body can be read and whether the message can be disposed of, and the content
 flags decide only whether it can be read. Tuning a rule starts from seeing which rule fired and on
 what ([O4](../USE_CASES.md#o4--the-operator-can-see-and-steer)), and that needs each rule shown
 beside the axis it set. One list of every rule id was the alternative. Its case was fewer cells and
 the shape the index used to have. It lost because a reader could not tell which rule set which
-axis. When no rule set the class (ADR-0016 names when), its rule shows as "none", as an empty list
-of rule ids that fired does, never as an empty cell.
+axis. When no rule restricts the sender, which is a sender no rule lists and one the classifier
+cannot read, its rule shows as "none", as an empty list of rule ids that fired does, never as an
+empty cell.
 
-The rule id that set the sender class links to the account's policy searched for it,
+The rule id that restricts the sender links to the account's policy searched for it,
 `/{account}/policy?search={rule-id}`, which lists that identifier's rule in each scope that holds
 one, among any other rule whose identifier or suffix contains the text (ADR-0110). A
 sender class read `normal` carries the control "Restrict {domain}…", which opens Add a rule at
@@ -874,8 +878,8 @@ here.
 
 **L4.** One item in a panel with three parts, in order. What happened ("The run recorded:
 {error_summary}"), what it means for the message (the sentence for its disposition, below), and
-provenance (run, page, attempts, first and last error time, sender class with the rule that set
-it, content flags with the rule ids that fired, the time scanned and the scanner version,
+provenance (run, page, attempts, first and last error time, sender class with the rule that
+restricts the sender, content flags with the rule ids that fired, the time scanned and the scanner version,
 disposition, and the error summary as recorded). The error summary is provider or scanner text
 and never a body. The panel ends with two links, the message in the corpus lens and its audit
 rows. The panel is the route `/{account}/jobs/{run-id}/failures/{seq}` over the items, read through
@@ -994,9 +998,9 @@ the screen shows, pending or dismissed, so a dismissed candidate may be confirme
 confirmed candidate cannot be dismissed from the UI. Undoing a confirmation is a policy edit this
 screen does not make. After either outcome the row stays in place with its new status until the operator
 navigates, the pending count in the navigation updates from the response, and focus stays where it
-was. A confirmed row shows "confirmed, index not yet updated" until the index's sender class for
-the domain reads restricted, then "confirmed, index updated", the measure the policy screen's
-"index updated" column takes ([section 8.7](#87-policy)).
+was. A confirmed row shows "confirmed". The rule restricts the domain's bodies from each process's
+next policy reload, and every screen classifies the domain under it from its next read, since the
+index stores no class to catch up (ADR-0136).
 
 A confirmed candidate whose signal names a listed domain, as the display-name and clustering
 signals do, also shows "Also add to {rule}…", where {rule} is the rule that lists that domain. It
@@ -1009,14 +1013,12 @@ unchanged.
 `/{account}/policy`, the `rules` dataset. Rows sorted by rule id, the base rules marked "base" and
 the account's overlay rules after them, each with rule id, scope (a badge, `base` or the
 account), domain suffixes, source (operator, or the candidate it came from), created time
-and identity, the count of senders in the index it matched, and "index updated, {k} of {n}", the
-matched senders whose stored sender class reads restricted of all it matches. Its hover reads
-"Bodies are denied from each process's next policy reload. This counts the senders whose stored
-class reads restricted." A
-sender matches a rule when its domain, normalized as ADR-0004 states, ends with one of the rule's
-suffixes at a label boundary, and a sender counts under every rule it matches. Policy is held as
-rows and snapshotted by every process (ADR-0004, ADR-0041), and this screen is the one exception
-to per-account rows stated in [section 5](#5-information-architecture-and-the-url). The L0 strip
+and identity, and the count of senders in the index it matched. Every sender a rule matches is
+restricted from the moment the screen reads the rule, since each screen classifies under the policy
+it reads (ADR-0136), so the count has no second figure beside it. A sender matches a rule when its
+domain, normalized as ADR-0004 states, ends with one of the rule's suffixes at a label boundary, and
+a sender counts under every rule it matches. Policy is held as rows and snapshotted by every
+process (ADR-0004, ADR-0041), and this screen is the one exception to per-account rows stated in [section 5](#5-information-architecture-and-the-url). The L0 strip
 counts the base rules, the account's rules and the senders restricted in the account, and shows
 the time of the latest change with a link to the history. Above the table sit the actions Add a
 rule, Restrict senders from the index and History, then Import and Export, which act on the
@@ -1177,11 +1179,11 @@ in view's alone, and nothing is summed across accounts.
   transactions, the add and then the lift, each with its history row, and the add always comes
   first, so the account in view never goes without the restriction between the two writes.
 
-A rule added restricts the classes the index has already stored once a scanning workload next
-compares the index with the policy, as a lift reaches the delisting transition (ADR-0113,
-ADR-0037). The screen claims only what fetch-time re-evaluation guarantees, that bodies are denied
-from the next policy reload (ADR-0002), and shows the stored classes catching up through "index
-updated".
+A rule added restricts its senders on every screen from the screen's next read, since the index
+stores no sender class and each read classifies under the policy it reads (ADR-0136). A lift
+reaches the messages skipped as restricted through the delisting transition (ADR-0037). The screen
+claims only what fetch-time re-evaluation guarantees, that bodies are denied from the next policy
+reload (ADR-0002).
 
 **Restrict senders from the index.** `/{account}/policy/pick?search=…` is the `senders` dataset at
 L3 with its `search` filter, the sender row's fields, a selection box at the left, and for a
@@ -1201,10 +1203,11 @@ one rule because a rule names one institution (ADR-0004), and a search for an in
 finds its domains. The match count is announced as the search narrows. A search with no match
 reads "No senders match '{search}'".
 
-A sender is restricted, its box disabled, when its stored class reads restricted or when a rule of
-the account's policy already restricts it before its stored class catches up, since a second rule
-would add nothing. Its row names that rule, linking to the account's policy searched for it, and
-carries no "Restrict {domain}…", which a sender no rule restricts carries. Picks made one at a time
+A sender is restricted, its box disabled, when the account's policy restricts it as the picker
+reads it, a rule matching its domain or the classifier unable to read the domain (ADR-0004,
+ADR-0136), since a second rule would add nothing. Its row names the rule, linking to the account's
+policy searched for it, or names none for a domain the classifier cannot read, and carries no
+"Restrict {domain}…", which a sender the policy does not restrict carries. Picks made one at a time
 are of the page in view, so another page or another search starts with nothing picked, and a
 selection spans pages only as every match. The bar counts the messages of the senders picked from
 the rows in view, so keeping picks across pages was the alternative, and the bar could then not
@@ -1298,7 +1301,7 @@ confirmation of every restriction it lifts.
 | --- | --- |
 | Lift dialog | an `alertdialog`, labelled by its title and described by its consequence sentence and, for a base rule, its base sentences. Focus is trapped in it, starts on Cancel and returns to the control that opened it. The typed field states the expected value in its label, accepts paste, and compares after trimming surrounding space. The disabled Lift button says why, "Type the identifier to enable" |
 | Add a rule panel | the page behind it inert, as behind a row detail. Focus starts on Applies to, or on the Add button when the panel opens with suffixes from a hand-off. Each suffix line's verdict and match count is tied to its line as its description and announced politely once typing pauses, not on every key |
-| Sender picker | each selection box a checkbox labelled "Select {domain}". A restricted sender's box is disabled, described by "Already restricted by {rule}". The selection bar is a polite live region announcing "{n} senders, {m} messages selected", and the match count is announced as the search narrows |
+| Sender picker | each selection box a checkbox labelled "Select {domain}". A restricted sender's box is disabled, described by "Already restricted by {rule}", or by "Already restricted, since its domain cannot be classified" for a domain the classifier cannot read, which no rule names. The selection bar is a polite live region announcing "{n} senders, {m} messages selected", and the match count is announced as the search narrows |
 | Writes | each save, an add, an edit, a lift or the rate target of [section 8.13](#813-account-settings), announces its outcome in a status region, and a refusal moves focus to the refusal's text |
 | Selecting every match | `Ctrl` or `Cmd` with `a`, which selects rows on pages not in view, announces the count it selected |
 | Import | the file drop is also a file input labelled "Choose a policy file". The preview's groups are headings with their counts, read lifted first. The import dialog follows the lift dialog's contract, its typed field, on a base import, labelled with the expected `lift {k}` |
@@ -1925,7 +1928,7 @@ spelled as ADR-0016 stores it, and the registry declares each column's value set
 | Vocabulary | Stored value | Wording |
 | --- | --- | --- |
 | plan status | DRAFT · APPROVED · APPLYING · APPLIED · ROLLED_BACK · REJECTED · APPLY_REFUSED | Awaiting approval · Approved, waiting to apply · Applying · Applied · Rolled back · Rejected · Apply refused |
-| candidate status | pending · confirmed · dismissed | Awaiting review · Confirmed, index not yet updated (then Confirmed, index updated) · Dismissed |
+| candidate status | pending · confirmed · dismissed | Awaiting review · Confirmed · Dismissed |
 | scan state | scanned · skipped_restricted · skipped_gate · pending | in cells `scanned` · `restricted` · `gate skip` · `pending`; on hover and in L4 "scanned" · "not scanned, restricted sender" · "released unscanned, gate skip" · "pending content scan" |
 | sender class | normal · restricted | normal · restricted |
 | content flag | mfa_code · login_link | mfa · link |
@@ -2249,9 +2252,15 @@ a row page. The level rules and the filter grammar of
 Aggregate rows and the total carry `count`, and for message-derived datasets (`messages`,
 `masking`, `gate`, `audit`, `ops`, `failures`) also `restricted` (rows whose message's sender is
 restricted) and `flagged` (rows whose message carries a content flag), so every chart splits by
-sensitivity without a second request. Both read `messages.sender_class` and
-`messages.content_flags` at read time, the index's current values. `senders` carries neither, and
-its rows carry the sender's class. Group keys are the dimension values as stored, with `null` for
+sensitivity without a second request. `restricted` classifies each message's sender domain under
+the account's composed policy, read in the read's transaction, and `flagged` reads
+`messages.content_flags`, the index's current value (ADR-0136). A message's `sender_class` in a row
+is classified the same way. Every read that classifies runs in a repeatable-read, read-only
+transaction, so within one response a row, its group and the total never disagree about a sender.
+Separate requests read separate snapshots, so a screen's figures, groups and rows, which arrive in
+separate requests, can disagree when a rule changes between them.
+The index stores no class to read instead. `senders` carries neither count, and its rows carry the
+sender's class, classified the same way. Group keys are the dimension values as stored, with `null` for
 the unfiled label group and for an audit row with no message. The `sender` dimension's values are
 sender domains, which every writer stores in the one form the domain normalizer gives
 ([ADR-0016](./adr/data/0016-schema.md)), so each has one spelling and its key is that spelling. The
@@ -2359,11 +2368,11 @@ datasets. `senders` declares none. `plans`, `candidates` and `runs` declare none
 paths belong to the bespoke handlers, and the contract generator refuses a path claimed by both
 sources. A row the account's parent does not hold is refused with the client's 404, `unknown_row`.
 `failures` declares one. Its detail is the row with the error summary as recorded, the item's
-message's sensitivity block of [section 7.1](#71-the-message-row), which is the rule that set its
-class as `class_rule_id`, the content rules that fired as `rule_ids`, the time it was scanned and the
-scanner version, and the newest 50 audit rows of the message with their count. `class_rule_id` is
-`null` when no rule set the class, and every field of the block is `null` for a page item or a
-message the index no longer holds.
+message's sensitivity block of [section 7.1](#71-the-message-row), which is the rule that restricts
+its sender under the policy in force as `class_rule_id`, the content rules that fired as
+`rule_ids`, the time it was scanned and the scanner version, and the newest 50 audit rows of the
+message with their count. `class_rule_id` is `null` when no rule restricts the sender, and every
+field of the block is `null` for a page item or a message the index no longer holds.
 
 The page dimension is `page_number`, because `page=` is the common parameter that pages rows.
 Naming it `page`, as the run screen's group-by control words it, was the alternative, and a URL
@@ -2430,7 +2439,7 @@ Every failure is one shape, and the origin mirrors
 | `GET /api/{account}/jobs/{run}` | the run as the jobs endpoint sends it, the latest run whose `resumed_from` names it, its item failures counted in all and per disposition, the runs that recovered its items with how many each, and every event of its timeline (kind, time, page, detail) in the order recorded. An unknown run is refused with the client's 404, `unknown_run` |
 | `GET /api/{account}/attention` | the "worth a look" cards of [section 8.1](#81-home), in their order, each with its rule id (`backlog`, `masking`, `body_serves`, `sync_gap`, `expiry`), what, number, since (`null` when the rule has none), the sentence, and the link the rule's table names |
 | `GET /api/{account}/system` | two blocks. `operational`, the values of [section 8.8](#88-system) and the finish time of backfill pass 1's latest succeeded run, which tells the partial-index banner a re-opened pass 1 from a first one ([section 12](#12-empty-loading-partial-and-error-patterns)); `decisions`, the counts of plans in DRAFT, candidates pending, and workloads running, which the chrome's counters read. It counts nothing over every message of the account, since the banner reads it again on every backfill run event ([section 9](#9-live-surfaces)) |
-| `GET /api/{account}/corpus` | the corpus figures of Home's System column ([section 8.1](#81-home)) with `as_of`, the time the read transaction began, then the messages, threads, unfiled and restricted messages of the account, the audit rows of the last 24 hours by action as stored, each action present with zero when no row has it, the masking events and the gate's skips of the last 7 days. It counts every message of the account, which is why it is a read apart from the system endpoint, read by Home alone |
+| `GET /api/{account}/corpus` | the corpus figures of Home's System column ([section 8.1](#81-home)) with `as_of`, the time the read transaction began, then the messages, threads, unfiled and restricted messages of the account, the restricted ones the sum of the stored message counts of the senders the account's composed policy restricts, classified in the read's transaction (ADR-0136), the audit rows of the last 24 hours by action as stored, each action present with zero when no row has it, the masking events and the gate's skips of the last 7 days. It counts every message of the account, which is why it is a read apart from the system endpoint, read by Home alone |
 | `GET /api/{account}/events` | the live stream, `text/event-stream` |
 | `GET /api/setup` | the installation endpoint. The providers whose accounts connect through an OAuth client, each OAuth client's name, provider, client identifier and project ID with the accounts connected through it, every account's identifier, provider and the client it connects through, and the count of base rules. Unscoped, and reads nothing of any account's state, so the getting-started list of [section 8.10](#810-installation) reads whether an account exists, never whether one is connected |
 | `POST /api/setup/{provider}/clients` with `{ "name": "…", "client_id": "…", "client_secret": "…", "project_id": "…" }` | checks a new client with the provider and stores it under its name, the secret sealed and the project ID beside it, `null` when neither step 1 nor the file gave one. 200 when stored, the client's 400 `client_refused` when the provider refuses it or the identifier or the secret is empty, the provider's 502 `provider_unreachable` when it does not answer, 400 `name_refused` for a name [section 8.11](#811-oauth-client-setup) refuses, 400 `project_refused` for a project ID not shaped like one, 409 `name_taken` or `client_exists`, the latter naming the client that holds the identifier, and 404 `unknown_provider` for a provider that authenticates through no OAuth client. Unscoped |

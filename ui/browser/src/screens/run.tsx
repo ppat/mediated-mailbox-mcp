@@ -397,8 +397,8 @@ export function senderDomain(address: string | null): string | undefined {
   return domain === "" ? undefined : domain;
 }
 
-// FailureBody is a failure's detail. The rule that set the message's class links to the account's
-// policy searched for its identifier, which lists that identifier's rule in each scope that holds one,
+// FailureBody is a failure's detail. The rule that restricts the message's sender under the policy in
+// force links to the account's policy searched for its identifier, which lists that identifier's rule in each scope that holds one,
 // and a sender whose class reads normal carries Restrict {domain}… (docs/UI.md section 7.1).
 export function FailureBody(props: { account: string; detail: FailureDetail }) {
   const { account, detail } = props;
@@ -442,7 +442,7 @@ export function FailureBody(props: { account: string; detail: FailureDetail }) {
             </>
           ) : null}
         </dd>
-        <dt>rule that set the class</dt>
+        <dt>rule that restricts the sender</dt>
         <dd class="mono">
           {detail.class_rule_id === null ? (
             "none"

@@ -50,11 +50,12 @@ func next(t *testing.T, p *pass2.Pass) {
 }
 
 // VERIFICATIONS' row for a policy edit during a running second pass. A rule restricting the shop is
-// added while the pass runs, and a reload makes it the active policy. Before the run's next page, the
-// shop's messages stored as normal are stored restricted by the same run, and its message on a later
-// page is skipped as restricted, its body never fetched. Then a reload whose rules are the same by
-// value follows a write setting the shop's messages back to normal directly, and they stay normal,
-// since the run makes the comparisons again only when the rules differ by value (ADR-0119, ADR-0113).
+// added while the pass runs, and a reload makes it the active policy. The shop's message on a later
+// page is skipped as restricted, its body never fetched, and its message scanned before the edit keeps
+// its verdict, since the index stores no class to restrict (ADR-0136). Then a reload whose rules are
+// the same by value follows a write marking a normal sender's scanned message skipped as restricted
+// directly, and it stays skipped, since the run makes the delisting comparison again only when the
+// rules differ by value (ADR-0119, ADR-0037).
 func TestAPolicyEditReachesARunningSecondPassWithinAPage(t *testing.T) {
 	messages := []fake.Message{
 		message("m01", "a@shop.example", false, marker.Body("shopfirst"), ""),
@@ -71,18 +72,16 @@ func TestAPolicyEditReachesARunningSecondPassWithinAPage(t *testing.T) {
 		t.Fatal(err)
 	}
 	next(t, p)
-	if st := inspectPostgres(t, postgres.URL(t), w.account).Messages["m01"]; st.Class != "normal" || st.State != "scanned" {
-		t.Fatalf("before the edit m01 is %+v, want a normal sender scanned", st)
+	if st := inspectPostgres(t, postgres.URL(t), w.account).Messages["m01"]; st.State != "scanned" {
+		t.Fatalf("before the edit m01 is %+v, want it scanned", st)
 	}
 
 	shop := policy.Row{ID: "rule.shop", Class: policy.Restricted, DomainSuffixes: []string{"shop.example"}}
 	a.reload(shop)
 	next(t, p)
 	edited := inspectPostgres(t, postgres.URL(t), w.account)
-	for _, id := range []string{"m01", "m03"} {
-		if st := edited.Messages[id]; st.Class != "restricted" {
-			t.Errorf("after the edit's first page message %s is %+v, want its sender stored restricted", id, st)
-		}
+	if st := edited.Messages["m01"]; st.State != "scanned" {
+		t.Errorf("after the edit's first page m01 is %+v, want it to keep its verdict", st)
 	}
 	if st := edited.Messages["m02"]; st.State != "scanned" {
 		t.Errorf("the page after the edit left m02 %+v, want it scanned", st)
@@ -93,16 +92,14 @@ func TestAPolicyEditReachesARunningSecondPassWithinAPage(t *testing.T) {
 	}
 
 	if _, err := superuser(t).Exec(context.Background(),
-		"UPDATE messages SET sender_class = 'normal', class_rule_id = NULL WHERE account_id = $1 AND from_domain = 'shop.example'", w.account); err != nil {
+		"UPDATE messages SET scan_state = 'skipped_restricted' WHERE account_id = $1 AND message_id = 'm02'", w.account); err != nil {
 		t.Fatal(err)
 	}
 	a.reload(shop)
 	next(t, p)
 	end := inspectPostgres(t, postgres.URL(t), w.account)
-	for _, id := range []string{"m01", "m03"} {
-		if st := end.Messages[id]; st.Class != "normal" {
-			t.Errorf("after a reload with the same rules message %s is %+v, want it left normal until the next run's start", id, st)
-		}
+	if st := end.Messages["m02"]; st.State != "skipped_restricted" {
+		t.Errorf("after a reload with the same rules m02 is %+v, want it left skipped until the next run's start", st)
 	}
 	if diff := cmp.Diff([]string{"m01", "m02", "m04"}, w.fetched, compare.Options); diff != "" {
 		t.Errorf("the bodies asked for, the shop's later one never (-want +got):\n%s", diff)
@@ -112,8 +109,8 @@ func TestAPolicyEditReachesARunningSecondPassWithinAPage(t *testing.T) {
 	}
 }
 
-// A rule removed during a running second pass returns its sender's messages stored as restricted to a
-// normal class and pending scan before the run's next page, and the same run starts over from the first
+// A rule removed during a running second pass returns its sender's messages skipped as restricted to
+// pending scan before the run's next page, and the same run starts over from the first
 // waiting message, as the delisting transition at a run's start does, and then scans them (ADR-0119,
 // ADR-0037).
 func TestARuleRemovedDuringARunningSecondPassReachesItWithinAPage(t *testing.T) {
@@ -146,7 +143,7 @@ func TestARuleRemovedDuringARunningSecondPassReachesItWithinAPage(t *testing.T) 
 	if latest.Progress.Checkpoint == (core.Checkpoint{}) {
 		t.Errorf("the page after the removal left the run at %+v, want it past the first message it read again", latest.Progress.Checkpoint)
 	}
-	if st := after.Messages["m01"]; st.Class != "normal" || st.State != "scanned" {
+	if st := after.Messages["m01"]; st.State != "scanned" {
 		t.Errorf("after the removal's first page m01 is %+v, want a normal sender scanned from the first waiting message", st)
 	}
 	for {
@@ -159,7 +156,7 @@ func TestARuleRemovedDuringARunningSecondPassReachesItWithinAPage(t *testing.T) 
 		}
 	}
 	end := inspectPostgres(t, postgres.URL(t), w.account)
-	if st := end.Messages["m03"]; st.Class != "normal" || st.State != "scanned" {
+	if st := end.Messages["m03"]; st.State != "scanned" {
 		t.Errorf("at the pass's end m03 is %+v, want a normal sender scanned", st)
 	}
 	if diff := cmp.Diff([]string{"m02", "m01", "m03", "m04"}, w.fetched, compare.Options); diff != "" {

@@ -39,9 +39,9 @@ connects as is held in one place in `db/check`.
   kind's import list maps to its role in the grant check, as each deployable's does.
 - **Each role's grants hold three lines.** Its writes are exactly what its own statements write. It
   holds no grant on a sealed credential or an OAuth client secret unless its code opens them. It
-  holds no grant on a column a record forbids it to act on, which is the stored sender class for
-  the mediator ([ADR-0002](../redaction/0002-fetch-time-re-evaluation.md)). Reads beyond those
-  lines are acceptable.
+  holds no grant on a column a record forbids it to act on
+  ([ADR-0002](../redaction/0002-fetch-time-re-evaluation.md)). Reads beyond those lines are
+  acceptable.
 - **What the roles bound, stated plainly.** Between processes, the mediator, the worker and the
   UI, a role bounds what a compromised process can do in the database. Inside the worker, the
   roles bound what a buggy job can do in the database. They do not bound a compromised worker,

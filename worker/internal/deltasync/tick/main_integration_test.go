@@ -224,7 +224,7 @@ type stored struct {
 	Read                 bool
 	Subject              string
 	Masked               bool
-	Class, Rule, State   string
+	State                string
 	Flags                []string
 	Decision, Reason     string
 	Version              int
@@ -236,7 +236,7 @@ type stored struct {
 func index(t tb, conn *pgx.Conn, account string) map[string]stored {
 	t.Helper()
 	rows, err := conn.Query(context.Background(), `SELECT m.message_id, m.labels, coalesce((m.flags->>'read')::boolean, false), coalesce(m.subject, ''),
-			m.subject_masked, m.sender_class, coalesce(m.class_rule_id, ''), m.scan_state, m.content_flags,
+			m.subject_masked, m.scan_state, m.content_flags,
 			coalesce(d.decision, ''), coalesce(d.reason, ''), coalesce(m.scanner_version, 0), coalesce(m.scanner_revision, ''),
 			coalesce(m.subject_scanner_revision, '')
 		FROM messages AS m LEFT JOIN scan_gate_decisions AS d ON d.account_id = m.account_id AND d.message_id = m.message_id
@@ -248,7 +248,7 @@ func index(t tb, conn *pgx.Conn, account string) map[string]stored {
 	var id string
 	var s stored
 	_, err = pgx.ForEachRow(rows, []any{
-		&id, &s.Labels, &s.Read, &s.Subject, &s.Masked, &s.Class, &s.Rule, &s.State, &s.Flags,
+		&id, &s.Labels, &s.Read, &s.Subject, &s.Masked, &s.State, &s.Flags,
 		&s.Decision, &s.Reason, &s.Version, &s.Revision, &s.SubjectStampRevision,
 	}, func() error {
 		out[id] = s

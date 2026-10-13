@@ -1,10 +1,11 @@
--- name: SenderClasses :many
--- Every one of the account's senders with its stored class and message count, which the policy
--- screens match against the rules to count what each rule matches and restricts (docs/UI.md section
--- 8.7). Matching a sender against a rule is the sender classifier's, so it is made in the UI's server.
+-- name: SenderCounts :many
+-- Every one of the account's senders with its message count, which the UI classifies under the policy
+-- in force when it reads, since the index stores no sender class (ADR-0136). The policy screens match
+-- the senders against the rules to count what each rule matches, and Home sums the messages of the
+-- senders the policy restricts (docs/UI.md sections 8.1 and 8.7). Matching a sender against a rule is
+-- the sender classifier's, so it is made in the UI's server.
 SELECT
     s.domain,
-    s.sender_class,
     s.message_count
 FROM senders AS s
 WHERE s.account_id = current_setting('app.account')
@@ -25,11 +26,10 @@ WHERE
 
 -- name: SenderSearchRows :many
 -- One page of the senders dataset, fifty rows, under the same filter, with the sender row's fields
--- (docs/UI.md section 7.2), the sender with the most messages first by default, the domain ending the
--- sort.
+-- (docs/UI.md section 7.2) but the class, which the UI classifies under the policy in force, the
+-- sender with the most messages first by default, the domain ending the sort.
 SELECT
     s.domain,
-    s.sender_class,
     s.message_count,
     s.first_seen,
     s.last_seen,

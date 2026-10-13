@@ -1,0 +1,33 @@
+control: The UI classifies every sender under the policy in force when it reads
+removes: the sender picker's classes and the failure detail's rule are decided under no rule, so only a domain the classifier cannot read is restricted there and no rule is named
+packages: ./ui/internal/api
+tests: TestTheUIClassifiesEverySenderUnderThePolicyInForce
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/registry/failures.go b/ui/internal/registry/failures.go
+index 9784a0dd..42d0febe 100644
+--- a/ui/internal/registry/failures.go
++++ b/ui/internal/registry/failures.go
+@@ -193,7 +193,7 @@ func (fr failureReads) classes(ctx context.Context, q Queries) (senderClasses, e
+ 	if err != nil {
+ 		return senderClasses{}, err
+ 	}
+-	c := senderClasses{normal: senders.Normal(), isNormal: map[string]bool{}, policy: rules.Names(Composed(stored), fr.lookups), lookups: fr.lookups}
++	c := senderClasses{normal: senders.Normal(), isNormal: map[string]bool{}, policy: rules.Names(Composed(stored[:0]), fr.lookups), lookups: fr.lookups}
+ 	for _, d := range c.normal {
+ 		c.isNormal[d] = true
+ 	}
+diff --git a/ui/internal/registry/policy.go b/ui/internal/registry/policy.go
+index 72774af4..ea246051 100644
+--- a/ui/internal/registry/policy.go
++++ b/ui/internal/registry/policy.go
+@@ -802,7 +802,7 @@ func senderRows(ctx context.Context, q Queries, r Read, l classify.Lookups) (any
+ 	if err != nil {
+ 		return nil, err
+ 	}
+-	policy := rules.Names(Composed(stored), l)
++	policy := rules.Names(Composed(stored[:0]), l)
+ 	for _, row := range rows {
+ 		restricted, by := rules.ClassOf(row.Domain, policy, l)
+ 		s := SenderRow{

@@ -71,7 +71,7 @@
     {
       "domain": "lender.example",
       "messages": 4,
-      "sender_class": "normal"
+      "sender_class": "restricted"
     }
   ],
   "matched_total": 1,
@@ -80,7 +80,6 @@
     "messages": 4,
     "senders": 1
   },
-  "restricted": 0,
   "rule_id": "operator.lender.example",
   "scope": "account",
   "senders": 1,

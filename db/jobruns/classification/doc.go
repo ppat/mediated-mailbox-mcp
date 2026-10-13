@@ -1,5 +1,6 @@
-// Package runclassification is the data-access subsection for the reads of a run's failures, which join
-// each item's message and read its stored sender class, which the mediator may not be granted
-// (ADR-0002, ADR-0118). It sits one directory below db/jobruns, so a role admitted to db/jobruns is
-// never planned against a statement that reads the stored sender class.
+// Package runclassification is the data-access subsection for the reads of a run's failures, which
+// read the failure columns the mediator's role is not granted and join each item's message with its
+// sender's domain, which the UI classifies under the policy in force when it reads (ADR-0118,
+// ADR-0136). It sits one directory below db/jobruns, so a role admitted to db/jobruns is never planned
+// against a statement that reads those columns.
 package runclassification

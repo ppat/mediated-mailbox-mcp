@@ -22,17 +22,14 @@ other unscanned mail. Bodies remain denied until scanned, which fail-closed alre
 One state transition, plus machinery that already exists.
 
 **A removal reaches the transition by its effect, not by the edit that made it.** Every workload
-that scans compares the sender domains of the messages the index stores as restricted, or holds
-skipped as restricted, with the policy snapshot it loaded
-([ADR-0041](../engineering/0041-policy-as-immutable-snapshots.md)), before it evaluates the gate.
-For every domain the snapshot now classifies normal, it sets that domain's messages stored as
-restricted or skipped as restricted to a normal sender class with no rule naming it, and to pending
-scan, and rebuilds the domain's sender statistics, in one transaction. Clearing the rule keeps a
-message from naming a rule for a class that rule no longer sets
-([ADR-0016](../data/0016-schema.md)). The skip state is read as well as the stored class,
-because a rule added after a message was stored can leave its stored class normal while the scan
-gate skips it as restricted, until the same comparison restricts the stored class
-([ADR-0113](./0113-an-added-rule-reaches-the-stored-classes-by-its-effect.md)).
+that scans compares the sender domains of the messages the index holds skipped as restricted with
+the policy snapshot it loaded ([ADR-0041](../engineering/0041-policy-as-immutable-snapshots.md)),
+before it evaluates the gate. For every domain the snapshot now classifies normal, it sets that
+domain's messages skipped as restricted to pending scan, in one transaction. The skip state is the
+one thing read, because the index stores no sender class
+([ADR-0136](./0136-the-index-stores-no-sender-class-and-every-reader-classifies-when-it-reads.md)),
+and a message the gate skipped as restricted is the one whose body waits on its sender's class to
+be scanned. A message scanned before its sender was restricted keeps its verdict.
 Backfill's second pass runs the comparison at the start of each of its runs, which it makes until
 the pass has ended for the account, and when it marks any message the run starts over from the first
 message waiting for a scan, because the marked messages may sit before the point it resumed from
@@ -72,10 +69,11 @@ does not count as scan clearance. This transition is the real path.
   of [ADR-0093](./0093-composite-scan-gate.md), denied at fetch per
   [ADR-0002](./0002-fetch-time-re-evaluation.md), so the transition can never release a body
   early.
-- Assumptions about other components: the index can enumerate a sender's messages. The scan gate
-  and scanner treat the marked messages as ordinary unscanned mail, with no special path. Every
-  workload that scans compares the messages stored as restricted or skipped as restricted with the
-  policy it loaded, since that comparison is how a removal is observed. Between a removal and the
+- Assumptions about other components: the index can enumerate a sender's messages skipped as
+  restricted, which a partial index over their domains serves ([ADR-0016](../data/0016-schema.md)).
+  The scan gate and scanner treat the marked messages as ordinary unscanned mail, with no special
+  path. Every workload that scans compares the messages skipped as restricted with the policy it
+  loaded, since that comparison is how a removal is observed. Between a removal and the
   next such comparison, the messages keep their skip state, which denies their bodies.
 - Once backfill's second pass has ended, delta sync is the workload that scans, so each of its
   ticks makes the comparison before it decides what waits for a scan

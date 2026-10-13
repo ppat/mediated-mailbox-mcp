@@ -17,18 +17,10 @@ type Querier interface {
 	// them, so backfill's run-start step decides each skip again under the gate it holds (ADR-0121). A
 	// message with no sender statistics reads a volume and hits of zero.
 	GateSkips(ctx context.Context) ([]GateSkipsRow, error)
-	// The delisting transition for one domain the policy in force no longer restricts. Its messages stored
-	// restricted or skipped as restricted return to a normal sender class with no rule naming it, and to
-	// pending scan (ADR-0037, ADR-0016).
+	// The delisting transition for one domain the policy in force no longer restricts. Its messages
+	// skipped as restricted return to pending scan (ADR-0037). A skipped message holds no verdict, so the
+	// check that only a scanned message carries content flags holds (ADR-0016).
 	MarkDelisted(ctx context.Context, domain string) (int64, error)
-	// Restricts the stored class of one domain the policy in force now restricts under a rule. Its
-	// messages stored as normal take the restricted class and the rule that sets it, and their scan state
-	// is left as it is (ADR-0113, ADR-0016).
-	MarkListed(ctx context.Context, arg MarkListedParams) (int64, error)
-	// The sender domains of the account whose messages the index stores as normal, each once, which every
-	// scanning workload compares with the policy in force, so a rule added since restricts the stored
-	// classes (ADR-0113).
-	NormalDomains(ctx context.Context) ([]string, error)
 	// The account's messages waiting for their content scan after the message identified by after, in
 	// the order of their identifiers, each with what the scan gate reads of it and of its sender, the
 	// sender's volume and prior hits, which delta sync's tick reads (ADR-0093, ADR-0104). A message with
@@ -64,11 +56,10 @@ type Querier interface {
 	// before the first pass. It returns each message's sender domain, whose prior hits the caller counts
 	// again.
 	RequeueStaleVerdicts(ctx context.Context, arg RequeueStaleVerdictsParams) ([]string, error)
-	// The sender domains of the account whose messages the index stores as restricted or holds skipped as
-	// restricted, each once, which the delisting transition compares with the policy in force (ADR-0037).
-	// A rule added after a message was stored can leave its stored class normal while the gate skips it as
-	// restricted, until the comparison for an added rule restricts the stored class (ADR-0113), so the
-	// skip state is read as well.
+	// The sender domains of the account's messages the scan gate skipped as restricted, each once, which
+	// the delisting transition compares with the policy in force (ADR-0037). The index stores no sender
+	// class (ADR-0136), and a message skipped as restricted is the one whose scan waits on its sender's
+	// class. The partial index over the domains of those messages serves it.
 	RestrictedDomains(ctx context.Context) ([]string, error)
 }
 

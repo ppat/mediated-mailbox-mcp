@@ -78,20 +78,18 @@ func Composed(stored []StoredRule) []rules.Rule {
 }
 
 // RuleRow is one row of the rules dataset, the policy screen's columns (docs/UI.md section 8.7). Its
-// counts are the account's alone. Senders counts the senders the rule matches in the index,
-// Restricted those whose stored class reads restricted, which "index updated" shows, and Messages
-// their messages.
+// counts are the account's alone. Senders counts the senders the rule matches in the index, every one
+// of which the rule restricts as the screen reads it (ADR-0136), and Messages their messages.
 type RuleRow struct {
-	Scope      string   `json:"scope"`
-	RuleID     string   `json:"rule_id"`
-	Class      string   `json:"class"`
-	Suffixes   []string `json:"suffixes"`
-	Source     string   `json:"source"`
-	CreatedAt  string   `json:"created_at"`
-	CreatedBy  string   `json:"created_by"`
-	Senders    int64    `json:"senders"`
-	Restricted int64    `json:"restricted"`
-	Messages   int64    `json:"messages"`
+	Scope     string   `json:"scope"`
+	RuleID    string   `json:"rule_id"`
+	Class     string   `json:"class"`
+	Suffixes  []string `json:"suffixes"`
+	Source    string   `json:"source"`
+	CreatedAt string   `json:"created_at"`
+	CreatedBy string   `json:"created_by"`
+	Senders   int64    `json:"senders"`
+	Messages  int64    `json:"messages"`
 }
 
 func ruleFields() []schema.Field {
@@ -104,12 +102,19 @@ func ruleFields() []schema.Field {
 		schema.F("created_at", schema.Time()),
 		schema.F("created_by", schema.Str()),
 		schema.F("senders", schema.Int()),
-		schema.F("restricted", schema.Int()),
 		schema.F("messages", schema.Int()),
 	}
 }
 
 func ruleRowType() schema.Type { return schema.Obj("RuleRow", ruleFields()...) }
+
+// className is a sender's class as the read API sends it.
+func className(restricted bool) string {
+	if restricted {
+		return "restricted"
+	}
+	return "normal"
+}
 
 func scopeOf(base bool) string {
 	if base {
@@ -118,22 +123,19 @@ func scopeOf(base bool) string {
 	return rules.Account
 }
 
-// SenderClasses reads the account's senders as the counts take them.
-func SenderClasses(ctx context.Context, q Queries, l classify.Lookups) (rules.Senders, int64, error) {
-	read, err := q.Senders.SenderClasses(ctx)
+// AccountSenders reads the account's senders as the counts take them, each classified under the
+// composed policy stored, which the caller read in the same snapshot transaction, so one response's
+// counts and its rules never disagree (ADR-0136).
+func AccountSenders(ctx context.Context, q *senderclassification.Queries, stored []StoredRule, l classify.Lookups) (rules.Senders, error) {
+	read, err := q.SenderCounts(ctx)
 	if err != nil {
-		return rules.Senders{}, 0, err
+		return rules.Senders{}, err
 	}
-	senders := make([]rules.Sender, 0, len(read))
-	var restricted int64
+	senders := make([]rules.Stored, 0, len(read))
 	for _, s := range read {
-		r := s.SenderClass == "restricted"
-		if r {
-			restricted++
-		}
-		senders = append(senders, rules.Sender{Domain: s.Domain, Restricted: r, Messages: s.MessageCount})
+		senders = append(senders, rules.Stored{Domain: s.Domain, Messages: s.MessageCount})
 	}
-	return rules.NewSenders(senders, l), restricted, nil
+	return rules.NewSenders(senders, rules.Names(Composed(stored), l), l), nil
 }
 
 // ruleRow is a stored rule with its counts in the account.
@@ -141,7 +143,7 @@ func ruleRow(r StoredRule, senders rules.Senders) RuleRow {
 	c := senders.Match(r.Suffixes)
 	return RuleRow{
 		Scope: scopeOf(r.Base), RuleID: r.ID, Class: r.Class, Suffixes: slices.Clone(r.Suffixes), Source: r.Source,
-		CreatedAt: Stamp(r.CreatedAt), CreatedBy: r.CreatedBy, Senders: c.Senders, Restricted: c.Restricted, Messages: c.Messages,
+		CreatedAt: Stamp(r.CreatedAt), CreatedBy: r.CreatedBy, Senders: c.Senders, Messages: c.Messages,
 	}
 }
 
@@ -222,7 +224,7 @@ func rulesSummary(ctx context.Context, q Queries, r Read, l classify.Lookups) ([
 	if err != nil {
 		return nil, Total{}, err
 	}
-	_, restricted, err := SenderClasses(ctx, q, l)
+	senders, err := AccountSenders(ctx, q.Senders, stored, l)
 	if err != nil {
 		return nil, Total{}, err
 	}
@@ -241,7 +243,7 @@ func rulesSummary(ctx context.Context, q Queries, r Read, l classify.Lookups) ([
 	figures := []Figure{
 		count("base", "base rules", base, link(r.Account, "policy", nil)),
 		count("own", "rules for this account", own, link(r.Account, "policy", nil)),
-		count("restricted", "senders restricted", restricted, link(r.Account, "policy/pick", nil)),
+		count("restricted", "senders restricted", senders.Restricted().Senders, link(r.Account, "policy/pick", nil)),
 		{Key: "latest", Wording: "latest change", At: optionalStamp(latest), Link: link(r.Account, "policy/history", nil)},
 	}
 	return figures, Total{Count: int64(len(filtered(stored, r)))}, nil
@@ -252,7 +254,7 @@ func rulesRows(ctx context.Context, q Queries, r Read, l classify.Lookups) (any,
 	if err != nil {
 		return nil, err
 	}
-	senders, _, err := SenderClasses(ctx, q, l)
+	senders, err := AccountSenders(ctx, q.Senders, stored, l)
 	if err != nil {
 		return nil, err
 	}
@@ -418,7 +420,7 @@ func ruleDetail(ctx context.Context, q Queries, req lens.RowRequest, l classify.
 		return nil, ErrNoRow
 	}
 	rule := stored[i]
-	senders, _, err := SenderClasses(ctx, q, l)
+	senders, err := AccountSenders(ctx, q.Senders, stored, l)
 	if err != nil {
 		return nil, err
 	}
@@ -443,11 +445,7 @@ func ruleDetail(ctx context.Context, q Queries, req lens.RowRequest, l classify.
 	})
 	d.SendersTotal = int64(len(matched))
 	for _, s := range matched[:min(len(matched), lens.RowsPerPage)] {
-		class := "normal"
-		if s.Restricted {
-			class = "restricted"
-		}
-		d.Senders = append(d.Senders, SenderMatch{Domain: s.Domain, SenderClass: class, Messages: s.Messages})
+		d.Senders = append(d.Senders, SenderMatch{Domain: s.Domain, SenderClass: className(s.Restricted), Messages: s.Messages})
 	}
 	history, err := q.Changes.RuleHistory(ctx, policychanges.RuleHistoryParams{RuleID: id, Base: base})
 	if err != nil {
@@ -708,7 +706,8 @@ func changeParams(f changeFilters) changeParamsOf {
 }
 
 // SenderRow is one row of the senders dataset as the sender picker reads it, the sender row's fields
-// of docs/UI.md section 7.2 and, for a sender the account's policy restricts, the rule restricting it.
+// of docs/UI.md section 7.2, its class under the account's composed policy read in the same
+// transaction (ADR-0136), and, for a sender a rule restricts, the rule restricting it.
 type SenderRow struct {
 	Domain       string   `json:"domain"`
 	SenderClass  string   `json:"sender_class"`
@@ -805,15 +804,16 @@ func senderRows(ctx context.Context, q Queries, r Read, l classify.Lookups) (any
 	}
 	policy := rules.Names(Composed(stored), l)
 	for _, row := range rows {
+		restricted, by := rules.ClassOf(row.Domain, policy, l)
 		s := SenderRow{
-			Domain: row.Domain, SenderClass: row.SenderClass, MessageCount: row.MessageCount,
+			Domain: row.Domain, SenderClass: className(restricted), MessageCount: row.MessageCount,
 			FirstSeen: optionalStamp(row.FirstSeen), LastSeen: optionalStamp(row.LastSeen), ScanHits: row.ScanHitCount,
 		}
 		if row.HasListIDRatio.Valid {
 			ratio := Widen(row.HasListIDRatio.Float32)
 			s.ListIDRatio = &ratio
 		}
-		if by := rules.RestrictedBy(row.Domain, policy, l); by != "" {
+		if by != "" {
 			s.RestrictedBy = &by
 		}
 		out = append(out, s)

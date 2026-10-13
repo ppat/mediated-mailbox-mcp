@@ -108,7 +108,7 @@ The demonstrations of the controls whose patches sit in `core/`. [MUTATIONS.md](
 
 ## A stored sender domain is stored in the normalizer's form and classifies as the address it came from
 
-- **Date · evidence:** 2026-10-08 · [pull request #322](https://github.com/ppat/mediated-mailbox-mcp/pull/322), and every break again on 2026-10-12 at RAPID_SEED=1, after the policy prepared once per load for the classifier changed the code, tests or patches the row rests on · [pull request #365](https://github.com/ppat/mediated-mailbox-mcp/pull/365)
+- **Date · evidence:** 2026-10-08 · [pull request #322](https://github.com/ppat/mediated-mailbox-mcp/pull/322), and every break again on 2026-10-12 at RAPID_SEED=1, after the policy prepared once per load for the classifier changed the code, tests or patches the row rests on · [pull request #365](https://github.com/ppat/mediated-mailbox-mcp/pull/365), and every break again on 2026-10-13 at RAPID_SEED=1, after the index stopped storing a sender's class changed the code, tests or patches the row rests on · [pull request #372](https://github.com/ppat/mediated-mailbox-mcp/pull/372)
 - **Break (1):** the index stores the part of a sender's address after its last @ as written, without the domain normalizer
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/index`:** `TestAStoredDomainClassifiesAsItsAddress`
 - **Break (2):** the domain normalizer lowercases by Go's simple mapping, which lowers the dotted capital I to a plain i where the classifier reads i followed by U+0307

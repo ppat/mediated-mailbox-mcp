@@ -3303,9 +3303,6 @@
           "released": {
             "$ref": "#/components/schemas/Counts"
           },
-          "restricted": {
-            "type": "integer"
-          },
           "rule_id": {
             "type": "string"
           },
@@ -3344,7 +3341,6 @@
           "created_at",
           "created_by",
           "senders",
-          "restricted",
           "messages",
           "suffix_details",
           "released",
@@ -3392,9 +3388,6 @@
           "messages": {
             "type": "integer"
           },
-          "restricted": {
-            "type": "integer"
-          },
           "rule_id": {
             "type": "string"
           },
@@ -3427,7 +3420,6 @@
           "created_at",
           "created_by",
           "senders",
-          "restricted",
           "messages"
         ],
         "type": "object"

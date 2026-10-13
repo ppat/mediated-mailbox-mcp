@@ -800,8 +800,8 @@ type rising struct {
 func (s *rising) Refetch(ctx context.Context, account, _ string, stamp index.Stamp, _ pass1.Refetched, advance func(int, int) core.Progress) (core.Progress, error) {
 	s.n++
 	_, err := superuser(s.t).Exec(ctx, `INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, subject, sent_at,
-		has_attachments, sender_class, subject_scanner_version, subject_scanner_revision)
-		VALUES ($1, $2, 't', 'news@news.example', 'news.example', $3, now(), false, 'normal', 1, 'revision-earlier')`,
+		has_attachments, subject_scanner_version, subject_scanner_revision)
+		VALUES ($1, $2, 't', 'news@news.example', 'news.example', $3, now(), false, 1, 'revision-earlier')`,
 		s.account, fmt.Sprintf("w%d", s.n), marker.Field("subjectwriter"))
 	if err != nil {
 		return core.Progress{}, err

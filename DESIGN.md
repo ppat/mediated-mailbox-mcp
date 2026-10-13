@@ -515,8 +515,8 @@ top-level documents, a decision record, or a ticket from here without guessing.
 - **Masking** — replacing a detected secret inside an otherwise-visible field (an MFA code in a
   subject) with an opaque placeholder.
 - **Delisting transition** — the designed path for a sender removed from the sensitive list. Its
-  messages are marked pending scan and re-enter the ordinary scanning machinery (rule in
-  ADR-0037, via the [decision-record index](./docs/adr/README.md)).
+  messages skipped as restricted are marked pending scan and re-enter the ordinary scanning
+  machinery (rule in ADR-0037, via the [decision-record index](./docs/adr/README.md)).
 - **Serve-time pattern check** — the additional inspection a gate-skipped body, with its snippet
   and attachment filenames, passes at release, and that every released message's filenames pass,
   since no scanner reads them (rule in ADR-0002, via the

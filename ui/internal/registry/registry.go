@@ -173,7 +173,7 @@ type Dataset struct {
 // screen reads is one entry here, and nothing else is a dataset. l is the lookups the sender classifier
 // normalizes domains with, which the policy datasets match senders against rules with.
 func Datasets(l classify.Lookups) []Dataset {
-	return []Dataset{plans(), candidates(), runs(), failures(), policyRules(l), policyChanges(), senders(l)}
+	return []Dataset{plans(), candidates(), runs(), failures(l), policyRules(l), policyChanges(), senders(l)}
 }
 
 // Descriptors returns the declarative half of every entry, which the dataset endpoint's pure core

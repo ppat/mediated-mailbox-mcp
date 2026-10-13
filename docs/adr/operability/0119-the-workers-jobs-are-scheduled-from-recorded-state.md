@@ -22,16 +22,15 @@ The records already make correctness independent of when a run happens. Every ru
 scans or classifies compares what the index stores with what it runs with, by effect, and acts on
 the difference ([ADR-0037](../redaction/0037-delisting-transition.md),
 [ADR-0120](../redaction/0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md),
-[ADR-0121](../redaction/0121-the-run-start-step-decides-each-gate-skip-again.md),
-[ADR-0113](../redaction/0113-an-added-rule-reaches-the-stored-classes-by-its-effect.md)).
+[ADR-0121](../redaction/0121-the-run-start-step-decides-each-gate-skip-again.md)).
 Checkpoints commit with the work they cover ([ADR-0017](../data/0017-two-pass-backfill.md),
 [ADR-0045](../engineering/0045-crash-injection-testing.md)), and a body is released only by the
 mediator's decision at fetch time ([ADR-0002](../redaction/0002-fetch-time-re-evaluation.md),
 [ADR-0099](../engineering/0099-a-body-request-loads-the-policy-before-it-decides.md)).
 
 A backfill run that loads the policy once at its start and holds it for every page of both passes,
-for hours, lets a restriction the operator adds during the run reach neither its second pass's
-check nor the stored classes until the next run. The second pass can then fetch and scan the body
+for hours, lets a restriction the operator adds during the run reach its second pass's check only
+at the next run. The second pass can then fetch and scan the body
 of a sender the operator just restricted, which
 [ADR-0008](../redaction/0008-restricted-senders-are-never-scanned.md) and
 [ADR-0041](../engineering/0041-policy-as-immutable-snapshots.md) intend never to happen.
@@ -58,7 +57,7 @@ This record also decides that nothing messages through PostgreSQL.
 | --- | --- |
 | The worker starting, or an account appearing in a job kind's reload | The full run-start step, then whatever pass is not ended. Backfill's run-start comparisons are due once per process and account, because their inputs, the scanner and the thresholds, change only across a restart |
 | Each job's own timer, and a slow reconciliation timer every job kind has | The due decision only. For backfill that is two one-row reads. A lost wake costs at most one reconciliation interval |
-| A policy change during a running second pass | The delisting and added-rule comparisons again inside the running run, at its next page boundary, where "changed" means the rules differ by value, not that a reload built a new snapshot ([ADR-0037](../redaction/0037-delisting-transition.md), [ADR-0113](../redaction/0113-an-added-rule-reaches-the-stored-classes-by-its-effect.md)) |
+| A policy change during a running second pass | The delisting comparison again inside the running run, at its next page boundary, where "changed" means the rules differ by value, not that a reload built a new snapshot ([ADR-0037](../redaction/0037-delisting-transition.md)) |
 | Pass 1 ending | Pass 2 |
 
 A wake for a job that is running, or already waiting to run, coalesces into one further run. A job
@@ -76,8 +75,8 @@ account snapshot and policy snapshot at its entry
 [ADR-0090](./0090-accounts-reach-deployables-as-reloaded-snapshots.md)). The unit is a tick for
 delta sync, a page of each pass for backfill, and for apply the whole plan for policy and a batch
 for the accounts. So a policy edit reaches the second pass's restricted-sender check within one
-reload and one page, and the stored classes within the same bound through the comparisons inside
-the run.
+reload and one page, and a lift reaches the delisting transition within the same bound through the
+comparison inside the run.
 
 **Control of runs.**
 

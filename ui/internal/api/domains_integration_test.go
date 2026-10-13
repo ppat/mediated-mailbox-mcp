@@ -19,9 +19,9 @@ import (
 func TestADomainTypedInAnyCaseFindsItsStoredForm(t *testing.T) {
 	r := newRig(t)
 	const stored = "bi\u0307nk.example"
-	r.exec(`INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, sent_at, has_attachments, sender_class, scan_state)
-		VALUES ($1, 'm-dotted', 't-dotted', $2, $3, $4, false, 'normal', 'scanned')`, personal, "alerts@B\u0130NK.example", stored, now)
-	r.exec(`INSERT INTO senders (account_id, domain, message_count, sender_class) VALUES ($1, $2, 1, 'normal')`, personal, stored)
+	r.exec(`INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, sent_at, has_attachments, scan_state)
+		VALUES ($1, 'm-dotted', 't-dotted', $2, $3, $4, false, 'scanned')`, personal, "alerts@B\u0130NK.example", stored, now)
+	r.exec(`INSERT INTO senders (account_id, domain, message_count) VALUES ($1, $2, 1)`, personal, stored)
 	r.exec(`INSERT INTO job_run_failures (account_id, run_id, seq, item_kind, item_id, page, error_class, error_summary, attempts, first_at, last_at, disposition, recovered_by)
 		VALUES ($1, 'r-0901', 3, 'message', 'm-dotted', 7, 'provider_error', NULL, 1, $2, $2, 'pending', NULL)`, personal, now)
 	b := r.browser()

@@ -533,7 +533,7 @@ func TestTheReadOperationsReadTheServingState(t *testing.T) {
 		VALUES (NULL, 'base.bank', 'restricted', ARRAY['bank.example'], 'operator', 'test')`)
 	for id, from := range map[string]string{"m-bank": "alerts@bank.example", "m-news": "editor@newsletter.example"} {
 		must(t, conn, `INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, sent_at,
-			has_attachments, sender_class, scan_state) VALUES ($1, $2, 't', $3, $4, now(), false, 'normal', 'scanned')`,
+			has_attachments, scan_state) VALUES ($1, $2, 't', $3, $4, now(), false, 'scanned')`,
 			account, id, from, from[strings.IndexByte(from, '@')+1:])
 	}
 	// One account's backoff ends an hour from now and the other's ended an hour ago, and the first

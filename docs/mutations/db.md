@@ -138,6 +138,14 @@ The demonstrations of the controls whose patches sit in `db/`. [MUTATIONS.md](..
 - **Break (3):** a client's name is unique only within its provider, so a client of another provider may take a name a client holds
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestOneClientIsNeverStoredTwice`
 
+## Only a scanned message carries content flags
+
+- **Date · evidence:** 2026-10-13 · [pull request #372](https://github.com/ppat/mediated-mailbox-mcp/pull/372)
+- **Break (1):** the check admits flags on a pending message too, so a message returned to pending with its flags kept is stored
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestOnlyAScannedMessageCarriesContentFlags`
+- **Break (2):** the check on messages is dropped, so a message returned to pending, or skipped, with its flags kept is stored
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestOnlyAScannedMessageCarriesContentFlags`
+
 ## Only the roles that call a provider read oauth_clients and their own account's state, and the UI reads its account's progress and never a credential
 
 - **Date · evidence:** 2026-10-02 · [pull request #256](https://github.com/ppat/mediated-mailbox-mcp/pull/256), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and every break again on 2026-10-11, after the typed audit row changed the code, tests, test fixtures or patch context they rest on · [pull request #347](https://github.com/ppat/mediated-mailbox-mcp/pull/347), and every break again on 2026-10-13 at RAPID_SEED=1, after every statement came to read its account from the transaction and the log tables gained their foreign keys · [pull request #370](https://github.com/ppat/mediated-mailbox-mcp/pull/370)
@@ -218,7 +226,7 @@ The demonstrations of the controls whose patches sit in `db/`. [MUTATIONS.md](..
 
 ## The checked vocabularies refuse a value outside their closed set
 
-- **Date · evidence:** 2026-10-09 · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and every break again on 2026-10-10, after the test's messages lost the attachment types column the schema no longer holds · [pull request #339](https://github.com/ppat/mediated-mailbox-mcp/pull/339), and every break again on 2026-10-11, after the typed audit row changed the code, tests, test fixtures or patch context they rest on · [pull request #347](https://github.com/ppat/mediated-mailbox-mcp/pull/347), and every break again on 2026-10-13 at RAPID_SEED=1, after every statement came to read its account from the transaction and the log tables gained their foreign keys · [pull request #370](https://github.com/ppat/mediated-mailbox-mcp/pull/370)
+- **Date · evidence:** 2026-10-09 · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and every break again on 2026-10-10, after the test's messages lost the attachment types column the schema no longer holds · [pull request #339](https://github.com/ppat/mediated-mailbox-mcp/pull/339), and every break again on 2026-10-11, after the typed audit row changed the code, tests, test fixtures or patch context they rest on · [pull request #347](https://github.com/ppat/mediated-mailbox-mcp/pull/347), and every break again on 2026-10-13 at RAPID_SEED=1, after every statement came to read its account from the transaction and the log tables gained their foreign keys · [pull request #370](https://github.com/ppat/mediated-mailbox-mcp/pull/370), with the breaks of the message's and the sender statistics' stored class retired, since neither column exists, and every remaining break again on 2026-10-13 at RAPID_SEED=1, after the index stopped storing a sender's class changed the tests the row rests on · [pull request #372](https://github.com/ppat/mediated-mailbox-mcp/pull/372)
 - **Break (1):** the job kind and the pass are each checked against the words alone, so a pair no job kind records is stored
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestARunRecordsOneOfTheBuiltJobKindsPairs`
 - **Break (2):** a run's job kind and pass are not checked
@@ -237,22 +245,18 @@ The demonstrations of the controls whose patches sit in `db/`. [MUTATIONS.md](..
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestEachCheckedColumnRefusesAValueOutsideItsSet`
 - **Break (9):** a masking event's field is not checked
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestEachCheckedColumnRefusesAValueOutsideItsSet`
-- **Break (10):** a message's stored sender class is not checked
+- **Break (10):** a plan's status is checked without regard to case, so a status spelled in lowercase is stored
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestEachCheckedColumnRefusesAValueOutsideItsSet`
-- **Break (11):** a plan's status is checked without regard to case, so a status spelled in lowercase is stored
+- **Break (11):** the policy history's action is not checked, so a wrong spelling is stored in an append-only table
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestEachCheckedColumnRefusesAValueOutsideItsSet`
-- **Break (12):** the policy history's action is not checked, so a wrong spelling is stored in an append-only table
+- **Break (12):** a policy rule's class is not checked
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestEachCheckedColumnRefusesAValueOutsideItsSet`
-- **Break (13):** a policy rule's class is not checked
+- **Break (13):** a policy rule's source is not checked
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestEachCheckedColumnRefusesAValueOutsideItsSet`
-- **Break (14):** a policy rule's source is not checked
+- **Break (14):** a run's state is not checked
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestEachCheckedColumnRefusesAValueOutsideItsSet`
-- **Break (15):** a run's state is not checked
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestEachCheckedColumnRefusesAValueOutsideItsSet`
-- **Break (16):** the scan state's set leaves out skipped_gate, so a state the gate writes is refused
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestEachCheckedColumnRefusesAValueOutsideItsSet`
-- **Break (17):** the sender statistics' class is not checked
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestEachCheckedColumnRefusesAValueOutsideItsSet`
+- **Break (15):** the scan state's set leaves out skipped_gate, so a state the gate writes is refused
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/check`:** `TestEachCheckedColumnRefusesAValueOutsideItsSet`, `TestOnlyAScannedMessageCarriesContentFlags`
 
 ## The identifier grammar's migration stops over a stored account outside it and rewrites none
 

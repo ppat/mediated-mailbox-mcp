@@ -4,7 +4,7 @@
   "messages": 6,
   "threads": 5,
   "unfiled": 3,
-  "restricted": 1,
+  "restricted": 3,
   "audit_24h": {
     "DENY_BODY": 1,
     "DENY_MUTATE": 0,

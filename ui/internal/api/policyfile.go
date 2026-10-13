@@ -352,7 +352,7 @@ func (s *Server) preview(ctx context.Context, q registry.Queries, isBase bool, s
 		if composed, err = registry.ComposedRules(ctx, q.Rules); err != nil {
 			return Preview{}, d, err
 		}
-		if senders, _, err = registry.SenderClasses(ctx, q, s.opts.Lookups); err != nil {
+		if senders, err = registry.AccountSenders(ctx, q.Senders, composed, s.opts.Lookups); err != nil {
 			return Preview{}, d, err
 		}
 	}

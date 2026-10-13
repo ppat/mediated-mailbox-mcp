@@ -1,5 +1,5 @@
 control: A policy edit reaches a running second pass within one reload and one page
-removes: every page makes the comparisons again whatever the policy, so a reload with the same rules rewrites the stored classes
+removes: every page makes the delisting comparison again whatever the policy, so a reload with the same rules returns to pending a message skipped as restricted whose sender no rule lists
 packages: ./worker/internal/backfill/pass2
 tests: TestAPolicyEditReachesARunningSecondPassWithinAPage
 scheduled-count: no

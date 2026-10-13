@@ -14,7 +14,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/net/idna"
 	"golang.org/x/net/publicsuffix"
@@ -96,8 +95,8 @@ var senderDomains = []string{"bank.example", "news.example", "shop.example", ""}
 
 const listedDomain = "bank.example"
 
-// listedRule is the policy rule that lists listedDomain, which its messages name as the rule that set
-// their class (ADR-0016).
+// listedRule is the policy rule that lists listedDomain. The index stores no class (ADR-0136), so the
+// policy reaches nothing the pass stores.
 const listedRule = "rule.bank"
 
 // setup is what a world is built from, kept whole by the failing-case store, so every field is a
@@ -132,12 +131,10 @@ func tag(n int) string {
 	}
 }
 
-// expected is one message as the index must hold it, known from how it was generated. ClassRule is
-// nil for a class no rule set, which the index holds as NULL.
+// expected is one message as the index must hold it, known from how it was generated.
 type expected struct {
-	ID, Domain, Subject, Class string
-	ClassRule                  *string
-	Masks                      int
+	ID, Domain, Subject string
+	Masks               int
 }
 
 // mailbox returns the generated mailbox as the provider fake's messages, with what the index must hold
@@ -171,17 +168,8 @@ func mailbox(s setup) ([]fake.Message, []expected) {
 		if d.ListID {
 			m.ListID = marker.Field("list"+tag(i)) + ".news.example"
 		}
-		class := "normal"
-		var rule *string
-		if domain == listedDomain || domain == "" {
-			class = "restricted"
-		}
-		if domain == listedDomain {
-			listed := listedRule
-			rule = &listed
-		}
 		messages = append(messages, fake.Message{Metadata: m})
-		want = append(want, expected{ID: id, Domain: domain, Subject: stored, Class: class, ClassRule: rule, Masks: masks})
+		want = append(want, expected{ID: id, Domain: domain, Subject: stored, Masks: masks})
 	}
 	return messages, want
 }
@@ -204,8 +192,7 @@ type run struct {
 }
 
 type stored struct {
-	Domain, Subject, Class string
-	ClassRule              *string
+	Domain, Subject string
 	// Revision is the scanner configuration's revision the subject was masked under, every scanner
 	// here being version 1.
 	Revision string
@@ -213,7 +200,6 @@ type stored struct {
 
 type sender struct {
 	Count int
-	Class string
 }
 
 // latest returns the latest run, and false when there is none.
@@ -544,10 +530,9 @@ func (w *world) progress(t tb) {
 	}
 	messages, counts := map[string]stored{}, map[string]sender{}
 	for _, m := range w.want {
-		messages[m.ID] = stored{Domain: m.Domain, Subject: m.Subject, Class: m.Class, ClassRule: m.ClassRule, Revision: revision(w.rescans)}
+		messages[m.ID] = stored{Domain: m.Domain, Subject: m.Subject, Revision: revision(w.rescans)}
 		s := counts[m.Domain]
 		s.Count++
-		s.Class = m.Class
 		counts[m.Domain] = s
 	}
 	if diff := cmp.Diff(messages, got.Messages, compare.Options); diff != "" {
@@ -667,18 +652,12 @@ func inspectPostgres(t tb, url, account string) state {
 	s.Runs = runs
 	var m stored
 	var id string
-	rows, err = conn.Query(ctx, `SELECT message_id, from_domain::text, subject, sender_class, class_rule_id, coalesce(subject_scanner_revision, '')
+	rows, err = conn.Query(ctx, `SELECT message_id, from_domain::text, subject, coalesce(subject_scanner_revision, '')
 		FROM messages WHERE account_id = $1`, account)
 	if err != nil {
 		t.Fatalf("reading: %v", err)
 	}
-	var rule pgtype.Text
-	_, err = pgx.ForEachRow(rows, []any{&id, &m.Domain, &m.Subject, &m.Class, &rule, &m.Revision}, func() error {
-		m.ClassRule = nil
-		if rule.Valid {
-			r := rule.String
-			m.ClassRule = &r
-		}
+	_, err = pgx.ForEachRow(rows, []any{&id, &m.Domain, &m.Subject, &m.Revision}, func() error {
 		s.Messages[id] = m
 		return nil
 	})
@@ -699,11 +678,11 @@ func inspectPostgres(t tb, url, account string) state {
 	}
 	var sd sender
 	var domain string
-	rows, err = conn.Query(ctx, "SELECT domain::text, message_count, sender_class FROM senders WHERE account_id = $1", account)
+	rows, err = conn.Query(ctx, "SELECT domain::text, message_count FROM senders WHERE account_id = $1", account)
 	if err != nil {
 		t.Fatalf("reading: %v", err)
 	}
-	if _, err := pgx.ForEachRow(rows, []any{&domain, &sd.Count, &sd.Class}, func() error { s.Senders[domain] = sd; return nil }); err != nil {
+	if _, err := pgx.ForEachRow(rows, []any{&domain, &sd.Count}, func() error { s.Senders[domain] = sd; return nil }); err != nil {
 		t.Fatalf("reading the senders: %v", err)
 	}
 	return s
@@ -914,18 +893,10 @@ func (m *memory) Failure(ctx context.Context, _, _ string, f pass1.Failure) erro
 func (m *memory) inspect(tb) state {
 	s := state{Ended: m.ended, Runs: slices.Clone(m.runs), Messages: map[string]stored{}, Events: map[string]int{}, Senders: map[string]sender{}}
 	for id, msg := range m.messages {
-		st := stored{Domain: msg.Domain, Subject: msg.Subject, Class: string(msg.Class), Revision: msg.Stamp.Revision}
-		if msg.ClassRule != "" {
-			rule := msg.ClassRule
-			st.ClassRule = &rule
-		}
-		s.Messages[id] = st
+		s.Messages[id] = stored{Domain: msg.Domain, Subject: msg.Subject, Revision: msg.Stamp.Revision}
 		s.Events[id] = m.events[id][msg.Stamp]
 		sd := s.Senders[msg.Domain]
 		sd.Count++
-		if sd.Class != "restricted" {
-			sd.Class = string(msg.Class)
-		}
 		s.Senders[msg.Domain] = sd
 	}
 	for id, n := range s.Events {

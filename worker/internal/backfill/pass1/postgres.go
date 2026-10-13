@@ -248,8 +248,6 @@ func insert(ctx context.Context, q *messageingest.Queries, m index.Message) (boo
 		ListID:                 text(m.ListID),
 		SizeBytes:              pgtype.Int4{Int32: int32(min(max(m.SizeBytes, 0), 1<<31-1)), Valid: true}, //nolint:gosec // Bounded above.
 		AuthResults:            auth,
-		SenderClass:            string(m.Class),
-		ClassRuleID:            text(m.ClassRule),
 		SubjectScannerVersion:  pgtype.Int4{Int32: version(m.Stamp.Version), Valid: true},
 		SubjectScannerRevision: pgtype.Text{String: m.Stamp.Revision, Valid: true},
 	})

@@ -1,0 +1,19 @@
+control: A removed rule returns its sender's messages to pending scan, and the pass starts over
+removes: the transition reads only the first domain of the messages skipped as restricted, so a second delisted sender's messages stay skipped
+packages: ./worker/internal/backfill/pass2
+tests: TestTheTransitionReturnsOnlyTheSkippedMessagesOfDelistedSenders
+scheduled-count: no
+integration: yes
+
+diff --git a/db/messages/scan/scan.sql.go b/db/messages/scan/scan.sql.go
+index 3b72c543..1c11d23b 100644
+--- a/db/messages/scan/scan.sql.go
++++ b/db/messages/scan/scan.sql.go
+@@ -404,6 +404,7 @@ SELECT DISTINCT m.from_domain
+ FROM messages AS m
+ WHERE m.account_id = current_setting('app.account') AND m.scan_state = 'skipped_restricted'
+ ORDER BY m.from_domain
++LIMIT 1
+ `
+ 
+ // The sender domains of the account's messages the scan gate skipped as restricted, each once, which

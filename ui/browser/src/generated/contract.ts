@@ -1392,7 +1392,6 @@ export interface components {
             matched_total: number;
             messages: number;
             released: components["schemas"]["Counts"];
-            restricted: number;
             rule_id: string;
             /** @enum {string} */
             scope: "base" | "account";
@@ -1412,7 +1411,6 @@ export interface components {
             created_at: string;
             created_by: string;
             messages: number;
-            restricted: number;
             rule_id: string;
             /** @enum {string} */
             scope: "base" | "account";

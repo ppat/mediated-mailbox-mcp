@@ -86,23 +86,18 @@ type row struct {
 	sentAt                          string
 	labels, flags                   []string
 	// media are the attachments' stored media, each a media type and an extension.
-	media       [][2]string
-	scan        string
-	storedClass string
+	media [][2]string
+	scan  string
 }
 
 func insert(t *testing.T, conn *pgx.Conn, account string, r row) {
 	t.Helper()
 	domain := r.from[strings.LastIndexByte(r.from, '@')+1:]
-	class := r.storedClass
-	if class == "" {
-		class = "normal"
-	}
 	must(t, conn, `INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, from_name, subject,
-		sent_at, labels, has_attachments, sender_class, content_flags, rule_ids, scan_state)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, '{}', $13)`,
+		sent_at, labels, has_attachments, content_flags, rule_ids, scan_state)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, '{}', $12)`,
 		account, r.id, r.thread, r.from, domain, r.name, r.subject, r.sentAt, orEmpty(r.labels), len(r.media) > 0,
-		class, orEmpty(r.flags), r.scan)
+		orEmpty(r.flags), r.scan)
 	for _, m := range r.media {
 		must(t, conn, `INSERT INTO attachment_media (account_id, message_id, media_type, extension) VALUES ($1, $2, $3, $4)`,
 			account, r.id, m[0], m[1])
@@ -216,7 +211,7 @@ func read(t *testing.T, reg service.Registry, name, args string) result {
 }
 
 // Every message a read serves follows the redaction matrix under the policy in force (ADR-0001,
-// ADR-0002). A sender the policy lists after its message was stored as normal is restricted and its
+// ADR-0002). A sender the policy lists after its message was stored is restricted and its
 // body unavailable, and a flagged message and a message the scanner has not reached have no body. A
 // stored flag or scan state the schema does not name, which the schema's checks refuse to store, is
 // TestAnUnnamedStoredStateReadsAsTheMostRestrictive's. No served message carries a snippet, an
@@ -230,7 +225,7 @@ func TestEveryServedMessageFollowsTheRedactionMatrix(t *testing.T) {
 	must(t, conn, `INSERT INTO policy_rules (account_id, rule_id, class, domain_suffix, source, created_by)
 		VALUES ($1, $2, 'restricted', ARRAY['bank.example'], 'operator', 'test')`, account, account+".bank")
 	rows := []row{
-		{id: "m-bank", thread: "t-bank", from: bank.FromAddress, name: bank.FromName, subject: bank.Subject, sentAt: "2026-07-20T09:12:00Z", media: [][2]string{{"application/pdf", "pdf"}}, scan: "scanned", storedClass: "normal"},
+		{id: "m-bank", thread: "t-bank", from: bank.FromAddress, name: bank.FromName, subject: bank.Subject, sentAt: "2026-07-20T09:12:00Z", media: [][2]string{{"application/pdf", "pdf"}}, scan: "scanned"},
 		{id: "m-news", thread: "t-news", from: news.FromAddress, name: news.FromName, subject: news.Subject, sentAt: "2026-07-21T18:04:00Z", labels: []string{"INBOX"}, media: [][2]string{{"application/octet-stream", "xlsx"}, {"image/png", "png"}}, scan: "scanned"},
 		{id: "m-code", thread: "t-code", from: code.FromAddress, name: code.FromName, subject: code.Subject, sentAt: "2026-07-21T11:40:00Z", media: [][2]string{{"text/calendar", "ics"}}, flags: []string{"mfa_code"}, scan: "scanned"},
 		{id: "m-link", thread: "t-link", from: link.FromAddress, name: link.FromName, subject: link.Subject, sentAt: "2026-07-21T11:41:00Z", media: [][2]string{{"application/vnd.openxmlformats-officedocument.wordprocessingml.document", "docx"}}, flags: []string{"login_link"}, scan: "scanned"},
@@ -628,7 +623,7 @@ func TestTheFlagsAreServedAsReadAndStarredAlone(t *testing.T) {
 	}
 	for id, flags := range stored {
 		must(t, conn, `INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, sent_at, flags,
-			has_attachments, sender_class, scan_state) VALUES ($1, $2, $2, 'a@news.example', 'news.example', now(), $3, false, 'normal', 'scanned')`,
+			has_attachments, scan_state) VALUES ($1, $2, $2, 'a@news.example', 'news.example', now(), $3, false, 'scanned')`,
 			account, id, flags)
 	}
 	reg := reads(t, account)

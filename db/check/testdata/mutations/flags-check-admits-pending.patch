@@ -1,0 +1,20 @@
+control: Only a scanned message carries content flags
+removes: the check admits flags on a pending message too, so a message returned to pending with its flags kept is stored
+packages: ./db/check
+tests: TestOnlyAScannedMessageCarriesContentFlags
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00002_schema.sql b/db/migrations/00002_schema.sql
+index 22b7ca01..cf376758 100644
+--- a/db/migrations/00002_schema.sql
++++ b/db/migrations/00002_schema.sql
+@@ -178,7 +178,7 @@ CREATE TABLE messages (
+     -- Only a scan sets a content flag, so a statement that returns a message to pending, or skips it,
+     -- without clearing its verdict fails instead of storing a state the Redaction Gate reads as invalid
+     -- (ADR-0016, ADR-0120).
+-    CHECK (cardinality(content_flags) = 0 OR scan_state = 'scanned')
++    CHECK (cardinality(content_flags) = 0 OR scan_state IN ('scanned', 'pending'))
+ );
+ 
+ -- No index over labels or the subject, which no read filters on often enough to need one yet

@@ -125,20 +125,6 @@ The demonstrations of the controls whose patches sit in more than one component'
 - **Break (8):** delta sync names no provider as authenticating through a client, so the loader connects a Gmail account that names none
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/worker/internal/deltasync`:** `TestATickTakesItsAccountsFromTheDatabase`
 
-## An added rule reaches the stored sender classes by its effect
-
-- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-08 at RAPID_SEED=1, after the re-mask from the store changed the code, tests or patches the row rests on · [pull request #321](https://github.com/ppat/mediated-mailbox-mcp/pull/321), and breaks 1, 2 and 5 again on 2026-10-10 at RAPID_SEED=1, after the worker moved them into one deployable and made the second pass compare again at a page whose policy changed, which changed the code, tests or patches they rest on · [pull request #328](https://github.com/ppat/mediated-mailbox-mcp/pull/328), and every break again on 2026-10-11 at RAPID_SEED=1, after the performance measurements changed the code, tests or patches the row rests on · [pull request #341](https://github.com/ppat/mediated-mailbox-mcp/pull/341), and breaks (1) and (2) again on 2026-10-11 at RAPID_SEED=1, after the second pass's walk newest first changed the code, tests or patches the row rests on · [pull request #342](https://github.com/ppat/mediated-mailbox-mcp/pull/342), and breaks (2), (3), (4) and (5) again on 2026-10-12 at RAPID_SEED=1, after the policy prepared once per load for the classifier changed the code, tests or patches the row rests on · [pull request #365](https://github.com/ppat/mediated-mailbox-mcp/pull/365), and break (1) again on 2026-10-13 at RAPID_SEED=1, with its patch regenerated after every statement came to read its account from the transaction · [pull request #370](https://github.com/ppat/mediated-mailbox-mcp/pull/370)
-- **Break (1):** the comparison restricts the messages but leaves the sender's statistics as they were
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/pass2`:** `TestAnAddedRuleRestrictsTheStoredClasses`
-- **Break (2):** a run of the second pass makes no comparison for an added rule, so the stored classes stay as ingested
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/pass2`:** `TestAPolicyEditReachesARunningSecondPassWithinAPage`, `TestARuleAddedAndRemovedDuringThePassReachesTheTransition`, `TestAnAddedRuleRestrictsTheStoredClasses`
-- **Break (3):** a listed domain is stored with its own name as the rule rather than the rule that restricts it
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/index`:** `TestAStoredDomainClassifiesAsItsAddress`, `TestListed`, `TestListed/a_rule_for_the_bank_and_one_for_a_parent_domain`
-- **Break (4):** a domain the policy restricts with no rule is listed too, so a policy that never loaded restricts every stored sender
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/index`:** `TestListed`, `TestListed/a_policy_that_never_loaded`, `TestListed/a_rule_for_the_bank_and_one_for_a_parent_domain`, `TestListed/no_rule`
-- **Break (5):** a tick makes no comparison for an added rule, so the stored classes stay as ingested once the second pass has ended
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/worker/internal/deltasync/tick`:** `TestATickRestrictsTheStoredClassOfAnAddedRulesSender`
-
 ## An attachment's type is a word of the closed vocabulary, set with the names from the same parts
 
 - **Date · evidence:** 2026-10-10 · [pull request #339](https://github.com/ppat/mediated-mailbox-mcp/pull/339), and every break again on 2026-10-11 at RAPID_SEED=1, after the performance measurements changed the code, tests or patches the row rests on · [pull request #341](https://github.com/ppat/mediated-mailbox-mcp/pull/341)

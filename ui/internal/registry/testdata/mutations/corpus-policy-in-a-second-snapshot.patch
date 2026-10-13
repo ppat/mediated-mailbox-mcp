@@ -1,0 +1,39 @@
+control: The UI classifies every sender under the policy in force when it reads
+removes: the corpus endpoint reads its policy and senders in a second snapshot of their own, so its restricted messages and its other figures come from two states, each read at repeatable read
+packages: ./ui/internal/api
+tests: TestEveryClassifyingResponseBeginsOneSnapshot/corpus
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/api/corpus.go b/ui/internal/api/corpus.go
+index 51263619..fa0bc7a2 100644
+--- a/ui/internal/api/corpus.go
++++ b/ui/internal/api/corpus.go
+@@ -71,15 +71,21 @@ func (s *Server) getCorpus(w http.ResponseWriter, r *http.Request) {
+ 			return err
+ 		}
+ 		out.Messages, out.Threads, out.Unfiled = corpus.Messages, corpus.Threads, corpus.Unfiled
+-		stored, err := registry.ComposedRules(ctx, manage.New(t))
+-		if err != nil {
+-			return err
+-		}
+-		senders, err := registry.AccountSenders(ctx, senderclassification.New(t), stored, s.opts.Lookups)
++		err = tx.Run(ctx, s.snapshot(), account, func(u pgx.Tx) error {
++			stored, err := registry.ComposedRules(ctx, manage.New(u))
++			if err != nil {
++				return err
++			}
++			senders, err := registry.AccountSenders(ctx, senderclassification.New(u), stored, s.opts.Lookups)
++			if err != nil {
++				return err
++			}
++			out.Restricted = senders.Restricted().Messages
++			return nil
++		})
+ 		if err != nil {
+ 			return err
+ 		}
+-		out.Restricted = senders.Restricted().Messages
+ 		actions, err := auditlog.New(t).AuditActionCounts(ctx, day)
+ 		if err != nil {
+ 			return err

@@ -135,7 +135,6 @@ CREATE TABLE senders (
     has_list_id_ratio real,
     label_distribution jsonb,
     scan_hit_count bigint NOT NULL DEFAULT 0,
-    sender_class text NOT NULL DEFAULT 'normal' CHECK (sender_class IN ('normal', 'restricted')),
     PRIMARY KEY (account_id, domain)
 );
 
@@ -163,13 +162,11 @@ CREATE TABLE messages (
     list_id text,
     size_bytes int,
     auth_results jsonb,
-    sender_class text NOT NULL CHECK (sender_class IN ('normal', 'restricted')),
+    -- No sender class. Every reader classifies a sender under the policy in force when it reads
+    -- (ADR-0136).
     content_flags text[] NOT NULL DEFAULT '{}' CHECK (content_flags <@ '{mfa_code,login_link}'),
     -- The content rules that set content_flags (ADR-0009).
     rule_ids text[] NOT NULL DEFAULT '{}',
-    -- The identifier of the policy rule that set sender_class, NULL when none did. An identifier, which
-    -- two scopes may hold (ADR-0110). Whatever writes sender_class writes it too (ADR-0016, ADR-0037).
-    class_rule_id text,
     -- ADR-0093's states.
     scan_state text NOT NULL DEFAULT 'pending'
     CHECK (scan_state IN ('scanned', 'skipped_restricted', 'skipped_gate', 'pending')),
@@ -177,7 +174,11 @@ CREATE TABLE messages (
     scanner_version int,
     -- The scanner configuration's revision a verdict was made under (ADR-0009).
     scanner_revision text,
-    PRIMARY KEY (account_id, message_id)
+    PRIMARY KEY (account_id, message_id),
+    -- Only a scan sets a content flag, so a statement that returns a message to pending, or skips it,
+    -- without clearing its verdict fails instead of storing a state the Redaction Gate reads as invalid
+    -- (ADR-0016, ADR-0120).
+    CHECK (cardinality(content_flags) = 0 OR scan_state = 'scanned')
 );
 
 -- No index over labels or the subject, which no read filters on often enough to need one yet
@@ -186,6 +187,7 @@ CREATE INDEX ON messages (account_id, from_domain);
 CREATE INDEX ON messages (account_id, sent_at DESC);
 CREATE INDEX ON messages (account_id, sent_at) WHERE labels = '{}';
 CREATE INDEX ON messages (account_id) WHERE scan_state = 'pending';
+CREATE INDEX ON messages (account_id, from_domain) WHERE scan_state = 'skipped_restricted';
 
 -- The inputs a message's attachment types are derived from when read, one row per distinct pair its
 -- attachments carry, written once when the message is first stored (ADR-0123). No filename is

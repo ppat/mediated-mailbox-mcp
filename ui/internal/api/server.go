@@ -25,13 +25,21 @@ import (
 )
 
 // Database is the UI's connection pool, connected as the UI's own role (ADR-0084). Account-scoped
-// reads run through the transaction helper, which sets and verifies the account (ADR-0047). The
-// accounts listing runs on it directly, because the listing reads every account (ADR-0091).
+// reads run through the transaction helper, which sets and verifies the account (ADR-0047), and a
+// read that classifies senders runs over its repeatable-read snapshot, so one response sees one state
+// of the policy and the index (ADR-0136). The accounts listing runs on it directly, because the
+// listing reads every account (ADR-0091).
 type Database interface {
 	tx.Beginner
+	tx.BeginnerWithOptions
 	accounts.DBTX
 	Ping(ctx context.Context) error
 }
+
+// snapshot is the database as a source of repeatable-read, read-only transactions, over which every
+// read that classifies a sender runs, so each statement of one response reads one state and its
+// figures and rows agree about every sender's class (ADR-0136).
+func (s *Server) snapshot() tx.Beginner { return tx.Snapshot(s.opts.Database) }
 
 // Cadences are the workload intervals the jobs cards display. They are configuration shown, not
 // recorded state (docs/UI.md section 8.3).

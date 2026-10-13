@@ -14,10 +14,9 @@
 --
 -- Its read operations and its system status read the index and the recorded state through the
 -- subsections its list admits, db/messages, db/maskingevents, db/senders, db/jobruns and
--- db/accountstate. The mediator writes none of these tables, holds no grant on the sealed credential,
--- and holds none on the stored sender class, which a record forbids it to act on (ADR-0002). The
--- statements reading that class sit in db/messages/classification and db/jobruns/classification,
--- which the mediator's list does not admit.
+-- db/accountstate. The mediator writes none of these tables and holds no grant on the sealed
+-- credential. The index stores no sender class, so nothing the mediator reads can stand in for the
+-- class the Redaction Gate decides at fetch time (ADR-0002, ADR-0136).
 --
 -- The sender domain term, the grouping by sender domain and the read of the distinct senders the
 -- service layer classifies read messages.from_domain (ADR-0108, ADR-0109). The gate's read in
@@ -43,9 +42,8 @@ GRANT SELECT (
 GRANT SELECT (account_id, message_id, media_type, extension) ON attachment_media TO mediated_mailbox_mediate;
 GRANT SELECT (id, account_id, message_id, field, rule_id, tier, masked_at) ON masking_events
 TO mediated_mailbox_mediate;
--- The sender listing reads every column of the sender statistics but the stored sender class, which a
--- record forbids the mediator to act on, and the prior scan hits, which no read serves (ADR-0002,
--- ADR-0118). The rebuild of the statistics and the counts of prior scan hits sit in
+-- The sender listing reads every column of the sender statistics but the prior scan hits, which no
+-- read serves (ADR-0118). The rebuild of the statistics and the counts of prior scan hits sit in
 -- db/senders/statistics, which the mediator's list does not admit.
 GRANT SELECT (
     account_id,
@@ -111,13 +109,12 @@ GRANT USAGE ON SEQUENCE audit_log_id_seq TO mediated_mailbox_mediate;
 -- attachments' media, which never change once stored, so no role updates or deletes them
 -- (ADR-0123), and records the masks applied to its subject. It finds whether any stored subject carries another pair,
 -- masks such a subject again, and masks whole the stored subject of a message the provider no longer
--- has, reading it first (ADR-0096). It writes the policy rule behind each message's class with the
--- class (ADR-0016). Pass 2 reads the messages waiting for a scan with the inputs the scan gate reads
--- and records each message's scan verdict or skip state. The delisting transition reads the domains
--- of the messages stored as restricted or skipped as restricted, and marks those messages of a domain
--- the policy now classifies normal back to a normal sender class and pending scan, clearing the rule
--- with the class (ADR-0037). Backfill's run-start step, before the first pass, returns each scanned message whose
--- verdict carries another pair to pending with its verdict cleared.
+-- has, reading it first (ADR-0096). Pass 2 reads the messages waiting for a scan with the inputs the
+-- scan gate reads and records each message's scan verdict or skip state. The delisting transition
+-- reads the domains of the messages skipped as restricted, and returns those messages of a domain the
+-- policy now classifies normal to pending scan (ADR-0037). Backfill's run-start step, before the first
+-- pass, returns each scanned message whose verdict carries another pair to pending with its verdict
+-- cleared.
 GRANT SELECT (
     account_id,
     message_id,
@@ -132,7 +129,6 @@ GRANT SELECT (
     labels,
     list_id,
     size_bytes,
-    sender_class,
     content_flags,
     scan_state,
     scanner_version,
@@ -155,17 +151,13 @@ INSERT (
     has_attachments,
     list_id,
     size_bytes,
-    auth_results,
-    sender_class,
-    class_rule_id
+    auth_results
 ),
 UPDATE (
     subject,
     subject_masked,
     subject_scanner_version,
     subject_scanner_revision,
-    sender_class,
-    class_rule_id,
     scan_state,
     content_flags,
     rule_ids,
@@ -190,8 +182,7 @@ GRANT SELECT (
     last_seen,
     has_list_id_ratio,
     label_distribution,
-    scan_hit_count,
-    sender_class
+    scan_hit_count
 ),
 INSERT (
     account_id,
@@ -202,8 +193,7 @@ INSERT (
     first_seen,
     last_seen,
     has_list_id_ratio,
-    label_distribution,
-    sender_class
+    label_distribution
 ),
 UPDATE (
     local_part_sample,
@@ -213,8 +203,7 @@ UPDATE (
     last_seen,
     has_list_id_ratio,
     label_distribution,
-    scan_hit_count,
-    sender_class
+    scan_hit_count
 ) ON senders TO mediated_mailbox_backfill;
 -- Every gate decision is recorded with its reason, and a message decided again after the delisting
 -- transition has its decision replaced (ADR-0093). The upsert reads the conflict columns and the
@@ -301,7 +290,6 @@ GRANT SELECT (
     flags,
     list_id,
     size_bytes,
-    sender_class,
     content_flags,
     scan_state,
     scanner_version,
@@ -324,9 +312,7 @@ INSERT (
     has_attachments,
     list_id,
     size_bytes,
-    auth_results,
-    sender_class,
-    class_rule_id
+    auth_results
 ),
 UPDATE (
     subject,
@@ -335,8 +321,6 @@ UPDATE (
     subject_scanner_revision,
     labels,
     flags,
-    sender_class,
-    class_rule_id,
     scan_state,
     content_flags,
     rule_ids,
@@ -361,8 +345,7 @@ GRANT SELECT (
     last_seen,
     has_list_id_ratio,
     label_distribution,
-    scan_hit_count,
-    sender_class
+    scan_hit_count
 ),
 INSERT (
     account_id,
@@ -373,8 +356,7 @@ INSERT (
     first_seen,
     last_seen,
     has_list_id_ratio,
-    label_distribution,
-    sender_class
+    label_distribution
 ),
 UPDATE (
     local_part_sample,
@@ -384,8 +366,7 @@ UPDATE (
     last_seen,
     has_list_id_ratio,
     label_distribution,
-    scan_hit_count,
-    sender_class
+    scan_hit_count
 ),
 DELETE ON senders TO mediated_mailbox_sync;
 -- Once backfill's second pass has ended, a tick runs the delisting transition, records the gate's

@@ -11,9 +11,11 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 
+	"github.com/ppat/mediated-mailbox-mcp/core/classify"
 	"github.com/ppat/mediated-mailbox-mcp/core/index"
 	runclassification "github.com/ppat/mediated-mailbox-mcp/db/jobruns/classification"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/lens"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/rules"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/schema"
 )
 
@@ -29,7 +31,9 @@ func dispositionWording() []string { return []string{"recovered", "pending", "go
 
 // FailureRow is one row of the failures dataset, one of a run's item failures with the message-row
 // fields of its item's message (docs/UI.md sections 7.1, 7.2 and 8.4). The message fields are nil for
-// a page item and for a message the index no longer holds. The stored vocabularies are sent as stored,
+// a page item and for a message the index no longer holds. The sender class is the class under the
+// account's composed policy read in the read's transaction, since the index stores none (ADR-0136).
+// The stored vocabularies are sent as stored,
 // so a value the wording does not know is shown rather than dropped (docs/UI.md section 7.1).
 type FailureRow struct {
 	Seq          int64    `json:"seq"`
@@ -87,8 +91,8 @@ type FailureDetail struct {
 	ErrorSummary *string    `json:"error_summary"`
 	// The message's sensitivity block (docs/UI.md section 7.1), each nil for a page item and for a
 	// message the index no longer holds, and the scan fields nil for a message never scanned. The class
-	// rule is the policy rule that set the sender class, nil when none did, and the rule ids are the
-	// content rules that set the flags (ADR-0016).
+	// rule is the policy rule that restricts the sender under the policy in force, nil when none does
+	// (ADR-0136), and the rule ids are the content rules that set the flags (ADR-0016).
 	ClassRuleID    *string      `json:"class_rule_id"`
 	RuleIDs        []string     `json:"rule_ids"`
 	ScannedAt      *string      `json:"scanned_at"`
@@ -128,8 +132,11 @@ func failureDetailType() schema.Type {
 }
 
 // failures is a run's item failures, the run screen's ladder, read under the required parent filter
-// run (docs/UI.md section 8.4). It carries message-derived rows and declares a provenance query.
-func failures() Dataset {
+// run (docs/UI.md section 8.4). It carries message-derived rows and declares a provenance query. Each
+// message's sender is classified under the account's composed policy with the lookups l the classifier
+// normalizes with (ADR-0136).
+func failures(l classify.Lookups) Dataset {
+	fr := failureReads{lookups: l}
 	return Dataset{
 		Descriptor: lens.Descriptor{
 			Name:   "failures",
@@ -147,25 +154,82 @@ func failures() Dataset {
 		},
 		MessageDerived: true,
 		Row:            failureRowType(),
-		Summary:        failureSummary,
-		Rows:           failureRows,
+		Summary:        fr.summary,
+		Rows:           fr.rows,
 		Aggregates: map[string]Aggregate{
-			"error_class": failuresByErrorClass,
-			"sender":      failuresBySender,
-			"page_number": failuresByPage,
-			"disposition": failuresByDisposition,
+			"error_class": fr.byErrorClass,
+			"sender":      fr.bySender,
+			"page_number": fr.byPage,
+			"disposition": fr.byDisposition,
 		},
-		Detail:     failureDetail,
+		Detail:     fr.detail,
 		DetailType: failureDetailType(),
 	}
 }
 
-// failureFilters are a read's filters as the failures statements take them.
+// failureReads are the failures dataset's reads, which classify each message's sender with lookups.
+type failureReads struct {
+	lookups classify.Lookups
+}
+
+// senderClasses are the account's senders classified under its composed policy, read in the read's
+// transaction, since the index stores no class (ADR-0136).
+type senderClasses struct {
+	// normal are the stored domains the policy does not restrict, which the statements count every
+	// other domain against as restricted.
+	normal   []string
+	isNormal map[string]bool
+	policy   []rules.Named
+	lookups  classify.Lookups
+}
+
+// classes reads the account's composed policy and its senders, and classifies each sender.
+func (fr failureReads) classes(ctx context.Context, q Queries) (senderClasses, error) {
+	stored, err := ComposedRules(ctx, q.Rules)
+	if err != nil {
+		return senderClasses{}, err
+	}
+	senders, err := AccountSenders(ctx, q.Senders, stored, fr.lookups)
+	if err != nil {
+		return senderClasses{}, err
+	}
+	c := senderClasses{normal: senders.Normal(), isNormal: map[string]bool{}, policy: rules.Names(Composed(stored), fr.lookups), lookups: fr.lookups}
+	for _, d := range c.normal {
+		c.isNormal[d] = true
+	}
+	return c, nil
+}
+
+// class returns the class of the sender at a joined message's domain, as the statements count it, a
+// domain among the normal ones normal and every other restricted, or nil with no joined message.
+func (c senderClasses) class(domain pgtype.Text) *string {
+	if !domain.Valid {
+		return nil
+	}
+	class := className(!c.isNormal[domain.String])
+	return &class
+}
+
+// rule returns the identifier of the rule that restricts the sender at a joined message's domain under
+// the policy in force, nil with no joined message and for a sender no rule restricts.
+func (c senderClasses) rule(domain pgtype.Text) *string {
+	if !domain.Valid {
+		return nil
+	}
+	if _, rule := rules.ClassOf(domain.String, c.policy, c.lookups); rule != "" {
+		return &rule
+	}
+	return nil
+}
+
+// failureFilters are a read's filters as the failures statements take them, and the domains the
+// policy in force classifies normal.
 type failureFilters struct {
 	errorClassIn, errorClassOut, dispositionIn, dispositionOut []string
 	sender                                                     nullable
 	pageIn, pageOut                                            []int32
 	pageInNone, pageOutNone                                    bool
+	normal                                                     []string
 }
 
 // storedDomains returns each of domains in the form the index stores a sender domain in, nil for nil.
@@ -178,6 +242,21 @@ func storedDomains(domains []string) []string {
 		out[i] = index.StoredDomain(d)
 	}
 	return out
+}
+
+// filters reads the account's sender classes and returns the read's filters with the domains the
+// policy in force classifies normal.
+func (fr failureReads) filters(ctx context.Context, q Queries, r Read) (failureFilters, senderClasses, error) {
+	f, err := failureFiltersOf(r)
+	if err != nil {
+		return failureFilters{}, senderClasses{}, err
+	}
+	classes, err := fr.classes(ctx, q)
+	if err != nil {
+		return failureFilters{}, senderClasses{}, err
+	}
+	f.normal = classes.normal
+	return f, classes, nil
 }
 
 func failureFiltersOf(r Read) (failureFilters, error) {
@@ -200,8 +279,8 @@ func failureFiltersOf(r Read) (failureFilters, error) {
 	return f, nil
 }
 
-func failureSummary(ctx context.Context, q Queries, r Read) ([]Figure, Total, error) {
-	f, err := failureFiltersOf(r)
+func (fr failureReads) summary(ctx context.Context, q Queries, r Read) ([]Figure, Total, error) {
+	f, _, err := fr.filters(ctx, q, r)
 	if err != nil {
 		return nil, Total{}, err
 	}
@@ -209,7 +288,7 @@ func failureSummary(ctx context.Context, q Queries, r Read) ([]Figure, Total, er
 		RunID:        r.Request.ParentID,
 		ErrorClassIn: f.errorClassIn, ErrorClassOut: f.errorClassOut, DispositionIn: f.dispositionIn, DispositionOut: f.dispositionOut,
 		SenderIn: f.sender.in, SenderInNone: f.sender.inNone, SenderOut: f.sender.out, SenderOutNone: f.sender.outNone,
-		PageIn: f.pageIn, PageInNone: f.pageInNone, PageOut: f.pageOut, PageOutNone: f.pageOutNone,
+		PageIn: f.pageIn, PageInNone: f.pageInNone, PageOut: f.pageOut, PageOutNone: f.pageOutNone, NormalDomains: f.normal,
 	})
 	if err != nil {
 		return nil, Total{}, err
@@ -245,13 +324,13 @@ func failureSummary(ctx context.Context, q Queries, r Read) ([]Figure, Total, er
 	return figures, total, nil
 }
 
-func failureRows(ctx context.Context, q Queries, r Read) (any, error) {
+func (fr failureReads) rows(ctx context.Context, q Queries, r Read) (any, error) {
 	out := []FailureRow{}
 	first, ok := offset(r.Request)
 	if !ok {
 		return out, nil
 	}
-	f, err := failureFiltersOf(r)
+	f, classes, err := fr.filters(ctx, q, r)
 	if err != nil {
 		return nil, err
 	}
@@ -268,22 +347,22 @@ func failureRows(ctx context.Context, q Queries, r Read) (any, error) {
 	for _, row := range rows {
 		out = append(out, failureRow(runclassification.FailureDetailRow{
 			Seq: row.Seq, ItemKind: row.ItemKind, ItemID: row.ItemID, MessageID: row.MessageID, FromEmail: row.FromEmail,
-			Subject: row.Subject, SentAt: row.SentAt, Labels: row.Labels, SenderClass: row.SenderClass,
+			Subject: row.Subject, SentAt: row.SentAt, Labels: row.Labels, FromDomain: row.FromDomain,
 			ContentFlags: row.ContentFlags, ScanState: row.ScanState, Page: row.Page, ErrorClass: row.ErrorClass,
 			Attempts: row.Attempts, FirstAt: row.FirstAt, LastAt: row.LastAt, Disposition: row.Disposition, RecoveredBy: row.RecoveredBy,
-		}))
+		}, classes))
 	}
 	return out, nil
 }
 
 // failureRow is a stored failure as a row, from the detail statement's row, which carries every field
-// the rows statement does and the error summary.
-func failureRow(row runclassification.FailureDetailRow) FailureRow {
+// the rows statement does and the error summary, with its sender classified by classes.
+func failureRow(row runclassification.FailureDetailRow, classes senderClasses) FailureRow {
 	out := FailureRow{
 		Seq: row.Seq, ItemKind: row.ItemKind, ItemID: row.ItemID,
 		MessageID: text(row.MessageID.Valid, row.MessageID.String), FromEmail: text(row.FromEmail.Valid, row.FromEmail.String),
 		Subject: text(row.Subject.Valid, row.Subject.String), SentAt: optionalStamp(row.SentAt),
-		SenderClass: text(row.SenderClass.Valid, row.SenderClass.String), ScanState: text(row.ScanState.Valid, row.ScanState.String),
+		SenderClass: classes.class(row.FromDomain), ScanState: text(row.ScanState.Valid, row.ScanState.String),
 		ErrorClass: row.ErrorClass, Attempts: row.Attempts, FirstAt: stamp(row.FirstAt), LastAt: stamp(row.LastAt),
 		Disposition: row.Disposition, RecoveredBy: text(row.RecoveredBy.Valid, row.RecoveredBy.String),
 	}
@@ -304,8 +383,8 @@ func failureRow(row runclassification.FailureDetailRow) FailureRow {
 	return out
 }
 
-func failuresByErrorClass(ctx context.Context, q Queries, r Read) (any, error) {
-	f, err := failureFiltersOf(r)
+func (fr failureReads) byErrorClass(ctx context.Context, q Queries, r Read) (any, error) {
+	f, _, err := fr.filters(ctx, q, r)
 	if err != nil {
 		return nil, err
 	}
@@ -313,7 +392,7 @@ func failuresByErrorClass(ctx context.Context, q Queries, r Read) (any, error) {
 		RunID:        r.Request.ParentID,
 		ErrorClassIn: f.errorClassIn, ErrorClassOut: f.errorClassOut, DispositionIn: f.dispositionIn, DispositionOut: f.dispositionOut,
 		SenderIn: f.sender.in, SenderInNone: f.sender.inNone, SenderOut: f.sender.out, SenderOutNone: f.sender.outNone,
-		PageIn: f.pageIn, PageInNone: f.pageInNone, PageOut: f.pageOut, PageOutNone: f.pageOutNone,
+		PageIn: f.pageIn, PageInNone: f.pageInNone, PageOut: f.pageOut, PageOutNone: f.pageOutNone, NormalDomains: f.normal,
 	})
 	if err != nil {
 		return nil, err
@@ -325,8 +404,8 @@ func failuresByErrorClass(ctx context.Context, q Queries, r Read) (any, error) {
 	return out, nil
 }
 
-func failuresBySender(ctx context.Context, q Queries, r Read) (any, error) {
-	f, err := failureFiltersOf(r)
+func (fr failureReads) bySender(ctx context.Context, q Queries, r Read) (any, error) {
+	f, _, err := fr.filters(ctx, q, r)
 	if err != nil {
 		return nil, err
 	}
@@ -334,7 +413,7 @@ func failuresBySender(ctx context.Context, q Queries, r Read) (any, error) {
 		RunID:        r.Request.ParentID,
 		ErrorClassIn: f.errorClassIn, ErrorClassOut: f.errorClassOut, DispositionIn: f.dispositionIn, DispositionOut: f.dispositionOut,
 		SenderIn: f.sender.in, SenderInNone: f.sender.inNone, SenderOut: f.sender.out, SenderOutNone: f.sender.outNone,
-		PageIn: f.pageIn, PageInNone: f.pageInNone, PageOut: f.pageOut, PageOutNone: f.pageOutNone,
+		PageIn: f.pageIn, PageInNone: f.pageInNone, PageOut: f.pageOut, PageOutNone: f.pageOutNone, NormalDomains: f.normal,
 	})
 	if err != nil {
 		return nil, err
@@ -352,8 +431,8 @@ func failuresBySender(ctx context.Context, q Queries, r Read) (any, error) {
 	return out, nil
 }
 
-func failuresByPage(ctx context.Context, q Queries, r Read) (any, error) {
-	f, err := failureFiltersOf(r)
+func (fr failureReads) byPage(ctx context.Context, q Queries, r Read) (any, error) {
+	f, _, err := fr.filters(ctx, q, r)
 	if err != nil {
 		return nil, err
 	}
@@ -361,7 +440,7 @@ func failuresByPage(ctx context.Context, q Queries, r Read) (any, error) {
 		RunID:        r.Request.ParentID,
 		ErrorClassIn: f.errorClassIn, ErrorClassOut: f.errorClassOut, DispositionIn: f.dispositionIn, DispositionOut: f.dispositionOut,
 		SenderIn: f.sender.in, SenderInNone: f.sender.inNone, SenderOut: f.sender.out, SenderOutNone: f.sender.outNone,
-		PageIn: f.pageIn, PageInNone: f.pageInNone, PageOut: f.pageOut, PageOutNone: f.pageOutNone,
+		PageIn: f.pageIn, PageInNone: f.pageInNone, PageOut: f.pageOut, PageOutNone: f.pageOutNone, NormalDomains: f.normal,
 	})
 	if err != nil {
 		return nil, err
@@ -377,8 +456,8 @@ func failuresByPage(ctx context.Context, q Queries, r Read) (any, error) {
 	return out, nil
 }
 
-func failuresByDisposition(ctx context.Context, q Queries, r Read) (any, error) {
-	f, err := failureFiltersOf(r)
+func (fr failureReads) byDisposition(ctx context.Context, q Queries, r Read) (any, error) {
+	f, _, err := fr.filters(ctx, q, r)
 	if err != nil {
 		return nil, err
 	}
@@ -386,7 +465,7 @@ func failuresByDisposition(ctx context.Context, q Queries, r Read) (any, error) 
 		RunID:        r.Request.ParentID,
 		ErrorClassIn: f.errorClassIn, ErrorClassOut: f.errorClassOut, DispositionIn: f.dispositionIn, DispositionOut: f.dispositionOut,
 		SenderIn: f.sender.in, SenderInNone: f.sender.inNone, SenderOut: f.sender.out, SenderOutNone: f.sender.outNone,
-		PageIn: f.pageIn, PageInNone: f.pageInNone, PageOut: f.pageOut, PageOutNone: f.pageOutNone,
+		PageIn: f.pageIn, PageInNone: f.pageInNone, PageOut: f.pageOut, PageOutNone: f.pageOutNone, NormalDomains: f.normal,
 	})
 	if err != nil {
 		return nil, err
@@ -400,7 +479,7 @@ func failuresByDisposition(ctx context.Context, q Queries, r Read) (any, error) 
 
 // failureDetail is the failures dataset's provenance query. A message or operation item carries the
 // audit rows of its message, and a page item none.
-func failureDetail(ctx context.Context, q Queries, account string, req lens.RowRequest, asOf time.Time) (any, error) {
+func (fr failureReads) detail(ctx context.Context, q Queries, account string, req lens.RowRequest, asOf time.Time) (any, error) {
 	seq, err := strconv.ParseInt(req.Row, 10, 64)
 	if err != nil {
 		// The pure core admits only whole numbers, so this is not reached.
@@ -413,10 +492,14 @@ func failureDetail(ctx context.Context, q Queries, account string, req lens.RowR
 	if err != nil {
 		return nil, err
 	}
+	classes, err := fr.classes(ctx, q)
+	if err != nil {
+		return nil, err
+	}
 	out := FailureDetail{
-		Account: account, Dataset: "failures", AsOf: Stamp(asOf), Run: req.ParentID, Row: failureRow(row),
+		Account: account, Dataset: "failures", AsOf: Stamp(asOf), Run: req.ParentID, Row: failureRow(row, classes),
 		ErrorSummary: text(row.ErrorSummary.Valid, row.ErrorSummary.String), ScannedAt: optionalStamp(row.ScannedAt),
-		ClassRuleID: text(row.ClassRuleID.Valid, row.ClassRuleID.String), Audit: []AuditEntry{},
+		ClassRuleID: classes.rule(row.FromDomain), Audit: []AuditEntry{},
 	}
 	if row.MessageID.Valid {
 		out.RuleIDs = row.RuleIds

@@ -15,7 +15,7 @@
       "message_count": 4,
       "restricted_by": "operator.lender.example",
       "scan_hits": 0,
-      "sender_class": "normal"
+      "sender_class": "restricted"
     },
     {
       "domain": "newsletter.example",
@@ -35,7 +35,7 @@
       "message_count": 2,
       "restricted_by": null,
       "scan_hits": 0,
-      "sender_class": "normal"
+      "sender_class": "restricted"
     },
     {
       "domain": "bank.example",

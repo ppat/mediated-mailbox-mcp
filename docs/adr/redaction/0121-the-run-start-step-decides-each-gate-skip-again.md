@@ -108,11 +108,10 @@ worker, so it is seen by the run-start step the worker makes at its start.
   that runs backfill makes it, and so does an account newly listed while it runs. A failed run's
   retry inside the worker follows the backoff without the step. Inputs that change without a
   restart, a sender's new prior hit and the policy in force, are therefore re-decided at the next
-  worker start. The policy in force also reaches the second pass through the comparisons a running
-  run makes again when its policy changes
+  worker start. The policy in force also reaches the second pass through the delisting comparison a
+  running run makes again when its policy changes
   ([ADR-0119](../operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md),
-  [ADR-0037](./0037-delisting-transition.md),
-  [ADR-0113](./0113-an-added-rule-reaches-the-stored-classes-by-its-effect.md)), and the scanner
+  [ADR-0037](./0037-delisting-transition.md)), and the scanner
   and the thresholds change only across a restart, so their guard holds whole.
 - The same comparison also returns to pending a skip whose sender has since gained a prior hit, or
   whose subject is now masked, since the gate decides those as scans.

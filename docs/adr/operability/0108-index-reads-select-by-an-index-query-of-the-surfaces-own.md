@@ -73,7 +73,7 @@ client's question, not the surface's.
   it. The statistics hold exactly the domains the index stores, since every workload that adds or
   removes messages rebuilds or removes the statistics of each domain it touched in the same
   transaction ([ADR-0109](./0109-the-index-is-read-through-search-count-and-the-sender-listing.md)).
-  A domain listed after its messages were stored as normal selects as restricted on the next call
+  A domain listed after its messages were stored selects as restricted on the next call
   ([ADR-0002](../redaction/0002-fetch-time-re-evaluation.md)).
 - **A domain the call did not classify counts as restricted.** The statement treats every domain
   outside the normal set as restricted, so a set and a statement that ever disagree fail closed, as

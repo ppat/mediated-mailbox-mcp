@@ -14,6 +14,11 @@ type Querier interface {
 	// the content rules that set the flags, which the request's audit row names. Never the stored sender
 	// class. No row means the account holds no such message.
 	BodyGate(ctx context.Context, messageID string) ([]BodyGateRow, error)
+	// The account's corpus at a glance, for the corpus endpoint and the attention endpoint's backlog rule
+	// (docs/UI.md sections 8.1 and 17.4). Unfiled is a message with no label. The restricted messages are
+	// not counted here, since the index stores no sender class. The UI sums them from the sender
+	// statistics of the senders the policy in force restricts (ADR-0136).
+	CorpusFigures(ctx context.Context) (CorpusFiguresRow, error)
 	// Every group the query's labelled messages form by label, the group with the most messages first and
 	// ties by label. A message counts in the group of each label it carries. The messages with no label
 	// are counted by SearchSummary with labels_within set to the empty list. The groups are as many as the
@@ -38,8 +43,8 @@ type Querier interface {
 	Message(ctx context.Context, messageID string) ([]MessageRow, error)
 	// One page of the account's messages, newest first, after the position a cursor names or from the
 	// start when it names none. The columns are the metadata the client surface serves and the content
-	// flags and scan state the Redaction Gate decides from. The stored sender class is not read, because
-	// the gate classifies the sender again against the policy in force (ADR-0001, ADR-0002).
+	// flags and scan state the Redaction Gate decides from. The index stores no sender class, and the gate
+	// classifies the sender against the policy in force (ADR-0001, ADR-0002, ADR-0136).
 	MessagePage(ctx context.Context, arg MessagePageParams) ([]MessagePageRow, error)
 	// How many of the account's messages wait for their content scan, the scan backlog the system status
 	// exposes (ADR-0034, docs/UI.md section 8.8).
