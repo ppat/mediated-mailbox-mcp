@@ -85,13 +85,13 @@ func seed(t *testing.T) {
 			[]any{personal, at(2 * time.Hour)},
 		},
 		{
-			`INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, from_name, subject, sent_at, labels, has_attachments, sender_class, content_flags, scan_state) VALUES
-			($1, 'm-bank', 't-bank', $2, 'bank.example', $3, $4, $5, '{}', true, 'restricted', '{}', 'skipped_restricted'),
-			($1, 'm-news', 't-news', $6, 'newsletter.example', $7, $8, $9, '{INBOX}', false, 'normal', '{mfa_code}', 'scanned'),
-			($1, 'm-news2', 't-news', $6, 'newsletter.example', $7, $8, $9, '{INBOX}', false, 'normal', '{mfa_code}', 'pending'),
-			($1, 'm-empty', 't-empty', 'nobody@', '', $7, $8, $9, '{}', false, 'normal', '{}', 'scanned'),
-			($1, 'm-mask', 't-mask', 'codes@' || $12::text, $12::text, $7, $8, $9, '{}', false, 'normal', '{mfa_code}', 'scanned'),
-			($10, 'm-other', 't-other', $11::text, 'other.example', $11::text, $11::text, $9, '{}', false, 'normal', '{}', 'pending')`,
+			`INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, from_name, subject, sent_at, labels, has_attachments, content_flags, scan_state) VALUES
+			($1, 'm-bank', 't-bank', $2, 'bank.example', $3, $4, $5, '{}', true, '{}', 'skipped_restricted'),
+			($1, 'm-news', 't-news', $6, 'newsletter.example', $7, $8, $9, '{INBOX}', false, '{mfa_code}', 'scanned'),
+			($1, 'm-news2', 't-news', $6, 'newsletter.example', $7, $8, $9, '{INBOX}', false, '{}', 'pending'),
+			($1, 'm-empty', 't-empty', 'nobody@', '', $7, $8, $9, '{}', false, '{}', 'scanned'),
+			($1, 'm-mask', 't-mask', 'codes@' || $12::text, $12::text, $7, $8, $9, '{}', false, '{mfa_code}', 'scanned'),
+			($10, 'm-other', 't-other', $11::text, 'other.example', $11::text, $11::text, $9, '{}', false, '{}', 'pending')`,
 			[]any{
 				personal, bank.FromAddress, bank.FromName, bank.Subject, at(48 * time.Hour), newsletter.FromAddress, newsletter.FromName,
 				newsletter.Subject, at(30 * time.Hour), other, marker.Field("other"), marker.MarkupField("masksender"),
@@ -99,17 +99,24 @@ func seed(t *testing.T) {
 		},
 		{
 			// The newsletter's first message was scanned, so its row carries the scan's time and version
-			// and the two content rules that set its flag, and no rule set its normal class. The bank's rule
-			// set its restricted class. A failure's row detail shows both apart (docs/UI.md 7.1).
+			// and the two content rules that set its flag, and no rule restricts its sender. The bank's rule
+			// restricts the bank. A failure's row detail shows both apart (docs/UI.md 7.1).
 			`UPDATE messages SET rule_ids = '{content.mfa.subject_numeric_6,content.mfa.trigger_window}', scanned_at = $2, scanner_version = 3
 			WHERE account_id = $1 AND message_id = 'm-news'`,
 			[]any{personal, at(29 * time.Hour)},
 		},
-		{"UPDATE messages SET class_rule_id = 'rule.bank' WHERE account_id = $1 AND message_id = 'm-bank'", []any{personal}},
+		// The account's policy restricts the bank, which every screen classifies the bank's messages and
+		// statistics under when it reads, since the index stores no class (ADR-0136). The policy tests
+		// replace it with their own.
+		{"INSERT INTO policy_rules (account_id, rule_id, class, domain_suffix, source, created_by) VALUES ($1, 'rule.bank', 'restricted', '{bank.example}', 'operator', 'operator')", []any{personal}},
 		{
-			`INSERT INTO senders (account_id, domain, message_count, first_seen, last_seen, sender_class) VALUES
-			($1, 'bank.example', 1, $2, $2, 'restricted'), ($1, 'lender.example', 4, $3, $2, 'normal')`,
-			[]any{personal, at(48 * time.Hour), at(90 * 24 * time.Hour)},
+			// Every stored domain has its statistics, as every workload that stores a message rebuilds them
+			// in the same transaction (ADR-0109), and lender.example has statistics for messages the index
+			// no longer holds.
+			`INSERT INTO senders (account_id, domain, message_count, first_seen, last_seen) VALUES
+			($1, 'bank.example', 1, $2, $2), ($1, 'lender.example', 4, $3, $2), ($1, 'newsletter.example', 2, $4, $4),
+			($1, '', 1, $4, $4), ($1, $5::text, 1, $4, $4), ($6, 'other.example', 1, $4, $4)`,
+			[]any{personal, at(48 * time.Hour), at(90 * 24 * time.Hour), at(30 * time.Hour), marker.MarkupField("masksender"), other},
 		},
 		{
 			`INSERT INTO reorg_plans (plan_id, account_id, status, description, proposer, plan, validation, created_at, approved_at, approved_by, refusal_reason) VALUES
@@ -318,6 +325,7 @@ func serverAt(t *testing.T, pool *pgxpool.Pool, thresholds attention.Thresholds,
 		Bundle:         os.DirFS(filepath.Join("..", "..", "browser", "dist")),
 		Database:       pool,
 		Datasets:       registry.Datasets(lookups),
+		Lookups:        lookups,
 		Logger:         slog.New(slog.NewJSONHandler(io.Discard, nil)),
 		Metrics:        reg,
 		Clock:          func() time.Time { return at },

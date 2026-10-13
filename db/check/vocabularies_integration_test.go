@@ -44,34 +44,22 @@ var vocabularies = []vocabulary{
 	},
 	// Cheap, next to safety.
 	{
-		column:  "messages.sender_class",
-		insert:  "INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, sent_at, has_attachments, sender_class) VALUES ('" + accountA + "', gen_random_uuid()::text, 't', 'a@example.com', 'example.com', now(), false, $1)",
-		refused: []any{"sensitive", "Restricted", ""},
-		stored:  []any{"normal", "restricted"},
-	},
-	{
 		column:  "messages.scan_state",
-		insert:  "INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, sent_at, has_attachments, sender_class, scan_state) VALUES ('" + accountA + "', gen_random_uuid()::text, 't', 'a@example.com', 'example.com', now(), false, 'normal', $1)",
+		insert:  "INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, sent_at, has_attachments, scan_state) VALUES ('" + accountA + "', gen_random_uuid()::text, 't', 'a@example.com', 'example.com', now(), false, $1)",
 		refused: []any{"SKIPPED_GATE", "skipped", "clean"},
 		stored:  []any{"scanned", "skipped_restricted", "skipped_gate", "pending"},
 	},
 	{
 		column:  "messages.content_flags",
-		insert:  "INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, sent_at, has_attachments, sender_class, content_flags) VALUES ('" + accountA + "', gen_random_uuid()::text, 't', 'a@example.com', 'example.com', now(), false, 'normal', $1::text[])",
+		insert:  "INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, sent_at, has_attachments, scan_state, content_flags) VALUES ('" + accountA + "', gen_random_uuid()::text, 't', 'a@example.com', 'example.com', now(), false, 'scanned', $1::text[])",
 		refused: []any{"{password}", "{mfa_code,MFA_CODE}", "{login_link,otp}"},
 		stored:  []any{"{}", "{mfa_code}", "{login_link}", "{mfa_code,login_link}"},
 	},
 	{
-		column:  "senders.sender_class",
-		insert:  "INSERT INTO senders (account_id, domain, sender_class) VALUES ('" + accountA + "', gen_random_uuid()::text, $1)",
-		refused: []any{"sensitive", "NORMAL"},
-		stored:  []any{"normal", "restricted"},
-	},
-	{
 		column: "scan_gate_decisions.decision",
 		// A decision names a stored message (ADR-0016), so the message is stored in the same statement.
-		insert: "WITH m AS (INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, sent_at, has_attachments, sender_class) " +
-			"VALUES ('" + accountA + "', gen_random_uuid()::text, 't', 'a@example.com', 'example.com', now(), false, 'normal') RETURNING account_id, message_id) " +
+		insert: "WITH m AS (INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, sent_at, has_attachments) " +
+			"VALUES ('" + accountA + "', gen_random_uuid()::text, 't', 'a@example.com', 'example.com', now(), false) RETURNING account_id, message_id) " +
 			"INSERT INTO scan_gate_decisions (account_id, message_id, decision, reason) SELECT account_id, message_id, $1, 'restricted' FROM m",
 		refused: []any{"scan", "SKIPPED", "DEFER"},
 		stored:  []any{"SCAN", "SKIP"},
@@ -167,7 +155,7 @@ func TestARunRecordsOneOfTheBuiltJobKindsPairs(t *testing.T) {
 func TestASenderDomainIsStoredInTheNormalizersForm(t *testing.T) {
 	tx := seeded(t)
 	inserts := map[string]string{
-		"messages.from_domain":     "INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, sent_at, has_attachments, sender_class) VALUES ('" + accountA + "', gen_random_uuid()::text, 't', 'a@example.com', $1, now(), false, 'normal')",
+		"messages.from_domain":     "INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, sent_at, has_attachments) VALUES ('" + accountA + "', gen_random_uuid()::text, 't', 'a@example.com', $1, now(), false)",
 		"senders.domain":           "INSERT INTO senders (account_id, domain) VALUES ('" + accountA + "', $1)",
 		"policy_candidates.domain": "INSERT INTO policy_candidates (account_id, domain, signals, score) VALUES ('" + accountB + "', $1, '[]', 0.5)",
 	}
@@ -191,7 +179,7 @@ func TestASenderDomainIsStoredInTheNormalizersForm(t *testing.T) {
 // wrote is stored, and every form the normalization gives is stored, an empty one included.
 func TestAttachmentMediaHoldsOnlyTheNormalizedForm(t *testing.T) {
 	tx := seeded(t)
-	const message = "INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, sent_at, has_attachments, sender_class) VALUES ('" + accountA + "', 'm-media', 't', 'a@example.com', 'example.com', now(), true, 'normal')"
+	const message = "INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, sent_at, has_attachments) VALUES ('" + accountA + "', 'm-media', 't', 'a@example.com', 'example.com', now(), true)"
 	if code := attempt(t, tx, message); code != "" {
 		t.Fatalf("storing the message: %q", code)
 	}
@@ -308,5 +296,42 @@ func TestTheAuditRowsColumnsRefuseAValueOutsideTheirSets(t *testing.T) {
 	neither[5] = nil
 	if code := attempt(t, tx, auditRow, neither...); code != "" {
 		t.Errorf("storing a row with neither a class rule nor its scope: %q, want it stored", code)
+	}
+}
+
+// M8's row for a message returned to pending with content flags. Only a scan sets a content flag, so
+// the schema refuses flags on a message in any other scan state, stored that way or brought there by
+// an update that returns a flagged message to pending, or skips it, without clearing its verdict. That
+// state is the one the Redaction Gate reads as invalid (ADR-0016, ADR-0120). A scanned message stores
+// its flags, and returning it to pending with its verdict cleared, as a change of scanner does, is
+// stored.
+func TestOnlyAScannedMessageCarriesContentFlags(t *testing.T) {
+	tx := seeded(t)
+	const insert = "INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, sent_at, has_attachments, scan_state, content_flags) " +
+		"VALUES ('" + accountA + "', $1, 't', 'a@example.com', 'example.com', now(), false, $2, $3::text[])"
+	unscanned := []string{"pending", "skipped_restricted", "skipped_gate"}
+	for _, state := range unscanned {
+		for _, flags := range []string{"{mfa_code}", "{login_link}", "{mfa_code,login_link}"} {
+			if code := attempt(t, tx, insert, "m-"+state, state, flags); code != checkViolation {
+				t.Errorf("storing the flags %s on a message %s: %q, want %s", flags, state, code, checkViolation)
+			}
+		}
+		if code := attempt(t, tx, insert, "m-"+state, state, "{}"); code != "" {
+			t.Errorf("storing a message %s with no flag: %q, want it stored", state, code)
+		}
+	}
+	if code := attempt(t, tx, insert, "m-flagged", "scanned", "{mfa_code}"); code != "" {
+		t.Fatalf("storing a scanned message's flag: %q, want it stored", code)
+	}
+	const update = "UPDATE messages SET scan_state = $1 WHERE account_id = '" + accountA + "' AND message_id = 'm-flagged'"
+	for _, state := range unscanned {
+		if code := attempt(t, tx, update, state); code != checkViolation {
+			t.Errorf("moving a flagged message to %s with its flags kept: %q, want %s", state, code, checkViolation)
+		}
+	}
+	const requeue = "UPDATE messages SET scan_state = 'pending', content_flags = '{}', rule_ids = '{}' " +
+		"WHERE account_id = '" + accountA + "' AND message_id = 'm-flagged'"
+	if code := attempt(t, tx, requeue); code != "" {
+		t.Errorf("returning a flagged message to pending with its verdict cleared: %q, want it stored", code)
 	}
 }

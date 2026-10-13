@@ -3,7 +3,7 @@
 //   sqlc v1.31.1
 // source: corpus.sql
 
-package messageclassification
+package messages
 
 import (
 	"context"
@@ -13,30 +13,24 @@ const corpusFigures = `-- name: CorpusFigures :one
 SELECT
     count(*) AS messages,
     count(DISTINCT m.thread_id) AS threads,
-    count(*) FILTER (WHERE m.labels = '{}') AS unfiled,
-    count(*) FILTER (WHERE m.sender_class = 'restricted') AS restricted
+    count(*) FILTER (WHERE m.labels = '{}') AS unfiled
 FROM messages AS m
 WHERE m.account_id = current_setting('app.account')
 `
 
 type CorpusFiguresRow struct {
-	Messages   int64
-	Threads    int64
-	Unfiled    int64
-	Restricted int64
+	Messages int64
+	Threads  int64
+	Unfiled  int64
 }
 
 // The account's corpus at a glance, for the corpus endpoint and the attention endpoint's backlog rule
-// (docs/UI.md sections 8.1 and 17.4).
-// Unfiled is a message with no label, and restricted one whose sender class reads restricted now.
+// (docs/UI.md sections 8.1 and 17.4). Unfiled is a message with no label. The restricted messages are
+// not counted here, since the index stores no sender class. The UI sums them from the sender
+// statistics of the senders the policy in force restricts (ADR-0136).
 func (q *Queries) CorpusFigures(ctx context.Context) (CorpusFiguresRow, error) {
 	row := q.db.QueryRow(ctx, corpusFigures)
 	var i CorpusFiguresRow
-	err := row.Scan(
-		&i.Messages,
-		&i.Threads,
-		&i.Unfiled,
-		&i.Restricted,
-	)
+	err := row.Scan(&i.Messages, &i.Threads, &i.Unfiled)
 	return i, err
 }

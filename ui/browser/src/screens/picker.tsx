@@ -93,7 +93,9 @@ export function PickerScreen(props: { account: string; view: View }) {
     selected: (row) => !restricts(row) && (picked.all || picked.domains.includes(row.domain)),
     refused: (row) =>
       restricts(row)
-        ? `Already restricted by ${row.restricted_by ?? "its stored class"}`
+        ? row.restricted_by === null
+          ? "Already restricted, since its domain cannot be classified"
+          : `Already restricted by ${row.restricted_by}`
         : undefined,
     label: (row) => `Select ${row.domain}`,
     set: (changed, on) => {

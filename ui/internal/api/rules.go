@@ -610,7 +610,7 @@ func (s *Server) getMatch(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			return err
 		}
-		senders, _, err := registry.SenderClasses(r.Context(), q, s.opts.Lookups)
+		senders, err := registry.AccountSenders(r.Context(), q.Senders, stored, s.opts.Lookups)
 		if err != nil {
 			return err
 		}
@@ -725,7 +725,7 @@ func (s *Server) getRelease(w http.ResponseWriter, r *http.Request) {
 		if !slices.ContainsFunc(stored, func(x registry.StoredRule) bool { return x.Base == isBase && x.ID == id }) {
 			return errUnknownRule
 		}
-		senders, _, err := registry.SenderClasses(r.Context(), rq, s.opts.Lookups)
+		senders, err := registry.AccountSenders(r.Context(), rq.Senders, stored, s.opts.Lookups)
 		if err != nil {
 			return err
 		}

@@ -27,10 +27,11 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/registry"
 )
 
-// inAccount runs fn in the account's transaction with every statement the registry and the policy
-// reads run, built from that transaction.
+// inAccount runs fn in the account's read-only snapshot transaction with every statement the registry
+// and the policy reads run, built from that transaction, so the policy and the senders it classifies
+// are read in one state (ADR-0136).
 func (s *Server) inAccount(ctx context.Context, account string, fn func(q registry.Queries) error) error {
-	return tx.Run(ctx, s.opts.Database, account, func(t pgx.Tx) error {
+	return tx.Run(ctx, s.snapshot(), account, func(t pgx.Tx) error {
 		// The statements are built here, from the transaction that set the account (ADR-0047).
 		return fn(registry.Queries{
 			Plans: reorgplans.New(t), Candidates: policycandidates.New(t),

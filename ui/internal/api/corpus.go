@@ -9,8 +9,10 @@ import (
 
 	"github.com/ppat/mediated-mailbox-mcp/db/auditlog"
 	"github.com/ppat/mediated-mailbox-mcp/db/maskingevents"
-	messageclassification "github.com/ppat/mediated-mailbox-mcp/db/messages/classification"
+	"github.com/ppat/mediated-mailbox-mcp/db/messages"
+	"github.com/ppat/mediated-mailbox-mcp/db/policyrules/manage"
 	"github.com/ppat/mediated-mailbox-mcp/db/scangatedecisions"
+	senderclassification "github.com/ppat/mediated-mailbox-mcp/db/senders/classification"
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/schema"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/registry"
@@ -22,7 +24,9 @@ func auditActions() []string { return []string{"READ_BODY", "DENY_BODY", "MUTATE
 
 // corpusResponse is Home's at-a-glance corpus figures (docs/UI.md sections 8.1 and 17.4), with the
 // time the read transaction began, since Home reads them apart from the system endpoint and shows the
-// older of the two times. Audit24h counts the audit rows of the last 24 hours by action as stored. It counts every message of the
+// older of the two times. Restricted is the messages of the senders the account's composed policy
+// restricts, read and classified in the same transaction, since the index stores no class (ADR-0136).
+// Audit24h counts the audit rows of the last 24 hours by action as stored. It counts every message of the
 // account, so it is a read apart from the system endpoint, which the partial-index banner reads again
 // on every backfill run event, and only Home reads it (docs/UI.md section 9).
 type corpusResponse struct {
@@ -55,18 +59,27 @@ func corpusType() schema.Type {
 func (s *Server) getCorpus(w http.ResponseWriter, r *http.Request) {
 	account := r.PathValue("account")
 	out := corpusResponse{Account: account, Audit24h: map[string]int64{}}
-	err := tx.Run(r.Context(), s.opts.Database, account, func(t pgx.Tx) error {
+	err := tx.Run(r.Context(), s.snapshot(), account, func(t pgx.Tx) error {
 		ctx := r.Context()
 		// as_of is the time the read transaction began.
 		now := s.opts.Clock()
 		out.AsOf = registry.Stamp(now)
 		day := pgtype.Timestamptz{Time: now.Add(-24 * time.Hour), Valid: true}
 		week := pgtype.Timestamptz{Time: now.Add(-7 * 24 * time.Hour), Valid: true}
-		corpus, err := messageclassification.New(t).CorpusFigures(ctx)
+		corpus, err := messages.New(t).CorpusFigures(ctx)
 		if err != nil {
 			return err
 		}
-		out.Messages, out.Threads, out.Unfiled, out.Restricted = corpus.Messages, corpus.Threads, corpus.Unfiled, corpus.Restricted
+		out.Messages, out.Threads, out.Unfiled = corpus.Messages, corpus.Threads, corpus.Unfiled
+		stored, err := registry.ComposedRules(ctx, manage.New(t))
+		if err != nil {
+			return err
+		}
+		senders, err := registry.AccountSenders(ctx, senderclassification.New(t), stored, s.opts.Lookups)
+		if err != nil {
+			return err
+		}
+		out.Restricted = senders.Restricted().Messages
 		actions, err := auditlog.New(t).AuditActionCounts(ctx, day)
 		if err != nil {
 			return err

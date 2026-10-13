@@ -22,8 +22,8 @@
       "created_at": "2026-09-09T08:16:04Z",
       "reviewed_at": null,
       "reviewed_by": null,
-      "message_count": null,
-      "first_seen": null
+      "message_count": 1,
+      "first_seen": "2026-09-09T04:16:04Z"
     }
   ]
 }

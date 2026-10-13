@@ -2,12 +2,15 @@
 -- The failures dataset's figures under its filters, one row per disposition with its count and how many
 -- of those items' messages are restricted or flagged (docs/UI.md sections 8.4 and 17.1). The totals
 -- are their sums, which the pages count from. The joined message is the item's own, for a message or
--- an operation item, and a page item joins none, so it counts as neither restricted nor flagged. A null
--- array is no filter. The none flags select or exclude the items with no sender or no page.
+-- an operation item, and a page item joins none, so it counts as neither restricted nor flagged. A
+-- message is restricted when its sender's domain is not among normal_domains, the domains the UI
+-- classified normal under the policy in force, so a domain it did not classify counts as restricted
+-- (ADR-0136, ADR-0108). A null array is no filter. The none flags select or exclude the items with no
+-- sender or no page.
 SELECT
     f.disposition,
     count(*) AS failures,
-    count(*) FILTER (WHERE m.sender_class = 'restricted') AS restricted,
+    count(*) FILTER (WHERE m.from_domain != all(@normal_domains::text[])) AS restricted,
     count(*) FILTER (WHERE cardinality(m.content_flags) > 0) AS flagged
 FROM job_run_failures AS f
 LEFT JOIN messages AS m
@@ -42,7 +45,7 @@ ORDER BY f.disposition;
 SELECT
     f.error_class,
     count(*) AS failures,
-    count(*) FILTER (WHERE m.sender_class = 'restricted') AS restricted,
+    count(*) FILTER (WHERE m.from_domain != all(@normal_domains::text[])) AS restricted,
     count(*) FILTER (WHERE cardinality(m.content_flags) > 0) AS flagged
 FROM job_run_failures AS f
 LEFT JOIN messages AS m
@@ -81,7 +84,7 @@ SELECT
     coalesce(m.from_domain, '')::text AS from_domain,
     (m.from_domain IS NULL)::boolean AS no_domain,
     count(*) AS failures,
-    count(*) FILTER (WHERE m.sender_class = 'restricted') AS restricted,
+    count(*) FILTER (WHERE m.from_domain != all(@normal_domains::text[])) AS restricted,
     count(*) FILTER (WHERE cardinality(m.content_flags) > 0) AS flagged
 FROM job_run_failures AS f
 LEFT JOIN messages AS m
@@ -116,7 +119,7 @@ ORDER BY failures DESC, m.from_domain ASC NULLS LAST;
 SELECT
     f.page,
     count(*) AS failures,
-    count(*) FILTER (WHERE m.sender_class = 'restricted') AS restricted,
+    count(*) FILTER (WHERE m.from_domain != all(@normal_domains::text[])) AS restricted,
     count(*) FILTER (WHERE cardinality(m.content_flags) > 0) AS flagged
 FROM job_run_failures AS f
 LEFT JOIN messages AS m
@@ -150,7 +153,7 @@ ORDER BY failures DESC, f.page ASC NULLS LAST;
 SELECT
     f.disposition,
     count(*) AS failures,
-    count(*) FILTER (WHERE m.sender_class = 'restricted') AS restricted,
+    count(*) FILTER (WHERE m.from_domain != all(@normal_domains::text[])) AS restricted,
     count(*) FILTER (WHERE cardinality(m.content_flags) > 0) AS flagged
 FROM job_run_failures AS f
 LEFT JOIN messages AS m
@@ -181,7 +184,8 @@ ORDER BY failures DESC, f.disposition ASC NULLS LAST;
 
 -- name: FailureRows :many
 -- One page of a run's failures, fifty rows, under the same filters (docs/UI.md section 8.4). Each row
--- carries the message-row fields of the item's message, null for a page item or a message the index no
+-- carries the message-row fields of the item's message, with its sender's domain in place of a class,
+-- which the UI classifies under the policy in force, null for a page item or a message the index no
 -- longer holds. sort_column names last_at or attempts, in either direction, and the failure's identity
 -- ends the sort.
 SELECT
@@ -193,7 +197,7 @@ SELECT
     m.subject,
     m.sent_at,
     m.labels,
-    m.sender_class,
+    m.from_domain,
     m.content_flags,
     m.scan_state,
     f.page,
@@ -238,9 +242,9 @@ LIMIT 50 OFFSET @row_offset;
 
 -- name: FailureDetail :one
 -- One of a run's failures with the error summary as recorded, the failures dataset's provenance for its
--- row detail, and its message's sensitivity block, the policy rule that set its class apart from the
--- content rules that set its flags, the time it was scanned and the scanner version (docs/UI.md
--- sections 7.1, 8.4 and 17.1).
+-- row detail, and its message's sensitivity block, the content rules that set its flags, the time it
+-- was scanned and the scanner version, with its sender's domain, which the UI classifies under the
+-- policy in force to name the rule restricting it (docs/UI.md sections 7.1, 8.4 and 17.1, ADR-0136).
 SELECT
     f.seq,
     f.item_kind,
@@ -250,7 +254,7 @@ SELECT
     m.subject,
     m.sent_at,
     m.labels,
-    m.sender_class,
+    m.from_domain,
     m.content_flags,
     m.scan_state,
     f.page,
@@ -261,7 +265,6 @@ SELECT
     f.disposition,
     f.recovered_by,
     f.error_summary,
-    m.class_rule_id,
     m.rule_ids,
     m.scanned_at,
     m.scanner_version

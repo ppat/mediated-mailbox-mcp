@@ -79,9 +79,9 @@ account's policy.
   policy snapshot's validation refuses a repeated identifier within one scope only
   ([ADR-0041](../engineering/0041-policy-as-immutable-snapshots.md)). The key and the validation
   agree, so a process never refuses a stored policy for holding one identifier in two scopes.
-- A message's `class_rule_id` names an identifier and not its scope. When an account and the base
-  policy both hold the identifier, with suffixes that may differ, the message records which
-  identifier matched but not which scope's rule, and the UI lists both rather than guess.
+- The UI names the rule behind a sender's class by its identifier and not its scope. When an
+  account and the base policy both hold the identifier, with suffixes that may differ, the UI lists
+  both rather than guess.
 - A stale or partial file lifts every rule it leaves out once confirmed. The typed count on a base
   import, the account's numbers on an account's import, and Put it back after the import are what
   stand against that.

@@ -409,7 +409,7 @@ test("the System column shows the operational rows and the corpus figures, linki
     ["Messages", "5", null, null],
     ["Threads", "4", null, null],
     ["Unfiled", "3 (60.0%)", null, null],
-    ["Restricted messages", "1", null, null],
+    ["Restricted messages", "3", null, null],
     ["Masking events, 7 days", "22", null, null],
     ["Gate skips, 7 days", "1", null, null],
   ]);
@@ -439,7 +439,7 @@ test("while backfill pass 1 runs, the corpus counts are counts so far", async ()
     "5 so far",
     "4 so far",
     "3 so far (60.0%)",
-    "1 so far",
+    "3 so far",
     "22 so far",
     "1 so far",
   ]);
@@ -456,7 +456,7 @@ test("while a re-opened backfill pass 1 runs, the corpus counts are not counts s
     "5",
     "4",
     "3 (60.0%)",
-    "1",
+    "3",
     "22",
     "1",
   ]);

@@ -27,7 +27,7 @@ type indexed struct {
 	labels                          []string
 	read, starred, attachments      bool
 	flags                           []string
-	scan, storedClass               string
+	scan                            string
 	// domain is the domain stored for the sender, the part of its address after the last @ lowered
 	// when it is empty.
 	domain string
@@ -42,10 +42,7 @@ func put(t *testing.T, conn *pgx.Conn, account string, m indexed) {
 	if domain == "" {
 		domain = strings.ToLower(m.from[strings.LastIndexByte(m.from, '@')+1:])
 	}
-	class, scan, thread := m.storedClass, m.scan, m.thread
-	if class == "" {
-		class = "normal"
-	}
+	scan, thread := m.scan, m.thread
 	if scan == "" {
 		scan = "scanned"
 	}
@@ -55,12 +52,12 @@ func put(t *testing.T, conn *pgx.Conn, account string, m indexed) {
 	flags := fmt.Sprintf(`{"read": %v, "starred": %v}`, m.read, m.starred)
 	must(t, conn, `WITH stored AS (
 		INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, subject, sent_at, labels,
-		flags, has_attachments, sender_class, content_flags, rule_ids, scan_state)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, '{}', $13) RETURNING account_id, from_domain)
+		flags, has_attachments, content_flags, rule_ids, scan_state)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, '{}', $12) RETURNING account_id, from_domain)
 		INSERT INTO senders (account_id, domain, message_count) SELECT account_id, from_domain, 1 FROM stored
 		ON CONFLICT (account_id, domain) DO UPDATE SET message_count = senders.message_count + 1`,
 		account, m.id, thread, m.from, domain, m.subject, m.sent, orEmpty(m.labels), flags, m.attachments,
-		class, orEmpty(m.flags), scan)
+		orEmpty(m.flags), scan)
 	if m.attachments {
 		must(t, conn, `INSERT INTO attachment_media (account_id, message_id, media_type, extension) VALUES ($1, $2, 'application/pdf', 'pdf')`,
 			account, m.id)
@@ -183,7 +180,7 @@ func TestEveryMessageStaysInEveryIndexRead(t *testing.T) {
 	restrict(t, conn, account, "bank.example")
 	bank, news, shop := marker.Field("alerts")+"@bank.example", marker.Field("news")+"@news.example", marker.Field("orders")+"@shop.example"
 	corpus := []indexed{
-		{id: "m-restricted", from: bank, subject: marker.Field("overdraft"), sent: "2025-03-10T09:00:00Z", labels: []string{"Finance"}, attachments: true, scan: "skipped_restricted", storedClass: "restricted"},
+		{id: "m-restricted", from: bank, subject: marker.Field("overdraft"), sent: "2025-03-10T09:00:00Z", labels: []string{"Finance"}, attachments: true, scan: "skipped_restricted"},
 		{id: "m-flagged", from: news, subject: marker.Field("signin"), sent: "2025-03-11T09:00:00Z", labels: []string{"INBOX"}, read: true, flags: []string{"login_link"}},
 		{id: "m-pending", from: news, subject: marker.Field("weekly"), sent: "2025-04-01T09:00:00Z", scan: "pending"},
 		{id: "m-open", from: shop, subject: marker.Field("receipt"), sent: "2025-04-02T09:00:00Z", labels: []string{"INBOX"}, read: true, starred: true},
@@ -303,28 +300,28 @@ func senderPage(t *testing.T, reg service.Registry, args string) ([]senderRow, *
 }
 
 // The sender class a query term, a grouping and the sender listing use is the Redaction Gate's under
-// the policy in force, never the class the index stored (ADR-0002). A domain the policy lists after its
-// messages and its statistics were stored as normal reads as restricted, and a domain stored as
-// restricted that the policy does not list reads as normal. A grouping by class keeps to the class the
-// query selects, and statistics left with no message in the index are classified by their domain. The
-// sender listing serves the statistics and nothing of the stored class or the prior scan hits.
+// the policy in force, never a class from when a message was stored, which the index does not keep
+// (ADR-0002, ADR-0136). A domain the policy lists after its messages and its statistics were stored
+// reads as restricted, and a domain whose message the gate skipped as restricted that the policy does
+// not list reads as normal. A grouping by class keeps to the class the query selects, and statistics
+// left with no message in the index are classified by their domain. The sender listing serves the
+// statistics and nothing of the prior scan hits.
 func TestTheIndexReadsClassifySendersUnderThePolicyInForce(t *testing.T) {
 	conn := superuser(t)
 	account := newAccount(t, conn)
 	listed, unlisted := "alerts@bank.example", "legacy@old.example"
 	put(t, conn, account, indexed{id: "m-1", from: listed, subject: "s", sent: "2025-03-10T09:00:00Z", labels: []string{"Finance"}})
 	put(t, conn, account, indexed{id: "m-2", from: "Statements@Bank.example", subject: "s", sent: "2025-03-11T09:00:00Z", labels: []string{"Finance", "INBOX"}, read: true})
-	put(t, conn, account, indexed{id: "m-3", from: unlisted, subject: "s", sent: "2025-03-12T09:00:00Z", storedClass: "restricted", scan: "skipped_restricted"})
+	put(t, conn, account, indexed{id: "m-3", from: unlisted, subject: "s", sent: "2025-03-12T09:00:00Z", scan: "skipped_restricted"})
 	must(t, conn, `INSERT INTO senders (account_id, domain, local_part_sample, display_names, message_count, first_seen, last_seen,
-		has_list_id_ratio, label_distribution, scan_hit_count, sender_class) VALUES
-		($1, 'bank.example', '{alerts,statements}', '{Bank}', 2, '2025-03-10T11:00:00+02:00', '2025-03-11T09:00:00Z', 0.5, '{"Finance": 2, "INBOX": 1}', 7, 'normal'),
-		($1, 'old.example', '{legacy}', '{}', 1, '2025-03-12T09:00:00Z', '2025-03-12T09:00:00Z', NULL, '{}', 0, 'restricted'),
-		($1, 'archive.bank.example', '{}', '{}', 1, '2024-01-01T00:00:00Z', '2024-01-01T00:00:00Z', NULL, '{}', 0, 'normal')
+		has_list_id_ratio, label_distribution, scan_hit_count) VALUES
+		($1, 'bank.example', '{alerts,statements}', '{Bank}', 2, '2025-03-10T11:00:00+02:00', '2025-03-11T09:00:00Z', 0.5, '{"Finance": 2, "INBOX": 1}', 7),
+		($1, 'old.example', '{legacy}', '{}', 1, '2025-03-12T09:00:00Z', '2025-03-12T09:00:00Z', NULL, '{}', 0),
+		($1, 'archive.bank.example', '{}', '{}', 1, '2024-01-01T00:00:00Z', '2024-01-01T00:00:00Z', NULL, '{}', 0)
 		ON CONFLICT (account_id, domain) DO UPDATE SET local_part_sample = excluded.local_part_sample,
 		display_names = excluded.display_names, message_count = excluded.message_count, first_seen = excluded.first_seen,
 		last_seen = excluded.last_seen, has_list_id_ratio = excluded.has_list_id_ratio,
-		label_distribution = excluded.label_distribution, scan_hit_count = excluded.scan_hit_count,
-		sender_class = excluded.sender_class`, account)
+		label_distribution = excluded.label_distribution, scan_hit_count = excluded.scan_hit_count`, account)
 	restrict(t, conn, account, "bank.example")
 	reg := reads(t, account)
 

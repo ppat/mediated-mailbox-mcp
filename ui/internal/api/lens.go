@@ -196,7 +196,7 @@ func (s *Server) lens(w http.ResponseWriter, r *http.Request) {
 	}
 	started := time.Now()
 	var body any
-	err = tx.Run(r.Context(), s.opts.Database, account, func(t pgx.Tx) error {
+	err = tx.Run(r.Context(), s.snapshot(), account, func(t pgx.Tx) error {
 		// as_of is the time the read transaction began, and the range is read against it.
 		now := s.opts.Clock()
 		read := registry.Read{Account: account, Request: req, Bounds: bounds(req.Range, now), AsOf: now}
@@ -327,7 +327,7 @@ func (s *Server) rowDetail(dataset registry.Dataset) func(http.ResponseWriter, *
 		}
 		started := time.Now()
 		var body any
-		err = tx.Run(r.Context(), s.opts.Database, account, func(t pgx.Tx) error {
+		err = tx.Run(r.Context(), s.snapshot(), account, func(t pgx.Tx) error {
 			var err error
 			q := registry.Queries{
 				Plans: reorgplans.New(t), Candidates: policycandidates.New(t),

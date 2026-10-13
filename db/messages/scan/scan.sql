@@ -70,45 +70,25 @@ SET scan_state = @scan_state
 WHERE account_id = current_setting('app.account') AND message_id = @message_id AND scan_state = 'pending';
 
 -- name: RestrictedDomains :many
--- The sender domains of the account whose messages the index stores as restricted or holds skipped as
--- restricted, each once, which the delisting transition compares with the policy in force (ADR-0037).
--- A rule added after a message was stored can leave its stored class normal while the gate skips it as
--- restricted, until the comparison for an added rule restricts the stored class (ADR-0113), so the
--- skip state is read as well.
+-- The sender domains of the account's messages the scan gate skipped as restricted, each once, which
+-- the delisting transition compares with the policy in force (ADR-0037). The index stores no sender
+-- class (ADR-0136), and a message skipped as restricted is the one whose scan waits on its sender's
+-- class. The partial index over the domains of those messages serves it.
 SELECT DISTINCT m.from_domain
 FROM messages AS m
-WHERE
-    m.account_id = current_setting('app.account')
-    AND (m.sender_class = 'restricted' OR m.scan_state = 'skipped_restricted')
+WHERE m.account_id = current_setting('app.account') AND m.scan_state = 'skipped_restricted'
 ORDER BY m.from_domain;
 
 -- name: MarkDelisted :execrows
--- The delisting transition for one domain the policy in force no longer restricts. Its messages stored
--- restricted or skipped as restricted return to a normal sender class with no rule naming it, and to
--- pending scan (ADR-0037, ADR-0016).
+-- The delisting transition for one domain the policy in force no longer restricts. Its messages
+-- skipped as restricted return to pending scan (ADR-0037). A skipped message holds no verdict, so the
+-- check that only a scanned message carries content flags holds (ADR-0016).
 UPDATE messages
-SET sender_class = 'normal', class_rule_id = NULL, scan_state = 'pending'
+SET scan_state = 'pending'
 WHERE
     account_id = current_setting('app.account')
     AND from_domain = @domain
-    AND (sender_class = 'restricted' OR scan_state = 'skipped_restricted');
-
--- name: NormalDomains :many
--- The sender domains of the account whose messages the index stores as normal, each once, which every
--- scanning workload compares with the policy in force, so a rule added since restricts the stored
--- classes (ADR-0113).
-SELECT DISTINCT m.from_domain
-FROM messages AS m
-WHERE m.account_id = current_setting('app.account') AND m.sender_class = 'normal'
-ORDER BY m.from_domain;
-
--- name: MarkListed :execrows
--- Restricts the stored class of one domain the policy in force now restricts under a rule. Its
--- messages stored as normal take the restricted class and the rule that sets it, and their scan state
--- is left as it is (ADR-0113, ADR-0016).
-UPDATE messages
-SET sender_class = 'restricted', class_rule_id = @class_rule_id
-WHERE account_id = current_setting('app.account') AND from_domain = @domain AND sender_class = 'normal';
+    AND scan_state = 'skipped_restricted';
 
 -- name: Backlog :one
 -- How many of the account's messages wait for their content scan, the scan backlog depth a scanning

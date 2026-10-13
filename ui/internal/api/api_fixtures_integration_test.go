@@ -271,8 +271,8 @@ func advance(t *testing.T) {
 			[]any{personal, at(90 * time.Second), at(time.Minute), at(30 * time.Second)},
 		},
 		{
-			`INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, from_name, subject, sent_at, labels, has_attachments, sender_class, content_flags, scan_state) VALUES
-			($1, 'm-later', 't-later', 'later@newsletter.example', 'newsletter.example', 'Later', 'Later', $2, '{INBOX}', false, 'normal', '{}', 'scanned')`,
+			`INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, from_name, subject, sent_at, labels, has_attachments, content_flags, scan_state) VALUES
+			($1, 'm-later', 't-later', 'later@newsletter.example', 'newsletter.example', 'Later', 'Later', $2, '{INBOX}', false, '{}', 'scanned')`,
 			[]any{personal, at(time.Hour)},
 		},
 	} {

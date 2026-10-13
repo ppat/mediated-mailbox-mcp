@@ -156,11 +156,11 @@ func seedExercise(t *testing.T, conn *pgx.Conn, account string, p classify.Polic
 		f := m.fixture
 		sent := now.AddDate(0, 0, -m.daysAgo)
 		domain := strings.ToLower(f.FromAddress[strings.LastIndexByte(f.FromAddress, '@')+1:])
-		class, scanState := "normal", "scanned"
+		scanState := "scanned"
 		flags := sensitivity.Flags(false, false)
 		var rules []string
 		if classify.Classify(p, f.FromAddress).Class().Restricted() {
-			class, scanState = "restricted", "skipped_restricted"
+			scanState = "skipped_restricted"
 		} else {
 			v := s.Scan(f.Body)
 			flags, rules = v.Flags(), v.Rules()
@@ -181,11 +181,11 @@ func seedExercise(t *testing.T, conn *pgx.Conn, account string, p classify.Polic
 			listID = &f.ListID
 		}
 		must(t, conn, `INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, from_name, subject, subject_masked,
-			sent_at, labels, flags, has_attachments, list_id, sender_class, content_flags, rule_ids, scan_state)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)`,
+			sent_at, labels, flags, has_attachments, list_id, content_flags, rule_ids, scan_state)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
 			account, m.id, m.thread, f.FromAddress, domain, f.FromName, masked.Subject(), len(masked.Events()) > 0, sent,
 			orEmpty(m.labels), fmt.Sprintf(`{"read": %v, "starred": %v}`, m.flags.Read, m.flags.Starred), len(f.Attachments) > 0,
-			listID, class, orEmpty(contentFlags), orEmpty(rules), scanState)
+			listID, orEmpty(contentFlags), orEmpty(rules), scanState)
 		// Each attachment's media, as the index stores them once per pair (ADR-0123).
 		for _, a := range f.Attachments {
 			must(t, conn, `INSERT INTO attachment_media (account_id, message_id, media_type, extension) VALUES ($1, $2, $3, $4)
@@ -206,14 +206,13 @@ func seedExercise(t *testing.T, conn *pgx.Conn, account string, p classify.Polic
 	}
 	// Each sender's statistics, as backfill's first pass builds them from the stored messages.
 	must(t, conn, `INSERT INTO senders (account_id, domain, local_part_sample, display_names, message_count, first_seen, last_seen,
-		has_list_id_ratio, label_distribution, sender_class)
+		has_list_id_ratio, label_distribution)
 		SELECT m.account_id, m.from_domain, array_agg(DISTINCT split_part(m.from_email::text, '@', 1)),
 			coalesce(array_agg(DISTINCT m.from_name) FILTER (WHERE m.from_name <> ''), '{}'), count(*), min(m.sent_at), max(m.sent_at),
 			avg((m.list_id IS NOT NULL)::integer)::real,
 			(SELECT coalesce(jsonb_object_agg(l.label, l.n), '{}') FROM (SELECT x.label, count(*) AS n FROM messages AS o
 				CROSS JOIN LATERAL unnest(o.labels) AS x (label) WHERE o.account_id = m.account_id AND o.from_domain = m.from_domain
-				GROUP BY x.label) AS l),
-			CASE WHEN bool_or(m.sender_class = 'restricted') THEN 'restricted' ELSE 'normal' END
+				GROUP BY x.label) AS l)
 		FROM messages AS m WHERE m.account_id = $1 GROUP BY m.account_id, m.from_domain`, account)
 	f, err := fake.New(fake.Config{Account: account}, held...)
 	if err != nil {

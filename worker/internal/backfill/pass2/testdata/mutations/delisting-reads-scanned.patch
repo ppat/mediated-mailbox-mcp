@@ -1,0 +1,29 @@
+control: A removed rule returns its sender's messages to pending scan, and the pass starts over
+removes: the transition reads and returns scanned messages as well as those skipped as restricted, so a verdict made before a rule restricted its sender is undone when the rule is lifted
+packages: ./worker/internal/backfill/pass2 ./worker/internal/deltasync/tick
+tests: TestTheTransitionLeavesACleanScannedVerdict TestARuleAddedAndLiftedLeavesATicksVerdict/clean
+scheduled-count: no
+integration: yes
+
+diff --git a/db/messages/scan/scan.sql.go b/db/messages/scan/scan.sql.go
+index 3b72c543..bee305e4 100644
+--- a/db/messages/scan/scan.sql.go
++++ b/db/messages/scan/scan.sql.go
+@@ -95,7 +95,7 @@ SET scan_state = 'pending'
+ WHERE
+     account_id = current_setting('app.account')
+     AND from_domain = $1
+-    AND scan_state = 'skipped_restricted'
++    AND scan_state IN ('skipped_restricted', 'scanned')
+ `
+ 
+ // The delisting transition for one domain the policy in force no longer restricts. Its messages
+@@ -402,7 +402,7 @@ func (q *Queries) RequeueStaleVerdicts(ctx context.Context, arg RequeueStaleVerd
+ const restrictedDomains = `-- name: RestrictedDomains :many
+ SELECT DISTINCT m.from_domain
+ FROM messages AS m
+-WHERE m.account_id = current_setting('app.account') AND m.scan_state = 'skipped_restricted'
++WHERE m.account_id = current_setting('app.account') AND m.scan_state IN ('skipped_restricted', 'scanned')
+ ORDER BY m.from_domain
+ `
+ 

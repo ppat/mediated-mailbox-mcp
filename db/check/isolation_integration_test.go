@@ -41,7 +41,7 @@ var accountTables = map[string]accountTable{
 	"rate_grants":         {"INSERT INTO rate_grants (account_id, class, tokens, issued_at) VALUES ($1, 'batch', length($2::text), now())", accountB},
 	"rate_state":          {"INSERT INTO rate_state (account_id, current_rate, target_rate, hard_cap, classes) VALUES ($1, 1, 1, 1, jsonb_build_object('key', $2::text))", accountC},
 	"senders":             {"INSERT INTO senders (account_id, domain) VALUES ($1, $2)", accountB},
-	"messages":            {"INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, sent_at, has_attachments, sender_class) VALUES ($1, $2, 't', 'a@example.com', 'example.com', now(), false, 'normal')", accountB},
+	"messages":            {"INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, sent_at, has_attachments) VALUES ($1, $2, 't', 'a@example.com', 'example.com', now(), false)", accountB},
 	"attachment_media":    {"INSERT INTO attachment_media (account_id, message_id, media_type, extension) VALUES ($1, 'm-media', '', $2)", accountB},
 	"scan_gate_decisions": {"INSERT INTO scan_gate_decisions (account_id, message_id, decision, reason) VALUES ($1, 'm-' || $2, 'SCAN', 'restricted')", accountB},
 	"policy_candidates":   {"INSERT INTO policy_candidates (account_id, domain, signals, score) VALUES ($1, $2, '[]', 0.5)", accountB},
@@ -95,8 +95,8 @@ func TestTheTransactionsAccountScopesEveryAccountTable(t *testing.T) {
 		"CREATE ROLE " + isolationRole + " NOLOGIN",
 		// The parents the foreign keys require, a message of each account for its attachment media and
 		// gate decision, and a run of each for its events and failures.
-		"INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, sent_at, has_attachments, sender_class) " +
-			"SELECT a, m, 't', 'a@example.com', 'example.com', now(), true, 'normal' FROM (VALUES ('" + accountA + "', 'm-media'), ('" + accountB + "', 'm-media'), ('" +
+		"INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, sent_at, has_attachments) " +
+			"SELECT a, m, 't', 'a@example.com', 'example.com', now(), true FROM (VALUES ('" + accountA + "', 'm-media'), ('" + accountB + "', 'm-media'), ('" +
 			accountA + "', 'm-new'), ('" + accountB + "', 'm-seed'), ('" + accountB + "', 'm-new')) AS v (a, m)",
 		"INSERT INTO job_runs (account_id, run_id, workload, pass, state, started_at) " +
 			"SELECT a, 'run-' || a, 'sync', 'tick', 'running', now() FROM (VALUES ('" + accountA + "'), ('" + accountB + "')) AS v (a)",

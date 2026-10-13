@@ -1,7 +1,7 @@
 control: A policy edit reaches a running second pass within one reload and one page
-removes: a page never makes the comparisons again, so an edit reaches the stored classes only at the next run
+removes: a page never makes the delisting comparison again, so a lift reaches the messages skipped as restricted only at the next run
 packages: ./worker/internal/backfill/pass2
-tests: TestAPolicyEditReachesARunningSecondPassWithinAPage TestARuleRemovedDuringARunningSecondPassReachesItWithinAPage
+tests: TestARuleRemovedDuringARunningSecondPassReachesItWithinAPage
 scheduled-count: no
 integration: yes
 

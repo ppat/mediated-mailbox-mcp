@@ -178,7 +178,7 @@ func newHarness(t *testing.T) *harness {
 	for i, m := range corpus() {
 		domain := m.from[strings.IndexByte(m.from, '@')+1:]
 		must(t, conn, `INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, sent_at, has_attachments,
-			sender_class, scan_state, content_flags, rule_ids) VALUES ($1, $2, $2, $3, $4, now(), $5, 'normal', $6, $7, $8)`,
+			scan_state, content_flags, rule_ids) VALUES ($1, $2, $2, $3, $4, now(), $5, $6, $7, $8)`,
 			h.account, m.id, m.from, domain, len(m.names) > 0, m.scan, orEmpty(m.flags), orEmpty(m.rules))
 		if m.absent {
 			continue
@@ -420,14 +420,13 @@ func counter(t *testing.T, metrics prometheus.Gatherer, name string, labels map[
 // a restricted sender, and no snippet, filename or body text of the message reaches the response or
 // the audit row (ADR-0001). Every denial writes one DENY_BODY row with every column its decision rests
 // on, one case for each reason the gate gives and for each way a restricted sender's row differs, and
-// is counted as a gate denial (ADR-0016, ADR-0036). A flag stored on a message not yet scanned is an
-// invalid stored state, and its row keeps the flag and the rules behind it, the only evidence of why.
-// A sender the classifier cannot read is restricted with no rule behind it, and a restricted sender's
+// is counted as a gate denial (ADR-0016, ADR-0036). A flag on a message not yet scanned, an invalid
+// stored state, cannot be stored, since the schema's check refuses it (ADR-0016), so its reason is
+// core/redact's tests'. A sender the classifier cannot read is restricted with no rule behind it, and a restricted sender's
 // stored flag keeps its content rules apart from the policy rule.
 func TestTheGateDeniesFromTheIndexWithoutReachingTheProvider(t *testing.T) {
 	h := newHarness(t)
 	for _, m := range []struct{ id, from, domain, scan, flag, rule string }{
-		{"m-invalid", "news@newsletter.example", "newsletter.example", "pending", "login_link", "link.query_token"},
 		{"m-unreadable", "someone@com", "com", "scanned", "", ""},
 		{"m-bankcode", "codes@bank.example", "bank.example", "scanned", "mfa_code", "mfa.trigger_window"},
 	} {
@@ -436,7 +435,7 @@ func TestTheGateDeniesFromTheIndexWithoutReachingTheProvider(t *testing.T) {
 			flags, rules = []string{m.flag}, []string{m.rule}
 		}
 		must(t, h.conn, `INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, sent_at, has_attachments,
-			sender_class, scan_state, content_flags, rule_ids) VALUES ($1, $2, $2, $3, $4, now(), false, 'normal', $5, $6, $7)`,
+			scan_state, content_flags, rule_ids) VALUES ($1, $2, $2, $3, $4, now(), false, $5, $6, $7)`,
 			h.account, m.id, m.from, m.domain, m.scan, flags, rules)
 	}
 	cases := []struct {
@@ -447,7 +446,6 @@ func TestTheGateDeniesFromTheIndexWithoutReachingTheProvider(t *testing.T) {
 		{"m-pending", "pending_scan", decided("DENY_BODY", "m-pending", "gate", "pending_scan", "normal", "pending")},
 		{"m-flagged", "content_flagged", decided("DENY_BODY", "m-flagged", "gate", "content_flagged", "normal", "scanned").flagged([]string{"login_link"}, []string{"link.query_token"})},
 		{"m-oldrestricted", "skipped_restricted", decided("DENY_BODY", "m-oldrestricted", "gate", "skipped_restricted", "normal", "skipped_restricted")},
-		{"m-invalid", "invalid_stored_state", decided("DENY_BODY", "m-invalid", "gate", "invalid_stored_state", "normal", "pending").flagged([]string{"login_link"}, []string{"link.query_token"})},
 		{"m-unreadable", "restricted_sender", decided("DENY_BODY", "m-unreadable", "gate", "restricted_sender", "restricted", "scanned")},
 		{"m-bankcode", "restricted_sender", decided("DENY_BODY", "m-bankcode", "gate", "restricted_sender", "restricted", "scanned").classRule("base.bank", "base").flagged([]string{"mfa_code"}, []string{"mfa.trigger_window"})},
 	}
@@ -659,7 +657,7 @@ func TestAServedBodyFetchesNoImage(t *testing.T) {
 		t.Fatal(err)
 	}
 	must(t, h.conn, `INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, sent_at, has_attachments,
-		sender_class, scan_state) VALUES ($1, 'm-pixel', 'm-pixel', 'a@newsletter.example', 'newsletter.example', now(), false, 'normal', 'scanned')`, h.account)
+		scan_state) VALUES ($1, 'm-pixel', 'm-pixel', 'a@newsletter.example', 'newsletter.example', now(), false, 'scanned')`, h.account)
 	got, out := h.request(t, "m-pixel")
 	if !got.Released || got.Body == nil || !strings.Contains(*got.Body, marker.Body("pixelbody")) {
 		t.Fatalf("the message was not released: %s", out)
@@ -685,7 +683,7 @@ func TestABodyTheConversionRefusesIsDenied(t *testing.T) {
 		t.Fatal(err)
 	}
 	must(t, h.conn, `INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, sent_at, has_attachments,
-		sender_class, scan_state) VALUES ($1, 'm-huge', 'm-huge', 'a@newsletter.example', 'newsletter.example', now(), false, 'normal', 'scanned')`, h.account)
+		scan_state) VALUES ($1, 'm-huge', 'm-huge', 'a@newsletter.example', 'newsletter.example', now(), false, 'scanned')`, h.account)
 	got, _ := h.request(t, "m-huge")
 	if got.Released || got.Reason != "conversion_refused" || got.Body != nil {
 		t.Errorf("a body the conversion refuses answered %+v", got)

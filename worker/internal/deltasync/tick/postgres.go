@@ -240,8 +240,6 @@ func insert(ctx context.Context, q *ingest.Queries, m index.Message) (bool, erro
 		ListID:                 text(m.ListID),
 		SizeBytes:              pgtype.Int4{Int32: int32(min(max(m.SizeBytes, 0), 1<<31-1)), Valid: true}, //nolint:gosec // Bounded above.
 		AuthResults:            auth,
-		SenderClass:            string(m.Class),
-		ClassRuleID:            text(m.ClassRule),
 		SubjectScannerVersion:  pgtype.Int4{Int32: version(m.Stamp.Version), Valid: true},
 		SubjectScannerRevision: pgtype.Text{String: m.Stamp.Revision, Valid: true},
 	})
@@ -331,16 +329,13 @@ func (s *Postgres) Delist(ctx context.Context, account, runID string, delisted f
 		q := scan.New(t)
 		restricted, err := q.RestrictedDomains(ctx)
 		if err != nil {
-			return fmt.Errorf("reading the domains stored as restricted or skipped as restricted: %w", err)
+			return fmt.Errorf("reading the domains of the messages skipped as restricted: %w", err)
 		}
 		domains := delisted(restricted)
 		for _, d := range domains {
 			n, err := q.MarkDelisted(ctx, d)
 			if err != nil {
 				return fmt.Errorf("returning the messages of %q to pending scan: %w", d, err)
-			}
-			if err := statistics.New(t).RebuildSender(ctx, d); err != nil {
-				return fmt.Errorf("rebuilding the statistics of the sender at %q: %w", d, err)
 			}
 			marked += int(n)
 		}
@@ -352,31 +347,6 @@ func (s *Postgres) Delist(ctx context.Context, account, runID string, delisted f
 			Detail: text(fmt.Sprintf("the delisting transition returned %d messages of %d senders the policy no longer restricts to pending scan, "+
 				"so the scanning starts from the first message waiting for a scan", marked, len(domains))),
 		})
-	})
-	return marked, err
-}
-
-// List implements Store.
-func (s *Postgres) List(ctx context.Context, account string, listed func([]string) []index.Listing) (int, error) {
-	marked := 0
-	err := tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
-		marked = 0
-		q := scan.New(t)
-		normal, err := q.NormalDomains(ctx)
-		if err != nil {
-			return fmt.Errorf("reading the domains stored as normal: %w", err)
-		}
-		for _, l := range listed(normal) {
-			n, err := q.MarkListed(ctx, scan.MarkListedParams{Domain: l.Domain, ClassRuleID: text(l.Rule)})
-			if err != nil {
-				return fmt.Errorf("restricting the stored class of %q: %w", l.Domain, err)
-			}
-			if err := statistics.New(t).RebuildSender(ctx, l.Domain); err != nil {
-				return fmt.Errorf("rebuilding the statistics of the sender at %q: %w", l.Domain, err)
-			}
-			marked += int(n)
-		}
-		return nil
 	})
 	return marked, err
 }

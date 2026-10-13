@@ -23,12 +23,12 @@
     {
       "domain": "newsletter.example",
       "messages": 3,
-      "sender_class": "normal"
+      "sender_class": "restricted"
     },
     {
       "domain": "mail.newsletter.example",
       "messages": 1,
-      "sender_class": "normal"
+      "sender_class": "restricted"
     }
   ],
   "matched_total": 2,
@@ -37,7 +37,6 @@
     "messages": 4,
     "senders": 2
   },
-  "restricted": 0,
   "rule_id": "operator.newsletter.example",
   "scope": "account",
   "senders": 2,

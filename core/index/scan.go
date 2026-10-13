@@ -11,35 +11,15 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/core/sensitivity"
 )
 
-// Delisted returns the domains among restricted, the sender domains of the messages stored as
-// restricted or skipped as restricted, that the account policy p no longer restricts, in the order
-// given (ADR-0037). A domain the classifier cannot read stays restricted, and a policy that never
-// loaded restricts every domain, so neither delists anything.
+// Delisted returns the domains among restricted, the sender domains of the messages skipped as
+// restricted, that the account policy p no longer restricts, in the order given (ADR-0037). A domain
+// the classifier cannot read stays restricted, and a policy that never loaded restricts every domain,
+// so neither delists anything.
 func Delisted(p classify.Policy, restricted []string) []string {
 	var out []string
 	for _, d := range restricted {
 		if !classify.Classify(p, "@"+d).Class().Restricted() {
 			out = append(out, d)
-		}
-	}
-	return out
-}
-
-// Listing is one domain the index stores as normal that the policy now restricts, with the rule that
-// restricts it.
-type Listing struct {
-	Domain, Rule string
-}
-
-// Listed returns the domains among normal, the sender domains of the messages stored as normal, that
-// the account policy p now restricts under a rule, each with that rule, in the order given (ADR-0113).
-// A domain the classifier cannot read, and every domain while no policy has loaded, are restricted
-// with no rule, so neither is listed.
-func Listed(p classify.Policy, normal []string) []Listing {
-	var out []Listing
-	for _, d := range normal {
-		if v := classify.Classify(p, "@"+d); v.Reason() == classify.Listed {
-			out = append(out, Listing{Domain: d, Rule: v.Rule()})
 		}
 	}
 	return out

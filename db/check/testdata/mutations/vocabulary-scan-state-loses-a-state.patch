@@ -6,11 +6,11 @@ scheduled-count: no
 integration: yes
 
 diff --git a/db/migrations/00002_schema.sql b/db/migrations/00002_schema.sql
-index f40c7fd3..090af1ad 100644
+index 22b7ca01..ee6544fb 100644
 --- a/db/migrations/00002_schema.sql
 +++ b/db/migrations/00002_schema.sql
-@@ -173,7 +173,7 @@ CREATE TABLE messages (
-     class_rule_id text,
+@@ -169,7 +169,7 @@ CREATE TABLE messages (
+     rule_ids text[] NOT NULL DEFAULT '{}',
      -- ADR-0093's states.
      scan_state text NOT NULL DEFAULT 'pending'
 -    CHECK (scan_state IN ('scanned', 'skipped_restricted', 'skipped_gate', 'pending')),

@@ -32,7 +32,7 @@ index a582345e..085c6df4 100644
 +		if first != "" {
 +			err = tx.Run(r.Context(), s.opts.Database, first, func(u pgx.Tx) error {
 +				var err error
-+				stored, err = registry.ComposedRules(r.Context(), manage.New(u), first)
++				stored, err = registry.ComposedRules(r.Context(), manage.New(u))
 +				return err
 +			})
 +			if err != nil {

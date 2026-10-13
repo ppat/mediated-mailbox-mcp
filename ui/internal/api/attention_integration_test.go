@@ -210,9 +210,9 @@ func TestTheSyncGapRuleShowsTheRecovery(t *testing.T) {
 // and never counts the other account's events.
 func TestTheMaskingRuleCountsEachSenderAndRule(t *testing.T) {
 	statements := []string{
-		`INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, sent_at, has_attachments, sender_class, scan_state) VALUES
-		($1, 'm-shop1', 't-shop', 'a@Shop.Example', 'shop.example', $2, false, 'normal', 'scanned'),
-		($1, 'm-shop2', 't-shop', 'b@shop.example', 'shop.example', $2, false, 'normal', 'scanned')`,
+		`INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, sent_at, has_attachments, scan_state) VALUES
+		($1, 'm-shop1', 't-shop', 'a@Shop.Example', 'shop.example', $2, false, 'scanned'),
+		($1, 'm-shop2', 't-shop', 'b@shop.example', 'shop.example', $2, false, 'scanned')`,
 		// Twenty events on the shop under one rule, eleven and nine across its two messages, is at the count.
 		`INSERT INTO masking_events (account_id, message_id, field, rule_id, tier, masked_at)
 		SELECT $1, CASE WHEN n < 11 THEN 'm-shop1' ELSE 'm-shop2' END, 'subject', 'content.link', 1, $2::timestamptz - make_interval(hours => n + 1)
@@ -222,8 +222,8 @@ func TestTheMaskingRuleCountsEachSenderAndRule(t *testing.T) {
 		SELECT $1, 'm-removed', 'subject', 'content.link', 1, $2::timestamptz - interval '1 hour' FROM generate_series(1, 30)`,
 		// A message of the shop whose subject a change of scanner masked again under the pair (2, r2), with
 		// five events of the masking that replaced, under (1, r1), which count toward nothing (ADR-0120).
-		`INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, sent_at, has_attachments, sender_class, scan_state, subject_scanner_version, subject_scanner_revision) VALUES
-		($1, 'm-shop3', 't-shop', 'c@shop.example', 'shop.example', $2, false, 'normal', 'scanned', 2, 'r2')`,
+		`INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, sent_at, has_attachments, scan_state, subject_scanner_version, subject_scanner_revision) VALUES
+		($1, 'm-shop3', 't-shop', 'c@shop.example', 'shop.example', $2, false, 'scanned', 2, 'r2')`,
 		`INSERT INTO masking_events (account_id, message_id, field, rule_id, tier, masked_at, scanner_version, scanner_revision)
 		SELECT $1, 'm-shop3', 'subject', 'content.link', 1, $2::timestamptz - interval '2 hours', 1, 'r1' FROM generate_series(1, 5)`,
 		// Events older than seven days count toward nothing.
@@ -293,8 +293,8 @@ func TestCardsComeNewestFirst(t *testing.T) {
 // the 25 masks it replaced, so no subject counts twice (docs/UI.md section 8.1, ADR-0120).
 func TestARescanCountsOnlyTheCurrentMasks(t *testing.T) {
 	got := only(cardsUnder(t, starting(),
-		`INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, sent_at, has_attachments, sender_class, scan_state, subject_scanner_version, subject_scanner_revision)
-		SELECT $1, 'm-archive-' || n, 't-archive', 'old@archive.example', 'archive.example', $2::timestamptz - interval '200 days', false, 'normal', 'scanned', 2, 'r2'
+		`INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, sent_at, has_attachments, scan_state, subject_scanner_version, subject_scanner_revision)
+		SELECT $1, 'm-archive-' || n, 't-archive', 'old@archive.example', 'archive.example', $2::timestamptz - interval '200 days', false, 'scanned', 2, 'r2'
 		FROM generate_series(1, 25) AS n`,
 		`INSERT INTO masking_events (account_id, message_id, field, rule_id, tier, masked_at, scanner_version, scanner_revision)
 		SELECT $1, 'm-archive-' || n, 'subject', 'content.link', 1, $2::timestamptz - interval '3 days', 1, 'r1' FROM generate_series(1, 25) AS n`,

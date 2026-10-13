@@ -41,10 +41,10 @@ func (r *rig) seedPolicyScreens() {
 		(NULL, $4, 'operator', 'lifted', 'base.old', '{old.example}', '{}')`,
 		personal, now.Add(-48*time.Hour), now.Add(-24*time.Hour), now.Add(-12*time.Hour))
 	r.exec(`DELETE FROM senders WHERE account_id = $1 AND domain NOT IN ('bank.example', 'lender.example')`, personal)
-	r.exec(`INSERT INTO senders (account_id, domain, message_count, first_seen, last_seen, sender_class) VALUES
-		($1, 'newsletter.example', 3, $2, $3, 'normal'),
-		($1, 'mail.newsletter.example', 1, $2, $3, 'normal'),
-		($1, $4, 2, $2, $3, 'normal')`,
+	r.exec(`INSERT INTO senders (account_id, domain, message_count, first_seen, last_seen) VALUES
+		($1, 'newsletter.example', 3, $2, $3),
+		($1, 'mail.newsletter.example', 1, $2, $3),
+		($1, $4, 2, $2, $3)`,
 		personal, now.Add(-60*24*time.Hour), now.Add(-30*time.Hour), marker.MarkupField("senderdomain"))
 }
 

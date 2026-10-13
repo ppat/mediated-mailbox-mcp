@@ -15,7 +15,6 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/db/jobruns"
 	maskingsenders "github.com/ppat/mediated-mailbox-mcp/db/maskingevents/senders"
 	"github.com/ppat/mediated-mailbox-mcp/db/messages"
-	messageclassification "github.com/ppat/mediated-mailbox-mcp/db/messages/classification"
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/attention"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/schema"
@@ -70,7 +69,7 @@ func (s *Server) getAttention(w http.ResponseWriter, r *http.Request) {
 		now := s.opts.Clock()
 		out.AsOf = registry.Stamp(now)
 		in, err := s.attentionInputs(r.Context(), attentionQueries{
-			messages: messages.New(t), classification: messageclassification.New(t), masking: maskingsenders.New(t),
+			messages: messages.New(t), masking: maskingsenders.New(t),
 			audit: auditlog.New(t), runs: jobruns.New(t),
 		}, now)
 		if err != nil {
@@ -96,11 +95,10 @@ func (s *Server) getAttention(w http.ResponseWriter, r *http.Request) {
 // attentionQueries are the statements the attention endpoint runs, built inside the literal passed the
 // transaction helper (ADR-0047).
 type attentionQueries struct {
-	messages       *messages.Queries
-	classification *messageclassification.Queries
-	masking        *maskingsenders.Queries
-	audit          *auditlog.Queries
-	runs           *jobruns.Queries
+	messages *messages.Queries
+	masking  *maskingsenders.Queries
+	audit    *auditlog.Queries
+	runs     *jobruns.Queries
 }
 
 // attentionInputs reads the recorded state each enabled rule decides on.
@@ -113,7 +111,7 @@ func (s *Server) attentionInputs(ctx context.Context, q attentionQueries, now ti
 		if err != nil {
 			return in, err
 		}
-		corpus, err := q.classification.CorpusFigures(ctx)
+		corpus, err := q.messages.CorpusFigures(ctx)
 		if err != nil {
 			return in, err
 		}

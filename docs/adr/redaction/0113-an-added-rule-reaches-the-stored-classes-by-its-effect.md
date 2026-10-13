@@ -1,6 +1,7 @@
 # 0113. An added rule reaches the stored sender classes by its effect, through the comparison every scanning workload already makes
 
-**Status:** Accepted ·
+**Status:** Superseded — **Superseded by:**
+[ADR-0136](./0136-the-index-stores-no-sender-class-and-every-reader-classifies-when-it-reads.md) ·
 **Pillar:** [Fail closed, everywhere](../../../DESIGN.md#fail-closed-everywhere) ·
 **Serves:** [C4](../../../USE_CASES.md#c4--the-sensitive-sender-list-keeps-pace), [O4](../../../USE_CASES.md#o4--the-operator-can-see-and-steer)
 

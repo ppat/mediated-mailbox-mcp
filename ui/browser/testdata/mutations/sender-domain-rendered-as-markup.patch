@@ -1,7 +1,7 @@
 control: Message-derived text renders inert
 removes: the sender row hands its domain to the raw-markup escape hatch
 packages: ./ui/browser/test/policy.test.tsx
-tests: a sender domain carrying markup arrives as text in the picker's row, its box's label and its Restrict control | markup in a sender's domain arrives as text in the sender row
+tests: a sender domain carrying markup arrives as text in the picker's row and its box's label | markup in a sender's domain arrives as text in the sender row
 scheduled-count: no
 runner: bun
 diff --git a/ui/browser/src/row/sender.tsx b/ui/browser/src/row/sender.tsx

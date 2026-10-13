@@ -475,8 +475,8 @@ test("a failure's panel shows its message's rule ids, scan time and scanner vers
     dt.textContent,
     dt.nextElementSibling?.textContent,
   ]);
-  // No rule set the newsletter's normal class, and both content rules the scan recorded are listed.
-  expect(pairs).toContainEqual(["rule that set the class", "none"]);
+  // No rule restricts the newsletter's sender, and both content rules the scan recorded are listed.
+  expect(pairs).toContainEqual(["rule that restricts the sender", "none"]);
   expect(pairs).toContainEqual([
     "rule ids that fired",
     "content.mfa.subject_numeric_6, content.mfa.trigger_window",
@@ -491,7 +491,7 @@ test("a failure's panel shows its message's rule ids, scan time and scanner vers
   expect(document.querySelectorAll("script").length).toBe(0);
 });
 
-test("a failure's panel shows the rule that set its message's class apart from the rule ids that fired", async () => {
+test("a failure's panel shows the rule that restricts its message's sender apart from the rule ids that fired", async () => {
   await open(`/personal/jobs/r-0912/failures/1?${canonical}`, {
     ...r0912,
     [failurePath("personal", "r-0912", "1")]: ok("failure-1.json"),
@@ -503,12 +503,12 @@ test("a failure's panel shows the rule that set its message's class apart from t
   ]);
   // The bank's rule restricted the sender, and no content rule fired on a message never scanned.
   expect(pairs).toContainEqual(["sender class", "restricted"]);
-  expect(pairs).toContainEqual(["rule that set the class", "rule.bank"]);
+  expect(pairs).toContainEqual(["rule that restricts the sender", "rule.bank"]);
   expect(pairs).toContainEqual(["rule ids that fired", "none"]);
   // The rule links to the account's policy searched for its identifier, which lists that identifier's
   // rule in each scope that holds one, since the index records the identifier and not its scope.
   const rule = [...(provenance?.querySelectorAll("dt") ?? [])].find(
-    (dt) => dt.textContent === "rule that set the class",
+    (dt) => dt.textContent === "rule that restricts the sender",
   )?.nextElementSibling;
   expect(rule?.querySelector("a")?.getAttribute("href")).toBe("/personal/policy?search=rule.bank");
   // A restricted sender carries no Restrict control.
@@ -557,13 +557,13 @@ test("markup in every message-derived field of a failure's panel arrives as text
       "item",
       "subject",
       "sender",
-      "rule that set the class",
+      "rule that restricts the sender",
       "rule ids that fired",
       "error summary",
     ]) {
       const dd = values.find((v) => v.previousElementSibling?.textContent === label);
       expect(dd?.textContent).toContain(text);
-      // The rule that set the class links to the policy searched for it, and the link holds the text.
+      // The rule that restricts the sender links to the policy searched for it, and the link holds the text.
       expect(
         [...(dd?.querySelectorAll("*") ?? [])].every(
           (el) => el.tagName === "SPAN" || (el.tagName === "A" && el.childElementCount === 0),

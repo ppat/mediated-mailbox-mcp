@@ -1,5 +1,5 @@
 control: Message-derived text renders inert
-removes: the failure's panel hands the rule that set the message's class to the raw-markup escape hatch
+removes: the failure's panel hands the rule that restricts the message's sender to the raw-markup escape hatch
 packages: ./ui/browser/test/run.test.tsx
 tests: markup in every message-derived field of a failure's panel arrives as text
 scheduled-count: no

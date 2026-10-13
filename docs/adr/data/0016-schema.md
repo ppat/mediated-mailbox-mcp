@@ -103,7 +103,6 @@ CREATE TABLE senders (                    -- drives the scan gate and the heuris
   has_list_id_ratio real,                 -- newsletter vs transactional signal
   label_distribution jsonb,
   scan_hit_count    bigint NOT NULL DEFAULT 0,
-  sender_class      text NOT NULL DEFAULT 'normal' CHECK (sender_class IN ('normal', 'restricted')),
   PRIMARY KEY (account_id, domain)
 );
 
@@ -126,18 +125,16 @@ CREATE TABLE messages (
   list_id          text,
   size_bytes       int,
   auth_results     jsonb,
-  sender_class     text NOT NULL CHECK (sender_class IN ('normal', 'restricted')),
   content_flags    text[] NOT NULL DEFAULT '{}'
     CHECK (content_flags <@ '{mfa_code,login_link}'),
   rule_ids         text[] NOT NULL DEFAULT '{}',  -- the content rules that set content_flags
-  class_rule_id    text,                   -- the identifier of the policy rule that set sender_class, NULL when none
-                                           -- did; an identifier, which two scopes may hold (ADR-0110)
   scan_state       text NOT NULL DEFAULT 'pending'   -- ADR-0093's states
     CHECK (scan_state IN ('scanned', 'skipped_restricted', 'skipped_gate', 'pending')),
   scanned_at       timestamptz,
   scanner_version  int,
   scanner_revision text,                   -- the scanner configuration's revision (ADR-0009)
-  PRIMARY KEY (account_id, message_id)
+  PRIMARY KEY (account_id, message_id),
+  CHECK (cardinality(content_flags) = 0 OR scan_state = 'scanned')  -- only a scan sets a flag
 );
 -- NOTE: no body, no snippet, no excerpt column. By design.
 -- A future migration proposing one is violating the design, not extending it.
@@ -146,6 +143,7 @@ CREATE INDEX ON messages (account_id, from_domain);
 CREATE INDEX ON messages (account_id, sent_at DESC);
 CREATE INDEX ON messages (account_id, sent_at) WHERE labels = '{}';
 CREATE INDEX ON messages (account_id) WHERE scan_state = 'pending';
+CREATE INDEX ON messages (account_id, from_domain) WHERE scan_state = 'skipped_restricted';
 -- no index over labels or subject: no read filters on either often enough to need one yet
 
 CREATE TABLE attachment_media (           -- the inputs of a message's attachment types (ADR-0123)
@@ -455,9 +453,9 @@ The shape enforces these properties.
     `NOT VALID` then `VALIDATE` so inserts keep flowing, and widening a set never fails validation.
   - *Asked for by a reader*: `job_runs`' job kind and pass as a closed set of pairs, and its state.
     A job kind arrives with a role and grants anyway, so extending the check rides that migration.
-  - *Cheap, next to safety*: the sender class, scan state and content flags of `messages`, the
-    sender class of `senders`, the gate's decision, the last authentication outcome, a rule's class
-    and source, a candidate's and a plan's status, a grant's class and a masking event's field.
+  - *Cheap, next to safety*: the scan state and content flags of `messages`, the gate's decision,
+    the last authentication outcome, a rule's class and source, a candidate's and a plan's status,
+    a grant's class and a masking event's field.
     Readers already fail closed on an unknown value, so the gain is a loud write failure in place of
     quiet over-redaction. The columns of `attachment_media` sit in this tier too, though theirs is
     a shape rather than a vocabulary. Each check holds its column to the normalized form
@@ -509,24 +507,22 @@ The shape enforces these properties.
 - **The UI's decisions are recorded in the columns its verbs set and the rule row its confirm
   verb inserts** ([ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)), so a
   decision is readable from `reorg_plans` and `policy_candidates` without an audit row.
-- **A message names the rule behind each sensitivity axis apart.** A message's `class_rule_id` is
-  the identifier of the policy rule that set its `sender_class`, which the base policy and the
-  account may both hold ([ADR-0004](../classification/0004-sender-list-decides.md),
-  [ADR-0110](../mutation/0110-a-policy-file-holds-one-scope-and-importing-it-replaces-that-scope.md)),
-  written when the message is stored.
-  It is NULL when no rule set the class, which is a sender no rule lists, a classification made
-  while no policy has loaded, and an address that cannot be classified. A message's `rule_ids` are
-  the content rules that set its `content_flags`, written by the scan
-  ([ADR-0009](../redaction/0009-scanner-verdicts-carry-no-content.md)). Whatever writes a message's
-  `sender_class` writes its `class_rule_id` with it, so the delisting transition clears the rule
-  with the class it resets ([ADR-0037](../redaction/0037-delisting-transition.md)). The sender
-  statistics' `sender_class` in `senders` carries no rule. Otherwise a message's `class_rule_id`
-  stays as written, like the class it explains, so a rule edited or replaced while its domain stays
-  restricted leaves the old identifier. A message stored before the migration that adds
-  `class_rule_id` holds NULL as well, and nothing fills it in.
+- **The index stores no sender class.** Neither a message nor its sender's statistics hold one,
+  and every reader classifies a sender under the policy in force when it reads
+  ([ADR-0136](../redaction/0136-the-index-stores-no-sender-class-and-every-reader-classifies-when-it-reads.md)).
+  A message's `rule_ids` are the content rules that set its `content_flags`, written by the scan
+  ([ADR-0009](../redaction/0009-scanner-verdicts-carry-no-content.md)).
+- **Only a scanned message carries content flags.** The check on `messages` refuses content flags
+  on a message whose scan state is not `scanned`, so a statement that returns a message to pending,
+  or skips it, without clearing its verdict fails instead of storing it. The Redaction Gate reads
+  flags on a message not scanned as an invalid stored state, which would deny its body under that
+  reason rather than as pending its scan
+  ([ADR-0120](../redaction/0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md)).
 - **Masked subjects are stored masked** — the index never holds a live code.
-- **The partial indexes target unfiled volume** (`labels = '{}'`) **and scan backlog** (`scan_state
-  = 'pending'`) directly. A partial index serves a statement that states its predicate exactly.
+- **The partial indexes target unfiled volume** (`labels = '{}'`), **scan backlog** (`scan_state
+  = 'pending'`) **and the domains of the messages skipped as restricted**, which the delisting
+  transition reads ([ADR-0037](../redaction/0037-delisting-transition.md)), directly. A partial
+  index serves a statement that states its predicate exactly.
 - **The run indexes serve the reads that repeat**, every tick's latest run, the jobs screen's
   latest run per job kind and pass, the event stream, the runs dataset, and the job mechanism's due
   decisions, and the audit index serves a message's audit rows. `job_runs.pass` is never null, so

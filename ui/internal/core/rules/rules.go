@@ -184,16 +184,24 @@ func minus(a, b []string) []string {
 	return out
 }
 
-// Sender is one of the account's senders as the index stores it.
-type Sender struct {
-	Domain string
-	// Restricted is the class the index stores for it, which "index updated" counts.
-	Restricted bool
-	Messages   int64
+// Stored is one of the account's senders as the index stores it, its domain and its message count.
+// The index stores no class (ADR-0136).
+type Stored struct {
+	Domain   string
+	Messages int64
 }
 
-// Senders are an account's senders with each domain in the form the classifier compares, built once
-// for every count a screen makes.
+// Sender is one of the account's senders with its class under the policy the request read.
+type Sender struct {
+	Domain   string
+	Messages int64
+	// Restricted is set when the composed policy restricts the sender, a rule matching its domain or
+	// the classifier unable to read the domain.
+	Restricted bool
+}
+
+// Senders are an account's senders with each domain in the form the classifier compares and its class
+// under the composed policy, built once for every count a screen makes.
 type Senders struct {
 	senders []Sender
 	names   []classify.Name
@@ -201,12 +209,15 @@ type Senders struct {
 	lookups classify.Lookups
 }
 
-// NewSenders returns senders with their names. A domain the classifier cannot classify matches no
-// rule, as Classify restricts it with no rule.
-func NewSenders(senders []Sender, l classify.Lookups) Senders {
-	s := Senders{senders: senders, names: make([]classify.Name, len(senders)), ok: make([]bool, len(senders)), lookups: l}
-	for i, x := range senders {
+// NewSenders returns stored with their names and each one's class under policy, the composed policy's
+// rules in the order the classifier meets them, read in the same transaction as stored. A domain the
+// classifier cannot classify matches no rule and is restricted, as Classify restricts it with no rule
+// (ADR-0004, ADR-0136).
+func NewSenders(stored []Stored, policy []Named, l classify.Lookups) Senders {
+	s := Senders{senders: make([]Sender, len(stored)), names: make([]classify.Name, len(stored)), ok: make([]bool, len(stored)), lookups: l}
+	for i, x := range stored {
 		s.names[i], s.ok[i] = classify.SenderName(x.Domain, l)
+		s.senders[i] = Sender{Domain: x.Domain, Messages: x.Messages, Restricted: !s.ok[i] || ruleOf(s.names[i], policy) != ""}
 	}
 	return s
 }
@@ -214,8 +225,6 @@ func NewSenders(senders []Sender, l classify.Lookups) Senders {
 // Count is what a set of rules or suffixes matches among the account's senders.
 type Count struct {
 	Senders, Messages int64
-	// Restricted counts the matched senders whose stored class reads restricted.
-	Restricted int64
 }
 
 // under reports whether sender i is under any of suffixes.
@@ -252,9 +261,34 @@ func (s Senders) Match(suffixes []string) Count {
 		if s.under(i, names) {
 			c.Senders++
 			c.Messages += x.Messages
-			if x.Restricted {
-				c.Restricted++
-			}
+		}
+	}
+	return c
+}
+
+// Normal returns the domains of the senders the composed policy does not restrict, in the order
+// given, never nil, which a statement counts every other domain against as restricted, so a domain
+// the read did not classify counts as restricted (ADR-0108, ADR-0136).
+func (s Senders) Normal() []string {
+	out := []string{}
+	for _, x := range s.senders {
+		if !x.Restricted {
+			out = append(out, x.Domain)
+		}
+	}
+	return out
+}
+
+// Restricted counts the senders the composed policy restricts and their messages, which Home's
+// restricted messages and the policy screen's senders restricted show (docs/UI.md sections 8.1 and
+// 8.7). The statistics hold each stored domain once with its exact count, so the sum is exact
+// (ADR-0109).
+func (s Senders) Restricted() Count {
+	var c Count
+	for _, x := range s.senders {
+		if x.Restricted {
+			c.Senders++
+			c.Messages += x.Messages
 		}
 	}
 	return c
@@ -303,13 +337,21 @@ func Names(rules []Rule, l classify.Lookups) []Named {
 	return out
 }
 
-// RestrictedBy returns the identifier of the first rule of rules that matches domain, in the order
-// the classifier meets them, the base rules then the account's own, or the empty string for none.
-func RestrictedBy(domain string, rules []Named, l classify.Lookups) string {
+// ClassOf returns whether the composed policy rules restricts the sender at domain, and the identifier
+// of the first rule that matches it in the order the classifier meets them, the base rules then the
+// account's own, or the empty string for none. A domain the classifier cannot read is restricted with
+// no rule, as Classify decides it (ADR-0004, ADR-0136).
+func ClassOf(domain string, rules []Named, l classify.Lookups) (restricted bool, rule string) {
 	name, ok := classify.SenderName(domain, l)
 	if !ok {
-		return ""
+		return true, ""
 	}
+	rule = ruleOf(name, rules)
+	return rule != "", rule
+}
+
+// ruleOf returns the identifier of the first of rules that matches name, or the empty string for none.
+func ruleOf(name classify.Name, rules []Named) string {
 	for _, r := range rules {
 		if slices.ContainsFunc(r.suffixes, name.Under) {
 			return r.ID

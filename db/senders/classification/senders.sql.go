@@ -11,35 +11,35 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const senderClasses = `-- name: SenderClasses :many
+const senderCounts = `-- name: SenderCounts :many
 SELECT
     s.domain,
-    s.sender_class,
     s.message_count
 FROM senders AS s
 WHERE s.account_id = current_setting('app.account')
 ORDER BY s.domain
 `
 
-type SenderClassesRow struct {
+type SenderCountsRow struct {
 	Domain       string
-	SenderClass  string
 	MessageCount int64
 }
 
-// Every one of the account's senders with its stored class and message count, which the policy
-// screens match against the rules to count what each rule matches and restricts (docs/UI.md section
-// 8.7). Matching a sender against a rule is the sender classifier's, so it is made in the UI's server.
-func (q *Queries) SenderClasses(ctx context.Context) ([]SenderClassesRow, error) {
-	rows, err := q.db.Query(ctx, senderClasses)
+// Every one of the account's senders with its message count, which the UI classifies under the policy
+// in force when it reads, since the index stores no sender class (ADR-0136). The policy screens match
+// the senders against the rules to count what each rule matches, and Home sums the messages of the
+// senders the policy restricts (docs/UI.md sections 8.1 and 8.7). Matching a sender against a rule is
+// the sender classifier's, so it is made in the UI's server.
+func (q *Queries) SenderCounts(ctx context.Context) ([]SenderCountsRow, error) {
+	rows, err := q.db.Query(ctx, senderCounts)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []SenderClassesRow
+	var items []SenderCountsRow
 	for rows.Next() {
-		var i SenderClassesRow
-		if err := rows.Scan(&i.Domain, &i.SenderClass, &i.MessageCount); err != nil {
+		var i SenderCountsRow
+		if err := rows.Scan(&i.Domain, &i.MessageCount); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -79,7 +79,6 @@ func (q *Queries) SenderSearchFigures(ctx context.Context, search string) (Sende
 const senderSearchRows = `-- name: SenderSearchRows :many
 SELECT
     s.domain,
-    s.sender_class,
     s.message_count,
     s.first_seen,
     s.last_seen,
@@ -104,7 +103,6 @@ type SenderSearchRowsParams struct {
 
 type SenderSearchRowsRow struct {
 	Domain         string
-	SenderClass    string
 	MessageCount   int64
 	FirstSeen      pgtype.Timestamptz
 	LastSeen       pgtype.Timestamptz
@@ -113,8 +111,8 @@ type SenderSearchRowsRow struct {
 }
 
 // One page of the senders dataset, fifty rows, under the same filter, with the sender row's fields
-// (docs/UI.md section 7.2), the sender with the most messages first by default, the domain ending the
-// sort.
+// (docs/UI.md section 7.2) but the class, which the UI classifies under the policy in force, the
+// sender with the most messages first by default, the domain ending the sort.
 func (q *Queries) SenderSearchRows(ctx context.Context, arg SenderSearchRowsParams) ([]SenderSearchRowsRow, error) {
 	rows, err := q.db.Query(ctx, senderSearchRows, arg.Search, arg.Descending, arg.RowOffset)
 	if err != nil {
@@ -126,7 +124,6 @@ func (q *Queries) SenderSearchRows(ctx context.Context, arg SenderSearchRowsPara
 		var i SenderSearchRowsRow
 		if err := rows.Scan(
 			&i.Domain,
-			&i.SenderClass,
 			&i.MessageCount,
 			&i.FirstSeen,
 			&i.LastSeen,

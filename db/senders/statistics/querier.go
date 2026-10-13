@@ -13,10 +13,10 @@ type Querier interface {
 	// sender at domain, which the scan gate reads (ADR-0093).
 	AddScanHits(ctx context.Context, arg AddScanHitsParams) (int64, error)
 	// Rebuilds the statistics of the account's sender at domain from the messages the index holds for
-	// it, its volume, first and last message, List-Id share, label distribution, the first twenty of its
-	// local parts and display names in sorted order, and its class (ADR-0016, ADR-0017). A sender is
-	// restricted when any of its messages was classified restricted. The statistics are read from the
-	// stored messages rather than added to, so a page ingested twice leaves them as one ingestion does.
+	// it, its volume, first and last message, List-Id share, label distribution, and the first twenty of
+	// its local parts and display names in sorted order (ADR-0016, ADR-0017). They hold no class, which every
+	// reader classifies when it reads (ADR-0136). The statistics are read from the stored messages rather
+	// than added to, so a page ingested twice leaves them as one ingestion does.
 	RebuildSender(ctx context.Context, domain string) error
 	// Counts the prior hits of the account's sender at domain again from the stored messages whose scan
 	// verdict carries a content flag, after messages of the sender returned to pending scan with their

@@ -35,7 +35,6 @@
     "messages": 1,
     "senders": 1
   },
-  "restricted": 1,
   "rule_id": "base.bank",
   "scope": "base",
   "senders": 1,

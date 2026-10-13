@@ -79,10 +79,9 @@ snippet are not checked again.
   [C2](../../../USE_CASES.md#c2--sensitive-sender-content-never-released) names as falsifying.
 - **Count the stored sender class toward denial as well.** The case for it is that a stored state
   nobody built, whose sender class is restricted, would be denied as a restricted sender rather than
-  under another reason. Rejected, because the stored class is rewritten only when a sender is
-  delisted ([ADR-0037](./0037-delisting-transition.md)) or an added rule reaches it by its effect
-  ([ADR-0113](./0113-an-added-rule-reaches-the-stored-classes-by-its-effect.md)), each through the
-  comparison a scanning workload makes, so it lags the policy in force and cannot decide a denial.
+  under another reason. Rejected, because a class stored when the message was indexed lags every
+  policy change after it, so it cannot decide a denial. The index stores no sender class
+  ([ADR-0136](./0136-the-index-stores-no-sender-class-and-every-reader-classifies-when-it-reads.md)).
 - **Accept caller-supplied sensitivity context** (e.g. the sensitivity block a client received with
   the metadata). No case was tabled for it. Rejected: anything a client supplies, a suborned client
   can forge. Inputs to the release decision must come only from state no client can write.

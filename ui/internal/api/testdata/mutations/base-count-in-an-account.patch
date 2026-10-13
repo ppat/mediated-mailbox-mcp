@@ -20,7 +20,7 @@ index a582345e..e43ebcb9 100644
 +		return 0, err
 +	}
 +	err = tx.Run(ctx, s.opts.Database, listed[0], func(t pgx.Tx) error {
-+		stored, err := registry.ComposedRules(ctx, manage.New(t), listed[0])
++		stored, err := registry.ComposedRules(ctx, manage.New(t))
  		n = len(stored)
  		return err
  	})

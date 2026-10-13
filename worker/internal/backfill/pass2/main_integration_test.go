@@ -240,11 +240,11 @@ type run struct {
 
 // stored is one message's position relative to the scanner, and the gate's recorded decision.
 type stored struct {
-	Domain, Class, State string
-	Flags, Rules         []string
-	Version              int
-	Revision             string
-	Decision, Reason     string
+	Domain, State    string
+	Flags, Rules     []string
+	Version          int
+	Revision         string
+	Decision, Reason string
 }
 
 // latest returns the latest run, and false when there is none.
@@ -336,7 +336,7 @@ func inspectPostgres(t tb, url, account string) state {
 	if err != nil {
 		t.Fatalf("reading the runs: %v", err)
 	}
-	rows, err = conn.Query(ctx, `SELECT m.message_id, m.from_domain::text, m.sender_class, m.scan_state, m.content_flags, m.rule_ids,
+	rows, err = conn.Query(ctx, `SELECT m.message_id, m.from_domain::text, m.scan_state, m.content_flags, m.rule_ids,
 			coalesce(m.scanner_version, 0), coalesce(m.scanner_revision, ''), coalesce(d.decision, ''), coalesce(d.reason, '')
 		FROM messages AS m LEFT JOIN scan_gate_decisions AS d ON d.account_id = m.account_id AND d.message_id = m.message_id
 		WHERE m.account_id = $1`, account)
@@ -345,7 +345,7 @@ func inspectPostgres(t tb, url, account string) state {
 	}
 	var id string
 	var m stored
-	_, err = pgx.ForEachRow(rows, []any{&id, &m.Domain, &m.Class, &m.State, &m.Flags, &m.Rules, &m.Version, &m.Revision, &m.Decision, &m.Reason}, func() error {
+	_, err = pgx.ForEachRow(rows, []any{&id, &m.Domain, &m.State, &m.Flags, &m.Rules, &m.Version, &m.Revision, &m.Decision, &m.Reason}, func() error {
 		s.Messages[id] = m
 		return nil
 	})
@@ -408,7 +408,7 @@ func newMemory(t tb, messages []fake.Message) *memory {
 	for _, d := range page.Messages {
 		m.messages[d.ID] = &memoryMessage{
 			in:      index.Waiting{ID: d.ID, From: d.From.Email, Domain: d.Domain, SubjectMasked: d.SubjectMasked, ListID: d.ListID != "", SizeBytes: d.SizeBytes, SentAt: d.Date},
-			st:      stored{Domain: d.Domain, Class: string(d.Class), State: "pending", Flags: []string{}, Rules: []string{}},
+			st:      stored{Domain: d.Domain, State: "pending", Flags: []string{}, Rules: []string{}},
 			subject: d.Stamp.Revision,
 			text:    d.Subject,
 		}
@@ -529,43 +529,21 @@ func (m *memory) Delist(ctx context.Context, _, runID string, delisted func([]st
 	}
 	restricted := map[string]bool{}
 	for _, msg := range m.messages {
-		if msg.st.Class == "restricted" || msg.st.State == "skipped_restricted" {
+		if msg.st.State == "skipped_restricted" {
 			restricted[msg.st.Domain] = true
 		}
 	}
 	marked := 0
 	for _, d := range delisted(slices.Sorted(maps.Keys(restricted))) {
 		for _, msg := range m.messages {
-			if msg.st.Domain == d && (msg.st.Class == "restricted" || msg.st.State == "skipped_restricted") {
-				msg.st.Class, msg.st.State = "normal", "pending"
+			if msg.st.Domain == d && msg.st.State == "skipped_restricted" {
+				msg.st.State = "pending"
 				marked++
 			}
 		}
 	}
 	if marked > 0 {
 		m.progress(runID, restart)
-	}
-	return marked, nil
-}
-
-func (m *memory) List(ctx context.Context, _ string, listed func([]string) []index.Listing) (int, error) {
-	if err := ctx.Err(); err != nil {
-		return 0, err
-	}
-	normal := map[string]bool{}
-	for _, msg := range m.messages {
-		if msg.st.Class == "normal" {
-			normal[msg.st.Domain] = true
-		}
-	}
-	marked := 0
-	for _, l := range listed(slices.Sorted(maps.Keys(normal))) {
-		for _, msg := range m.messages {
-			if msg.st.Domain == l.Domain && msg.st.Class == "normal" {
-				msg.st.Class = "restricted"
-				marked++
-			}
-		}
 	}
 	return marked, nil
 }
@@ -913,7 +891,7 @@ func (w *world) open(t tb) {
 	}
 	after := w.inspect(t)
 	for id, m := range before.Messages {
-		if m.Class == "restricted" && after.Messages[id].Class == "normal" || m.State == "skipped_restricted" && after.Messages[id].State == "pending" {
+		if m.State == "skipped_restricted" && after.Messages[id].State == "pending" {
 			w.lastOpenDelisted = true
 			delete(w.decided, id)
 		}

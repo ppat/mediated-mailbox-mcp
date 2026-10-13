@@ -6,11 +6,11 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/deltasync/tick/tick.go b/worker/internal/deltasync/tick/tick.go
-index ce882013..b4c9e8a2 100644
+index aefa8ed0..ba2a511f 100644
 --- a/worker/internal/deltasync/tick/tick.go
 +++ b/worker/internal/deltasync/tick/tick.go
-@@ -332,8 +332,8 @@ func (t *ticker) scanning(ctx context.Context) error {
- 		return fmt.Errorf("restricting the stored classes a rule added since restricts: %w", err)
+@@ -341,8 +341,8 @@ func (t *ticker) scanning(ctx context.Context) error {
+ 		t.at.Checkpoint.After = ""
  	}
  	decided := 0
 -	for decided < t.deps.Decisions {

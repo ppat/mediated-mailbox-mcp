@@ -121,26 +121,26 @@ func TestCompare(t *testing.T) {
 	}
 }
 
-var senders = []rules.Sender{
-	{Domain: "schwab.com", Restricted: true, Messages: 10},
-	{Domain: "mail.schwab.com", Restricted: false, Messages: 4},
-	{Domain: "notschwab.com", Restricted: false, Messages: 7},
-	{Domain: "xn--bcher-kva.example", Restricted: false, Messages: 2},
-	{Domain: "com", Restricted: true, Messages: 1},
+var senders = []rules.Stored{
+	{Domain: "schwab.com", Messages: 10},
+	{Domain: "mail.schwab.com", Messages: 4},
+	{Domain: "notschwab.com", Messages: 7},
+	{Domain: "xn--bcher-kva.example", Messages: 2},
+	{Domain: "com", Messages: 1},
 }
 
 // A suffix matches a sender at its own domain or a subdomain, at a label boundary, in the form the
 // classifier compares, a sender counting once however many suffixes match it. A domain the classifier
 // cannot classify matches nothing (ADR-0004).
 func TestMatch(t *testing.T) {
-	s := rules.NewSenders(senders, lookups)
-	if diff := cmp.Diff(rules.Count{Senders: 2, Messages: 14, Restricted: 1}, s.Match([]string{"schwab.com", "mail.schwab.com"}), compare.Options); diff != "" {
+	s := rules.NewSenders(senders, nil, lookups)
+	if diff := cmp.Diff(rules.Count{Senders: 2, Messages: 14}, s.Match([]string{"schwab.com", "mail.schwab.com"}), compare.Options); diff != "" {
 		t.Errorf("Match of schwab.com (-want +got):\n%s", diff)
 	}
 	if diff := cmp.Diff(rules.Count{Senders: 1, Messages: 2}, s.Match([]string{"Bücher.example"}), compare.Options); diff != "" {
 		t.Errorf("Match of a suffix in Unicode (-want +got):\n%s", diff)
 	}
-	if diff := cmp.Diff(rules.Count{Senders: 3, Messages: 21, Restricted: 1}, s.Match([]string{"com"}), compare.Options); diff != "" {
+	if diff := cmp.Diff(rules.Count{Senders: 3, Messages: 21}, s.Match([]string{"com"}), compare.Options); diff != "" {
 		t.Errorf("Match of a public suffix, every sender under it but the one with no registrable domain (-want +got):\n%s", diff)
 	}
 	if got := s.Matched([]string{"schwab.com"}); len(got) != 2 || got[0].Domain != "schwab.com" || got[1].Domain != "mail.schwab.com" {
@@ -151,7 +151,7 @@ func TestMatch(t *testing.T) {
 // What a change releases is the senders the policy before restricts and the policy after does not, so
 // a suffix another rule still covers releases nothing (docs/UI.md section 8.7).
 func TestReleased(t *testing.T) {
-	s := rules.NewSenders(senders, lookups)
+	s := rules.NewSenders(senders, nil, lookups)
 	before := []string{"schwab.com", "notschwab.com", "mail.schwab.com"}
 	if diff := cmp.Diff(rules.Count{Senders: 1, Messages: 7}, s.Released(before, []string{"schwab.com", "mail.schwab.com"}), compare.Options); diff != "" {
 		t.Errorf("lifting notschwab.com (-want +got):\n%s", diff)
@@ -164,14 +164,55 @@ func TestReleased(t *testing.T) {
 	}
 }
 
-// The rule restricting a sender is the first the classifier meets, and a sender no rule matches has
-// none.
-func TestRestrictedBy(t *testing.T) {
+// The rule restricting a sender is the first the classifier meets, a sender no rule matches is normal
+// with none, and a domain the classifier cannot read is restricted with none, as Classify decides
+// each (ADR-0004, ADR-0136).
+func TestClassOf(t *testing.T) {
 	policy := []rules.Rule{rule("base.schwab", "schwab.com"), rule("own.mail", "mail.schwab.com")}
-	for domain, want := range map[string]string{"mail.schwab.com": "base.schwab", "notschwab.com": "", "": ""} {
-		if got := rules.RestrictedBy(domain, rules.Names(policy, lookups), lookups); got != want {
-			t.Errorf("RestrictedBy(%q) = %q, want %q", domain, got, want)
+	type class struct {
+		Restricted bool
+		Rule       string
+	}
+	for domain, want := range map[string]class{
+		"mail.schwab.com": {true, "base.schwab"},
+		"notschwab.com":   {false, ""},
+		"com":             {true, ""},
+		"":                {true, ""},
+	} {
+		restricted, rule := rules.ClassOf(domain, rules.Names(policy, lookups), lookups)
+		if got := (class{restricted, rule}); got != want {
+			t.Errorf("ClassOf(%q) = %+v, want %+v", domain, got, want)
 		}
+	}
+}
+
+// Each sender's class is the composed policy's as the request read it, never a class stored with it,
+// so the senders restricted, their messages and the normal domains follow the policy given (ADR-0136).
+// A domain the classifier cannot read is restricted.
+func TestEachSenderIsClassifiedUnderThePolicyRead(t *testing.T) {
+	cases := []struct {
+		name       string
+		policy     []rules.Rule
+		restricted rules.Count
+		normal     []string
+	}{
+		{"no rule", nil, rules.Count{Senders: 1, Messages: 1}, []string{"schwab.com", "mail.schwab.com", "notschwab.com", "xn--bcher-kva.example"}},
+		{"a rule for schwab.com", []rules.Rule{rule("base.schwab", "schwab.com")}, rules.Count{Senders: 3, Messages: 15}, []string{"notschwab.com", "xn--bcher-kva.example"}},
+		{"a rule for a suffix in Unicode", []rules.Rule{rule("books", "Bücher.example")}, rules.Count{Senders: 2, Messages: 3}, []string{"schwab.com", "mail.schwab.com", "notschwab.com"}},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			s := rules.NewSenders(senders, rules.Names(c.policy, lookups), lookups)
+			if diff := cmp.Diff(c.restricted, s.Restricted(), compare.Options); diff != "" {
+				t.Errorf("Restricted (-want +got):\n%s", diff)
+			}
+			if diff := cmp.Diff(c.normal, s.Normal(), compare.Options); diff != "" {
+				t.Errorf("Normal (-want +got):\n%s", diff)
+			}
+		})
+	}
+	if got := rules.NewSenders(nil, nil, lookups).Normal(); got == nil {
+		t.Error("Normal over no sender is nil, which a statement reads as no filter")
 	}
 }
 

@@ -10,6 +10,7 @@ disposition_in = 1
 disposition_out = 1
 error_class_in = 1
 error_class_out = 1
+normal_domains = 1
 page_in = 1
 page_in_none = 1
 page_out = 1

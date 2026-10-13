@@ -1,0 +1,27 @@
+control: The UI classifies every sender under the policy in force when it reads
+removes: the UI classifies the senders under the first policy it read, so a class shown after a rule is added or lifted is stale
+packages: ./ui/internal/api
+tests: TestTheUIClassifiesEverySenderUnderThePolicyInForce
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/registry/policy.go b/ui/internal/registry/policy.go
+index 02ef81b0..7683ea6f 100644
+--- a/ui/internal/registry/policy.go
++++ b/ui/internal/registry/policy.go
+@@ -135,9 +135,14 @@ func AccountSenders(ctx context.Context, q *senderclassification.Queries, stored
+ 	for _, s := range read {
+ 		senders = append(senders, rules.Stored{Domain: s.Domain, Messages: s.MessageCount})
+ 	}
+-	return rules.NewSenders(senders, rules.Names(Composed(stored), l), l), nil
++	if stale == nil {
++		stale = stored
++	}
++	return rules.NewSenders(senders, rules.Names(Composed(stale), l), l), nil
+ }
+ 
++var stale []StoredRule
++
+ // ruleRow is a stored rule with its counts in the account.
+ func ruleRow(r StoredRule, senders rules.Senders) RuleRow {
+ 	c := senders.Match(r.Suffixes)

@@ -1,7 +1,8 @@
-// Package senderclassification is the data-access subsection for the reads of the senders table that read
-// the stored sender class, which the mediator may not be granted (ADR-0002, ADR-0118). The UI's policy
-// screens read it to show what each rule matches and how far the stored classes have caught up, and
-// its sender picker to search the stored senders (docs/UI.md section 8.7). It sits one directory below
-// db/senders, so a role admitted to db/senders is never planned against a statement that reads the
-// stored sender class.
+// Package senderclassification is the data-access subsection for the UI's reads of the senders table,
+// whose senders the UI classifies under the policy in force when it reads (ADR-0136). The policy
+// screens read every sender to show what each rule matches and restricts, Home sums the messages of
+// the senders the policy restricts, and the sender picker searches the senders with their prior scan
+// hits, which the mediator's role is not granted (docs/UI.md sections 8.1 and 8.7, ADR-0118). It sits
+// one directory below db/senders, so a role admitted to db/senders is never planned against a statement
+// that reads the prior scan hits.
 package senderclassification

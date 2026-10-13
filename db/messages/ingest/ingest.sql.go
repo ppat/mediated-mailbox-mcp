@@ -86,8 +86,6 @@ INSERT INTO messages (
     list_id,
     size_bytes,
     auth_results,
-    sender_class,
-    class_rule_id,
     subject_scanner_version,
     subject_scanner_revision
 ) VALUES (
@@ -107,9 +105,7 @@ INSERT INTO messages (
     $13,
     $14,
     $15,
-    $16,
-    $17,
-    $18
+    $16
 )
 ON CONFLICT (account_id, message_id) DO NOTHING
 RETURNING message_id
@@ -130,15 +126,13 @@ type InsertMessageParams struct {
 	ListID                 pgtype.Text
 	SizeBytes              pgtype.Int4
 	AuthResults            []byte
-	SenderClass            string
-	ClassRuleID            pgtype.Text
 	SubjectScannerVersion  pgtype.Int4
 	SubjectScannerRevision pgtype.Text
 }
 
-// Adds one message's metadata to the index, with its sender class, the policy rule that set it or
-// null when none did, its subject already masked (ADR-0003, ADR-0016, ADR-0017) and the scanner
-// version and configuration revision the masking ran under (ADR-0120). A message the index already
+// Adds one message's metadata to the index, with its subject already masked (ADR-0003, ADR-0016,
+// ADR-0017) and the scanner version and configuration revision the masking ran under (ADR-0120). It
+// stores no sender class, which every reader classifies when it reads (ADR-0136). A message the index already
 // holds is left as it is and returns no row, so a page ingested twice adds nothing the second time.
 // The row holds no body, snippet or attachment name (ADR-0016).
 func (q *Queries) InsertMessage(ctx context.Context, arg InsertMessageParams) (string, error) {
@@ -157,8 +151,6 @@ func (q *Queries) InsertMessage(ctx context.Context, arg InsertMessageParams) (s
 		arg.ListID,
 		arg.SizeBytes,
 		arg.AuthResults,
-		arg.SenderClass,
-		arg.ClassRuleID,
 		arg.SubjectScannerVersion,
 		arg.SubjectScannerRevision,
 	)

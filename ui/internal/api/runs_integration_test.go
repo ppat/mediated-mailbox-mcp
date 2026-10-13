@@ -212,11 +212,11 @@ func TestTheFailuresDatasetAnswersItsLevels(t *testing.T) {
 	if want := []string{"provider_error=2", "gone=1", "scanner_timeout=1", "throttled=1"}; !slices.Equal(g.counts(), want) {
 		t.Fatalf("by error class the groups are %v, want %v", g.counts(), want)
 	}
-	if g.Total.Count != 5 || *g.Total.Restricted != 1 || *g.Total.Flagged != 2 {
-		t.Fatalf("the total is %+v, want 5 with the bank message restricted and both newsletters flagged", g.Total)
+	if g.Total.Count != 5 || *g.Total.Restricted != 1 || *g.Total.Flagged != 1 {
+		t.Fatalf("the total is %+v, want 5 with the bank message restricted and the scanned newsletter flagged", g.Total)
 	}
-	if first := g.Rows[0]; *first.Restricted != 0 || *first.Flagged != 2 {
-		t.Fatalf("provider errors count %d restricted and %d flagged, want 0 and 2", *first.Restricted, *first.Flagged)
+	if first := g.Rows[0]; *first.Restricted != 0 || *first.Flagged != 1 {
+		t.Fatalf("provider errors count %d restricted and %d flagged, want 0 and 1", *first.Restricted, *first.Flagged)
 	}
 	read(t, h, "/api/{account}/lens", "/api/personal/lens?dataset=failures&run=r-0912&level=1&group=sender", &g)
 	if want := []string{"newsletter.example=2", "none=2", "bank.example=1"}; !slices.Equal(g.counts(), want) {
@@ -336,7 +336,7 @@ func TestTheRowDetailAnswersItsRow(t *testing.T) {
 	}
 	if detail.ClassRuleID == nil || *detail.ClassRuleID != "rule.bank" || detail.RuleIDs == nil || len(detail.RuleIDs) != 0 ||
 		detail.ScannedAt != nil || detail.ScannerVersion != nil {
-		t.Fatalf("the bank message's sensitivity block is %v %v %v %v, want its class set by rule.bank, no content rule, never scanned",
+		t.Fatalf("the bank message's sensitivity block is %v %v %v %v, want its sender restricted by rule.bank, no content rule, never scanned",
 			detail.ClassRuleID, detail.RuleIDs, detail.ScannedAt, detail.ScannerVersion)
 	}
 	read(t, h, "/api/{account}/failures/{row}", "/api/personal/failures/5?run=r-0912", &detail)

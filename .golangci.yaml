@@ -741,14 +741,13 @@ linters:
           # ui/internal/api/attention.go.
           - "github.com/ppat/mediated-mailbox-mcp/db/maskingevents/senders$"
           - "github.com/ppat/mediated-mailbox-mcp/db/messages$"
-          - "github.com/ppat/mediated-mailbox-mcp/db/messages/classification$"
           # The OAuth client setup's statements, which read no secret, in ui/internal/api.
           - "github.com/ppat/mediated-mailbox-mcp/db/oauthclients/setup$"
           - "github.com/ppat/mediated-mailbox-mcp/db/policycandidates$"
           # Policy management's statements, in ui/internal/api and ui/internal/registry. The history, the
           # composed policy the screens classify senders against, the account's own rules and their writes,
           # the base policy's statements, which run only in a base-policy transaction (ADR-0112), and the
-          # reads of the stored sender class the counts and the sender picker make.
+          # reads of the senders the counts, Home's restricted messages and the sender picker classify.
           - "github.com/ppat/mediated-mailbox-mcp/db/policychanges$"
           - "github.com/ppat/mediated-mailbox-mcp/db/policyrules/base$"
           - "github.com/ppat/mediated-mailbox-mcp/db/policyrules/manage$"

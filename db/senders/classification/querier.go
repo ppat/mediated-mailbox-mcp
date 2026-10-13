@@ -9,18 +9,20 @@ import (
 )
 
 type Querier interface {
-	// Every one of the account's senders with its stored class and message count, which the policy
-	// screens match against the rules to count what each rule matches and restricts (docs/UI.md section
-	// 8.7). Matching a sender against a rule is the sender classifier's, so it is made in the UI's server.
-	SenderClasses(ctx context.Context) ([]SenderClassesRow, error)
+	// Every one of the account's senders with its message count, which the UI classifies under the policy
+	// in force when it reads, since the index stores no sender class (ADR-0136). The policy screens match
+	// the senders against the rules to count what each rule matches, and Home sums the messages of the
+	// senders the policy restricts (docs/UI.md sections 8.1 and 8.7). Matching a sender against a rule is
+	// the sender classifier's, so it is made in the UI's server.
+	SenderCounts(ctx context.Context) ([]SenderCountsRow, error)
 	// The senders dataset's figures under its search filter, the senders it matches and their messages
 	// (docs/UI.md section 8.7). The search is a substring of the stored domain, given in the form the
 	// index stores a domain in, so it ignores case as the domains do with no statement lowercasing
 	// (ADR-0016). An empty search matches every sender.
 	SenderSearchFigures(ctx context.Context, search string) (SenderSearchFiguresRow, error)
 	// One page of the senders dataset, fifty rows, under the same filter, with the sender row's fields
-	// (docs/UI.md section 7.2), the sender with the most messages first by default, the domain ending the
-	// sort.
+	// (docs/UI.md section 7.2) but the class, which the UI classifies under the policy in force, the
+	// sender with the most messages first by default, the domain ending the sort.
 	SenderSearchRows(ctx context.Context, arg SenderSearchRowsParams) ([]SenderSearchRowsRow, error)
 }
 

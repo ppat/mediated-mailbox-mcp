@@ -197,16 +197,6 @@ sql:
       omit_unused_structs: true
 - engine: postgresql
   schema: migrations
-  queries: messages/classification
-  gen:
-    go:
-      package: messageclassification
-      out: messages/classification
-      sql_package: pgx/v5
-      emit_interface: true
-      omit_unused_structs: true
-- engine: postgresql
-  schema: migrations
   queries: messages/ingest
   gen:
     go:

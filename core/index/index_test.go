@@ -90,11 +90,9 @@ func codeSubject() string {
 	return strings.TrimSuffix(fixture.OneTimeCode().Subject, "419283") + "██████"
 }
 
-// Each sender is classified under the account's policy, and each subject is masked, a restricted
-// sender's included, and stamped with the scanner version and revision it was masked under (ADR-0003,
-// ADR-0004, ADR-0120). A listed sender carries the rule that restricted it, and no other sender
-// carries a rule (ADR-0016). An address whose domain cannot be read is restricted and
-// marked unclassified. Each row keeps whether its message has attachments and their media, and no
+// Each subject is masked, a restricted sender's included, and stamped with the scanner version and
+// revision it was masked under (ADR-0003, ADR-0120). No row carries a sender class or a rule behind
+// one (ADR-0136), and an address whose domain cannot be read is marked unclassified (ADR-0004). Each row keeps whether its message has attachments and their media, and no
 // name (ADR-0123). The domains are listed once each, sorted.
 func TestDecide(t *testing.T) {
 	bank := fixture.Bank()
@@ -111,23 +109,23 @@ func TestDecide(t *testing.T) {
 		metadata("m6", fixture.Receipt(), 6000),
 	}
 	code := []index.Mask{{Rule: scan.RuleTriggerWindow, Tier: 1}}
-	message := func(m mail.MessageMetadata, domain, subject string, class index.Class, rule string, masks []index.Mask) index.Message {
+	message := func(m mail.MessageMetadata, domain, subject string, masks []index.Mask) index.Message {
 		return index.Message{
 			ID: m.ID, ThreadID: m.ThreadID, From: m.From, Domain: domain, Subject: subject,
 			SubjectMasked: len(masks) > 0, Date: m.Date, Labels: m.Labels, HasAttachments: m.HasAttachments,
 			AttachmentMedia: m.AttachmentMedia, ListID: m.ListID,
-			SizeBytes: m.SizeBytes, Class: class, ClassRule: rule, Unclassified: m.From.Email == "no-address-at-all", Masks: masks,
+			SizeBytes: m.SizeBytes, Unclassified: m.From.Email == "no-address-at-all", Masks: masks,
 			Stamp: index.Stamp{Version: 1, Revision: "a-revision"},
 		}
 	}
 	want := index.Page{
 		Messages: []index.Message{
-			message(items[0], "security.example", codeSubject(), index.Normal, "", code),
-			message(items[1], "bank.example", codeSubject(), index.Restricted, "rule.bank", code),
-			message(items[2], "newsletter.example", items[2].Subject, index.Normal, "", nil),
-			message(items[3], "", items[3].Subject, index.Restricted, "", nil),
-			message(items[4], "bank.example", items[4].Subject, index.Restricted, "rule.bank", nil),
-			message(items[5], "shop.example", items[5].Subject, index.Normal, "", nil),
+			message(items[0], "security.example", codeSubject(), code),
+			message(items[1], "bank.example", codeSubject(), code),
+			message(items[2], "newsletter.example", items[2].Subject, nil),
+			message(items[3], "", items[3].Subject, nil),
+			message(items[4], "bank.example", items[4].Subject, nil),
+			message(items[5], "shop.example", items[5].Subject, nil),
 		},
 		Domains: []string{"", "bank.example", "newsletter.example", "security.example", "shop.example"},
 	}
@@ -136,9 +134,9 @@ func TestDecide(t *testing.T) {
 	}
 }
 
-// A policy that never loaded restricts every sender, and a scanner nobody built masks every subject
-// whole, so neither failure lets a sender through as normal or a subject through unmasked (ADR-0042).
-// No rule set the class, so the message names none.
+// A scanner nobody built masks every subject whole, so it lets no subject through unmasked
+// (ADR-0042). A policy that never loaded marks no sender unclassified, since the classifier reads the
+// address whatever policy it is given.
 func TestDecideFailsClosed(t *testing.T) {
 	item := metadata("m1", fixture.Newsletter(), 1000)
 	got := index.Decide([]mail.MessageMetadata{item}, classify.Prepare(policy.Snapshot{}.For(account), lookups), scan.Scanner{})
@@ -146,7 +144,7 @@ func TestDecideFailsClosed(t *testing.T) {
 	want := index.Page{
 		Messages: []index.Message{{
 			ID: "m1", ThreadID: "t-m1", From: item.From, Domain: "newsletter.example", Subject: subject,
-			SubjectMasked: true, Date: 1000, ListID: item.ListID, SizeBytes: 2048, Class: index.Restricted,
+			SubjectMasked: true, Date: 1000, ListID: item.ListID, SizeBytes: 2048,
 			Masks: []index.Mask{{Rule: redact.RuleWholeSubject}},
 		}},
 		Domains: []string{"newsletter.example"},
@@ -178,7 +176,7 @@ func TestClassOf(t *testing.T) {
 }
 
 // VERIFICATIONS' row for removing a fixture sender from the sensitive list, its comparison. A
-// domain stored as restricted or skipped as restricted that the policy no longer lists is delisted,
+// domain of messages skipped as restricted that the policy no longer lists is delisted,
 // one still listed or listed through a parent domain is not, a domain the classifier cannot read
 // stays restricted, and a policy that never loaded delists nothing (ADR-0037).
 func TestDelisted(t *testing.T) {
@@ -197,32 +195,6 @@ func TestDelisted(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			if diff := cmp.Diff(c.want, index.Delisted(c.policy, stored), compare.Options); diff != "" {
 				t.Errorf("Delisted (-want +got):\n%s", diff)
-			}
-		})
-	}
-}
-
-// An added rule reaches the domains the index stores as normal by its effect, each with the rule that
-// now restricts it, and a domain the classifier cannot read or a policy that never loaded lists nothing
-// (ADR-0113).
-func TestListed(t *testing.T) {
-	stored := []string{"bank.example", "mail.gov.example", "shop.example", ""}
-	cases := []struct {
-		name   string
-		policy classify.Policy
-		want   []index.Listing
-	}{
-		{"no rule", listing(t), nil},
-		{"a rule for the bank and one for a parent domain", listing(t, "bank.example", "gov.example"), []index.Listing{
-			{Domain: "bank.example", Rule: "rule.bank"},
-			{Domain: "mail.gov.example", Rule: "rule.gov.example"},
-		}},
-		{"a policy that never loaded", classify.Policy{}, nil},
-	}
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			if diff := cmp.Diff(c.want, index.Listed(c.policy, stored), compare.Options); diff != "" {
-				t.Errorf("Listed (-want +got):\n%s", diff)
 			}
 		})
 	}

@@ -15,10 +15,6 @@ import type { Column } from "../lens/table.tsx";
 import { Badge } from "../row/badge.tsx";
 import { addScreen, OutcomeRegion, policyHome, ruleScreen } from "./policywrites.tsx";
 
-// indexUpdatedHover is what "index updated" means, said on its hover (section 8.7).
-export const indexUpdatedHover =
-  "Bodies are denied from each process's next policy reload. This counts the senders whose stored class reads restricted.";
-
 // ruleColumns are a rule row's columns. The identifier links to the rule in its scope.
 export function ruleColumns(account: string): Column<RuleRow>[] {
   return [
@@ -70,13 +66,6 @@ export function ruleColumns(account: string): Column<RuleRow>[] {
       width: 80,
       numeric: true,
       cell: (row) => count(row.senders),
-    },
-    {
-      key: "restricted",
-      header: "index",
-      width: 160,
-      cell: (row) => `index updated, ${count(row.restricted)} of ${count(row.senders)}`,
-      title: () => indexUpdatedHover,
     },
   ];
 }

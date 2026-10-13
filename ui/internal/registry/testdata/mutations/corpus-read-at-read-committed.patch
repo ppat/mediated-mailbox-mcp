@@ -1,0 +1,20 @@
+control: The UI classifies every sender under the policy in force when it reads
+removes: the corpus endpoint reads at read committed rather than over one snapshot, so its restricted messages and its other figures can come from two states
+packages: ./ui/internal/api
+tests: TestEveryClassifyingResponseBeginsOneSnapshot/corpus
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/api/corpus.go b/ui/internal/api/corpus.go
+index 51263619..6bf1ac88 100644
+--- a/ui/internal/api/corpus.go
++++ b/ui/internal/api/corpus.go
+@@ -59,7 +59,7 @@ func corpusType() schema.Type {
+ func (s *Server) getCorpus(w http.ResponseWriter, r *http.Request) {
+ 	account := r.PathValue("account")
+ 	out := corpusResponse{Account: account, Audit24h: map[string]int64{}}
+-	err := tx.Run(r.Context(), s.snapshot(), account, func(t pgx.Tx) error {
++	err := tx.Run(r.Context(), s.opts.Database, account, func(t pgx.Tx) error {
+ 		ctx := r.Context()
+ 		// as_of is the time the read transaction began.
+ 		now := s.opts.Clock()

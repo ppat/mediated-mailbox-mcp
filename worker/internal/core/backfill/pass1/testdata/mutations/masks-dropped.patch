@@ -6,11 +6,11 @@ scheduled-count: no
 integration: yes
 
 diff --git a/core/index/index.go b/core/index/index.go
-index f1f7b2f..a622711 100644
+index 6c1d6ac9..225dc2ca 100644
 --- a/core/index/index.go
 +++ b/core/index/index.go
-@@ -122,7 +122,7 @@ func Decide(items []mail.MessageMetadata, p policy.Composed, s scan.Scanner, l c
- 			msg.Class = Restricted
+@@ -106,7 +106,7 @@ func Decide(items []mail.MessageMetadata, p classify.Policy, s scan.Scanner) Pag
+ 			Unclassified:    classify.Classify(p, m.From.Email).Reason() == classify.Unclassifiable,
  		}
  		for _, e := range masked.Events() {
 -			msg.Masks = append(msg.Masks, Mask{Rule: e.Rule(), Tier: e.Tier()})

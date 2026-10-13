@@ -1,8 +1,8 @@
 -- name: MessagePage :many
 -- One page of the account's messages, newest first, after the position a cursor names or from the
 -- start when it names none. The columns are the metadata the client surface serves and the content
--- flags and scan state the Redaction Gate decides from. The stored sender class is not read, because
--- the gate classifies the sender again against the policy in force (ADR-0001, ADR-0002).
+-- flags and scan state the Redaction Gate decides from. The index stores no sender class, and the gate
+-- classifies the sender against the policy in force (ADR-0001, ADR-0002, ADR-0136).
 SELECT
     m.message_id,
     m.thread_id,

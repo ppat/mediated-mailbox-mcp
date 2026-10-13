@@ -3,10 +3,10 @@
 // a message the way the other does, or each reopens the other's work (ADR-0120, ADR-0121), so the
 // decisions sit here once.
 //
-// Decide turns provider metadata into the rows the index stores, each sender classified against the
-// account's policy and each subject masked by the scanner, a restricted sender's included (ADR-0003,
-// ADR-0004). Delisted is the delisting transition's comparison (ADR-0037), and Listed its counterpart
-// for an added rule (ADR-0113). Gate decides whether one waiting message's body is scanned, from its
+// Decide turns provider metadata into the rows the index stores, each subject masked by the scanner, a
+// restricted sender's included (ADR-0003), and each sender classified against the account's policy
+// only to count the senders the classifier cannot read, since the index stores no sender class
+// (ADR-0004, ADR-0136). Delisted is the delisting transition's comparison (ADR-0037). Gate decides whether one waiting message's body is scanned, from its
 // own inputs and its sender's current ones (ADR-0093, ADR-0094). Scan decides what a scanned body
 // records. ClassOf names the error class a run records for a failure the provider reported
 // (ADR-0016).
@@ -34,16 +34,6 @@ func StampOf(s scan.Scanner) Stamp {
 	return Stamp{Version: s.Version(), Revision: s.Revision()}
 }
 
-// Class is a sender's class as the index stores it.
-type Class string
-
-const (
-	// Normal is a sender no rule lists.
-	Normal Class = "normal"
-	// Restricted is a sender a rule lists, or one that cannot be classified (ADR-0004).
-	Restricted Class = "restricted"
-)
-
 // Message is one message's row as the index stores it. It holds no body, snippet or attachment name
 // (ADR-0016).
 type Message struct {
@@ -65,13 +55,9 @@ type Message struct {
 	ListID          string
 	SizeBytes       int64
 	AuthResults     mail.AuthResults
-	Class           Class
-	// ClassRule is the identifier of the policy rule that set the class, empty when no rule set it,
-	// which is a sender no rule lists, a classification made while no policy has loaded and an
-	// address that cannot be classified (ADR-0016).
-	ClassRule string
 	// Unclassified is set when the classifier could not classify the sender, which classifies it
-	// restricted.
+	// restricted. The row stores no class (ADR-0136), and the series of unclassified senders counts
+	// these.
 	Unclassified bool
 	// Masks are the masks applied to the subject, one per detection.
 	Masks []Mask
@@ -94,14 +80,13 @@ type Page struct {
 	Domains []string
 }
 
-// Decide returns the rows a set of metadata adds to the index, each sender classified under the
-// account's policy p and each subject masked by s under subject masking's tuning and stamped with s. A
-// policy that never loaded restricts every sender, and a scanner nobody built masks every subject
-// whole, so neither fails open.
+// Decide returns the rows a set of metadata adds to the index, each subject masked by s under subject
+// masking's tuning and stamped with s, and each sender marked when the classifier cannot classify it
+// under the account's policy p. A scanner nobody built masks every subject whole, so it does not fail
+// open.
 func Decide(items []mail.MessageMetadata, p classify.Policy, s scan.Scanner) Page {
 	var out Page
 	for _, m := range items {
-		verdict := classify.Classify(p, m.From.Email)
 		masked := redact.MaskSubject(s, m.Subject)
 		msg := Message{
 			ID:              m.ID,
@@ -118,12 +103,7 @@ func Decide(items []mail.MessageMetadata, p classify.Policy, s scan.Scanner) Pag
 			SizeBytes:       m.SizeBytes,
 			AuthResults:     m.AuthResults,
 			Stamp:           StampOf(s),
-			Class:           Normal,
-			ClassRule:       verdict.Rule(),
-			Unclassified:    verdict.Reason() == classify.Unclassifiable,
-		}
-		if verdict.Class().Restricted() {
-			msg.Class = Restricted
+			Unclassified:    classify.Classify(p, m.From.Email).Reason() == classify.Unclassifiable,
 		}
 		for _, e := range masked.Events() {
 			msg.Masks = append(msg.Masks, Mask{Rule: e.Rule(), Tier: e.Tier()})

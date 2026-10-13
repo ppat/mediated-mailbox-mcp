@@ -1,0 +1,20 @@
+control: The UI classifies every sender under the policy in force when it reads
+removes: the UI's classifying reads run at read committed rather than over one snapshot, so a rule committed between a response's two reads of the policy classifies its figures and its rows under two policies
+packages: ./ui/internal/api
+tests: TestOneResponseClassifiesUnderOnePolicy
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/api/server.go b/ui/internal/api/server.go
+index fdeb15f1..5432ace1 100644
+--- a/ui/internal/api/server.go
++++ b/ui/internal/api/server.go
+@@ -39,7 +39,7 @@ type Database interface {
+ // snapshot is the database as a source of repeatable-read, read-only transactions, over which every
+ // read that classifies a sender runs, so each statement of one response reads one state and its
+ // figures and rows agree about every sender's class (ADR-0136).
+-func (s *Server) snapshot() tx.Beginner { return tx.Snapshot(s.opts.Database) }
++func (s *Server) snapshot() tx.Beginner { return s.opts.Database }
+ 
+ // Cadences are the workload intervals the jobs cards display. They are configuration shown, not
+ // recorded state (docs/UI.md section 8.3).

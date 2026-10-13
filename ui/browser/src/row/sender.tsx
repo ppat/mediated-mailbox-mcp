@@ -9,13 +9,13 @@ import type { Column } from "../lens/table.tsx";
 import { addScreen } from "../screens/policywrites.tsx";
 import { Badge, Worded } from "./badge.tsx";
 
-// restricts reports whether a sender is already restricted, by its stored class or by a rule of the
-// account's policy its stored class has not caught up with.
+// restricts reports whether the account's policy restricts a sender, as the server classified it under
+// the policy in force when it read the row (ADR-0136).
 export function restricts(row: SenderRow): boolean {
-  return row.sender_class === "restricted" || row.restricted_by !== null;
+  return row.sender_class === "restricted";
 }
 
-// ClassBadge is a stored sender class, restricted in the restricted color and normal in muted text.
+// ClassBadge is a sender class, restricted in the restricted color and normal in muted text.
 export function ClassBadge(props: { stored: string }) {
   if (props.stored === "restricted") {
     return <Badge tone="restricted" text="restricted" />;

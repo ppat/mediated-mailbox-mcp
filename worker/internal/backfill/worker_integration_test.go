@@ -400,30 +400,19 @@ func (e *editing) EnumerateAll(ctx context.Context, token mail.PageToken) (mail.
 
 // VERIFICATIONS' row for a policy edit during a running pass, the part a backfill run's pages take.
 // Each page of a run takes the policy the kind's loader holds at its entry, so a rule restricting the
-// shop, added and reloaded while the first pass is between its pages, classifies the shop's message on
-// the next page as restricted, and the second pass's comparison restricts the one stored before it, in
-// the same run (ADR-0119, ADR-0041, ADR-0113).
+// shop, added and reloaded while the first pass is between its pages, reaches the second pass of the
+// same run, which skips both of the shop's messages as restricted (ADR-0119, ADR-0041).
 func TestEachPageTakesTheActivePolicy(t *testing.T) {
-	want := map[string]string{"m1": "restricted", "m2": "normal", "m3": "restricted", "m4": "normal"}
-	if diff := cmp.Diff(want, classesAfterAnEdit(t, false), compare.Options); diff != "" {
-		t.Errorf("the classes the run stored under the rule added between its pages (-want +got):\n%s", diff)
+	want := map[string]bool{"m1": true, "m2": false, "m3": true, "m4": false}
+	if diff := cmp.Diff(want, skippedAfterAnEdit(t), compare.Options); diff != "" {
+		t.Errorf("the messages the run skipped as restricted under the rule added between its pages (-want +got):\n%s", diff)
 	}
 }
 
-// The first pass's part of the same row. With the second pass found ended, so it makes no comparison,
-// the stored classes are the first pass's own, and the shop's message on the page after the edit is
-// stored restricted while the one stored before it stays normal (ADR-0119, ADR-0041).
-func TestEachPageOfTheFirstPassTakesTheActivePolicy(t *testing.T) {
-	want := map[string]string{"m1": "normal", "m2": "normal", "m3": "restricted", "m4": "normal"}
-	if diff := cmp.Diff(want, classesAfterAnEdit(t, true), compare.Options); diff != "" {
-		t.Errorf("the classes the first pass stored under the rule added between its pages (-want +got):\n%s", diff)
-	}
-}
-
-// classesAfterAnEdit runs backfill over four messages on two pages, with a rule restricting the shop
-// added and reloaded before the second page, and returns the classes stored. secondEnded records the
-// second pass as ended before the run, so it opens done.
-func classesAfterAnEdit(t *testing.T, secondEnded bool) map[string]string {
+// skippedAfterAnEdit runs backfill over four messages on two pages, with a rule restricting the shop
+// added and reloaded before the second page of the first pass, and returns whether each message was
+// skipped as restricted.
+func skippedAfterAnEdit(t *testing.T) map[string]bool {
 	t.Helper()
 	conn := superuser(t)
 	reset(t, conn)
@@ -454,9 +443,6 @@ func classesAfterAnEdit(t *testing.T, secondEnded bool) map[string]string {
 			t.Error(err)
 		}
 	})
-	if secondEnded {
-		must(t, conn, "UPDATE account_state SET backfill_pass2_complete = true WHERE account_id = 'personal'")
-	}
 	j := newJobs()
 	var b *Backfill
 	port := &editing{Fake: f, edit: func() {
@@ -473,19 +459,19 @@ func classesAfterAnEdit(t *testing.T, secondEnded bool) map[string]string {
 		t.Fatal(err)
 	}
 
-	rows, err := conn.Query(t.Context(), "SELECT message_id, sender_class FROM messages WHERE account_id = 'personal'")
+	rows, err := conn.Query(t.Context(), "SELECT message_id, scan_state FROM messages WHERE account_id = 'personal'")
 	if err != nil {
 		t.Fatal(err)
 	}
-	classes := map[string]string{}
-	var id, class string
-	if _, err := pgx.ForEachRow(rows, []any{&id, &class}, func() error {
-		classes[id] = class
+	skipped := map[string]bool{}
+	var id, state string
+	if _, err := pgx.ForEachRow(rows, []any{&id, &state}, func() error {
+		skipped[id] = state == "skipped_restricted"
 		return nil
 	}); err != nil {
 		t.Fatal(err)
 	}
-	return classes
+	return skipped
 }
 
 // bodyPanicking is a provider fake whose body read panics, as a bug in the code a page of the second

@@ -13,10 +13,8 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
-	"github.com/ppat/mediated-mailbox-mcp/core/index"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/core/policy"
 	"github.com/ppat/mediated-mailbox-mcp/core/redact"
@@ -110,16 +108,16 @@ func TestAPassDecidesAndRecordsEveryWaitingMessage(t *testing.T) {
 
 	got := inspectPostgres(t, postgres.URL(t), w.account)
 	want := map[string]stored{
-		"m01": {Domain: "bank.example", Class: "restricted", State: "skipped_restricted", Flags: []string{}, Rules: []string{}, Decision: "SKIP", Reason: "restricted"},
-		"m02": {Domain: "news.example", Class: "normal", State: "skipped_gate", Flags: []string{}, Rules: []string{}, Decision: "SKIP", Reason: "high_volume_no_hits"},
-		"m03": {Domain: "news.example", Class: "normal", State: "skipped_gate", Flags: []string{}, Rules: []string{}, Decision: "SKIP", Reason: "high_volume_no_hits"},
-		"m04": {Domain: "news.example", Class: "normal", State: "skipped_gate", Flags: []string{}, Rules: []string{}, Decision: "SKIP", Reason: "high_volume_no_hits"},
+		"m01": {Domain: "bank.example", State: "skipped_restricted", Flags: []string{}, Rules: []string{}, Decision: "SKIP", Reason: "restricted"},
+		"m02": {Domain: "news.example", State: "skipped_gate", Flags: []string{}, Rules: []string{}, Decision: "SKIP", Reason: "high_volume_no_hits"},
+		"m03": {Domain: "news.example", State: "skipped_gate", Flags: []string{}, Rules: []string{}, Decision: "SKIP", Reason: "high_volume_no_hits"},
+		"m04": {Domain: "news.example", State: "skipped_gate", Flags: []string{}, Rules: []string{}, Decision: "SKIP", Reason: "high_volume_no_hits"},
 		"m05": {
-			Domain: "shop.example", Class: "normal", State: "scanned", Flags: []string{"mfa_code"}, Rules: []string{"mfa.trigger_window"},
+			Domain: "shop.example", State: "scanned", Flags: []string{"mfa_code"}, Rules: []string{"mfa.trigger_window"},
 			Version: 1, Revision: "a-revision", Decision: "SCAN", Reason: "default",
 		},
 		"m06": {
-			Domain: "shop.example", Class: "normal", State: "scanned", Flags: []string{}, Rules: []string{},
+			Domain: "shop.example", State: "scanned", Flags: []string{}, Rules: []string{},
 			Version: 1, Revision: "a-revision", Decision: "SCAN", Reason: "prior_hit",
 		},
 	}
@@ -347,10 +345,9 @@ func releaseReason(t *testing.T, w *world, id string, st stored) redact.Reason {
 
 // VERIFICATIONS' row for removing a fixture sender from the sensitive list. A run stops after the page
 // that skipped the bank's messages as restricted. The bank's rule is removed, as any path might remove
-// it, and the next run's delisting transition returns the bank's messages to a normal sender class and
-// to pending scan before its first page, and starts over, since they sit before its checkpoint. They
-// stop naming the removed rule as the one that set their class (ADR-0016). A body requested in that
-// state is denied as pending its content scan rather than as a restricted sender's. Once the pass scans
+// it, and the next run's delisting transition returns the bank's messages skipped as restricted to
+// pending scan before its first page, and starts over, since they sit before its checkpoint. A body
+// requested in that state is denied as pending its content scan rather than as a restricted sender's. Once the pass scans
 // them, a clean body is releasable and a body holding a code is withheld for its flag (ADR-0037).
 func TestARemovedRuleReturnsItsSendersMessagesToPendingScan(t *testing.T) {
 	messages := []fake.Message{
@@ -368,10 +365,6 @@ func TestARemovedRuleReturnsItsSendersMessagesToPendingScan(t *testing.T) {
 	if r := releaseReason(t, w, "m01", before.Messages["m01"]); r != redact.SkippedRestricted {
 		t.Fatalf("before the removal the bank's body is denied as %v, want skipped as restricted", r)
 	}
-	rule := "rule.bank"
-	if diff := cmp.Diff(map[string]*string{"m01": &rule, "m02": &rule, "m03": nil, "m04": nil}, classRules(t, w.account), compare.Options); diff != "" {
-		t.Fatalf("before the removal the rules that set the classes (-want +got):\n%s", diff)
-	}
 
 	w.delisted = true
 	w.open(t)
@@ -379,15 +372,12 @@ func TestARemovedRuleReturnsItsSendersMessagesToPendingScan(t *testing.T) {
 	marked := inspectPostgres(t, postgres.URL(t), w.account)
 	for _, id := range []string{"m01", "m02"} {
 		st := marked.Messages[id]
-		if st.Class != "normal" || st.State != "pending" {
-			t.Errorf("after the transition message %s is %+v, want a normal sender pending scan", id, st)
+		if st.State != "pending" {
+			t.Errorf("after the transition message %s is %+v, want it pending scan", id, st)
 		}
 		if r := releaseReason(t, w, id, st); r != redact.PendingScan {
 			t.Errorf("after the transition message %s is denied as %v, want pending its content scan", id, r)
 		}
-	}
-	if diff := cmp.Diff(map[string]*string{"m01": nil, "m02": nil, "m03": nil, "m04": nil}, classRules(t, w.account), compare.Options); diff != "" {
-		t.Errorf("after the transition the rules that set the classes, none (-want +got):\n%s", diff)
 	}
 	if latest, _ := marked.latest(); latest.Progress.Checkpoint != (core.Checkpoint{}) {
 		t.Errorf("after the transition the run starts from %+v, want the first waiting message", latest.Progress.Checkpoint)
@@ -413,102 +403,90 @@ func TestARemovedRuleReturnsItsSendersMessagesToPendingScan(t *testing.T) {
 	}
 }
 
-// TestAnAddedRuleRestrictsTheStoredClasses is ADR-0113's comparison in the second pass. A rule added
-// for a sender the index stores as normal, after the pass decided some of its messages, restricts every
-// one of its messages stored as normal with the rule, rebuilds the sender's statistics, and leaves each
-// scan state and the run's checkpoint as they were. A second comparison marks nothing, and neither does
-// one under a policy that never loaded.
-func TestAnAddedRuleRestrictsTheStoredClasses(t *testing.T) {
+// VERIFICATIONS' row for removing a fixture sender from the sensitive list, through the scan state
+// alone. Rules for the shop and for kept.example are added before the pass reaches their messages, so
+// the bank's, the shop's and kept.example's messages are skipped as restricted while the newsletter's
+// message holding a code is scanned with its flag. A rule then added for the newsletter leaves that
+// verdict as it is, since the index stores no class to restrict (ADR-0136). The bank's, the shop's and
+// the newsletter's rules are then lifted, and the next run's transition returns the bank's and the
+// shop's messages skipped as restricted to pending scan, leaves kept.example's skipped, since its rule
+// is still in place, and leaves the newsletter's scanned verdict and its flag as they were (ADR-0037).
+func TestTheTransitionReturnsOnlyTheSkippedMessagesOfDelistedSenders(t *testing.T) {
 	messages := []fake.Message{
-		message("m01", "a@shop.example", false, marker.Body("shopfirst"), ""),
-		message("m02", "b@shop.example", false, marker.Body("shopsecond"), ""),
-		message("m03", "c@shop.example", false, marker.Body("shoplater"), ""),
-		message("m04", "news@news.example", false, marker.Body("news"), ""),
+		message("m01", "alerts@bank.example", false, marker.Body("bank"), ""),
+		message("m02", "a@shop.example", false, marker.Body("shop"), ""),
+		message("m03", "b@kept.example", false, marker.Body("kept"), ""),
+		message("m04", "news@news.example", false, marker.Body("news")+" "+code, ""),
+	}
+	w := realWorldOf(t, 4, messages)
+	w.added = []string{"shop.example", "kept.example"}
+	w.open(t)
+	if _, err := w.pass.Next(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	state := func(id string) stored { return inspectPostgres(t, postgres.URL(t), w.account).Messages[id] }
+	for _, id := range []string{"m01", "m02", "m03"} {
+		if st := state(id); st.State != "skipped_restricted" {
+			t.Fatalf("under the rules message %s is %+v, want it skipped as restricted", id, st)
+		}
+	}
+	flagged := state("m04")
+	if flagged.State != "scanned" || !slices.Equal(flagged.Flags, []string{"mfa_code"}) {
+		t.Fatalf("the newsletter's message is %+v, want it scanned with its code flagged", flagged)
+	}
+
+	w.added = []string{"shop.example", "kept.example", "news.example"}
+	w.open(t)
+	if diff := cmp.Diff(flagged, state("m04"), compare.Options); diff != "" {
+		t.Errorf("a rule added for the newsletter changed its scanned message (-want +got):\n%s", diff)
+	}
+
+	w.delisted, w.added = true, []string{"kept.example"}
+	w.open(t)
+	for id, want := range map[string]string{"m01": "pending", "m02": "pending", "m03": "skipped_restricted"} {
+		if st := state(id); st.State != want {
+			t.Errorf("after the lifts message %s is %+v, want it %s", id, st, want)
+		}
+	}
+	if diff := cmp.Diff(flagged, state("m04"), compare.Options); diff != "" {
+		t.Errorf("the lifts changed the newsletter's scanned message (-want +got):\n%s", diff)
+	}
+}
+
+// VERIFICATIONS' row for removing a fixture sender from the sensitive list, a clean verdict. The
+// shop's message is scanned clean before a rule restricts the shop, and the rule is then lifted. The
+// message keeps its verdict through both, since the transition reads only the messages skipped as
+// restricted (ADR-0037, ADR-0136). Its clean verdict carries no flag, so no check of the schema would
+// refuse to return it to pending, and only the transition's own reading keeps it.
+func TestTheTransitionLeavesACleanScannedVerdict(t *testing.T) {
+	messages := []fake.Message{
+		message("m01", "a@shop.example", false, marker.Body("shopclean"), ""),
+		message("m02", "news@news.example", false, marker.Body("news"), ""),
 	}
 	w := realWorldOf(t, 2, messages)
 	w.open(t)
 	if _, err := w.pass.Next(context.Background()); err != nil {
 		t.Fatal(err)
 	}
-	before := inspectPostgres(t, postgres.URL(t), w.account)
-	checkpoint, _ := before.latest()
-	if before.Messages["m01"].State != "scanned" || before.Messages["m03"].State != "pending" {
-		t.Fatalf("before the rule the first page left %+v and %+v, want the first scanned and the third pending", before.Messages["m01"], before.Messages["m03"])
+	scanned := inspectPostgres(t, postgres.URL(t), w.account).Messages["m01"]
+	if scanned.State != "scanned" || len(scanned.Flags) != 0 {
+		t.Fatalf("the shop's message is %+v, want it scanned with no flag", scanned)
 	}
-
 	w.added = []string{"shop.example"}
 	w.open(t)
-
-	after := inspectPostgres(t, postgres.URL(t), w.account)
-	rule := "rule.shop.example"
-	if diff := cmp.Diff(map[string]*string{"m01": &rule, "m02": &rule, "m03": &rule, "m04": nil}, classRules(t, w.account), compare.Options); diff != "" {
-		t.Errorf("after the comparison the rules that set the classes (-want +got):\n%s", diff)
+	w.added = nil
+	w.open(t)
+	if diff := cmp.Diff(scanned, inspectPostgres(t, postgres.URL(t), w.account).Messages["m01"], compare.Options); diff != "" {
+		t.Errorf("the shop's clean verdict after its rule was added and lifted (-want +got):\n%s", diff)
 	}
-	for id, st := range after.Messages {
-		want := "restricted"
-		if id == "m04" {
-			want = "normal"
-		}
-		if st.Class != want || st.State != before.Messages[id].State {
-			t.Errorf("after the comparison message %s is %+v, want class %s and the scan state %s it had", id, st, want, before.Messages[id].State)
-		}
-	}
-	var senderClass string
-	if err := superuser(t).QueryRow(context.Background(), "SELECT sender_class FROM senders WHERE account_id = $1 AND domain = 'shop.example'", w.account).Scan(&senderClass); err != nil || senderClass != "restricted" {
-		t.Errorf("the shop's statistics read %q with error %v, want restricted", senderClass, err)
-	}
-	if latest, _ := after.latest(); latest.Progress.Checkpoint != checkpoint.Progress.Checkpoint {
-		t.Errorf("after the comparison the run resumes from %+v, want %+v, since restricting needs no rescan", latest.Progress.Checkpoint, checkpoint.Progress.Checkpoint)
-	}
-
-	store := pass2.NewPostgres(backfillPool(t))
-	for name, p := range map[string]classify.Policy{
-		"a second comparison":           classify.Prepare(policyAdding(t, false, w.added).For(w.account), lookups),
-		"a policy that never loaded":    {},
-		"a policy without the new rule": classify.Prepare(policyListing(t, false).For(w.account), lookups),
-	} {
-		marked, err := store.List(context.Background(), w.account, func(normal []string) []index.Listing {
-			return index.Listed(p, normal)
-		})
-		if err != nil || marked != 0 {
-			t.Errorf("%s marked %d messages with error %v, want none", name, marked, err)
-		}
-	}
-}
-
-// classRules returns the rule each of the account's messages names as the one that set its class, nil
-// for none.
-func classRules(t testing.TB, account string) map[string]*string {
-	t.Helper()
-	rows, err := superuser(t).Query(context.Background(), "SELECT message_id, class_rule_id FROM messages WHERE account_id = $1", account)
-	if err != nil {
-		t.Fatal(err)
-	}
-	out := map[string]*string{}
-	var id string
-	var rule pgtype.Text
-	_, err = pgx.ForEachRow(rows, []any{&id, &rule}, func() error {
-		out[id] = nil
-		if rule.Valid {
-			r := rule.String
-			out[id] = &r
-		}
-		return nil
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	return out
 }
 
 // VERIFICATIONS' row for removing a fixture sender from the sensitive list, a rule added after the
-// first pass. The first pass stores the shop as a normal sender. A rule listing it is added before the
-// second pass reaches its messages, so the run restricts their stored class (ADR-0113) and skips the
-// first of them as restricted. That message's stored class is then set back to normal, as delta sync
-// stores a message under a policy it loaded before the rule, so only its skip state says the rule held
-// it. The rule is removed before the pass ends, and the next run's delisting transition finds the
-// skipped message by its skip state, returns it to pending scan and starts over, and the pass scans it
-// (ADR-0037).
+// first pass. A rule listing the shop is added before the second pass reaches its messages, so the run
+// skips the first of them as restricted, and only its skip state says the rule held it, since the
+// index stores no class (ADR-0136). The rule is removed before the pass ends, and the next run's
+// delisting transition finds the skipped message by its skip state, returns it to pending scan and
+// starts over, and the pass scans it (ADR-0037).
 func TestARuleAddedAndRemovedDuringThePassReachesTheTransition(t *testing.T) {
 	messages := []fake.Message{
 		message("m01", "a@shop.example", false, marker.Body("shopone"), ""),
@@ -531,11 +509,8 @@ func TestARuleAddedAndRemovedDuringThePassReachesTheTransition(t *testing.T) {
 	if _, err := p.Next(context.Background()); err != nil {
 		t.Fatal(err)
 	}
-	if st := inspectPostgres(t, postgres.URL(t), w.account).Messages["m01"]; st.Class != "restricted" || st.State != "skipped_restricted" {
-		t.Fatalf("under the added rule m01 is %+v, want a sender stored restricted and skipped as restricted", st)
-	}
-	if _, err := superuser(t).Exec(context.Background(), "UPDATE messages SET sender_class = 'normal', class_rule_id = NULL WHERE account_id = $1", w.account); err != nil {
-		t.Fatal(err)
+	if st := inspectPostgres(t, postgres.URL(t), w.account).Messages["m01"]; st.State != "skipped_restricted" {
+		t.Fatalf("under the added rule m01 is %+v, want it skipped as restricted", st)
 	}
 
 	w.deps.Policy = fixed(load())
@@ -543,7 +518,7 @@ func TestARuleAddedAndRemovedDuringThePassReachesTheTransition(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if st := inspectPostgres(t, postgres.URL(t), w.account).Messages["m01"]; st.Class != "normal" || st.State != "pending" {
+	if st := inspectPostgres(t, postgres.URL(t), w.account).Messages["m01"]; st.State != "pending" {
 		t.Errorf("after the removal m01 is %+v, want pending scan", st)
 	}
 	for {
@@ -612,14 +587,14 @@ func TestTheRunStartMasksTheSubjectsStoredUnmaskedAgainFromTheStore(t *testing.T
 		}
 	}
 	must(`INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, subject, subject_masked, sent_at, has_attachments,
-			sender_class, scan_state, subject_scanner_version, subject_scanner_revision)
+			scan_state, subject_scanner_version, subject_scanner_revision)
 		SELECT $1, 'm' || lpad(n::text, 5, '0'), 't' || n, 'news@news.example', 'news.example',
 			$3 || CASE WHEN n % 1000 = 0 THEN ' Your verification code is 419283' ELSE ' number ' || n END, false, now(), false,
-			'normal', 'skipped_restricted', 1, 'a-revision'
+			'skipped_restricted', 1, 'a-revision'
 		FROM generate_series(1, $2::int) AS n`, w.account, unmasked, marker.Field("subject"))
 	must(`INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, subject, subject_masked, sent_at, has_attachments,
-			sender_class, scan_state, subject_scanner_version, subject_scanner_revision)
-		VALUES ($1, 'x1', 'tx1', 'news@news.example', 'news.example', $2 || ' Sign in ██████', true, now(), false, 'normal', 'skipped_restricted', 1, 'a-revision')`,
+			scan_state, subject_scanner_version, subject_scanner_revision)
+		VALUES ($1, 'x1', 'tx1', 'news@news.example', 'news.example', $2 || ' Sign in ██████', true, now(), false, 'skipped_restricted', 1, 'a-revision')`,
 		w.account, marker.Field("subject"))
 	must("UPDATE account_state SET backfill_pass2_complete = true, backfill_pass2_restart = false WHERE account_id = $1", w.account)
 

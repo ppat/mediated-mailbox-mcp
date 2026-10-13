@@ -10,18 +10,22 @@ import (
 
 type Querier interface {
 	// One of a run's failures with the error summary as recorded, the failures dataset's provenance for its
-	// row detail, and its message's sensitivity block, the policy rule that set its class apart from the
-	// content rules that set its flags, the time it was scanned and the scanner version (docs/UI.md
-	// sections 7.1, 8.4 and 17.1).
+	// row detail, and its message's sensitivity block, the content rules that set its flags, the time it
+	// was scanned and the scanner version, with its sender's domain, which the UI classifies under the
+	// policy in force to name the rule restricting it (docs/UI.md sections 7.1, 8.4 and 17.1, ADR-0136).
 	FailureDetail(ctx context.Context, arg FailureDetailParams) (FailureDetailRow, error)
 	// The failures dataset's figures under its filters, one row per disposition with its count and how many
 	// of those items' messages are restricted or flagged (docs/UI.md sections 8.4 and 17.1). The totals
 	// are their sums, which the pages count from. The joined message is the item's own, for a message or
-	// an operation item, and a page item joins none, so it counts as neither restricted nor flagged. A null
-	// array is no filter. The none flags select or exclude the items with no sender or no page.
+	// an operation item, and a page item joins none, so it counts as neither restricted nor flagged. A
+	// message is restricted when its sender's domain is not among normal_domains, the domains the UI
+	// classified normal under the policy in force, so a domain it did not classify counts as restricted
+	// (ADR-0136, ADR-0108). A null array is no filter. The none flags select or exclude the items with no
+	// sender or no page.
 	FailureFigures(ctx context.Context, arg FailureFiguresParams) ([]FailureFiguresRow, error)
 	// One page of a run's failures, fifty rows, under the same filters (docs/UI.md section 8.4). Each row
-	// carries the message-row fields of the item's message, null for a page item or a message the index no
+	// carries the message-row fields of the item's message, with its sender's domain in place of a class,
+	// which the UI classifies under the policy in force, null for a page item or a message the index no
 	// longer holds. sort_column names last_at or attempts, in either direction, and the failure's identity
 	// ends the sort.
 	FailureRows(ctx context.Context, arg FailureRowsParams) ([]FailureRowsRow, error)

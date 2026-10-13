@@ -56,17 +56,17 @@
     {
       "domain": "lender.example",
       "messages": 4,
-      "sender_class": "normal"
+      "sender_class": "restricted"
     },
     {
       "domain": "newsletter.example",
       "messages": 3,
-      "sender_class": "normal"
+      "sender_class": "restricted"
     },
     {
       "domain": "mail.newsletter.example",
       "messages": 1,
-      "sender_class": "normal"
+      "sender_class": "restricted"
     }
   ],
   "matched_total": 3,
@@ -75,7 +75,6 @@
     "messages": 8,
     "senders": 3
   },
-  "restricted": 0,
   "rule_id": "operator.lender.example",
   "scope": "account",
   "senders": 3,

@@ -15,8 +15,6 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/prometheus/client_golang/prometheus"
 
-	"github.com/ppat/mediated-mailbox-mcp/core/classify"
-	coreindex "github.com/ppat/mediated-mailbox-mcp/core/index"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/provider/fake"
 	"github.com/ppat/mediated-mailbox-mcp/ratelimit/lease"
@@ -113,10 +111,10 @@ func TestATickAppliesTheChangesSinceItsCursor(t *testing.T) {
 
 	got := index(t, conn, account)
 	want := map[string]stored{
-		"m1": {Labels: []string{mail.Inbox, "Receipts"}, Read: true, Subject: marker.Field("subject"), Class: "normal", State: "pending", Flags: []string{}, SubjectStampRevision: "a-revision"},
-		"m2": {Labels: []string{mail.Inbox}, Subject: marker.Field("codesubject") + " Your code is ██████", Masked: true, Class: "normal", State: "pending", Flags: []string{}, SubjectStampRevision: "a-revision"},
-		"m3": {Labels: []string{}, Subject: marker.Field("subject"), Class: "restricted", Rule: "rule.bank", State: "pending", Flags: []string{}, SubjectStampRevision: "a-revision"},
-		"m4": {Labels: []string{}, Subject: marker.Field("subject"), Class: "restricted", State: "pending", Flags: []string{}, SubjectStampRevision: "a-revision"},
+		"m1": {Labels: []string{mail.Inbox, "Receipts"}, Read: true, Subject: marker.Field("subject"), State: "pending", Flags: []string{}, SubjectStampRevision: "a-revision"},
+		"m2": {Labels: []string{mail.Inbox}, Subject: marker.Field("codesubject") + " Your code is ██████", Masked: true, State: "pending", Flags: []string{}, SubjectStampRevision: "a-revision"},
+		"m3": {Labels: []string{}, Subject: marker.Field("subject"), State: "pending", Flags: []string{}, SubjectStampRevision: "a-revision"},
+		"m4": {Labels: []string{}, Subject: marker.Field("subject"), State: "pending", Flags: []string{}, SubjectStampRevision: "a-revision"},
 	}
 	if diff := cmp.Diff(want, got, compare.Options); diff != "" {
 		t.Errorf("the index after the second tick (-want +got):\n%s", diff)
@@ -530,9 +528,9 @@ func TestATickDecidesABoundedNumberAndTheNextGoesOn(t *testing.T) {
 }
 
 // VERIFICATIONS' row for removing a fixture sender from the sensitive list, D4's part. Once the
-// second pass has ended, a tick compares the messages stored as restricted or skipped as restricted
-// with the policy it holds, returns a delisted sender's messages to pending with a normal class and
-// no rule, and scans them in the same tick from the first waiting message (ADR-0037, ADR-0104).
+// second pass has ended, a tick compares the messages skipped as restricted with the policy it holds,
+// returns a delisted sender's messages to pending, and scans them in the same tick from the first
+// waiting message (ADR-0037, ADR-0104).
 func TestATickScansADelistedSendersMessages(t *testing.T) {
 	conn := superuser(t)
 	account := newAccount(t, conn, true)
@@ -548,8 +546,8 @@ func TestATickScansADelistedSendersMessages(t *testing.T) {
 	mustTick(t, delisted, account)
 
 	s := index(t, conn, account)["m1"]
-	if s.Class != "normal" || s.Rule != "" || s.State != "scanned" || !slices.Equal(s.Flags, []string{"mfa_code"}) {
-		t.Errorf("the delisted sender's message is %+v, want normal with no rule and scanned with its code flagged", s)
+	if s.State != "scanned" || !slices.Equal(s.Flags, []string{"mfa_code"}) {
+		t.Errorf("the delisted sender's message is %+v, want it scanned with its code flagged", s)
 	}
 	r := runs(t, conn, account)
 	if n := count(t, conn, "SELECT count(*) FROM job_run_events WHERE account_id = $1 AND run_id = $2 AND kind = 'retry' AND detail LIKE 'the delisting transition returned 1 messages%'", account, r[len(r)-1].ID); n != 1 {
@@ -557,37 +555,49 @@ func TestATickScansADelistedSendersMessages(t *testing.T) {
 	}
 }
 
-// Once backfill's second pass has ended, a tick restricts the stored class of a sender a rule added
-// since restricts, with the rule, and rebuilds its statistics, leaving the scan state it had. A tick
-// under the same policy then marks nothing more (ADR-0113).
-func TestATickRestrictsTheStoredClassOfAnAddedRulesSender(t *testing.T) {
-	conn := superuser(t)
-	account := newAccount(t, conn, true)
-	f := mailbox(t, account, waiting("m1", "orders@shop.example", false), waiting("m2", "news@news.example", false))
-	p := &direct{port: f}
-	mustTick(t, deps(t, syncPool(t), p, listing(t), account), account)
-	if s := index(t, conn, account)["m1"]; s.Class != "normal" || s.State != "scanned" {
-		t.Fatalf("the shop's message is %+v under no rule, want normal and scanned", s)
-	}
-	added := deps(t, syncPool(t), p, listing(t, "shop.example"), account)
+// Once backfill's second pass has ended, a rule added for a sender whose message a tick scanned leaves
+// that verdict as it is, since the index stores no class to restrict (ADR-0136), and lifting the rule
+// again leaves it too, since the delisting transition reads only the messages skipped as restricted
+// (ADR-0037). A flagged verdict never leaves its flag on a message not scanned, the state the Redaction
+// Gate reads as invalid, and a clean verdict, which no check of the schema guards, stays scanned, its
+// body never asked for again.
+func TestARuleAddedAndLiftedLeavesATicksVerdict(t *testing.T) {
+	for name, coded := range map[string]bool{"flagged": true, "clean": false} {
+		t.Run(name, func(t *testing.T) {
+			conn := superuser(t)
+			account := newAccount(t, conn, true)
+			f := mailbox(t, account, waiting("m1", "orders@shop.example", coded), waiting("m2", "news@news.example", false))
+			p := &direct{port: f}
+			mustTick(t, deps(t, syncPool(t), p, listing(t), account), account)
+			scanned := index(t, conn, account)
+			want := []string{}
+			if coded {
+				want = []string{"mfa_code"}
+			}
+			if s := scanned["m1"]; s.State != "scanned" || !slices.Equal(s.Flags, want) {
+				t.Fatalf("the shop's message is %+v under no rule, want it scanned with the flags %v", s, want)
+			}
 
-	mustTick(t, added, account)
-
-	stored := index(t, conn, account)
-	if s := stored["m1"]; s.Class != "restricted" || s.Rule != "rule.shop" || s.State != "scanned" {
-		t.Errorf("the shop's message is %+v, want restricted by rule.shop and still scanned", s)
-	}
-	if s := stored["m2"]; s.Class != "normal" || s.Rule != "" {
-		t.Errorf("the news sender's message is %+v, want normal with no rule", s)
-	}
-	if n := count(t, conn, "SELECT count(*) FROM senders WHERE account_id = $1 AND domain = 'shop.example' AND sender_class = 'restricted'", account); n != 1 {
-		t.Errorf("found %d restricted statistics for the shop, want 1", n)
-	}
-	marked, err := tick.NewPostgres(syncPool(t)).List(context.Background(), account, func(normal []string) []coreindex.Listing {
-		return coreindex.Listed(classify.Prepare(listing(t, "shop.example").For(account), lookups), normal)
-	})
-	if err != nil || marked != 0 {
-		t.Errorf("a second comparison marked %d messages with error %v, want none", marked, err)
+			mustTick(t, deps(t, syncPool(t), p, listing(t, "shop.example"), account), account)
+			if diff := cmp.Diff(scanned, index(t, conn, account), compare.Options); diff != "" {
+				t.Errorf("a tick under the added rule changed the index (-want +got):\n%s", diff)
+			}
+			mustTick(t, deps(t, syncPool(t), p, listing(t), account), account)
+			if diff := cmp.Diff(scanned, index(t, conn, account), compare.Options); diff != "" {
+				t.Errorf("a tick after the rule was lifted changed the index (-want +got):\n%s", diff)
+			}
+			// A tick scans what waits in the same tick, so a verdict returned to pending and scanned again
+			// would leave the index as it was. Its body asked for a second time is what shows it.
+			asked := 0
+			for _, id := range p.bodies {
+				if id == "m1" {
+					asked++
+				}
+			}
+			if asked != 1 {
+				t.Errorf("the shop's body was asked for %d times across the three ticks, want once, its verdict never undone", asked)
+			}
+		})
 	}
 }
 

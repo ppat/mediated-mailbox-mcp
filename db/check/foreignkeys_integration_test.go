@@ -28,7 +28,7 @@ func countOf(t *testing.T, tx pgx.Tx, table, account string) int {
 func TestEveryLogTableRefusesAnOrphan(t *testing.T) {
 	tx := seeded(t)
 	for _, sql := range []string{
-		"INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, sent_at, has_attachments, sender_class) VALUES ('" + accountA + "', 'm-stored', 't', 'a@example.com', 'example.com', now(), false, 'normal')",
+		"INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, sent_at, has_attachments) VALUES ('" + accountA + "', 'm-stored', 't', 'a@example.com', 'example.com', now(), false)",
 		"INSERT INTO job_runs (account_id, run_id, workload, pass, state, started_at) VALUES ('" + accountA + "', 'run-stored', 'sync', 'tick', 'running', now())",
 	} {
 		if code := attempt(t, tx, sql); code != "" {
@@ -97,9 +97,9 @@ func TestEveryLogTableRefusesAnOrphan(t *testing.T) {
 func TestAMessageOrRunRemovedTakesItsPartsWithIt(t *testing.T) {
 	tx := seeded(t)
 	for _, sql := range []string{
-		"INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, sent_at, has_attachments, sender_class) VALUES " +
-			"('" + accountA + "', 'm-removed', 't', 'a@example.com', 'example.com', now(), false, 'normal'), " +
-			"('" + accountA + "', 'm-kept', 't', 'a@example.com', 'example.com', now(), false, 'normal')",
+		"INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, sent_at, has_attachments) VALUES " +
+			"('" + accountA + "', 'm-removed', 't', 'a@example.com', 'example.com', now(), false), " +
+			"('" + accountA + "', 'm-kept', 't', 'a@example.com', 'example.com', now(), false)",
 		"INSERT INTO scan_gate_decisions (account_id, message_id, decision, reason) VALUES ('" + accountA + "', 'm-removed', 'SKIP', 'restricted'), ('" + accountA + "', 'm-kept', 'SCAN', 'restricted')",
 		"INSERT INTO job_runs (account_id, run_id, workload, pass, state, started_at) VALUES ('" + accountA + "', 'run-removed', 'sync', 'tick', 'failed', now()), ('" + accountA + "', 'run-kept', 'sync', 'tick', 'failed', now())",
 		"INSERT INTO job_run_events (account_id, run_id, kind) VALUES ('" + accountA + "', 'run-removed', 'start'), ('" + accountA + "', 'run-kept', 'start')",

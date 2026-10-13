@@ -141,15 +141,7 @@ test("the policy lists the base rules marked base and then the account's own, ea
     [...tr.querySelectorAll("td")].map((td) => td.textContent),
   );
   expect(rows).toEqual([
-    [
-      "base.bank",
-      "base",
-      "bank.example",
-      "operator",
-      "2026-09-07 10:16Z · operator",
-      "1",
-      "index updated, 1 of 1",
-    ],
+    ["base.bank", "base", "bank.example", "operator", "2026-09-07 10:16Z · operator", "1"],
     [
       "operator.lender.example",
       "personal",
@@ -157,15 +149,14 @@ test("the policy lists the base rules marked base and then the account's own, ea
       "operator",
       "2026-09-07 10:16Z · operator",
       "1",
-      "index updated, 0 of 1",
     ],
   ]);
   expect(
     [...root.querySelectorAll("tbody td:first-child a")].map((a) => a.getAttribute("href")),
   ).toEqual(["/personal/policy/base/base.bank", "/personal/policy/operator.lender.example"]);
-  expect(root.querySelector("tbody td:last-child")?.getAttribute("title")).toBe(
-    "Bodies are denied from each process's next policy reload. This counts the senders whose stored class reads restricted.",
-  );
+  // Every sender a rule matches is restricted as the screen reads it, so the row shows its count of
+  // senders alone (docs/UI.md section 8.7).
+  expect(root.querySelector("tbody")?.textContent).not.toContain("index updated");
   expect(text(root, ".strip .label")).toEqual([
     "base rules",
     "rules for this account",
@@ -225,7 +216,7 @@ test("a rule shows each suffix's match in the account, the senders it matches an
   expect(text(panel ?? root, ".suffix-details li")).toEqual([
     "lender.example matches 1 sender · 4 messages in personal",
   ]);
-  expect(text(panel ?? root, ".matched li")).toEqual(["lender.example normal 4 messages"]);
+  expect(text(panel ?? root, ".matched li")).toEqual(["lender.example restricted 4 messages"]);
   const history = [...(panel?.querySelectorAll("tbody tr") ?? [])];
   expect(history.map((tr) => tr.querySelector("td:nth-child(3)")?.textContent)).toEqual([
     "edited",
@@ -719,13 +710,17 @@ test("the picker selects senders by box and by key, keeps the selection in the a
   expect(boxes().map((b) => [b.getAttribute("aria-label"), b.disabled])).toEqual([
     ["Select lender.example", true],
     ["Select newsletter.example", false],
-    [`Select ${marker("senderdomain")}`, false],
+    [`Select ${marker("senderdomain")}`, true],
     ["Select bank.example", true],
     ["Select mail.newsletter.example", false],
   ]);
   expect(
     document.getElementById(boxes()[3]?.getAttribute("aria-describedby") ?? "")?.textContent,
   ).toBe("Already restricted by base.bank");
+  // A domain the classifier cannot read is restricted with no rule behind it (ADR-0004).
+  expect(
+    document.getElementById(boxes()[2]?.getAttribute("aria-describedby") ?? "")?.textContent,
+  ).toBe("Already restricted, since its domain cannot be classified");
   expect(root.querySelector(".selection-bar")).toBeNull();
   // j moves the cursor to the first row, a restricted one, which x cannot select.
   await press("j");
@@ -740,13 +735,18 @@ test("the picker selects senders by box and by key, keeps the selection in the a
   expect(root.querySelector(".selection-bar .visually-hidden")?.textContent).toBe(
     "1 sender, 3 messages selected",
   );
-  // Shift with j extends the selection as the cursor moves.
+  // Shift with j extends the selection as the cursor moves, past a restricted row, which it leaves out.
   await press("J", { shiftKey: true });
+  expect(new URLSearchParams(location.search).getAll("pick")).toEqual(["newsletter.example"]);
+  await press("j");
+  await press("j");
+  await press("K", { shiftKey: true });
   expect(new URLSearchParams(location.search).getAll("pick")).toEqual([
     "newsletter.example",
-    marker("senderdomain"),
+    "mail.newsletter.example",
   ]);
   // Enter toggles the row under the cursor here, and never leaves the picker.
+  await press("j");
   await press("Enter");
   expect(location.pathname).toBe("/personal/policy/pick");
   expect(new URLSearchParams(location.search).getAll("pick")).toEqual(["newsletter.example"]);
@@ -776,7 +776,7 @@ test("Ctrl or Cmd with a selects every match across pages, and outside a field o
   );
   expect(
     [...root.querySelectorAll<HTMLInputElement>(".select-box input")].map((b) => b.checked),
-  ).toEqual([false, true, true, false, true]);
+  ).toEqual([false, true, false, false, true]);
 });
 
 test("Restrict as one rule hands the selection to Add a rule, whose Cancel returns to the picker as it was", async () => {
@@ -1085,7 +1085,10 @@ async function recording<T>(file: string): Promise<T> {
   return value;
 }
 
-test("a sender domain carrying markup arrives as text in the picker's row, its box's label and its Restrict control", async () => {
+// A domain carrying markup is one the classifier cannot read, so the server sends the sender restricted
+// with no rule, its box refused with the reason and no Restrict control (docs/UI.md section 8.7,
+// ADR-0136). The Restrict control's text is the next tests' sender row's.
+test("a sender domain carrying markup arrives as text in the picker's row and its box's label", async () => {
   const root = await open("/personal/policy/pick", picker);
   const mark = marker("senderdomain");
   const row = [...root.querySelectorAll("tbody tr")].find((tr) => tr.textContent?.includes(mark));
@@ -1098,11 +1101,8 @@ test("a sender domain carrying markup arrives as text in the picker's row, its b
   expect(cells[1]?.getAttribute("title")).toBe(mark);
   expect(cells[1]?.firstElementChild?.childElementCount).toBe(0);
   expect(row.querySelector("input")?.getAttribute("aria-label")).toBe(`Select ${mark}`);
-  const restrict = control(row, `Restrict ${mark}…`);
-  expect(restrict?.childElementCount).toBe(0);
-  expect(new URLSearchParams(restrict?.getAttribute("href")?.split("?")[1]).get("suffix")).toBe(
-    mark,
-  );
+  expect(row.querySelector("input")?.hasAttribute("disabled")).toBe(true);
+  expect(row.textContent).not.toContain("Restrict");
 });
 
 test("markup in a rule's identifier and suffixes arrives as text in its row, and nothing is built from it", async () => {
@@ -1154,6 +1154,8 @@ test("markup in a change's identifier, actor and suffixes arrives as text in its
   }
 });
 
+// Every row of the recording, a normal sender's Restrict {domain}… control included, carries the
+// marked domain.
 test("markup in a sender's domain arrives as text in the sender row", async () => {
   const mark = marker("senderrow");
   const page: { rows: SenderRow[] } = await recording("senders-rows.json");
@@ -1167,6 +1169,14 @@ test("markup in a sender's domain arrives as text in the sender row", async () =
     for (const tr of table.root.querySelectorAll("tbody tr")) {
       inert(tr, mark, ["TD", "A", "SPAN"]);
       expect(tr.querySelector("td")?.textContent).toBe(mark);
+    }
+    const restricts = [...table.root.querySelectorAll("tbody a")].filter(
+      (a) => a.textContent === `Restrict ${mark}…`,
+    );
+    expect(restricts.length).toBeGreaterThan(0);
+    for (const a of restricts) {
+      expect(a.childElementCount).toBe(0);
+      expect(new URLSearchParams(a.getAttribute("href")?.split("?")[1]).get("suffix")).toBe(mark);
     }
   } finally {
     table.unmount();

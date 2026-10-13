@@ -91,74 +91,22 @@ func (q *Queries) GateSkips(ctx context.Context) ([]GateSkipsRow, error) {
 
 const markDelisted = `-- name: MarkDelisted :execrows
 UPDATE messages
-SET sender_class = 'normal', class_rule_id = NULL, scan_state = 'pending'
+SET scan_state = 'pending'
 WHERE
     account_id = current_setting('app.account')
     AND from_domain = $1
-    AND (sender_class = 'restricted' OR scan_state = 'skipped_restricted')
+    AND scan_state = 'skipped_restricted'
 `
 
-// The delisting transition for one domain the policy in force no longer restricts. Its messages stored
-// restricted or skipped as restricted return to a normal sender class with no rule naming it, and to
-// pending scan (ADR-0037, ADR-0016).
+// The delisting transition for one domain the policy in force no longer restricts. Its messages
+// skipped as restricted return to pending scan (ADR-0037). A skipped message holds no verdict, so the
+// check that only a scanned message carries content flags holds (ADR-0016).
 func (q *Queries) MarkDelisted(ctx context.Context, domain string) (int64, error) {
 	result, err := q.db.Exec(ctx, markDelisted, domain)
 	if err != nil {
 		return 0, err
 	}
 	return result.RowsAffected(), nil
-}
-
-const markListed = `-- name: MarkListed :execrows
-UPDATE messages
-SET sender_class = 'restricted', class_rule_id = $1
-WHERE account_id = current_setting('app.account') AND from_domain = $2 AND sender_class = 'normal'
-`
-
-type MarkListedParams struct {
-	ClassRuleID pgtype.Text
-	Domain      string
-}
-
-// Restricts the stored class of one domain the policy in force now restricts under a rule. Its
-// messages stored as normal take the restricted class and the rule that sets it, and their scan state
-// is left as it is (ADR-0113, ADR-0016).
-func (q *Queries) MarkListed(ctx context.Context, arg MarkListedParams) (int64, error) {
-	result, err := q.db.Exec(ctx, markListed, arg.ClassRuleID, arg.Domain)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
-}
-
-const normalDomains = `-- name: NormalDomains :many
-SELECT DISTINCT m.from_domain
-FROM messages AS m
-WHERE m.account_id = current_setting('app.account') AND m.sender_class = 'normal'
-ORDER BY m.from_domain
-`
-
-// The sender domains of the account whose messages the index stores as normal, each once, which every
-// scanning workload compares with the policy in force, so a rule added since restricts the stored
-// classes (ADR-0113).
-func (q *Queries) NormalDomains(ctx context.Context) ([]string, error) {
-	rows, err := q.db.Query(ctx, normalDomains)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []string
-	for rows.Next() {
-		var from_domain string
-		if err := rows.Scan(&from_domain); err != nil {
-			return nil, err
-		}
-		items = append(items, from_domain)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
 }
 
 const pendingPage = `-- name: PendingPage :many
@@ -454,17 +402,14 @@ func (q *Queries) RequeueStaleVerdicts(ctx context.Context, arg RequeueStaleVerd
 const restrictedDomains = `-- name: RestrictedDomains :many
 SELECT DISTINCT m.from_domain
 FROM messages AS m
-WHERE
-    m.account_id = current_setting('app.account')
-    AND (m.sender_class = 'restricted' OR m.scan_state = 'skipped_restricted')
+WHERE m.account_id = current_setting('app.account') AND m.scan_state = 'skipped_restricted'
 ORDER BY m.from_domain
 `
 
-// The sender domains of the account whose messages the index stores as restricted or holds skipped as
-// restricted, each once, which the delisting transition compares with the policy in force (ADR-0037).
-// A rule added after a message was stored can leave its stored class normal while the gate skips it as
-// restricted, until the comparison for an added rule restricts the stored class (ADR-0113), so the
-// skip state is read as well.
+// The sender domains of the account's messages the scan gate skipped as restricted, each once, which
+// the delisting transition compares with the policy in force (ADR-0037). The index stores no sender
+// class (ADR-0136), and a message skipped as restricted is the one whose scan waits on its sender's
+// class. The partial index over the domains of those messages serves it.
 func (q *Queries) RestrictedDomains(ctx context.Context) ([]string, error) {
 	rows, err := q.db.Query(ctx, restrictedDomains)
 	if err != nil {
