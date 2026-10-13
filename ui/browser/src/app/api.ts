@@ -9,6 +9,7 @@ type Schemas = components["schemas"];
 export type Accounts = Schemas["Accounts"];
 export type Account = Schemas["Account"];
 export type System = Schemas["System"];
+export type Corpus = Schemas["Corpus"];
 export type Run = Schemas["Run"];
 export type LensFigures = Schemas["LensFigures"];
 export type Figure = Schemas["Figure"];
@@ -221,6 +222,10 @@ export function systemPath(account: string): string {
   return `/api/${encodeURIComponent(account)}/system`;
 }
 
+export function corpusPath(account: string): string {
+  return `/api/${encodeURIComponent(account)}/corpus`;
+}
+
 export function attentionPath(account: string): string {
   return `/api/${encodeURIComponent(account)}/attention`;
 }
@@ -343,6 +348,14 @@ export function readSystem(
   signal: AbortSignal,
 ): Promise<Result<System>> {
   return get<System>(fetch, path, signal);
+}
+
+export function readCorpus(
+  fetch: Fetch,
+  path: string,
+  signal: AbortSignal,
+): Promise<Result<Corpus>> {
+  return get<Corpus>(fetch, path, signal);
 }
 
 export function readAttention(

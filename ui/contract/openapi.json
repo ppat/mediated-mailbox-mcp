@@ -896,6 +896,13 @@
       "Corpus": {
         "additionalProperties": false,
         "properties": {
+          "account": {
+            "type": "string"
+          },
+          "as_of": {
+            "format": "date-time",
+            "type": "string"
+          },
           "audit_24h": {
             "additionalProperties": {
               "type": "integer"
@@ -922,6 +929,8 @@
           }
         },
         "required": [
+          "account",
+          "as_of",
           "messages",
           "threads",
           "unfiled",
@@ -4551,9 +4560,6 @@
             "format": "date-time",
             "type": "string"
           },
-          "corpus": {
-            "$ref": "#/components/schemas/Corpus"
-          },
           "decisions": {
             "$ref": "#/components/schemas/Decisions"
           },
@@ -4569,7 +4575,6 @@
           "provider",
           "as_of",
           "operational",
-          "corpus",
           "decisions"
         ],
         "type": "object"
@@ -6660,6 +6665,75 @@
         "summary": "Home's worth-a-look cards, each worded, in their order"
       }
     },
+    "/api/{account}/corpus": {
+      "get": {
+        "operationId": "getCorpus",
+        "parameters": [
+          {
+            "description": "The account every read is scoped to. all and an unknown account are refused",
+            "in": "path",
+            "name": "account",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Corpus"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Home's corpus figures, which count every message of the account, and the time they were read"
+      }
+    },
     "/api/{account}/events": {
       "get": {
         "operationId": "streamEvents",
@@ -8600,7 +8674,7 @@
             "description": "Service Unavailable"
           }
         },
-        "summary": "The account's operational, corpus and decisions blocks"
+        "summary": "The account's operational and decisions blocks"
       }
     }
   }

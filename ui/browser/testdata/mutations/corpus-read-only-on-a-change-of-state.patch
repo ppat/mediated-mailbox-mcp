@@ -1,0 +1,20 @@
+control: A screen's text, rows, cursor, focus, range fields and loading timers follow the route, answers, range and read in view
+removes: a backfill run event whose state Home already shows reads the corpus endpoint again only on a change of state, so the corpus rows stand still for the whole of a pass
+packages: ./ui/browser/test/home.test.tsx
+tests: a backfill run event reads the corpus endpoint again, and the corpus rows move with the pass
+scheduled-count: no
+runner: bun
+
+diff --git a/ui/browser/src/screens/home.tsx b/ui/browser/src/screens/home.tsx
+index b756c2e7..a49cd27e 100644
+--- a/ui/browser/src/screens/home.tsx
++++ b/ui/browser/src/screens/home.tsx
+@@ -112,7 +112,7 @@ export function onHomeRun(
+         void deps.jobs.refresh(jobsPath(account));
+       }
+     }
+-    if (changed || run.workload === "backfill") {
++    if (changed) {
+       void deps.corpus.refresh(corpusPath(account));
+     }
+   };

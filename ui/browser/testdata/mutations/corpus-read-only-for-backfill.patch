@@ -1,0 +1,20 @@
+control: A screen's text, rows, cursor, focus, range fields and loading timers follow the route, answers, range and read in view
+removes: a change of state of a run other than backfill's reads the corpus endpoint again not at all, so the corpus rows stand still across a delta-sync tick that fails
+packages: ./ui/browser/test/home.test.tsx
+tests: a shown run's change of state reads the jobs, system and corpus endpoints again, and its cell follows
+scheduled-count: no
+runner: bun
+
+diff --git a/ui/browser/src/screens/home.tsx b/ui/browser/src/screens/home.tsx
+index b756c2e7..5c32d838 100644
+--- a/ui/browser/src/screens/home.tsx
++++ b/ui/browser/src/screens/home.tsx
+@@ -112,7 +112,7 @@ export function onHomeRun(
+         void deps.jobs.refresh(jobsPath(account));
+       }
+     }
+-    if (changed || run.workload === "backfill") {
++    if (run.workload === "backfill") {
+       void deps.corpus.refresh(corpusPath(account));
+     }
+   };

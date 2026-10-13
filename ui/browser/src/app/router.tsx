@@ -308,6 +308,9 @@ function refetchPath(deps: Deps, path: string): Promise<unknown> {
   if (path.endsWith("/system")) {
     return deps.system.refresh(path);
   }
+  if (path.endsWith("/corpus")) {
+    return deps.corpus.refresh(path);
+  }
   return deps.jobs.refresh(path);
 }
 

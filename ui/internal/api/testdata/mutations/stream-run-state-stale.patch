@@ -6,15 +6,15 @@ scheduled-count: no
 integration: yes
 
 diff --git a/ui/internal/api/stream.go b/ui/internal/api/stream.go
-index 447dc00..082e6ed 100644
+index 0e15d510..2129830c 100644
 --- a/ui/internal/api/stream.go
 +++ b/ui/internal/api/stream.go
-@@ -142,7 +142,7 @@ func (s *Server) poll(ctx context.Context, account string, st *streamState) ([]e
- 		if err != nil {
+@@ -148,7 +148,7 @@ func (s *Server) poll(ctx context.Context, account string, st *streamState) ([]e
  			return err
  		}
+ 		read[key] = data
 -		if bytes.Equal(st.sent[key], data) {
 +		if _, sent := st.sent[key]; sent || bytes.Equal(st.sent[key], data) {
  			return nil
  		}
- 		st.sent[key] = data
+ 		events = append(events, event{name: name, data: data})

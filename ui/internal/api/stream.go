@@ -67,9 +67,9 @@ func eventTypes() map[string]schema.Type {
 
 // streamEvents is the live stream, one per account (ADR-0058). It polls the recorded state every
 // StreamInterval and sends one event per object whose state differs from what this stream last sent
-// it, with the object's whole current state, never a delta, so a missed event costs nothing. The first
-// poll sends every object it reads, so a subscriber that connects or reconnects starts from the
-// current state. The objects are the runs that are running or finished since the previous poll, the
+// of the objects its previous poll read, with the object's whole current state, never a delta, so a
+// missed event costs nothing. The first poll sends every object it reads, so a subscriber that
+// connects or reconnects starts from the current state. The objects are the runs that are running or finished since the previous poll, the
 // rate state, and the plans applying, each sent once more when it leaves APPLYING. A poll that
 // changed nothing writes a comment instead, so the stream is never idle. A failed poll ends the
 // stream, and the browser reconnects.
@@ -121,8 +121,11 @@ func (s *Server) streamEvents(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// streamState is what one stream has sent. sent holds each object's last sent state, keyed by kind
-// and identity, and known the plans the stream follows until they leave APPLYING.
+// streamState is what one stream has sent. sent holds the last sent state of each object the latest
+// poll read, keyed by kind and identity, and of no other, so it stays the size of one poll however
+// long the stream is open. A run that leaves the poll and is read again later is sent again, which
+// costs nothing, since every event is whole (docs/UI.md section 17.5). known holds the plans the
+// stream follows until they leave APPLYING.
 type streamState struct {
 	sent  map[string][]byte
 	known map[string]bool
@@ -138,15 +141,16 @@ type event struct {
 func (s *Server) poll(ctx context.Context, account string, st *streamState) ([]event, error) {
 	started := s.opts.Clock()
 	var events []event
+	read := map[string][]byte{}
 	changed := func(key, name string, v any) error {
 		data, err := json.Marshal(v)
 		if err != nil {
 			return err
 		}
+		read[key] = data
 		if bytes.Equal(st.sent[key], data) {
 			return nil
 		}
-		st.sent[key] = data
 		events = append(events, event{name: name, data: data})
 		return nil
 	}
@@ -207,6 +211,7 @@ func (s *Server) poll(ctx context.Context, account string, st *streamState) ([]e
 	if err != nil {
 		return nil, err
 	}
+	st.sent = read
 	// A run finishing while this poll read is caught by the next, which reads from this poll's start
 	// less one interval, since the workloads stamp their own times.
 	st.since = started.Add(-s.opts.StreamInterval)

@@ -519,7 +519,8 @@ class's used of reserved show the latest event for their run or for the rate, bo
 alone, so an event redraws that text and re-renders nothing else. A run event for a run no cell
 shows, or whose state differs from the one shown, reads the jobs endpoint again, and a change of
 state also reads the system endpoint again, for the chrome's running mark and the reorg apply
-cell's count of plans in DRAFT. The rest of Home is not live.
+cell's count of plans in DRAFT, and the corpus endpoint again, for the System column's corpus rows.
+The System column's own refresh is stated with it below. The rest of Home is not live.
 
 **Awaiting your decision**, fed by the plans dataset filtered to DRAFT and the candidates dataset
 filtered to pending. Plans first, oldest first. Then candidates by score, highest first. The
@@ -612,16 +613,17 @@ rule's name in the table. What each rule reads, and what its number and since ar
   everywhere in the UI. The endpoint sends each card's link as the table states it, and the browser
   decides whether the screen exists.
 
-**System**, the right column, fed by the system endpoint's three blocks. As-of time first, then
-one row per value, each a link.
+**System**, the right column, fed by the system endpoint's operational block and by the corpus
+endpoint ([section 17.4](#174-the-bespoke-endpoints)). As-of time first, then one row per value,
+each a link.
 
-| Block | Value | Links to |
+| Read | Value | Links to |
 | --- | --- | --- |
-| operational | backfill pass 1, complete or its progress | Jobs |
-| operational | backfill pass 2, percent and pending count | the corpus lens with `scan_state=pending` |
-| operational | sync cursor age and last successful tick | Jobs |
-| operational | rate, current of target, cap, backoff wording | Jobs |
-| operational | last provider authentication outcome and time | Account settings ([section 8.13](#813-account-settings)) |
+| system, operational | backfill pass 1, complete or its progress | Jobs |
+| system, operational | backfill pass 2, percent and pending count | the corpus lens with `scan_state=pending` |
+| system, operational | sync cursor age and last successful tick | Jobs |
+| system, operational | rate, current of target, cap, backoff wording | Jobs |
+| system, operational | last provider authentication outcome and time | Account settings ([section 8.13](#813-account-settings)) |
 | corpus | audit last 24 hours, one row per action (body served, body denied, mutation applied, mutation refused) | the audit lens at L3 with `action=` that value and `range=24h` |
 | corpus | messages | the corpus lens at L1 |
 | corpus | threads | the corpus lens at L1 |
@@ -630,11 +632,27 @@ one row per value, each a link.
 | corpus | masking events, last 7 days | the masking lens at L1 |
 | corpus | gate skips of decisions, last 7 days | the gate lens at L1 with `decision=skip` |
 
+The operational rows read the system endpoint through the cached read the partial-index banner
+refreshes, so while the banner shows they move with the pass ([section 9](#9-live-surfaces)). The
+corpus rows read the corpus endpoint, which Home reads again on every backfill run event and on
+every run event whose state differs from the one last seen or shown, so while a pass runs they move
+with it as the operational rows do. The corpus endpoint counts every message of the account, so
+only Home, the one screen that shows its figures, reads it. Reading the corpus figures again only
+when a run's state changes was the alternative, and it would leave the message and thread counts
+standing still for the whole of a pass 1 while Home is open.
+
+Each of the two reads carries the time it was read, and the column's as-of time is the older of
+the two, so it never claims figures fresher than they are. Away from Home the banner keeps the
+system read fresh while nothing reads the corpus figures, and on returning they show the last
+visit's answer until the corpus read lands. Two alternatives were rejected. Showing the system
+read's time alone, with this section saying so, would leave the line claiming more than holds for
+the corpus rows. Leaving it as it was would do the same without saying so.
+
 A row whose screen does not exist yet renders its value unlinked, as the system screen's rows do
 ([section 8.8](#88-system)).
 
-The corpus block's masking count measures masking activity in the window, so it includes the masks a
-change of scanner records when it masks every subject again
+The corpus endpoint's masking count measures masking activity in the window, so it includes the
+masks a change of scanner records when it masks every subject again
 ([ADR-0120](./adr/redaction/0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md)). It can
 then exceed the masking lens's count, which counts only the masks of each subject as it now stands.
 
@@ -1804,6 +1822,27 @@ and on every poll of the fallback, so its figures move with the pass. It is not 
 shows no live indicator. Reading the system endpoint only on page load was the alternative, and it
 would leave a pass's progress frozen on a screen left open.
 
+The tab holds one cached read of the system endpoint per account, and every surface that shows a
+value of it renders from that read. Each read again the banner makes therefore moves all of them
+with the pass, on whichever screen is open.
+
+| Surface | Read | Read again while a pass runs |
+| --- | --- | --- |
+| The partial-index banner and the refused-credential banner ([section 12](#12-empty-loading-partial-and-error-patterns)) | system | on every backfill run event, by the banner |
+| The Jobs mark and the review queue count of the navigation ([section 6](#6-global-chrome)) | system | as the banners |
+| The "so far" on a lens's counts ([section 12](#12-empty-loading-partial-and-error-patterns)) | system | as the banners |
+| Home's System column, its operational rows ([section 8.1](#81-home)) | system | as the banners |
+| Home's System column, its corpus rows | corpus | on every backfill run event, by Home |
+| The System screen ([section 8.8](#88-system)) | system | as the banners |
+| The jobs cards' counts of plans in DRAFT and candidates awaiting review ([section 8.3](#83-jobs)) | system | as the banners |
+
+The system endpoint holds no figure that counts the whole corpus. Home's are the corpus
+endpoint's, which Home alone reads. The attention endpoint's backlog rule also counts the whole
+corpus, for its share, and Home reads it only when it loads and on a reconnect or a poll. Giving the banner a read of its own, of the passes and the pending count
+alone, was the alternative. It would have spared the system endpoint's other statements on each
+event, but every other surface in the table above renders from the system read, so each would then
+stand still between a run's start and its end.
+
 A tab holds one stream connection per account, whichever surfaces follow it. Home's strip and the
 banner, Jobs and the banner, and a run and the banner each share the account's one connection, which
 opens when the first of them starts following and closes when the last stops. Each event reaches
@@ -2390,7 +2429,8 @@ Every failure is one shape, and the origin mirrors
 | `GET /api/{account}/jobs` | one block per workload with its derived workload state and the card fields of [section 8.3](#83-jobs), the rate block (current, target, cap, backoff, last throttle, and reserved and used per class), and the cadences from configuration |
 | `GET /api/{account}/jobs/{run}` | the run as the jobs endpoint sends it, the latest run whose `resumed_from` names it, its item failures counted in all and per disposition, the runs that recovered its items with how many each, and every event of its timeline (kind, time, page, detail) in the order recorded. An unknown run is refused with the client's 404, `unknown_run` |
 | `GET /api/{account}/attention` | the "worth a look" cards of [section 8.1](#81-home), in their order, each with its rule id (`backlog`, `masking`, `body_serves`, `sync_gap`, `expiry`), what, number, since (`null` when the rule has none), the sentence, and the link the rule's table names |
-| `GET /api/{account}/system` | three blocks. `operational`, the values of [section 8.8](#88-system) and the finish time of backfill pass 1's latest succeeded run, which tells the partial-index banner a re-opened pass 1 from a first one ([section 12](#12-empty-loading-partial-and-error-patterns)); `corpus`, the at-a-glance figures of Home's System column; `decisions`, the counts of plans in DRAFT, candidates pending, and workloads running, which the chrome's counters read |
+| `GET /api/{account}/system` | two blocks. `operational`, the values of [section 8.8](#88-system) and the finish time of backfill pass 1's latest succeeded run, which tells the partial-index banner a re-opened pass 1 from a first one ([section 12](#12-empty-loading-partial-and-error-patterns)); `decisions`, the counts of plans in DRAFT, candidates pending, and workloads running, which the chrome's counters read. It counts nothing over every message of the account, since the banner reads it again on every backfill run event ([section 9](#9-live-surfaces)) |
+| `GET /api/{account}/corpus` | the corpus figures of Home's System column ([section 8.1](#81-home)) with `as_of`, the time the read transaction began, then the messages, threads, unfiled and restricted messages of the account, the audit rows of the last 24 hours by action as stored, each action present with zero when no row has it, the masking events and the gate's skips of the last 7 days. It counts every message of the account, which is why it is a read apart from the system endpoint, read by Home alone |
 | `GET /api/{account}/events` | the live stream, `text/event-stream` |
 | `GET /api/setup` | the installation endpoint. The providers whose accounts connect through an OAuth client, each OAuth client's name, provider, client identifier and project ID with the accounts connected through it, every account's identifier, provider and the client it connects through, and the count of base rules. Unscoped, and reads nothing of any account's state, so the getting-started list of [section 8.10](#810-installation) reads whether an account exists, never whether one is connected |
 | `POST /api/setup/{provider}/clients` with `{ "name": "…", "client_id": "…", "client_secret": "…", "project_id": "…" }` | checks a new client with the provider and stores it under its name, the secret sealed and the project ID beside it, `null` when neither step 1 nor the file gave one. 200 when stored, the client's 400 `client_refused` when the provider refuses it or the identifier or the secret is empty, the provider's 502 `provider_unreachable` when it does not answer, 400 `name_refused` for a name [section 8.11](#811-oauth-client-setup) refuses, 400 `project_refused` for a project ID not shaped like one, 409 `name_taken` or `client_exists`, the latter naming the client that holds the identifier, and 404 `unknown_provider` for a provider that authenticates through no OAuth client. Unscoped |
@@ -2456,6 +2496,17 @@ data: {"account": "personal", "plan_id": "…", "status": "APPLYING", "applied":
 ```
 
 The cadence, reconnection, and fallback rules are ADR-0058's. A poll that changed nothing writes a comment line instead of an event, so a proxy in front never closes the stream as idle.
+
+A stream remembers what it last sent of the objects its latest poll read, and of nothing else, so
+what it holds stays the size of one poll however long the tab stays open. A run that leaves the poll
+and is read again later is sent again, which costs nothing, since every event is whole
+([ADR-0058](./adr/operability/0058-live-surfaces-stream-over-server-sent-events.md)). Remembering
+every object the stream ever sent was the alternative, and it grows by every run of the account for
+as long as the stream is open.
+
+The UI's server closes a connection that sits idle between requests for two minutes. It sets no
+timeout on writing a response, since that would cut an open stream, which is one response that
+never ends.
 
 ## 18. Repository and build layout
 

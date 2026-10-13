@@ -1,0 +1,16 @@
+{
+  "account": "other",
+  "as_of": "2026-09-10T10:16:04Z",
+  "messages": 1,
+  "threads": 1,
+  "unfiled": 1,
+  "restricted": 0,
+  "audit_24h": {
+    "DENY_BODY": 0,
+    "DENY_MUTATE": 0,
+    "MUTATE": 0,
+    "READ_BODY": 1
+  },
+  "masking_events_7d": 30,
+  "gate_skips_7d": 0
+}

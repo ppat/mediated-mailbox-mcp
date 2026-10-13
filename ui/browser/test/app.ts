@@ -8,7 +8,7 @@ import { makeDeps, regionTiming, type Deps, type Timers } from "../src/app/deps.
 import type { Channel, GuideMessage, Guides } from "../src/app/guide.ts";
 import type { LiveObjects } from "../src/app/stream.ts";
 import type { LiveStatus } from "../src/app/transport.ts";
-import { attentionPath, jobsPath } from "../src/app/api.ts";
+import { attentionPath, corpusPath, jobsPath } from "../src/app/api.ts";
 import { oldestCandidates, pendingCandidates } from "../src/screens/home.tsx";
 import { ok, type Answer, type Recorded } from "./fixtures/fetch.ts";
 
@@ -183,6 +183,7 @@ export function homeAnswers(account: "personal" | "other"): Record<string, Answe
   const suffix = account === "personal" ? "" : "-other";
   return {
     [jobsPath(account)]: ok(`jobs${suffix}.json`),
+    [corpusPath(account)]: ok(`corpus${suffix}.json`),
     [attentionPath(account)]: ok(`attention${suffix}.json`),
     [pendingCandidates(account)]: ok(`candidates-rows-pending${suffix}.json`),
     [oldestCandidates(account)]: ok(`candidates-rows-pending-oldest${suffix}.json`),

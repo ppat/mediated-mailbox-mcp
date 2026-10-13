@@ -16,20 +16,6 @@
     "last_auth_at": null,
     "last_auth_outcome": null
   },
-  "corpus": {
-    "messages": 0,
-    "threads": 0,
-    "unfiled": 0,
-    "restricted": 0,
-    "audit_24h": {
-      "DENY_BODY": 0,
-      "DENY_MUTATE": 0,
-      "MUTATE": 0,
-      "READ_BODY": 0
-    },
-    "masking_events_7d": 0,
-    "gate_skips_7d": 0
-  },
   "decisions": {
     "plans_draft": 0,
     "candidates_pending": 0,

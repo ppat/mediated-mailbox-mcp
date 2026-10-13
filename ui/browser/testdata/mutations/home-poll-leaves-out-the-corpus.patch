@@ -1,0 +1,19 @@
+control: A screen's text, rows, cursor, focus, range fields and loading timers follow the route, answers, range and read in view
+removes: Home's poll and reconnect read every read of Home's but the corpus endpoint again, so the corpus rows keep the counts Home first read
+packages: ./ui/browser/test/home.test.tsx
+tests: a run event for a run the strip does not show reads the jobs endpoint again, and a poll every read
+scheduled-count: no
+runner: bun
+
+diff --git a/ui/browser/src/screens/home.tsx b/ui/browser/src/screens/home.tsx
+index b756c2e7..e2bc2ab6 100644
+--- a/ui/browser/src/screens/home.tsx
++++ b/ui/browser/src/screens/home.tsx
+@@ -123,7 +123,6 @@ export function homeReads(account: string): string[] {
+   return [
+     jobsPath(account),
+     systemPath(account),
+-    corpusPath(account),
+     attentionPath(account),
+     pendingCandidates(account),
+     oldestCandidates(account),

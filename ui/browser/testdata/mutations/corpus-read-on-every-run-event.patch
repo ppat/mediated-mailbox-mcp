@@ -1,0 +1,20 @@
+control: A screen's text, rows, cursor, focus, range fields and loading timers follow the route, answers, range and read in view
+removes: every run event reads the corpus endpoint again, whatever its workload and whether or not its state changed, so a run event that changes nothing still sends the full-corpus count
+packages: ./ui/browser/test/home.test.tsx
+tests: a shown run's change of state reads the jobs, system and corpus endpoints again, and its cell follows
+scheduled-count: no
+runner: bun
+
+diff --git a/ui/browser/src/screens/home.tsx b/ui/browser/src/screens/home.tsx
+index b756c2e7..e5d59468 100644
+--- a/ui/browser/src/screens/home.tsx
++++ b/ui/browser/src/screens/home.tsx
+@@ -112,7 +112,7 @@ export function onHomeRun(
+         void deps.jobs.refresh(jobsPath(account));
+       }
+     }
+-    if (changed || run.workload === "backfill") {
++    {
+       void deps.corpus.refresh(corpusPath(account));
+     }
+   };

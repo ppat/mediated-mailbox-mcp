@@ -9,8 +9,8 @@ import (
 )
 
 type Querier interface {
-	// The scan gate's decisions of one kind since a time, the skips on the system endpoint's corpus block
-	// (docs/UI.md section 8.1).
+	// The scan gate's decisions of one kind since a time, the skips the corpus endpoint counts (docs/UI.md
+	// section 8.1).
 	GateDecisionCount(ctx context.Context, arg GateDecisionCountParams) (int64, error)
 }
 

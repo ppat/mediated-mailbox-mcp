@@ -9,8 +9,8 @@ import (
 )
 
 type Querier interface {
-	// The audit rows written since a time, counted per action, for the system endpoint's corpus block
-	// (docs/UI.md section 8.1). An action with no row has no count.
+	// The audit rows written since a time, counted per action, for the corpus endpoint (docs/UI.md
+	// section 8.1). An action with no row has no count.
 	AuditActionCounts(ctx context.Context, arg AuditActionCountsParams) ([]AuditActionCountsRow, error)
 	// The bodies served on each UTC day from one time up to another, one row per day that has a serve, the
 	// daily counts the body-serve rule takes its median of (docs/UI.md section 8.1).

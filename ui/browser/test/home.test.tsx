@@ -9,14 +9,17 @@ import { act } from "preact/test-utils";
 import {
   accountsPath,
   attentionPath,
+  corpusPath,
   jobsPath,
   systemPath,
+  type Corpus,
   type Jobs,
   type System,
 } from "../src/app/api.ts";
 import { LiveProgress, LiveText } from "../src/app/live.tsx";
 import { App } from "../src/app/router.tsx";
 import {
+  asOf,
   corpusValues,
   HomeScreen,
   oldestCandidates,
@@ -211,7 +214,14 @@ test("an event redraws the strip's run and the batch class, and nothing re-runs"
 });
 
 test("a run event for a run the strip does not show reads the jobs endpoint again, and a poll every read", async () => {
-  await open();
+  // The mount and the new run's event each read the corpus once before the poll, so the poll's read
+  // is the third, and the attention endpoint's the second.
+  const root = await open("/personal", {
+    ...chrome,
+    ...homeAnswers("personal"),
+    [corpusPath("personal")]: [ok("corpus.json"), ok("corpus.json"), ok("corpus-later.json")],
+    [attentionPath("personal")]: [ok("attention.json"), ok("attention-later.json")],
+  });
   const reads = (path: string) => server?.calls.filter((c) => c === path).length ?? 0;
   const jobs: Jobs = await recording("jobs.json");
   const tick = jobs.sync.last_tick;
@@ -224,14 +234,50 @@ test("a run event for a run the strip does not show reads the jobs endpoint agai
   const paths = [
     jobsPath("personal"),
     systemPath("personal"),
+    corpusPath("personal"),
     attentionPath("personal"),
     pendingCandidates("personal"),
     oldestCandidates("personal"),
   ];
   const counts = paths.map(reads);
+  const shown = () => [
+    values(root, "Corpus").find(([label]) => label === "Messages")?.[1],
+    root.querySelector('.worth-a-look article[aria-label="Sync gap"] .attention-sentence')
+      ?.textContent,
+  ];
+  const shownBefore = shown();
   await act(() => connections.find((c) => c.open)?.refetch());
   await settle();
   expect(paths.map(reads)).toEqual(counts.map((n) => n + 1));
+  // Each read lands in the cache its region renders from, so the poll moves what Home shows.
+  expect(shownBefore).toEqual([
+    "5",
+    "Delta sync recovered from a cursor gap on 2026-09-08 10:16Z, re-enumerating a 6h window and reconciling 41 messages. A repeated gap means the cadence or the cursor lifetime needs attention.",
+  ]);
+  expect(shown()).toEqual([
+    "6",
+    "Delta sync recovered from a cursor gap on 2026-09-10 10:14Z, re-enumerating a 1h window and reconciling 3 messages. A repeated gap means the cadence or the cursor lifetime needs attention.",
+  ]);
+});
+
+test("the System column's as-of time is the older of the system and corpus reads' times", async () => {
+  const system: System = await recording("system.json");
+  const corpus: Corpus = await recording("corpus.json");
+  expect(asOf(system, undefined)).toBe(system.as_of);
+  expect(asOf(system, { ...corpus, as_of: "2026-09-10T10:10:00Z" })).toBe("2026-09-10T10:10:00Z");
+  expect(asOf(system, { ...corpus, as_of: "2026-09-10T10:20:00Z" })).toBe(system.as_of);
+});
+
+test("the System column's as-of line shows the corpus read's time when that read is the older", async () => {
+  // corpus-earlier.json is the corpus answer from a server whose clock read a minute before the
+  // system answer's.
+  const root = await open("/personal", {
+    ...chrome,
+    ...homeAnswers("personal"),
+    [corpusPath("personal")]: ok("corpus-earlier.json"),
+  });
+  expect(values(root, "Corpus").find(([label]) => label === "Messages")?.[1]).toBe("5");
+  expect(root.querySelector(".home-system .as-of")?.textContent).toBe("as of 2026-09-10 10:15Z");
 });
 
 test("the inbox lists the pending candidates by score with their strongest signals, unlinked", async () => {
@@ -345,7 +391,7 @@ test("worth a look shows each card newest first, linking only into a screen that
   );
 });
 
-test("the System column shows the operational and corpus blocks, linking where a screen exists", async () => {
+test("the System column shows the operational rows and the corpus figures, linking where a screen exists", async () => {
   const root = await open();
   expect(root.querySelector(".home-system .as-of")?.textContent).toBe("as of 2026-09-10 10:16Z");
   expect(values(root, "Operational")).toEqual([
@@ -384,7 +430,8 @@ test("while backfill pass 1 runs, the corpus counts are counts so far", async ()
       backfill_pass1_succeeded_at: null,
     },
   };
-  expect(corpusValues(indexing).map((v) => v.text)).toEqual([
+  const corpus: Corpus = await recording("corpus.json");
+  expect(corpusValues(indexing, corpus).map((v) => v.text)).toEqual([
     "1 so far",
     "1 so far",
     "0 so far",
@@ -400,7 +447,8 @@ test("while backfill pass 1 runs, the corpus counts are counts so far", async ()
 
 test("while a re-opened backfill pass 1 runs, the corpus counts are not counts so far", async () => {
   const reopened: System = await recording("system-reopened.json");
-  expect(corpusValues(reopened).map((v) => v.text)).toEqual([
+  const corpus: Corpus = await recording("corpus.json");
+  expect(corpusValues(reopened, corpus).map((v) => v.text)).toEqual([
     "1",
     "1",
     "0",
@@ -500,14 +548,16 @@ test("the strip and the banner share the account's one connection, which closes 
     throw new Error("the recording holds no pass 2 run");
   }
   const before = reads(systemPath("personal"));
-  // One backfill event reaches both, the banner reading the system endpoint again and the strip
-  // redrawing its checkpoint.
+  const corpusBefore = reads(corpusPath("personal"));
+  // One backfill event reaches both, the banner reading the system endpoint again, Home the corpus
+  // endpoint, and the strip redrawing its checkpoint.
   await deliver("run", {
     ...pass2,
     account: "personal",
     checkpoint: JSON.parse('{"page": 3200, "of": 3368}'),
   });
   expect(reads(systemPath("personal"))).toBe(before + 1);
+  expect(reads(corpusPath("personal"))).toBe(corpusBefore + 1);
   expect(field(root, "Backfill", "checkpoint")?.textContent).toBe("page 3,200 of 3,368 (95.0%)");
 
   // On the system screen only the banner follows. Home's connection has closed, and a poll on the
@@ -525,10 +575,20 @@ test("the strip and the banner share the account's one connection, which closes 
   ];
   const counts = homeReads.map(reads);
   const systemBefore = reads(systemPath("personal"));
+  const corpusAway = reads(corpusPath("personal"));
   await act(() => connections.find((c) => c.open)?.refetch());
   await settle();
   expect(homeReads.map(reads)).toEqual(counts);
   expect(reads(systemPath("personal"))).toBe(systemBefore + 1);
+  // A backfill event away from Home reads the system endpoint again for the banner, and the corpus
+  // endpoint, which only Home shows, not at all.
+  await deliver("run", {
+    ...pass2,
+    account: "personal",
+    checkpoint: JSON.parse('{"page": 3250, "of": 3368}'),
+  });
+  expect(reads(systemPath("personal"))).toBe(systemBefore + 2);
+  expect(reads(corpusPath("personal"))).toBe(corpusAway);
   mounted?.unmount();
   mounted = undefined;
   expect(connections.filter((c) => c.open)).toEqual([]);
@@ -613,7 +673,32 @@ test("a pass that starts while Home is open draws its checkpoint and bar on its 
   }
 });
 
-test("a shown run's change of state reads the jobs and system endpoints again, and its cell follows", async () => {
+test("a backfill run event reads the corpus endpoint again, and the corpus rows move with the pass", async () => {
+  const root = await open("/personal", {
+    ...chrome,
+    ...homeAnswers("personal"),
+    [corpusPath("personal")]: [ok("corpus.json"), ok("corpus-later.json")],
+  });
+  const messages = () =>
+    values(root, "Corpus")
+      .filter(([label]) => label === "Messages" || label === "Threads")
+      .map(([label, value]) => `${label} ${value}`);
+  expect(messages()).toEqual(["Messages 5", "Threads 4"]);
+  const system: System = await recording("system.json");
+  const pass2 = system.operational.backfill_pass2_run;
+  if (pass2 === null) {
+    throw new Error("the recording holds no pass 2 run");
+  }
+  // Pass 2 stays running, so only the event's being a backfill run's reads the corpus again.
+  await deliver("run", {
+    ...pass2,
+    account: "personal",
+    checkpoint: JSON.parse('{"page": 3300, "of": 3368}'),
+  });
+  expect(messages()).toEqual(["Messages 6", "Threads 5"]);
+});
+
+test("a shown run's change of state reads the jobs, system and corpus endpoints again, and its cell follows", async () => {
   const root = await open();
   const reads = (path: string) => server?.calls.filter((c) => c === path).length ?? 0;
   const jobs: Jobs = await recording("jobs.json");
@@ -622,7 +707,11 @@ test("a shown run's change of state reads the jobs and system endpoints again, a
   if (tick === null) {
     throw new Error("the recording holds no tick");
   }
-  const counts = () => [reads(jobsPath("personal")), reads(systemPath("personal"))];
+  const counts = () => [
+    reads(jobsPath("personal")),
+    reads(systemPath("personal")),
+    reads(corpusPath("personal")),
+  ];
   const before = counts();
   // The same state again reads nothing.
   await deliver("run", { ...tick, account: "personal" });

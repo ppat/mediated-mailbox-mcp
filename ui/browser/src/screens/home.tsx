@@ -5,12 +5,14 @@
 // not live. Nothing here links to a screen that does not exist yet.
 import {
   attentionPath,
+  corpusPath,
   isRowsPage,
   jobsPath,
   lensPath,
   systemPath,
   type AttentionCard,
   type CandidateRow,
+  type Corpus as CorpusFigures,
   type Jobs,
   type RateEvent,
   type Run,
@@ -86,7 +88,9 @@ export function HomeScreen(props: { account: string; live: Stream }) {
 // onHomeRun is what a run event does to Home. A run no cell shows, or a shown run whose state differs
 // from the one last seen or shown, reads the jobs endpoint again, and a change of state also reads the
 // system endpoint again, for the chrome's running mark and the reorg apply cell's count of plans in
-// DRAFT (section 8.1).
+// DRAFT, and the corpus endpoint again. Every backfill run event also reads the corpus endpoint again,
+// so the System column's corpus rows move with the pass as its operational rows do, which the
+// partial-index banner's reads of the system endpoint move (sections 8.1 and 9).
 export function onHomeRun(
   deps: Deps,
   account: string,
@@ -100,12 +104,16 @@ export function onHomeRun(
     if (!known.has(run.run_id)) {
       void deps.jobs.refresh(jobsPath(account));
     }
-    if ((seen.get(run.run_id) ?? known.get(run.run_id)) !== run.state) {
+    const changed = (seen.get(run.run_id) ?? known.get(run.run_id)) !== run.state;
+    if (changed) {
       seen.set(run.run_id, run.state);
       void deps.system.refresh(systemPath(account));
       if (known.has(run.run_id)) {
         void deps.jobs.refresh(jobsPath(account));
       }
+    }
+    if (changed || run.workload === "backfill") {
+      void deps.corpus.refresh(corpusPath(account));
     }
   };
 }
@@ -115,6 +123,7 @@ export function homeReads(account: string): string[] {
   return [
     jobsPath(account),
     systemPath(account),
+    corpusPath(account),
     attentionPath(account),
     pendingCandidates(account),
     oldestCandidates(account),
@@ -511,7 +520,8 @@ function SystemColumn(props: { account: string }) {
 }
 
 // SystemFigures reads the system endpoint through the cache the partial-index banner reads, so both
-// share one request and one answer.
+// share one request and one answer, and the corpus endpoint for the corpus rows. Its as-of time is
+// the older of the two reads' (section 8.1).
 function SystemFigures(props: { account: string }) {
   const { system, now } = useDeps();
   const path = systemPath(props.account);
@@ -524,11 +534,9 @@ function SystemFigures(props: { account: string }) {
     >
       {(answer) => (
         <>
-          <p class="as-of muted" title={local(answer.as_of)}>
-            as of {utc(answer.as_of)}
-          </p>
+          <AsOf account={props.account} system={answer} />
           <Values label="Operational" values={operationalValues(answer, now())} />
-          <Corpus system={answer} />
+          <Corpus account={props.account} system={answer} />
         </>
       )}
     </Region>
@@ -584,10 +592,10 @@ export function operationalValues(system: System, now: number): Value[] {
   ];
 }
 
-// corpusValues are the System column's corpus rows, each a count so far while a first backfill pass 1
-// runs (section 12). None links yet, since the lenses they link to do not exist.
-export function corpusValues(system: System): Value[] {
-  const c = system.corpus;
+// corpusValues are the System column's corpus rows, read from the corpus endpoint, each a count so far
+// while the system endpoint reads a first backfill pass 1 running (section 12). None links yet, since
+// the lenses they link to do not exist.
+export function corpusValues(system: System, c: CorpusFigures): Value[] {
   const sofar = indexing(system) ? " so far" : "";
   const n = (v: number) => `${count(v)}${sofar}`;
   return [
@@ -605,12 +613,51 @@ export function corpusValues(system: System): Value[] {
   ];
 }
 
-// Corpus is the corpus rows, or with backfill pass 1 not started, neither complete nor with a run, the
-// sentence that the index is empty (section 8.1).
-function Corpus(props: { system: System }) {
-  const op = props.system.operational;
-  if (!op.backfill_pass1_complete && op.backfill_pass1_run === null) {
+// asOf is the System column's as-of time, the older of the system read's and, once it has answered,
+// the corpus read's, so the line never claims figures fresher than they are (section 8.1).
+export function asOf(system: System, corpus: CorpusFigures | undefined): string {
+  return corpus !== undefined && Date.parse(corpus.as_of) < Date.parse(system.as_of)
+    ? corpus.as_of
+    : system.as_of;
+}
+
+// indexEmpty reports backfill pass 1 not started, neither complete nor with a run, when the column
+// shows the sentence that the index is empty in place of the corpus rows (section 8.1).
+function indexEmpty(system: System): boolean {
+  const op = system.operational;
+  return !op.backfill_pass1_complete && op.backfill_pass1_run === null;
+}
+
+// AsOf is the System column's as-of line. It reads the corpus endpoint only when the column shows the
+// corpus rows.
+function AsOf(props: { account: string; system: System }) {
+  const { corpus } = useDeps();
+  const state = indexEmpty(props.system) ? undefined : corpus.read(corpusPath(props.account)).value;
+  const at = asOf(props.system, state?.status === "ok" ? state.answer : undefined);
+  return (
+    <p class="as-of muted" title={local(at)}>
+      as of {utc(at)}
+    </p>
+  );
+}
+
+// Corpus is the corpus rows, a region of the corpus endpoint's read inside the system read's, or with
+// backfill pass 1 not started, neither complete nor with a run, the sentence that the index is empty
+// (section 8.1).
+function Corpus(props: { account: string; system: System }) {
+  const { corpus } = useDeps();
+  if (indexEmpty(props.system)) {
     return <p class="muted">The index is empty. Backfill pass 1 has not started.</p>;
   }
-  return <Values label="Corpus" values={corpusValues(props.system)} />;
+  const path = corpusPath(props.account);
+  return (
+    <Region
+      name="corpus"
+      state={corpus.read(path)}
+      shape="block"
+      retry={() => void corpus.retry(path)}
+    >
+      {(figures) => <Values label="Corpus" values={corpusValues(props.system, figures)} />}
+    </Region>
+  );
 }

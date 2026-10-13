@@ -31,8 +31,8 @@ type AuditActionCountsRow struct {
 	Entries int64
 }
 
-// The audit rows written since a time, counted per action, for the system endpoint's corpus block
-// (docs/UI.md section 8.1). An action with no row has no count.
+// The audit rows written since a time, counted per action, for the corpus endpoint (docs/UI.md
+// section 8.1). An action with no row has no count.
 func (q *Queries) AuditActionCounts(ctx context.Context, arg AuditActionCountsParams) ([]AuditActionCountsRow, error) {
 	rows, err := q.db.Query(ctx, auditActionCounts, arg.AccountID, arg.Since)
 	if err != nil {

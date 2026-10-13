@@ -67,8 +67,13 @@ func Bespoke() []Route {
 		},
 		{
 			Pattern: "/api/{account}/system", Operation: "getSystem", Scoped: true,
-			Summary:  "The account's operational, corpus and decisions blocks",
+			Summary:  "The account's operational and decisions blocks",
 			Response: systemType(),
+		},
+		{
+			Pattern: "/api/{account}/corpus", Operation: "getCorpus", Scoped: true,
+			Summary:  "Home's corpus figures, which count every message of the account, and the time they were read",
+			Response: corpusType(),
 		},
 		{
 			Pattern: "/api/{account}/jobs", Operation: "getJobs", Scoped: true,

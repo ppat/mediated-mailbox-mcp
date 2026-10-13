@@ -81,20 +81,6 @@
     "last_auth_at": "2026-09-10T04:16:04Z",
     "last_auth_outcome": "succeeded"
   },
-  "corpus": {
-    "messages": 5,
-    "threads": 4,
-    "unfiled": 3,
-    "restricted": 1,
-    "audit_24h": {
-      "DENY_BODY": 1,
-      "DENY_MUTATE": 0,
-      "MUTATE": 0,
-      "READ_BODY": 1
-    },
-    "masking_events_7d": 22,
-    "gate_skips_7d": 1
-  },
   "decisions": {
     "plans_draft": 1,
     "candidates_pending": 6,

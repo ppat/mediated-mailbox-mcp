@@ -165,6 +165,7 @@ func New(opts Options) (*Server, error) {
 		"getLens":           s.lens,
 		"listAccounts":      s.listAccounts,
 		"getSystem":         s.getSystem,
+		"getCorpus":         s.getCorpus,
 		"getAttention":      s.getAttention,
 		"getJobs":           s.getJobs,
 		"getRun":            s.getRun,
