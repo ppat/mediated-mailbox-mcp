@@ -310,6 +310,14 @@ type rangeRef struct {
 	through []*rangeRef
 	// insertValue is set for an insert whose account value comes from a column of a query.
 	insertValue *rangeRef
+	// derived is set for a subquery in a FROM list, whose outputs source follows.
+	derived *derived
+}
+
+// derived is a FROM-list subquery's scope and output list.
+type derived struct {
+	scope   *scope
+	targets []*pg.Node
 }
 
 type scope struct {
@@ -364,6 +372,38 @@ func (s *scope) resolve(ref *pg.ColumnRef) (r *rangeRef, col string, known bool)
 	return nil, col, false
 }
 
+// source resolves a column reference as resolve does, and follows a reference to a FROM-list
+// subquery's output through each plain column the subquery outputs under that name to the table column
+// it reads. Only the checks that need a column's type or a grouped read's identity follow it. The
+// account checks keep to resolve, so a subquery's output never ties a table to the transaction's
+// account.
+func (s *scope) source(ref *pg.ColumnRef) (r *rangeRef, col string, known bool) {
+	r, col, known = s.resolve(ref)
+	for !known && r != nil && r.derived != nil {
+		var next *pg.ColumnRef
+		outputs := 0
+		for _, t := range r.derived.targets {
+			rt := t.GetResTarget()
+			name := rt.GetName()
+			cr := rt.GetVal().GetColumnRef()
+			if name == "" && cr != nil {
+				if fields := names(cr.GetFields()); len(fields) > 0 && len(fields) == len(cr.GetFields()) {
+					name = fields[len(fields)-1]
+				}
+			}
+			if name == col {
+				outputs++
+				next = cr
+			}
+		}
+		if outputs != 1 || next == nil {
+			return r, col, false
+		}
+		r, col, known = r.derived.scope.resolve(next)
+	}
+	return r, col, known
+}
+
 // addFrom adds the references of a FROM list item to the scope and returns the join conditions it
 // carries.
 func (c *statementCheck) addFrom(sc *scope, item *pg.Node, outer *scope) []*pg.Node {
@@ -383,8 +423,11 @@ func (c *statementCheck) addFrom(sc *scope, item *pg.Node, outer *scope) []*pg.N
 		return c.addFrom(sc, item.GetRangeTableSample().GetRelation(), outer)
 	case item.GetRangeSubselect() != nil:
 		rs := item.GetRangeSubselect()
-		c.query(rs.GetSubquery(), outer)
-		sc.refs = append(sc.refs, &rangeRef{alias: rs.GetAlias().GetAliasname()})
+		inner := c.query(rs.GetSubquery(), outer)
+		sc.refs = append(sc.refs, &rangeRef{
+			alias:   rs.GetAlias().GetAliasname(),
+			derived: &derived{scope: inner, targets: rs.GetSubquery().GetSelectStmt().GetTargetList()},
+		})
 	default:
 		// A function or other row source the check does not model. Its rows are opaque, and any query
 		// nested in its arguments is read like any other.
@@ -437,9 +480,10 @@ func statementKind(n *pg.Node) string {
 	return strings.ToUpper(strings.TrimSuffix(kind, "Stmt"))
 }
 
-// query checks one select, insert, update or delete, and every query nested in the clauses it reads.
-// Any other kind of statement is refused, and unreadTables refuses a table in a clause it skips.
-func (c *statementCheck) query(n *pg.Node, outer *scope) {
+// query checks one select, insert, update or delete, and every query nested in the clauses it reads,
+// and returns the scope its references were resolved in. Any other kind of statement is refused, and
+// unreadTables refuses a table in a clause it skips.
+func (c *statementCheck) query(n *pg.Node, outer *scope) *scope {
 	sc := &scope{outer: outer}
 	var with *pg.WithClause
 	var conds, exprs []*pg.Node
@@ -454,7 +498,7 @@ func (c *statementCheck) query(n *pg.Node, outer *scope) {
 			if sel.GetLimitCount() != nil || sel.GetLimitOffset() != nil {
 				c.report(-1, checkPagedSort, "the row identity of a paged set operation cannot be determined, so its sort cannot be shown to end with it")
 			}
-			return
+			return sc
 		}
 		for _, item := range sel.GetFromClause() {
 			conds = append(conds, c.addFrom(sc, item, outer)...)
@@ -517,12 +561,13 @@ func (c *statementCheck) query(n *pg.Node, outer *scope) {
 		// A kind the check does not read, such as MERGE or TRUNCATE, is refused rather than passed
 		// unexamined, so no statement reaches an account-keyed table in a form the check never saw.
 		c.report(-1, checkKind, "a %s statement is a kind the check does not read, so it is refused; write it as a select, insert, update or delete", statementKind(n))
-		return
+		return sc
 	}
 	c.accountEqualities(sc, conds, n.GetSelectStmt() != nil)
 	for _, e := range append(exprs, conds...) {
 		c.expression(sc, e)
 	}
+	return sc
 }
 
 func (c *statementCheck) withClause(sc *scope, with *pg.WithClause) {
@@ -631,7 +676,7 @@ func (c *statementCheck) citextComparison(sc *scope, a *pg.A_Expr, columnSide, p
 	if !cast {
 		return
 	}
-	r, col, known := sc.resolve(ref)
+	r, col, known := sc.source(ref)
 	switch {
 	case !known && columnCast:
 		// A column of unknown type cast to text may be case-insensitive, and the cast is visible, so the
@@ -1006,7 +1051,7 @@ func (c *statementCheck) pagedSort(sc *scope, sel *pg.SelectStmt) {
 		if ref == nil {
 			return colRef{}, false
 		}
-		r, col, known := sc.resolve(ref)
+		r, col, known := sc.source(ref)
 		return colRef{r, col}, known
 	}
 	var identity []colRef

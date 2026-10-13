@@ -516,8 +516,8 @@ func TestAnIndexReadTakesOnlyTheTermsItDeclares(t *testing.T) {
 }
 
 // Each index read pages through every row exactly once, rows tied on their sort value across a page
-// boundary included, and a cursor continues only the read, account, query, sort, order and grouping
-// it came from (ADR-0087).
+// boundary included, the date sort in exactly its order in each direction, and a cursor continues only
+// the read, account, query, sort, order and grouping it came from (ADR-0087).
 func TestAnIndexReadPagesThroughEveryRowOnce(t *testing.T) {
 	conn := superuser(t)
 	account, other := newAccount(t, conn), newAccount(t, conn)
@@ -540,6 +540,19 @@ func TestAnIndexReadPagesThroughEveryRowOnce(t *testing.T) {
 		got := ids(searched(t, reg, account, `{}`, sortOrder))
 		if seen := uniq(got); len(got) != n || seen != n {
 			t.Errorf("search%s served %d rows, %d distinct, want %d once each", sortOrder, len(got), seen, n)
+		}
+	}
+	// The date sort breaks a tie by message identifier in its own direction, so each page continues
+	// exactly after the row its cursor names, newest first and oldest first.
+	var oldestFirst []string
+	for i := range n {
+		oldestFirst = append(oldestFirst, fmt.Sprintf("m-%03d", i))
+	}
+	newestFirst := slices.Clone(oldestFirst)
+	slices.Reverse(newestFirst)
+	for sortOrder, want := range map[string][]string{"": newestFirst, `,"order":"ascending"`: oldestFirst} {
+		if diff := cmp.Diff(want, ids(searched(t, reg, account, `{}`, sortOrder)), compare.Options); diff != "" {
+			t.Errorf("search by date%s (-want +got):\n%s", sortOrder, diff)
 		}
 	}
 	for _, groupBy := range []string{"label", "sender", "sender_domain"} {
@@ -710,5 +723,105 @@ func TestAnIndexReadSeesOneStateOfTheIndex(t *testing.T) {
 				t.Errorf("a count's groups hold %d messages and its summary %d", sum, out.Summary.Messages)
 			}
 		})
+	}
+}
+
+// A summary and each group count the messages they hold, their distinct threads, the unread among
+// them and those with attachments, and date the oldest and the newest (ADR-0109). A thread whose
+// messages fall in several groups counts once in each, one whose messages a term splits counts once
+// for the messages selected, an address written in two cases is one sender, and a selection of nothing
+// counts nothing and dates nothing. The expected figures are computed here from the corpus, message by
+// message, for every grouping under each query.
+func TestEachCountCountsEveryThreadOnce(t *testing.T) {
+	conn := superuser(t)
+	account, other := newAccount(t, conn), newAccount(t, conn)
+	corpus := []indexed{
+		{id: "m-1", thread: "t-1", from: "Alice@a.example", subject: "plans", sent: "2025-01-05T09:00:00Z", labels: []string{"INBOX"}, attachments: true},
+		{id: "m-2", thread: "t-1", from: "alice@a.example", subject: "plans", sent: "2025-02-03T09:00:00Z", labels: []string{"INBOX", "Work"}, read: true},
+		{id: "m-3", thread: "t-1", from: "bob@b.example", subject: "plans", sent: "2025-02-10T09:00:00Z"},
+		{id: "m-4", thread: "t-2", from: "bob@b.example", subject: "invoice", sent: "2025-01-20T09:00:00Z", labels: []string{"Work"}, read: true, attachments: true},
+		{id: "m-5", thread: "t-3", from: "carol@a.example", subject: "trip", sent: "2025-03-01T09:00:00Z", labels: []string{"INBOX"}},
+		{id: "m-6", thread: "t-3", from: "carol@a.example", subject: "trip", sent: "2025-03-02T09:00:00Z", labels: []string{"INBOX"}, attachments: true},
+		{id: "m-7", thread: "t-4", from: "dave@d.example", subject: "hello", sent: "2024-12-31T23:59:59Z", read: true},
+	}
+	for _, m := range corpus {
+		put(t, conn, account, m)
+	}
+	// Another account's messages in the same threads are never counted.
+	put(t, conn, other, indexed{id: "m-1", thread: "t-1", from: "alice@a.example", subject: "plans", sent: "2025-01-06T09:00:00Z", labels: []string{"INBOX"}})
+	reg := reads(t, account, other)
+
+	month := func(sent string) string { return sent[:7] + "-01T00:00:00Z" }
+	keys := map[string]func(m indexed) []string{
+		"sender":        func(m indexed) []string { return []string{strings.ToLower(m.from)} },
+		"sender_domain": func(m indexed) []string { return []string{m.from[strings.IndexByte(m.from, '@')+1:]} },
+		"month":         func(m indexed) []string { return []string{month(m.sent)} },
+		"label": func(m indexed) []string {
+			if len(m.labels) == 0 {
+				return []string{"<none>"}
+			}
+			return m.labels
+		},
+	}
+	// expect counts the messages of corpus select picks into one figure per key.
+	expect := func(selected func(indexed) bool, key func(indexed) []string) map[string]counts {
+		threads := map[string]map[string]bool{}
+		out := map[string]counts{}
+		for _, m := range corpus {
+			if !selected(m) {
+				continue
+			}
+			for _, k := range key(m) {
+				c := out[k]
+				c.Messages++
+				if !m.read {
+					c.Unread++
+				}
+				if m.attachments {
+					c.WithAttachments++
+				}
+				if threads[k] == nil {
+					threads[k] = map[string]bool{}
+				}
+				threads[k][m.thread] = true
+				c.Threads = int64(len(threads[k]))
+				if c.OldestAt == nil || m.sent < *c.OldestAt {
+					c.OldestAt = ptr(m.sent)
+				}
+				if c.NewestAt == nil || m.sent > *c.NewestAt {
+					c.NewestAt = ptr(m.sent)
+				}
+				out[k] = c
+			}
+		}
+		return out
+	}
+	whole := func(indexed) []string { return []string{"<summary>"} }
+	for query, selected := range map[string]func(indexed) bool{
+		`{}`:                          func(indexed) bool { return true },
+		`{"unread":true}`:             func(m indexed) bool { return !m.read },
+		`{"from":"ALICE@a.example"}`:  func(m indexed) bool { return strings.EqualFold(m.from, "alice@a.example") },
+		`{"labels":["Work"]}`:         func(m indexed) bool { return slices.Contains(m.labels, "Work") },
+		`{"has_attachments":true}`:    func(m indexed) bool { return m.attachments },
+		`{"subject":"no such words"}`: func(indexed) bool { return false },
+	} {
+		summary := expect(selected, whole)["<summary>"]
+		if got := count(t, reg, account, query, "").Summary; !cmp.Equal(summary, got, compare.Options) {
+			t.Errorf("the summary of %s (-want +got):\n%s", query, cmp.Diff(summary, got, compare.Options))
+		}
+		for groupBy, key := range keys {
+			got := map[string]counts{}
+			for _, g := range allGroups(t, reg, account, query, groupBy) {
+				k := keyOf(g)
+				if groupBy == "sender" {
+					k = strings.ToLower(k)
+				}
+				g.Key = nil
+				got[k] = g
+			}
+			if diff := cmp.Diff(expect(selected, key), got, compare.Options); diff != "" {
+				t.Errorf("the groups of %s by %s (-want +got):\n%s", query, groupBy, diff)
+			}
+		}
 	}
 }

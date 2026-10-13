@@ -143,7 +143,7 @@ CREATE TABLE messages (
     account_id text NOT NULL REFERENCES accounts,
     message_id text NOT NULL,
     thread_id text NOT NULL,
-    -- Case-insensitive, where display case must be kept and matching needs no index.
+    -- Case-insensitive, where display case must be kept.
     from_email citext NOT NULL,
     -- Denormalized for the classification hot path, and stored lowercase as senders.domain is.
     from_domain text NOT NULL CHECK (from_domain = lower(from_domain COLLATE "C")),
@@ -181,11 +181,13 @@ CREATE TABLE messages (
     CHECK (cardinality(content_flags) = 0 OR scan_state = 'scanned')
 );
 
--- No index over labels or the subject, which no read filters on often enough to need one yet
--- (ADR-0016). The partial indexes serve a statement that states their predicate exactly.
+-- No index over labels or the subject, which no read filters on often enough to need one yet,
+-- and none conditioned on labels, so a label update needs no index entry (ADR-0016). The partial
+-- indexes serve a statement that states their predicate exactly.
 CREATE INDEX ON messages (account_id, from_domain);
 CREATE INDEX ON messages (account_id, sent_at DESC);
-CREATE INDEX ON messages (account_id, sent_at) WHERE labels = '{}';
+CREATE INDEX ON messages (account_id, thread_id);
+CREATE INDEX ON messages (account_id, from_email);
 CREATE INDEX ON messages (account_id) WHERE scan_state = 'pending';
 CREATE INDEX ON messages (account_id, from_domain) WHERE scan_state = 'skipped_restricted';
 

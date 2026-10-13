@@ -228,6 +228,7 @@ its part, and the rows it added. Which rows it proved are the rows whose Status 
 | [#365](https://github.com/ppat/mediated-mailbox-mcp/pull/365) | S1 | S1's later work, the sender classifier comparing each sender with a policy `classify.Prepare` builds, every rule's suffixes converted once and the lookups they were converted with held for the sender, which the policy loader builds for each account it read in the reload that swaps the snapshot in and holds in that snapshot, so a classification converts only the sender. The UI's rules core converts the rules it reads once per request | The S1 row for the policy list alone deciding sender class proven again, and the rows it adds and proves for the prepared policy being swapped with its snapshot and for a sender being normalized only with its policy's own lookups | Those of the classifier, the policy loader, the Redaction Gate's policy and parameters and the stored-class comparisons, with the patches whose context or code the prepared policy moved regenerated, and new breaks for the prepared policy keeping the suffixes as written, a reload keeping the prepared policies of the snapshot it replaces, and the classifier taking a second set of lookups for the sender |
 | [#370](https://github.com/ppat/mediated-mailbox-mcp/pull/370) | F2 | F2's later work, every statement reading its account from the transaction with the statement check requiring that form and reaching the operation log only through its plan, no row-level security policy, `tx.RunBase` setting only an empty account, and the log tables' foreign keys ([ADR-0135](./docs/adr/data/0135-every-statement-reads-its-account-from-the-transaction.md)) | F2's rows for the statement form, the operation log, the policy grants, the base-policy transaction, the listing and state reads and the three foreign-key rows it adds, and M8's row for another account's rule | Those of the statement form, the operation log, the policy grants, the foreign keys and the base-policy transaction, and every db/ demonstration again, with the demonstrations whose patches the change moved regenerated |
 | [#372](https://github.com/ppat/mediated-mailbox-mcp/pull/372) | M8 | M8's later work, the index storing no sender class with the UI classifying every sender under the policy in force when it reads, the delisting transition reading only the messages skipped as restricted, the comparison for an added rule removed, and a check that only a scanned message carries content flags ([ADR-0136](./docs/adr/redaction/0136-the-index-stores-no-sender-class-and-every-reader-classifies-when-it-reads.md)) | It adds and proves M8's rows for a message returned to pending with content flags and for the UI's figures and rows classified under the policy in force, proves again the delisting transition's row through the scan state alone and the rows whose tests read the stored class, and retires M8's row for an added rule reaching the stored classes | Those of the check and the UI's classification, new, the delisting transition's with breaks widening it to scanned messages and narrowing it to miss a domain, and every demonstration whose control's tests or patches the change moved, regenerated where its patch no longer applied. It retires the demonstrations of the comparison for an added rule, of the stored classes' vocabularies, of every sender stored normal, and of the first pass alone taking the active policy |
+| [#373](https://github.com/ppat/mediated-mailbox-mcp/pull/373) | D3 | D3's later work, the summary and the groups by sender, domain and month counting a selection by thread first rather than counting distinct threads, indexes on the messages' thread and sender address in place of the unused partial index on unlabelled mail, edited into the baseline schema, a search by date continuing by a row comparison with its tie broken in its own direction, the last successful tick read newest first, and the statement check following a FROM-list subquery's output for its cast and paged-sort checks ([ADR-0016](./docs/adr/data/0016-schema.md), [ADR-0109](./docs/adr/operability/0109-the-index-is-read-through-search-count-and-the-sender-listing.md)) | It adds and proves the row for a summary and each group counting each thread once, and proves again D3's rows for paging every row once, for a denied message staying in every count, for counting the whole corpus and for the status carrying operational state only, and the cast and paged-sort rows of the statement check | The counts' control, new, with six breaks, two new breaks of paging by date, and every demonstration whose statements, tests or patches the change touched, those of paging, denied messages in the counts, the whole corpus, the sender class, the status, the query terms, the statement form, the operation log, the content-flags check and the stored domain's check, with the nine patches whose context moved regenerated |
 
 ### What each composition root runs
 
@@ -804,16 +805,18 @@ What the code on `main` runs today, per composition root, none of it yet release
   [#240](https://github.com/ppat/mediated-mailbox-mcp/pull/240),
   [#246](https://github.com/ppat/mediated-mailbox-mcp/pull/246),
   [#322](https://github.com/ppat/mediated-mailbox-mcp/pull/322) and, as later work,
-  [#347](https://github.com/ppat/mediated-mailbox-mcp/pull/347) and
-  [#363](https://github.com/ppat/mediated-mailbox-mcp/pull/363), which closed its tickets
+  [#347](https://github.com/ppat/mediated-mailbox-mcp/pull/347),
+  [#363](https://github.com/ppat/mediated-mailbox-mcp/pull/363) and
+  [#373](https://github.com/ppat/mediated-mailbox-mcp/pull/373), which closed its tickets
   [#85](https://github.com/ppat/mediated-mailbox-mcp/issues/85),
   [#86](https://github.com/ppat/mediated-mailbox-mcp/issues/86),
   [#125](https://github.com/ppat/mediated-mailbox-mcp/issues/125),
   [#88](https://github.com/ppat/mediated-mailbox-mcp/issues/88),
   [#127](https://github.com/ppat/mediated-mailbox-mcp/issues/127),
   [#273](https://github.com/ppat/mediated-mailbox-mcp/issues/273),
-  [#301](https://github.com/ppat/mediated-mailbox-mcp/issues/301) and
-  [#358](https://github.com/ppat/mediated-mailbox-mcp/issues/358) and the discovery
+  [#301](https://github.com/ppat/mediated-mailbox-mcp/issues/301),
+  [#358](https://github.com/ppat/mediated-mailbox-mcp/issues/358) and
+  [#367](https://github.com/ppat/mediated-mailbox-mcp/issues/367) and the discovery
   [#238](https://github.com/ppat/mediated-mailbox-mcp/issues/238), and not yet released. The
   mediator's serving surface is one service layer under two thin roots generated from one registry
   ([ADR-0030](./docs/adr/operability/0030-api-core-mcp-thin-adapter.md),
@@ -898,6 +901,17 @@ What the code on `main` runs today, per composition root, none of it yet release
   JSON-RPC batch at every revision and follows a client's cancellation, a body request's lease
   waits end at one deadline 45 seconds after the request arrives, and the HTTP servers close a
   connection idle for two minutes and cut off a request not read within 30 seconds.
+  Also as later work before production point 1, the summary and the groups by sender, domain and
+  month count a selection by thread first and sum the threads' figures rather than counting
+  distinct threads, the messages gain indexes on their thread and their sender address in place of
+  the partial index on unlabelled mail, which no statement used, a search by date continues after
+  its cursor by a row comparison the date index takes as a bound, breaking a tie by message
+  identifier in its own direction, and the system status reads the latest successful tick newest
+  first
+  ([ADR-0016](./docs/adr/data/0016-schema.md),
+  [ADR-0109](./docs/adr/operability/0109-the-index-is-read-through-search-count-and-the-sender-listing.md)).
+  The groups by label still count distinct threads, since counting them by thread first measured no
+  faster.
   **Later work.** After production point 1, the mediator's index reads run under a statement
   timeout, on a pool of a configured size, with custom plans.
 

@@ -607,6 +607,34 @@ func TestTheStatusOfAnAccountWithNothingRecorded(t *testing.T) {
 	}
 }
 
+// The system status's last successful tick is when the latest delta sync tick that succeeded finished
+// (ADR-0034). Newer ticks that failed or still run, an older success, a backfill run that succeeded
+// later and another account's later tick never stand in for it.
+func TestTheStatusReadsTheLatestSucceededTick(t *testing.T) {
+	conn := superuser(t)
+	account, other := newAccount(t, conn), newAccount(t, conn)
+	must(t, conn, `INSERT INTO job_runs (account_id, run_id, workload, pass, state, started_at, finished_at) VALUES
+		($1, 'r1', 'sync', 'tick', 'succeeded', '2026-07-21T10:00:00Z', '2026-07-21T10:01:00Z'),
+		($1, 'r2', 'sync', 'tick', 'succeeded', '2026-07-21T11:00:00Z', '2026-07-21T11:01:00Z'),
+		($1, 'r3', 'sync', 'tick', 'failed', '2026-07-21T12:00:00Z', '2026-07-21T12:01:00Z'),
+		($1, 'r4', 'sync', 'tick', 'running', '2026-07-21T13:00:00Z', NULL),
+		($1, 'r5', 'sync', 'gap_recovery', 'succeeded', '2026-07-21T13:30:00Z', '2026-07-21T13:31:00Z'),
+		($1, 'r6', 'backfill', 'pass1', 'succeeded', '2026-07-21T14:00:00Z', '2026-07-21T14:30:00Z'),
+		($2, 'r7', 'sync', 'tick', 'succeeded', '2026-07-21T15:00:00Z', '2026-07-21T15:01:00Z')`, account, other)
+	reg := reads(t, account, other)
+	var got struct {
+		Sync struct {
+			LastSucceededTickAt *string `json:"last_succeeded_tick_at"`
+		} `json:"sync"`
+	}
+	if err := json.Unmarshal(call(t, reg, "get_system_status", `{"account_id":"`+account+`"}`), &got); err != nil {
+		t.Fatal(err)
+	}
+	if diff := cmp.Diff(ptr("2026-07-21T11:01:00Z"), got.Sync.LastSucceededTickAt, compare.Options); diff != "" {
+		t.Errorf("the last successful tick (-want +got):\n%s", diff)
+	}
+}
+
 // D3's row for a served message's flags. A message's flags are served as exactly read and starred, each
 // a boolean, whatever the index holds. A key beside them is not served, a missing one reads as false and
 // so does one that is not a boolean, so an agent learns the keys from the contract and never from the

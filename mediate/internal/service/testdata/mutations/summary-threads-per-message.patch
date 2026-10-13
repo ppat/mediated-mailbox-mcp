@@ -1,0 +1,46 @@
+control: A summary and each group count the messages they hold, each thread once, the unread, those with attachments, and the oldest and the newest date
+removes: the summary counts a thread once for each of its messages selected
+packages: ./mediate/internal/service
+tests: TestEachCountCountsEveryThreadOnce
+scheduled-count: no
+integration: yes
+
+
+diff --git a/db/messages/search.sql b/db/messages/search.sql
+index 173bebc3..b115d23b 100644
+--- a/db/messages/search.sql
++++ b/db/messages/search.sql
+@@ -107,13 +107,13 @@ LIMIT @page_size;
+ -- The number of messages the query selects, of their threads, of the unread among them and of those
+ -- with attachments, and the dates of the oldest and the newest. A message whose flags do not say it
+ -- was read counts as unread. The messages are counted by thread first and the threads' counts summed,
+ -- so each thread is counted once without a distinct count (ADR-0109).
+ SELECT
+     coalesce(sum(t.messages), 0)::bigint AS messages,
+-    count(*) AS threads,
++    coalesce(sum(t.messages), 0)::bigint AS threads,
+     coalesce(sum(t.unread), 0)::bigint AS unread,
+     coalesce(sum(t.with_attachments), 0)::bigint AS with_attachments,
+     min(t.oldest_at)::timestamptz AS oldest_at,
+     max(t.newest_at)::timestamptz AS newest_at
+ FROM (
+     SELECT
+diff --git a/db/messages/search.sql.go b/db/messages/search.sql.go
+index de36bd5e..0862abea 100644
+--- a/db/messages/search.sql.go
++++ b/db/messages/search.sql.go
+@@ -735,13 +735,13 @@ func (q *Queries) SearchPage(ctx context.Context, arg SearchPageParams) ([]Searc
+ 	return items, nil
+ }
+ 
+ const searchSummary = `-- name: SearchSummary :one
+ SELECT
+     coalesce(sum(t.messages), 0)::bigint AS messages,
+-    count(*) AS threads,
++    coalesce(sum(t.messages), 0)::bigint AS threads,
+     coalesce(sum(t.unread), 0)::bigint AS unread,
+     coalesce(sum(t.with_attachments), 0)::bigint AS with_attachments,
+     min(t.oldest_at)::timestamptz AS oldest_at,
+     max(t.newest_at)::timestamptz AS newest_at
+ FROM (
+     SELECT

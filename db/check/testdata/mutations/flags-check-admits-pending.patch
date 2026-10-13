@@ -4,9 +4,8 @@ packages: ./db/check
 tests: TestOnlyAScannedMessageCarriesContentFlags
 scheduled-count: no
 integration: yes
-
 diff --git a/db/migrations/00002_schema.sql b/db/migrations/00002_schema.sql
-index 22b7ca01..cf376758 100644
+index 1c740839..c1627770 100644
 --- a/db/migrations/00002_schema.sql
 +++ b/db/migrations/00002_schema.sql
 @@ -178,7 +178,7 @@ CREATE TABLE messages (
@@ -17,4 +16,4 @@ index 22b7ca01..cf376758 100644
 +    CHECK (cardinality(content_flags) = 0 OR scan_state IN ('scanned', 'pending'))
  );
  
- -- No index over labels or the subject, which no read filters on often enough to need one yet
+ -- No index over labels or the subject, which no read filters on often enough to need one yet,
