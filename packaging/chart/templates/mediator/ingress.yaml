@@ -1,0 +1,38 @@
+{{- /* The Ingress in front of the mediator's client surface, rendered only when enabled. */ -}}
+{{- $v := .Values.mediator }}
+{{- if $v.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "mm.componentName" (list $ "mediator") }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "mm.labels" (list $ "mediator") | nindent 4 }}
+  {{- with $v.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with $v.ingress.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  {{- with $v.ingress.tls }}
+  tls:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  rules:
+  {{- range $v.ingress.hosts }}
+  - host: {{ .host | quote }}
+    http:
+      paths:
+      {{- range .paths }}
+      - path: {{ .path }}
+        pathType: {{ .pathType }}
+        backend:
+          service:
+            name: {{ include "mm.componentName" (list $ "mediator") }}
+            port:
+              name: http
+      {{- end }}
+  {{- end }}
+{{- end }}

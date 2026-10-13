@@ -1,0 +1,38 @@
+{{- /* The Gateway API HTTPRoute in front of the UI, rendered only when enabled. The UI has no login of its own. */ -}}
+{{- $v := .Values.ui }}
+{{- if $v.httpRoute.enabled }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ include "mm.componentName" (list $ "ui") }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "mm.labels" (list $ "ui") | nindent 4 }}
+  {{- with $v.httpRoute.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with $v.httpRoute.parentRefs }}
+  parentRefs:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with $v.httpRoute.hostnames }}
+  hostnames:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  rules:
+  {{- range $v.httpRoute.rules }}
+  - backendRefs:
+    - name: {{ include "mm.componentName" (list $ "ui") }}
+      port: {{ $v.service.port }}
+    {{- with .matches }}
+    matches:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .filters }}
+    filters:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+  {{- end }}
+{{- end }}

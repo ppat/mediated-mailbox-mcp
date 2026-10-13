@@ -31,8 +31,9 @@ paged.
   elsewhere stay there, such as a failed write-back, which is loud in the deployable's logs
   ([ADR-0082](./0082-rotation-writeback-to-the-database.md)), and the body-fetch anomaly, which the
   UI shows from recorded rows.
-- **The rules live in the chart's directory and ship as a `PrometheusRule` resource behind a values
-  switch that is off by default.** The chart therefore still assumes only core Kubernetes, and a
+- **The rules live in the chart's directory, at `rules/alerting-rules.yaml`, and ship as a
+  `PrometheusRule` resource, rendered when the cluster serves the Prometheus Operator's API, or when
+  a value forces it on or off.** The chart therefore still assumes only core Kubernetes, and a
   platform without the Prometheus Operator loads the same rules file its own way.
 - **Every rule is tested with `promtool test rules`**, run from a Go test so its mutation
   demonstration runs like any other, firing above its threshold and silent below it.
@@ -80,8 +81,8 @@ paged.
 
 - **Publish the rules file as a release artifact instead of in the chart.** The case for it is that
   the chart stays free of an operator's resource entirely. Rejected because a file kept outside the
-  chart drifts from the metric names the chart's images emit, and the switch already keeps the
-  resource out of a cluster that lacks the operator.
+  chart drifts from the metric names the chart's images emit, and rendering the resource only where
+  the operator's API is served already keeps it out of a cluster that lacks the operator.
 - **The application computes each condition and exposes it as a yes-or-no gauge.** The case for it
   is that the logic is Go code under ordinary tests. Rejected because a condition held for five
   minutes or summed across processes needs every process's data, which no single process holds,
@@ -97,8 +98,8 @@ paged.
 
 ## Consequences
 
-- The chart carries a template for the Prometheus Operator's `PrometheusRule`, rendered only when
-  its switch is on, and the Go tests run `promtool` over the rules, so `promtool` is one of the
+- The chart carries a template for the Prometheus Operator's `PrometheusRule`, rendered when the
+  operator's API is served or the value forces it, and the Go tests run `promtool` over the rules, so `promtool` is one of the
   pinned tools.
 - The page reaching a person is proven on the deploying side.
 - Each spending process counts the cost of the provider requests it sends. A process that exits

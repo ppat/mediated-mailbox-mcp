@@ -1,0 +1,34 @@
+control: Nothing optional renders by default
+removes: an enabled Ingress renders nothing
+packages: ./packaging/chart
+tests: TestNothingOptionalRendersByDefault
+scheduled-count: no
+
+diff --git a/packaging/chart/templates/mediator/ingress.yaml b/packaging/chart/templates/mediator/ingress.yaml
+index 14bcfaaa..65243f80 100644
+--- a/packaging/chart/templates/mediator/ingress.yaml
++++ b/packaging/chart/templates/mediator/ingress.yaml
+@@ -1,8 +1,8 @@
+ {{- /* The Ingress in front of the mediator's client surface, rendered only when enabled. */ -}}
+ {{- $v := .Values.mediator }}
+-{{- if $v.ingress.enabled }}
++{{- if and $v.ingress.enabled false }}
+ apiVersion: networking.k8s.io/v1
+ kind: Ingress
+ metadata:
+   name: {{ include "mm.componentName" (list $ "mediator") }}
+   namespace: {{ .Release.Namespace }}
+diff --git a/packaging/chart/templates/ui/ingress.yaml b/packaging/chart/templates/ui/ingress.yaml
+index 2f468a45..5dbc7213 100644
+--- a/packaging/chart/templates/ui/ingress.yaml
++++ b/packaging/chart/templates/ui/ingress.yaml
+@@ -1,8 +1,8 @@
+ {{- /* The Ingress in front of the UI, rendered only when enabled. The UI has no login of its own. */ -}}
+ {{- $v := .Values.ui }}
+-{{- if $v.ingress.enabled }}
++{{- if and $v.ingress.enabled false }}
+ apiVersion: networking.k8s.io/v1
+ kind: Ingress
+ metadata:
+   name: {{ include "mm.componentName" (list $ "ui") }}
+   namespace: {{ .Release.Namespace }}

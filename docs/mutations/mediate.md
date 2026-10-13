@@ -401,6 +401,16 @@ The demonstrations of the controls whose patches sit in `mediate/`. [MUTATIONS.m
 - **Break (2):** a served body is not counted
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestAReleasedBodyIsCleanMarkdown`
 
+## The chart renders the mediator a file it starts with, holding every mediator key the chart admits
+
+- **Date · evidence:** 2026-10-12 · [pull request #357](https://github.com/ppat/mediated-mailbox-mcp/pull/357)
+- **Break (1):** the schema admits a key in the mediator's own block that the mediator does not read
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestTheChartAdmitsEveryMediatorKeyItDoesNotRender`
+- **Break (2):** the chart leaves the TLS files out of the mediator's file though their Secret is named
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestTheChartRendersAFileTheMediatorStartsWith`
+- **Break (3):** the chart writes the client surface's address under a key the mediator does not read
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/mediate/app`:** `TestTheChartRendersAFileTheMediatorStartsWith`
+
 ## The client surface is served over TLS when the configuration names a key pair and over plain HTTP when it names none, with the key pair read from its mounted files
 
 - **Date · evidence:** 2026-10-01 · [pull request #240](https://github.com/ppat/mediated-mailbox-mcp/pull/240), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-08, after the logger hand-off moved the code, tests or patches the row rests on · [pull request #323](https://github.com/ppat/mediated-mailbox-mcp/pull/323), and every break again on 2026-10-11 at RAPID_SEED=1, after the performance measurements changed the code, tests or patches the row rests on · [pull request #341](https://github.com/ppat/mediated-mailbox-mcp/pull/341), and every break again on 2026-10-11 at RAPID_SEED=1, after the transport taken from the TLS files replaced the declared ingress, which changed the code, tests and patches the row rests on, break (1) rewritten for a configuration naming no key pair · [pull request #352](https://github.com/ppat/mediated-mailbox-mcp/pull/352), and every break again on 2026-10-11 at RAPID_SEED=1, after the transport tests came to drive each deployable's start and read its serving record, which changed the tests the row rests on, breaks added for the start's own choice · [pull request #352](https://github.com/ppat/mediated-mailbox-mcp/pull/352), and every break again on 2026-10-12 at RAPID_SEED=1, after the start banner, `--version` and the release version changed the code, tests or patches the row rests on · [pull request #356](https://github.com/ppat/mediated-mailbox-mcp/pull/356)

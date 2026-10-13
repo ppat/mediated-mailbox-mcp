@@ -86,7 +86,7 @@ reads ([ADR-0125](../docs/adr/engineering/0125-performance-is-measured-once-at-e
 In the worker each job kind passes a registry that also labels each series with `job_kind`, the
 job kind that produced it
 ([ADR-0117](../docs/adr/operability/0117-one-background-worker-runs-every-job-kind.md)). Two
-alerting rules in `packaging/chart/alerting-rules.yaml` read the cost and the hard cap, and neither
+alerting rules in `packaging/chart/rules/alerting-rules.yaml` read the cost and the hard cap, and neither
 holds a provider's number of its own.
 
 | Rule | Reads | Fires when |

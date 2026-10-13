@@ -1,0 +1,26 @@
+---
+# The values of chart-values.yaml with debug logging, the configuration change the upgrade step makes.
+database:
+  host: mailbox-db-rw
+  name: mediated_mailbox
+sharedConfig:
+  log_level: debug
+secrets:
+  databasePasswords:
+    mediator:
+      existingSecret: mediate-db
+    ui:
+      existingSecret: ui-db
+    worker:
+      backfill:
+        existingSecret: backfill-db
+      sync:
+        existingSecret: sync-db
+    migration:
+      existingSecret: mailbox-db-app
+      secretKeys:
+        passwordFile: pgpass
+  databaseCaCertificate:
+    existingSecret: mailbox-db-ca
+  credentialSealingKeyPair:
+    existingSecret: sealing-keys

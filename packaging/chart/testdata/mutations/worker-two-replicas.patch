@@ -1,0 +1,23 @@
+control: The worker runs as one pod, never two at once, a rollout included
+removes: the worker's Deployment runs two replicas
+packages: ./packaging/chart
+tests: TestTheWorkerRunsAsOnePodNeverTwo
+scheduled-count: no
+
+diff --git a/packaging/chart/templates/worker/deployment.yaml b/packaging/chart/templates/worker/deployment.yaml
+index 4e9c15f5..7a782e75 100644
+--- a/packaging/chart/templates/worker/deployment.yaml
++++ b/packaging/chart/templates/worker/deployment.yaml
+@@ -10,11 +10,11 @@ metadata:
+   name: {{ include "mm.componentName" (list $ "worker") }}
+   namespace: {{ .Release.Namespace }}
+   labels:
+     {{- include "mm.labels" (list $ "worker") | nindent 4 }}
+ spec:
+-  replicas: 1
++  replicas: 2
+   strategy:
+     type: Recreate
+   selector:
+     matchLabels:
+       {{- include "mm.selectorLabels" (list $ "worker") | nindent 6 }}

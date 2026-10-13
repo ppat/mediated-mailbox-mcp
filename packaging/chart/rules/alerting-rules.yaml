@@ -1,7 +1,8 @@
 ---
 # The alerting rules of ADR-0077, in the rule-file format Prometheus loads. The chart embeds this file whole in its
-# PrometheusRule resource when alertingRules.enabled is set, and a platform without the Prometheus Operator loads it
-# its own way. Routing a firing rule to a person is the platform's.
+# PrometheusRule resource, rendered where the cluster serves that kind or when monitoring.prometheusRule.enabled
+# forces it, and a platform without the Prometheus Operator loads it its own way. Routing a firing rule to a person
+# is the platform's.
 #
 # ratelimit/lease/testdata/alerting-rules-test.yaml holds the promtool tests of the rate limiter's rules,
 # executioncontext/policyload/testdata/alerting-rules-test.yaml those of the policy reload rule,

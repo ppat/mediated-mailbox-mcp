@@ -14,10 +14,11 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 )
 
-// The chart and the rules file it embeds, relative to this package.
+// The chart, the rules file it embeds and the values that set every value it requires, relative to this package.
 const (
-	chartDir  = "../../packaging/chart"
-	rulesFile = chartDir + "/alerting-rules.yaml"
+	chartDir       = "../../packaging/chart"
+	rulesFile      = chartDir + "/rules/alerting-rules.yaml"
+	requiredValues = chartDir + "/ci/required-values.yaml"
 )
 
 // run runs a pinned tool and returns its combined output. A missing tool fails the test rather than
@@ -53,11 +54,11 @@ func TestAlertingRules(t *testing.T) {
 	}
 }
 
-// rendered renders the chart with the given arguments and returns each document's kind and, for
+// rendered renders the chart with its required values and the given arguments and returns each document's kind and, for
 // a PrometheusRule, its spec.
 func rendered(t *testing.T, args ...string) (kinds []string, ruleSpecs []any) {
 	t.Helper()
-	out, err := run(t, "helm", append([]string{"template", "release", chartDir}, args...)...)
+	out, err := run(t, "helm", append([]string{"template", "release", chartDir, "-f", requiredValues}, args...)...)
 	if err != nil {
 		t.Fatalf("helm template failed: %v\n%s", err, out)
 	}
@@ -81,16 +82,16 @@ func rendered(t *testing.T, args ...string) (kinds []string, ruleSpecs []any) {
 	}
 }
 
-// TestTheChartShipsTheRulesOnlyWhenSwitchedOn renders the chart with no values set, which must
-// hold no PrometheusRule, and with the switch on, which must hold one carrying exactly the rules file
-// promtool tests (ADR-0077, ADR-0052).
-func TestTheChartShipsTheRulesOnlyWhenSwitchedOn(t *testing.T) {
+// TestTheChartShipsTheRulesWhereTheOperatorsAPIIsServed renders the chart with its required values and no
+// Prometheus Operator API, which must hold no PrometheusRule, and with the operator's PrometheusRule kind among the
+// API versions, which must hold one carrying exactly the rules file promtool tests (ADR-0077, ADR-0052).
+func TestTheChartShipsTheRulesWhereTheOperatorsAPIIsServed(t *testing.T) {
 	if _, specs := rendered(t); len(specs) != 0 {
-		t.Errorf("the chart with no values set renders %d PrometheusRule resources, want none", len(specs))
+		t.Errorf("the chart without the operator's API renders %d PrometheusRule resources, want none", len(specs))
 	}
-	_, specs := rendered(t, "--set", "alertingRules.enabled=true")
+	_, specs := rendered(t, "--api-versions", "monitoring.coreos.com/v1/PrometheusRule")
 	if len(specs) != 1 {
-		t.Fatalf("the chart with the switch on renders %d PrometheusRule resources, want one", len(specs))
+		t.Fatalf("the chart with the operator's API renders %d PrometheusRule resources, want one", len(specs))
 	}
 	src, err := os.ReadFile(rulesFile)
 	if err != nil {

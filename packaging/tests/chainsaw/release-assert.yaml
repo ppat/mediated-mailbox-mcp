@@ -1,0 +1,36 @@
+---
+# The release installed or upgraded, its Helm test passed, and every deployable ready.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: ($release)
+  namespace: flux-system
+status:
+  (conditions[?type == 'Ready']):
+  - status: "True"
+  (conditions[?type == 'TestSuccess']):
+  - status: "True"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: (join('-', [$release, 'mediated-mailbox-mediator']))
+  namespace: ($namespace)
+status:
+  readyReplicas: 1
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: (join('-', [$release, 'mediated-mailbox-ui']))
+  namespace: ($namespace)
+status:
+  readyReplicas: 1
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: (join('-', [$release, 'mediated-mailbox-worker']))
+  namespace: ($namespace)
+status:
+  readyReplicas: 1

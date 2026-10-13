@@ -4,9 +4,9 @@ packages: ./ratelimit/lease
 tests: TestAlertingRules
 scheduled-count: no
 
-diff --git a/packaging/chart/alerting-rules.yaml b/packaging/chart/alerting-rules.yaml
---- a/packaging/chart/alerting-rules.yaml
-+++ b/packaging/chart/alerting-rules.yaml
+diff --git a/packaging/chart/rules/alerting-rules.yaml b/packaging/chart/rules/alerting-rules.yaml
+--- a/packaging/chart/rules/alerting-rules.yaml
++++ b/packaging/chart/rules/alerting-rules.yaml
 @@ -29,7 +29,7 @@
      expr: |
        mediated_mailbox_ratelimit_account_rate <= on (account) mediated_mailbox_ratelimit_account_floor

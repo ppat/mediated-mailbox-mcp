@@ -67,4 +67,5 @@ at different places in the file. A component's first row creates its file and it
 | [mutations/mediate.md](./mutations/mediate.md) | `mediate/` |
 | [mutations/worker.md](./mutations/worker.md) | `worker/` |
 | [mutations/ui.md](./mutations/ui.md) | `ui/` |
+| [mutations/packaging-chart.md](./mutations/packaging-chart.md) | `packaging/chart/` |
 | [mutations/cross-component.md](./mutations/cross-component.md) | More than one component's directory |

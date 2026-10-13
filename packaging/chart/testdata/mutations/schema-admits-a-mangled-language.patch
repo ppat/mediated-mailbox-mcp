@@ -1,0 +1,35 @@
+control: The values schema refuses a value Helm or a process would change
+removes: the trigger map's key guard and its words' type are dropped, so an unquoted no or yes passes as false or true
+packages: ./packaging/chart
+tests: TestTheSchemaRefusesWhatHelmOrTheProcessesWouldChange
+scheduled-count: no
+
+diff --git a/packaging/chart/values.schema.json b/packaging/chart/values.schema.json
+index dd3f86af..62dd341f 100644
+--- a/packaging/chart/values.schema.json
++++ b/packaging/chart/values.schema.json
+@@ -417,23 +417,11 @@
+           "type": "object",
+           "properties": {
+             "triggers": {
+               "type": "object",
+               "additionalProperties": {
+-                "type": "array",
+-                "items": {
+-                  "type": "string"
+-                }
+-              },
+-              "propertyNames": {
+-                "pattern": "^[a-z0-9]+(_[a-z0-9]+)*$",
+-                "not": {
+-                  "enum": [
+-                    "true",
+-                    "false"
+-                  ]
+-                }
++                "type": "array"
+               },
+               "description": "Trigger words by language. A key Helm's YAML parser turned from an unquoted no, n, off, yes, y or on into false or true is refused; quote such a key."
+             },
+             "link_words": {
+               "type": "array",

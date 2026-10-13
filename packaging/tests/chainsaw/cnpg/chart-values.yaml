@@ -1,0 +1,24 @@
+---
+# The chart's values for a database CloudNativePG created, as the chart's README gives them.
+database:
+  host: mailbox-db-rw
+  name: mediated_mailbox
+secrets:
+  databasePasswords:
+    mediator:
+      existingSecret: mediate-db
+    ui:
+      existingSecret: ui-db
+    worker:
+      backfill:
+        existingSecret: backfill-db
+      sync:
+        existingSecret: sync-db
+    migration:
+      existingSecret: mailbox-db-app
+      secretKeys:
+        passwordFile: pgpass
+  databaseCaCertificate:
+    existingSecret: mailbox-db-ca
+  credentialSealingKeyPair:
+    existingSecret: sealing-keys

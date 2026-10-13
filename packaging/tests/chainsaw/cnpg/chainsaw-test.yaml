@@ -1,0 +1,140 @@
+---
+# The chart installed against a PostgreSQL cluster CloudNativePG creates, the README's worked example, then upgraded
+# by a configuration change. CloudNativePG's generated Secrets give the CA certificate and the migration role's password
+# file, and the server is checked with verify-full. To the chart a CloudNativePG database is a user-supplied PostgreSQL
+# like any other, a host, password files and a CA certificate, so this one database stands for every server a user
+# supplies. The steps assert that the release installs with every deployable ready and its Helm test passing, that the
+# upgrade completes as the release's second revision with the Helm test passing again, that the change reaches the
+# worker's rendered file, and that the bearer token and the UI's request token key the chart generated at install are
+# unchanged (ADR-0052, ADR-0129). Which processes a change restarts is proven by the chart's unit tests of the
+# configuration checksums. The namespace enforces the restricted Pod Security Standard, so every pod the chart renders
+# must meet it. Flux installs the chart and runs its Helm test.
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: cnpg
+spec:
+  concurrent: false
+  timeouts:
+    assert: 10m
+    exec: 5m
+  namespaceTemplate:
+    metadata:
+      labels:
+        pod-security.kubernetes.io/enforce: restricted
+        pod-security.kubernetes.io/enforce-version: latest
+  bindings:
+  - name: release
+    value: mailbox-cnpg
+  steps:
+  - name: Install the CloudNativePG operator
+    description: Harness machinery, the operator's release manifest checked against its published checksum.
+    try:
+    - script:
+        env:
+        - name: VERSION
+          value: 1.30.1
+        - name: SHA256
+          value: 37237f145d8138256ea25ae830f87759255665ff08f8d552fdd8224a5ec032fb
+        content: |
+          set -eu
+          manifest="$(mktemp)"
+          url="https://github.com/cloudnative-pg/cloudnative-pg/releases/download/v${VERSION}/cnpg-${VERSION}.yaml"
+          curl --fail --silent --show-error --location --output "$manifest" "$url"
+          echo "${SHA256}  ${manifest}" | sha256sum --check --status
+          kubectl apply --server-side --force-conflicts --filename "$manifest"
+          kubectl --namespace cnpg-system rollout status deployment/cnpg-controller-manager --timeout=5m
+
+  - name: Create the key pair and the role passwords
+    description: >-
+      The key pair comes from the repository's key generation command. Each runtime role's password is a basic-auth
+      Secret CloudNativePG sets the role's password from.
+    try:
+    - script:
+        content: ../keypair.sh
+    - apply:
+        file: roles.yaml
+
+  - name: Create the PostgreSQL cluster
+    try:
+    - apply:
+        file: cluster.yaml
+    - assert:
+        resource:
+          apiVersion: postgresql.cnpg.io/v1
+          kind: Cluster
+          metadata:
+            name: mailbox-db
+          status:
+            (conditions[?type == 'Ready']):
+            - status: "True"
+    catch:
+    - describe:
+        apiVersion: postgresql.cnpg.io/v1
+        kind: Cluster
+    - events: {}
+
+  - name: Install the chart and run its Helm test
+    try:
+    - script:
+        env:
+        - name: RELEASE
+          value: ($release)
+        content: ../values.sh chart-values.yaml
+    - apply:
+        file: ../release.yaml
+    - assert:
+        file: ../release-assert.yaml
+    - script:
+        env:
+        - name: RELEASE
+          value: ($release)
+        content: ./bearer-token-and-request-token-key.sh save
+    catch:
+    - describe:
+        apiVersion: helm.toolkit.fluxcd.io/v2
+        kind: HelmRelease
+        namespace: flux-system
+    - events: {}
+    - podLogs: {}
+
+  - name: Upgrade the release with a configuration change
+    try:
+    - script:
+        env:
+        - name: RELEASE
+          value: ($release)
+        content: ../values.sh chart-values-debug-logging.yaml
+    - assert:
+        resource:
+          apiVersion: helm.toolkit.fluxcd.io/v2
+          kind: HelmRelease
+          metadata:
+            name: ($release)
+            namespace: flux-system
+          status:
+            lastAttemptedReleaseAction: upgrade
+            (length(history)): 2
+            (conditions[?type == 'Ready']):
+            - status: "True"
+            (conditions[?type == 'TestSuccess']):
+            - status: "True"
+    - assert:
+        file: ../release-assert.yaml
+    - script:
+        env:
+        - name: RELEASE
+          value: ($release)
+        content: ./bearer-token-and-request-token-key.sh compare
+    - script:
+        env:
+        - name: RELEASE
+          value: ($release)
+        content: ./worker-log-level.sh
+    catch:
+    - describe:
+        apiVersion: helm.toolkit.fluxcd.io/v2
+        kind: HelmRelease
+        namespace: flux-system
+    - events: {}
+    - podLogs: {}

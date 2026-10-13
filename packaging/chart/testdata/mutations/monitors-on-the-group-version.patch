@@ -1,0 +1,21 @@
+control: The Prometheus Operator's resources render where its API is served or a value forces them
+removes: auto reads the group version rather than the kind, and true no longer forces a resource on
+packages: ./packaging/chart
+tests: TestThePrometheusOperatorsResourcesFollowItsAPIAndTheSwitch
+scheduled-count: no
+
+diff --git a/packaging/chart/templates/_helpers.tpl b/packaging/chart/templates/_helpers.tpl
+index 8b52c404..bd235d3b 100644
+--- a/packaging/chart/templates/_helpers.tpl
++++ b/packaging/chart/templates/_helpers.tpl
+@@ -154,8 +154,8 @@ the rendered configuration names (ADR-0079).
+ {{/* Whether a Prometheus Operator resource renders: auto renders it where the cluster serves its kind. Takes (list $ enabled "group/version/Kind"). */}}
+ {{- define "mm.monitoringEnabled" -}}
+ {{- $ctx := index . 0 }}
+ {{- $enabled := index . 1 }}
+ {{- if eq (toString $enabled) "auto" }}
+-{{- if $ctx.Capabilities.APIVersions.Has (index . 2) }}true{{ end }}
+-{{- else if $enabled }}true{{ end }}
++{{- if $ctx.Capabilities.APIVersions.Has "monitoring.coreos.com/v1" }}true{{ end }}
++{{- end }}
+ {{- end }}

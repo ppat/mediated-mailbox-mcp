@@ -1,0 +1,23 @@
+{{- /*
+The Grafana dashboard over the series the deployables emit (ADR-0125, ADR-0077), as a ConfigMap Grafana's dashboard
+sidecar finds by its labels. Off by default.
+*/ -}}
+{{- if .Values.monitoring.dashboard.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "mm.fullname" . }}-dashboard
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "mm.sharedLabels" . | nindent 4 }}
+    {{- with .Values.monitoring.dashboard.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with .Values.monitoring.dashboard.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+data:
+  mediated-mailbox.json: |
+    {{- .Files.Get "dashboards/mediated-mailbox.json" | nindent 4 }}
+{{- end }}

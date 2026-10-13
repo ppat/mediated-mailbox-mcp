@@ -1,0 +1,23 @@
+control: The values schema refuses a value Helm or a process would change
+removes: the mediator's own block accepts any key
+packages: ./packaging/chart
+tests: TestTheSchemaRefusesWhatHelmOrTheProcessesWouldChange
+scheduled-count: no
+
+diff --git a/packaging/chart/values.schema.json b/packaging/chart/values.schema.json
+index dd3f86af..d9442c27 100644
+--- a/packaging/chart/values.schema.json
++++ b/packaging/chart/values.schema.json
+@@ -547,11 +547,11 @@
+                 "warn",
+                 "error"
+               ]
+             }
+           },
+-          "additionalProperties": false,
++          "additionalProperties": true,
+           "description": "The mediator's own configuration keys. Keys the chart renders itself are refused here."
+         },
+         "serviceAccount": {
+           "type": "object",
+           "properties": {

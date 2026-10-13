@@ -1,0 +1,24 @@
+control: The chart renders the worker a file it starts with, holding every worker key the chart admits
+removes: the chart writes each job kind's role under the job kind's own section rather than under database
+packages: ./worker/app
+tests: TestTheChartRendersAFileTheWorkerStartsWith
+scheduled-count: no
+
+diff --git a/packaging/chart/templates/_config.tpl b/packaging/chart/templates/_config.tpl
+index 02c2add5..1e419ab1 100644
+--- a/packaging/chart/templates/_config.tpl
++++ b/packaging/chart/templates/_config.tpl
+@@ -87,12 +87,11 @@ so no key is written twice.
+ {{- $_ := set $role "user" . }}
+ {{- end }}
+ {{- with $jk.database.poolSize }}
+ {{- $_ := set $role "pool_size" . }}
+ {{- end }}
+-{{- $_ := set $db $kind $role }}
+-{{- $section := deepCopy $jk.config }}
++{{- $section := mergeOverwrite (deepCopy $jk.config) $role }}
+ {{- if eq $kind "sync" }}
+ {{- $_ := set $section "sync_interval" $.Values.sharedConfig.sync_interval }}
+ {{- end }}
+ {{- if $section }}
+ {{- $_ := set $c $kind $section }}

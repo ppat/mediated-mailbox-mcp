@@ -1,7 +1,6 @@
 ---
-# The one Helm chart that stands up every deployable of the system (ADR-0052). The deployables' templates, and
-# the Helm tests under templates/tests, arrive with the deployables they run. The alerting rules' template renders
-# only when the value alertingRules.enabled switches it on, and is off by default (ADR-0077).
+# The one Helm chart that stands up every deployable of the system (ADR-0052): the migration step, the mediator, the
+# worker and the UI. README.md beside this file is its usage guide, and values.yaml documents every value.
 #
 # version and appVersion are both the release version, so the chart and every image carry one version
 # (ADR-0049). The release cut writes them, through release-please's generic updater over the two marked lines,
@@ -13,3 +12,7 @@ description: Stands up the mediated mailbox system, every deployable and its pro
 type: application
 version: 0.0.1 # x-release-please-version
 appVersion: "0.0.1" # x-release-please-version
+kubeVersion: ">=1.29.0-0"
+home: https://github.com/ppat/mediated-mailbox-mcp
+sources:
+- https://github.com/ppat/mediated-mailbox-mcp

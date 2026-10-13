@@ -1,0 +1,39 @@
+---
+# The database, owned by the migration role, which CloudNativePG creates with a generated password it writes, with a
+# libpq password file under the key pgpass, into the Secret mailbox-db-app. Every runtime role the migration chain
+# grants to exists before the chain runs. The roles of job kinds the chart does not yet run hold no password.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: mailbox-db
+spec:
+  instances: 1
+  imageName: ghcr.io/cloudnative-pg/postgresql:18.6-minimal-trixie@sha256:c9be7f221a05b18fe65259d9136affbabe3b39ad91c3b68f8f2f990a45f35f38
+  storage:
+    size: 1Gi
+  bootstrap:
+    initdb:
+      database: mediated_mailbox
+      owner: mediated_mailbox_migrate
+  managed:
+    roles:
+    - name: mediated_mailbox_mediate
+      login: true
+      passwordSecret:
+        name: mediate-db
+    - name: mediated_mailbox_ui
+      login: true
+      passwordSecret:
+        name: ui-db
+    - name: mediated_mailbox_backfill
+      login: true
+      passwordSecret:
+        name: backfill-db
+    - name: mediated_mailbox_sync
+      login: true
+      passwordSecret:
+        name: sync-db
+    - name: mediated_mailbox_organize
+      login: true
+    - name: mediated_mailbox_propose
+      login: true

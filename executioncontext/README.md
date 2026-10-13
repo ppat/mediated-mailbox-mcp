@@ -192,7 +192,7 @@ the series is defined once, in this package.
 
 | Series | Kind | Emitted by | Read by |
 | --- | --- | --- | --- |
-| `mediated_mailbox_policyload_reload_failed` | Gauge, 1 while the latest reload failed and 0 once one succeeds | Each loading process, on the registry it passes in, which in the worker also labels it with `job_kind`, the job kind whose loader it is ([ADR-0117](../docs/adr/operability/0117-one-background-worker-runs-every-job-kind.md)) | `MediatedMailboxPolicyReloadFailed` in `packaging/chart/alerting-rules.yaml`, whose promtool tests sit in `policyload/testdata/` |
+| `mediated_mailbox_policyload_reload_failed` | Gauge, 1 while the latest reload failed and 0 once one succeeds | Each loading process, on the registry it passes in, which in the worker also labels it with `job_kind`, the job kind whose loader it is ([ADR-0117](../docs/adr/operability/0117-one-background-worker-runs-every-job-kind.md)) | `MediatedMailboxPolicyReloadFailed` in `packaging/chart/rules/alerting-rules.yaml`, whose promtool tests sit in `policyload/testdata/` |
 
 The package also times one load per reload, every one its caller did not cancel, succeeded or
 failed, as `mediated_mailbox_policyload_reload_duration_seconds`, a histogram on the same registry

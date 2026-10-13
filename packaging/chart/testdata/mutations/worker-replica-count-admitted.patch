@@ -1,0 +1,41 @@
+control: The worker runs as one pod, never two at once, a rollout included
+removes: the schema admits a replica count for the worker, which the template reads
+packages: ./packaging/chart
+tests: TestTheWorkerRunsAsOnePodNeverTwo
+scheduled-count: no
+
+diff --git a/packaging/chart/templates/worker/deployment.yaml b/packaging/chart/templates/worker/deployment.yaml
+index 4e9c15f5..d42accb9 100644
+--- a/packaging/chart/templates/worker/deployment.yaml
++++ b/packaging/chart/templates/worker/deployment.yaml
+@@ -10,11 +10,11 @@ metadata:
+   name: {{ include "mm.componentName" (list $ "worker") }}
+   namespace: {{ .Release.Namespace }}
+   labels:
+     {{- include "mm.labels" (list $ "worker") | nindent 4 }}
+ spec:
+-  replicas: 1
++  replicas: {{ $v.replicaCount | default 1 }}
+   strategy:
+     type: Recreate
+   selector:
+     matchLabels:
+       {{- include "mm.selectorLabels" (list $ "worker") | nindent 6 }}
+diff --git a/packaging/chart/values.schema.json b/packaging/chart/values.schema.json
+index dd3f86af..b4dbe7ec 100644
+--- a/packaging/chart/values.schema.json
++++ b/packaging/chart/values.schema.json
+@@ -1076,10 +1076,13 @@
+             }
+           },
+           "additionalProperties": false,
+           "description": "The worker's own configuration keys. Keys the chart renders itself are refused here."
+         },
++        "replicaCount": {
++          "type": "integer"
++        },
+         "terminationGracePeriodSeconds": {
+           "type": "integer"
+         },
+         "serviceAccount": {
+           "type": "object",

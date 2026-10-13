@@ -5,10 +5,10 @@ tests: TestAlertingRules
 scheduled-count: no
 
 
-diff --git a/packaging/chart/alerting-rules.yaml b/packaging/chart/alerting-rules.yaml
+diff --git a/packaging/chart/rules/alerting-rules.yaml b/packaging/chart/rules/alerting-rules.yaml
 index ec20c8d..10721ee 100644
---- a/packaging/chart/alerting-rules.yaml
-+++ b/packaging/chart/alerting-rules.yaml
+--- a/packaging/chart/rules/alerting-rules.yaml
++++ b/packaging/chart/rules/alerting-rules.yaml
 @@ -65,6 +65,7 @@ groups:
    # whose earlier reload succeeded keeps that snapshot, and one whose first load failed restricts every sender.
    - alert: MediatedMailboxPolicyReloadFailed

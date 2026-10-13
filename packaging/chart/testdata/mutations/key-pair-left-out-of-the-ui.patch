@@ -1,0 +1,27 @@
+control: The private key reaches only the processes that open credentials and the UI
+removes: the UI's pod mounts the public key and no private key
+packages: ./packaging/chart
+tests: TestEveryPodReadsOnlyTheSecretsItsProcessUses
+scheduled-count: no
+
+diff --git a/packaging/chart/templates/ui/deployment.yaml b/packaging/chart/templates/ui/deployment.yaml
+index 5263e986..a99d74ab 100644
+--- a/packaging/chart/templates/ui/deployment.yaml
++++ b/packaging/chart/templates/ui/deployment.yaml
+@@ -89,11 +89,15 @@ spec:
+           - secret:
+               name: {{ required "secrets.databasePasswords.ui.existingSecret is required" .Values.secrets.databasePasswords.ui.existingSecret }}
+               items:
+               - key: {{ .Values.secrets.databasePasswords.ui.secretKeys.password }}
+                 path: database/password
+-          {{- include "mm.credentialSealingKeyPairSource" . | nindent 10 }}
++          - secret:
++              name: {{ .Values.secrets.credentialSealingKeyPair.existingSecret }}
++              items:
++              - key: {{ .Values.secrets.credentialSealingKeyPair.secretKeys.publicKey }}
++                path: credential-sealing-key-pair/{{ .Values.secrets.credentialSealingKeyPair.secretKeys.publicKey }}
+           - secret:
+               name: {{ include "mm.uiRequestTokenKeySecretName" . }}
+               items:
+               - key: {{ .Values.secrets.uiRequestTokenKey.secretKeys.requestTokenKey }}
+                 path: request-token-key

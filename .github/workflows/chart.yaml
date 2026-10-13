@@ -30,8 +30,9 @@ jobs:
         current_repository: ${{ github.repository }}
         token: ${{ secrets.GITHUB_TOKEN }}
 
-    # --strict fails on warnings as well as errors.
+    # --strict fails on warnings as well as errors. The values schema refuses a render without the chart's required
+    # values, so the lint reads the file that sets each of them.
     - name: Lint the chart
       shell: bash
       working-directory: ./current
-      run: mise exec -- helm lint --strict packaging/chart
+      run: mise exec -- helm lint --strict packaging/chart --values packaging/chart/ci/required-values.yaml

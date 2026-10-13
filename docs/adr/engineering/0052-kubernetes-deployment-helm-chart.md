@@ -24,22 +24,33 @@ the chart may assume about the user's cluster.
 - **The chart deploys this project's workloads and nothing else, and what the system depends on
   but does not own arrives as user-supplied inputs.** Postgres and the Secrets holding the
   system's secrets ([ADR-0079](../operability/0079-secrets-arrive-as-mounted-files.md)) arrive as
-  Helm values or pre-existing Secrets. Policy is not a chart input. It lives in the database, and
-  it is imported from a file and exported to one through the UI
+  Helm values or pre-existing Secrets. A pre-existing Secret can come from anything, and the chart
+  reads only the keys it names in it. A secret value the system generates and must keep across
+  upgrades, such as the mediator's bearer token, comes from a Secret the user names, or else from
+  one Secret the chart creates once, keeps on uninstall, and reads back on every later render rather
+  than generating it again. Policy is not a chart input. It lives in the
+  database, and it is imported from a file and exported to one through the UI
   ([ADR-0004](../classification/0004-sender-list-decides.md),
   [ADR-0041](./0041-policy-as-immutable-snapshots.md)). Beyond core Kubernetes, neither the chart
   nor its tests assume anything about the cluster they land on, so there is no external-secrets
   and no cert-manager. This is
   [ADR-0079](../operability/0079-secrets-arrive-as-mounted-files.md)'s boundary made concrete,
   since a chart that accepts only values and pre-existing objects structurally cannot know the
-  secret machinery. The one exception is the alerting rules of
-  [ADR-0077](../operability/0077-conditions-raised-as-alerting-rules.md), which the chart renders
-  as the Prometheus Operator's resource only when a value switched off by default turns them on.
+  secret machinery. The one exception is the Prometheus Operator's resources, the alerting rules of
+  [ADR-0077](../operability/0077-conditions-raised-as-alerting-rules.md) and a scrape target per
+  deployable, which the chart renders when the cluster serves the operator's API, or when a value
+  forces them on or off, together with a Grafana dashboard over the series the deployables emit,
+  rendered only when a value switched off by default turns it on. Rendering a resource only where
+  its API exists assumes nothing about the cluster.
 - **Each deployable's configuration is rendered as
-  [ADR-0078](./0078-configuration-layers-through-an-owned-library.md) requires.** The chart passes
-  the configuration file through as the text the operator wrote, gives each deployable only its own
-  environment variables, sets `enableServiceLinks: false`, and restarts a deployable's pods when its
-  configuration changes. For the worker that runs every background job kind
+  [ADR-0078](./0078-configuration-layers-through-an-owned-library.md) requires.** The chart renders
+  one configuration file per process, all of them in one ConfigMap, from one structured values tree
+  in which a value several processes read is given once. No value is coerced before the process
+  reads it, because the chart's values schema refuses a value Helm's YAML parser has already turned
+  into another type, such as an unquoted `no` read as a boolean. The chart gives each deployable
+  only its own environment variables, sets `enableServiceLinks: false`, and restarts a deployable's
+  pods when its own file changes, and not when another process's does. For the worker that runs
+  every background job kind
   ([ADR-0117](../operability/0117-one-background-worker-runs-every-job-kind.md)), a change to any
   job kind's configuration therefore restarts every job it runs, and each resumes as a restart
   allows ([ADR-0051](./0051-environment-contract.md)).
@@ -49,9 +60,15 @@ the chart may assume about the user's cluster.
   policy enforcement belong to the cluster the chart lands on. Being deployed somewhere does not
   mean the controls hold there, and the verification catalogue, not the chart, carries the proof
   obligations.
-- **Tests travel with the chart.** They are standard Helm tests in this repository, rule unit
-  tests over the alerting rules it ships, and a chainsaw suite, declarative Kubernetes
-  end-to-end tests, that deploys the chart onto an ephemeral kind cluster and exercises it. The
+- **Each workload gets only what its process uses.** Each pod mounts only the secret keys its
+  process reads, runs with a read-only root filesystem and no ServiceAccount token, and is given
+  resource requests the user can override and no limits, which the user may set. Exposure outside
+  the cluster is the user's choice of an Ingress or a Gateway API HTTPRoute, for the mediator and the
+  UI each, with the user's annotations passed through, and nothing is exposed until the user enables
+  one.
+- **Tests travel with the chart.** They are standard Helm tests in this repository, unit tests that
+  render the chart, rule unit tests over the alerting rules it ships, and a chainsaw suite,
+  declarative Kubernetes end-to-end tests, that deploys the chart onto an ephemeral kind cluster and exercises it. The
   chainsaw harness deploys the chart via flux, which its workflow installs on the cluster as
   harness machinery, not something the chart assumes exists. The suite builds no images. It
   deploys the chart with images already published, `main`'s `latest` images on a pull request, or
@@ -93,14 +110,20 @@ the chart may assume about the user's cluster.
 - A pull request's run deploys the images of a commit already on `main`, and configuration is
   strict ([ADR-0078](./0078-configuration-layers-through-an-owned-library.md)). So a pull request that
   adds a configuration key to a deployable and renders it in the chart in the same change fails
-  the suite against the older `latest`. The deployable's change lands first, and the chart's change
-  after it.
+  the suite against the older `latest`. The deployable's change lands first, admitting the new key
+  in the chart's values schema, since the chart's tests compare the keys the schema admits with
+  the deployable's configuration type, and a later change renders it in the chart.
 - A `latest` image reports the version of the newest release at or before the commit it was built
   from, because the release cut writes the version every binary reports
   ([ADR-0078](./0078-configuration-layers-through-an-owned-library.md)). Its revision label names
   that commit.
 - A hand edit to the version constant alone does not rebuild `latest` from `main`. Only the
   release cut writes it, and the release builds that commit's images itself.
+- A renderer that cannot read the cluster, such as `helm template` and Argo CD, which renders
+  through it, sees no existing Secret and no Prometheus Operator API. It would generate the chart's
+  own Secret anew on every render, so under such a renderer the user names a Secret for each value
+  that Secret would hold, and the chart renders the operator's resources only when told the API
+  exists or when a value forces them.
 - Assumptions about other components: the release process sets the chart `version` and
   `appVersion` to the release version, the registry serves OCI chart artifacts and the signing
   machinery covers them as it covers images, and the consuming platform supplies Postgres and the

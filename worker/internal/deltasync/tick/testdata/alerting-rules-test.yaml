@@ -2,7 +2,7 @@
 # promtool's unit tests of the cursor gap rule (ADR-0077, ADR-0105), run by TestAlertingRules. Series are sampled
 # every minute, so each value in a sequence is a minute after the one before it.
 rule_files:
-- ../../../../../packaging/chart/alerting-rules.yaml
+- ../../../../../packaging/chart/rules/alerting-rules.yaml
 
 evaluation_interval: 1m
 

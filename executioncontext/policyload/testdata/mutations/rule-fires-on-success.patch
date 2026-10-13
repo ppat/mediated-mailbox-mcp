@@ -5,10 +5,10 @@ tests: TestAlertingRules
 scheduled-count: no
 
 
-diff --git a/packaging/chart/alerting-rules.yaml b/packaging/chart/alerting-rules.yaml
+diff --git a/packaging/chart/rules/alerting-rules.yaml b/packaging/chart/rules/alerting-rules.yaml
 index ec20c8d..7a866e4 100644
---- a/packaging/chart/alerting-rules.yaml
-+++ b/packaging/chart/alerting-rules.yaml
+--- a/packaging/chart/rules/alerting-rules.yaml
++++ b/packaging/chart/rules/alerting-rules.yaml
 @@ -64,7 +64,7 @@ groups:
    # fires at the first evaluation that sees the failure and stays firing until a reload succeeds. Meanwhile a process
    # whose earlier reload succeeded keeps that snapshot, and one whose first load failed restricts every sender.

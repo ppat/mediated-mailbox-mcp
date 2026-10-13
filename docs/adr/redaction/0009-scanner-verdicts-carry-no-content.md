@@ -54,7 +54,9 @@ runs on every message and the body scan does not
 **Residue: nothing body-derived persists or spills.**
 
 - Bodies live in memory only, with no body to disk, no spill path, and memory-backed scratch space
-  (`emptyDir: {medium: Memory}`) for anything that could spill. How long the process holding a
+  (`emptyDir: {medium: Memory}`) for anything that could spill. A process whose root filesystem is
+  read-only and which is given no writable volume has nothing that could spill, so it needs no
+  scratch space. How long the process holding a
   body lives adds nothing to this guard, since the mediator and the process running delta sync run
   until stopped.
 - Nothing body-derived is persisted except the masked subject, the flags and each attachment's

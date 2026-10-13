@@ -1,0 +1,36 @@
+control: The migration step is a hook that reads nothing the chart renders and carries no password
+removes: the migration Job mounts the chart's ConfigMap and replaces a pod while it still terminates
+packages: ./packaging/chart
+tests: TestTheMigrationStepIsAHookThatReadsNothingTheChartRenders
+scheduled-count: no
+
+diff --git a/packaging/chart/templates/migration/job.yaml b/packaging/chart/templates/migration/job.yaml
+index 12b9922a..faf24bca 100644
+--- a/packaging/chart/templates/migration/job.yaml
++++ b/packaging/chart/templates/migration/job.yaml
+@@ -22,11 +22,10 @@ metadata:
+     helm.sh/hook-weight: "0"
+     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+ spec:
+   parallelism: 1
+   completions: 1
+-  podReplacementPolicy: Failed
+   backoffLimit: {{ $v.backoffLimit }}
+   activeDeadlineSeconds: {{ $v.activeDeadlineSeconds }}
+   template:
+     metadata:
+       {{- with $v.podAnnotations }}
+@@ -64,10 +63,13 @@ spec:
+         volumeMounts:
+         - name: secrets
+           mountPath: {{ include "mm.secretsDir" . }}
+           readOnly: true
+       volumes:
++      - name: config
++        configMap:
++          name: {{ include "mm.fullname" . }}-config
+       - name: secrets
+         projected:
+           defaultMode: 0440
+           sources:
+           - secret:

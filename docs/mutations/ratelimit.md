@@ -144,7 +144,7 @@ The demonstrations of the controls whose patches sit in `ratelimit/`. [MUTATIONS
 
 ## Cost counted for an account with no hard cap emitted fires the missing-threshold rule
 
-- **Date · evidence:** 2026-09-25 · [pull request #161](https://github.com/ppat/mediated-mailbox-mcp/pull/161), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
+- **Date · evidence:** 2026-09-25 · [pull request #161](https://github.com/ppat/mediated-mailbox-mcp/pull/161), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-12, after the rules file moved under `packaging/chart/rules/` · [pull request #357](https://github.com/ppat/mediated-mailbox-mcp/pull/357)
 - **Break (1):** the cost's window is two minutes, so one missed scrape at a one-minute scrape empties the condition and resets the five minutes it must hold
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/ratelimit/lease`:** `TestAlertingRules`
 - **Break (2):** the rule fires on its first evaluation rather than after the condition has held for five minutes
@@ -202,7 +202,7 @@ The demonstrations of the controls whose patches sit in `ratelimit/`. [MUTATIONS
 
 ## Missing account-level series fire the absence rule rather than reading as a healthy account
 
-- **Date · evidence:** 2026-09-24 · [pull request #157](https://github.com/ppat/mediated-mailbox-mcp/pull/157), and (2) again with its description reworded 2026-10-07 · [pull request #270](https://github.com/ppat/mediated-mailbox-mcp/pull/270), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and break 1 again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326)
+- **Date · evidence:** 2026-09-24 · [pull request #157](https://github.com/ppat/mediated-mailbox-mcp/pull/157), and (2) again with its description reworded 2026-10-07 · [pull request #270](https://github.com/ppat/mediated-mailbox-mcp/pull/270), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and break 1 again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and the breaks that edit the rules file again on 2026-10-12, after it moved under `packaging/chart/rules/` · [pull request #357](https://github.com/ppat/mediated-mailbox-mcp/pull/357)
 - **Break (1):** a failed read of the accounts reports no series and a successful scrape
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/ratelimit/lease`:** `TestTheCollectorFailsTheScrapeWhenItCannotRead`
 - **Break (2):** the absence rule watches a job workload's series rather than the mediator's account-level ones
@@ -218,21 +218,21 @@ The demonstrations of the controls whose patches sit in `ratelimit/`. [MUTATIONS
 
 ## One runaway rule serves every provider, from the hard cap each spending process emits for its account
 
-- **Date · evidence:** 2026-09-25 · [pull request #161](https://github.com/ppat/mediated-mailbox-mcp/pull/161), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
+- **Date · evidence:** 2026-09-25 · [pull request #161](https://github.com/ppat/mediated-mailbox-mcp/pull/161), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-12, after the rules file moved under `packaging/chart/rules/` · [pull request #357](https://github.com/ppat/mediated-mailbox-mcp/pull/357)
 - **Break:** the runaway rule ignores the emitted hard cap and compares against Gmail's hard cap of 80 units a second written into the rule
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/ratelimit/lease`:** `TestAlertingRules`
 
-## The chart ships the tested alerting rules only when its switch is on
+## The chart ships the tested alerting rules where the Prometheus Operator's API is served
 
-- **Date · evidence:** 2026-09-24 · [pull request #157](https://github.com/ppat/mediated-mailbox-mcp/pull/157)
-- **Break (1):** the template renders the rules whatever the switch says
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ratelimit/lease`:** `TestTheChartShipsTheRulesOnlyWhenSwitchedOn`
+- **Date · evidence:** 2026-09-24 · [pull request #157](https://github.com/ppat/mediated-mailbox-mcp/pull/157), for the switch off by default the chart had then, and every break again on 2026-10-12, after the rules came to render where the operator's API is served · [pull request #357](https://github.com/ppat/mediated-mailbox-mcp/pull/357)
+- **Break (1):** the template renders the rules whether or not the operator's API is served
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ratelimit/lease`:** `TestTheChartShipsTheRulesWhereTheOperatorsAPIIsServed`
 - **Break (2):** the resource carries no rules rather than the tested file
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ratelimit/lease`:** `TestTheChartShipsTheRulesOnlyWhenSwitchedOn`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ratelimit/lease`:** `TestTheChartShipsTheRulesWhereTheOperatorsAPIIsServed`
 
 ## The collapse rules fire on five minutes at the floor or with nothing granted, and only while a class asks
 
-- **Date · evidence:** 2026-09-25 · [pull request #161](https://github.com/ppat/mediated-mailbox-mcp/pull/161), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and breaks 1 and 2 again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326)
+- **Date · evidence:** 2026-09-25 · [pull request #161](https://github.com/ppat/mediated-mailbox-mcp/pull/161), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and breaks 1 and 2 again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and the breaks that edit the rules file again on 2026-10-12, after it moved under `packaging/chart/rules/` · [pull request #357](https://github.com/ppat/mediated-mailbox-mcp/pull/357)
 - **Break (1):** the floor is emitted at full precision, so a rate held at a floor a four-byte float rounds up reads as above it
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/ratelimit/lease`:** `TestAFloorRateReadsAsAtTheFloor`
 - **Break (2):** an instant never set reads as just now, so an account waiting on its first grant reads as healthy
@@ -284,7 +284,7 @@ The demonstrations of the controls whose patches sit in `ratelimit/`. [MUTATIONS
 
 ## The runaway rule fires on two minutes of provider request cost above the hard cap times 120 seconds, summed over every spending process
 
-- **Date · evidence:** 2026-09-25 · [pull request #161](https://github.com/ppat/mediated-mailbox-mcp/pull/161), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
+- **Date · evidence:** 2026-09-25 · [pull request #161](https://github.com/ppat/mediated-mailbox-mcp/pull/161), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-12, after the rules file moved under `packaging/chart/rules/` · [pull request #357](https://github.com/ppat/mediated-mailbox-mcp/pull/357)
 - **Break (1):** the runaway rule takes the busiest process for the account rather than summing them
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/ratelimit/lease`:** `TestAlertingRules`
 - **Break (2):** the runaway window is one minute, which holds a single sample when the platform scrapes once a minute, so the rule never fires
@@ -294,7 +294,7 @@ The demonstrations of the controls whose patches sit in `ratelimit/`. [MUTATIONS
 
 ## The runaway rule judges each account by the highest hard cap its processes emitted over its two minutes, so a process that has gone keeps its threshold
 
-- **Date · evidence:** 2026-09-25 · [pull request #161](https://github.com/ppat/mediated-mailbox-mcp/pull/161), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317)
+- **Date · evidence:** 2026-09-25 · [pull request #161](https://github.com/ppat/mediated-mailbox-mcp/pull/161), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-12, after the rules file moved under `packaging/chart/rules/` · [pull request #357](https://github.com/ppat/mediated-mailbox-mcp/pull/357)
 - **Break (1):** the hard cap is read at the instant of evaluation, so a process whose series went stale takes the threshold with it
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/ratelimit/lease`:** `TestAlertingRules`
 - **Break (2):** the account is judged by the lowest hard cap its processes emitted

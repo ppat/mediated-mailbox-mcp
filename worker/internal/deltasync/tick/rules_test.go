@@ -14,7 +14,7 @@ import (
 )
 
 // rulesFile is the chart's rules file, relative to this package.
-const rulesFile = "../../../../packaging/chart/alerting-rules.yaml"
+const rulesFile = "../../../../packaging/chart/rules/alerting-rules.yaml"
 
 // VERIFICATIONS' row for invalidating the sync cursor, D4's part, the alert. promtool's unit tests of
 // the cursor gap rule. It fires from a gap's sample for about an hour, also when the series' first

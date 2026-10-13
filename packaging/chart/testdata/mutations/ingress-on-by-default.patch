@@ -1,0 +1,23 @@
+control: Nothing optional renders by default
+removes: the mediator's Ingress is enabled by default
+packages: ./packaging/chart
+tests: TestNothingOptionalRendersByDefault
+scheduled-count: no
+
+diff --git a/packaging/chart/values.yaml b/packaging/chart/values.yaml
+index deff4b80..0f34bcf8 100644
+--- a/packaging/chart/values.yaml
++++ b/packaging/chart/values.yaml
+@@ -201,11 +201,11 @@ mediator:
+     annotations: {}
+   # The Ingress in front of the client surface. Nothing is exposed until enabled. Annotations pass through untouched,
+   # so a controller's or cert-manager's annotations go here.
+   ingress:
+     # -- Whether the Ingress renders.
+-    enabled: false
++    enabled: true
+     # -- The IngressClass.
+     className: ""
+     # -- Annotations on the Ingress.
+     annotations: {}
+     # -- Hosts and their paths, each path {path, pathType}.

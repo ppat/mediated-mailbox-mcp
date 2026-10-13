@@ -129,6 +129,7 @@ moves it. Records themselves link freely and deep, into
 | 0118 | [Each deployable, and inside the worker each job kind, connects as a runtime role of its own](./data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md) | Accepted |
 | 0126 | [Backfill's second pass reads the messages waiting for a scan newest first, keyed on the send time and the identifier](./data/0126-backfills-second-pass-walks-newest-first.md) | Accepted |
 | 0128 | [Account identifiers are one lowercase DNS label, held alike by the UI's proposal, its server check and the database](./data/0128-account-identifiers-are-one-lowercase-dns-label.md) | Accepted |
+| 0129 | [The chart runs the migration step as one Helm hook Job before install and every upgrade, holding the migration role's credential alone](./data/0129-the-chart-runs-the-migration-step-as-a-pre-install-and-pre-upgrade-hook-job.md) | Accepted |
 
 ## Mutation — `mutation/`
 

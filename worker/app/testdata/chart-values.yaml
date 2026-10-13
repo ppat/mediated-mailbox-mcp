@@ -1,0 +1,48 @@
+---
+# Values for TestTheChartRendersAFileTheWorkerStartsWith: every key the chart renders into the worker's file, the
+# optional ones included, on top of the chart's required values.
+database:
+  port: 6432
+  sslmode: require
+secrets:
+  databaseCaCertificate:
+    existingSecret: database-ca
+  credentialSealingKeyPair:
+    secretKeys:
+      privateKeys:
+      - old.key
+      - new.key
+sharedConfig:
+  log_level: warn
+  sync_interval: 3m
+  scanner:
+    triggers:
+      en: [code]
+      "no": [kode]
+    link_words: [token]
+    link_params: [code]
+    window: 6
+    dense_length: 20
+    dense_entropy: 3.5
+    weights: {entropy: 1, mix: 1, length: 1, proximity: 0.5, position: 1}
+    threshold: 0.7
+    subject_threshold: 0.65
+worker:
+  jobKinds:
+    backfill:
+      database:
+        user: mailbox_backfill
+        poolSize: 3
+      config:
+        concurrency: 5
+    sync:
+      database:
+        user: mailbox_sync
+        poolSize: 2
+      config:
+        first_window: 48h
+        decisions_per_tick: 50
+        concurrency: 6
+  config:
+    reload_interval: 90s
+    log_level: error

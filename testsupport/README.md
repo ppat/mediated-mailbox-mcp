@@ -43,6 +43,10 @@ an image, because only test files and the tooling programs import it. Its packag
   ADR-0119's rule that the worker's job code starts a goroutine only through its scheduler's
   helper, and ADR-0117's rule that no code of this project imports `unsafe` or takes an unsafe
   pointer from `reflect`.
+- `helmchart`, the render of the chart under `packaging/chart` with the pinned `helm` and the chart's
+  required values, which the chart's own tests and each deployable's test of the file the chart
+  renders for it share, with the reads of the values schema's keys and a configuration type's keys
+  those tests compare ([ADR-0052](../docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md)).
 - `livecontract`, the guard a contract run against a real provider calls first, which skips the
   run unless `cmd/livecontract` started it, and the invocation that command runs
   ([ADR-0043](../docs/adr/engineering/0043-no-mocking.md)).

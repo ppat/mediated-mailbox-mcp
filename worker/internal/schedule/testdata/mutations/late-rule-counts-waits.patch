@@ -4,10 +4,10 @@ packages: ./worker/internal/schedule
 tests: TestAlertingRules
 scheduled-count: no
 
-diff --git a/packaging/chart/alerting-rules.yaml b/packaging/chart/alerting-rules.yaml
+diff --git a/packaging/chart/rules/alerting-rules.yaml b/packaging/chart/rules/alerting-rules.yaml
 index f084d381..127a9a4b 100644
---- a/packaging/chart/alerting-rules.yaml
-+++ b/packaging/chart/alerting-rules.yaml
+--- a/packaging/chart/rules/alerting-rules.yaml
++++ b/packaging/chart/rules/alerting-rules.yaml
 @@ -149,11 +149,7 @@ groups:
    # on every label they share.
    - alert: MediatedMailboxJobLate

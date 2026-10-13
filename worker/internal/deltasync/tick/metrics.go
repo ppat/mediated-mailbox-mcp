@@ -7,7 +7,7 @@ import (
 )
 
 // gapsName is the series counting the cursor gaps a tick found, delta sync's own concern. The cursor
-// gap rule in packaging/chart/alerting-rules.yaml reads it, so it stays exactly as written (ADR-0077,
+// gap rule in packaging/chart/rules/alerting-rules.yaml reads it, so it stays exactly as written (ADR-0077,
 // ADR-0105). The unclassified and backlog series are the ones backfill also emits, defined once in
 // worker/internal/series.
 const gapsName = "mediated_mailbox_sync_cursor_gaps_total"

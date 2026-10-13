@@ -1,0 +1,29 @@
+control: Every pod the chart renders runs hardened
+removes: the Helm test's pod runs with no pod or container security context
+packages: ./packaging/chart
+tests: TestEveryPodRunsHardened
+scheduled-count: no
+
+diff --git a/packaging/chart/templates/tests/smoke.yaml b/packaging/chart/templates/tests/smoke.yaml
+index a350345d..45c2b687 100644
+--- a/packaging/chart/templates/tests/smoke.yaml
++++ b/packaging/chart/templates/tests/smoke.yaml
+@@ -23,18 +23,14 @@ spec:
+   enableServiceLinks: false
+   {{- with .Values.global.imagePullSecrets }}
+   imagePullSecrets:
+     {{- toYaml . | nindent 4 }}
+   {{- end }}
+-  securityContext:
+-    {{- include "mm.podSecurityContext" (list $ dict) | nindent 4 }}
+   containers:
+   - name: smoke
+     image: {{ printf "%s:%s" .Values.helmTest.image.repository .Values.helmTest.image.tag }}
+     imagePullPolicy: {{ .Values.global.image.pullPolicy }}
+-    securityContext:
+-      {{- include "mm.securityContext" (list $ dict) | nindent 6 }}
+     command:
+     - /bin/sh
+     - -ec
+     - |
+       check() {

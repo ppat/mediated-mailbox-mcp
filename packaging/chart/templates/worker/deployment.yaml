@@ -1,0 +1,106 @@
+{{- /*
+The worker, which runs every background job kind (ADR-0117). Exactly one replica, with no value to change it, and a
+Recreate strategy, so a rollout stops the old pod before it starts the new one and never two run at once. The pod
+mounts its own configuration file and one projected volume holding each job kind's role password and the key pair.
+*/ -}}
+{{- $v := .Values.worker }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "mm.componentName" (list $ "worker") }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "mm.labels" (list $ "worker") | nindent 4 }}
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "mm.selectorLabels" (list $ "worker") | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include "mm.config.worker" . | sha256sum }}
+        {{- with $v.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "mm.labels" (list $ "worker") | nindent 8 }}
+        {{- with $v.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "mm.serviceAccountName" (list $ "worker" $v.serviceAccount) }}
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      terminationGracePeriodSeconds: {{ $v.terminationGracePeriodSeconds }}
+      {{- with $v.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
+      securityContext:
+        {{- include "mm.podSecurityContext" (list $ $v) | nindent 8 }}
+      containers:
+      - name: worker
+        image: {{ include "mm.image" (list $ $v.image) }}
+        imagePullPolicy: {{ .Values.global.image.pullPolicy }}
+        args:
+        - --config-file={{ include "mm.configDir" . }}/worker.yaml
+        ports:
+        - name: metrics
+          containerPort: {{ include "mm.port.metrics" . }}
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: metrics
+        securityContext:
+          {{- include "mm.securityContext" (list $ $v) | nindent 10 }}
+        {{- with $v.resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        volumeMounts:
+        - name: config
+          mountPath: {{ include "mm.configDir" . }}
+          readOnly: true
+        - name: secrets
+          mountPath: {{ include "mm.secretsDir" . }}
+          readOnly: true
+      volumes:
+      - name: config
+        configMap:
+          name: {{ include "mm.fullname" . }}-config
+          items:
+          - key: worker.yaml
+            path: worker.yaml
+      - name: secrets
+        projected:
+          defaultMode: 0440
+          sources:
+          {{- range $kind, $jk := $v.jobKinds }}
+          {{- $password := index $.Values.secrets.databasePasswords.worker $kind | default dict }}
+          - secret:
+              name: {{ required (printf "secrets.databasePasswords.worker.%s.existingSecret is required" $kind) $password.existingSecret }}
+              items:
+              - key: {{ $password.secretKeys.password }}
+                path: database/{{ $kind }}/password
+          {{- end }}
+          {{- include "mm.credentialSealingKeyPairSource" . | nindent 10 }}
+          {{- include "mm.databaseCaCertificateSource" . | nindent 10 }}
+      {{- with $v.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $v.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $v.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

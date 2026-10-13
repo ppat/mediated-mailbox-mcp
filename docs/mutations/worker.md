@@ -96,7 +96,7 @@ The demonstrations of the controls whose patches sit in `worker/`. [MUTATIONS.md
 
 ## A cursor gap is recovered by re-enumerating from an hour before the last cursor was written, and counted
 
-- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-10 at RAPID_SEED=1, after the worker merged backfill and delta sync into one deployable, which moved the code, tests or patches the row rests on · [pull request #328](https://github.com/ppat/mediated-mailbox-mcp/pull/328), and every break again on 2026-10-11 at RAPID_SEED=1, after the performance measurements changed the code, tests or patches the row rests on · [pull request #341](https://github.com/ppat/mediated-mailbox-mcp/pull/341)
+- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-10 at RAPID_SEED=1, after the worker merged backfill and delta sync into one deployable, which moved the code, tests or patches the row rests on · [pull request #328](https://github.com/ppat/mediated-mailbox-mcp/pull/328), and every break again on 2026-10-11 at RAPID_SEED=1, after the performance measurements changed the code, tests or patches the row rests on · [pull request #341](https://github.com/ppat/mediated-mailbox-mcp/pull/341), and the breaks that edit the rules file again on 2026-10-12, after it moved under `packaging/chart/rules/` · [pull request #357](https://github.com/ppat/mediated-mailbox-mcp/pull/357)
 - **Break (1):** the cursor gap rule fires while any gap was ever counted, so it never clears
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/worker/internal/deltasync/tick`:** `TestAlertingRules`
 - **Break (2):** the cursor gap rule reads only the count's increase, so a gap the series' first sample counts never fires
@@ -427,7 +427,7 @@ The demonstrations of the controls whose patches sit in `worker/`. [MUTATIONS.md
 
 ## A stopped worker and a job whose last success has aged are loud
 
-- **Date · evidence:** 2026-10-10 · [pull request #328](https://github.com/ppat/mediated-mailbox-mcp/pull/328), at RAPID_SEED=1
+- **Date · evidence:** 2026-10-10 · [pull request #328](https://github.com/ppat/mediated-mailbox-mcp/pull/328), at RAPID_SEED=1, and every break again on 2026-10-12, after the rules file moved under `packaging/chart/rules/` · [pull request #357](https://github.com/ppat/mediated-mailbox-mcp/pull/357)
 - **Break (1):** the absence rule fires at the first evaluation that finds no worker
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/worker/internal/schedule`:** `TestAlertingRules`
 - **Break (2):** the rule on a job's last success compares it with a fixed fifteen minutes, not the bound the job exports
@@ -899,6 +899,16 @@ The demonstrations of the controls whose patches sit in `worker/`. [MUTATIONS.md
 - **Break:** removing a job cancels its run and returns before the run has returned
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/worker/internal/schedule`:** `TestAJobEnsuredWhileItIsRemovedNeverRunsTwiceAtOnce`, `TestEnsuringAndRemovingAJobRapidlyLeavesNoLoopRunning`, `TestRemoveAndStopCancelTheirRunsAndWaitForThem`
 
+## The chart renders the worker a file it starts with, holding every worker key the chart admits
+
+- **Date · evidence:** 2026-10-12 · [pull request #357](https://github.com/ppat/mediated-mailbox-mcp/pull/357)
+- **Break (1):** the schema admits a key in backfill's own section that the worker does not read
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/worker/app`:** `TestTheChartAdmitsEveryWorkerKeyItDoesNotRender`
+- **Break (2):** the chart leaves the shared sync interval out of delta sync's section
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/worker/app`:** `TestTheChartRendersAFileTheWorkerStartsWith`
+- **Break (3):** the chart writes each job kind's role under the job kind's own section rather than under database
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/worker/app`:** `TestTheChartRendersAFileTheWorkerStartsWith`
+
 ## The default scanner section's revision is the known answer checked in
 
 - **Date · evidence:** 2026-10-11 · [pull request #343](https://github.com/ppat/mediated-mailbox-mcp/pull/343), at RAPID_SEED=1, and every break again on 2026-10-12 at RAPID_SEED=1, after the start banner, `--version` and the release version changed the code, tests or patches the row rests on · [pull request #356](https://github.com/ppat/mediated-mailbox-mcp/pull/356)
@@ -989,7 +999,7 @@ The demonstrations of the controls whose patches sit in `worker/`. [MUTATIONS.md
 
 ## The time a job waits for a slot of its kind's limit does not count toward its lateness
 
-- **Date · evidence:** 2026-10-10 · [pull request #328](https://github.com/ppat/mediated-mailbox-mcp/pull/328), at RAPID_SEED=1, and every break again on 2026-10-11 at RAPID_SEED=1, after the performance measurements changed the code, tests or patches the row rests on · [pull request #341](https://github.com/ppat/mediated-mailbox-mcp/pull/341)
+- **Date · evidence:** 2026-10-10 · [pull request #328](https://github.com/ppat/mediated-mailbox-mcp/pull/328), at RAPID_SEED=1, and every break again on 2026-10-11 at RAPID_SEED=1, after the performance measurements changed the code, tests or patches the row rests on · [pull request #341](https://github.com/ppat/mediated-mailbox-mcp/pull/341), and the breaks that edit the rules file again on 2026-10-12, after it moved under `packaging/chart/rules/` · [pull request #357](https://github.com/ppat/mediated-mailbox-mcp/pull/357)
 - **Break (1):** the late rule counts the waits that ended, so a job that waited for a slot fires sooner after its wait than its bound
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/worker/internal/schedule`:** `TestAlertingRules`
 - **Break (2):** the late rule counts the wait in progress, so a job waiting for a slot ages while it waits

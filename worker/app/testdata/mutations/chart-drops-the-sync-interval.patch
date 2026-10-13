@@ -1,0 +1,24 @@
+control: The chart renders the worker a file it starts with, holding every worker key the chart admits
+removes: the chart leaves the shared sync interval out of delta sync's section
+packages: ./worker/app
+tests: TestTheChartRendersAFileTheWorkerStartsWith
+scheduled-count: no
+
+diff --git a/packaging/chart/templates/_config.tpl b/packaging/chart/templates/_config.tpl
+index 02c2add5..f3c9907c 100644
+--- a/packaging/chart/templates/_config.tpl
++++ b/packaging/chart/templates/_config.tpl
+@@ -89,13 +89,10 @@ so no key is written twice.
+ {{- with $jk.database.poolSize }}
+ {{- $_ := set $role "pool_size" . }}
+ {{- end }}
+ {{- $_ := set $db $kind $role }}
+ {{- $section := deepCopy $jk.config }}
+-{{- if eq $kind "sync" }}
+-{{- $_ := set $section "sync_interval" $.Values.sharedConfig.sync_interval }}
+-{{- end }}
+ {{- if $section }}
+ {{- $_ := set $c $kind $section }}
+ {{- end }}
+ {{- end }}
+ {{- $_ := set $c "database" $db }}

@@ -1,16 +1,19 @@
-control: The chart ships the tested alerting rules only when its switch is on
+control: The chart ships the tested alerting rules where the Prometheus Operator's API is served
 removes: the resource carries no rules rather than the tested file
 packages: ./ratelimit/lease
-tests: TestTheChartShipsTheRulesOnlyWhenSwitchedOn
+tests: TestTheChartShipsTheRulesWhereTheOperatorsAPIIsServed
 scheduled-count: no
 
 diff --git a/packaging/chart/templates/prometheusrule.yaml b/packaging/chart/templates/prometheusrule.yaml
+index f5e7a58b..2808f7fe 100644
 --- a/packaging/chart/templates/prometheusrule.yaml
 +++ b/packaging/chart/templates/prometheusrule.yaml
-@@ -13,5 +13,5 @@
-     app.kubernetes.io/name: {{ .Chart.Name }}
-     app.kubernetes.io/instance: {{ .Release.Name }}
+@@ -14,7 +14,7 @@ metadata:
+     {{- include "mm.sharedLabels" . | nindent 4 }}
+     {{- with .Values.monitoring.prometheusRule.labels }}
+     {{- toYaml . | nindent 4 }}
+     {{- end }}
  spec:
--  {{- .Files.Get "alerting-rules.yaml" | fromYaml | toYaml | nindent 2 }}
+-  {{- .Files.Get "rules/alerting-rules.yaml" | fromYaml | toYaml | nindent 2 }}
 +  groups: []
  {{- end }}
