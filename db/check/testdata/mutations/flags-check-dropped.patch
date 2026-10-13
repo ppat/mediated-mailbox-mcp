@@ -4,9 +4,8 @@ packages: ./db/check
 tests: TestOnlyAScannedMessageCarriesContentFlags
 scheduled-count: no
 integration: yes
-
 diff --git a/db/migrations/00002_schema.sql b/db/migrations/00002_schema.sql
-index 22b7ca01..ca838695 100644
+index 1c740839..4d222a1f 100644
 --- a/db/migrations/00002_schema.sql
 +++ b/db/migrations/00002_schema.sql
 @@ -174,11 +174,7 @@ CREATE TABLE messages (
@@ -21,4 +20,4 @@ index 22b7ca01..ca838695 100644
 +    PRIMARY KEY (account_id, message_id)
  );
  
- -- No index over labels or the subject, which no read filters on often enough to need one yet
+ -- No index over labels or the subject, which no read filters on often enough to need one yet,

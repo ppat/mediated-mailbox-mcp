@@ -68,7 +68,10 @@ being unique in the library.
 
 `db/check` runs these checks over the library's own files.
 
-- The statement constraints and the suppression-annotation ban.
+- The statement constraints and the suppression-annotation ban. The case-insensitive cast check and
+  the paged-sort check follow a column a FROM-list subquery outputs by name to the table column it
+  reads, so a read that groups the subquery's rows is checked as one over the table. The account
+  checks never follow it.
 - The check on folding a sender domain's case in SQL ([ADR-0016](../docs/adr/data/0016-schema.md)).
   It refuses `lower()`, `upper()`, `casefold()`, `initcap()` or a cast to `citext` over an
   expression holding a domain column, or in one direct operand of a comparison or a function call

@@ -27,13 +27,18 @@ type Querier interface {
 	// Every group the query's messages form by the UTC calendar month they were sent in, keyed by the
 	// instant the month starts, the group with the most messages first and ties by month. The groups are as
 	// many as the months the account's mail spans, so the service layer pages them rather than the
-	// statement.
+	// statement. The messages are counted by thread and month first, a thread grouped by its identifier's
+	// bytes, as CountBySender counts them.
 	CountByMonth(ctx context.Context, arg CountByMonthParams) ([]CountByMonthRow, error)
 	// One page of the groups the query's messages form by sender address, the group with the most
-	// messages first and ties by address, after the position a cursor names or from the start.
+	// messages first and ties by address, after the position a cursor names or from the start. The
+	// messages are counted by thread and sender first, as SearchSummary counts them by thread. A thread is
+	// grouped by its identifier's bytes, which group exactly as the identifier does under the database's
+	// deterministic collation and sort without it, since a sort that compares by the collation took most
+	// of the statement's time.
 	CountBySender(ctx context.Context, arg CountBySenderParams) ([]CountBySenderRow, error)
-	// One page of the groups the query's messages form by sender domain, ordered and continued as the
-	// groups by sender address are.
+	// One page of the groups the query's messages form by sender domain, ordered, continued and counted
+	// as the groups by sender address are.
 	CountBySenderDomain(ctx context.Context, arg CountBySenderDomainParams) ([]CountBySenderDomainRow, error)
 	// Every distinct value the account's messages hold in their labels, in order. These are the values the
 	// other operations take as a label.
@@ -51,11 +56,14 @@ type Querier interface {
 	ScanBacklog(ctx context.Context) (int64, error)
 	// One page of the messages the query selects, in the order sort_by and descending name, after the
 	// position a cursor names or from the start when it names none. Ties within one sort value are
-	// broken by the message identifier, ascending, so the order is total.
+	// broken by the message identifier, so the order is total: in the sort's own direction for the date
+	// sort, whose pages continue by a row comparison the date index takes as a bound (ADR-0016), and
+	// ascending for the sender and subject sorts.
 	SearchPage(ctx context.Context, arg SearchPageParams) ([]SearchPageRow, error)
 	// The number of messages the query selects, of their threads, of the unread among them and of those
 	// with attachments, and the dates of the oldest and the newest. A message whose flags do not say it
-	// was read counts as unread.
+	// was read counts as unread. The messages are counted by thread first and the threads' counts summed,
+	// so each thread is counted once without a distinct count (ADR-0109).
 	SearchSummary(ctx context.Context, arg SearchSummaryParams) (SearchSummaryRow, error)
 	// Every message of one of the account's threads, oldest first, with the same columns as a page. No
 	// row means the account holds no such thread.

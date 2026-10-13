@@ -128,52 +128,62 @@ func (q *Queries) CountByLabel(ctx context.Context, arg CountByLabelParams) ([]C
 
 const countByMonth = `-- name: CountByMonth :many
 SELECT
-    g.month::timestamptz AS month,
-    count(*) AS messages,
-    count(DISTINCT g.thread_id) AS threads,
-    count(*) FILTER (WHERE NOT coalesce((g.flags ->> 'read')::boolean, FALSE)) AS unread,
-    count(*) FILTER (WHERE g.has_attachments) AS with_attachments,
-    min(g.sent_at)::timestamptz AS oldest_at,
-    max(g.sent_at)::timestamptz AS newest_at
+    t.month::timestamptz AS month,
+    sum(t.messages)::bigint AS messages,
+    count(*) AS threads,
+    sum(t.unread)::bigint AS unread,
+    sum(t.with_attachments)::bigint AS with_attachments,
+    min(t.oldest_at)::timestamptz AS oldest_at,
+    max(t.newest_at)::timestamptz AS newest_at
 FROM (
     SELECT
-        m.thread_id,
-        m.flags,
-        m.has_attachments,
-        m.sent_at,
-        date_trunc('month', m.sent_at AT TIME ZONE 'UTC') AT TIME ZONE 'UTC' AS month
-    FROM messages AS m
-    WHERE
-        m.account_id = current_setting('app.account')
-        AND ($1::timestamptz IS NULL OR m.sent_at >= $1::timestamptz)
-        AND ($2::timestamptz IS NULL OR m.sent_at < $2::timestamptz)
-        AND ($3::citext[] IS NULL OR m.from_email = any($3::citext[]))
-        AND ($4::text[] IS NULL OR m.from_domain = any($4::text[]))
-        AND ($5::text[] IS NULL OR m.labels @> $5::text[])
-        AND ($6::text[] IS NULL OR NOT m.labels && $6::text[])
-        AND ($7::text[] IS NULL OR m.labels <@ $7::text[])
-        AND ($8::text[] IS NULL OR m.subject ILIKE all($8::text[]))
-        AND (
-            $9::boolean[] IS NULL
-            OR (NOT coalesce((m.flags ->> 'read')::boolean, FALSE)) = any($9::boolean[])
-        )
-        AND (
-            $10::boolean[] IS NULL
-            OR coalesce((m.flags ->> 'starred')::boolean, FALSE) = any($10::boolean[])
-        )
-        AND ($11::boolean[] IS NULL OR m.has_attachments = any($11::boolean[]))
-        AND (
-            $12::boolean[] IS NULL
-            OR (
-                NOT EXISTS (
-                    SELECT 1 FROM unnest($13::text[]) AS n (d)
-                    WHERE n.d = m.from_domain::text
-                )
-            ) = any($12::boolean[])
-        )
-) AS g
-GROUP BY g.month
-ORDER BY messages DESC, g.month ASC
+        g.month,
+        count(*) AS messages,
+        count(*) FILTER (WHERE NOT coalesce((g.flags ->> 'read')::boolean, FALSE)) AS unread,
+        count(*) FILTER (WHERE g.has_attachments) AS with_attachments,
+        min(g.sent_at) AS oldest_at,
+        max(g.sent_at) AS newest_at
+    FROM (
+        SELECT
+            m.thread_id,
+            m.flags,
+            m.has_attachments,
+            m.sent_at,
+            date_trunc('month', m.sent_at AT TIME ZONE 'UTC') AT TIME ZONE 'UTC' AS month
+        FROM messages AS m
+        WHERE
+            m.account_id = current_setting('app.account')
+            AND ($1::timestamptz IS NULL OR m.sent_at >= $1::timestamptz)
+            AND ($2::timestamptz IS NULL OR m.sent_at < $2::timestamptz)
+            AND ($3::citext[] IS NULL OR m.from_email = any($3::citext[]))
+            AND ($4::text[] IS NULL OR m.from_domain = any($4::text[]))
+            AND ($5::text[] IS NULL OR m.labels @> $5::text[])
+            AND ($6::text[] IS NULL OR NOT m.labels && $6::text[])
+            AND ($7::text[] IS NULL OR m.labels <@ $7::text[])
+            AND ($8::text[] IS NULL OR m.subject ILIKE all($8::text[]))
+            AND (
+                $9::boolean[] IS NULL
+                OR (NOT coalesce((m.flags ->> 'read')::boolean, FALSE)) = any($9::boolean[])
+            )
+            AND (
+                $10::boolean[] IS NULL
+                OR coalesce((m.flags ->> 'starred')::boolean, FALSE) = any($10::boolean[])
+            )
+            AND ($11::boolean[] IS NULL OR m.has_attachments = any($11::boolean[]))
+            AND (
+                $12::boolean[] IS NULL
+                OR (
+                    NOT EXISTS (
+                        SELECT 1 FROM unnest($13::text[]) AS n (d)
+                        WHERE n.d = m.from_domain::text
+                    )
+                ) = any($12::boolean[])
+            )
+    ) AS g
+    GROUP BY convert_to(g.thread_id, 'UTF8'), g.month
+) AS t
+GROUP BY t.month
+ORDER BY messages DESC, t.month ASC
 `
 
 type CountByMonthParams struct {
@@ -205,7 +215,8 @@ type CountByMonthRow struct {
 // Every group the query's messages form by the UTC calendar month they were sent in, keyed by the
 // instant the month starts, the group with the most messages first and ties by month. The groups are as
 // many as the months the account's mail spans, so the service layer pages them rather than the
-// statement.
+// statement. The messages are counted by thread and month first, a thread grouped by its identifier's
+// bytes, as CountBySender counts them.
 func (q *Queries) CountByMonth(ctx context.Context, arg CountByMonthParams) ([]CountByMonthRow, error) {
 	rows, err := q.db.Query(ctx, countByMonth,
 		arg.After,
@@ -250,48 +261,58 @@ func (q *Queries) CountByMonth(ctx context.Context, arg CountByMonthParams) ([]C
 
 const countBySender = `-- name: CountBySender :many
 SELECT
-    m.from_email,
-    count(*) AS messages,
-    count(DISTINCT m.thread_id) AS threads,
-    count(*) FILTER (WHERE NOT coalesce((m.flags ->> 'read')::boolean, FALSE)) AS unread,
-    count(*) FILTER (WHERE m.has_attachments) AS with_attachments,
-    min(m.sent_at)::timestamptz AS oldest_at,
-    max(m.sent_at)::timestamptz AS newest_at
-FROM messages AS m
-WHERE
-    m.account_id = current_setting('app.account')
-    AND ($1::timestamptz IS NULL OR m.sent_at >= $1::timestamptz)
-    AND ($2::timestamptz IS NULL OR m.sent_at < $2::timestamptz)
-    AND ($3::citext[] IS NULL OR m.from_email = any($3::citext[]))
-    AND ($4::text[] IS NULL OR m.from_domain = any($4::text[]))
-    AND ($5::text[] IS NULL OR m.labels @> $5::text[])
-    AND ($6::text[] IS NULL OR NOT m.labels && $6::text[])
-    AND ($7::text[] IS NULL OR m.labels <@ $7::text[])
-    AND ($8::text[] IS NULL OR m.subject ILIKE all($8::text[]))
-    AND (
-        $9::boolean[] IS NULL
-        OR (NOT coalesce((m.flags ->> 'read')::boolean, FALSE)) = any($9::boolean[])
-    )
-    AND (
-        $10::boolean[] IS NULL
-        OR coalesce((m.flags ->> 'starred')::boolean, FALSE) = any($10::boolean[])
-    )
-    AND ($11::boolean[] IS NULL OR m.has_attachments = any($11::boolean[]))
-    AND (
-        $12::boolean[] IS NULL
-        OR (
-            NOT EXISTS (
-                SELECT 1 FROM unnest($13::text[]) AS n (d)
-                WHERE n.d = m.from_domain::text
-            )
-        ) = any($12::boolean[])
-    )
-GROUP BY m.from_email
+    t.from_email,
+    sum(t.messages)::bigint AS messages,
+    count(*) AS threads,
+    sum(t.unread)::bigint AS unread,
+    sum(t.with_attachments)::bigint AS with_attachments,
+    min(t.oldest_at)::timestamptz AS oldest_at,
+    max(t.newest_at)::timestamptz AS newest_at
+FROM (
+    SELECT
+        m.from_email,
+        count(*) AS messages,
+        count(*) FILTER (WHERE NOT coalesce((m.flags ->> 'read')::boolean, FALSE)) AS unread,
+        count(*) FILTER (WHERE m.has_attachments) AS with_attachments,
+        min(m.sent_at) AS oldest_at,
+        max(m.sent_at) AS newest_at
+    FROM messages AS m
+    WHERE
+        m.account_id = current_setting('app.account')
+        AND ($1::timestamptz IS NULL OR m.sent_at >= $1::timestamptz)
+        AND ($2::timestamptz IS NULL OR m.sent_at < $2::timestamptz)
+        AND ($3::citext[] IS NULL OR m.from_email = any($3::citext[]))
+        AND ($4::text[] IS NULL OR m.from_domain = any($4::text[]))
+        AND ($5::text[] IS NULL OR m.labels @> $5::text[])
+        AND ($6::text[] IS NULL OR NOT m.labels && $6::text[])
+        AND ($7::text[] IS NULL OR m.labels <@ $7::text[])
+        AND ($8::text[] IS NULL OR m.subject ILIKE all($8::text[]))
+        AND (
+            $9::boolean[] IS NULL
+            OR (NOT coalesce((m.flags ->> 'read')::boolean, FALSE)) = any($9::boolean[])
+        )
+        AND (
+            $10::boolean[] IS NULL
+            OR coalesce((m.flags ->> 'starred')::boolean, FALSE) = any($10::boolean[])
+        )
+        AND ($11::boolean[] IS NULL OR m.has_attachments = any($11::boolean[]))
+        AND (
+            $12::boolean[] IS NULL
+            OR (
+                NOT EXISTS (
+                    SELECT 1 FROM unnest($13::text[]) AS n (d)
+                    WHERE n.d = m.from_domain::text
+                )
+            ) = any($12::boolean[])
+        )
+    GROUP BY convert_to(m.thread_id, 'UTF8'), m.from_email
+) AS t
+GROUP BY t.from_email
 HAVING
     $14::boolean
-    OR count(*) < $15::bigint
-    OR (count(*) = $15::bigint AND m.from_email > $16::citext)
-ORDER BY messages DESC, m.from_email ASC
+    OR sum(t.messages) < $15::bigint
+    OR (sum(t.messages) = $15::bigint AND t.from_email > $16::citext)
+ORDER BY messages DESC, t.from_email ASC
 LIMIT $17
 `
 
@@ -326,7 +347,11 @@ type CountBySenderRow struct {
 }
 
 // One page of the groups the query's messages form by sender address, the group with the most
-// messages first and ties by address, after the position a cursor names or from the start.
+// messages first and ties by address, after the position a cursor names or from the start. The
+// messages are counted by thread and sender first, as SearchSummary counts them by thread. A thread is
+// grouped by its identifier's bytes, which group exactly as the identifier does under the database's
+// deterministic collation and sort without it, since a sort that compares by the collation took most
+// of the statement's time.
 func (q *Queries) CountBySender(ctx context.Context, arg CountBySenderParams) ([]CountBySenderRow, error) {
 	rows, err := q.db.Query(ctx, countBySender,
 		arg.After,
@@ -375,48 +400,58 @@ func (q *Queries) CountBySender(ctx context.Context, arg CountBySenderParams) ([
 
 const countBySenderDomain = `-- name: CountBySenderDomain :many
 SELECT
-    m.from_domain,
-    count(*) AS messages,
-    count(DISTINCT m.thread_id) AS threads,
-    count(*) FILTER (WHERE NOT coalesce((m.flags ->> 'read')::boolean, FALSE)) AS unread,
-    count(*) FILTER (WHERE m.has_attachments) AS with_attachments,
-    min(m.sent_at)::timestamptz AS oldest_at,
-    max(m.sent_at)::timestamptz AS newest_at
-FROM messages AS m
-WHERE
-    m.account_id = current_setting('app.account')
-    AND ($1::timestamptz IS NULL OR m.sent_at >= $1::timestamptz)
-    AND ($2::timestamptz IS NULL OR m.sent_at < $2::timestamptz)
-    AND ($3::citext[] IS NULL OR m.from_email = any($3::citext[]))
-    AND ($4::text[] IS NULL OR m.from_domain = any($4::text[]))
-    AND ($5::text[] IS NULL OR m.labels @> $5::text[])
-    AND ($6::text[] IS NULL OR NOT m.labels && $6::text[])
-    AND ($7::text[] IS NULL OR m.labels <@ $7::text[])
-    AND ($8::text[] IS NULL OR m.subject ILIKE all($8::text[]))
-    AND (
-        $9::boolean[] IS NULL
-        OR (NOT coalesce((m.flags ->> 'read')::boolean, FALSE)) = any($9::boolean[])
-    )
-    AND (
-        $10::boolean[] IS NULL
-        OR coalesce((m.flags ->> 'starred')::boolean, FALSE) = any($10::boolean[])
-    )
-    AND ($11::boolean[] IS NULL OR m.has_attachments = any($11::boolean[]))
-    AND (
-        $12::boolean[] IS NULL
-        OR (
-            NOT EXISTS (
-                SELECT 1 FROM unnest($13::text[]) AS n (d)
-                WHERE n.d = m.from_domain::text
-            )
-        ) = any($12::boolean[])
-    )
-GROUP BY m.from_domain
+    t.from_domain,
+    sum(t.messages)::bigint AS messages,
+    count(*) AS threads,
+    sum(t.unread)::bigint AS unread,
+    sum(t.with_attachments)::bigint AS with_attachments,
+    min(t.oldest_at)::timestamptz AS oldest_at,
+    max(t.newest_at)::timestamptz AS newest_at
+FROM (
+    SELECT
+        m.from_domain,
+        count(*) AS messages,
+        count(*) FILTER (WHERE NOT coalesce((m.flags ->> 'read')::boolean, FALSE)) AS unread,
+        count(*) FILTER (WHERE m.has_attachments) AS with_attachments,
+        min(m.sent_at) AS oldest_at,
+        max(m.sent_at) AS newest_at
+    FROM messages AS m
+    WHERE
+        m.account_id = current_setting('app.account')
+        AND ($1::timestamptz IS NULL OR m.sent_at >= $1::timestamptz)
+        AND ($2::timestamptz IS NULL OR m.sent_at < $2::timestamptz)
+        AND ($3::citext[] IS NULL OR m.from_email = any($3::citext[]))
+        AND ($4::text[] IS NULL OR m.from_domain = any($4::text[]))
+        AND ($5::text[] IS NULL OR m.labels @> $5::text[])
+        AND ($6::text[] IS NULL OR NOT m.labels && $6::text[])
+        AND ($7::text[] IS NULL OR m.labels <@ $7::text[])
+        AND ($8::text[] IS NULL OR m.subject ILIKE all($8::text[]))
+        AND (
+            $9::boolean[] IS NULL
+            OR (NOT coalesce((m.flags ->> 'read')::boolean, FALSE)) = any($9::boolean[])
+        )
+        AND (
+            $10::boolean[] IS NULL
+            OR coalesce((m.flags ->> 'starred')::boolean, FALSE) = any($10::boolean[])
+        )
+        AND ($11::boolean[] IS NULL OR m.has_attachments = any($11::boolean[]))
+        AND (
+            $12::boolean[] IS NULL
+            OR (
+                NOT EXISTS (
+                    SELECT 1 FROM unnest($13::text[]) AS n (d)
+                    WHERE n.d = m.from_domain::text
+                )
+            ) = any($12::boolean[])
+        )
+    GROUP BY convert_to(m.thread_id, 'UTF8'), m.from_domain
+) AS t
+GROUP BY t.from_domain
 HAVING
     $14::boolean
-    OR count(*) < $15::bigint
-    OR (count(*) = $15::bigint AND m.from_domain > $16::text)
-ORDER BY messages DESC, m.from_domain ASC
+    OR sum(t.messages) < $15::bigint
+    OR (sum(t.messages) = $15::bigint AND t.from_domain > $16::text)
+ORDER BY messages DESC, t.from_domain ASC
 LIMIT $17
 `
 
@@ -450,8 +485,8 @@ type CountBySenderDomainRow struct {
 	NewestAt        pgtype.Timestamptz
 }
 
-// One page of the groups the query's messages form by sender domain, ordered and continued as the
-// groups by sender address are.
+// One page of the groups the query's messages form by sender domain, ordered, continued and counted
+// as the groups by sender address are.
 func (q *Queries) CountBySenderDomain(ctx context.Context, arg CountBySenderDomainParams) ([]CountBySenderDomainRow, error) {
 	rows, err := q.db.Query(ctx, countBySenderDomain,
 		arg.After,
@@ -555,16 +590,12 @@ WHERE
     AND (
         $14::boolean
         OR (
-            $15::text = 'date' AND $16::boolean AND (
-                m.sent_at < $17::timestamptz
-                OR (m.sent_at = $17::timestamptz AND m.message_id > $18::text)
-            )
+            $15::text = 'date' AND $16::boolean
+            AND (m.sent_at, m.message_id) < ($17::timestamptz, $18::text)
         )
         OR (
-            $15::text = 'date' AND NOT $16::boolean AND (
-                m.sent_at > $17::timestamptz
-                OR (m.sent_at = $17::timestamptz AND m.message_id > $18::text)
-            )
+            $15::text = 'date' AND NOT $16::boolean
+            AND (m.sent_at, m.message_id) > ($17::timestamptz, $18::text)
         )
         OR (
             $15::text = 'sender' AND $16::boolean AND (
@@ -598,6 +629,7 @@ ORDER BY
     CASE WHEN $15::text = 'sender' AND NOT $16::boolean THEN m.from_email END ASC,
     CASE WHEN $15::text = 'subject' AND $16::boolean THEN coalesce(m.subject, '') END DESC,
     CASE WHEN $15::text = 'subject' AND NOT $16::boolean THEN coalesce(m.subject, '') END ASC,
+    CASE WHEN $15::text = 'date' AND $16::boolean THEN m.message_id END DESC,
     m.message_id ASC
 LIMIT $21
 `
@@ -644,7 +676,9 @@ type SearchPageRow struct {
 
 // One page of the messages the query selects, in the order sort_by and descending name, after the
 // position a cursor names or from the start when it names none. Ties within one sort value are
-// broken by the message identifier, ascending, so the order is total.
+// broken by the message identifier, so the order is total: in the sort's own direction for the date
+// sort, whose pages continue by a row comparison the date index takes as a bound (ADR-0016), and
+// ascending for the sender and subject sorts.
 func (q *Queries) SearchPage(ctx context.Context, arg SearchPageParams) ([]SearchPageRow, error) {
 	rows, err := q.db.Query(ctx, searchPage,
 		arg.After,
@@ -703,41 +737,51 @@ func (q *Queries) SearchPage(ctx context.Context, arg SearchPageParams) ([]Searc
 
 const searchSummary = `-- name: SearchSummary :one
 SELECT
-    count(*) AS messages,
-    count(DISTINCT m.thread_id) AS threads,
-    count(*) FILTER (WHERE NOT coalesce((m.flags ->> 'read')::boolean, FALSE)) AS unread,
-    count(*) FILTER (WHERE m.has_attachments) AS with_attachments,
-    min(m.sent_at)::timestamptz AS oldest_at,
-    max(m.sent_at)::timestamptz AS newest_at
-FROM messages AS m
-WHERE
-    m.account_id = current_setting('app.account')
-    AND ($1::timestamptz IS NULL OR m.sent_at >= $1::timestamptz)
-    AND ($2::timestamptz IS NULL OR m.sent_at < $2::timestamptz)
-    AND ($3::citext[] IS NULL OR m.from_email = any($3::citext[]))
-    AND ($4::text[] IS NULL OR m.from_domain = any($4::text[]))
-    AND ($5::text[] IS NULL OR m.labels @> $5::text[])
-    AND ($6::text[] IS NULL OR NOT m.labels && $6::text[])
-    AND ($7::text[] IS NULL OR m.labels <@ $7::text[])
-    AND ($8::text[] IS NULL OR m.subject ILIKE all($8::text[]))
-    AND (
-        $9::boolean[] IS NULL
-        OR (NOT coalesce((m.flags ->> 'read')::boolean, FALSE)) = any($9::boolean[])
-    )
-    AND (
-        $10::boolean[] IS NULL
-        OR coalesce((m.flags ->> 'starred')::boolean, FALSE) = any($10::boolean[])
-    )
-    AND ($11::boolean[] IS NULL OR m.has_attachments = any($11::boolean[]))
-    AND (
-        $12::boolean[] IS NULL
-        OR (
-            NOT EXISTS (
-                SELECT 1 FROM unnest($13::text[]) AS n (d)
-                WHERE n.d = m.from_domain::text
-            )
-        ) = any($12::boolean[])
-    )
+    coalesce(sum(t.messages), 0)::bigint AS messages,
+    count(*) AS threads,
+    coalesce(sum(t.unread), 0)::bigint AS unread,
+    coalesce(sum(t.with_attachments), 0)::bigint AS with_attachments,
+    min(t.oldest_at)::timestamptz AS oldest_at,
+    max(t.newest_at)::timestamptz AS newest_at
+FROM (
+    SELECT
+        m.thread_id,
+        count(*) AS messages,
+        count(*) FILTER (WHERE NOT coalesce((m.flags ->> 'read')::boolean, FALSE)) AS unread,
+        count(*) FILTER (WHERE m.has_attachments) AS with_attachments,
+        min(m.sent_at) AS oldest_at,
+        max(m.sent_at) AS newest_at
+    FROM messages AS m
+    WHERE
+        m.account_id = current_setting('app.account')
+        AND ($1::timestamptz IS NULL OR m.sent_at >= $1::timestamptz)
+        AND ($2::timestamptz IS NULL OR m.sent_at < $2::timestamptz)
+        AND ($3::citext[] IS NULL OR m.from_email = any($3::citext[]))
+        AND ($4::text[] IS NULL OR m.from_domain = any($4::text[]))
+        AND ($5::text[] IS NULL OR m.labels @> $5::text[])
+        AND ($6::text[] IS NULL OR NOT m.labels && $6::text[])
+        AND ($7::text[] IS NULL OR m.labels <@ $7::text[])
+        AND ($8::text[] IS NULL OR m.subject ILIKE all($8::text[]))
+        AND (
+            $9::boolean[] IS NULL
+            OR (NOT coalesce((m.flags ->> 'read')::boolean, FALSE)) = any($9::boolean[])
+        )
+        AND (
+            $10::boolean[] IS NULL
+            OR coalesce((m.flags ->> 'starred')::boolean, FALSE) = any($10::boolean[])
+        )
+        AND ($11::boolean[] IS NULL OR m.has_attachments = any($11::boolean[]))
+        AND (
+            $12::boolean[] IS NULL
+            OR (
+                NOT EXISTS (
+                    SELECT 1 FROM unnest($13::text[]) AS n (d)
+                    WHERE n.d = m.from_domain::text
+                )
+            ) = any($12::boolean[])
+        )
+    GROUP BY m.thread_id
+) AS t
 `
 
 type SearchSummaryParams struct {
@@ -767,7 +811,8 @@ type SearchSummaryRow struct {
 
 // The number of messages the query selects, of their threads, of the unread among them and of those
 // with attachments, and the dates of the oldest and the newest. A message whose flags do not say it
-// was read counts as unread.
+// was read counts as unread. The messages are counted by thread first and the threads' counts summed,
+// so each thread is counted once without a distinct count (ADR-0109).
 func (q *Queries) SearchSummary(ctx context.Context, arg SearchSummaryParams) (SearchSummaryRow, error) {
 	row := q.db.QueryRow(ctx, searchSummary,
 		arg.After,

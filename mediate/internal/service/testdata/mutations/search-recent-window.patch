@@ -4,15 +4,14 @@ packages: ./mediate/internal/service
 tests: TestEnumerationReachesTheWholeCorpus
 scheduled-count: no
 integration: yes
-
 diff --git a/db/messages/search.sql b/db/messages/search.sql
-index 818eddd1..3f50fafc 100644
+index 173bebc3..7270a431 100644
 --- a/db/messages/search.sql
 +++ b/db/messages/search.sql
-@@ -2,60 +2,61 @@
- -- One page of the messages the query selects, in the order sort_by and descending name, after the
- -- position a cursor names or from the start when it names none. Ties within one sort value are
- -- broken by the message identifier, ascending, so the order is total.
+@@ -4,60 +4,61 @@
+ -- broken by the message identifier, so the order is total: in the sort's own direction for the date
+ -- sort, whose pages continue by a row comparison the date index takes as a bound (ADR-0016), and
+ -- ascending for the sender and subject sorts.
  SELECT
      m.message_id,
      m.thread_id,
@@ -70,12 +69,12 @@ index 818eddd1..3f50fafc 100644
      AND (
          @first_page::boolean
          OR (
-             @sort_by::text = 'date' AND @descending::boolean AND (
+             @sort_by::text = 'date' AND @descending::boolean
 diff --git a/db/messages/search.sql.go b/db/messages/search.sql.go
-index f09d49bc..0b201157 100644
+index de36bd5e..6a143643 100644
 --- a/db/messages/search.sql.go
 +++ b/db/messages/search.sql.go
-@@ -499,60 +499,61 @@ func (q *Queries) CountBySenderDomain(ctx context.Context, arg CountBySenderDoma
+@@ -534,60 +534,61 @@ func (q *Queries) CountBySenderDomain(ctx context.Context, arg CountBySenderDoma
  }
  
  const searchPage = `-- name: SearchPage :many
@@ -136,4 +135,4 @@ index f09d49bc..0b201157 100644
      AND (
          $14::boolean
          OR (
-             $15::text = 'date' AND $16::boolean AND (
+             $15::text = 'date' AND $16::boolean

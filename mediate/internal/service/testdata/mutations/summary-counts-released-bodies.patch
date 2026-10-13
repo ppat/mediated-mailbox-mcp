@@ -6,28 +6,28 @@ scheduled-count: no
 integration: yes
 
 diff --git a/db/messages/search.sql b/db/messages/search.sql
-index c369b93..2a4930c 100644
+index 173bebc3..c3ad9a51 100644
 --- a/db/messages/search.sql
 +++ b/db/messages/search.sql
-@@ -93,7 +93,7 @@ LIMIT @page_size;
- -- with attachments, and the dates of the oldest and the newest. A message whose flags do not say it
- -- was read counts as unread.
- SELECT
--    count(*) AS messages,
-+    count(*) FILTER (WHERE m.scan_state = 'scanned' AND cardinality(m.content_flags) = 0) AS messages,
-     count(DISTINCT m.thread_id) AS threads,
-     count(*) FILTER (WHERE NOT coalesce((m.flags ->> 'read')::boolean, FALSE)) AS unread,
-     count(*) FILTER (WHERE m.has_attachments) AS with_attachments,
+@@ -118,7 +118,7 @@ SELECT
+ FROM (
+     SELECT
+         m.thread_id,
+-        count(*) AS messages,
++        count(*) FILTER (WHERE m.scan_state = 'scanned' AND cardinality(m.content_flags) = 0) AS messages,
+         count(*) FILTER (WHERE NOT coalesce((m.flags ->> 'read')::boolean, FALSE)) AS unread,
+         count(*) FILTER (WHERE m.has_attachments) AS with_attachments,
+         min(m.sent_at) AS oldest_at,
 diff --git a/db/messages/search.sql.go b/db/messages/search.sql.go
-index e052b44..a6041b9 100644
+index de36bd5e..cc7a17f0 100644
 --- a/db/messages/search.sql.go
 +++ b/db/messages/search.sql.go
-@@ -675,7 +675,7 @@ func (q *Queries) SearchPage(ctx context.Context, arg SearchPageParams) ([]Searc
- 
- const searchSummary = `-- name: SearchSummary :one
- SELECT
--    count(*) AS messages,
-+    count(*) FILTER (WHERE m.scan_state = 'scanned' AND cardinality(m.content_flags) = 0) AS messages,
-     count(DISTINCT m.thread_id) AS threads,
-     count(*) FILTER (WHERE NOT coalesce((m.flags ->> 'read')::boolean, FALSE)) AS unread,
-     count(*) FILTER (WHERE m.has_attachments) AS with_attachments,
+@@ -746,7 +746,7 @@ SELECT
+ FROM (
+     SELECT
+         m.thread_id,
+-        count(*) AS messages,
++        count(*) FILTER (WHERE m.scan_state = 'scanned' AND cardinality(m.content_flags) = 0) AS messages,
+         count(*) FILTER (WHERE NOT coalesce((m.flags ->> 'read')::boolean, FALSE)) AS unread,
+         count(*) FILTER (WHERE m.has_attachments) AS with_attachments,
+         min(m.sent_at) AS oldest_at,

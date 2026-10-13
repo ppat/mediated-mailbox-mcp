@@ -19,6 +19,8 @@ type Querier interface {
 	// the window it re-enumerated and the messages it reconciled (ADR-0016).
 	GapRecoveriesSince(ctx context.Context, since pgtype.Timestamptz) ([]GapRecoveriesSinceRow, error)
 	// When the account's latest delta sync tick that succeeded finished, null when none has (ADR-0034).
+	// The ticks are read newest first, in the order of the run index, and the read stops at the first
+	// that succeeded, so its cost does not grow with the account's history (ADR-0016).
 	LastSucceededTick(ctx context.Context) (pgtype.Timestamptz, error)
 	// The latest run whose resumed_from names a run, the run summary's resumer (docs/UI.md section 8.4).
 	LatestResumer(ctx context.Context, runID pgtype.Text) (LatestResumerRow, error)

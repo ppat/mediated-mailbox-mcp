@@ -141,7 +141,8 @@ CREATE TABLE messages (
 
 CREATE INDEX ON messages (account_id, from_domain);
 CREATE INDEX ON messages (account_id, sent_at DESC);
-CREATE INDEX ON messages (account_id, sent_at) WHERE labels = '{}';
+CREATE INDEX ON messages (account_id, thread_id);
+CREATE INDEX ON messages (account_id, from_email);
 CREATE INDEX ON messages (account_id) WHERE scan_state = 'pending';
 CREATE INDEX ON messages (account_id, from_domain) WHERE scan_state = 'skipped_restricted';
 -- no index over labels or subject: no read filters on either often enough to need one yet
@@ -484,8 +485,8 @@ The shape enforces these properties.
   an ASCII capital, the plausible bug of a writer skipping the normalizer, and means the same on
   every database, since the `C` collation folds only A to Z, and it refuses nothing the normalizer
   produces. A domain written in punycode is stored in punycode and one written in Unicode in
-  Unicode. Case-insensitive text stays only where display case must be kept and matching needs no
-  index, which is `from_email`.
+  Unicode. Case-insensitive text stays only where display case must be kept, which is
+  `from_email`, whose index orders and matches under that same case-insensitive comparison.
 - **The audit row records what a body decision rests on, in typed columns**: the stage that
   decided, the reason, the sender class with the rule behind it and that rule's scope, the content
   flags with the scanner rules behind them kept apart from the serve-time check's, the scan state,
@@ -519,10 +520,16 @@ The shape enforces these properties.
   reason rather than as pending its scan
   ([ADR-0120](../redaction/0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md)).
 - **Masked subjects are stored masked** — the index never holds a live code.
-- **The partial indexes target unfiled volume** (`labels = '{}'`), **scan backlog** (`scan_state
-  = 'pending'`) **and the domains of the messages skipped as restricted**, which the delisting
-  transition reads ([ADR-0037](../redaction/0037-delisting-transition.md)), directly. A partial
-  index serves a statement that states its predicate exactly.
+- **The message indexes serve the index reads that would otherwise read every message of the
+  account**: a page in date order, a thread's messages, and a page in sender order or the sender
+  address term. A page in date order continues after its cursor by a row comparison of
+  `(sent_at, message_id)` with the cursor's, which the date index takes as a bound, where the same
+  condition written with `OR` is not.
+- **The partial indexes target scan backlog** (`scan_state = 'pending'`) **and the domains of the
+  messages skipped as restricted**, which the delisting transition reads
+  ([ADR-0037](../redaction/0037-delisting-transition.md)), directly. A partial index serves a
+  statement that states its predicate exactly. No index is conditioned on `labels`, so a label
+  update can stay within its heap page with no index entry written.
 - **The run indexes serve the reads that repeat**, every tick's latest run, the jobs screen's
   latest run per job kind and pass, the event stream, the runs dataset, and the job mechanism's due
   decisions, and the audit index serves a message's audit rows. `job_runs.pass` is never null, so
