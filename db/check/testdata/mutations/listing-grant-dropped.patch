@@ -1,0 +1,20 @@
+control: The listing roles read every account's identifier, provider and client, and the heuristics job's role reads none
+removes: backfill's role loses the accounts listing its account snapshot reads
+packages: ./db/check
+tests: TestTheListingRolesReadEveryAccount TestTheListingRolesReadEveryAccount/mediated_mailbox_backfill TestGrantsCoverAdmittedSubsections
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00003_grants.sql b/db/migrations/00003_grants.sql
+index 7312c97c..9734db2b 100644
+--- a/db/migrations/00003_grants.sql
++++ b/db/migrations/00003_grants.sql
+@@ -560,7 +560,7 @@ TO mediated_mailbox_mediate, mediated_mailbox_backfill, mediated_mailbox_sync;
+ -- writes a rotated credential back by compare-and-set on the bytes it last knew (ADR-0082, ADR-0089),
+ -- and reads every OAuth client.
+ GRANT SELECT (account_id, provider, oauth_client) ON accounts
+-TO mediated_mailbox_mediate, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
++TO mediated_mailbox_mediate, mediated_mailbox_sync, mediated_mailbox_organize;
+ GRANT SELECT (account_id, credential), UPDATE (credential) ON account_state
+ TO mediated_mailbox_mediate, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
+ GRANT SELECT (name, provider, client_id, client_secret) ON oauth_clients

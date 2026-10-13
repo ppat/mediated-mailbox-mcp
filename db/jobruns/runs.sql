@@ -43,7 +43,7 @@ CROSS JOIN
             r.last_error
         FROM job_runs AS r
         LEFT JOIN reorg_plans AS pl ON r.account_id = pl.account_id AND r.plan_id = pl.plan_id
-        WHERE r.account_id = @account_id AND r.workload = k.workload AND r.pass = k.pass
+        WHERE r.account_id = current_setting('app.account') AND r.workload = k.workload AND r.pass = k.pass
         ORDER BY r.started_at DESC, r.run_id ASC
         LIMIT 1
     ) AS l
@@ -71,7 +71,7 @@ SELECT
 FROM job_runs AS r
 LEFT JOIN reorg_plans AS pl ON r.account_id = pl.account_id AND r.plan_id = pl.plan_id
 WHERE
-    r.account_id = @account_id
+    r.account_id = current_setting('app.account')
     AND r.workload = @workload
     AND r.pass = @pass
     AND r.state = any(@states::text[])
@@ -84,7 +84,7 @@ LIMIT 1;
 SELECT count(*) AS runs
 FROM job_runs AS r
 WHERE
-    r.account_id = @account_id
+    r.account_id = current_setting('app.account')
     AND r.workload = @workload
     AND r.pass = @pass
     AND r.started_at >= @since;
@@ -99,7 +99,7 @@ SELECT
     coalesce(max(e.page), 0)::integer AS last_page
 FROM job_run_events AS e
 WHERE
-    e.account_id = @account_id
+    e.account_id = current_setting('app.account')
     AND e.run_id = @run_id
     AND e.kind = 'progress'
     AND e.at >= @since;
@@ -127,7 +127,7 @@ SELECT
 FROM job_runs AS r
 LEFT JOIN reorg_plans AS pl ON r.account_id = pl.account_id AND r.plan_id = pl.plan_id
 WHERE
-    r.account_id = @account_id
+    r.account_id = current_setting('app.account')
     AND (r.state = 'running' OR r.finished_at >= @since)
 ORDER BY r.started_at ASC, r.run_id ASC;
 
@@ -142,7 +142,7 @@ SELECT
     r.counters
 FROM job_runs AS r
 WHERE
-    r.account_id = @account_id
+    r.account_id = current_setting('app.account')
     AND r.workload = 'sync'
     AND r.pass = 'gap_recovery'
     AND r.state = 'succeeded'

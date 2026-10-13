@@ -6,13 +6,14 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/backfill/pass1/runs.go b/worker/internal/backfill/pass1/runs.go
+index 916d7ee6..a85368e1 100644
 --- a/worker/internal/backfill/pass1/runs.go
 +++ b/worker/internal/backfill/pass1/runs.go
-@@ -89,7 +89,7 @@ func RecordProgress(ctx context.Context, q *record.Queries, account, runID strin
- 	if err := q.RecordProgress(ctx, runrecord.RecordProgressParams{Checkpoint: checkpoint, Counters: counters, AccountID: account, RunID: runID}); err != nil {
+@@ -89,7 +89,7 @@ func RecordProgress(ctx context.Context, q *runrecord.Queries, runID string, che
+ 	if err := q.RecordProgress(ctx, runrecord.RecordProgressParams{Checkpoint: checkpoint, Counters: counters, RunID: runID}); err != nil {
  		return fmt.Errorf("recording the checkpoint: %w", err)
  	}
--	return q.RecordEvent(ctx, runrecord.RecordEventParams{AccountID: account, RunID: runID, Kind: "progress", Page: page(at)})
+-	return q.RecordEvent(ctx, runrecord.RecordEventParams{RunID: runID, Kind: "progress", Page: page(at)})
 +	return nil
  }
  

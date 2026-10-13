@@ -6,10 +6,13 @@ scheduled-count: no
 integration: yes
 
 diff --git a/db/messages/scan/scan.sql b/db/messages/scan/scan.sql
-index 615ead7..09057fa 100644
+index 6a8cb3d2..8ea7102d 100644
 --- a/db/messages/scan/scan.sql
 +++ b/db/messages/scan/scan.sql
-@@ -76,12 +76,7 @@ WHERE m.account_id = @account_id AND m.scan_state = 'pending';
+@@ -122,18 +122,13 @@ WHERE m.account_id = current_setting('app.account') AND m.scan_state = 'pending'
+ -- or configuration revision than the one given to pending scan, its verdict cleared, so the Redaction
+ -- Gate denies its body as pending its content scan (ADR-0120). Backfill's run-start step makes it,
+ -- before the first pass. It returns each message's sender domain, whose prior hits the caller counts
  -- again.
  UPDATE messages
  SET
@@ -21,13 +24,19 @@ index 615ead7..09057fa 100644
 -    scanner_revision = NULL
 +    scan_state = 'pending'
  WHERE
-     account_id = @account_id
+     account_id = current_setting('app.account')
      AND scan_state = 'scanned'
+     AND (
+         scanner_version IS DISTINCT FROM @scanner_version::int
+         OR scanner_revision IS DISTINCT FROM @scanner_revision::text
 diff --git a/db/messages/scan/scan.sql.go b/db/messages/scan/scan.sql.go
-index 3868ecd..b28c476 100644
+index cb71bfe0..3e5fc955 100644
 --- a/db/messages/scan/scan.sql.go
 +++ b/db/messages/scan/scan.sql.go
-@@ -201,12 +201,7 @@ func (q *Queries) RequeueSignalledSkips(ctx context.Context, accountID string) (
+@@ -402,18 +402,13 @@ func (q *Queries) RequeueSignalledSkips(ctx context.Context) (int64, error) {
+ 	return result.RowsAffected(), nil
+ }
+ 
  const requeueStaleVerdicts = `-- name: RequeueStaleVerdicts :many
  UPDATE messages
  SET
@@ -39,5 +48,8 @@ index 3868ecd..b28c476 100644
 -    scanner_revision = NULL
 +    scan_state = 'pending'
  WHERE
-     account_id = $1
+     account_id = current_setting('app.account')
      AND scan_state = 'scanned'
+     AND (
+         scanner_version IS DISTINCT FROM $1::int
+         OR scanner_revision IS DISTINCT FROM $2::text

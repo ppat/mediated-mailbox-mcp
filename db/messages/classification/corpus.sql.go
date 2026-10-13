@@ -16,7 +16,7 @@ SELECT
     count(*) FILTER (WHERE m.labels = '{}') AS unfiled,
     count(*) FILTER (WHERE m.sender_class = 'restricted') AS restricted
 FROM messages AS m
-WHERE m.account_id = $1
+WHERE m.account_id = current_setting('app.account')
 `
 
 type CorpusFiguresRow struct {
@@ -29,8 +29,8 @@ type CorpusFiguresRow struct {
 // The account's corpus at a glance, for the corpus endpoint and the attention endpoint's backlog rule
 // (docs/UI.md sections 8.1 and 17.4).
 // Unfiled is a message with no label, and restricted one whose sender class reads restricted now.
-func (q *Queries) CorpusFigures(ctx context.Context, accountID string) (CorpusFiguresRow, error) {
-	row := q.db.QueryRow(ctx, corpusFigures, accountID)
+func (q *Queries) CorpusFigures(ctx context.Context) (CorpusFiguresRow, error) {
+	row := q.db.QueryRow(ctx, corpusFigures)
 	var i CorpusFiguresRow
 	err := row.Scan(
 		&i.Messages,

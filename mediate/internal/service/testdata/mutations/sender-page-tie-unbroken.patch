@@ -6,7 +6,7 @@ scheduled-count: no
 integration: yes
 
 diff --git a/db/senders/listing.sql b/db/senders/listing.sql
-index 28b4bf07..dcb50871 100644
+index 09d3048c..103ad4ad 100644
 --- a/db/senders/listing.sql
 +++ b/db/senders/listing.sql
 @@ -18,7 +18,7 @@ WHERE
@@ -19,15 +19,15 @@ index 28b4bf07..dcb50871 100644
  ORDER BY s.message_count DESC, s.domain ASC
  LIMIT @page_size;
 diff --git a/db/senders/listing.sql.go b/db/senders/listing.sql.go
-index fc72cca3..5d60b78b 100644
+index f93c4bdb..ebfa7210 100644
 --- a/db/senders/listing.sql.go
 +++ b/db/senders/listing.sql.go
 @@ -59,7 +59,7 @@ WHERE
      AND (
-         $2::boolean
-         OR s.message_count < $3::bigint
--        OR (s.message_count = $3::bigint AND s.domain > $4::text)
-+        OR (s.message_count = $3::bigint AND s.domain > $4::text AND FALSE)
+         $1::boolean
+         OR s.message_count < $2::bigint
+-        OR (s.message_count = $2::bigint AND s.domain > $3::text)
++        OR (s.message_count = $2::bigint AND s.domain > $3::text AND FALSE)
      )
  ORDER BY s.message_count DESC, s.domain ASC
- LIMIT $5
+ LIMIT $4

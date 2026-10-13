@@ -6,9 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/ratelimit/lease/lease.go b/ratelimit/lease/lease.go
+index 548c10e9..3230b60a 100644
 --- a/ratelimit/lease/lease.go
 +++ b/ratelimit/lease/lease.go
-@@ -150,13 +150,18 @@ func (l *Limiter) issue(ctx context.Context, account string, req core.Request) (
+@@ -163,13 +163,18 @@ func (l *Limiter) issue(ctx context.Context, account string, req core.Request) (
  		st, is := stateOf(row), issuanceOf(row)
  		recent, grantLeases := recentOf(grants)
  		is.Recent = recent
@@ -28,16 +29,16 @@ diff --git a/ratelimit/lease/lease.go b/ratelimit/lease/lease.go
  	})
  	if err != nil {
  		return core.Decision{}, 0, err
-@@ -171,7 +176,7 @@ func (l *Limiter) issue(ctx context.Context, account string, req core.Request) (
+@@ -184,7 +189,7 @@ func (l *Limiter) issue(ctx context.Context, account string, req core.Request) (
  // storeIssuance writes what issuance keeps after one request. The grants more than a second old are
  // deleted, a grant stamped ahead of the instant issuance reached is moved back to it as the rules take
  // it, and a granted lease gets its row.
 -func (l *Limiter) storeIssuance(ctx context.Context, q *limiter.Queries, account string, st core.State, next core.Issuance, held []core.Lease, d core.Decision, now int64) error {
 +func (l *Limiter) storeIssuance(ctx context.Context, q *limiter.Queries, account string, limits core.Limits, st core.State, next core.Issuance, held []core.Lease, d core.Decision, now int64) error {
- 	if err := q.DeleteGrantsBefore(ctx, limiter.DeleteGrantsBeforeParams{AccountID: account, CutoffMs: stored(now - leaseMillis)}); err != nil {
+ 	if err := q.DeleteGrantsBefore(ctx, stored(now-leaseMillis)); err != nil {
  		return fmt.Errorf("deleting old grants: %w", err)
  	}
-@@ -192,7 +197,6 @@ func (l *Limiter) storeIssuance(ctx context.Context, q *limiter.Queries, account
+@@ -204,7 +209,6 @@ func (l *Limiter) storeIssuance(ctx context.Context, q *limiter.Queries, account
  			return fmt.Errorf("storing the grant: %w", err)
  		}
  	}

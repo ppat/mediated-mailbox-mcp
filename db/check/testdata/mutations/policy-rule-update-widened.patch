@@ -5,10 +5,10 @@ tests: TestTheUIWritesOnlyItsDecisionColumnsAndPolicyRules
 scheduled-count: no
 integration: yes
 
-diff --git a/db/migrations/00004_grants.sql b/db/migrations/00004_grants.sql
+diff --git a/db/migrations/00003_grants.sql b/db/migrations/00003_grants.sql
 index eba1d5bc..86cf153b 100644
---- a/db/migrations/00004_grants.sql
-+++ b/db/migrations/00004_grants.sql
+--- a/db/migrations/00003_grants.sql
++++ b/db/migrations/00003_grants.sql
 @@ -492,7 +492,7 @@ DELETE ON oauth_clients TO mediated_mailbox_ui;
  -- An edit changes a rule's domain suffixes alone, since its scope and identifier never change. Its
  -- statements sit in db/policyrules/manage for an account's rules and db/policyrules/base for the base

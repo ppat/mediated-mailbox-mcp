@@ -50,12 +50,12 @@ func (s *Postgres) State(ctx context.Context, account string) (State, error) {
 	var st State
 	err := tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
 		st = State{}
-		progress, err := accountstate.New(t).AccountProgress(ctx, account)
+		progress, err := accountstate.New(t).AccountProgress(ctx)
 		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 			return fmt.Errorf("reading the account's progress: %w", err)
 		}
 		st.SecondEnded = progress.BackfillPass2Complete
-		c, err := cursor.New(t).SyncCursor(ctx, account)
+		c, err := cursor.New(t).SyncCursor(ctx)
 		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 			return fmt.Errorf("reading the change cursor: %w", err)
 		}
@@ -64,7 +64,7 @@ func (s *Postgres) State(ctx context.Context, account string) (State, error) {
 			at := c.SyncCursorAt.Time.UTC()
 			st.CursorAt = &at
 		}
-		latest, err := runrecord.New(t).LatestRun(ctx, runrecord.LatestRunParams{AccountID: account, Workload: Workload, Pass: PassTick})
+		latest, err := runrecord.New(t).LatestRun(ctx, runrecord.LatestRunParams{Workload: Workload, Pass: PassTick})
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil
 		}
@@ -94,17 +94,17 @@ func (s *Postgres) Start(ctx context.Context, account, runID, pass string, at Re
 	return tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
 		q := runrecord.New(t)
 		if pass == PassTick {
-			if err := endStopped(ctx, q, account); err != nil {
+			if err := endStopped(ctx, q); err != nil {
 				return err
 			}
 		}
 		err := q.StartRun(ctx, runrecord.StartRunParams{
-			AccountID: account, RunID: runID, Workload: Workload, Pass: pass, Checkpoint: cp, Counters: ct,
+			RunID: runID, Workload: Workload, Pass: pass, Checkpoint: cp, Counters: ct,
 		})
 		if err != nil {
 			return fmt.Errorf("recording the run: %w", err)
 		}
-		return q.RecordEvent(ctx, runrecord.RecordEventParams{AccountID: account, RunID: runID, Kind: "start"})
+		return q.RecordEvent(ctx, runrecord.RecordEventParams{RunID: runID, Kind: "start"})
 	})
 }
 
@@ -114,9 +114,9 @@ const stopped = "the run stopped before it recorded its end"
 // endStopped records as failed the account's latest tick and latest gap recovery while either is
 // still recorded as running. Ticks do not overlap, so one still running when a tick starts was
 // stopped before it recorded its end (ADR-0103).
-func endStopped(ctx context.Context, q *runrecord.Queries, account string) error {
+func endStopped(ctx context.Context, q *runrecord.Queries) error {
 	for _, pass := range []string{PassTick, PassGapRecovery} {
-		latest, err := q.LatestRun(ctx, runrecord.LatestRunParams{AccountID: account, Workload: Workload, Pass: pass})
+		latest, err := q.LatestRun(ctx, runrecord.LatestRunParams{Workload: Workload, Pass: pass})
 		if errors.Is(err, pgx.ErrNoRows) {
 			continue
 		}
@@ -126,10 +126,10 @@ func endStopped(ctx context.Context, q *runrecord.Queries, account string) error
 		if latest.State != "running" {
 			continue
 		}
-		if err := q.EndRun(ctx, runrecord.EndRunParams{State: "failed", LastError: text(stopped), AccountID: account, RunID: latest.RunID}); err != nil {
+		if err := q.EndRun(ctx, runrecord.EndRunParams{State: "failed", LastError: text(stopped), RunID: latest.RunID}); err != nil {
 			return fmt.Errorf("recording the stopped %s run: %w", pass, err)
 		}
-		if err := q.RecordEvent(ctx, runrecord.RecordEventParams{AccountID: account, RunID: latest.RunID, Kind: "failure", Detail: text(stopped)}); err != nil {
+		if err := q.RecordEvent(ctx, runrecord.RecordEventParams{RunID: latest.RunID, Kind: "failure", Detail: text(stopped)}); err != nil {
 			return err
 		}
 	}
@@ -143,7 +143,7 @@ func (s *Postgres) Apply(ctx context.Context, account, runID string, a Applicati
 		applied = Applied{}
 		touched := map[string]bool{}
 		if len(a.Removed) > 0 {
-			domains, err := change.New(t).RemoveMessages(ctx, change.RemoveMessagesParams{AccountID: account, MessageIds: a.Removed})
+			domains, err := change.New(t).RemoveMessages(ctx, a.Removed)
 			if err != nil {
 				return fmt.Errorf("removing the messages the provider no longer holds: %w", err)
 			}
@@ -154,7 +154,7 @@ func (s *Postgres) Apply(ctx context.Context, account, runID string, a Applicati
 		}
 		messages, events, changes := ingest.New(t), maskingrecord.New(t), change.New(t)
 		for _, m := range a.Page.Messages {
-			added, err := insert(ctx, messages, account, m)
+			added, err := insert(ctx, messages, m)
 			if err != nil {
 				return fmt.Errorf("adding message %s: %w", m.ID, err)
 			}
@@ -164,12 +164,12 @@ func (s *Postgres) Apply(ctx context.Context, account, runID string, a Applicati
 				if m.Unclassified {
 					applied.Unclassified++
 				}
-				if err := recordMasks(ctx, events, account, m); err != nil {
+				if err := recordMasks(ctx, events, m); err != nil {
 					return err
 				}
 				continue
 			}
-			changed, err := relabel(ctx, changes, account, m)
+			changed, err := relabel(ctx, changes, m)
 			if err != nil {
 				return fmt.Errorf("setting the labels and flags of message %s: %w", m.ID, err)
 			}
@@ -178,26 +178,26 @@ func (s *Postgres) Apply(ctx context.Context, account, runID string, a Applicati
 			}
 		}
 		for _, d := range slices.Sorted(maps.Keys(touched)) {
-			if err := statistics.New(t).RebuildSender(ctx, statistics.RebuildSenderParams{AccountID: account, Domain: d}); err != nil {
+			if err := statistics.New(t).RebuildSender(ctx, d); err != nil {
 				return fmt.Errorf("rebuilding the statistics of the sender at %q: %w", d, err)
 			}
-			if _, err := changes.DropEmptySender(ctx, change.DropEmptySenderParams{AccountID: account, Domain: d}); err != nil {
+			if _, err := changes.DropEmptySender(ctx, d); err != nil {
 				return fmt.Errorf("removing the statistics of the sender at %q: %w", d, err)
 			}
 		}
 		if a.Cursor != "" {
-			if err := advance(ctx, cursor.New(t), account, a.Cursor); err != nil {
+			if err := advance(ctx, cursor.New(t), a.Cursor); err != nil {
 				return err
 			}
 		}
-		return recordProgress(ctx, runrecord.New(t), account, runID, progress(applied))
+		return recordProgress(ctx, runrecord.New(t), runID, progress(applied))
 	})
 	return applied, err
 }
 
 // advance stores the account's change cursor with its write time.
-func advance(ctx context.Context, q *cursor.Queries, account string, c mail.Cursor) error {
-	n, err := q.AdvanceCursor(ctx, cursor.AdvanceCursorParams{SyncCursor: pgtype.Text{String: string(c), Valid: true}, AccountID: account})
+func advance(ctx context.Context, q *cursor.Queries, c mail.Cursor) error {
+	n, err := q.AdvanceCursor(ctx, pgtype.Text{String: string(c), Valid: true})
 	if err != nil {
 		return fmt.Errorf("storing the change cursor: %w", err)
 	}
@@ -210,7 +210,7 @@ func advance(ctx context.Context, q *cursor.Queries, account string, c mail.Curs
 // insert adds one message to the index and reports whether it was added, false for a message the
 // index already held. Its flags and authentication results take the form core/index gives them, the
 // form backfill stores too.
-func insert(ctx context.Context, q *ingest.Queries, account string, m index.Message) (bool, error) {
+func insert(ctx context.Context, q *ingest.Queries, m index.Message) (bool, error) {
 	flags, err := json.Marshal(index.StoredFlags(m.Flags))
 	if err != nil {
 		return false, err
@@ -226,7 +226,6 @@ func insert(ctx context.Context, q *ingest.Queries, account string, m index.Mess
 		labels = []string{}
 	}
 	_, err = q.InsertMessage(ctx, ingest.InsertMessageParams{
-		AccountID:              account,
 		MessageID:              m.ID,
 		ThreadID:               m.ThreadID,
 		FromEmail:              m.From.Email,
@@ -252,16 +251,16 @@ func insert(ctx context.Context, q *ingest.Queries, account string, m index.Mess
 	if err != nil {
 		return false, err
 	}
-	return true, media(ctx, q, account, m)
+	return true, media(ctx, q, m)
 }
 
 // media adds the media of a message's attachments, which the index stores once, with the message
 // (ADR-0123).
-func media(ctx context.Context, q *ingest.Queries, account string, m index.Message) error {
+func media(ctx context.Context, q *ingest.Queries, m index.Message) error {
 	if len(m.AttachmentMedia) == 0 {
 		return nil
 	}
-	p := ingest.InsertAttachmentMediaParams{AccountID: account, MessageID: m.ID}
+	p := ingest.InsertAttachmentMediaParams{MessageID: m.ID}
 	for _, a := range m.AttachmentMedia {
 		p.MediaTypes = append(p.MediaTypes, a.MediaType)
 		p.Extensions = append(p.Extensions, a.Extension)
@@ -271,7 +270,7 @@ func media(ctx context.Context, q *ingest.Queries, account string, m index.Messa
 
 // relabel sets a stored message's labels and flags to the ones the provider reports, and reports
 // whether they changed.
-func relabel(ctx context.Context, q *change.Queries, account string, m index.Message) (bool, error) {
+func relabel(ctx context.Context, q *change.Queries, m index.Message) (bool, error) {
 	flags, err := json.Marshal(index.StoredFlags(m.Flags))
 	if err != nil {
 		return false, err
@@ -280,16 +279,16 @@ func relabel(ctx context.Context, q *change.Queries, account string, m index.Mes
 	if labels == nil {
 		labels = []string{}
 	}
-	n, err := q.ApplyLabelsAndFlags(ctx, change.ApplyLabelsAndFlagsParams{Labels: labels, Flags: flags, AccountID: account, MessageID: m.ID})
+	n, err := q.ApplyLabelsAndFlags(ctx, change.ApplyLabelsAndFlagsParams{Labels: labels, Flags: flags, MessageID: m.ID})
 	return n == 1, err
 }
 
 // recordMasks records a masking event for each mask on m's subject, with the scanner it was masked
 // under, as backfill records them (ADR-0003, ADR-0120).
-func recordMasks(ctx context.Context, q *maskingrecord.Queries, account string, m index.Message) error {
+func recordMasks(ctx context.Context, q *maskingrecord.Queries, m index.Message) error {
 	for _, mask := range m.Masks {
 		err := q.RecordMaskingEvent(ctx, maskingrecord.RecordMaskingEventParams{
-			AccountID: account, MessageID: m.ID, RuleID: mask.Rule, Tier: int32(mask.Tier), //nolint:gosec // A tier is 0, 1 or 2.
+			MessageID: m.ID, RuleID: mask.Rule, Tier: int32(mask.Tier), //nolint:gosec // A tier is 0, 1 or 2.
 			ScannerVersion:  pgtype.Int4{Int32: version(m.Stamp.Version), Valid: true},
 			ScannerRevision: pgtype.Text{String: m.Stamp.Revision, Valid: true},
 		})
@@ -302,15 +301,15 @@ func recordMasks(ctx context.Context, q *maskingrecord.Queries, account string, 
 
 // recordProgress records a running run's checkpoint and counters with a progress event, in the
 // transaction that made the work they count durable.
-func recordProgress(ctx context.Context, q *runrecord.Queries, account, runID string, at Recorder) error {
+func recordProgress(ctx context.Context, q *runrecord.Queries, runID string, at Recorder) error {
 	cp, ct, err := at.encode()
 	if err != nil {
 		return err
 	}
-	if err := q.RecordProgress(ctx, runrecord.RecordProgressParams{Checkpoint: cp, Counters: ct, AccountID: account, RunID: runID}); err != nil {
+	if err := q.RecordProgress(ctx, runrecord.RecordProgressParams{Checkpoint: cp, Counters: ct, RunID: runID}); err != nil {
 		return fmt.Errorf("recording the run's progress: %w", err)
 	}
-	return q.RecordEvent(ctx, runrecord.RecordEventParams{AccountID: account, RunID: runID, Kind: "progress"})
+	return q.RecordEvent(ctx, runrecord.RecordEventParams{RunID: runID, Kind: "progress"})
 }
 
 // Since implements Store.
@@ -318,7 +317,7 @@ func (s *Postgres) Since(ctx context.Context, account string, start time.Time) (
 	var out []string
 	err := tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
 		var err error
-		out, err = change.New(t).MessagesSince(ctx, change.MessagesSinceParams{AccountID: account, Since: pgtype.Timestamptz{Time: start, Valid: true}})
+		out, err = change.New(t).MessagesSince(ctx, pgtype.Timestamptz{Time: start, Valid: true})
 		return err
 	})
 	return out, err
@@ -330,17 +329,17 @@ func (s *Postgres) Delist(ctx context.Context, account, runID string, delisted f
 	err := tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
 		marked = 0
 		q := scan.New(t)
-		restricted, err := q.RestrictedDomains(ctx, account)
+		restricted, err := q.RestrictedDomains(ctx)
 		if err != nil {
 			return fmt.Errorf("reading the domains stored as restricted or skipped as restricted: %w", err)
 		}
 		domains := delisted(restricted)
 		for _, d := range domains {
-			n, err := q.MarkDelisted(ctx, scan.MarkDelistedParams{AccountID: account, Domain: d})
+			n, err := q.MarkDelisted(ctx, d)
 			if err != nil {
 				return fmt.Errorf("returning the messages of %q to pending scan: %w", d, err)
 			}
-			if err := statistics.New(t).RebuildSender(ctx, statistics.RebuildSenderParams{AccountID: account, Domain: d}); err != nil {
+			if err := statistics.New(t).RebuildSender(ctx, d); err != nil {
 				return fmt.Errorf("rebuilding the statistics of the sender at %q: %w", d, err)
 			}
 			marked += int(n)
@@ -349,7 +348,7 @@ func (s *Postgres) Delist(ctx context.Context, account, runID string, delisted f
 			return nil
 		}
 		return runrecord.New(t).RecordEvent(ctx, runrecord.RecordEventParams{
-			AccountID: account, RunID: runID, Kind: "retry",
+			RunID: runID, Kind: "retry",
 			Detail: text(fmt.Sprintf("the delisting transition returned %d messages of %d senders the policy no longer restricts to pending scan, "+
 				"so the scanning starts from the first message waiting for a scan", marked, len(domains))),
 		})
@@ -363,16 +362,16 @@ func (s *Postgres) List(ctx context.Context, account string, listed func([]strin
 	err := tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
 		marked = 0
 		q := scan.New(t)
-		normal, err := q.NormalDomains(ctx, account)
+		normal, err := q.NormalDomains(ctx)
 		if err != nil {
 			return fmt.Errorf("reading the domains stored as normal: %w", err)
 		}
 		for _, l := range listed(normal) {
-			n, err := q.MarkListed(ctx, scan.MarkListedParams{AccountID: account, Domain: l.Domain, ClassRuleID: text(l.Rule)})
+			n, err := q.MarkListed(ctx, scan.MarkListedParams{Domain: l.Domain, ClassRuleID: text(l.Rule)})
 			if err != nil {
 				return fmt.Errorf("restricting the stored class of %q: %w", l.Domain, err)
 			}
-			if err := statistics.New(t).RebuildSender(ctx, statistics.RebuildSenderParams{AccountID: account, Domain: l.Domain}); err != nil {
+			if err := statistics.New(t).RebuildSender(ctx, l.Domain); err != nil {
 				return fmt.Errorf("rebuilding the statistics of the sender at %q: %w", l.Domain, err)
 			}
 			marked += int(n)
@@ -387,7 +386,7 @@ func (s *Postgres) Pending(ctx context.Context, account, after string, n int) ([
 	var out []index.Waiting
 	err := tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
 		out = nil
-		rows, err := scan.New(t).PendingPage(ctx, scan.PendingPageParams{AccountID: account, After: after, PageSize: int32(min(max(n, 1), 1<<31-1))}) //nolint:gosec // Bounded.
+		rows, err := scan.New(t).PendingPage(ctx, scan.PendingPageParams{After: after, PageSize: int32(min(max(n, 1), 1<<31-1))}) //nolint:gosec // Bounded.
 		if err != nil {
 			return err
 		}
@@ -407,13 +406,13 @@ func (s *Postgres) CommitScan(ctx context.Context, account, runID string, outcom
 	return tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
 		messages, gate := scan.New(t), gaterecord.New(t)
 		for _, o := range outcomes {
-			if err := commitOutcome(ctx, messages, gate, account, o); err != nil {
+			if err := commitOutcome(ctx, messages, gate, o); err != nil {
 				return fmt.Errorf("message %s: %w", o.ID, err)
 			}
 		}
 		hits := index.Hits(outcomes)
 		for _, domain := range slices.Sorted(maps.Keys(hits)) {
-			n, err := statistics.New(t).AddScanHits(ctx, statistics.AddScanHitsParams{Hits: hits[domain], AccountID: account, Domain: domain})
+			n, err := statistics.New(t).AddScanHits(ctx, statistics.AddScanHitsParams{Hits: hits[domain], Domain: domain})
 			if err != nil {
 				return fmt.Errorf("adding the prior hits of the sender at %q: %w", domain, err)
 			}
@@ -424,7 +423,7 @@ func (s *Postgres) CommitScan(ctx context.Context, account, runID string, outcom
 		q := runrecord.New(t)
 		for _, it := range items {
 			err := q.RecordFailure(ctx, runrecord.RecordFailureParams{
-				AccountID: account, RunID: runID, ItemKind: "message", ItemID: it.ID, ErrorClass: it.Class,
+				RunID: runID, ItemKind: "message", ItemID: it.ID, ErrorClass: it.Class,
 				ErrorSummary: text(it.Summary), Attempts: 1,
 				FirstAt: pgtype.Timestamptz{Time: it.At, Valid: true}, LastAt: pgtype.Timestamptz{Time: it.At, Valid: true},
 				Disposition: it.Disposition,
@@ -433,7 +432,7 @@ func (s *Postgres) CommitScan(ctx context.Context, account, runID string, outcom
 				return fmt.Errorf("recording the failed message %s: %w", it.ID, err)
 			}
 		}
-		return recordProgress(ctx, q, account, runID, at)
+		return recordProgress(ctx, q, runID, at)
 	})
 }
 
@@ -444,7 +443,7 @@ var errNotWaiting = errors.New("the message no longer waits for a scan")
 // commitOutcome records what the tick did with one message, as backfill's second pass records it,
 // which is the gate's decision when it decided, and the verdict or skip state it leads to. A
 // message the gate could not decide, or whose body was not scanned, stays waiting.
-func commitOutcome(ctx context.Context, messages *scan.Queries, gate *gaterecord.Queries, account string, o index.Outcome) error {
+func commitOutcome(ctx context.Context, messages *scan.Queries, gate *gaterecord.Queries, o index.Outcome) error {
 	if !o.Verdict.Decided() {
 		return nil
 	}
@@ -452,7 +451,7 @@ func commitOutcome(ctx context.Context, messages *scan.Queries, gate *gaterecord
 	if o.Verdict.Scans() {
 		decision = "SCAN"
 	}
-	err := gate.RecordDecision(ctx, gaterecord.RecordDecisionParams{AccountID: account, MessageID: o.ID, Decision: decision, Reason: o.Verdict.Reason().String()})
+	err := gate.RecordDecision(ctx, gaterecord.RecordDecisionParams{MessageID: o.ID, Decision: decision, Reason: o.Verdict.Reason().String()})
 	if err != nil {
 		return fmt.Errorf("recording the gate's decision: %w", err)
 	}
@@ -475,11 +474,10 @@ func commitOutcome(ctx context.Context, messages *scan.Queries, gate *gaterecord
 			RuleIds:         rules,
 			ScannerVersion:  pgtype.Int4{Int32: version(o.Scanned.Version), Valid: true},
 			ScannerRevision: pgtype.Text{String: o.Scanned.Revision, Valid: true},
-			AccountID:       account,
 			MessageID:       o.ID,
 		})
 	case !o.Verdict.Scans():
-		n, err = messages.RecordSkip(ctx, scan.RecordSkipParams{ScanState: o.Verdict.State().String(), AccountID: account, MessageID: o.ID})
+		n, err = messages.RecordSkip(ctx, scan.RecordSkipParams{ScanState: o.Verdict.State().String(), MessageID: o.ID})
 	default:
 		return nil
 	}
@@ -497,7 +495,7 @@ func (s *Postgres) Backlog(ctx context.Context, account string) (int64, error) {
 	var n int64
 	err := tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
 		var err error
-		n, err = scan.New(t).Backlog(ctx, account)
+		n, err = scan.New(t).Backlog(ctx)
 		return err
 	})
 	return n, err
@@ -507,7 +505,7 @@ func (s *Postgres) Backlog(ctx context.Context, account string) (int64, error) {
 func (s *Postgres) Finish(ctx context.Context, account, runID string, c mail.Cursor, at Recorder) error {
 	return tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
 		if c != "" {
-			if err := advance(ctx, cursor.New(t), account, c); err != nil {
+			if err := advance(ctx, cursor.New(t), c); err != nil {
 				return err
 			}
 		}
@@ -516,13 +514,13 @@ func (s *Postgres) Finish(ctx context.Context, account, runID string, c mail.Cur
 		if err != nil {
 			return err
 		}
-		if err := q.RecordProgress(ctx, runrecord.RecordProgressParams{Checkpoint: cp, Counters: ct, AccountID: account, RunID: runID}); err != nil {
+		if err := q.RecordProgress(ctx, runrecord.RecordProgressParams{Checkpoint: cp, Counters: ct, RunID: runID}); err != nil {
 			return fmt.Errorf("recording the run's progress: %w", err)
 		}
-		if err := q.EndRun(ctx, runrecord.EndRunParams{State: "succeeded", AccountID: account, RunID: runID}); err != nil {
+		if err := q.EndRun(ctx, runrecord.EndRunParams{State: "succeeded", RunID: runID}); err != nil {
 			return fmt.Errorf("recording the run's end: %w", err)
 		}
-		return q.RecordEvent(ctx, runrecord.RecordEventParams{AccountID: account, RunID: runID, Kind: "finish"})
+		return q.RecordEvent(ctx, runrecord.RecordEventParams{RunID: runID, Kind: "finish"})
 	})
 }
 
@@ -530,16 +528,16 @@ func (s *Postgres) Finish(ctx context.Context, account, runID string, c mail.Cur
 func (s *Postgres) Fail(ctx context.Context, account, runID, cause string) error {
 	return tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
 		q := runrecord.New(t)
-		if err := q.EndRun(ctx, runrecord.EndRunParams{State: "failed", LastError: text(cause), AccountID: account, RunID: runID}); err != nil {
+		if err := q.EndRun(ctx, runrecord.EndRunParams{State: "failed", LastError: text(cause), RunID: runID}); err != nil {
 			return err
 		}
-		return q.RecordEvent(ctx, runrecord.RecordEventParams{AccountID: account, RunID: runID, Kind: "failure", Detail: text(cause)})
+		return q.RecordEvent(ctx, runrecord.RecordEventParams{RunID: runID, Kind: "failure", Detail: text(cause)})
 	})
 }
 
 // Event implements Store.
 func (s *Postgres) Event(ctx context.Context, account, runID string, e Event) error {
 	return tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
-		return runrecord.New(t).RecordEvent(ctx, runrecord.RecordEventParams{AccountID: account, RunID: runID, Kind: e.Kind, Detail: text(e.Detail)})
+		return runrecord.New(t).RecordEvent(ctx, runrecord.RecordEventParams{RunID: runID, Kind: e.Kind, Detail: text(e.Detail)})
 	})
 }

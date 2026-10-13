@@ -5,10 +5,10 @@ tests: TestOnlyTheProviderCallingRolesReadTheOAuthClients TestOnlyTheProviderCal
 scheduled-count: no
 integration: yes
 
-diff --git a/db/migrations/00004_grants.sql b/db/migrations/00004_grants.sql
+diff --git a/db/migrations/00003_grants.sql b/db/migrations/00003_grants.sql
 index eba1d5bc..06b368f6 100644
---- a/db/migrations/00004_grants.sql
-+++ b/db/migrations/00004_grants.sql
+--- a/db/migrations/00003_grants.sql
++++ b/db/migrations/00003_grants.sql
 @@ -543,5 +543,5 @@ GRANT SELECT (account_id, provider, oauth_client) ON accounts
  TO mediated_mailbox_mediate, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
  GRANT SELECT (account_id, credential), UPDATE (credential) ON account_state

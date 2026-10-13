@@ -5,10 +5,10 @@ tests: TestTheRunAndAuditIndexesLeaveStoredRowsUnchanged
 scheduled-count: no
 integration: yes
 
-diff --git a/db/migrations/00006_run_and_audit_indexes.sql b/db/migrations/00006_run_and_audit_indexes.sql
+diff --git a/db/migrations/00005_run_and_audit_indexes.sql b/db/migrations/00005_run_and_audit_indexes.sql
 index af48ab48..16753046 100644
---- a/db/migrations/00006_run_and_audit_indexes.sql
-+++ b/db/migrations/00006_run_and_audit_indexes.sql
+--- a/db/migrations/00005_run_and_audit_indexes.sql
++++ b/db/migrations/00005_run_and_audit_indexes.sql
 @@ -6,7 +6,6 @@
  -- A job kind's runs by pass, newest first, for every tick's latest run, the jobs screen's latest run
  -- per job kind and pass, and the job mechanism's due decisions. It ends with run_id because the

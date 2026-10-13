@@ -107,7 +107,7 @@ func (l *Loader) replace(ctx context.Context, account string, known, sealed []by
 	err := tx.Run(ctx, l.db, account, func(t pgx.Tx) error {
 		var err error
 		changed, err = credential.New(t).ReplaceSealed(ctx, credential.ReplaceSealedParams{
-			Credential: sealed, AccountID: account, Known: known,
+			Credential: sealed, Known: known,
 		})
 		return err
 	})

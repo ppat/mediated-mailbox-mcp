@@ -17,20 +17,19 @@ SET
     last_auth_at = $1,
     last_auth_outcome = $2
 WHERE
-    account_id = $3
+    account_id = current_setting('app.account')
     AND (last_auth_at IS NULL OR last_auth_at < $1)
 `
 
 type RecordAuthenticationParams struct {
 	AttemptedAt pgtype.Timestamptz
 	Outcome     pgtype.Text
-	AccountID   string
 }
 
 // Records an authentication attempt the account's provider adapter reported, at the end of a
 // unit of work, only when the row holds no attempt or an older one, so the latest attempt of
 // every deployable that records it wins and an older one changes nothing (ADR-0097, ADR-0016).
 func (q *Queries) RecordAuthentication(ctx context.Context, arg RecordAuthenticationParams) error {
-	_, err := q.db.Exec(ctx, recordAuthentication, arg.AttemptedAt, arg.Outcome, arg.AccountID)
+	_, err := q.db.Exec(ctx, recordAuthentication, arg.AttemptedAt, arg.Outcome)
 	return err
 }

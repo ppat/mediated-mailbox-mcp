@@ -12,19 +12,18 @@ import (
 const addScanHits = `-- name: AddScanHits :execrows
 UPDATE senders
 SET scan_hit_count = scan_hit_count + $1
-WHERE account_id = $2 AND domain = $3
+WHERE account_id = current_setting('app.account') AND domain = $2
 `
 
 type AddScanHitsParams struct {
-	Hits      int64
-	AccountID string
-	Domain    string
+	Hits   int64
+	Domain string
 }
 
 // Adds the messages whose scan verdict carried a content flag to the prior hits of the account's
 // sender at domain, which the scan gate reads (ADR-0093).
 func (q *Queries) AddScanHits(ctx context.Context, arg AddScanHitsParams) (int64, error) {
-	result, err := q.db.Exec(ctx, addScanHits, arg.Hits, arg.AccountID, arg.Domain)
+	result, err := q.db.Exec(ctx, addScanHits, arg.Hits, arg.Domain)
 	if err != nil {
 		return 0, err
 	}
@@ -67,7 +66,7 @@ SELECT
     ) AS label_distribution,
     CASE WHEN bool_or(m.sender_class = 'restricted') THEN 'restricted' ELSE 'normal' END AS sender_class
 FROM messages AS m
-WHERE m.account_id = $1 AND m.from_domain = $2
+WHERE m.account_id = current_setting('app.account') AND m.from_domain = $1
 GROUP BY m.account_id, m.from_domain
 ON CONFLICT (account_id, domain) DO UPDATE
     SET
@@ -81,18 +80,13 @@ ON CONFLICT (account_id, domain) DO UPDATE
         sender_class = excluded.sender_class
 `
 
-type RebuildSenderParams struct {
-	AccountID string
-	Domain    string
-}
-
 // Rebuilds the statistics of the account's sender at domain from the messages the index holds for
 // it, its volume, first and last message, List-Id share, label distribution, the first twenty of its
 // local parts and display names in sorted order, and its class (ADR-0016, ADR-0017). A sender is
 // restricted when any of its messages was classified restricted. The statistics are read from the
 // stored messages rather than added to, so a page ingested twice leaves them as one ingestion does.
-func (q *Queries) RebuildSender(ctx context.Context, arg RebuildSenderParams) error {
-	_, err := q.db.Exec(ctx, rebuildSender, arg.AccountID, arg.Domain)
+func (q *Queries) RebuildSender(ctx context.Context, domain string) error {
+	_, err := q.db.Exec(ctx, rebuildSender, domain)
 	return err
 }
 
@@ -103,24 +97,19 @@ SET
         SELECT count(*)
         FROM messages AS m
         WHERE
-            m.account_id = $1
-            AND m.from_domain = $2
+            m.account_id = current_setting('app.account')
+            AND m.from_domain = $1
             AND m.scan_state = 'scanned'
             AND cardinality(m.content_flags) > 0
     )
-WHERE s.account_id = $1 AND s.domain = $2
+WHERE s.account_id = current_setting('app.account') AND s.domain = $1
 `
-
-type RecountScanHitsParams struct {
-	AccountID string
-	Domain    string
-}
 
 // Counts the prior hits of the account's sender at domain again from the stored messages whose scan
 // verdict carries a content flag, after messages of the sender returned to pending scan with their
 // verdict cleared, so a message scanned again counts once (ADR-0120, ADR-0093).
-func (q *Queries) RecountScanHits(ctx context.Context, arg RecountScanHitsParams) (int64, error) {
-	result, err := q.db.Exec(ctx, recountScanHits, arg.AccountID, arg.Domain)
+func (q *Queries) RecountScanHits(ctx context.Context, domain string) (int64, error) {
+	result, err := q.db.Exec(ctx, recountScanHits, domain)
 	if err != nil {
 		return 0, err
 	}

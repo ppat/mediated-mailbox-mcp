@@ -1,0 +1,20 @@
+control: Every statement takes its account from the transaction
+removes: the sender listing's page size is capped by a count of every account's messages in its LIMIT, a clause whose queries the check does not otherwise read
+packages: ./db/check
+tests: TestStatementFiles
+scheduled-count: no
+integration: no
+
+diff --git a/db/senders/listing.sql b/db/senders/listing.sql
+index 09d3048c..d3e12b3b 100644
+--- a/db/senders/listing.sql
++++ b/db/senders/listing.sql
+@@ -21,7 +21,7 @@ WHERE
+         OR (s.message_count = @after_count::bigint AND s.domain > @after_domain::text)
+     )
+ ORDER BY s.message_count DESC, s.domain ASC
+-LIMIT @page_size;
++LIMIT least(@page_size, (SELECT count(*) FROM messages));
+ 
+ -- name: SenderDomains :many
+ -- Every sender domain the account's statistics hold, which are exactly the domains its messages are

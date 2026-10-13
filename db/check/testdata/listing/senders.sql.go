@@ -14,23 +14,18 @@ SELECT
     domain,
     message_count
 FROM fixture_senders
-WHERE account_id = $1
+WHERE account_id = current_setting('app.account')
 ORDER BY message_count DESC, domain ASC
-LIMIT $2
+LIMIT $1
 `
-
-type ListSendersParams struct {
-	AccountID string
-	PageSize  int32
-}
 
 type ListSendersRow struct {
 	Domain       string
 	MessageCount int64
 }
 
-func (q *Queries) ListSenders(ctx context.Context, arg ListSendersParams) ([]ListSendersRow, error) {
-	rows, err := q.db.Query(ctx, listSenders, arg.AccountID, arg.PageSize)
+func (q *Queries) ListSenders(ctx context.Context, pageSize int32) ([]ListSendersRow, error) {
+	rows, err := q.db.Query(ctx, listSenders, pageSize)
 	if err != nil {
 		return nil, err
 	}

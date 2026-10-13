@@ -3,4 +3,4 @@
 -- null for none. The rate limiter takes it for the account when a spending process builds it (ADR-0024).
 SELECT s.lowered_target_rate
 FROM account_state AS s
-WHERE s.account_id = @account_id;
+WHERE s.account_id = current_setting('app.account');

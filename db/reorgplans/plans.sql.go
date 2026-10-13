@@ -18,7 +18,7 @@ WITH apply_runs AS (
         a.run_id,
         a.state
     FROM job_runs AS a
-    WHERE a.account_id = $1 AND a.pass = 'apply'
+    WHERE a.account_id = current_setting('app.account') AND a.pass = 'apply'
     ORDER BY a.plan_id ASC, a.started_at DESC, a.run_id ASC
 ),
 
@@ -27,7 +27,7 @@ rollback_runs AS (
         b.plan_id,
         b.run_id
     FROM job_runs AS b
-    WHERE b.account_id = $1 AND b.pass = 'rollback'
+    WHERE b.account_id = current_setting('app.account') AND b.pass = 'rollback'
     ORDER BY b.plan_id ASC, b.started_at DESC, b.run_id ASC
 )
 
@@ -52,20 +52,19 @@ FROM reorg_plans AS p
 LEFT JOIN apply_runs AS ar ON p.plan_id = ar.plan_id
 LEFT JOIN rollback_runs AS rr ON p.plan_id = rr.plan_id
 WHERE
-    p.account_id = $1
-    AND ($2::timestamptz IS NULL OR p.created_at >= $2::timestamptz)
-    AND ($3::timestamptz IS NULL OR p.created_at < $3::timestamptz)
-    AND ($4::text[] IS NULL OR p.status = any($4::text[]))
-    AND ($5::text[] IS NULL OR p.status != all($5::text[]))
+    p.account_id = current_setting('app.account')
+    AND ($1::timestamptz IS NULL OR p.created_at >= $1::timestamptz)
+    AND ($2::timestamptz IS NULL OR p.created_at < $2::timestamptz)
+    AND ($3::text[] IS NULL OR p.status = any($3::text[]))
+    AND ($4::text[] IS NULL OR p.status != all($4::text[]))
 ORDER BY
-    CASE WHEN $6::boolean THEN p.created_at END DESC,
+    CASE WHEN $5::boolean THEN p.created_at END DESC,
     p.created_at ASC,
     p.plan_id ASC
-LIMIT 50 OFFSET $7
+LIMIT 50 OFFSET $6
 `
 
 type PlanRowsParams struct {
-	AccountID  string
 	RangeStart pgtype.Timestamptz
 	RangeEnd   pgtype.Timestamptz
 	StatusIn   []string
@@ -95,7 +94,6 @@ type PlanRowsRow struct {
 // direction, and the plan's identity ends the sort.
 func (q *Queries) PlanRows(ctx context.Context, arg PlanRowsParams) ([]PlanRowsRow, error) {
 	rows, err := q.db.Query(ctx, planRows,
-		arg.AccountID,
 		arg.RangeStart,
 		arg.RangeEnd,
 		arg.StatusIn,
@@ -140,17 +138,16 @@ SELECT
     count(*) AS plans
 FROM reorg_plans AS p
 WHERE
-    p.account_id = $1
-    AND ($2::timestamptz IS NULL OR p.created_at >= $2::timestamptz)
-    AND ($3::timestamptz IS NULL OR p.created_at < $3::timestamptz)
-    AND ($4::text[] IS NULL OR p.status = any($4::text[]))
-    AND ($5::text[] IS NULL OR p.status != all($5::text[]))
+    p.account_id = current_setting('app.account')
+    AND ($1::timestamptz IS NULL OR p.created_at >= $1::timestamptz)
+    AND ($2::timestamptz IS NULL OR p.created_at < $2::timestamptz)
+    AND ($3::text[] IS NULL OR p.status = any($3::text[]))
+    AND ($4::text[] IS NULL OR p.status != all($4::text[]))
 GROUP BY p.status
 ORDER BY p.status
 `
 
 type PlanStatusCountsParams struct {
-	AccountID  string
 	RangeStart pgtype.Timestamptz
 	RangeEnd   pgtype.Timestamptz
 	StatusIn   []string
@@ -167,7 +164,6 @@ type PlanStatusCountsRow struct {
 // which the row pages count from. A null range bound is no bound, and a null status array no filter.
 func (q *Queries) PlanStatusCounts(ctx context.Context, arg PlanStatusCountsParams) ([]PlanStatusCountsRow, error) {
 	rows, err := q.db.Query(ctx, planStatusCounts,
-		arg.AccountID,
 		arg.RangeStart,
 		arg.RangeEnd,
 		arg.StatusIn,
@@ -207,15 +203,10 @@ SELECT
     ) AS total
 FROM reorg_plans AS p
 WHERE
-    p.account_id = $1
-    AND (p.status = 'APPLYING' OR p.plan_id = any($2::uuid[]))
+    p.account_id = current_setting('app.account')
+    AND (p.status = 'APPLYING' OR p.plan_id = any($1::uuid[]))
 ORDER BY p.plan_id
 `
-
-type StreamPlansParams struct {
-	AccountID string
-	Known     []pgtype.UUID
-}
 
 type StreamPlansRow struct {
 	PlanID  pgtype.UUID
@@ -227,8 +218,8 @@ type StreamPlansRow struct {
 // The plans the event stream follows, every plan applying and each plan it already sent, so a plan
 // that leaves APPLYING is sent once more with its new status (ADR-0058). applied counts the op log's
 // rows, which the op log scopes through its plan, and total the plan's operations.
-func (q *Queries) StreamPlans(ctx context.Context, arg StreamPlansParams) ([]StreamPlansRow, error) {
-	rows, err := q.db.Query(ctx, streamPlans, arg.AccountID, arg.Known)
+func (q *Queries) StreamPlans(ctx context.Context, known []pgtype.UUID) ([]StreamPlansRow, error) {
+	rows, err := q.db.Query(ctx, streamPlans, known)
 	if err != nil {
 		return nil, err
 	}

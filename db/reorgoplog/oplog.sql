@@ -4,4 +4,4 @@
 SELECT count(*) AS operations
 FROM reorg_op_log AS l
 INNER JOIN reorg_plans AS p ON l.plan_id = p.plan_id
-WHERE p.account_id = @account_id AND l.plan_id = @plan_id;
+WHERE p.account_id = current_setting('app.account') AND l.plan_id = @plan_id;

@@ -15,15 +15,14 @@ const countStaleSubjects = `-- name: CountStaleSubjects :one
 SELECT count(*) AS stale
 FROM messages AS m
 WHERE
-    m.account_id = $1
+    m.account_id = current_setting('app.account')
     AND (
-        m.subject_scanner_version IS DISTINCT FROM $2::int
-        OR m.subject_scanner_revision IS DISTINCT FROM $3::text
+        m.subject_scanner_version IS DISTINCT FROM $1::int
+        OR m.subject_scanner_revision IS DISTINCT FROM $2::text
     )
 `
 
 type CountStaleSubjectsParams struct {
-	AccountID       string
 	ScannerVersion  int32
 	ScannerRevision string
 }
@@ -34,7 +33,7 @@ type CountStaleSubjectsParams struct {
 // fetch again, at a run's start, after each call fetching subjects again and at the page that ends
 // its enumeration (ADR-0120).
 func (q *Queries) CountStaleSubjects(ctx context.Context, arg CountStaleSubjectsParams) (int64, error) {
-	row := q.db.QueryRow(ctx, countStaleSubjects, arg.AccountID, arg.ScannerVersion, arg.ScannerRevision)
+	row := q.db.QueryRow(ctx, countStaleSubjects, arg.ScannerVersion, arg.ScannerRevision)
 	var stale int64
 	err := row.Scan(&stale)
 	return stale, err
@@ -43,20 +42,19 @@ func (q *Queries) CountStaleSubjects(ctx context.Context, arg CountStaleSubjects
 const insertAttachmentMedia = `-- name: InsertAttachmentMedia :exec
 INSERT INTO attachment_media (account_id, message_id, media_type, extension)
 SELECT
+    current_setting('app.account') AS account_id,
     $1,
-    $2,
     u.media_type,
     u.extension
 FROM (
     SELECT
-        unnest($3::text[]) AS media_type,
-        unnest($4::text[]) AS extension
+        unnest($2::text[]) AS media_type,
+        unnest($3::text[]) AS extension
 ) AS u
 ON CONFLICT DO NOTHING
 `
 
 type InsertAttachmentMediaParams struct {
-	AccountID  string
 	MessageID  string
 	MediaTypes []string
 	Extensions []string
@@ -67,12 +65,7 @@ type InsertAttachmentMediaParams struct {
 // (ADR-0123). It is run for a message InsertMessage has just added, whose media never change once
 // stored, so a pair already stored is left as it is.
 func (q *Queries) InsertAttachmentMedia(ctx context.Context, arg InsertAttachmentMediaParams) error {
-	_, err := q.db.Exec(ctx, insertAttachmentMedia,
-		arg.AccountID,
-		arg.MessageID,
-		arg.MediaTypes,
-		arg.Extensions,
-	)
+	_, err := q.db.Exec(ctx, insertAttachmentMedia, arg.MessageID, arg.MediaTypes, arg.Extensions)
 	return err
 }
 
@@ -98,6 +91,7 @@ INSERT INTO messages (
     subject_scanner_version,
     subject_scanner_revision
 ) VALUES (
+    current_setting('app.account'),
     $1,
     $2,
     $3,
@@ -115,15 +109,13 @@ INSERT INTO messages (
     $15,
     $16,
     $17,
-    $18,
-    $19
+    $18
 )
 ON CONFLICT (account_id, message_id) DO NOTHING
 RETURNING message_id
 `
 
 type InsertMessageParams struct {
-	AccountID              string
 	MessageID              string
 	ThreadID               string
 	FromEmail              string
@@ -151,7 +143,6 @@ type InsertMessageParams struct {
 // The row holds no body, snippet or attachment name (ADR-0016).
 func (q *Queries) InsertMessage(ctx context.Context, arg InsertMessageParams) (string, error) {
 	row := q.db.QueryRow(ctx, insertMessage,
-		arg.AccountID,
 		arg.MessageID,
 		arg.ThreadID,
 		arg.FromEmail,
@@ -185,12 +176,12 @@ SET
     subject_scanner_revision = $2::text
 FROM (
     SELECT
-        unnest($4::text[]) AS message_id,
-        unnest($5::text[]) AS subject,
-        unnest($6::boolean[]) AS subject_masked
+        unnest($3::text[]) AS message_id,
+        unnest($4::text[]) AS subject,
+        unnest($5::boolean[]) AS subject_masked
 ) AS r
 WHERE
-    m.account_id = $3
+    m.account_id = current_setting('app.account')
     AND m.message_id = r.message_id
     AND NOT m.subject_masked
     AND (
@@ -202,7 +193,6 @@ WHERE
 type RemaskStoredSubjectsParams struct {
 	ScannerVersion  int32
 	ScannerRevision string
-	AccountID       string
 	MessageIds      []string
 	Subjects        []string
 	SubjectsMasked  []bool
@@ -218,7 +208,6 @@ func (q *Queries) RemaskStoredSubjects(ctx context.Context, arg RemaskStoredSubj
 	result, err := q.db.Exec(ctx, remaskStoredSubjects,
 		arg.ScannerVersion,
 		arg.ScannerRevision,
-		arg.AccountID,
 		arg.MessageIds,
 		arg.Subjects,
 		arg.SubjectsMasked,
@@ -237,8 +226,8 @@ SET
     subject_scanner_version = $3::int,
     subject_scanner_revision = $4::text
 WHERE
-    account_id = $5
-    AND message_id = $6
+    account_id = current_setting('app.account')
+    AND message_id = $5
     AND (
         subject_scanner_version IS DISTINCT FROM $3::int
         OR subject_scanner_revision IS DISTINCT FROM $4::text
@@ -250,7 +239,6 @@ type RemaskSubjectParams struct {
 	SubjectMasked   bool
 	ScannerVersion  int32
 	ScannerRevision string
-	AccountID       string
 	MessageID       string
 }
 
@@ -264,7 +252,6 @@ func (q *Queries) RemaskSubject(ctx context.Context, arg RemaskSubjectParams) (i
 		arg.SubjectMasked,
 		arg.ScannerVersion,
 		arg.ScannerRevision,
-		arg.AccountID,
 		arg.MessageID,
 	)
 	if err != nil {
@@ -278,16 +265,15 @@ SELECT exists(
     SELECT 1
     FROM messages AS m
     WHERE
-        m.account_id = $1
+        m.account_id = current_setting('app.account')
         AND (
-            m.subject_scanner_version IS DISTINCT FROM $2::int
-            OR m.subject_scanner_revision IS DISTINCT FROM $3::text
+            m.subject_scanner_version IS DISTINCT FROM $1::int
+            OR m.subject_scanner_revision IS DISTINCT FROM $2::text
         )
 ) AS stale
 `
 
 type StaleSubjectParams struct {
-	AccountID       string
 	ScannerVersion  int32
 	ScannerRevision string
 }
@@ -296,7 +282,7 @@ type StaleSubjectParams struct {
 // configuration revision than the one given, or under none recorded, which makes the first pass due
 // again (ADR-0120).
 func (q *Queries) StaleSubject(ctx context.Context, arg StaleSubjectParams) (bool, error) {
-	row := q.db.QueryRow(ctx, staleSubject, arg.AccountID, arg.ScannerVersion, arg.ScannerRevision)
+	row := q.db.QueryRow(ctx, staleSubject, arg.ScannerVersion, arg.ScannerRevision)
 	var stale bool
 	err := row.Scan(&stale)
 	return stale, err
@@ -308,17 +294,16 @@ SELECT
     coalesce(m.subject, '')::text AS subject
 FROM messages AS m
 WHERE
-    m.account_id = $1
+    m.account_id = current_setting('app.account')
     AND (
-        m.subject_scanner_version IS DISTINCT FROM $2::int
-        OR m.subject_scanner_revision IS DISTINCT FROM $3::text
+        m.subject_scanner_version IS DISTINCT FROM $1::int
+        OR m.subject_scanner_revision IS DISTINCT FROM $2::text
     )
 ORDER BY m.message_id
-LIMIT $4
+LIMIT $3
 `
 
 type StaleSubjectsParams struct {
-	AccountID       string
 	ScannerVersion  int32
 	ScannerRevision string
 	BatchSize       int32
@@ -335,12 +320,7 @@ type StaleSubjectsRow struct {
 // again by identifier before it enumerates further, each masked again under the pair given, so a
 // subject it fetched leaves the set (ADR-0120).
 func (q *Queries) StaleSubjects(ctx context.Context, arg StaleSubjectsParams) ([]StaleSubjectsRow, error) {
-	rows, err := q.db.Query(ctx, staleSubjects,
-		arg.AccountID,
-		arg.ScannerVersion,
-		arg.ScannerRevision,
-		arg.BatchSize,
-	)
+	rows, err := q.db.Query(ctx, staleSubjects, arg.ScannerVersion, arg.ScannerRevision, arg.BatchSize)
 	if err != nil {
 		return nil, err
 	}
@@ -365,19 +345,18 @@ SELECT
     coalesce(m.subject, '')::text AS subject
 FROM messages AS m
 WHERE
-    m.account_id = $1
+    m.account_id = current_setting('app.account')
     AND NOT m.subject_masked
     AND (
-        m.subject_scanner_version IS DISTINCT FROM $2::int
-        OR m.subject_scanner_revision IS DISTINCT FROM $3::text
+        m.subject_scanner_version IS DISTINCT FROM $1::int
+        OR m.subject_scanner_revision IS DISTINCT FROM $2::text
     )
-    AND m.message_id > $4
+    AND m.message_id > $3
 ORDER BY m.message_id
-LIMIT $5
+LIMIT $4
 `
 
 type StaleUnmaskedSubjectsParams struct {
-	AccountID       string
 	ScannerVersion  int32
 	ScannerRevision string
 	After           string
@@ -396,7 +375,6 @@ type StaleUnmaskedSubjectsRow struct {
 // it again from what is stored (ADR-0120).
 func (q *Queries) StaleUnmaskedSubjects(ctx context.Context, arg StaleUnmaskedSubjectsParams) ([]StaleUnmaskedSubjectsRow, error) {
 	rows, err := q.db.Query(ctx, staleUnmaskedSubjects,
-		arg.AccountID,
 		arg.ScannerVersion,
 		arg.ScannerRevision,
 		arg.After,

@@ -13,13 +13,13 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/postgres"
 )
 
-// countPlans is the data access the tests run, a read of reorg_plans, whose policy scopes it to the
-// transaction's account.
-const countPlans = "SELECT count(*) FROM reorg_plans WHERE account_id = $1"
+// countPlans is the data access the tests run, a read of reorg_plans scoped to the transaction's
+// account as every statement of the library is (ADR-0135).
+const countPlans = "SELECT count(*) FROM reorg_plans WHERE account_id = current_setting('app.account')"
 
 // uiConnection returns one connection, so every transaction below runs on the same server session,
 // holding a plan for each of two accounts, a base rule and one of the first account's own rules, and
-// acting as the UI's role, which reorg_plans' and policy_rules' policies apply to. The superuser the test connects as would bypass it.
+// acting as the UI's role.
 func uiConnection(t *testing.T) *pgx.Conn {
 	t.Helper()
 	ctx := t.Context()
@@ -53,22 +53,24 @@ func uiConnection(t *testing.T) *pgx.Conn {
 }
 
 // TestRunScopesTheTransactionToTheAccount is the helper's positive case, so the failure below is the
-// unset account's doing and not a helper that fails every transaction.
+// unset account's doing and not a helper that fails every transaction. Each account's transaction
+// reads its own plan, and only its own, through the setting.
 func TestRunScopesTheTransactionToTheAccount(t *testing.T) {
 	conn := uiConnection(t)
 	for _, account := range []string{"acct-a", "acct-b"} {
-		var own, other int
+		var own int
+		var plan string
 		err := tx.Run(t.Context(), conn, account, func(tx pgx.Tx) error {
-			if err := tx.QueryRow(t.Context(), countPlans, account).Scan(&own); err != nil {
+			if err := tx.QueryRow(t.Context(), countPlans).Scan(&own); err != nil {
 				return err
 			}
-			return tx.QueryRow(t.Context(), "SELECT count(*) FROM reorg_plans WHERE account_id <> $1", account).Scan(&other)
+			return tx.QueryRow(t.Context(), "SELECT plan_id::text FROM reorg_plans WHERE account_id = current_setting('app.account')").Scan(&plan)
 		})
 		if err != nil {
 			t.Fatalf("%s: %v", account, err)
 		}
-		if own != 1 || other != 0 {
-			t.Errorf("%s sees %d of its own plans and %d of the other account's, want 1 and 0", account, own, other)
+		if want := "00000000-0000-0000-0000-00000000000" + account[len(account)-1:]; own != 1 || plan != want {
+			t.Errorf("%s reads %d plans, %s, want 1, %s", account, own, plan, want)
 		}
 	}
 }
@@ -86,7 +88,7 @@ func TestAnUnsetAccountFailsRatherThanReturningAnEmptyPage(t *testing.T) {
 
 	var plans int
 	err := pgx.BeginFunc(ctx, conn, func(tx pgx.Tx) error {
-		return tx.QueryRow(ctx, countPlans, "acct-a").Scan(&plans)
+		return tx.QueryRow(ctx, countPlans).Scan(&plans)
 	})
 	if err != nil || plans != 0 {
 		t.Fatalf("without the helper, a transaction that never set the account read %d plans with error %v, want an empty page and no error", plans, err)
@@ -95,7 +97,7 @@ func TestAnUnsetAccountFailsRatherThanReturningAnEmptyPage(t *testing.T) {
 	called := false
 	err = tx.Run(ctx, conn, "", func(tx pgx.Tx) error {
 		called = true
-		return tx.QueryRow(ctx, countPlans, "acct-a").Scan(&plans)
+		return tx.QueryRow(ctx, countPlans).Scan(&plans)
 	})
 	if !errors.Is(err, tx.ErrAccountNotSet) {
 		t.Errorf("a transaction that did not set the account returned %v and read %d plans, want the unset account refused", err, plans)
@@ -122,7 +124,7 @@ func TestTheAccountEndsWithItsTransaction(t *testing.T) {
 		t.Errorf("after the transaction ended the connection's account is %q, want it unset", setting)
 	}
 	var plans int
-	if err := conn.QueryRow(ctx, countPlans, "acct-a").Scan(&plans); err != nil || plans != 0 {
+	if err := conn.QueryRow(ctx, countPlans).Scan(&plans); err != nil || plans != 0 {
 		t.Errorf("after the transaction ended a statement read %d plans with error %v, want none", plans, err)
 	}
 }
@@ -160,70 +162,53 @@ func TestRunRefusesATransaction(t *testing.T) {
 	}
 }
 
-// editBase is a write of the base policy, which row-level security admits only from the UI's role in a
-// base-policy transaction (ADR-0112). It changes the rule to what it already holds, so the tests can
-// repeat it.
+// editBase is a write of the base policy, which a base-policy transaction runs (ADR-0112). It changes
+// the rule to what it already holds, so the tests can repeat it.
 const editBase = "UPDATE policy_rules SET domain_suffix = domain_suffix WHERE account_id IS NULL AND rule_id = 'operator.example.org'"
 
 // TestRunBaseWritesTheBasePolicyAndReadsNoAccount is the base-policy transaction's positive case. The
-// edit lands, and no account's rule is read, while an account's transaction on the same connection reads
-// its own rule, so the empty count is the base-policy transaction's doing.
+// edit lands, and a statement scoped to the transaction's account reads no account's plan, while an
+// account's transaction on the same connection reads its own, so the empty count is the base-policy
+// transaction's empty account and not an empty table.
 func TestRunBaseWritesTheBasePolicyAndReadsNoAccount(t *testing.T) {
 	ctx := t.Context()
 	conn := uiConnection(t)
-	const accountRules = "SELECT count(*) FROM policy_rules WHERE account_id IS NOT NULL"
 	var edited int64
-	var own int
+	var plans int
 	err := tx.RunBase(ctx, conn, func(x pgx.Tx) error {
 		tag, err := x.Exec(ctx, editBase)
 		edited = tag.RowsAffected()
 		if err != nil {
 			return err
 		}
-		return x.QueryRow(ctx, accountRules).Scan(&own)
+		return x.QueryRow(ctx, countPlans).Scan(&plans)
 	})
-	if err != nil || edited != 1 || own != 0 {
-		t.Errorf("the base-policy transaction edited %d base rules and read %d account rules with error %v, want 1, 0 and no error", edited, own, err)
+	if err != nil || edited != 1 || plans != 0 {
+		t.Errorf("the base-policy transaction edited %d base rules and read %d plans with error %v, want 1, 0 and no error", edited, plans, err)
 	}
-	var accountOwn int
-	if err := tx.Run(ctx, conn, "acct-a", func(x pgx.Tx) error { return x.QueryRow(ctx, accountRules).Scan(&accountOwn) }); err != nil || accountOwn != 1 {
-		t.Errorf("acct-a's transaction read %d of its rules with error %v, want 1 and no error", accountOwn, err)
+	var own int
+	if err := tx.Run(ctx, conn, "acct-a", func(x pgx.Tx) error { return x.QueryRow(ctx, countPlans).Scan(&own) }); err != nil || own != 1 {
+		t.Errorf("acct-a's transaction read %d of its plans with error %v, want 1 and no error", own, err)
 	}
 }
 
-// TestTheBasePolicyEndsWithItsTransaction requires the base policy's setting to be transaction-local,
-// as the account is. On a connection that ran a base-policy transaction, a transaction that never set
-// the base policy's scope edits no base rule and raises nothing, which is the silent state the helper
-// exists to prevent, and an account's transaction edits none either.
-func TestTheBasePolicyEndsWithItsTransaction(t *testing.T) {
+// TestRunBaseEmptiesAnAccountTheConnectionHeld runs the base-policy transaction on a connection whose
+// session holds an account, set outside any transaction, as a statement written by hand could leave
+// it. The base-policy transaction must still read no account's plan, so its empty account is set and
+// read back, not assumed.
+func TestRunBaseEmptiesAnAccountTheConnectionHeld(t *testing.T) {
 	ctx := t.Context()
 	conn := uiConnection(t)
-	if err := tx.RunBase(ctx, conn, func(pgx.Tx) error { return nil }); err != nil {
+	if _, err := conn.Exec(ctx, "SELECT set_config('app.account', 'acct-a', false)"); err != nil {
 		t.Fatal(err)
 	}
-	var setting string
-	if err := conn.QueryRow(ctx, "SELECT coalesce(current_setting('app.base', true), '')").Scan(&setting); err != nil {
-		t.Fatal(err)
+	var held int
+	if err := conn.QueryRow(ctx, countPlans).Scan(&held); err != nil || held != 1 {
+		t.Fatalf("the session's account read %d plans with error %v, want 1, so the case below would prove nothing", held, err)
 	}
-	if setting != "" {
-		t.Errorf("after the base-policy transaction ended the connection's app.base is %q, want it unset", setting)
-	}
-	var plain, account int64
-	err := pgx.BeginFunc(ctx, conn, func(x pgx.Tx) error {
-		tag, err := x.Exec(ctx, editBase)
-		plain = tag.RowsAffected()
-		return err
-	})
-	if err != nil || plain != 0 {
-		t.Errorf("a transaction outside the helper edited %d base rules with error %v, want none and no error", plain, err)
-	}
-	err = tx.Run(ctx, conn, "acct-a", func(x pgx.Tx) error {
-		tag, err := x.Exec(ctx, editBase)
-		account = tag.RowsAffected()
-		return err
-	})
-	if err != nil || account != 0 {
-		t.Errorf("acct-a's transaction edited %d base rules with error %v, want none and no error", account, err)
+	var plans int
+	if err := tx.RunBase(ctx, conn, func(x pgx.Tx) error { return x.QueryRow(ctx, countPlans).Scan(&plans) }); err != nil || plans != 0 {
+		t.Errorf("the base-policy transaction read %d plans with error %v, want none and no error", plans, err)
 	}
 }
 
@@ -250,10 +235,17 @@ func TestRunBaseRefusesATransaction(t *testing.T) {
 		t.Errorf("RunBase inside a transaction returned %v and ran fn %t, want it refused before fn", err, called)
 	}
 	var setting string
-	if err := outer.QueryRow(ctx, "SELECT coalesce(current_setting('app.base', true), '')").Scan(&setting); err != nil {
+	if _, err := outer.Exec(ctx, "SELECT set_config('app.account', 'acct-b', true)"); err != nil {
 		t.Fatal(err)
 	}
-	if setting != "" {
-		t.Errorf("after RunBase returned, the outer transaction's app.base is %q, want it unset", setting)
+	err = tx.RunBase(ctx, outer, func(pgx.Tx) error { return nil })
+	if !errors.Is(err, tx.ErrInsideTransaction) {
+		t.Fatalf("RunBase inside a transaction that set an account returned %v, want it refused", err)
+	}
+	if err := outer.QueryRow(ctx, "SELECT coalesce(current_setting('app.account', true), '')").Scan(&setting); err != nil {
+		t.Fatal(err)
+	}
+	if setting != "acct-b" {
+		t.Errorf("after RunBase returned, the outer transaction's account is %q, want it left as acct-b", setting)
 	}
 }

@@ -7,7 +7,7 @@ SELECT
     s.sender_class,
     s.message_count
 FROM senders AS s
-WHERE s.account_id = @account_id
+WHERE s.account_id = current_setting('app.account')
 ORDER BY s.domain;
 
 -- name: SenderSearchFigures :one
@@ -20,7 +20,7 @@ SELECT
     coalesce(sum(s.message_count), 0)::bigint AS messages
 FROM senders AS s
 WHERE
-    s.account_id = @account_id
+    s.account_id = current_setting('app.account')
     AND (@search::text = '' OR strpos(s.domain::text, @search::text) > 0);
 
 -- name: SenderSearchRows :many
@@ -37,7 +37,7 @@ SELECT
     s.scan_hit_count
 FROM senders AS s
 WHERE
-    s.account_id = @account_id
+    s.account_id = current_setting('app.account')
     AND (@search::text = '' OR strpos(s.domain::text, @search::text) > 0)
 ORDER BY
     CASE WHEN @descending::boolean THEN s.message_count END DESC,

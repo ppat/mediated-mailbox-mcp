@@ -5,7 +5,7 @@ SELECT
     s.sync_cursor,
     s.sync_cursor_at
 FROM account_state AS s
-WHERE s.account_id = @account_id;
+WHERE s.account_id = current_setting('app.account');
 
 -- name: AdvanceCursor :execrows
 -- Stores the account's change cursor and records the instant it was written, in the transaction that
@@ -13,4 +13,4 @@ WHERE s.account_id = @account_id;
 -- account with no state row counts no row.
 UPDATE account_state
 SET sync_cursor = @sync_cursor, sync_cursor_at = now()
-WHERE account_id = @account_id;
+WHERE account_id = current_setting('app.account');

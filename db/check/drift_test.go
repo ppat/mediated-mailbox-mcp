@@ -91,7 +91,7 @@ func TestGeneratorDiffRefusesDrift(t *testing.T) {
 				t.Fatal(err)
 			}
 			// Failing when the field is not there keeps a regenerated file from turning the edit into no edit.
-			edited := bytes.Replace(src, []byte("Added     int64"), []byte("Added     int32"), 1)
+			edited := bytes.Replace(src, []byte("Added  int64"), []byte("Added  int32"), 1)
 			if bytes.Equal(edited, src) {
 				t.Fatalf("%s no longer declares Added as int64, so the edit changes nothing", path)
 			}

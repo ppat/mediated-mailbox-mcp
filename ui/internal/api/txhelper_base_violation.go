@@ -24,7 +24,7 @@ func crossedScopes(ctx context.Context, db tx.Beginner, account string) error {
 		return err
 	}
 	return tx.RunBase(ctx, db, func(t pgx.Tx) error {
-		_, err := manage.New(t).ComposedRules(ctx, account) // want vetcheck "calls manage.New in a base-policy transaction"
+		_, err := manage.New(t).ComposedRules(ctx) // want vetcheck "calls manage.New in a base-policy transaction"
 		return err
 	})
 }

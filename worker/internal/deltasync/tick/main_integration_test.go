@@ -39,7 +39,7 @@ type tb interface {
 	Fatalf(format string, args ...any)
 }
 
-// The role delta sync connects as, so row-level security and its grants apply as in production.
+// The role delta sync connects as, so its grants apply as in production.
 const role = "mediated_mailbox_sync"
 
 var (
@@ -70,7 +70,7 @@ func syncPool(t testing.TB) *pgxpool.Pool {
 	return pools.Load()
 }
 
-// superuser returns a connection that bypasses row-level security, to write what account setup and
+// superuser returns a connection that holds every privilege, to write what account setup and
 // backfill would write and to read what a check reads.
 func superuser(t testing.TB) *pgx.Conn {
 	t.Helper()

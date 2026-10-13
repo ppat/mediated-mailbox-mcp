@@ -6,15 +6,15 @@ scheduled-count: no
 integration: yes
 
 diff --git a/mediate/internal/service/index.go b/mediate/internal/service/index.go
-index 6059e935..d0c4e93e 100644
+index 18c44b2f..787f3bdd 100644
 --- a/mediate/internal/service/index.go
 +++ b/mediate/internal/service/index.go
-@@ -148,7 +148,7 @@ func (s Sources) searchMessages(ctx context.Context, account string, input json.
+@@ -147,7 +147,7 @@ func (s Sources) searchMessages(ctx context.Context, account string, input json.
  	}
  	p := s.Policy(account)
  	var rows []messages.SearchPageRow
 -	err = tx.Run(ctx, tx.Snapshot(s.DB), account, func(t pgx.Tx) error {
 +	err = tx.Run(ctx, s.DB, account, func(t pgx.Tx) error {
  		q := messages.New(t)
- 		c, err := s.classesFor(ctx, senders.New(t), account, sel.needsClasses(), p)
+ 		c, err := s.classesFor(ctx, senders.New(t), sel.needsClasses(), p)
  		if err != nil {

@@ -6,18 +6,24 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/backfill/pass2/postgres.go b/worker/internal/backfill/pass2/postgres.go
-index 25569948..5841d23d 100644
+index 2b9ece79..be08563e 100644
 --- a/worker/internal/backfill/pass2/postgres.go
 +++ b/worker/internal/backfill/pass2/postgres.go
-@@ -368,9 +368,8 @@ func (s *Postgres) Pending(ctx context.Context, account string, after core.Posit
+@@ -367,15 +367,14 @@ func (s *Postgres) Pending(ctx context.Context, account string, after core.Posit
+ 	if after.ID != "" {
+ 		from = pgtype.Timestamptz{Time: time.UnixMilli(int64(after.SentAt)).UTC(), Valid: true}
+ 	}
  	var out []index.Waiting
  	err := tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
  		out = nil
 -		rows, err := scan.New(t).PendingPageNewestFirst(ctx, scan.PendingPageNewestFirstParams{
--			AccountID: account, AfterSentAt: from, AfterMessageID: after.ID, PageSize: int32(min(max(n, 1), 1<<31-1)), //nolint:gosec // Bounded.
+-			AfterSentAt: from, AfterMessageID: after.ID, PageSize: int32(min(max(n, 1), 1<<31-1)), //nolint:gosec // Bounded.
 -		})
 +		_ = from
-+		rows, err := scan.New(t).PendingPage(ctx, scan.PendingPageParams{AccountID: account, After: after.ID, PageSize: int32(min(max(n, 1), 1<<31-1))}) //nolint:gosec // Bounded.
++		rows, err := scan.New(t).PendingPage(ctx, scan.PendingPageParams{After: after.ID, PageSize: int32(min(max(n, 1), 1<<31-1))}) //nolint:gosec // Bounded.
  		if err != nil {
  			return err
  		}
+ 		for _, r := range rows {
+ 			out = append(out, index.Waiting{
+ 				ID: r.MessageID, From: r.FromEmail, Domain: r.FromDomain, SubjectMasked: r.SubjectMasked, ListID: r.HasListID,

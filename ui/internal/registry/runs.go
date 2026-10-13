@@ -146,7 +146,7 @@ func runSummary(ctx context.Context, q Queries, r Read) ([]Figure, Total, error)
 		return nil, Total{}, err
 	}
 	row, err := q.Runs.RunFigures(ctx, jobruns.RunFiguresParams{
-		AccountID: r.Account, RangeStart: f.rangeStart, RangeEnd: f.rangeEnd,
+		RangeStart: f.rangeStart, RangeEnd: f.rangeEnd,
 		WorkloadIn: f.workloadIn, WorkloadOut: f.workloadOut, StateIn: f.stateIn, StateOut: f.stateOut,
 		PassIn: f.passIn, PassOut: f.passOut, DayIn: f.dayIn, DayOut: f.dayOut,
 	})
@@ -177,7 +177,7 @@ func runRows(ctx context.Context, q Queries, r Read) (any, error) {
 		return nil, err
 	}
 	rows, err := q.Runs.RunRows(ctx, jobruns.RunRowsParams{
-		AccountID: r.Account, RangeStart: f.rangeStart, RangeEnd: f.rangeEnd,
+		RangeStart: f.rangeStart, RangeEnd: f.rangeEnd,
 		WorkloadIn: f.workloadIn, WorkloadOut: f.workloadOut, StateIn: f.stateIn, StateOut: f.stateOut,
 		PassIn: f.passIn, PassOut: f.passOut, DayIn: f.dayIn, DayOut: f.dayOut,
 		SortColumn: r.Request.Sort.Column, Descending: r.Request.Sort.Descending,
@@ -204,7 +204,7 @@ func runsByWorkload(ctx context.Context, q Queries, r Read) (any, error) {
 		return nil, err
 	}
 	rows, err := q.Runs.RunsByWorkload(ctx, jobruns.RunsByWorkloadParams{
-		AccountID: r.Account, RangeStart: f.rangeStart, RangeEnd: f.rangeEnd,
+		RangeStart: f.rangeStart, RangeEnd: f.rangeEnd,
 		WorkloadIn: f.workloadIn, WorkloadOut: f.workloadOut, StateIn: f.stateIn, StateOut: f.stateOut,
 		PassIn: f.passIn, PassOut: f.passOut, DayIn: f.dayIn, DayOut: f.dayOut,
 	})
@@ -224,7 +224,7 @@ func runsByState(ctx context.Context, q Queries, r Read) (any, error) {
 		return nil, err
 	}
 	rows, err := q.Runs.RunsByState(ctx, jobruns.RunsByStateParams{
-		AccountID: r.Account, RangeStart: f.rangeStart, RangeEnd: f.rangeEnd,
+		RangeStart: f.rangeStart, RangeEnd: f.rangeEnd,
 		WorkloadIn: f.workloadIn, WorkloadOut: f.workloadOut, StateIn: f.stateIn, StateOut: f.stateOut,
 		PassIn: f.passIn, PassOut: f.passOut, DayIn: f.dayIn, DayOut: f.dayOut,
 	})
@@ -244,7 +244,7 @@ func runsByDay(ctx context.Context, q Queries, r Read) (any, error) {
 		return nil, err
 	}
 	rows, err := q.Runs.RunsByDay(ctx, jobruns.RunsByDayParams{
-		AccountID: r.Account, RangeStart: f.rangeStart, RangeEnd: f.rangeEnd,
+		RangeStart: f.rangeStart, RangeEnd: f.rangeEnd,
 		WorkloadIn: f.workloadIn, WorkloadOut: f.workloadOut, StateIn: f.stateIn, StateOut: f.stateOut,
 		PassIn: f.passIn, PassOut: f.passOut, DayIn: f.dayIn, DayOut: f.dayOut,
 	})

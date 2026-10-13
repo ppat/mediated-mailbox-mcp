@@ -12,7 +12,6 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/index"
-	"github.com/ppat/mediated-mailbox-mcp/db/auditlog"
 	runclassification "github.com/ppat/mediated-mailbox-mcp/db/jobruns/classification"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/lens"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/schema"
@@ -207,7 +206,7 @@ func failureSummary(ctx context.Context, q Queries, r Read) ([]Figure, Total, er
 		return nil, Total{}, err
 	}
 	rows, err := q.Failures.FailureFigures(ctx, runclassification.FailureFiguresParams{
-		AccountID: r.Account, RunID: r.Request.ParentID,
+		RunID:        r.Request.ParentID,
 		ErrorClassIn: f.errorClassIn, ErrorClassOut: f.errorClassOut, DispositionIn: f.dispositionIn, DispositionOut: f.dispositionOut,
 		SenderIn: f.sender.in, SenderInNone: f.sender.inNone, SenderOut: f.sender.out, SenderOutNone: f.sender.outNone,
 		PageIn: f.pageIn, PageInNone: f.pageInNone, PageOut: f.pageOut, PageOutNone: f.pageOutNone,
@@ -257,7 +256,7 @@ func failureRows(ctx context.Context, q Queries, r Read) (any, error) {
 		return nil, err
 	}
 	rows, err := q.Failures.FailureRows(ctx, runclassification.FailureRowsParams{
-		AccountID: r.Account, RunID: r.Request.ParentID,
+		RunID:        r.Request.ParentID,
 		ErrorClassIn: f.errorClassIn, ErrorClassOut: f.errorClassOut, DispositionIn: f.dispositionIn, DispositionOut: f.dispositionOut,
 		SenderIn: f.sender.in, SenderInNone: f.sender.inNone, SenderOut: f.sender.out, SenderOutNone: f.sender.outNone,
 		PageIn: f.pageIn, PageInNone: f.pageInNone, PageOut: f.pageOut, PageOutNone: f.pageOutNone,
@@ -311,7 +310,7 @@ func failuresByErrorClass(ctx context.Context, q Queries, r Read) (any, error) {
 		return nil, err
 	}
 	rows, err := q.Failures.FailuresByErrorClass(ctx, runclassification.FailuresByErrorClassParams{
-		AccountID: r.Account, RunID: r.Request.ParentID,
+		RunID:        r.Request.ParentID,
 		ErrorClassIn: f.errorClassIn, ErrorClassOut: f.errorClassOut, DispositionIn: f.dispositionIn, DispositionOut: f.dispositionOut,
 		SenderIn: f.sender.in, SenderInNone: f.sender.inNone, SenderOut: f.sender.out, SenderOutNone: f.sender.outNone,
 		PageIn: f.pageIn, PageInNone: f.pageInNone, PageOut: f.pageOut, PageOutNone: f.pageOutNone,
@@ -332,7 +331,7 @@ func failuresBySender(ctx context.Context, q Queries, r Read) (any, error) {
 		return nil, err
 	}
 	rows, err := q.Failures.FailuresBySender(ctx, runclassification.FailuresBySenderParams{
-		AccountID: r.Account, RunID: r.Request.ParentID,
+		RunID:        r.Request.ParentID,
 		ErrorClassIn: f.errorClassIn, ErrorClassOut: f.errorClassOut, DispositionIn: f.dispositionIn, DispositionOut: f.dispositionOut,
 		SenderIn: f.sender.in, SenderInNone: f.sender.inNone, SenderOut: f.sender.out, SenderOutNone: f.sender.outNone,
 		PageIn: f.pageIn, PageInNone: f.pageInNone, PageOut: f.pageOut, PageOutNone: f.pageOutNone,
@@ -359,7 +358,7 @@ func failuresByPage(ctx context.Context, q Queries, r Read) (any, error) {
 		return nil, err
 	}
 	rows, err := q.Failures.FailuresByPage(ctx, runclassification.FailuresByPageParams{
-		AccountID: r.Account, RunID: r.Request.ParentID,
+		RunID:        r.Request.ParentID,
 		ErrorClassIn: f.errorClassIn, ErrorClassOut: f.errorClassOut, DispositionIn: f.dispositionIn, DispositionOut: f.dispositionOut,
 		SenderIn: f.sender.in, SenderInNone: f.sender.inNone, SenderOut: f.sender.out, SenderOutNone: f.sender.outNone,
 		PageIn: f.pageIn, PageInNone: f.pageInNone, PageOut: f.pageOut, PageOutNone: f.pageOutNone,
@@ -384,7 +383,7 @@ func failuresByDisposition(ctx context.Context, q Queries, r Read) (any, error) 
 		return nil, err
 	}
 	rows, err := q.Failures.FailuresByDisposition(ctx, runclassification.FailuresByDispositionParams{
-		AccountID: r.Account, RunID: r.Request.ParentID,
+		RunID:        r.Request.ParentID,
 		ErrorClassIn: f.errorClassIn, ErrorClassOut: f.errorClassOut, DispositionIn: f.dispositionIn, DispositionOut: f.dispositionOut,
 		SenderIn: f.sender.in, SenderInNone: f.sender.inNone, SenderOut: f.sender.out, SenderOutNone: f.sender.outNone,
 		PageIn: f.pageIn, PageInNone: f.pageInNone, PageOut: f.pageOut, PageOutNone: f.pageOutNone,
@@ -407,7 +406,7 @@ func failureDetail(ctx context.Context, q Queries, account string, req lens.RowR
 		// The pure core admits only whole numbers, so this is not reached.
 		return nil, err
 	}
-	row, err := q.Failures.FailureDetail(ctx, runclassification.FailureDetailParams{AccountID: account, RunID: req.ParentID, Seq: seq})
+	row, err := q.Failures.FailureDetail(ctx, runclassification.FailureDetailParams{RunID: req.ParentID, Seq: seq})
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNoRow
 	}
@@ -430,14 +429,14 @@ func failureDetail(ctx context.Context, q Queries, account string, req lens.RowR
 		out.ScannerVersion = &v
 	}
 	if row.ItemKind == "message" || row.ItemKind == "op" {
-		entries, err := q.Audit.MessageAuditRows(ctx, auditlog.MessageAuditRowsParams{AccountID: account, MessageID: pgtype.Text{String: row.ItemID, Valid: true}})
+		entries, err := q.Audit.MessageAuditRows(ctx, pgtype.Text{String: row.ItemID, Valid: true})
 		if err != nil {
 			return nil, err
 		}
 		for _, e := range entries {
 			out.Audit = append(out.Audit, AuditEntry{ID: e.ID, At: stamp(e.Ts), Actor: e.Actor, Action: e.Action})
 		}
-		if out.AuditCount, err = q.Audit.MessageAuditCount(ctx, auditlog.MessageAuditCountParams{AccountID: account, MessageID: pgtype.Text{String: row.ItemID, Valid: true}}); err != nil {
+		if out.AuditCount, err = q.Audit.MessageAuditCount(ctx, pgtype.Text{String: row.ItemID, Valid: true}); err != nil {
 			return nil, err
 		}
 	}

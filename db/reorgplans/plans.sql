@@ -7,7 +7,7 @@ SELECT
     count(*) AS plans
 FROM reorg_plans AS p
 WHERE
-    p.account_id = @account_id
+    p.account_id = current_setting('app.account')
     AND (@range_start::timestamptz IS NULL OR p.created_at >= @range_start::timestamptz)
     AND (@range_end::timestamptz IS NULL OR p.created_at < @range_end::timestamptz)
     AND (@status_in::text[] IS NULL OR p.status = any(@status_in::text[]))
@@ -26,7 +26,7 @@ WITH apply_runs AS (
         a.run_id,
         a.state
     FROM job_runs AS a
-    WHERE a.account_id = @account_id AND a.pass = 'apply'
+    WHERE a.account_id = current_setting('app.account') AND a.pass = 'apply'
     ORDER BY a.plan_id ASC, a.started_at DESC, a.run_id ASC
 ),
 
@@ -35,7 +35,7 @@ rollback_runs AS (
         b.plan_id,
         b.run_id
     FROM job_runs AS b
-    WHERE b.account_id = @account_id AND b.pass = 'rollback'
+    WHERE b.account_id = current_setting('app.account') AND b.pass = 'rollback'
     ORDER BY b.plan_id ASC, b.started_at DESC, b.run_id ASC
 )
 
@@ -60,7 +60,7 @@ FROM reorg_plans AS p
 LEFT JOIN apply_runs AS ar ON p.plan_id = ar.plan_id
 LEFT JOIN rollback_runs AS rr ON p.plan_id = rr.plan_id
 WHERE
-    p.account_id = @account_id
+    p.account_id = current_setting('app.account')
     AND (@range_start::timestamptz IS NULL OR p.created_at >= @range_start::timestamptz)
     AND (@range_end::timestamptz IS NULL OR p.created_at < @range_end::timestamptz)
     AND (@status_in::text[] IS NULL OR p.status = any(@status_in::text[]))
@@ -90,6 +90,6 @@ SELECT
     ) AS total
 FROM reorg_plans AS p
 WHERE
-    p.account_id = @account_id
+    p.account_id = current_setting('app.account')
     AND (p.status = 'APPLYING' OR p.plan_id = any(@known::uuid[]))
 ORDER BY p.plan_id;

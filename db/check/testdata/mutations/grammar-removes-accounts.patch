@@ -5,10 +5,10 @@ tests: TestTheIdentifierGrammarStopsOverAStoredAccountOutsideIt
 scheduled-count: no
 integration: yes
 
-diff --git a/db/migrations/00005_account_identifier_grammar.sql b/db/migrations/00005_account_identifier_grammar.sql
+diff --git a/db/migrations/00004_account_identifier_grammar.sql b/db/migrations/00004_account_identifier_grammar.sql
 index b9f33379..505628ba 100644
---- a/db/migrations/00005_account_identifier_grammar.sql
-+++ b/db/migrations/00005_account_identifier_grammar.sql
+--- a/db/migrations/00004_account_identifier_grammar.sql
++++ b/db/migrations/00004_account_identifier_grammar.sql
 @@ -4,6 +4,7 @@
  -- path segment the mediator's API root can address (ADR-0087), so the grammar replaces the check that
  -- refused only ., .. and /. An account stored outside the grammar stops this migration, and nothing

@@ -331,14 +331,14 @@ func backfillAccount(ctx context.Context, first pass1.Deps, second pass2.Deps, a
 func (b *Backfill) state(ctx context.Context, account string) (due.State, error) {
 	var s due.State
 	err := tx.Run(ctx, b.pool, account, func(t pgx.Tx) error {
-		progress, err := accountstate.New(t).AccountProgress(ctx, account)
+		progress, err := accountstate.New(t).AccountProgress(ctx)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil
 		}
 		if err != nil {
 			return err
 		}
-		restart, err := completion.New(t).SecondRestart(ctx, account)
+		restart, err := completion.New(t).SecondRestart(ctx)
 		if err != nil {
 			return err
 		}
@@ -360,7 +360,7 @@ func (b *Backfill) seed(ctx context.Context, account string) time.Time {
 	if err == nil {
 		err = tx.Run(ctx, b.pool, account, func(t pgx.Tx) error {
 			var rErr error
-			recorded, rErr = runrecord.New(t).RecordedSuccess(ctx, runrecord.RecordedSuccessParams{AccountID: account, Workload: Kind})
+			recorded, rErr = runrecord.New(t).RecordedSuccess(ctx, Kind)
 			return rErr
 		})
 	}
@@ -641,7 +641,7 @@ func loweredTargets(ctx context.Context, db tx.Beginner, accounts []string) (map
 	targets := map[string]float64{}
 	for _, account := range accounts {
 		err := tx.Run(ctx, db, account, func(t pgx.Tx) error {
-			target, err := accountstate.New(t).LoweredTarget(ctx, account)
+			target, err := accountstate.New(t).LoweredTarget(ctx)
 			if err != nil {
 				return err
 			}

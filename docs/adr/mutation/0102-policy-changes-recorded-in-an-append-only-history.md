@@ -55,8 +55,9 @@ past window.
   it.
 - Assumptions about other components. Only the UI writes `policy_rules`, so only the UI writes the
   history. A change written to `policy_rules` outside the UI, directly in the database, leaves no
-  history row, and nothing detects it. Row-level security confines the reads of an account's
-  history rows to its account, with the base policy's rows readable by every account. A base rule
+  history row, and nothing detects it. Every statement confines the reads of an account's history
+  rows to the transaction's account, with the base policy's rows readable by every account
+  ([ADR-0135](../data/0135-every-statement-reads-its-account-from-the-transaction.md)). A base rule
   and its history row are written in a transaction of the base policy's own, which names no account
   ([ADR-0112](../data/0112-the-base-policy-is-written-and-read-in-a-transaction-of-its-own.md)).
 - The history records changes and drives nothing. Removed rules still reach the delisting

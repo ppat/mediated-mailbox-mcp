@@ -6,13 +6,14 @@ scheduled-count: no
 integration: yes
 
 diff --git a/ratelimit/lease/lease.go b/ratelimit/lease/lease.go
+index 548c10e9..95a00201 100644
 --- a/ratelimit/lease/lease.go
 +++ b/ratelimit/lease/lease.go
-@@ -279,9 +279,6 @@
+@@ -323,9 +323,6 @@ func (l *Limiter) control(ctx context.Context, account string, decide func(core.
  // lock takes the account's lock and then reads the database's clock in a statement of its own, so a
  // worker that waited on the lock is stamped with the time it got it (ADR-0025).
- func (l *Limiter) lock(ctx context.Context, q *limiter.Queries, account string) (int64, error) {
--	if err := q.LockRateState(ctx, account); err != nil {
+ func (l *Limiter) lock(ctx context.Context, q *limiter.Queries) (int64, error) {
+-	if err := q.LockRateState(ctx); err != nil {
 -		return 0, fmt.Errorf("locking the rate state: %w", err)
 -	}
  	now, err := q.ClockMillis(ctx)

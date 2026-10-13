@@ -35,8 +35,7 @@ tripwires:
   and each of those roles is granted what the library's statements need (ADR-0118).
 - **Each deployable, and inside the worker each job kind, connects as a runtime role of its own,
   whose grants stay within ADR-0118's three lines.** Nothing automated refuses a grant beyond them,
-  so review each migration that grants a privilege against the three lines. A row-level security
-  policy that looks up another table needs the querying role to read the columns it looks up, as
-  the operation log's policy reads its plan's account.
+  so review each migration that grants a privilege against the three lines. A statement reaching the
+  operation log reads its plan's account through its join, so its role reads those plan columns too.
 - **goose runs as a command** and is built with its exclusion tags in `migrate/Dockerfile`, never
   linked into the project's binaries or run through `go tool` (ADR-0067).

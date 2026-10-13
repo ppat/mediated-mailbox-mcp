@@ -6,12 +6,14 @@ package reorgoplog
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Querier interface {
 	// The op log's row count for one of the account's plans, shown beside the rollback that replays it
 	// (docs/UI.md section 8.3). The op log carries no account, so the plan scopes it.
-	OpLogCount(ctx context.Context, arg OpLogCountParams) (int64, error)
+	OpLogCount(ctx context.Context, planID pgtype.UUID) (int64, error)
 }
 
 var _ Querier = (*Queries)(nil)

@@ -2,7 +2,7 @@
 -- Appends one change to one of the account's own rules to the policy history, in the transaction that
 -- made it (ADR-0102).
 INSERT INTO policy_changes (account_id, actor, action, rule_id, suffixes_before, suffixes_after)
-VALUES (@account_id, @actor, @action, @rule_id, @suffixes_before, @suffixes_after);
+VALUES (current_setting('app.account'), @actor, @action, @rule_id, @suffixes_before, @suffixes_after);
 
 -- name: ChangeFigures :one
 -- The policy_changes dataset's figures, the changes the account's history holds under the dataset's
@@ -20,7 +20,7 @@ SELECT
     ) AS lifted
 FROM policy_changes AS c
 WHERE
-    (c.account_id = @account_id::text OR c.account_id IS NULL)
+    (c.account_id = current_setting('app.account') OR c.account_id IS NULL)
     AND (@base_rows::boolean OR c.account_id IS NOT NULL)
     AND (@own_rows::boolean OR c.account_id IS NULL)
     AND (@range_start::timestamptz IS NULL OR c.ts >= @range_start::timestamptz)
@@ -48,7 +48,7 @@ SELECT
     c.suffixes_after
 FROM policy_changes AS c
 WHERE
-    (c.account_id = @account_id::text OR c.account_id IS NULL)
+    (c.account_id = current_setting('app.account') OR c.account_id IS NULL)
     AND (@base_rows::boolean OR c.account_id IS NOT NULL)
     AND (@own_rows::boolean OR c.account_id IS NULL)
     AND (@range_start::timestamptz IS NULL OR c.ts >= @range_start::timestamptz)
@@ -75,7 +75,7 @@ SELECT
     count(*) AS changes
 FROM policy_changes AS c
 WHERE
-    (c.account_id = @account_id::text OR c.account_id IS NULL)
+    (c.account_id = current_setting('app.account') OR c.account_id IS NULL)
     AND (@base_rows::boolean OR c.account_id IS NOT NULL)
     AND (@own_rows::boolean OR c.account_id IS NULL)
     AND (@range_start::timestamptz IS NULL OR c.ts >= @range_start::timestamptz)
@@ -99,7 +99,7 @@ SELECT
     count(*) AS changes
 FROM policy_changes AS c
 WHERE
-    (c.account_id = @account_id::text OR c.account_id IS NULL)
+    (c.account_id = current_setting('app.account') OR c.account_id IS NULL)
     AND (@base_rows::boolean OR c.account_id IS NOT NULL)
     AND (@own_rows::boolean OR c.account_id IS NULL)
     AND (@range_start::timestamptz IS NULL OR c.ts >= @range_start::timestamptz)
@@ -122,7 +122,7 @@ SELECT
     count(*) AS changes
 FROM policy_changes AS c
 WHERE
-    (c.account_id = @account_id::text OR c.account_id IS NULL)
+    (c.account_id = current_setting('app.account') OR c.account_id IS NULL)
     AND (@base_rows::boolean OR c.account_id IS NOT NULL)
     AND (@own_rows::boolean OR c.account_id IS NULL)
     AND (@range_start::timestamptz IS NULL OR c.ts >= @range_start::timestamptz)
@@ -145,7 +145,7 @@ SELECT
     count(*) AS changes
 FROM policy_changes AS c
 WHERE
-    (c.account_id = @account_id::text OR c.account_id IS NULL)
+    (c.account_id = current_setting('app.account') OR c.account_id IS NULL)
     AND (@base_rows::boolean OR c.account_id IS NOT NULL)
     AND (@own_rows::boolean OR c.account_id IS NULL)
     AND (@range_start::timestamptz IS NULL OR c.ts >= @range_start::timestamptz)
@@ -175,7 +175,7 @@ SELECT
     c.suffixes_after
 FROM policy_changes AS c
 WHERE
-    (c.account_id = @account_id::text OR c.account_id IS NULL)
+    (c.account_id = current_setting('app.account') OR c.account_id IS NULL)
     AND c.rule_id = @rule_id
     AND @base::boolean = (c.account_id IS NULL)
 ORDER BY c.ts DESC, c.id DESC;
@@ -185,4 +185,4 @@ ORDER BY c.ts DESC, c.id DESC;
 -- change, for the policy screen's L0 strip.
 SELECT max(c.ts)::timestamptz AS latest
 FROM policy_changes AS c
-WHERE c.account_id = @account_id::text OR c.account_id IS NULL;
+WHERE c.account_id = current_setting('app.account') OR c.account_id IS NULL;

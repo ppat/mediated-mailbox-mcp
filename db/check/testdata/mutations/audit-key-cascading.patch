@@ -1,0 +1,20 @@
+control: Every log table references what it belongs to
+removes: the audit log's key removes an account's audit rows with the account rather than refusing its deletion
+packages: ./db/check
+tests: TestAnAccountWithEvidenceCannotBeDeleted
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00002_schema.sql b/db/migrations/00002_schema.sql
+index 16df97b3..2abce428 100644
+--- a/db/migrations/00002_schema.sql
++++ b/db/migrations/00002_schema.sql
+@@ -419,7 +419,7 @@ CREATE TABLE job_run_failures (
+ CREATE TABLE audit_log (
+     id bigserial PRIMARY KEY,
+     ts timestamptz NOT NULL DEFAULT now(),
+-    account_id text NOT NULL REFERENCES accounts ON DELETE RESTRICT,
++    account_id text NOT NULL REFERENCES accounts ON DELETE CASCADE,
+     actor text NOT NULL,
+     action text NOT NULL
+     CHECK (action IN ('READ_BODY', 'DENY_BODY', 'MUTATE', 'DENY_MUTATE')),

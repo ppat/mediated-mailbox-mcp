@@ -10,6 +10,7 @@ INSERT INTO audit_log (
     content_flags, content_rule_ids, serve_rule_ids, scan_state, scanner_version, scanner_revision
 )
 VALUES (
-    @account_id, @actor, @action, @message_id, @stage, @reason, @sender_class, @class_rule_id, @class_rule_scope,
-    @content_flags, @content_rule_ids, @serve_rule_ids, @scan_state, @scanner_version, @scanner_revision
+    current_setting('app.account'), @actor, @action, @message_id, @stage, @reason, @sender_class,
+    @class_rule_id, @class_rule_scope, @content_flags, @content_rule_ids, @serve_rule_ids, @scan_state,
+    @scanner_version, @scanner_revision
 );

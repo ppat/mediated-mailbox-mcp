@@ -17,16 +17,15 @@ SELECT
     count(*) AS serves
 FROM audit_log AS a
 WHERE
-    a.account_id = $1
+    a.account_id = current_setting('app.account')
     AND a.action = 'READ_BODY'
-    AND a.ts >= $2
-    AND a.ts < $3
+    AND a.ts >= $1
+    AND a.ts < $2
 GROUP BY day
 ORDER BY day
 `
 
 type BodyServesByDayParams struct {
-	AccountID  string
 	RangeStart pgtype.Timestamptz
 	RangeEnd   pgtype.Timestamptz
 }
@@ -39,7 +38,7 @@ type BodyServesByDayRow struct {
 // The bodies served on each UTC day from one time up to another, one row per day that has a serve, the
 // daily counts the body-serve rule takes its median of (docs/UI.md section 8.1).
 func (q *Queries) BodyServesByDay(ctx context.Context, arg BodyServesByDayParams) ([]BodyServesByDayRow, error) {
-	rows, err := q.db.Query(ctx, bodyServesByDay, arg.AccountID, arg.RangeStart, arg.RangeEnd)
+	rows, err := q.db.Query(ctx, bodyServesByDay, arg.RangeStart, arg.RangeEnd)
 	if err != nil {
 		return nil, err
 	}
@@ -63,13 +62,8 @@ SELECT
     count(*) AS serves,
     min(a.ts)::timestamptz AS first_at
 FROM audit_log AS a
-WHERE a.account_id = $1 AND a.action = 'READ_BODY' AND a.ts >= $2
+WHERE a.account_id = current_setting('app.account') AND a.action = 'READ_BODY' AND a.ts >= $1
 `
-
-type BodyServesSinceParams struct {
-	AccountID string
-	Since     pgtype.Timestamptz
-}
 
 type BodyServesSinceRow struct {
 	Serves  int64
@@ -78,8 +72,8 @@ type BodyServesSinceRow struct {
 
 // How many bodies were served since a time and when the first of them was, for the body-serve rule of
 // Home's worth-a-look cards (docs/UI.md section 8.1). A denial is not a serve.
-func (q *Queries) BodyServesSince(ctx context.Context, arg BodyServesSinceParams) (BodyServesSinceRow, error) {
-	row := q.db.QueryRow(ctx, bodyServesSince, arg.AccountID, arg.Since)
+func (q *Queries) BodyServesSince(ctx context.Context, since pgtype.Timestamptz) (BodyServesSinceRow, error) {
+	row := q.db.QueryRow(ctx, bodyServesSince, since)
 	var i BodyServesSinceRow
 	err := row.Scan(&i.Serves, &i.FirstAt)
 	return i, err

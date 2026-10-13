@@ -33,8 +33,8 @@ func TestMain(m *testing.M) {
 	postgres.Main(m)
 }
 
-// mediator returns a pool connecting as the mediator's role, under which row-level security and the
-// grants apply as they do in production.
+// mediator returns a pool connecting as the mediator's role, under which the grants apply as they do
+// in production.
 func mediator(t *testing.T) *pgxpool.Pool {
 	t.Helper()
 	cfg, err := pgxpool.ParseConfig(postgres.URL(t))
@@ -50,7 +50,7 @@ func mediator(t *testing.T) *pgxpool.Pool {
 	return pool
 }
 
-// superuser returns a connection that bypasses row-level security, to write the rows a test stages.
+// superuser returns a connection that holds every privilege, to write the rows a test stages.
 func superuser(t *testing.T) *pgx.Conn {
 	t.Helper()
 	conn, err := pgx.Connect(t.Context(), postgres.URL(t))

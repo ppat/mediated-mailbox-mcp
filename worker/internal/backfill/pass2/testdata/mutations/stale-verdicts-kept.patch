@@ -6,18 +6,24 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/backfill/pass2/postgres.go b/worker/internal/backfill/pass2/postgres.go
-index 86c762e..fda9326 100644
+index 2b9ece79..f09fa57d 100644
 --- a/worker/internal/backfill/pass2/postgres.go
 +++ b/worker/internal/backfill/pass2/postgres.go
-@@ -174,9 +174,8 @@ func (s *Postgres) Reopen(ctx context.Context, account string, stamp pass1core.S
+@@ -209,15 +209,14 @@ func (s *Postgres) List(ctx context.Context, account string, listed func([]strin
+ 
+ // Reopen implements Store.
+ func (s *Postgres) Reopen(ctx context.Context, account string, stamp index.Stamp, remasked func([]pass1core.Stored) []index.Message, overturned func([]index.Waiting) []string) (Reopened, error) {
  	var marked Reopened
  	err := tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
  		marked = Reopened{}
 -		domains, err := scan.New(t).RequeueStaleVerdicts(ctx, scan.RequeueStaleVerdictsParams{
--			AccountID: account, ScannerVersion: version(stamp.Version), ScannerRevision: stamp.Revision,
+-			ScannerVersion: version(stamp.Version), ScannerRevision: stamp.Revision,
 -		})
 +		var domains []string
 +		var err error
  		if err != nil {
  			return fmt.Errorf("returning the verdicts another scanner made to pending scan: %w", err)
  		}
+ 		slices.Sort(domains)
+ 		for _, d := range slices.Compact(slices.Clone(domains)) {
+ 			n, err := statistics.New(t).RecountScanHits(ctx, d)

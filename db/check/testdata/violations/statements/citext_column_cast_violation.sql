@@ -6,8 +6,8 @@
 -- because the comparison becomes case-sensitive just the same.
 -- want citext-parameter-cast
 -- name: ListSendersInDomainsColumnCast :many
-SELECT message_count FROM fixture_senders WHERE account_id = @account_id AND domain::text = any(@domains::text[]);
+SELECT message_count FROM fixture_senders WHERE account_id = current_setting('app.account') AND domain::text = any(@domains::text[]);
 
 -- want citext-parameter-cast
 -- name: ListSendersOutsideDomainsColumnCast :many
-SELECT message_count FROM fixture_senders WHERE account_id = @account_id AND domain::text != all(@domains);
+SELECT message_count FROM fixture_senders WHERE account_id = current_setting('app.account') AND domain::text != all(@domains);

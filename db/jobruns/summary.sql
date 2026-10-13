@@ -18,7 +18,7 @@ SELECT
     r.last_error
 FROM job_runs AS r
 LEFT JOIN reorg_plans AS pl ON r.account_id = pl.account_id AND r.plan_id = pl.plan_id
-WHERE r.account_id = @account_id AND r.run_id = @run_id;
+WHERE r.account_id = current_setting('app.account') AND r.run_id = @run_id;
 
 -- name: LatestResumer :one
 -- The latest run whose resumed_from names a run, the run summary's resumer (docs/UI.md section 8.4).
@@ -39,7 +39,7 @@ SELECT
     r.last_error
 FROM job_runs AS r
 LEFT JOIN reorg_plans AS pl ON r.account_id = pl.account_id AND r.plan_id = pl.plan_id
-WHERE r.account_id = @account_id AND r.resumed_from = @run_id
+WHERE r.account_id = current_setting('app.account') AND r.resumed_from = @run_id
 ORDER BY r.started_at DESC, r.run_id ASC
 LIMIT 1;
 
@@ -50,7 +50,7 @@ SELECT
     f.disposition,
     count(*) AS failures
 FROM job_run_failures AS f
-WHERE f.account_id = @account_id AND f.run_id = @run_id
+WHERE f.account_id = current_setting('app.account') AND f.run_id = @run_id
 GROUP BY f.disposition
 ORDER BY f.disposition;
 
@@ -61,7 +61,7 @@ SELECT
     f.recovered_by,
     count(*) AS recovered
 FROM job_run_failures AS f
-WHERE f.account_id = @account_id AND f.run_id = @run_id AND f.recovered_by IS NOT NULL
+WHERE f.account_id = current_setting('app.account') AND f.run_id = @run_id AND f.recovered_by IS NOT NULL
 GROUP BY f.recovered_by
 ORDER BY f.recovered_by;
 
@@ -74,5 +74,5 @@ SELECT
     e.page,
     e.detail
 FROM job_run_events AS e
-WHERE e.account_id = @account_id AND e.run_id = @run_id
+WHERE e.account_id = current_setting('app.account') AND e.run_id = @run_id
 ORDER BY e.at ASC, e.seq ASC;

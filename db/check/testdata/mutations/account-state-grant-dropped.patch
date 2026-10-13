@@ -1,14 +1,14 @@
 control: Only the roles that call a provider read oauth_clients and their own account's state, and the UI reads its account's progress and never a credential
 removes: delta sync's role loses the read and write of its account's credential that its snapshot's statements need
 packages: ./db/check
-tests: TestGrantsCoverAdmittedSubsections TestTheProviderCallingRolesReadOnlyTheirAccountsState
+tests: TestGrantsCoverAdmittedSubsections TestTheProviderCallingRolesReadTheirAccountsState
 scheduled-count: no
 integration: yes
 
-diff --git a/db/migrations/00004_grants.sql b/db/migrations/00004_grants.sql
+diff --git a/db/migrations/00003_grants.sql b/db/migrations/00003_grants.sql
 index eba1d5bc..e3022daf 100644
---- a/db/migrations/00004_grants.sql
-+++ b/db/migrations/00004_grants.sql
+--- a/db/migrations/00003_grants.sql
++++ b/db/migrations/00003_grants.sql
 @@ -542,6 +542,6 @@ TO mediated_mailbox_mediate, mediated_mailbox_backfill, mediated_mailbox_sync;
  GRANT SELECT (account_id, provider, oauth_client) ON accounts
  TO mediated_mailbox_mediate, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;

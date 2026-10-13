@@ -21,19 +21,18 @@ FROM masking_events AS e
 INNER JOIN messages AS m
     ON e.account_id = m.account_id AND e.message_id = m.message_id
 WHERE
-    e.account_id = $1
-    AND e.masked_at >= $2
+    e.account_id = current_setting('app.account')
+    AND e.masked_at >= $1
     AND e.scanner_version IS NOT DISTINCT FROM m.subject_scanner_version
     AND e.scanner_revision IS NOT DISTINCT FROM m.subject_scanner_revision
 GROUP BY m.from_domain, e.rule_id
-HAVING count(*) > $3::bigint
+HAVING count(*) > $2::bigint
 ORDER BY sender, e.rule_id
 `
 
 type MaskingPairsAboveParams struct {
-	AccountID string
-	Since     pgtype.Timestamptz
-	Above     int64
+	Since pgtype.Timestamptz
+	Above int64
 }
 
 type MaskingPairsAboveRow struct {
@@ -51,7 +50,7 @@ type MaskingPairsAboveRow struct {
 // message's subject was masked under counts, so the events of a masking a change of scanner replaced count
 // under none (ADR-0120, docs/UI.md section 8.5). Each pair carries its first event since the time.
 func (q *Queries) MaskingPairsAbove(ctx context.Context, arg MaskingPairsAboveParams) ([]MaskingPairsAboveRow, error) {
-	rows, err := q.db.Query(ctx, maskingPairsAbove, arg.AccountID, arg.Since, arg.Above)
+	rows, err := q.db.Query(ctx, maskingPairsAbove, arg.Since, arg.Above)
 	if err != nil {
 		return nil, err
 	}

@@ -6,12 +6,12 @@ scheduled-count: no
 integration: yes
 
 diff --git a/db/migrations/00002_schema.sql b/db/migrations/00002_schema.sql
-index 8f6d933f..ea4d91ca 100644
+index 16df97b3..fe256988 100644
 --- a/db/migrations/00002_schema.sql
 +++ b/db/migrations/00002_schema.sql
-@@ -414,8 +414,7 @@ CREATE TABLE audit_log (
+@@ -421,8 +421,7 @@ CREATE TABLE audit_log (
      ts timestamptz NOT NULL DEFAULT now(),
-     account_id text NOT NULL,
+     account_id text NOT NULL REFERENCES accounts ON DELETE RESTRICT,
      actor text NOT NULL,
 -    action text NOT NULL
 -    CHECK (action IN ('READ_BODY', 'DENY_BODY', 'MUTATE', 'DENY_MUTATE')),

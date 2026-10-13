@@ -6,14 +6,14 @@ scheduled-count: no
 integration: yes
 
 diff --git a/db/jobruns/runs.sql.go b/db/jobruns/runs.sql.go
-index 17d3079..292691d 100644
+index d00ca834..b86592d3 100644
 --- a/db/jobruns/runs.sql.go
 +++ b/db/jobruns/runs.sql.go
 @@ -22,7 +22,6 @@ WHERE
-     r.account_id = $1
+     r.account_id = current_setting('app.account')
      AND r.workload = 'sync'
      AND r.pass = 'gap_recovery'
 -    AND r.state = 'succeeded'
-     AND r.started_at >= $2
+     AND r.started_at >= $1
  ORDER BY r.started_at, r.run_id
  `

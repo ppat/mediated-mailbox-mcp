@@ -5,7 +5,7 @@
 UPDATE messages
 SET labels = @labels, flags = @flags
 WHERE
-    account_id = @account_id
+    account_id = current_setting('app.account')
     AND message_id = @message_id
     AND (labels IS DISTINCT FROM @labels OR flags IS DISTINCT FROM @flags);
 
@@ -14,7 +14,7 @@ WHERE
 -- holds, so the index tracks the live mailbox (ADR-0018). It returns each removed message's sender
 -- domain, whose statistics the caller rebuilds. A message the index does not hold is no row.
 DELETE FROM messages
-WHERE account_id = @account_id AND message_id = any(@message_ids::text[])
+WHERE account_id = current_setting('app.account') AND message_id = any(@message_ids::text[])
 RETURNING from_domain;
 
 -- name: DropEmptySender :execrows
@@ -23,12 +23,12 @@ RETURNING from_domain;
 -- nothing (ADR-0016).
 DELETE FROM senders AS s
 WHERE
-    s.account_id = @account_id
+    s.account_id = current_setting('app.account')
     AND s.domain = @domain
     AND NOT EXISTS (
         SELECT 1
         FROM messages AS m
-        WHERE m.account_id = @account_id AND m.from_domain = @domain
+        WHERE m.account_id = current_setting('app.account') AND m.from_domain = @domain
     );
 
 -- name: MessagesSince :many
@@ -37,5 +37,5 @@ WHERE
 -- (ADR-0105).
 SELECT m.message_id
 FROM messages AS m
-WHERE m.account_id = @account_id AND m.sent_at >= @since
+WHERE m.account_id = current_setting('app.account') AND m.sent_at >= @since
 ORDER BY m.message_id;

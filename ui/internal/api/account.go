@@ -60,7 +60,7 @@ func (s *Server) getAccount(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	out := accountResponse{AccountID: account, OtherClients: []string{}}
 	err := tx.Run(ctx, s.opts.Database, account, func(t pgx.Tx) error {
-		return s.account(ctx, accountsetup.New(t), accountstate.New(t), ratestate.New(t), clientsetup.New(t), account, &out)
+		return s.account(ctx, accountsetup.New(t), accountstate.New(t), ratestate.New(t), clientsetup.New(t), &out)
 	})
 	if err != nil {
 		s.databaseFailure(w, r, err)
@@ -70,9 +70,9 @@ func (s *Server) getAccount(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) account(ctx context.Context, q *accountsetup.Queries, state *accountstate.Queries, rates *ratestate.Queries,
-	clients *clientsetup.Queries, account string, out *accountResponse,
+	clients *clientsetup.Queries, out *accountResponse,
 ) error {
-	rows, err := q.AccountSetup(ctx, account)
+	rows, err := q.AccountSetup(ctx)
 	if err != nil {
 		return err
 	}
@@ -86,13 +86,13 @@ func (s *Server) account(ctx context.Context, q *accountsetup.Queries, state *ac
 		f := widen(held.LoweredTargetRate.Float32)
 		out.LoweredTarget = &f
 	}
-	progress, err := s.progress(ctx, state, account)
+	progress, err := s.progress(ctx, state)
 	if err != nil {
 		return err
 	}
 	out.BackfillPass1Complete, out.BackfillPass2Complete = progress.Pass1Complete, progress.Pass2Complete
 	out.SyncCursorAt, out.LastAuthAt, out.LastAuthOutcome = progress.SyncCursorAt, progress.LastAuthAt, progress.LastAuthOutcome
-	rate, err := s.rate(ctx, rates, account)
+	rate, err := s.rate(ctx, rates)
 	if err != nil {
 		return err
 	}
@@ -147,7 +147,7 @@ func (s *Server) setTarget(w http.ResponseWriter, r *http.Request) {
 		target = pgtype.Float4{Float32: float32(*body.LoweredTarget), Valid: true}
 	}
 	err := tx.Run(r.Context(), s.opts.Database, account, func(t pgx.Tx) error {
-		n, err := accountsetup.New(t).SetLoweredTarget(r.Context(), accountsetup.SetLoweredTargetParams{LoweredTarget: target, AccountID: account})
+		n, err := accountsetup.New(t).SetLoweredTarget(r.Context(), target)
 		if err == nil && n == 0 {
 			return errNotConnected
 		}

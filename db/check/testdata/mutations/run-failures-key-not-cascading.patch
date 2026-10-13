@@ -1,0 +1,22 @@
+control: Every log table references what it belongs to
+removes: a run's failures' key refuses the run's removal rather than removing its failures
+packages: ./db/check
+tests: TestAMessageOrRunRemovedTakesItsPartsWithIt
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00002_schema.sql b/db/migrations/00002_schema.sql
+index 16df97b3..ad006139 100644
+--- a/db/migrations/00002_schema.sql
++++ b/db/migrations/00002_schema.sql
+@@ -408,9 +408,9 @@ CREATE TABLE job_run_failures (
+     disposition text NOT NULL DEFAULT 'pending',
+     -- The recovering run.
+     recovered_by text,
+     PRIMARY KEY (account_id, run_id, seq),
+-    FOREIGN KEY (account_id, run_id) REFERENCES job_runs ON DELETE CASCADE
++    FOREIGN KEY (account_id, run_id) REFERENCES job_runs
+ );
+ 
+ -- No runtime role holds UPDATE or DELETE here. Append-only is the grant, not a convention. Evidence
+ -- outlives everything, so an account with audit rows cannot be deleted (ADR-0016).

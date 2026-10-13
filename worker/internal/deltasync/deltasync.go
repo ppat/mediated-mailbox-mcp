@@ -287,7 +287,7 @@ func (d *DeltaSync) seed(ctx context.Context, account string) time.Time {
 	var recorded runrecord.RecordedSuccessRow
 	err := tx.Run(ctx, d.config.Pool, account, func(t pgx.Tx) error {
 		var rErr error
-		recorded, rErr = runrecord.New(t).RecordedSuccess(ctx, runrecord.RecordedSuccessParams{AccountID: account, Workload: Kind})
+		recorded, rErr = runrecord.New(t).RecordedSuccess(ctx, Kind)
 		return rErr
 	})
 	if err != nil {
@@ -427,7 +427,7 @@ func newLimiter(ctx context.Context, pool *pgxpool.Pool, accounts []string, metr
 	targets := map[string]float64{}
 	for _, account := range accounts {
 		err := tx.Run(ctx, pool, account, func(t pgx.Tx) error {
-			target, err := accountstate.New(t).LoweredTarget(ctx, account)
+			target, err := accountstate.New(t).LoweredTarget(ctx)
 			if err != nil {
 				return err
 			}

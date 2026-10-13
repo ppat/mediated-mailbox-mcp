@@ -25,6 +25,6 @@ func besideTheExceptions(ctx context.Context, db DB) error {
 	if _, err := listing.Accounts(ctx); err != nil {
 		return err
 	}
-	_, err := credential.New(db).Sealed(ctx, "personal") // want vetcheck "calls credential.New outside a function literal passed to tx.Run"
+	_, err := credential.New(db).Sealed(ctx) // want vetcheck "calls credential.New outside a function literal passed to tx.Run"
 	return err
 }

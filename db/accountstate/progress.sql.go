@@ -19,7 +19,7 @@ SELECT
     s.last_auth_at,
     s.last_auth_outcome
 FROM account_state AS s
-WHERE s.account_id = $1
+WHERE s.account_id = current_setting('app.account')
 `
 
 type AccountProgressRow struct {
@@ -33,8 +33,8 @@ type AccountProgressRow struct {
 // An account's progress through its workloads and its last provider authentication, which the system
 // endpoint's operational block and the jobs backfill card read (docs/UI.md sections 8.3 and 8.8). It
 // reads no credential, and the role that runs it holds no grant on one (ADR-0084, ADR-0091).
-func (q *Queries) AccountProgress(ctx context.Context, accountID string) (AccountProgressRow, error) {
-	row := q.db.QueryRow(ctx, accountProgress, accountID)
+func (q *Queries) AccountProgress(ctx context.Context) (AccountProgressRow, error) {
+	row := q.db.QueryRow(ctx, accountProgress)
 	var i AccountProgressRow
 	err := row.Scan(
 		&i.BackfillPass1Complete,

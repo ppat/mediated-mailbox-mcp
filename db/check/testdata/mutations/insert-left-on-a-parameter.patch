@@ -1,0 +1,19 @@
+control: Every statement takes its account from the transaction
+removes: the gate decision's insert takes its account from a parameter instead of the transaction
+packages: ./db/check
+tests: TestStatementFiles
+scheduled-count: no
+integration: no
+
+diff --git a/db/scangatedecisions/record/record.sql b/db/scangatedecisions/record/record.sql
+index d8601cca..e8b0d6d8 100644
+--- a/db/scangatedecisions/record/record.sql
++++ b/db/scangatedecisions/record/record.sql
+@@ -3,6 +3,6 @@
+ -- (ADR-0093). A message decided again, as one the delisting transition returned to pending scan is,
+ -- has its decision replaced.
+ INSERT INTO scan_gate_decisions AS d (account_id, message_id, decision, reason)
+-VALUES (current_setting('app.account'), @message_id, @decision, @reason)
++VALUES (@account_id, @message_id, @decision, @reason)
+ ON CONFLICT (account_id, message_id) DO UPDATE
+     SET decision = excluded.decision, reason = excluded.reason, decided_at = now();

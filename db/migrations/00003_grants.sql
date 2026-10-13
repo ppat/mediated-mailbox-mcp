@@ -471,8 +471,8 @@ TO mediated_mailbox_ui;
 GRANT UPDATE (status, approved_at, approved_by) ON reorg_plans TO mediated_mailbox_ui;
 GRANT UPDATE (status, reviewed_at, reviewed_by) ON policy_candidates TO mediated_mailbox_ui;
 -- Account setup writes an account's listing row, with the client it connects through, and moves an
--- account to another client of its provider (ADR-0091, ADR-0106). accounts_account confines both
--- writes to the transaction's account. Its statements sit in db/accounts/setup.
+-- account to another client of its provider (ADR-0091, ADR-0106). Each statement takes the account
+-- from the transaction (ADR-0135). Its statements sit in db/accounts/setup.
 GRANT INSERT (account_id, provider, oauth_client), UPDATE (oauth_client) ON accounts TO mediated_mailbox_ui;
 -- The UI's system endpoint and jobs cards show an account's progress (ADR-0084, ADR-0091). Account
 -- setup writes the account's state row, its sealed credential, the mailbox it remembers and its
@@ -499,8 +499,8 @@ ON account_state TO mediated_mailbox_ui;
 -- consent's code exchange, reads the sealed secret through db/oauthclients, which only that part's list
 -- admits, and the raw SQL analyser refuses a statement the UI's shipped code runs by hand (ADR-0071,
 -- ADR-0081). Code written to get around both, such as a statement run through reflection, stays
--- with review. The table has no row-level security, so the grant is the whole database barrier
--- (ADR-0016, ADR-0084, ADR-0106).
+-- with review. The table carries no account, so the grant is the whole database barrier (ADR-0016,
+-- ADR-0084, ADR-0106).
 GRANT SELECT (name, provider, client_id, client_secret, project_id),
 INSERT (name, provider, client_id, client_secret, project_id),
 UPDATE (client_id, client_secret, project_id),
@@ -547,8 +547,8 @@ TO mediated_mailbox_mediate, mediated_mailbox_backfill, mediated_mailbox_sync, m
 -- The policy loader's statement, in db/policyrules, runs under the role of each deployable or job kind that loads
 -- policy (ADR-0118), the mediator, backfill and delta sync. It reads the account, the identifier, the
 -- class and the domain suffixes of the base rules and the account's own, so the roles get SELECT on
--- exactly those columns. Who created a rule and when stay out of their reach. Row-level security still
--- shows each only the base rules and its transaction's account's rules.
+-- exactly those columns. Who created a rule and when stay out of their reach. The statement reads the
+-- base rules and the rules of the transaction's account alone (ADR-0135).
 GRANT SELECT (account_id, rule_id, class, domain_suffix) ON policy_rules
 TO mediated_mailbox_mediate, mediated_mailbox_backfill, mediated_mailbox_sync;
 

@@ -14,7 +14,7 @@ import (
 const senderDomains = `-- name: SenderDomains :many
 SELECT s.domain
 FROM senders AS s
-WHERE s.account_id = $1
+WHERE s.account_id = current_setting('app.account')
 ORDER BY s.domain
 `
 
@@ -23,8 +23,8 @@ ORDER BY s.domain
 // of each domain it touched in the same transaction (ADR-0109). The service layer classifies each under
 // the policy in force before a read that selects or groups by sender class, and passes the normal ones
 // to the statement (ADR-0108).
-func (q *Queries) SenderDomains(ctx context.Context, accountID string) ([]string, error) {
-	rows, err := q.db.Query(ctx, senderDomains, accountID)
+func (q *Queries) SenderDomains(ctx context.Context) ([]string, error) {
+	rows, err := q.db.Query(ctx, senderDomains)
 	if err != nil {
 		return nil, err
 	}
@@ -55,18 +55,17 @@ SELECT
     s.label_distribution
 FROM senders AS s
 WHERE
-    s.account_id = $1
+    s.account_id = current_setting('app.account')
     AND (
-        $2::boolean
-        OR s.message_count < $3::bigint
-        OR (s.message_count = $3::bigint AND s.domain > $4::text)
+        $1::boolean
+        OR s.message_count < $2::bigint
+        OR (s.message_count = $2::bigint AND s.domain > $3::text)
     )
 ORDER BY s.message_count DESC, s.domain ASC
-LIMIT $5
+LIMIT $4
 `
 
 type SenderPageParams struct {
-	AccountID   string
 	FirstPage   bool
 	AfterCount  int64
 	AfterDomain string
@@ -90,7 +89,6 @@ type SenderPageRow struct {
 // and the hits are a signal derived from bodies that no read serves.
 func (q *Queries) SenderPage(ctx context.Context, arg SenderPageParams) ([]SenderPageRow, error) {
 	rows, err := q.db.Query(ctx, senderPage,
-		arg.AccountID,
 		arg.FirstPage,
 		arg.AfterCount,
 		arg.AfterDomain,

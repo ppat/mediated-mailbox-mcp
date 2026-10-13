@@ -47,8 +47,8 @@ type StoredRule struct {
 
 // ComposedRules reads the account's policy, the base rules and the account's own, in identifier order
 // with a base rule ahead of the account's rule of one identifier.
-func ComposedRules(ctx context.Context, q *manage.Queries, account string) ([]StoredRule, error) {
-	read, err := q.ComposedRules(ctx, account)
+func ComposedRules(ctx context.Context, q *manage.Queries) ([]StoredRule, error) {
+	read, err := q.ComposedRules(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -119,8 +119,8 @@ func scopeOf(base bool) string {
 }
 
 // SenderClasses reads the account's senders as the counts take them.
-func SenderClasses(ctx context.Context, q Queries, account string, l classify.Lookups) (rules.Senders, int64, error) {
-	read, err := q.Senders.SenderClasses(ctx, account)
+func SenderClasses(ctx context.Context, q Queries, l classify.Lookups) (rules.Senders, int64, error) {
+	read, err := q.Senders.SenderClasses(ctx)
 	if err != nil {
 		return rules.Senders{}, 0, err
 	}
@@ -211,22 +211,22 @@ func policyRules(l classify.Lookups) Dataset {
 			return rulesRows(ctx, q, r, l)
 		},
 		Detail: func(ctx context.Context, q Queries, account string, req lens.RowRequest, _ time.Time) (any, error) {
-			return ruleDetail(ctx, q, account, req, l)
+			return ruleDetail(ctx, q, req, l)
 		},
 		DetailType: ruleDetailType(),
 	}
 }
 
 func rulesSummary(ctx context.Context, q Queries, r Read, l classify.Lookups) ([]Figure, Total, error) {
-	stored, err := ComposedRules(ctx, q.Rules, r.Account)
+	stored, err := ComposedRules(ctx, q.Rules)
 	if err != nil {
 		return nil, Total{}, err
 	}
-	_, restricted, err := SenderClasses(ctx, q, r.Account, l)
+	_, restricted, err := SenderClasses(ctx, q, l)
 	if err != nil {
 		return nil, Total{}, err
 	}
-	latest, err := q.Changes.LatestChange(ctx, r.Account)
+	latest, err := q.Changes.LatestChange(ctx)
 	if err != nil {
 		return nil, Total{}, err
 	}
@@ -248,11 +248,11 @@ func rulesSummary(ctx context.Context, q Queries, r Read, l classify.Lookups) ([
 }
 
 func rulesRows(ctx context.Context, q Queries, r Read, l classify.Lookups) (any, error) {
-	stored, err := ComposedRules(ctx, q.Rules, r.Account)
+	stored, err := ComposedRules(ctx, q.Rules)
 	if err != nil {
 		return nil, err
 	}
-	senders, _, err := SenderClasses(ctx, q, r.Account, l)
+	senders, _, err := SenderClasses(ctx, q, l)
 	if err != nil {
 		return nil, err
 	}
@@ -398,7 +398,7 @@ func rulesSuffixes(stored []StoredRule, base bool, id string) []string {
 	return nil
 }
 
-func ruleDetail(ctx context.Context, q Queries, account string, req lens.RowRequest, l classify.Lookups) (any, error) {
+func ruleDetail(ctx context.Context, q Queries, req lens.RowRequest, l classify.Lookups) (any, error) {
 	var base bool
 	var id string
 	switch {
@@ -409,7 +409,7 @@ func ruleDetail(ctx context.Context, q Queries, account string, req lens.RowRequ
 	default:
 		return nil, ErrNoRow
 	}
-	stored, err := ComposedRules(ctx, q.Rules, account)
+	stored, err := ComposedRules(ctx, q.Rules)
 	if err != nil {
 		return nil, err
 	}
@@ -418,7 +418,7 @@ func ruleDetail(ctx context.Context, q Queries, account string, req lens.RowRequ
 		return nil, ErrNoRow
 	}
 	rule := stored[i]
-	senders, _, err := SenderClasses(ctx, q, account, l)
+	senders, _, err := SenderClasses(ctx, q, l)
 	if err != nil {
 		return nil, err
 	}
@@ -449,7 +449,7 @@ func ruleDetail(ctx context.Context, q Queries, account string, req lens.RowRequ
 		}
 		d.Senders = append(d.Senders, SenderMatch{Domain: s.Domain, SenderClass: class, Messages: s.Messages})
 	}
-	history, err := q.Changes.RuleHistory(ctx, policychanges.RuleHistoryParams{AccountID: account, RuleID: id, Base: base})
+	history, err := q.Changes.RuleHistory(ctx, policychanges.RuleHistoryParams{RuleID: id, Base: base})
 	if err != nil {
 		return nil, err
 	}
@@ -569,7 +569,7 @@ func changesSummary(ctx context.Context, q Queries, r Read) ([]Figure, Total, er
 		return nil, Total{}, err
 	}
 	row, err := q.Changes.ChangeFigures(ctx, policychanges.ChangeFiguresParams{
-		AccountID: r.Account, BaseRows: f.baseRows, OwnRows: f.ownRows, RangeStart: f.rangeStart, RangeEnd: f.rangeEnd,
+		BaseRows: f.baseRows, OwnRows: f.ownRows, RangeStart: f.rangeStart, RangeEnd: f.rangeEnd,
 		ActionIn: f.actionIn, ActionOut: f.actionOut, ActorIn: f.actorIn, ActorOut: f.actorOut,
 		RuleIn: f.ruleIn, RuleOut: f.ruleOut, DayIn: f.dayIn, DayOut: f.dayOut,
 	})
@@ -596,7 +596,7 @@ func changesRows(ctx context.Context, q Queries, r Read) (any, error) {
 		return nil, err
 	}
 	rows, err := q.Changes.ChangeRows(ctx, policychanges.ChangeRowsParams{
-		AccountID: r.Account, BaseRows: f.baseRows, OwnRows: f.ownRows, RangeStart: f.rangeStart, RangeEnd: f.rangeEnd,
+		BaseRows: f.baseRows, OwnRows: f.ownRows, RangeStart: f.rangeStart, RangeEnd: f.rangeEnd,
 		ActionIn: f.actionIn, ActionOut: f.actionOut, ActorIn: f.actorIn, ActorOut: f.actorOut,
 		RuleIn: f.ruleIn, RuleOut: f.ruleOut, DayIn: f.dayIn, DayOut: f.dayOut,
 		Descending: r.Request.Sort.Descending, RowOffset: first,
@@ -604,7 +604,7 @@ func changesRows(ctx context.Context, q Queries, r Read) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	stored, err := ComposedRules(ctx, q.Rules, r.Account)
+	stored, err := ComposedRules(ctx, q.Rules)
 	if err != nil {
 		return nil, err
 	}
@@ -619,7 +619,7 @@ func changesByAction(ctx context.Context, q Queries, r Read) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	rows, err := q.Changes.ChangesByAction(ctx, policychanges.ChangesByActionParams(changeParams(r, f)))
+	rows, err := q.Changes.ChangesByAction(ctx, policychanges.ChangesByActionParams(changeParams(f)))
 	if err != nil {
 		return nil, err
 	}
@@ -635,7 +635,7 @@ func changesByScope(ctx context.Context, q Queries, r Read) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	rows, err := q.Changes.ChangesByScope(ctx, policychanges.ChangesByScopeParams(changeParams(r, f)))
+	rows, err := q.Changes.ChangesByScope(ctx, policychanges.ChangesByScopeParams(changeParams(f)))
 	if err != nil {
 		return nil, err
 	}
@@ -655,7 +655,7 @@ func changesByActor(ctx context.Context, q Queries, r Read) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	rows, err := q.Changes.ChangesByActor(ctx, policychanges.ChangesByActorParams(changeParams(r, f)))
+	rows, err := q.Changes.ChangesByActor(ctx, policychanges.ChangesByActorParams(changeParams(f)))
 	if err != nil {
 		return nil, err
 	}
@@ -671,7 +671,7 @@ func changesByDay(ctx context.Context, q Queries, r Read) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	rows, err := q.Changes.ChangesByDay(ctx, policychanges.ChangesByDayParams(changeParams(r, f)))
+	rows, err := q.Changes.ChangesByDay(ctx, policychanges.ChangesByDayParams(changeParams(f)))
 	if err != nil {
 		return nil, err
 	}
@@ -685,7 +685,6 @@ func changesByDay(ctx context.Context, q Queries, r Read) (any, error) {
 // changeParams is the aggregate statements' shared parameters, which each statement's own parameter
 // type converts from, since the four take the same fields.
 type changeParamsOf struct {
-	AccountID  string
 	BaseRows   bool
 	OwnRows    bool
 	RangeStart pgtype.Timestamptz
@@ -700,9 +699,9 @@ type changeParamsOf struct {
 	DayOut     []pgtype.Date
 }
 
-func changeParams(r Read, f changeFilters) changeParamsOf {
+func changeParams(f changeFilters) changeParamsOf {
 	return changeParamsOf{
-		AccountID: r.Account, BaseRows: f.baseRows, OwnRows: f.ownRows, RangeStart: f.rangeStart, RangeEnd: f.rangeEnd,
+		BaseRows: f.baseRows, OwnRows: f.ownRows, RangeStart: f.rangeStart, RangeEnd: f.rangeEnd,
 		ActionIn: f.actionIn, ActionOut: f.actionOut, ActorIn: f.actorIn, ActorOut: f.actorOut,
 		RuleIn: f.ruleIn, RuleOut: f.ruleOut, DayIn: f.dayIn, DayOut: f.dayOut,
 	}
@@ -749,12 +748,12 @@ func domainSearchOf(r Read) string {
 	return index.StoredDomain(searchOf(r))
 }
 
-func sendersSearchFigures(r Read) senderclassification.SenderSearchFiguresParams {
-	return senderclassification.SenderSearchFiguresParams{AccountID: r.Account, Search: domainSearchOf(r)}
+func sendersSearchFigures(r Read) string {
+	return domainSearchOf(r)
 }
 
 func sendersSearchRows(r Read, first int32) senderclassification.SenderSearchRowsParams {
-	return senderclassification.SenderSearchRowsParams{AccountID: r.Account, Search: domainSearchOf(r), Descending: r.Request.Sort.Descending, RowOffset: first}
+	return senderclassification.SenderSearchRowsParams{Search: domainSearchOf(r), Descending: r.Request.Sort.Descending, RowOffset: first}
 }
 
 // senders is the account's stored senders as the sender picker of docs/UI.md section 8.7 reads them,
@@ -800,7 +799,7 @@ func senderRows(ctx context.Context, q Queries, r Read, l classify.Lookups) (any
 	if err != nil {
 		return nil, err
 	}
-	stored, err := ComposedRules(ctx, q.Rules, r.Account)
+	stored, err := ComposedRules(ctx, q.Rules)
 	if err != nil {
 		return nil, err
 	}

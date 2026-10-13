@@ -9,4 +9,4 @@ SELECT
     m.scan_state,
     m.rule_ids
 FROM messages AS m
-WHERE m.account_id = @account_id AND m.message_id = @message_id;
+WHERE m.account_id = current_setting('app.account') AND m.message_id = @message_id;

@@ -227,7 +227,7 @@ func (l *Loader) read(ctx context.Context) ([]row, []oauthclients.OAuthClientsRo
 func (l *Loader) stored(ctx context.Context, account string) ([]byte, error) {
 	var stored []byte
 	err := tx.Run(ctx, l.db, account, func(t pgx.Tx) error {
-		read, err := credential.New(t).Sealed(ctx, account)
+		read, err := credential.New(t).Sealed(ctx)
 		if err != nil {
 			return err
 		}

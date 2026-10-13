@@ -19,18 +19,13 @@ SELECT
     r.counters
 FROM job_runs AS r
 WHERE
-    r.account_id = $1
+    r.account_id = current_setting('app.account')
     AND r.workload = 'sync'
     AND r.pass = 'gap_recovery'
     AND r.state = 'succeeded'
-    AND r.started_at >= $2
+    AND r.started_at >= $1
 ORDER BY r.started_at, r.run_id
 `
-
-type GapRecoveriesSinceParams struct {
-	AccountID string
-	Since     pgtype.Timestamptz
-}
 
 type GapRecoveriesSinceRow struct {
 	RunID      string
@@ -42,8 +37,8 @@ type GapRecoveriesSinceRow struct {
 // The delta sync gap recoveries that succeeded and started since a time, oldest first, for the sync-gap
 // rule of Home's worth-a-look cards (docs/UI.md section 8.1). Each carries its counters, which record
 // the window it re-enumerated and the messages it reconciled (ADR-0016).
-func (q *Queries) GapRecoveriesSince(ctx context.Context, arg GapRecoveriesSinceParams) ([]GapRecoveriesSinceRow, error) {
-	rows, err := q.db.Query(ctx, gapRecoveriesSince, arg.AccountID, arg.Since)
+func (q *Queries) GapRecoveriesSince(ctx context.Context, since pgtype.Timestamptz) ([]GapRecoveriesSinceRow, error) {
+	rows, err := q.db.Query(ctx, gapRecoveriesSince, since)
 	if err != nil {
 		return nil, err
 	}
@@ -86,19 +81,18 @@ SELECT
 FROM job_runs AS r
 LEFT JOIN reorg_plans AS pl ON r.account_id = pl.account_id AND r.plan_id = pl.plan_id
 WHERE
-    r.account_id = $1
-    AND r.workload = $2
-    AND r.pass = $3
-    AND r.state = any($4::text[])
+    r.account_id = current_setting('app.account')
+    AND r.workload = $1
+    AND r.pass = $2
+    AND r.state = any($3::text[])
 ORDER BY r.started_at DESC, r.run_id ASC
 LIMIT 1
 `
 
 type LatestRunInStatesParams struct {
-	AccountID string
-	Workload  string
-	Pass      string
-	States    []string
+	Workload string
+	Pass     string
+	States   []string
 }
 
 type LatestRunInStatesRow struct {
@@ -122,12 +116,7 @@ type LatestRunInStatesRow struct {
 // the last finished run beside a running one, and the system screen the last successful sync tick
 // (docs/UI.md sections 8.3 and 8.8).
 func (q *Queries) LatestRunInStates(ctx context.Context, arg LatestRunInStatesParams) (LatestRunInStatesRow, error) {
-	row := q.db.QueryRow(ctx, latestRunInStates,
-		arg.AccountID,
-		arg.Workload,
-		arg.Pass,
-		arg.States,
-	)
+	row := q.db.QueryRow(ctx, latestRunInStates, arg.Workload, arg.Pass, arg.States)
 	var i LatestRunInStatesRow
 	err := row.Scan(
 		&i.RunID,
@@ -188,7 +177,7 @@ CROSS JOIN
             r.last_error
         FROM job_runs AS r
         LEFT JOIN reorg_plans AS pl ON r.account_id = pl.account_id AND r.plan_id = pl.plan_id
-        WHERE r.account_id = $3 AND r.workload = k.workload AND r.pass = k.pass
+        WHERE r.account_id = current_setting('app.account') AND r.workload = k.workload AND r.pass = k.pass
         ORDER BY r.started_at DESC, r.run_id ASC
         LIMIT 1
     ) AS l
@@ -198,7 +187,6 @@ ORDER BY l.workload ASC, l.pass ASC
 type LatestRunsParams struct {
 	Workloads []string
 	Passes    []string
-	AccountID string
 }
 
 type LatestRunsRow struct {
@@ -224,7 +212,7 @@ type LatestRunsRow struct {
 // no run has no row. An apply or rollback run carries its plan's description and status, so the card
 // can title the run and say whether rollback is available.
 func (q *Queries) LatestRuns(ctx context.Context, arg LatestRunsParams) ([]LatestRunsRow, error) {
-	rows, err := q.db.Query(ctx, latestRuns, arg.Workloads, arg.Passes, arg.AccountID)
+	rows, err := q.db.Query(ctx, latestRuns, arg.Workloads, arg.Passes)
 	if err != nil {
 		return nil, err
 	}
@@ -265,16 +253,15 @@ SELECT
     coalesce(max(e.page), 0)::integer AS last_page
 FROM job_run_events AS e
 WHERE
-    e.account_id = $1
-    AND e.run_id = $2
+    e.account_id = current_setting('app.account')
+    AND e.run_id = $1
     AND e.kind = 'progress'
-    AND e.at >= $3
+    AND e.at >= $2
 `
 
 type ProgressSinceParams struct {
-	AccountID string
-	RunID     string
-	Since     pgtype.Timestamptz
+	RunID string
+	Since pgtype.Timestamptz
 }
 
 type ProgressSinceRow struct {
@@ -287,7 +274,7 @@ type ProgressSinceRow struct {
 // backfill card estimates the time left (docs/UI.md section 8.1). With no progress event in the window,
 // events is zero and both pages read zero.
 func (q *Queries) ProgressSince(ctx context.Context, arg ProgressSinceParams) (ProgressSinceRow, error) {
-	row := q.db.QueryRow(ctx, progressSince, arg.AccountID, arg.RunID, arg.Since)
+	row := q.db.QueryRow(ctx, progressSince, arg.RunID, arg.Since)
 	var i ProgressSinceRow
 	err := row.Scan(&i.Events, &i.FirstPage, &i.LastPage)
 	return i, err
@@ -297,28 +284,22 @@ const runsStartedSince = `-- name: RunsStartedSince :one
 SELECT count(*) AS runs
 FROM job_runs AS r
 WHERE
-    r.account_id = $1
-    AND r.workload = $2
-    AND r.pass = $3
-    AND r.started_at >= $4
+    r.account_id = current_setting('app.account')
+    AND r.workload = $1
+    AND r.pass = $2
+    AND r.started_at >= $3
 `
 
 type RunsStartedSinceParams struct {
-	AccountID string
-	Workload  string
-	Pass      string
-	Since     pgtype.Timestamptz
+	Workload string
+	Pass     string
+	Since    pgtype.Timestamptz
 }
 
 // How many runs of one workload and pass started since a time, the gap recoveries of the last seven
 // days on the delta sync card (docs/UI.md section 8.3).
 func (q *Queries) RunsStartedSince(ctx context.Context, arg RunsStartedSinceParams) (int64, error) {
-	row := q.db.QueryRow(ctx, runsStartedSince,
-		arg.AccountID,
-		arg.Workload,
-		arg.Pass,
-		arg.Since,
-	)
+	row := q.db.QueryRow(ctx, runsStartedSince, arg.Workload, arg.Pass, arg.Since)
 	var runs int64
 	err := row.Scan(&runs)
 	return runs, err
@@ -343,15 +324,10 @@ SELECT
 FROM job_runs AS r
 LEFT JOIN reorg_plans AS pl ON r.account_id = pl.account_id AND r.plan_id = pl.plan_id
 WHERE
-    r.account_id = $1
-    AND (r.state = 'running' OR r.finished_at >= $2)
+    r.account_id = current_setting('app.account')
+    AND (r.state = 'running' OR r.finished_at >= $1)
 ORDER BY r.started_at ASC, r.run_id ASC
 `
-
-type StreamRunsParams struct {
-	AccountID string
-	Since     pgtype.Timestamptz
-}
 
 type StreamRunsRow struct {
 	RunID           string
@@ -374,8 +350,8 @@ type StreamRunsRow struct {
 // (ADR-0058), each with its whole recorded state, the plan an apply or rollback run carries included,
 // the same shape the jobs endpoint sends. The stream sends a run whenever it differs from the last
 // state sent.
-func (q *Queries) StreamRuns(ctx context.Context, arg StreamRunsParams) ([]StreamRunsRow, error) {
-	rows, err := q.db.Query(ctx, streamRuns, arg.AccountID, arg.Since)
+func (q *Queries) StreamRuns(ctx context.Context, since pgtype.Timestamptz) ([]StreamRunsRow, error) {
+	rows, err := q.db.Query(ctx, streamRuns, since)
 	if err != nil {
 		return nil, err
 	}

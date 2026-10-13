@@ -11,7 +11,7 @@ SELECT
     e.masked_at
 FROM masking_events AS e
 WHERE
-    e.account_id = @account_id
+    e.account_id = current_setting('app.account')
     AND (@since::timestamptz IS NULL OR e.masked_at >= @since::timestamptz)
     AND (
         @before_masked_at::timestamptz IS NULL

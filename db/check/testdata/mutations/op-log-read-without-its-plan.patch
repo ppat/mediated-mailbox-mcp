@@ -1,0 +1,18 @@
+control: The operation log is reached only through a plan tied to the transaction's account
+removes: the operation log's count reads the log by the plan's identifier alone, with no join to a plan tied to the transaction's account
+packages: ./db/check
+tests: TestStatementFiles
+scheduled-count: no
+integration: no
+
+diff --git a/db/reorgoplog/oplog.sql b/db/reorgoplog/oplog.sql
+index ede22f54..3cd9bd42 100644
+--- a/db/reorgoplog/oplog.sql
++++ b/db/reorgoplog/oplog.sql
+@@ -3,5 +3,4 @@
+ -- (docs/UI.md section 8.3). The op log carries no account, so the plan scopes it.
+ SELECT count(*) AS operations
+ FROM reorg_op_log AS l
+-INNER JOIN reorg_plans AS p ON l.plan_id = p.plan_id
+-WHERE p.account_id = current_setting('app.account') AND l.plan_id = @plan_id;
++WHERE l.plan_id = @plan_id;

@@ -12,13 +12,13 @@ import (
 const scanBacklog = `-- name: ScanBacklog :one
 SELECT count(*) AS pending
 FROM messages AS m
-WHERE m.account_id = $1 AND m.scan_state = 'pending'
+WHERE m.account_id = current_setting('app.account') AND m.scan_state = 'pending'
 `
 
 // How many of the account's messages wait for their content scan, the scan backlog the system status
 // exposes (ADR-0034, docs/UI.md section 8.8).
-func (q *Queries) ScanBacklog(ctx context.Context, accountID string) (int64, error) {
-	row := q.db.QueryRow(ctx, scanBacklog, accountID)
+func (q *Queries) ScanBacklog(ctx context.Context) (int64, error) {
+	row := q.db.QueryRow(ctx, scanBacklog)
 	var pending int64
 	err := row.Scan(&pending)
 	return pending, err

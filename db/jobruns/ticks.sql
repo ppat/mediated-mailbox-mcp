@@ -3,7 +3,7 @@
 SELECT max(r.finished_at)::timestamptz AS finished_at
 FROM job_runs AS r
 WHERE
-    r.account_id = @account_id
+    r.account_id = current_setting('app.account')
     AND r.workload = 'sync'
     AND r.pass = 'tick'
     AND r.state = 'succeeded';

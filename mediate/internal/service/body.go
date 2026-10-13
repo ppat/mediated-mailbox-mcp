@@ -149,7 +149,7 @@ func (s Sources) getMessageBody(ctx context.Context, account string, input json.
 	var rows []messages.BodyGateRow
 	err := tx.Run(ctx, s.DB, account, func(t pgx.Tx) error {
 		var err error
-		rows, err = messages.New(t).BodyGate(ctx, messages.BodyGateParams{AccountID: account, MessageID: args.MessageID})
+		rows, err = messages.New(t).BodyGate(ctx, args.MessageID)
 		return err
 	})
 	if err != nil {
@@ -353,7 +353,7 @@ func sorted(rules []string) []string {
 // audit writes the request's audit row in a transaction of the account.
 func (s Sources) audit(ctx context.Context, account, messageID, action, stage, reason string, g gate, c serveCheck) error {
 	params := auditrecord.RecordBodyDecisionParams{
-		AccountID: account, Actor: auditActor, Action: action,
+		Actor: auditActor, Action: action,
 		MessageID: pgtype.Text{String: messageID, Valid: true},
 		Stage:     pgtype.Text{String: stage, Valid: true}, Reason: pgtype.Text{String: reason, Valid: true},
 		SenderClass: pgtype.Text{String: g.senderClass, Valid: true}, ClassRuleID: g.classRule, ClassRuleScope: g.classScope,

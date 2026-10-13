@@ -5,12 +5,11 @@ tests: TestAListingPagesThroughEveryRowOnce
 scheduled-count: no
 integration: yes
 
-
 diff --git a/db/messages/metadata.sql b/db/messages/metadata.sql
-index 58555bb..e2852ff 100644
+index 5894a432..8217a9cb 100644
 --- a/db/messages/metadata.sql
 +++ b/db/messages/metadata.sql
-@@ -78,7 +78,7 @@ WHERE m.account_id = @account_id
+@@ -111,7 +111,7 @@ WHERE m.account_id = current_setting('app.account')
  GROUP BY m.thread_id
  HAVING
      @before_latest_at::timestamptz IS NULL
@@ -20,15 +19,15 @@ index 58555bb..e2852ff 100644
  LIMIT @page_size;
  
 diff --git a/db/messages/metadata.sql.go b/db/messages/metadata.sql.go
-index c5344b6..a02690f 100644
+index eb85deb9..eacd3b1a 100644
 --- a/db/messages/metadata.sql.go
 +++ b/db/messages/metadata.sql.go
-@@ -287,7 +287,7 @@ WHERE m.account_id = $1
+@@ -310,7 +310,7 @@ WHERE m.account_id = current_setting('app.account')
  GROUP BY m.thread_id
  HAVING
-     $2::timestamptz IS NULL
--    OR (max(m.sent_at), m.thread_id) < ($2::timestamptz, $3::text)
-+    OR (max(m.sent_at) < $2::timestamptz AND $3::text IS NOT NULL)
+     $1::timestamptz IS NULL
+-    OR (max(m.sent_at), m.thread_id) < ($1::timestamptz, $2::text)
++    OR (max(m.sent_at) < $1::timestamptz AND $2::text IS NOT NULL)
  ORDER BY latest_at DESC, m.thread_id DESC
- LIMIT $4
+ LIMIT $3
  `

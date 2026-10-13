@@ -20,7 +20,7 @@ SELECT
     (s.account_id IS NOT NULL)::boolean AS connected
 FROM accounts AS a
 LEFT JOIN account_state AS s ON a.account_id = s.account_id
-WHERE a.account_id = $1
+WHERE a.account_id = current_setting('app.account')
 `
 
 type AccountSetupRow struct {
@@ -34,8 +34,8 @@ type AccountSetupRow struct {
 // What account setup and account settings read of the account, its provider and client, whether it
 // has a state row, the mailbox it remembers and its lowered target. It reads no credential (ADR-0084,
 // ADR-0091). No row means no account holds the identifier.
-func (q *Queries) AccountSetup(ctx context.Context, accountID string) ([]AccountSetupRow, error) {
-	rows, err := q.db.Query(ctx, accountSetup, accountID)
+func (q *Queries) AccountSetup(ctx context.Context) ([]AccountSetupRow, error) {
+	rows, err := q.db.Query(ctx, accountSetup)
 	if err != nil {
 		return nil, err
 	}
@@ -62,11 +62,10 @@ func (q *Queries) AccountSetup(ctx context.Context, accountID string) ([]Account
 
 const addAccount = `-- name: AddAccount :exec
 INSERT INTO accounts (account_id, provider, oauth_client)
-VALUES ($1, $2, $3)
+VALUES (current_setting('app.account'), $1, $2)
 `
 
 type AddAccountParams struct {
-	AccountID   string
 	Provider    string
 	OauthClient pgtype.Text
 }
@@ -75,17 +74,16 @@ type AddAccountParams struct {
 // writes its state row (ADR-0091, ADR-0106). The primary key refuses an identifier another account
 // holds.
 func (q *Queries) AddAccount(ctx context.Context, arg AddAccountParams) error {
-	_, err := q.db.Exec(ctx, addAccount, arg.AccountID, arg.Provider, arg.OauthClient)
+	_, err := q.db.Exec(ctx, addAccount, arg.Provider, arg.OauthClient)
 	return err
 }
 
 const addState = `-- name: AddState :exec
 INSERT INTO account_state (account_id, credential, mailbox, lowered_target_rate)
-VALUES ($1, $2, $3, $4)
+VALUES (current_setting('app.account'), $1, $2, $3)
 `
 
 type AddStateParams struct {
-	AccountID     string
 	Credential    []byte
 	Mailbox       pgtype.Text
 	LoweredTarget pgtype.Float4
@@ -94,31 +92,25 @@ type AddStateParams struct {
 // Writes a connected account's state row, its sealed credential, the mailbox the consent confirmed
 // and the lowered target the operator set, or NULL for none (ADR-0080, ADR-0081, ADR-0024).
 func (q *Queries) AddState(ctx context.Context, arg AddStateParams) error {
-	_, err := q.db.Exec(ctx, addState,
-		arg.AccountID,
-		arg.Credential,
-		arg.Mailbox,
-		arg.LoweredTarget,
-	)
+	_, err := q.db.Exec(ctx, addState, arg.Credential, arg.Mailbox, arg.LoweredTarget)
 	return err
 }
 
 const moveAccount = `-- name: MoveAccount :execrows
 UPDATE accounts
 SET oauth_client = $1
-WHERE account_id = $2 AND provider = $3
+WHERE account_id = current_setting('app.account') AND provider = $2
 `
 
 type MoveAccountParams struct {
 	OauthClient pgtype.Text
-	AccountID   string
 	Provider    string
 }
 
 // Moves the account to another client of its provider, in the transaction that writes the credential
 // issued to that client (ADR-0106).
 func (q *Queries) MoveAccount(ctx context.Context, arg MoveAccountParams) (int64, error) {
-	result, err := q.db.Exec(ctx, moveAccount, arg.OauthClient, arg.AccountID, arg.Provider)
+	result, err := q.db.Exec(ctx, moveAccount, arg.OauthClient, arg.Provider)
 	if err != nil {
 		return 0, err
 	}
@@ -130,20 +122,19 @@ UPDATE account_state
 SET
     credential = $1,
     mailbox = coalesce(mailbox, $2::text)
-WHERE account_id = $3
+WHERE account_id = current_setting('app.account')
 `
 
 type ReauthorizeParams struct {
 	Credential []byte
 	Mailbox    string
-	AccountID  string
 }
 
 // Replaces a re-authorized account's credential, unconditionally, since the operator's write is the
 // newest (ADR-0089). The mailbox is written only where the row remembers none, so a remembered one
 // never changes (ADR-0080). No row means the account has no state row.
 func (q *Queries) Reauthorize(ctx context.Context, arg ReauthorizeParams) (int64, error) {
-	result, err := q.db.Exec(ctx, reauthorize, arg.Credential, arg.Mailbox, arg.AccountID)
+	result, err := q.db.Exec(ctx, reauthorize, arg.Credential, arg.Mailbox)
 	if err != nil {
 		return 0, err
 	}
@@ -153,18 +144,13 @@ func (q *Queries) Reauthorize(ctx context.Context, arg ReauthorizeParams) (int64
 const setLoweredTarget = `-- name: SetLoweredTarget :execrows
 UPDATE account_state
 SET lowered_target_rate = $1
-WHERE account_id = $2
+WHERE account_id = current_setting('app.account')
 `
-
-type SetLoweredTargetParams struct {
-	LoweredTarget pgtype.Float4
-	AccountID     string
-}
 
 // Stores the lowered target the operator set, a fraction of the provider's declared ceiling, or NULL
 // for none (ADR-0024). No row means the account has no state row.
-func (q *Queries) SetLoweredTarget(ctx context.Context, arg SetLoweredTargetParams) (int64, error) {
-	result, err := q.db.Exec(ctx, setLoweredTarget, arg.LoweredTarget, arg.AccountID)
+func (q *Queries) SetLoweredTarget(ctx context.Context, loweredTarget pgtype.Float4) (int64, error) {
+	result, err := q.db.Exec(ctx, setLoweredTarget, loweredTarget)
 	if err != nil {
 		return 0, err
 	}

@@ -3,94 +3,94 @@
 -- A domain column lowered.
 -- want domain-sql-case
 -- name: GetSenderByLoweredDomain :one
-SELECT message_count FROM fixture_senders WHERE account_id = @account_id AND lower(domain::text) = @domain::text;
+SELECT message_count FROM fixture_senders WHERE account_id = current_setting('app.account') AND lower(domain::text) = @domain::text;
 
 -- A parameter lowered to match a domain column.
 -- want domain-sql-case
 -- name: GetSenderByLoweredParameter :one
-SELECT message_count FROM fixture_senders WHERE account_id = @account_id AND domain = lower(@domain);
+SELECT message_count FROM fixture_senders WHERE account_id = current_setting('app.account') AND domain = lower(@domain);
 
 -- A domain column searched for a parameter folded to upper case, through a function call.
 -- want domain-sql-case
 -- name: SearchSendersUpper :many
-SELECT message_count FROM fixture_senders WHERE account_id = @account_id AND strpos(domain::text, upper(@search::text)) > 0;
+SELECT message_count FROM fixture_senders WHERE account_id = current_setting('app.account') AND strpos(domain::text, upper(@search::text)) > 0;
 
 -- A domain column lowered as a grouping key, read through a common table expression, once in its output
 -- and once in its grouping.
 -- want domain-sql-case
 -- want domain-sql-case
 -- name: CountByLoweredDomain :many
-WITH scoped AS (SELECT s.domain, s.message_count FROM fixture_senders AS s WHERE s.account_id = @account_id)
+WITH scoped AS (SELECT s.domain, s.message_count FROM fixture_senders AS s WHERE s.account_id = current_setting('app.account'))
 SELECT lower(scoped.domain::text) AS sender, sum(scoped.message_count) AS messages FROM scoped GROUP BY lower(scoped.domain::text);
 
 -- A domain column case-folded and capitalized.
 -- want domain-sql-case
 -- name: GetSenderByCasefoldedDomain :one
-SELECT message_count FROM fixture_senders WHERE account_id = @account_id AND casefold(domain) = @domain;
+SELECT message_count FROM fixture_senders WHERE account_id = current_setting('app.account') AND casefold(domain) = @domain;
 
 -- want domain-sql-case
 -- name: GetSenderByCapitalizedParameter :one
-SELECT message_count FROM fixture_senders WHERE account_id = @account_id AND domain = initcap(@domain);
+SELECT message_count FROM fixture_senders WHERE account_id = current_setting('app.account') AND domain = initcap(@domain);
 
 -- A domain column matched without regard to case, by ILIKE, NOT ILIKE and the case-insensitive
 -- regular expression matches.
 -- want domain-sql-case
 -- name: SearchSendersILike :many
-SELECT message_count FROM fixture_senders WHERE account_id = @account_id AND domain ILIKE @pattern;
+SELECT message_count FROM fixture_senders WHERE account_id = current_setting('app.account') AND domain ILIKE @pattern;
 
 -- want domain-sql-case
 -- name: SearchSendersNotILike :many
-SELECT message_count FROM fixture_senders WHERE account_id = @account_id AND domain NOT ILIKE @pattern;
+SELECT message_count FROM fixture_senders WHERE account_id = current_setting('app.account') AND domain NOT ILIKE @pattern;
 
 -- want domain-sql-case
 -- name: SearchSendersRegexCase :many
-SELECT message_count FROM fixture_senders WHERE account_id = @account_id AND domain ~* @pattern;
+SELECT message_count FROM fixture_senders WHERE account_id = current_setting('app.account') AND domain ~* @pattern;
 
 -- want domain-sql-case
 -- name: SearchSendersNotRegexCase :many
-SELECT message_count FROM fixture_senders WHERE account_id = @account_id AND domain !~* @pattern;
+SELECT message_count FROM fixture_senders WHERE account_id = current_setting('app.account') AND domain !~* @pattern;
 
 -- A domain matched through the case-insensitive type, by a parameter cast to it, alone, as an array
 -- and in a list, and by the domain column cast to it, on the test library's table and on a domain
 -- column the chain stores as text.
 -- want domain-sql-case
 -- name: GetSenderByCitextParameter :one
-SELECT message_count FROM fixture_senders WHERE account_id = @account_id AND domain = @domain::citext;
+SELECT message_count FROM fixture_senders WHERE account_id = current_setting('app.account') AND domain = @domain::citext;
 
 -- want domain-sql-case
 -- name: ListSendersInCitextDomains :many
-SELECT message_count FROM fixture_senders WHERE account_id = @account_id AND domain = any(@domains::citext[]);
+SELECT message_count FROM fixture_senders WHERE account_id = current_setting('app.account') AND domain = any(@domains::citext[]);
 
 -- want domain-sql-case
 -- want domain-sql-case
 -- name: ListSendersInCitextList :many
-SELECT message_count FROM fixture_senders WHERE account_id = @account_id AND domain IN ($2::citext, $3::citext);
+SELECT message_count FROM fixture_senders WHERE account_id = current_setting('app.account') AND domain IN ($2::citext, $3::citext);
 
 -- want domain-sql-case
 -- name: GetSenderByCitextColumn :one
-SELECT message_count FROM fixture_senders WHERE account_id = @account_id AND domain::citext = @domain;
+SELECT message_count FROM fixture_senders WHERE account_id = current_setting('app.account') AND domain::citext = @domain;
 
 -- want domain-sql-case
 -- name: GetIndexedSenderByCitextParameter :one
-SELECT message_count FROM senders WHERE account_id = @account_id AND domain = @domain::citext;
+SELECT message_count FROM senders WHERE account_id = current_setting('app.account') AND domain = @domain::citext;
 
 -- want domain-sql-case
 -- name: CountMessagesFromCitextDomain :one
-SELECT count(*) FROM messages WHERE account_id = @account_id AND from_domain::citext = @domain;
+SELECT count(*) FROM messages WHERE account_id = current_setting('app.account') AND from_domain::citext = @domain;
 
 -- A domain compared as stored, a parameter named domain, a domain matched with case by LIKE, and a
 -- column of another name lowered or matched without case, must not be reported.
 -- name: GetSenderByStoredDomain :one
-SELECT message_count FROM fixture_senders WHERE account_id = @account_id AND domain = @domain;
+SELECT message_count FROM fixture_senders WHERE account_id = current_setting('app.account') AND domain = @domain;
 
 -- name: SearchSendersStored :many
-SELECT message_count FROM fixture_senders WHERE account_id = @account_id AND strpos(domain::text, @search::text) > 0;
+SELECT message_count FROM fixture_senders WHERE account_id = current_setting('app.account') AND strpos(domain::text, @search::text) > 0;
 
 -- name: SearchSendersLike :many
-SELECT message_count FROM fixture_senders WHERE account_id = @account_id AND domain LIKE @pattern;
+SELECT message_count FROM fixture_senders WHERE account_id = current_setting('app.account') AND domain LIKE @pattern;
 
 -- name: SearchAccountsILike :many
-SELECT message_count FROM fixture_senders WHERE account_id = @account_id AND account_id ILIKE 'per%';
+SELECT message_count FROM fixture_senders WHERE account_id = current_setting('app.account') AND account_id ILIKE 'per%';
 
 -- name: LoweredAccount :many
-SELECT message_count FROM fixture_senders WHERE account_id = @account_id AND lower(account_id) = 'personal';
+SELECT message_count FROM fixture_senders WHERE account_id = current_setting('app.account') AND lower(account_id) = 'personal';

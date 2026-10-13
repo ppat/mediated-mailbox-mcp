@@ -11,7 +11,7 @@ import (
 type Querier interface {
 	// Selects every column of fixture_senders in table order, so sqlc reuses the table's struct as the
 	// result type and declares it in models.go. The declares-no-types assertion must report it.
-	GetSender(ctx context.Context, arg GetSenderParams) (FixtureSender, error)
+	GetSender(ctx context.Context, domain string) (FixtureSender, error)
 }
 
 var _ Querier = (*Queries)(nil)

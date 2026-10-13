@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prometheus/client_golang/prometheus"
 
@@ -27,7 +28,7 @@ func TestMain(m *testing.M) {
 const reloadFailedName = "mediated_mailbox_policyload_reload_failed"
 
 // backfill returns a pool connecting as backfill's role, the first deployable that loads policy.
-// Row-level security applies to it, as it does in production.
+// Its grants apply to it, as they do in production.
 func backfill(t *testing.T) *pgxpool.Pool {
 	t.Helper()
 	cfg, err := pgxpool.ParseConfig(postgres.URL(t))
@@ -43,7 +44,7 @@ func backfill(t *testing.T) *pgxpool.Pool {
 	return pool
 }
 
-// superuser returns a connection that bypasses row-level security, to write the policy tables and
+// superuser returns a connection that holds every privilege, to write the policy tables and
 // break what the tests break.
 func superuser(t *testing.T) *pgx.Conn {
 	t.Helper()
@@ -180,14 +181,24 @@ func (f *faulty) Begin(ctx context.Context) (pgx.Tx, error) {
 	return &faultyTx{Tx: t, fault: f.fault.Load()}, nil
 }
 
+// faultyTx is one transaction of faulty. It learns its account from the setting the transaction
+// helper writes, since the policy read takes its account from the transaction and not as an argument.
 type faultyTx struct {
 	pgx.Tx
-	fault *fault
+	fault   *fault
+	account any
+}
+
+func (t *faultyTx) Exec(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error) {
+	if strings.HasPrefix(sql, "-- name: SetTransactionAccount ") && len(args) > 0 {
+		t.account = args[0]
+	}
+	return t.Tx.Exec(ctx, sql, args...)
 }
 
 func (t *faultyTx) Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error) {
 	f := t.fault
-	targeted := f != nil && strings.HasPrefix(sql, "-- name: PolicyRules ") && len(args) > 0 && args[0] == f.account
+	targeted := f != nil && strings.HasPrefix(sql, "-- name: PolicyRules ") && t.account == f.account
 	if targeted && f.before != nil {
 		f.before()
 		f.fired.Add(1)

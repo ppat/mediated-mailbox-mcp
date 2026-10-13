@@ -43,12 +43,58 @@ func exemptTables() map[string]string {
 }
 
 // nullAccountTables names the account-keyed tables whose rows with a null account every account
-// inherits, each with its reason. A statement on one of them may state its account predicate as
-// ADR-0047 does, the account column equal to a parameter or null, and nothing looser. Every entry
-// must name an account-keyed table in the chain, as predicateExceptions' entries must.
+// inherits, each with its reason. A read of one of them may state its account predicate as ADR-0135
+// does, the account column equal to the transaction's account or null, and nothing looser. Every
+// entry must name an account-keyed table in the chain, as predicateExceptions' entries must.
 var nullAccountTables = map[string]string{
 	"policy_changes": "a base rule's change carries no account, and every account reads it with the base rules (ADR-0102, ADR-0112)",
-	"policy_rules":   "a base rule carries no account and every account inherits it (ADR-0004, ADR-0047)",
+	"policy_rules":   "a base rule carries no account and every account inherits it (ADR-0004, ADR-0135)",
+}
+
+// parentKey names how a table with no account column belongs to an account, through a column holding
+// its parent's key, the parent being account-keyed.
+type parentKey struct {
+	column       string // the table's column holding the parent's key
+	parent       string // the account-keyed parent table
+	parentColumn string // the parent's key column
+	reason       string
+}
+
+// scopedThrough names the tables that carry no account column and belong to an account through their
+// parent (ADR-0016's exception). A statement reaches one only through a join from the column named to
+// the parent's key, the parent tied to the transaction's account, and an insert takes the key from such
+// a parent row (ADR-0135). Every entry must name a table of the chain holding both columns and no
+// account column, so an entry left behind by a changed table fails TestScopedThroughTables.
+var scopedThrough = map[string]parentKey{
+	"reorg_op_log": {
+		column:       "plan_id",
+		parent:       "reorg_plans",
+		parentColumn: "plan_id",
+		reason:       "the operation log carries no account and belongs to its plan's (ADR-0016, ADR-0135)",
+	},
+}
+
+// staleScopedThrough returns the scopedThrough entries the schema does not bear out.
+func staleScopedThrough(s schema, entries map[string]parentKey) []string {
+	var out []string
+	for _, name := range slices.Sorted(maps.Keys(entries)) {
+		p := entries[name]
+		child, parent := s[name], s[p.parent]
+		switch {
+		case child == nil || parent == nil:
+		case !hasColumn(child, p.column) || hasColumn(child, accountColumn):
+		case !hasColumn(parent, p.parentColumn) || !hasColumn(parent, accountColumn):
+		default:
+			continue
+		}
+		out = append(out, name)
+	}
+	return out
+}
+
+func hasColumn(tb *table, name string) bool {
+	_, ok := tb.columns[name]
+	return ok
 }
 
 // column is one column of a table, as the migration chain declares it.
@@ -200,6 +246,37 @@ func TestPredicateExceptions(t *testing.T) {
 	}
 	if stale := staleExceptions(s, nullAccountTables); len(stale) > 0 {
 		t.Errorf("tables taking the account-or-null predicate that are not account-keyed: %v", stale)
+	}
+}
+
+func TestScopedThroughTables(t *testing.T) {
+	s := readSchema(t, realLibrary.migrationChain(t))
+	if stale := staleScopedThrough(s, scopedThrough); len(stale) > 0 {
+		t.Errorf("tables scoped through a parent that the schema does not bear out: %v", stale)
+	}
+}
+
+// TestStaleScopedThroughReported shows the check refusing entries, since the real map holds no stale
+// one.
+func TestStaleScopedThroughReported(t *testing.T) {
+	s := schema{
+		"parent":  {columns: map[string]column{accountColumn: {typ: "text"}, "key": {typ: "uuid"}}},
+		"child":   {columns: map[string]column{"key": {typ: "uuid"}}},
+		"keyed":   {columns: map[string]column{"key": {typ: "uuid"}, accountColumn: {typ: "text"}}},
+		"orphan":  {columns: map[string]column{"other": {typ: "uuid"}}},
+		"unowned": {columns: map[string]column{"key": {typ: "uuid"}}},
+		"loose":   {columns: map[string]column{"key": {typ: "uuid"}}},
+	}
+	s["unkeyedparent"] = &table{columns: map[string]column{"key": {typ: "uuid"}}}
+	entries := map[string]parentKey{
+		"child":   {column: "key", parent: "parent", parentColumn: "key"},
+		"keyed":   {column: "key", parent: "parent", parentColumn: "key"},
+		"orphan":  {column: "key", parent: "parent", parentColumn: "key"},
+		"unowned": {column: "key", parent: "unkeyedparent", parentColumn: "key"},
+		"loose":   {column: "key", parent: "dropped", parentColumn: "key"},
+	}
+	if got, want := staleScopedThrough(s, entries), []string{"keyed", "loose", "orphan", "unowned"}; !slices.Equal(got, want) {
+		t.Errorf("stale scoped-through entries = %v, want %v", got, want)
 	}
 }
 

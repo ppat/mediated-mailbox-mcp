@@ -90,7 +90,7 @@ func plans() Dataset {
 func planSummary(ctx context.Context, q Queries, r Read) ([]Figure, Total, error) {
 	in, out := statusFilter(r.Request)
 	rows, err := q.Plans.PlanStatusCounts(ctx, reorgplans.PlanStatusCountsParams{
-		AccountID: r.Account, RangeStart: timestamptz(r.Bounds.Start), RangeEnd: timestamptz(r.Bounds.End), StatusIn: in, StatusOut: out,
+		RangeStart: timestamptz(r.Bounds.Start), RangeEnd: timestamptz(r.Bounds.End), StatusIn: in, StatusOut: out,
 	})
 	if err != nil {
 		return nil, Total{}, err
@@ -111,7 +111,7 @@ func planRows(ctx context.Context, q Queries, r Read) (any, error) {
 	}
 	in, ex := statusFilter(r.Request)
 	rows, err := q.Plans.PlanRows(ctx, reorgplans.PlanRowsParams{
-		AccountID: r.Account, RangeStart: timestamptz(r.Bounds.Start), RangeEnd: timestamptz(r.Bounds.End), StatusIn: in, StatusOut: ex,
+		RangeStart: timestamptz(r.Bounds.Start), RangeEnd: timestamptz(r.Bounds.End), StatusIn: in, StatusOut: ex,
 		Descending: r.Request.Sort.Descending, RowOffset: first,
 	})
 	if err != nil {

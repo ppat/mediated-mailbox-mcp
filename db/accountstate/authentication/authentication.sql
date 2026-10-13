@@ -7,5 +7,5 @@ SET
     last_auth_at = @attempted_at,
     last_auth_outcome = @outcome
 WHERE
-    account_id = @account_id
+    account_id = current_setting('app.account')
     AND (last_auth_at IS NULL OR last_auth_at < @attempted_at);

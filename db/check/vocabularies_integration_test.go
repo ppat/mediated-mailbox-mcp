@@ -68,8 +68,11 @@ var vocabularies = []vocabulary{
 		stored:  []any{"normal", "restricted"},
 	},
 	{
-		column:  "scan_gate_decisions.decision",
-		insert:  "INSERT INTO scan_gate_decisions (account_id, message_id, decision, reason) VALUES ('" + accountA + "', gen_random_uuid()::text, $1, 'restricted')",
+		column: "scan_gate_decisions.decision",
+		// A decision names a stored message (ADR-0016), so the message is stored in the same statement.
+		insert: "WITH m AS (INSERT INTO messages (account_id, message_id, thread_id, from_email, from_domain, sent_at, has_attachments, sender_class) " +
+			"VALUES ('" + accountA + "', gen_random_uuid()::text, 't', 'a@example.com', 'example.com', now(), false, 'normal') RETURNING account_id, message_id) " +
+			"INSERT INTO scan_gate_decisions (account_id, message_id, decision, reason) SELECT account_id, message_id, $1, 'restricted' FROM m",
 		refused: []any{"scan", "SKIPPED", "DEFER"},
 		stored:  []any{"SCAN", "SKIP"},
 	},

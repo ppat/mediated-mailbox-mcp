@@ -6,10 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/db/messages/ingest/ingest.sql b/db/messages/ingest/ingest.sql
-index 06df47c..7e71c5c 100644
+index 2e264c23..5d1a5d02 100644
 --- a/db/messages/ingest/ingest.sql
 +++ b/db/messages/ingest/ingest.sql
-@@ -94,5 +94,5 @@ WHERE
+@@ -180,5 +180,5 @@ WHERE
      AND message_id = @message_id
      AND (
          subject_scanner_version IS DISTINCT FROM @scanner_version::int
@@ -17,11 +17,11 @@ index 06df47c..7e71c5c 100644
 +        OR false AND subject_scanner_revision IS DISTINCT FROM @scanner_revision::text
      );
 diff --git a/db/messages/ingest/ingest.sql.go b/db/messages/ingest/ingest.sql.go
-index 32d506c..9d6dd9c 100644
+index 6cd31418..8c1c6dde 100644
 --- a/db/messages/ingest/ingest.sql.go
 +++ b/db/messages/ingest/ingest.sql.go
-@@ -119,7 +119,7 @@ WHERE
-     AND message_id = $6
+@@ -230,7 +230,7 @@ WHERE
+     AND message_id = $5
      AND (
          subject_scanner_version IS DISTINCT FROM $3::int
 -        OR subject_scanner_revision IS DISTINCT FROM $4::text

@@ -6,17 +6,17 @@ scheduled-count: no
 integration: yes
 
 diff --git a/ui/internal/api/connect.go b/ui/internal/api/connect.go
-index 18348c97..20c6350f 100644
+index abb882f5..ea76aa75 100644
 --- a/ui/internal/api/connect.go
 +++ b/ui/internal/api/connect.go
-@@ -451,7 +451,11 @@ func (s *Server) store(ctx context.Context, clients *clientsetup.Queries, q *acc
+@@ -462,7 +462,11 @@ func (s *Server) store(ctx context.Context, clients *clientsetup.Queries, q *acc
  		}
  	default:
  		if a.Kind == attemptMove {
--			n, err := q.MoveAccount(ctx, accountsetup.MoveAccountParams{OauthClient: client, AccountID: a.Account, Provider: a.Provider})
+-			n, err := q.MoveAccount(ctx, accountsetup.MoveAccountParams{OauthClient: client, Provider: a.Provider})
 +			var n int64 = 1
 +			err := tx.Run(context.WithoutCancel(ctx), s.opts.Database, a.Account, func(t pgx.Tx) error {
-+				_, err := accountsetup.New(t).MoveAccount(ctx, accountsetup.MoveAccountParams{OauthClient: client, AccountID: a.Account, Provider: a.Provider})
++				_, err := accountsetup.New(t).MoveAccount(ctx, accountsetup.MoveAccountParams{OauthClient: client, Provider: a.Provider})
 +				return err
 +			})
  			if err != nil {

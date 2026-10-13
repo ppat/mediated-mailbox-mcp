@@ -18,8 +18,8 @@ import (
 
 // The migrations after the baseline, each tested over rows the chain before it wrote (ADR-0048).
 const (
-	identifierGrammarVersion = 5
-	runAndAuditIndexVersion  = 6
+	identifierGrammarVersion = 4
+	runAndAuditIndexVersion  = 5
 )
 
 // upgraded connects to the database of an upgrade as the migration role, closed when the test ends.

@@ -72,7 +72,7 @@ func (s *Server) getAttention(w http.ResponseWriter, r *http.Request) {
 		in, err := s.attentionInputs(r.Context(), attentionQueries{
 			messages: messages.New(t), classification: messageclassification.New(t), masking: maskingsenders.New(t),
 			audit: auditlog.New(t), runs: jobruns.New(t),
-		}, account, now)
+		}, now)
 		if err != nil {
 			return err
 		}
@@ -104,16 +104,16 @@ type attentionQueries struct {
 }
 
 // attentionInputs reads the recorded state each enabled rule decides on.
-func (s *Server) attentionInputs(ctx context.Context, q attentionQueries, account string, now time.Time) (attention.Inputs, error) {
+func (s *Server) attentionInputs(ctx context.Context, q attentionQueries, now time.Time) (attention.Inputs, error) {
 	th := s.opts.Attention
 	var in attention.Inputs
 	at := func(t time.Time) pgtype.Timestamptz { return pgtype.Timestamptz{Time: t, Valid: true} }
 	if th.BacklogShare > 0 {
-		pending, err := q.messages.ScanBacklog(ctx, account)
+		pending, err := q.messages.ScanBacklog(ctx)
 		if err != nil {
 			return in, err
 		}
-		corpus, err := q.classification.CorpusFigures(ctx, account)
+		corpus, err := q.classification.CorpusFigures(ctx)
 		if err != nil {
 			return in, err
 		}
@@ -121,7 +121,7 @@ func (s *Server) attentionInputs(ctx context.Context, q attentionQueries, accoun
 	}
 	if th.MaskCount > 0 {
 		pairs, err := q.masking.MaskingPairsAbove(ctx, maskingsenders.MaskingPairsAboveParams{
-			AccountID: account, Since: at(now.Add(-maskingWindow)), Above: th.MaskCount,
+			Since: at(now.Add(-maskingWindow)), Above: th.MaskCount,
 		})
 		if err != nil {
 			return in, err
@@ -132,7 +132,7 @@ func (s *Server) attentionInputs(ctx context.Context, q attentionQueries, accoun
 	}
 	if th.ServeFactor > 0 {
 		start := now.Add(-servesWindow)
-		served, err := q.audit.BodyServesSince(ctx, auditlog.BodyServesSinceParams{AccountID: account, Since: at(start)})
+		served, err := q.audit.BodyServesSince(ctx, at(start))
 		if err != nil {
 			return in, err
 		}
@@ -144,7 +144,7 @@ func (s *Server) attentionInputs(ctx context.Context, q attentionQueries, accoun
 		// median reads (docs/UI.md sections 8.1 and 8.5).
 		end := start.UTC().Truncate(24 * time.Hour)
 		days, err := q.audit.BodyServesByDay(ctx, auditlog.BodyServesByDayParams{
-			AccountID: account, RangeStart: at(end.AddDate(0, 0, -attention.BaselineDays)), RangeEnd: at(end),
+			RangeStart: at(end.AddDate(0, 0, -attention.BaselineDays)), RangeEnd: at(end),
 		})
 		if err != nil {
 			return in, err
@@ -154,9 +154,7 @@ func (s *Server) attentionInputs(ctx context.Context, q attentionQueries, accoun
 		}
 	}
 	if th.GapDays > 0 {
-		runs, err := q.runs.GapRecoveriesSince(ctx, jobruns.GapRecoveriesSinceParams{
-			AccountID: account, Since: at(now.Add(-time.Duration(th.GapDays) * 24 * time.Hour)),
-		})
+		runs, err := q.runs.GapRecoveriesSince(ctx, at(now.Add(-time.Duration(th.GapDays)*24*time.Hour)))
 		if err != nil {
 			return in, err
 		}

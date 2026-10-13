@@ -266,7 +266,6 @@ func recordAttempt(ctx context.Context, db tx.Beginner, account string, attempt 
 		return authentication.New(t).RecordAuthentication(ctx, authentication.RecordAuthenticationParams{
 			AttemptedAt: pgtype.Timestamptz{Time: time.UnixMilli(int64(attempt.At)).UTC(), Valid: true},
 			Outcome:     pgtype.Text{String: string(attempt.Outcome), Valid: true},
-			AccountID:   account,
 		})
 	})
 	if err != nil {

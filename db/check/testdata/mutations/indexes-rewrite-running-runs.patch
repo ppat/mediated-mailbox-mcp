@@ -5,10 +5,10 @@ tests: TestTheRunAndAuditIndexesLeaveStoredRowsUnchanged
 scheduled-count: no
 integration: yes
 
-diff --git a/db/migrations/00006_run_and_audit_indexes.sql b/db/migrations/00006_run_and_audit_indexes.sql
+diff --git a/db/migrations/00005_run_and_audit_indexes.sql b/db/migrations/00005_run_and_audit_indexes.sql
 index af48ab48..93e39d80 100644
---- a/db/migrations/00006_run_and_audit_indexes.sql
-+++ b/db/migrations/00006_run_and_audit_indexes.sql
+--- a/db/migrations/00005_run_and_audit_indexes.sql
++++ b/db/migrations/00005_run_and_audit_indexes.sql
 @@ -7,6 +7,7 @@
  -- per job kind and pass, and the job mechanism's due decisions. It ends with run_id because the
  -- statements break ties on it, in either direction.

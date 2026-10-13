@@ -9,7 +9,7 @@ import (
 )
 
 type Querier interface {
-	ListSenders(ctx context.Context, arg ListSendersParams) ([]ListSendersRow, error)
+	ListSenders(ctx context.Context, pageSize int32) ([]ListSendersRow, error)
 }
 
 var _ Querier = (*Queries)(nil)

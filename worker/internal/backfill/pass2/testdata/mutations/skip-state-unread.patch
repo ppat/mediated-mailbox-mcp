@@ -6,14 +6,21 @@ scheduled-count: no
 integration: yes
 
 diff --git a/db/messages/scan/scan.sql.go b/db/messages/scan/scan.sql.go
+index cb71bfe0..83eb8935 100644
 --- a/db/messages/scan/scan.sql.go
 +++ b/db/messages/scan/scan.sql.go
-@@ -185,7 +185,7 @@ func (q *Queries) RecordVerdict(ctx context.Context, arg RecordVerdictParams) (i
+@@ -453,13 +453,13 @@ func (q *Queries) RequeueStaleVerdicts(ctx context.Context, arg RequeueStaleVerd
+ 
  const restrictedDomains = `-- name: RestrictedDomains :many
  SELECT DISTINCT m.from_domain
  FROM messages AS m
--WHERE m.account_id = $1 AND (m.sender_class = 'restricted' OR m.scan_state = 'skipped_restricted')
-+WHERE m.account_id = $1 AND (m.sender_class = 'restricted')
+ WHERE
+     m.account_id = current_setting('app.account')
+-    AND (m.sender_class = 'restricted' OR m.scan_state = 'skipped_restricted')
++    AND (m.sender_class = 'restricted')
  ORDER BY m.from_domain
  `
  
+ // The sender domains of the account whose messages the index stores as restricted or holds skipped as
+ // restricted, each once, which the delisting transition compares with the policy in force (ADR-0037).
+ // A rule added after a message was stored can leave its stored class normal while the gate skips it as

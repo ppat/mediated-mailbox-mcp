@@ -6,28 +6,40 @@ scheduled-count: no
 integration: yes
 
 diff --git a/db/accountstate/completion/completion.sql b/db/accountstate/completion/completion.sql
-index bcd4438..58270b7 100644
+index fb2633c4..dfb5f5ec 100644
 --- a/db/accountstate/completion/completion.sql
 +++ b/db/accountstate/completion/completion.sql
-@@ -25,7 +25,7 @@ WHERE account_id = @account_id;
+@@ -22,13 +22,13 @@ WHERE account_id = current_setting('app.account');
+ -- name: ReopenBackfillSecond :exec
+ -- Records that backfill's second pass is due again for the account and marks it to start over from the
+ -- first message waiting for a scan, in the transaction backfill's run-start step makes before its
  -- first pass to return the verdicts another scanner made and the overturned gate skips to pending
  -- (ADR-0120, ADR-0121).
  UPDATE account_state
 -SET backfill_pass2_complete = false, backfill_pass2_restart = true
 +SET backfill_pass2_complete = false
- WHERE account_id = @account_id;
+ WHERE account_id = current_setting('app.account');
  
  -- name: SecondRestart :one
+ -- Whether backfill's second pass is marked to start over from the first message waiting for a scan
+ -- (ADR-0120).
+ SELECT a.backfill_pass2_restart
 diff --git a/db/accountstate/completion/completion.sql.go b/db/accountstate/completion/completion.sql.go
-index c265101..de49384 100644
+index 82e18f3a..00be167e 100644
 --- a/db/accountstate/completion/completion.sql.go
 +++ b/db/accountstate/completion/completion.sql.go
-@@ -37,7 +37,7 @@ func (q *Queries) ReopenBackfillFirst(ctx context.Context, accountID string) err
+@@ -34,13 +34,13 @@ func (q *Queries) ReopenBackfillFirst(ctx context.Context) error {
+ 	_, err := q.db.Exec(ctx, reopenBackfillFirst)
+ 	return err
+ }
  
  const reopenBackfillSecond = `-- name: ReopenBackfillSecond :exec
  UPDATE account_state
 -SET backfill_pass2_complete = false, backfill_pass2_restart = true
 +SET backfill_pass2_complete = false
- WHERE account_id = $1
+ WHERE account_id = current_setting('app.account')
  `
  
+ // Records that backfill's second pass is due again for the account and marks it to start over from the
+ // first message waiting for a scan, in the transaction backfill's run-start step makes before its
+ // first pass to return the verdicts another scanner made and the overturned gate skips to pending

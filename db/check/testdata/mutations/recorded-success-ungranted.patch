@@ -5,10 +5,10 @@ tests: TestGrantsCoverAdmittedSubsections
 scheduled-count: no
 integration: yes
 
-diff --git a/db/migrations/00004_grants.sql b/db/migrations/00004_grants.sql
+diff --git a/db/migrations/00003_grants.sql b/db/migrations/00003_grants.sql
 index fbdc919a..1040a129 100644
---- a/db/migrations/00004_grants.sql
-+++ b/db/migrations/00004_grants.sql
+--- a/db/migrations/00003_grants.sql
++++ b/db/migrations/00003_grants.sql
 @@ -226,8 +226,7 @@ INSERT (
  ),
  UPDATE (state, finished_at, heartbeat_at, checkpoint, counters, last_error) ON job_runs

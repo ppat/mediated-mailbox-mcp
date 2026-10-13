@@ -6,17 +6,17 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/backfill/pass1/postgres.go b/worker/internal/backfill/pass1/postgres.go
-index f2756aa..34beb62 100644
+index c902fbdc..a928a3a3 100644
 --- a/worker/internal/backfill/pass1/postgres.go
 +++ b/worker/internal/backfill/pass1/postgres.go
-@@ -142,15 +142,15 @@ func (s *Postgres) Commit(ctx context.Context, account, runID string, p core.Pag
+@@ -161,15 +161,15 @@ func (s *Postgres) Commit(ctx context.Context, account, runID string, p index.Pa
  		added, remasked, unclassified := 0, 0, 0
  		messages, events := messageingest.New(t), maskingrecord.New(t)
  		for _, m := range p.Messages {
 +			if m.Unclassified {
 +				unclassified++
 +			}
- 			ok, err := insert(ctx, messages, account, m)
+ 			ok, err := insert(ctx, messages, m)
  			if err != nil {
  				return fmt.Errorf("adding message %s: %w", m.ID, err)
  			}
@@ -26,5 +26,5 @@ index f2756aa..34beb62 100644
 -					unclassified++
 -				}
  			} else {
- 				if ok, err = remask(ctx, messages, account, m); err != nil {
+ 				if ok, err = remask(ctx, messages, m); err != nil {
  					return fmt.Errorf("masking the subject of message %s again: %w", m.ID, err)

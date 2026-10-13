@@ -56,8 +56,8 @@ type Collector struct {
 var _ prometheus.Collector = (*Collector)(nil)
 
 // NewCollector returns a Collector reading from db the accounts that accounts returns at each scrape.
-// Each account's rows are read in a transaction of its own through db/tx, since row-level security
-// shows a transaction one account.
+// Each account's rows are read in a transaction of its own through db/tx, since each statement reads
+// the one account its transaction names (ADR-0135).
 func NewCollector(db tx.Beginner, accounts func(context.Context) ([]Account, error)) *Collector {
 	labels := []string{"account"}
 	return &Collector{
@@ -104,7 +104,7 @@ func (c *Collector) collect(ctx context.Context, ch chan<- prometheus.Metric, a 
 		if now, err = q.ClockMillis(ctx); err != nil {
 			return err
 		}
-		stored, err := q.RateState(ctx, a.ID)
+		stored, err := q.RateState(ctx)
 		switch {
 		case errors.Is(err, pgx.ErrNoRows):
 			return nil

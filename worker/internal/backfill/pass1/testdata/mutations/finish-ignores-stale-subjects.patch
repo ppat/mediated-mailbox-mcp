@@ -6,10 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/backfill/pass1/postgres.go b/worker/internal/backfill/pass1/postgres.go
-index 07d93c91..a0874feb 100644
+index c902fbdc..0a5556da 100644
 --- a/worker/internal/backfill/pass1/postgres.go
 +++ b/worker/internal/backfill/pass1/postgres.go
-@@ -370,7 +370,7 @@ func (s *Postgres) Finish(ctx context.Context, account, runID string, stamp inde
+@@ -393,7 +393,7 @@ func (s *Postgres) Finish(ctx context.Context, account, runID string, stamp inde
  		if err != nil {
  			return fmt.Errorf("reading whether a subject was masked under another scanner: %w", err)
  		}
@@ -17,4 +17,4 @@ index 07d93c91..a0874feb 100644
 +		if false && len(stale) > 0 {
  			return nil
  		}
- 		if err := completion.New(t).SetBackfillFirstComplete(ctx, account); err != nil {
+ 		if err := completion.New(t).SetBackfillFirstComplete(ctx); err != nil {

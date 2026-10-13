@@ -15,18 +15,13 @@ SELECT
     domain,
     message_count
 FROM fixture_senders
-WHERE account_id = $1 AND domain = $2
+WHERE account_id = current_setting('app.account') AND domain = $1
 `
-
-type GetSenderParams struct {
-	AccountID string
-	Domain    string
-}
 
 // Selects every column of fixture_senders in table order, so sqlc reuses the table's struct as the
 // result type and declares it in models.go. The declares-no-types assertion must report it.
-func (q *Queries) GetSender(ctx context.Context, arg GetSenderParams) (FixtureSender, error) {
-	row := q.db.QueryRow(ctx, getSender, arg.AccountID, arg.Domain)
+func (q *Queries) GetSender(ctx context.Context, domain string) (FixtureSender, error) {
+	row := q.db.QueryRow(ctx, getSender, domain)
 	var i FixtureSender
 	err := row.Scan(&i.AccountID, &i.Domain, &i.MessageCount)
 	return i, err

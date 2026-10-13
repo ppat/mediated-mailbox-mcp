@@ -13,11 +13,10 @@ import (
 
 const addRule = `-- name: AddRule :exec
 INSERT INTO policy_rules (account_id, rule_id, class, domain_suffix, source, created_by)
-VALUES ($1, $2, $3, $4, $5, $6)
+VALUES (current_setting('app.account'), $1, $2, $3, $4, $5)
 `
 
 type AddRuleParams struct {
-	AccountID    pgtype.Text
 	RuleID       string
 	Class        string
 	DomainSuffix []string
@@ -30,7 +29,6 @@ type AddRuleParams struct {
 // (ADR-0110).
 func (q *Queries) AddRule(ctx context.Context, arg AddRuleParams) error {
 	_, err := q.db.Exec(ctx, addRule,
-		arg.AccountID,
 		arg.RuleID,
 		arg.Class,
 		arg.DomainSuffix,
@@ -50,7 +48,7 @@ SELECT
     r.created_at,
     r.created_by
 FROM policy_rules AS r
-WHERE r.account_id = $1::text OR r.account_id IS NULL
+WHERE r.account_id = current_setting('app.account') OR r.account_id IS NULL
 ORDER BY r.rule_id, r.account_id NULLS FIRST
 `
 
@@ -68,8 +66,8 @@ type ComposedRulesRow struct {
 // account's own, with what the screen shows of each (docs/UI.md section 8.7). A base rule carries a
 // null account. The screen sorts, searches and pages them, and counts what each matches, in the UI's
 // server, which reads the account's senders beside them.
-func (q *Queries) ComposedRules(ctx context.Context, accountID string) ([]ComposedRulesRow, error) {
-	rows, err := q.db.Query(ctx, composedRules, accountID)
+func (q *Queries) ComposedRules(ctx context.Context) ([]ComposedRulesRow, error) {
+	rows, err := q.db.Query(ctx, composedRules)
 	if err != nil {
 		return nil, err
 	}
@@ -99,12 +97,11 @@ func (q *Queries) ComposedRules(ctx context.Context, accountID string) ([]Compos
 const editRule = `-- name: EditRule :execrows
 UPDATE policy_rules
 SET domain_suffix = $1
-WHERE account_id = $2 AND rule_id = $3 AND domain_suffix = $4::text[]
+WHERE account_id = current_setting('app.account') AND rule_id = $2 AND domain_suffix = $3::text[]
 `
 
 type EditRuleParams struct {
 	DomainSuffix   []string
-	AccountID      pgtype.Text
 	RuleID         string
 	SuffixesBefore []string
 }
@@ -112,12 +109,7 @@ type EditRuleParams struct {
 // Sets one of the account's own rules' domain suffixes, only while they are still the suffixes the
 // edit was made against, so an edit over a change the operator never saw changes nothing.
 func (q *Queries) EditRule(ctx context.Context, arg EditRuleParams) (int64, error) {
-	result, err := q.db.Exec(ctx, editRule,
-		arg.DomainSuffix,
-		arg.AccountID,
-		arg.RuleID,
-		arg.SuffixesBefore,
-	)
+	result, err := q.db.Exec(ctx, editRule, arg.DomainSuffix, arg.RuleID, arg.SuffixesBefore)
 	if err != nil {
 		return 0, err
 	}
@@ -126,11 +118,10 @@ func (q *Queries) EditRule(ctx context.Context, arg EditRuleParams) (int64, erro
 
 const liftRule = `-- name: LiftRule :execrows
 DELETE FROM policy_rules
-WHERE account_id = $1 AND rule_id = $2 AND domain_suffix = $3::text[]
+WHERE account_id = current_setting('app.account') AND rule_id = $1 AND domain_suffix = $2::text[]
 `
 
 type LiftRuleParams struct {
-	AccountID      pgtype.Text
 	RuleID         string
 	SuffixesBefore []string
 }
@@ -138,7 +129,7 @@ type LiftRuleParams struct {
 // Removes one of the account's own rules, only while its suffixes are still the ones the lift was
 // confirmed against.
 func (q *Queries) LiftRule(ctx context.Context, arg LiftRuleParams) (int64, error) {
-	result, err := q.db.Exec(ctx, liftRule, arg.AccountID, arg.RuleID, arg.SuffixesBefore)
+	result, err := q.db.Exec(ctx, liftRule, arg.RuleID, arg.SuffixesBefore)
 	if err != nil {
 		return 0, err
 	}

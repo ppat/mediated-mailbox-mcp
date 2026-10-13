@@ -44,5 +44,6 @@ already hold a database role.
 - Each provider-calling deployable's role can update the credential column of its accounts' rows,
   so a compromised provider-calling deployable can overwrite a stored credential. It already holds
   the credential in plaintext.
-- Assumptions about other components. Row-level security scopes the update to the account the
-  transaction set.
+- Assumptions about other components. The update's statement compares the account with the
+  transaction's, so it reaches only the account the transaction set
+  ([ADR-0135](../data/0135-every-statement-reads-its-account-from-the-transaction.md)).

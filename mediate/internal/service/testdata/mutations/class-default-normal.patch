@@ -6,7 +6,7 @@ scheduled-count: no
 integration: yes
 
 diff --git a/db/messages/search.sql b/db/messages/search.sql
-index 7301a26c..9e921327 100644
+index 818eddd1..8a472cb8 100644
 --- a/db/messages/search.sql
 +++ b/db/messages/search.sql
 @@ -46,13 +46,13 @@ WHERE
@@ -100,101 +100,101 @@ index 7301a26c..9e921327 100644
          )
  ) AS g
 diff --git a/db/messages/search.sql.go b/db/messages/search.sql.go
-index feec1fc2..2426bb6a 100644
+index f09d49bc..fe2c5679 100644
 --- a/db/messages/search.sql.go
 +++ b/db/messages/search.sql.go
 @@ -41,13 +41,13 @@ WHERE
-         OR coalesce((m.flags ->> 'starred')::boolean, FALSE) = any($11::boolean[])
+         OR coalesce((m.flags ->> 'starred')::boolean, FALSE) = any($10::boolean[])
      )
-     AND ($12::boolean[] IS NULL OR m.has_attachments = any($12::boolean[]))
+     AND ($11::boolean[] IS NULL OR m.has_attachments = any($11::boolean[]))
      AND (
-         $13::boolean[] IS NULL
+         $12::boolean[] IS NULL
          OR (
 -            NOT EXISTS (
 +            EXISTS (
-                 SELECT 1 FROM unnest($14::text[]) AS n (d)
+                 SELECT 1 FROM unnest($13::text[]) AS n (d)
                  WHERE n.d = m.from_domain::text
              )
-         ) = any($13::boolean[])
+         ) = any($12::boolean[])
      )
  GROUP BY l.label
-@@ -164,13 +164,13 @@ FROM (
-             OR coalesce((m.flags ->> 'starred')::boolean, FALSE) = any($11::boolean[])
+@@ -162,13 +162,13 @@ FROM (
+             OR coalesce((m.flags ->> 'starred')::boolean, FALSE) = any($10::boolean[])
          )
-         AND ($12::boolean[] IS NULL OR m.has_attachments = any($12::boolean[]))
+         AND ($11::boolean[] IS NULL OR m.has_attachments = any($11::boolean[]))
          AND (
-             $13::boolean[] IS NULL
+             $12::boolean[] IS NULL
              OR (
 -                NOT EXISTS (
 +                EXISTS (
-                     SELECT 1 FROM unnest($14::text[]) AS n (d)
+                     SELECT 1 FROM unnest($13::text[]) AS n (d)
                      WHERE n.d = m.from_domain::text
                  )
-             ) = any($13::boolean[])
+             ) = any($12::boolean[])
          )
  ) AS g
-@@ -281,13 +281,13 @@ WHERE
-         OR coalesce((m.flags ->> 'starred')::boolean, FALSE) = any($11::boolean[])
+@@ -277,13 +277,13 @@ WHERE
+         OR coalesce((m.flags ->> 'starred')::boolean, FALSE) = any($10::boolean[])
      )
-     AND ($12::boolean[] IS NULL OR m.has_attachments = any($12::boolean[]))
+     AND ($11::boolean[] IS NULL OR m.has_attachments = any($11::boolean[]))
      AND (
-         $13::boolean[] IS NULL
+         $12::boolean[] IS NULL
          OR (
 -            NOT EXISTS (
 +            EXISTS (
-                 SELECT 1 FROM unnest($14::text[]) AS n (d)
+                 SELECT 1 FROM unnest($13::text[]) AS n (d)
                  WHERE n.d = m.from_domain::text
              )
-         ) = any($13::boolean[])
+         ) = any($12::boolean[])
      )
  GROUP BY m.from_email
-@@ -408,13 +408,13 @@ WHERE
-         OR coalesce((m.flags ->> 'starred')::boolean, FALSE) = any($11::boolean[])
+@@ -402,13 +402,13 @@ WHERE
+         OR coalesce((m.flags ->> 'starred')::boolean, FALSE) = any($10::boolean[])
      )
-     AND ($12::boolean[] IS NULL OR m.has_attachments = any($12::boolean[]))
+     AND ($11::boolean[] IS NULL OR m.has_attachments = any($11::boolean[]))
      AND (
-         $13::boolean[] IS NULL
+         $12::boolean[] IS NULL
          OR (
 -            NOT EXISTS (
 +            EXISTS (
-                 SELECT 1 FROM unnest($14::text[]) AS n (d)
+                 SELECT 1 FROM unnest($13::text[]) AS n (d)
                  WHERE n.d = m.from_domain::text
              )
-         ) = any($13::boolean[])
+         ) = any($12::boolean[])
      )
  GROUP BY m.from_domain
-@@ -551,13 +551,13 @@ WHERE
-         OR coalesce((m.flags ->> 'starred')::boolean, FALSE) = any($11::boolean[])
+@@ -543,13 +543,13 @@ WHERE
+         OR coalesce((m.flags ->> 'starred')::boolean, FALSE) = any($10::boolean[])
      )
-     AND ($12::boolean[] IS NULL OR m.has_attachments = any($12::boolean[]))
+     AND ($11::boolean[] IS NULL OR m.has_attachments = any($11::boolean[]))
      AND (
-         $13::boolean[] IS NULL
+         $12::boolean[] IS NULL
          OR (
 -            NOT EXISTS (
 +            EXISTS (
-                 SELECT 1 FROM unnest($14::text[]) AS n (d)
+                 SELECT 1 FROM unnest($13::text[]) AS n (d)
                  WHERE n.d = m.from_domain::text
              )
-         ) = any($13::boolean[])
+         ) = any($12::boolean[])
      )
      AND (
-@@ -739,13 +739,13 @@ WHERE
-         OR coalesce((m.flags ->> 'starred')::boolean, FALSE) = any($11::boolean[])
+@@ -729,13 +729,13 @@ WHERE
+         OR coalesce((m.flags ->> 'starred')::boolean, FALSE) = any($10::boolean[])
      )
-     AND ($12::boolean[] IS NULL OR m.has_attachments = any($12::boolean[]))
+     AND ($11::boolean[] IS NULL OR m.has_attachments = any($11::boolean[]))
      AND (
-         $13::boolean[] IS NULL
+         $12::boolean[] IS NULL
          OR (
 -            NOT EXISTS (
 +            EXISTS (
-                 SELECT 1 FROM unnest($14::text[]) AS n (d)
+                 SELECT 1 FROM unnest($13::text[]) AS n (d)
                  WHERE n.d = m.from_domain::text
              )
-         ) = any($13::boolean[])
+         ) = any($12::boolean[])
      )
  `
 diff --git a/mediate/internal/service/query.go b/mediate/internal/service/query.go
-index 4e855fcc..c5e1ee42 100644
+index b8a9043a..e2e35ca4 100644
 --- a/mediate/internal/service/query.go
 +++ b/mediate/internal/service/query.go
 @@ -185,13 +185,13 @@ type classes struct {

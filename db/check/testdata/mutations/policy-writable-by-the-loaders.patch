@@ -1,0 +1,20 @@
+control: Only the UI's role writes the policy
+removes: the roles that load policy are granted every write of policy_rules beside their read, so backfill, delta sync and the mediator could write base rules
+packages: ./db/check
+tests: TestOnlyTheUIWritesThePolicy TestOnlyTheUIWritesThePolicy/mediated_mailbox_backfill/insert_a_base_rule TestOnlyTheUIWritesThePolicy/mediated_mailbox_sync/lift_a_base_rule TestOnlyTheUIWritesThePolicy/mediated_mailbox_mediate/edit_a_base_rule
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00003_grants.sql b/db/migrations/00003_grants.sql
+index 7312c97c..a448632a 100644
+--- a/db/migrations/00003_grants.sql
++++ b/db/migrations/00003_grants.sql
+@@ -549,7 +549,7 @@ TO mediated_mailbox_mediate, mediated_mailbox_backfill, mediated_mailbox_sync, m
+ -- class and the domain suffixes of the base rules and the account's own, so the roles get SELECT on
+ -- exactly those columns. Who created a rule and when stay out of their reach. The statement reads the
+ -- base rules and the rules of the transaction's account alone (ADR-0135).
+-GRANT SELECT (account_id, rule_id, class, domain_suffix) ON policy_rules
++GRANT SELECT (account_id, rule_id, class, domain_suffix), INSERT, UPDATE, DELETE ON policy_rules
+ TO mediated_mailbox_mediate, mediated_mailbox_backfill, mediated_mailbox_sync;
+ 
+ -- The account snapshot's statements in db/accounts, db/accountstate/credential and db/oauthclients run

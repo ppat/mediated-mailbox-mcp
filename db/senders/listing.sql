@@ -14,7 +14,7 @@ SELECT
     s.label_distribution
 FROM senders AS s
 WHERE
-    s.account_id = @account_id
+    s.account_id = current_setting('app.account')
     AND (
         @first_page::boolean
         OR s.message_count < @after_count::bigint
@@ -31,5 +31,5 @@ LIMIT @page_size;
 -- to the statement (ADR-0108).
 SELECT s.domain
 FROM senders AS s
-WHERE s.account_id = @account_id
+WHERE s.account_id = current_setting('app.account')
 ORDER BY s.domain;

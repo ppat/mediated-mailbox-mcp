@@ -17,7 +17,7 @@ type Querier interface {
 	// account's own, with what the screen shows of each (docs/UI.md section 8.7). A base rule carries a
 	// null account. The screen sorts, searches and pages them, and counts what each matches, in the UI's
 	// server, which reads the account's senders beside them.
-	ComposedRules(ctx context.Context, accountID string) ([]ComposedRulesRow, error)
+	ComposedRules(ctx context.Context) ([]ComposedRulesRow, error)
 	// Sets one of the account's own rules' domain suffixes, only while they are still the suffixes the
 	// edit was made against, so an edit over a change the operator never saw changes nothing.
 	EditRule(ctx context.Context, arg EditRuleParams) (int64, error)

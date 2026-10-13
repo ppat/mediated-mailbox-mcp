@@ -15,14 +15,14 @@ const labels = `-- name: Labels :many
 SELECT DISTINCT l.label::text AS label
 FROM messages AS m
 CROSS JOIN LATERAL unnest(m.labels) AS l (label)
-WHERE m.account_id = $1
+WHERE m.account_id = current_setting('app.account')
 ORDER BY label
 `
 
 // Every distinct value the account's messages hold in their labels, in order. These are the values the
 // other operations take as a label.
-func (q *Queries) Labels(ctx context.Context, accountID string) ([]string, error) {
-	rows, err := q.db.Query(ctx, labels, accountID)
+func (q *Queries) Labels(ctx context.Context) ([]string, error) {
+	rows, err := q.db.Query(ctx, labels)
 	if err != nil {
 		return nil, err
 	}
@@ -67,13 +67,8 @@ SELECT
         WHERE x.account_id = m.account_id AND x.message_id = m.message_id
     ), '{}')::text[] AS attachment_extensions
 FROM messages AS m
-WHERE m.account_id = $1 AND m.message_id = $2
+WHERE m.account_id = current_setting('app.account') AND m.message_id = $1
 `
-
-type MessageParams struct {
-	AccountID string
-	MessageID string
-}
 
 type MessageRow struct {
 	MessageID            string
@@ -93,8 +88,8 @@ type MessageRow struct {
 
 // One message of the account by its identifier, with the same columns as a page. No row means the
 // account holds no such message.
-func (q *Queries) Message(ctx context.Context, arg MessageParams) ([]MessageRow, error) {
-	rows, err := q.db.Query(ctx, message, arg.AccountID, arg.MessageID)
+func (q *Queries) Message(ctx context.Context, messageID string) ([]MessageRow, error) {
+	rows, err := q.db.Query(ctx, message, messageID)
 	if err != nil {
 		return nil, err
 	}
@@ -154,17 +149,16 @@ SELECT
     ), '{}')::text[] AS attachment_extensions
 FROM messages AS m
 WHERE
-    m.account_id = $1
+    m.account_id = current_setting('app.account')
     AND (
-        $2::timestamptz IS NULL
-        OR (m.sent_at, m.message_id) < ($2::timestamptz, $3::text)
+        $1::timestamptz IS NULL
+        OR (m.sent_at, m.message_id) < ($1::timestamptz, $2::text)
     )
 ORDER BY m.sent_at DESC, m.message_id DESC
-LIMIT $4
+LIMIT $3
 `
 
 type MessagePageParams struct {
-	AccountID      string
 	AfterSentAt    pgtype.Timestamptz
 	AfterMessageID string
 	PageSize       int32
@@ -191,12 +185,7 @@ type MessagePageRow struct {
 // flags and scan state the Redaction Gate decides from. The stored sender class is not read, because
 // the gate classifies the sender again against the policy in force (ADR-0001, ADR-0002).
 func (q *Queries) MessagePage(ctx context.Context, arg MessagePageParams) ([]MessagePageRow, error) {
-	rows, err := q.db.Query(ctx, messagePage,
-		arg.AccountID,
-		arg.AfterSentAt,
-		arg.AfterMessageID,
-		arg.PageSize,
-	)
+	rows, err := q.db.Query(ctx, messagePage, arg.AfterSentAt, arg.AfterMessageID, arg.PageSize)
 	if err != nil {
 		return nil, err
 	}
@@ -255,14 +244,9 @@ SELECT
         WHERE x.account_id = m.account_id AND x.message_id = m.message_id
     ), '{}')::text[] AS attachment_extensions
 FROM messages AS m
-WHERE m.account_id = $1 AND m.thread_id = $2
+WHERE m.account_id = current_setting('app.account') AND m.thread_id = $1
 ORDER BY m.sent_at ASC, m.message_id ASC
 `
-
-type ThreadMessagesParams struct {
-	AccountID string
-	ThreadID  string
-}
 
 type ThreadMessagesRow struct {
 	MessageID            string
@@ -282,8 +266,8 @@ type ThreadMessagesRow struct {
 
 // Every message of one of the account's threads, oldest first, with the same columns as a page. No
 // row means the account holds no such thread.
-func (q *Queries) ThreadMessages(ctx context.Context, arg ThreadMessagesParams) ([]ThreadMessagesRow, error) {
-	rows, err := q.db.Query(ctx, threadMessages, arg.AccountID, arg.ThreadID)
+func (q *Queries) ThreadMessages(ctx context.Context, threadID string) ([]ThreadMessagesRow, error) {
+	rows, err := q.db.Query(ctx, threadMessages, threadID)
 	if err != nil {
 		return nil, err
 	}
@@ -322,17 +306,16 @@ SELECT
     count(*) AS messages,
     max(m.sent_at)::timestamptz AS latest_at
 FROM messages AS m
-WHERE m.account_id = $1
+WHERE m.account_id = current_setting('app.account')
 GROUP BY m.thread_id
 HAVING
-    $2::timestamptz IS NULL
-    OR (max(m.sent_at), m.thread_id) < ($2::timestamptz, $3::text)
+    $1::timestamptz IS NULL
+    OR (max(m.sent_at), m.thread_id) < ($1::timestamptz, $2::text)
 ORDER BY latest_at DESC, m.thread_id DESC
-LIMIT $4
+LIMIT $3
 `
 
 type ThreadPageParams struct {
-	AccountID      string
 	BeforeLatestAt pgtype.Timestamptz
 	BeforeThreadID string
 	PageSize       int32
@@ -348,12 +331,7 @@ type ThreadPageRow struct {
 // messages and the time of its latest, after the position a cursor names or from the start when it
 // names none.
 func (q *Queries) ThreadPage(ctx context.Context, arg ThreadPageParams) ([]ThreadPageRow, error) {
-	rows, err := q.db.Query(ctx, threadPage,
-		arg.AccountID,
-		arg.BeforeLatestAt,
-		arg.BeforeThreadID,
-		arg.PageSize,
-	)
+	rows, err := q.db.Query(ctx, threadPage, arg.BeforeLatestAt, arg.BeforeThreadID, arg.PageSize)
 	if err != nil {
 		return nil, err
 	}

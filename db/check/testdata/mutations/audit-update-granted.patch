@@ -5,10 +5,10 @@ tests: TestNoRuntimeRoleCanAlterTheAuditLog TestNoRuntimeRoleCanAlterTheAuditLog
 scheduled-count: no
 integration: yes
 
-diff --git a/db/migrations/00004_grants.sql b/db/migrations/00004_grants.sql
+diff --git a/db/migrations/00003_grants.sql b/db/migrations/00003_grants.sql
 index 912d38ff..4743f097 100644
---- a/db/migrations/00004_grants.sql
-+++ b/db/migrations/00004_grants.sql
+--- a/db/migrations/00003_grants.sql
++++ b/db/migrations/00003_grants.sql
 @@ -98,6 +98,7 @@ GRANT INSERT (
      account_id, actor, action, message_id, stage, reason, sender_class, class_rule_id, class_rule_scope, content_flags,
      content_rule_ids, serve_rule_ids, scan_state, scanner_version, scanner_revision

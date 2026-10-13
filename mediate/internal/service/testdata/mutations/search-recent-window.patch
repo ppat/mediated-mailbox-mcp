@@ -6,30 +6,134 @@ scheduled-count: no
 integration: yes
 
 diff --git a/db/messages/search.sql b/db/messages/search.sql
-index 7301a26c..64e3be63 100644
+index 818eddd1..3f50fafc 100644
 --- a/db/messages/search.sql
 +++ b/db/messages/search.sql
-@@ -28,8 +28,9 @@ SELECT
+@@ -2,60 +2,61 @@
+ -- One page of the messages the query selects, in the order sort_by and descending name, after the
+ -- position a cursor names or from the start when it names none. Ties within one sort value are
+ -- broken by the message identifier, ascending, so the order is total.
+ SELECT
+     m.message_id,
+     m.thread_id,
+     m.from_email,
+     m.from_name,
+     m.subject,
+     m.sent_at,
+     m.labels,
+     m.flags,
+     m.has_attachments,
+     m.content_flags,
+     m.scan_state,
+     -- The attachments' media, each media type paired with the extension at the same position, in
+     -- the order of the table's key, from which the service layer derives the types (ADR-0123).
+     coalesce((
+         SELECT array_agg(x.media_type ORDER BY x.media_type, x.extension)
+         FROM attachment_media AS x
+         WHERE x.account_id = m.account_id AND x.message_id = m.message_id
+     ), '{}')::text[] AS attachment_media_types,
+     coalesce((
+         SELECT array_agg(x.extension ORDER BY x.media_type, x.extension)
+         FROM attachment_media AS x
+         WHERE x.account_id = m.account_id AND x.message_id = m.message_id
      ), '{}')::text[] AS attachment_extensions
  FROM messages AS m
  WHERE
-     m.account_id = @account_id
+     m.account_id = current_setting('app.account')
 +    AND m.sent_at > now() - INTERVAL '5 years'
      AND (@after::timestamptz IS NULL OR m.sent_at >= @after::timestamptz)
      AND (@before::timestamptz IS NULL OR m.sent_at < @before::timestamptz)
      AND (@from_emails::citext[] IS NULL OR m.from_email = any(@from_emails::citext[]))
      AND (@from_domains::text[] IS NULL OR m.from_domain = any(@from_domains::text[]))
+     AND (@labels::text[] IS NULL OR m.labels @> @labels::text[])
+     AND (@excluded_labels::text[] IS NULL OR NOT m.labels && @excluded_labels::text[])
+     AND (@labels_within::text[] IS NULL OR m.labels <@ @labels_within::text[])
+     AND (@subject_patterns::text[] IS NULL OR m.subject ILIKE all(@subject_patterns::text[]))
+     AND (
+         @unread::boolean[] IS NULL
+         OR (NOT coalesce((m.flags ->> 'read')::boolean, FALSE)) = any(@unread::boolean[])
+     )
+     AND (
+         @starred::boolean[] IS NULL
+         OR coalesce((m.flags ->> 'starred')::boolean, FALSE) = any(@starred::boolean[])
+     )
+     AND (@has_attachments::boolean[] IS NULL OR m.has_attachments = any(@has_attachments::boolean[]))
+     AND (
+         @restricted::boolean[] IS NULL
+         OR (
+             NOT EXISTS (
+                 SELECT 1 FROM unnest(@normal_domains::text[]) AS n (d)
+                 WHERE n.d = m.from_domain::text
+             )
+         ) = any(@restricted::boolean[])
+     )
+     AND (
+         @first_page::boolean
+         OR (
+             @sort_by::text = 'date' AND @descending::boolean AND (
 diff --git a/db/messages/search.sql.go b/db/messages/search.sql.go
-index feec1fc2..7049d4f9 100644
+index f09d49bc..0b201157 100644
 --- a/db/messages/search.sql.go
 +++ b/db/messages/search.sql.go
-@@ -533,8 +533,9 @@ SELECT
+@@ -499,60 +499,61 @@ func (q *Queries) CountBySenderDomain(ctx context.Context, arg CountBySenderDoma
+ }
+ 
+ const searchPage = `-- name: SearchPage :many
+ SELECT
+     m.message_id,
+     m.thread_id,
+     m.from_email,
+     m.from_name,
+     m.subject,
+     m.sent_at,
+     m.labels,
+     m.flags,
+     m.has_attachments,
+     m.content_flags,
+     m.scan_state,
+     -- The attachments' media, each media type paired with the extension at the same position, in
+     -- the order of the table's key, from which the service layer derives the types (ADR-0123).
+     coalesce((
+         SELECT array_agg(x.media_type ORDER BY x.media_type, x.extension)
+         FROM attachment_media AS x
+         WHERE x.account_id = m.account_id AND x.message_id = m.message_id
+     ), '{}')::text[] AS attachment_media_types,
+     coalesce((
+         SELECT array_agg(x.extension ORDER BY x.media_type, x.extension)
+         FROM attachment_media AS x
+         WHERE x.account_id = m.account_id AND x.message_id = m.message_id
      ), '{}')::text[] AS attachment_extensions
  FROM messages AS m
  WHERE
-     m.account_id = $1
+     m.account_id = current_setting('app.account')
 +    AND m.sent_at > now() - INTERVAL '5 years'
-     AND ($2::timestamptz IS NULL OR m.sent_at >= $2::timestamptz)
-     AND ($3::timestamptz IS NULL OR m.sent_at < $3::timestamptz)
-     AND ($4::citext[] IS NULL OR m.from_email = any($4::citext[]))
-     AND ($5::text[] IS NULL OR m.from_domain = any($5::text[]))
+     AND ($1::timestamptz IS NULL OR m.sent_at >= $1::timestamptz)
+     AND ($2::timestamptz IS NULL OR m.sent_at < $2::timestamptz)
+     AND ($3::citext[] IS NULL OR m.from_email = any($3::citext[]))
+     AND ($4::text[] IS NULL OR m.from_domain = any($4::text[]))
+     AND ($5::text[] IS NULL OR m.labels @> $5::text[])
+     AND ($6::text[] IS NULL OR NOT m.labels && $6::text[])
+     AND ($7::text[] IS NULL OR m.labels <@ $7::text[])
+     AND ($8::text[] IS NULL OR m.subject ILIKE all($8::text[]))
+     AND (
+         $9::boolean[] IS NULL
+         OR (NOT coalesce((m.flags ->> 'read')::boolean, FALSE)) = any($9::boolean[])
+     )
+     AND (
+         $10::boolean[] IS NULL
+         OR coalesce((m.flags ->> 'starred')::boolean, FALSE) = any($10::boolean[])
+     )
+     AND ($11::boolean[] IS NULL OR m.has_attachments = any($11::boolean[]))
+     AND (
+         $12::boolean[] IS NULL
+         OR (
+             NOT EXISTS (
+                 SELECT 1 FROM unnest($13::text[]) AS n (d)
+                 WHERE n.d = m.from_domain::text
+             )
+         ) = any($12::boolean[])
+     )
+     AND (
+         $14::boolean
+         OR (
+             $15::text = 'date' AND $16::boolean AND (

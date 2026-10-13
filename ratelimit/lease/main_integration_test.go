@@ -31,7 +31,7 @@ const ceiling = 100
 const hardCap = 80
 
 // spenders returns a pool connecting as backfill's role, one of the four whose lists admit the rate
-// limiter. Row-level security applies to it, as it does in production.
+// limiter. Its grants apply to it, as they do in production.
 func spenders(t *testing.T) *pgxpool.Pool {
 	t.Helper()
 	cfg, err := pgxpool.ParseConfig(postgres.URL(t))
@@ -47,7 +47,7 @@ func spenders(t *testing.T) *pgxpool.Pool {
 	return pool
 }
 
-// superuser returns a connection that bypasses row-level security, to seed and read what the tests
+// superuser returns a connection that holds every privilege, to seed and read what the tests
 // set up and observe.
 func superuser(t *testing.T) *pgx.Conn {
 	t.Helper()

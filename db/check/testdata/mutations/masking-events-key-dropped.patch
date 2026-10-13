@@ -1,0 +1,20 @@
+control: Every log table references what it belongs to
+removes: the masking events lose their key to accounts, so an event of an account that does not exist is stored
+packages: ./db/check
+tests: TestEveryLogTableRefusesAnOrphan TestEveryLogTableRefusesAnOrphan/a_masking_event
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00002_schema.sql b/db/migrations/00002_schema.sql
+index 16df97b3..3c979342 100644
+--- a/db/migrations/00002_schema.sql
++++ b/db/migrations/00002_schema.sql
+@@ -274,7 +274,7 @@ CREATE INDEX ON policy_changes (account_id, ts DESC);
+ CREATE TABLE masking_events (
+     id bigserial PRIMARY KEY,
+     -- Indexed below with masked_at.
+-    account_id text NOT NULL REFERENCES accounts,
++    account_id text NOT NULL,
+     message_id text NOT NULL,
+     field text NOT NULL CHECK (field IN ('subject')),
+     rule_id text NOT NULL,

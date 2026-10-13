@@ -16,15 +16,10 @@ SELECT
     a.action,
     count(*) AS entries
 FROM audit_log AS a
-WHERE a.account_id = $1 AND a.ts >= $2
+WHERE a.account_id = current_setting('app.account') AND a.ts >= $1
 GROUP BY a.action
 ORDER BY a.action
 `
-
-type AuditActionCountsParams struct {
-	AccountID string
-	Since     pgtype.Timestamptz
-}
 
 type AuditActionCountsRow struct {
 	Action  string
@@ -33,8 +28,8 @@ type AuditActionCountsRow struct {
 
 // The audit rows written since a time, counted per action, for the corpus endpoint (docs/UI.md
 // section 8.1). An action with no row has no count.
-func (q *Queries) AuditActionCounts(ctx context.Context, arg AuditActionCountsParams) ([]AuditActionCountsRow, error) {
-	rows, err := q.db.Query(ctx, auditActionCounts, arg.AccountID, arg.Since)
+func (q *Queries) AuditActionCounts(ctx context.Context, since pgtype.Timestamptz) ([]AuditActionCountsRow, error) {
+	rows, err := q.db.Query(ctx, auditActionCounts, since)
 	if err != nil {
 		return nil, err
 	}

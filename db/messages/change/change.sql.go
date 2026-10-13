@@ -15,15 +15,14 @@ const applyLabelsAndFlags = `-- name: ApplyLabelsAndFlags :execrows
 UPDATE messages
 SET labels = $1, flags = $2
 WHERE
-    account_id = $3
-    AND message_id = $4
+    account_id = current_setting('app.account')
+    AND message_id = $3
     AND (labels IS DISTINCT FROM $1 OR flags IS DISTINCT FROM $2)
 `
 
 type ApplyLabelsAndFlagsParams struct {
 	Labels    []string
 	Flags     []byte
-	AccountID string
 	MessageID string
 }
 
@@ -31,12 +30,7 @@ type ApplyLabelsAndFlagsParams struct {
 // for a message the change feed names (ADR-0018). A message that already carries them is left as it
 // is and counts no row, so a change applied twice changes nothing the second time.
 func (q *Queries) ApplyLabelsAndFlags(ctx context.Context, arg ApplyLabelsAndFlagsParams) (int64, error) {
-	result, err := q.db.Exec(ctx, applyLabelsAndFlags,
-		arg.Labels,
-		arg.Flags,
-		arg.AccountID,
-		arg.MessageID,
-	)
+	result, err := q.db.Exec(ctx, applyLabelsAndFlags, arg.Labels, arg.Flags, arg.MessageID)
 	if err != nil {
 		return 0, err
 	}
@@ -46,25 +40,20 @@ func (q *Queries) ApplyLabelsAndFlags(ctx context.Context, arg ApplyLabelsAndFla
 const dropEmptySender = `-- name: DropEmptySender :execrows
 DELETE FROM senders AS s
 WHERE
-    s.account_id = $1
-    AND s.domain = $2
+    s.account_id = current_setting('app.account')
+    AND s.domain = $1
     AND NOT EXISTS (
         SELECT 1
         FROM messages AS m
-        WHERE m.account_id = $1 AND m.from_domain = $2
+        WHERE m.account_id = current_setting('app.account') AND m.from_domain = $1
     )
 `
-
-type DropEmptySenderParams struct {
-	AccountID string
-	Domain    string
-}
 
 // Removes the statistics of the account's sender at domain once the index stores none of its
 // messages, after delta sync removed its last one, since rebuilding them from no messages writes
 // nothing (ADR-0016).
-func (q *Queries) DropEmptySender(ctx context.Context, arg DropEmptySenderParams) (int64, error) {
-	result, err := q.db.Exec(ctx, dropEmptySender, arg.AccountID, arg.Domain)
+func (q *Queries) DropEmptySender(ctx context.Context, domain string) (int64, error) {
+	result, err := q.db.Exec(ctx, dropEmptySender, domain)
 	if err != nil {
 		return 0, err
 	}
@@ -74,20 +63,15 @@ func (q *Queries) DropEmptySender(ctx context.Context, arg DropEmptySenderParams
 const messagesSince = `-- name: MessagesSince :many
 SELECT m.message_id
 FROM messages AS m
-WHERE m.account_id = $1 AND m.sent_at >= $2
+WHERE m.account_id = current_setting('app.account') AND m.sent_at >= $1
 ORDER BY m.message_id
 `
-
-type MessagesSinceParams struct {
-	AccountID string
-	Since     pgtype.Timestamptz
-}
 
 // The identifiers of the account's stored messages dated at or after since, which a gap recovery
 // compares with what its listing of the window returned, to find a message removed during the gap
 // (ADR-0105).
-func (q *Queries) MessagesSince(ctx context.Context, arg MessagesSinceParams) ([]string, error) {
-	rows, err := q.db.Query(ctx, messagesSince, arg.AccountID, arg.Since)
+func (q *Queries) MessagesSince(ctx context.Context, since pgtype.Timestamptz) ([]string, error) {
+	rows, err := q.db.Query(ctx, messagesSince, since)
 	if err != nil {
 		return nil, err
 	}
@@ -108,20 +92,15 @@ func (q *Queries) MessagesSince(ctx context.Context, arg MessagesSinceParams) ([
 
 const removeMessages = `-- name: RemoveMessages :many
 DELETE FROM messages
-WHERE account_id = $1 AND message_id = any($2::text[])
+WHERE account_id = current_setting('app.account') AND message_id = any($1::text[])
 RETURNING from_domain
 `
-
-type RemoveMessagesParams struct {
-	AccountID  string
-	MessageIds []string
-}
 
 // Removes from the index each of the given messages the change feed reports the provider no longer
 // holds, so the index tracks the live mailbox (ADR-0018). It returns each removed message's sender
 // domain, whose statistics the caller rebuilds. A message the index does not hold is no row.
-func (q *Queries) RemoveMessages(ctx context.Context, arg RemoveMessagesParams) ([]string, error) {
-	rows, err := q.db.Query(ctx, removeMessages, arg.AccountID, arg.MessageIds)
+func (q *Queries) RemoveMessages(ctx context.Context, messageIds []string) ([]string, error) {
+	rows, err := q.db.Query(ctx, removeMessages, messageIds)
 	if err != nil {
 		return nil, err
 	}

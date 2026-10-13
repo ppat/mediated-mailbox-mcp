@@ -62,12 +62,12 @@ func (s *Server) getCorpus(w http.ResponseWriter, r *http.Request) {
 		out.AsOf = registry.Stamp(now)
 		day := pgtype.Timestamptz{Time: now.Add(-24 * time.Hour), Valid: true}
 		week := pgtype.Timestamptz{Time: now.Add(-7 * 24 * time.Hour), Valid: true}
-		corpus, err := messageclassification.New(t).CorpusFigures(ctx, account)
+		corpus, err := messageclassification.New(t).CorpusFigures(ctx)
 		if err != nil {
 			return err
 		}
 		out.Messages, out.Threads, out.Unfiled, out.Restricted = corpus.Messages, corpus.Threads, corpus.Unfiled, corpus.Restricted
-		actions, err := auditlog.New(t).AuditActionCounts(ctx, auditlog.AuditActionCountsParams{AccountID: account, Since: day})
+		actions, err := auditlog.New(t).AuditActionCounts(ctx, day)
 		if err != nil {
 			return err
 		}
@@ -77,11 +77,11 @@ func (s *Server) getCorpus(w http.ResponseWriter, r *http.Request) {
 		for _, row := range actions {
 			out.Audit24h[row.Action] = row.Entries
 		}
-		if out.MaskingEvents7d, err = maskingevents.New(t).MaskingEventCount(ctx, maskingevents.MaskingEventCountParams{AccountID: account, Since: week}); err != nil {
+		if out.MaskingEvents7d, err = maskingevents.New(t).MaskingEventCount(ctx, week); err != nil {
 			return err
 		}
 		out.GateSkips7d, err = scangatedecisions.New(t).GateDecisionCount(ctx, scangatedecisions.GateDecisionCountParams{
-			AccountID: account, Decision: "SKIP", Since: week,
+			Decision: "SKIP", Since: week,
 		})
 		return err
 	})

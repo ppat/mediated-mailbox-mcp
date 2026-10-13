@@ -8,4 +8,4 @@ SELECT
     count(*) FILTER (WHERE m.labels = '{}') AS unfiled,
     count(*) FILTER (WHERE m.sender_class = 'restricted') AS restricted
 FROM messages AS m
-WHERE m.account_id = @account_id;
+WHERE m.account_id = current_setting('app.account');

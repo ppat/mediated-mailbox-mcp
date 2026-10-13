@@ -23,11 +23,11 @@ than the instance.
   functions, in any migration, for any purpose. Every write the system makes is made by
   application code, in a transaction the application opens, closes, and can be read and tested
   as ordinary code.
-- **Declarative database features stay.** Constraints, indexes, partitioning, row-level
-  security policies, and grants are not code. They express a rule the database checks. They do
-  not execute logic the application did not write. Row-level security remains the third
-  isolation layer [ADR-0016](../data/0016-schema.md) names, and the per-transaction account
-  setting its policies read is set by application code like any other statement.
+- **Declarative database features stay.** Constraints, indexes, partitioning, row-level security
+  policies, and grants are not code. They express a rule the database checks. They do not execute
+  logic the application did not write. The per-transaction account setting every statement reads
+  ([ADR-0135](../data/0135-every-statement-reads-its-account-from-the-transaction.md)) is set by
+  application code like any other statement.
 - **Where a single decision needs several rows, the application writes them in one
   transaction, and tests carry the guarantee** that no path writes one without the others
   ([ADR-0043](./0043-no-mocking.md)'s real-database tests, with every path that writes such a
@@ -50,7 +50,7 @@ than the instance.
   case for it was one place per verb. Rejected for the same reason. It moves the verb's logic out
   of the application and into the database.
 - **Forbidding row-level security as well**, for consistency. No case was tabled. Policies are
-  declarative and were kept, with the distinction stated in the Decision.
+  declarative, so this rule allows them, with the distinction stated in the Decision.
 
 ## Consequences
 
@@ -59,8 +59,8 @@ than the instance.
   ([ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)).
 - The migration lint refuses any migration that creates a trigger, procedure, or function. Its
   violation injection is catalogued in [docs/VERIFICATIONS.md](../../VERIFICATIONS.md).
-- Assumptions about other components: every process that reads account-scoped rows sets the
-  account for its transaction before reading, which the row-level security policies of
-  [ADR-0016](../data/0016-schema.md) require, and the migration role of
-  [ADR-0048](../data/0048-forward-only-migrations.md) owns the schema and has no functions to
-  own.
+- Assumptions about other components: every process that reads account-scoped rows sets the account
+  for its transaction before reading, which every statement's account predicate reads
+  ([ADR-0135](../data/0135-every-statement-reads-its-account-from-the-transaction.md)), and the
+  migration role of [ADR-0048](../data/0048-forward-only-migrations.md) owns the schema and has no
+  functions to own.

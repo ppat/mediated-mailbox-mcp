@@ -967,7 +967,7 @@ func leased[T any](ctx context.Context, limiter *lease.Limiter, port mail.Port[c
 func newLimiter(ctx context.Context, db tx.Beginner, account string, metrics *lease.Metrics) (*lease.Limiter, error) {
 	targets := map[string]float64{}
 	err := tx.Run(ctx, db, account, func(t pgx.Tx) error {
-		target, err := accountstate.New(t).LoweredTarget(ctx, account)
+		target, err := accountstate.New(t).LoweredTarget(ctx)
 		if err != nil {
 			return err
 		}

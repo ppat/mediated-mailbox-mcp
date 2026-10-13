@@ -32,7 +32,7 @@ type Querier interface {
 	ChangesByScope(ctx context.Context, arg ChangesByScopeParams) ([]ChangesByScopeRow, error)
 	// When the account's policy last changed, its own rules or the base policy's, null before its first
 	// change, for the policy screen's L0 strip.
-	LatestChange(ctx context.Context, accountID string) (pgtype.Timestamptz, error)
+	LatestChange(ctx context.Context) (pgtype.Timestamptz, error)
 	// Appends one change to one of the account's own rules to the policy history, in the transaction that
 	// made it (ADR-0102).
 	RecordChange(ctx context.Context, arg RecordChangeParams) error

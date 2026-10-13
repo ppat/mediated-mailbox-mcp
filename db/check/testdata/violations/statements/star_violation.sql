@@ -2,12 +2,12 @@
 
 -- want star-select
 -- name: ListSendersStar :many
-SELECT * FROM fixture_senders WHERE account_id = @account_id;
+SELECT * FROM fixture_senders WHERE account_id = current_setting('app.account');
 
 -- want star-select
 -- name: ListSendersQualifiedStar :many
-SELECT s.* FROM fixture_senders s WHERE s.account_id = @account_id;
+SELECT s.* FROM fixture_senders s WHERE s.account_id = current_setting('app.account');
 
 -- A count over every row is not a star select, so it must not be reported.
 -- name: CountSenders :one
-SELECT count(*) FROM fixture_senders WHERE account_id = @account_id;
+SELECT count(*) FROM fixture_senders WHERE account_id = current_setting('app.account');

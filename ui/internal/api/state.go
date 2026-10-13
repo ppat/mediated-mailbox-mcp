@@ -25,8 +25,8 @@ type accountProgress struct {
 }
 
 // progress reads the account's progress.
-func (s *Server) progress(ctx context.Context, q *accountstate.Queries, account string) (accountProgress, error) {
-	row, err := q.AccountProgress(ctx, account)
+func (s *Server) progress(ctx context.Context, q *accountstate.Queries) (accountProgress, error) {
+	row, err := q.AccountProgress(ctx)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return accountProgress{}, nil
 	}
@@ -69,8 +69,8 @@ func rateType() schema.Type {
 }
 
 // rate reads the account's rate state, nil for an account that has never spent.
-func (s *Server) rate(ctx context.Context, q *ratestate.Queries, account string) (*rateBlock, error) {
-	row, err := q.RateStatus(ctx, account)
+func (s *Server) rate(ctx context.Context, q *ratestate.Queries) (*rateBlock, error) {
+	row, err := q.RateStatus(ctx)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}

@@ -12,12 +12,12 @@ type Querier interface {
 	// Every one of the account's senders with its stored class and message count, which the policy
 	// screens match against the rules to count what each rule matches and restricts (docs/UI.md section
 	// 8.7). Matching a sender against a rule is the sender classifier's, so it is made in the UI's server.
-	SenderClasses(ctx context.Context, accountID string) ([]SenderClassesRow, error)
+	SenderClasses(ctx context.Context) ([]SenderClassesRow, error)
 	// The senders dataset's figures under its search filter, the senders it matches and their messages
 	// (docs/UI.md section 8.7). The search is a substring of the stored domain, given in the form the
 	// index stores a domain in, so it ignores case as the domains do with no statement lowercasing
 	// (ADR-0016). An empty search matches every sender.
-	SenderSearchFigures(ctx context.Context, arg SenderSearchFiguresParams) (SenderSearchFiguresRow, error)
+	SenderSearchFigures(ctx context.Context, search string) (SenderSearchFiguresRow, error)
 	// One page of the senders dataset, fifty rows, under the same filter, with the sender row's fields
 	// (docs/UI.md section 7.2), the sender with the most messages first by default, the domain ending the
 	// sort.

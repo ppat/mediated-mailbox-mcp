@@ -1,0 +1,20 @@
+control: Every statement takes its account from the transaction
+removes: delta sync's update of a stored message's labels and flags also sets its account column, so a statement could move a row to another account
+packages: ./db/check
+tests: TestStatementFiles
+scheduled-count: no
+integration: no
+
+diff --git a/db/messages/change/change.sql b/db/messages/change/change.sql
+index face30bd..5e8ec26e 100644
+--- a/db/messages/change/change.sql
++++ b/db/messages/change/change.sql
+@@ -3,7 +3,7 @@
+ -- for a message the change feed names (ADR-0018). A message that already carries them is left as it
+ -- is and counts no row, so a change applied twice changes nothing the second time.
+ UPDATE messages
+-SET labels = @labels, flags = @flags
++SET labels = @labels, flags = @flags, account_id = account_id
+ WHERE
+     account_id = current_setting('app.account')
+     AND message_id = @message_id

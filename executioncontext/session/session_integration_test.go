@@ -27,7 +27,7 @@ func TestMain(m *testing.M) {
 }
 
 // role is backfill's role, a job kind whose sessions hold their sources across units of work, so
-// row-level security and its grants apply as they do in production (ADR-0118).
+// its grants apply as they do in production (ADR-0118).
 const role = "mediated_mailbox_backfill"
 
 func pool(t *testing.T) *pgxpool.Pool {

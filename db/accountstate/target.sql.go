@@ -14,13 +14,13 @@ import (
 const loweredTarget = `-- name: LoweredTarget :one
 SELECT s.lowered_target_rate
 FROM account_state AS s
-WHERE s.account_id = $1
+WHERE s.account_id = current_setting('app.account')
 `
 
 // The lower target the operator set for the account, a fraction of its provider's declared ceiling, or
 // null for none. The rate limiter takes it for the account when a spending process builds it (ADR-0024).
-func (q *Queries) LoweredTarget(ctx context.Context, accountID string) (pgtype.Float4, error) {
-	row := q.db.QueryRow(ctx, loweredTarget, accountID)
+func (q *Queries) LoweredTarget(ctx context.Context) (pgtype.Float4, error) {
+	row := q.db.QueryRow(ctx, loweredTarget)
 	var lowered_target_rate pgtype.Float4
 	err := row.Scan(&lowered_target_rate)
 	return lowered_target_rate, err

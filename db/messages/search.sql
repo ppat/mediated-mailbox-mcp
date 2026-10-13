@@ -28,7 +28,7 @@ SELECT
     ), '{}')::text[] AS attachment_extensions
 FROM messages AS m
 WHERE
-    m.account_id = @account_id
+    m.account_id = current_setting('app.account')
     AND (@after::timestamptz IS NULL OR m.sent_at >= @after::timestamptz)
     AND (@before::timestamptz IS NULL OR m.sent_at < @before::timestamptz)
     AND (@from_emails::citext[] IS NULL OR m.from_email = any(@from_emails::citext[]))
@@ -117,7 +117,7 @@ SELECT
     max(m.sent_at)::timestamptz AS newest_at
 FROM messages AS m
 WHERE
-    m.account_id = @account_id
+    m.account_id = current_setting('app.account')
     AND (@after::timestamptz IS NULL OR m.sent_at >= @after::timestamptz)
     AND (@before::timestamptz IS NULL OR m.sent_at < @before::timestamptz)
     AND (@from_emails::citext[] IS NULL OR m.from_email = any(@from_emails::citext[]))
@@ -158,7 +158,7 @@ SELECT
     max(m.sent_at)::timestamptz AS newest_at
 FROM messages AS m
 WHERE
-    m.account_id = @account_id
+    m.account_id = current_setting('app.account')
     AND (@after::timestamptz IS NULL OR m.sent_at >= @after::timestamptz)
     AND (@before::timestamptz IS NULL OR m.sent_at < @before::timestamptz)
     AND (@from_emails::citext[] IS NULL OR m.from_email = any(@from_emails::citext[]))
@@ -206,7 +206,7 @@ SELECT
     max(m.sent_at)::timestamptz AS newest_at
 FROM messages AS m
 WHERE
-    m.account_id = @account_id
+    m.account_id = current_setting('app.account')
     AND (@after::timestamptz IS NULL OR m.sent_at >= @after::timestamptz)
     AND (@before::timestamptz IS NULL OR m.sent_at < @before::timestamptz)
     AND (@from_emails::citext[] IS NULL OR m.from_email = any(@from_emails::citext[]))
@@ -257,7 +257,7 @@ SELECT
 FROM messages AS m
 CROSS JOIN LATERAL unnest(m.labels) AS l (label)
 WHERE
-    m.account_id = @account_id
+    m.account_id = current_setting('app.account')
     AND (@after::timestamptz IS NULL OR m.sent_at >= @after::timestamptz)
     AND (@before::timestamptz IS NULL OR m.sent_at < @before::timestamptz)
     AND (@from_emails::citext[] IS NULL OR m.from_email = any(@from_emails::citext[]))
@@ -309,7 +309,7 @@ FROM (
         date_trunc('month', m.sent_at AT TIME ZONE 'UTC') AT TIME ZONE 'UTC' AS month
     FROM messages AS m
     WHERE
-        m.account_id = @account_id
+        m.account_id = current_setting('app.account')
         AND (@after::timestamptz IS NULL OR m.sent_at >= @after::timestamptz)
         AND (@before::timestamptz IS NULL OR m.sent_at < @before::timestamptz)
         AND (@from_emails::citext[] IS NULL OR m.from_email = any(@from_emails::citext[]))

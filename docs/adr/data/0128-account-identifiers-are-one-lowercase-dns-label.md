@@ -20,8 +20,8 @@ other value the system holds.
 - It is the `account` label on most metric series, the mediator's paths
   `/api/accounts/{account_id}/…` and every MCP call's `account_id`
   ([ADR-0087](../operability/0087-client-surface-derives-method-and-hints-from-each-operations-effect.md)),
-  the first segment of the UI's URLs and so of every bookmark, row-level security's `app.account`
-  setting, and the candidate rule identifier `candidate.{account}.{domain}`.
+  the first segment of the UI's URLs and so of every bookmark, the `app.account` setting every
+  statement reads, and the candidate rule identifier `candidate.{account}.{domain}`.
 - The first identifier becomes permanent at production point 1, since every record of the account
   is keyed on it and nothing rewrites stored accounts
   ([ADR-0048](./0048-forward-only-migrations.md)).
@@ -52,14 +52,14 @@ proposal into anything.
 
 ## Alternatives considered
 
-- **Free text, checked only for what routing needs.** The database refused only `.`, `..` and
-  `/`, ADR-0087's addressability, and the server those and the top-level words. The case made for it: no outcome fails for a
-  spaced or capitalised identifier, since the mediator routes it (a request to
-  `/api/accounts/Peter%27s%20Gmail/messages` reaches the account `Peter's Gmail`), the UI encodes
-  it as one path segment, and row-level security and Prometheus accept any string. It lost on
-  legibility in labels, URLs and prompts, on the ambiguity of `candidate.{account}.{domain}` once
-  an identifier may hold a dot, and because the first identifier typed is permanent, so the
-  asymmetric payoff favours a few lines of check now.
+- **Free text, checked only for what routing needs.** The database refused only `.`, `..` and `/`,
+  ADR-0087's addressability, and the server those and the top-level words. The case made for it: no
+  outcome fails for a spaced or capitalised identifier, since the mediator routes it (a request to
+  `/api/accounts/Peter%27s%20Gmail/messages` reaches the account `Peter's Gmail`), the UI encodes it
+  as one path segment, and the `app.account` setting and Prometheus accept any string. It lost on
+  legibility in labels, URLs and prompts, on the ambiguity of `candidate.{account}.{domain}` once an
+  identifier may hold a dot, and because the first identifier typed is permanent, so the asymmetric
+  payoff favours a few lines of check now.
 - **A surrogate key with a display name.** The case made for it: renames become free. Rejected
   because it touches every table, every statement and both surfaces, for a rename nobody has
   asked for.
@@ -73,8 +73,8 @@ proposal into anything.
 - **Assumed of the mediator.** Its router and its account check accept any identifier the grammar
   allows, and every such identifier is one path segment its API root can address
   ([ADR-0087](../operability/0087-client-surface-derives-method-and-hints-from-each-operations-effect.md)).
-- **Assumed of row-level security and the metrics.** `app.account` and the `account` label take
-  any string, so the grammar narrows nothing they rely on.
+- **Assumed of the account setting and the metrics.** `app.account` and the `account` label take any
+  string, so the grammar narrows nothing they rely on.
 - **Assumed of the UI's top-level words.** They are a closed list that tests pin
   ([docs/UI.md section 5](../../UI.md#5-information-architecture-and-the-url)), so a word the UI
   starts using later is a reviewed change, checked against the accounts already stored.

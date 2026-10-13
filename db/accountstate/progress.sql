@@ -9,4 +9,4 @@ SELECT
     s.last_auth_at,
     s.last_auth_outcome
 FROM account_state AS s
-WHERE s.account_id = @account_id;
+WHERE s.account_id = current_setting('app.account');

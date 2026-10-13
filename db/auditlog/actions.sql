@@ -5,6 +5,6 @@ SELECT
     a.action,
     count(*) AS entries
 FROM audit_log AS a
-WHERE a.account_id = @account_id AND a.ts >= @since
+WHERE a.account_id = current_setting('app.account') AND a.ts >= @since
 GROUP BY a.action
 ORDER BY a.action;

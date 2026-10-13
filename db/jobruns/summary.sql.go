@@ -16,15 +16,10 @@ SELECT
     f.disposition,
     count(*) AS failures
 FROM job_run_failures AS f
-WHERE f.account_id = $1 AND f.run_id = $2
+WHERE f.account_id = current_setting('app.account') AND f.run_id = $1
 GROUP BY f.disposition
 ORDER BY f.disposition
 `
-
-type FailureDispositionsParams struct {
-	AccountID string
-	RunID     string
-}
 
 type FailureDispositionsRow struct {
 	Disposition string
@@ -33,8 +28,8 @@ type FailureDispositionsRow struct {
 
 // A run's item failures counted per disposition, for the run summary's L0 (docs/UI.md section 8.4). A
 // disposition with no failure has no row.
-func (q *Queries) FailureDispositions(ctx context.Context, arg FailureDispositionsParams) ([]FailureDispositionsRow, error) {
-	rows, err := q.db.Query(ctx, failureDispositions, arg.AccountID, arg.RunID)
+func (q *Queries) FailureDispositions(ctx context.Context, runID string) ([]FailureDispositionsRow, error) {
+	rows, err := q.db.Query(ctx, failureDispositions, runID)
 	if err != nil {
 		return nil, err
 	}
@@ -71,15 +66,10 @@ SELECT
     r.last_error
 FROM job_runs AS r
 LEFT JOIN reorg_plans AS pl ON r.account_id = pl.account_id AND r.plan_id = pl.plan_id
-WHERE r.account_id = $1 AND r.resumed_from = $2
+WHERE r.account_id = current_setting('app.account') AND r.resumed_from = $1
 ORDER BY r.started_at DESC, r.run_id ASC
 LIMIT 1
 `
-
-type LatestResumerParams struct {
-	AccountID string
-	RunID     pgtype.Text
-}
 
 type LatestResumerRow struct {
 	RunID           string
@@ -99,8 +89,8 @@ type LatestResumerRow struct {
 }
 
 // The latest run whose resumed_from names a run, the run summary's resumer (docs/UI.md section 8.4).
-func (q *Queries) LatestResumer(ctx context.Context, arg LatestResumerParams) (LatestResumerRow, error) {
-	row := q.db.QueryRow(ctx, latestResumer, arg.AccountID, arg.RunID)
+func (q *Queries) LatestResumer(ctx context.Context, runID pgtype.Text) (LatestResumerRow, error) {
+	row := q.db.QueryRow(ctx, latestResumer, runID)
 	var i LatestResumerRow
 	err := row.Scan(
 		&i.RunID,
@@ -126,15 +116,10 @@ SELECT
     f.recovered_by,
     count(*) AS recovered
 FROM job_run_failures AS f
-WHERE f.account_id = $1 AND f.run_id = $2 AND f.recovered_by IS NOT NULL
+WHERE f.account_id = current_setting('app.account') AND f.run_id = $1 AND f.recovered_by IS NOT NULL
 GROUP BY f.recovered_by
 ORDER BY f.recovered_by
 `
-
-type RecoveringRunsParams struct {
-	AccountID string
-	RunID     string
-}
 
 type RecoveringRunsRow struct {
 	RecoveredBy pgtype.Text
@@ -143,8 +128,8 @@ type RecoveringRunsRow struct {
 
 // The runs that recovered a run's items, each with how many it recovered, for the run summary's L0
 // (docs/UI.md section 8.4).
-func (q *Queries) RecoveringRuns(ctx context.Context, arg RecoveringRunsParams) ([]RecoveringRunsRow, error) {
-	rows, err := q.db.Query(ctx, recoveringRuns, arg.AccountID, arg.RunID)
+func (q *Queries) RecoveringRuns(ctx context.Context, runID string) ([]RecoveringRunsRow, error) {
+	rows, err := q.db.Query(ctx, recoveringRuns, runID)
 	if err != nil {
 		return nil, err
 	}
@@ -181,13 +166,8 @@ SELECT
     r.last_error
 FROM job_runs AS r
 LEFT JOIN reorg_plans AS pl ON r.account_id = pl.account_id AND r.plan_id = pl.plan_id
-WHERE r.account_id = $1 AND r.run_id = $2
+WHERE r.account_id = current_setting('app.account') AND r.run_id = $1
 `
-
-type RunByIDParams struct {
-	AccountID string
-	RunID     string
-}
 
 type RunByIDRow struct {
 	RunID           string
@@ -208,8 +188,8 @@ type RunByIDRow struct {
 
 // One run with its plan's description and status, the run summary endpoint's run (docs/UI.md section
 // 17.4), in the shape the jobs endpoint sends a run.
-func (q *Queries) RunByID(ctx context.Context, arg RunByIDParams) (RunByIDRow, error) {
-	row := q.db.QueryRow(ctx, runByID, arg.AccountID, arg.RunID)
+func (q *Queries) RunByID(ctx context.Context, runID string) (RunByIDRow, error) {
+	row := q.db.QueryRow(ctx, runByID, runID)
 	var i RunByIDRow
 	err := row.Scan(
 		&i.RunID,
@@ -237,14 +217,9 @@ SELECT
     e.page,
     e.detail
 FROM job_run_events AS e
-WHERE e.account_id = $1 AND e.run_id = $2
+WHERE e.account_id = current_setting('app.account') AND e.run_id = $1
 ORDER BY e.at ASC, e.seq ASC
 `
-
-type RunEventsParams struct {
-	AccountID string
-	RunID     string
-}
 
 type RunEventsRow struct {
 	Kind   string
@@ -255,8 +230,8 @@ type RunEventsRow struct {
 
 // Every event of a run's timeline in the order recorded, which the run timeline draws (docs/UI.md
 // sections 7.3 and 8.4).
-func (q *Queries) RunEvents(ctx context.Context, arg RunEventsParams) ([]RunEventsRow, error) {
-	rows, err := q.db.Query(ctx, runEvents, arg.AccountID, arg.RunID)
+func (q *Queries) RunEvents(ctx context.Context, runID string) ([]RunEventsRow, error) {
+	rows, err := q.db.Query(ctx, runEvents, runID)
 	if err != nil {
 		return nil, err
 	}

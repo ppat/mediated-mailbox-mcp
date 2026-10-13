@@ -3,21 +3,21 @@
 -- run which ended it (ADR-0017, ADR-0117).
 UPDATE account_state
 SET backfill_pass1_complete = true
-WHERE account_id = @account_id;
+WHERE account_id = current_setting('app.account');
 
 -- name: SetBackfillSecondComplete :exec
 -- Records that backfill's second pass has ended for the account, in the transaction that finishes the
 -- run which ended it (ADR-0017, ADR-0117).
 UPDATE account_state
 SET backfill_pass2_complete = true
-WHERE account_id = @account_id;
+WHERE account_id = current_setting('app.account');
 
 -- name: ReopenBackfillFirst :exec
 -- Records that backfill's first pass is due again for the account, in the transaction that starts the
 -- run which runs it again (ADR-0120).
 UPDATE account_state
 SET backfill_pass1_complete = false
-WHERE account_id = @account_id;
+WHERE account_id = current_setting('app.account');
 
 -- name: ReopenBackfillSecond :exec
 -- Records that backfill's second pass is due again for the account and marks it to start over from the
@@ -26,18 +26,18 @@ WHERE account_id = @account_id;
 -- (ADR-0120, ADR-0121).
 UPDATE account_state
 SET backfill_pass2_complete = false, backfill_pass2_restart = true
-WHERE account_id = @account_id;
+WHERE account_id = current_setting('app.account');
 
 -- name: SecondRestart :one
 -- Whether backfill's second pass is marked to start over from the first message waiting for a scan
 -- (ADR-0120).
 SELECT a.backfill_pass2_restart
 FROM account_state AS a
-WHERE a.account_id = @account_id;
+WHERE a.account_id = current_setting('app.account');
 
 -- name: ClearSecondRestart :exec
 -- Clears the mark that starts backfill's second pass over, in the transaction that records the start of
 -- the second pass run that starts, which reads it first (ADR-0120).
 UPDATE account_state
 SET backfill_pass2_restart = false
-WHERE account_id = @account_id;
+WHERE account_id = current_setting('app.account');

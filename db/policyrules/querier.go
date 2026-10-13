@@ -12,7 +12,7 @@ type Querier interface {
 	// The rules the account's policy is composed from, the base rules every account inherits and the
 	// account's own, in one read (ADR-0004, ADR-0026). A base rule carries a null account, so the
 	// account predicate is the account or null (ADR-0047). The account is null for a base rule.
-	PolicyRules(ctx context.Context, accountID string) ([]PolicyRulesRow, error)
+	PolicyRules(ctx context.Context) ([]PolicyRulesRow, error)
 }
 
 var _ Querier = (*Queries)(nil)

@@ -1,0 +1,22 @@
+control: Only the UI's role writes the policy
+removes: the heuristics job's role is granted the insert on the policy history, so it could record a change to the base policy
+packages: ./db/check
+tests: TestOnlyTheUIWritesThePolicy TestOnlyTheUIWritesThePolicy/mediated_mailbox_propose/record_a_base_change TestOnlyTheUIWritesThePolicy/mediated_mailbox_propose/record_an_account_change
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00003_grants.sql b/db/migrations/00003_grants.sql
+index 7312c97c..531008e7 100644
+--- a/db/migrations/00003_grants.sql
++++ b/db/migrations/00003_grants.sql
+@@ -512,8 +512,8 @@ DELETE ON oauth_clients TO mediated_mailbox_ui;
+ GRANT INSERT, UPDATE (domain_suffix), DELETE ON policy_rules TO mediated_mailbox_ui;
+ -- Each policy write appends its history row, and the policy screens read the history. Insert alone,
+ -- so evidence of who lifted a restriction survives the UI's compromise (ADR-0102).
+-GRANT SELECT, INSERT ON policy_changes TO mediated_mailbox_ui;
+-GRANT USAGE ON SEQUENCE policy_changes_id_seq TO mediated_mailbox_ui;
++GRANT SELECT, INSERT ON policy_changes TO mediated_mailbox_ui, mediated_mailbox_propose;
++GRANT USAGE ON SEQUENCE policy_changes_id_seq TO mediated_mailbox_ui, mediated_mailbox_propose;
+ 
+ -- The rate limiter's statements, in db/ratestate, run under the role of each deployable or job kind
+ -- that spends from the budget (ADR-0118), the mediator, backfill and delta sync. The grants also name

@@ -13,11 +13,10 @@ import (
 
 const recordMaskingEvent = `-- name: RecordMaskingEvent :exec
 INSERT INTO masking_events (account_id, message_id, field, rule_id, tier, scanner_version, scanner_revision)
-VALUES ($1, $2, 'subject', $3, $4, $5, $6)
+VALUES (current_setting('app.account'), $1, 'subject', $2, $3, $4, $5)
 `
 
 type RecordMaskingEventParams struct {
-	AccountID       string
 	MessageID       string
 	RuleID          string
 	Tier            int32
@@ -30,7 +29,6 @@ type RecordMaskingEventParams struct {
 // configuration revision the masking ran under (ADR-0120).
 func (q *Queries) RecordMaskingEvent(ctx context.Context, arg RecordMaskingEventParams) error {
 	_, err := q.db.Exec(ctx, recordMaskingEvent,
-		arg.AccountID,
 		arg.MessageID,
 		arg.RuleID,
 		arg.Tier,
@@ -43,23 +41,22 @@ func (q *Queries) RecordMaskingEvent(ctx context.Context, arg RecordMaskingEvent
 const recordMaskingEvents = `-- name: RecordMaskingEvents :exec
 INSERT INTO masking_events (account_id, message_id, field, rule_id, tier, scanner_version, scanner_revision)
 SELECT
-    $1,
+    current_setting('app.account') AS account_id,
     e.message_id,
     'subject' AS field,
     e.rule_id,
     e.tier,
-    $2::int AS scanner_version,
-    $3::text AS scanner_revision
+    $1::int AS scanner_version,
+    $2::text AS scanner_revision
 FROM (
     SELECT
-        unnest($4::text[]) AS message_id,
-        unnest($5::text[]) AS rule_id,
-        unnest($6::int[]) AS tier
+        unnest($3::text[]) AS message_id,
+        unnest($4::text[]) AS rule_id,
+        unnest($5::int[]) AS tier
 ) AS e
 `
 
 type RecordMaskingEventsParams struct {
-	AccountID       string
 	ScannerVersion  int32
 	ScannerRevision string
 	MessageIds      []string
@@ -73,7 +70,6 @@ type RecordMaskingEventsParams struct {
 // backfill's run-start step masks the stored subjects again in batches (ADR-0120).
 func (q *Queries) RecordMaskingEvents(ctx context.Context, arg RecordMaskingEventsParams) error {
 	_, err := q.db.Exec(ctx, recordMaskingEvents,
-		arg.AccountID,
 		arg.ScannerVersion,
 		arg.ScannerRevision,
 		arg.MessageIds,

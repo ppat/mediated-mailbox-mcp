@@ -144,7 +144,7 @@ The navigation rules that make this analysis rather than page-hopping:
 | --- | --- |
 | account | mandatory, the first path segment, never implicit, never `all`, on every route but the installation screens' of [section 8.10](#810-installation), which belong to no account |
 | time range | `range=` with the grammar below. UTC on the wire and in the display, with the `Z` suffix, local time on hover |
-| search | a filter named `search`, declared in the registry as a filter-only entry of kind text, legal at every level, on three datasets. Its value is the text searched for, taken whole, so a comma or a leading `!` in it is part of the text and not the filter grammar's. On `messages` it is a case-insensitive substring match over the masked subject, filtered after the account's rows, since no index over the subject can serve a runtime role under row-level security ([ADR-0016](./adr/data/0016-schema.md)), and the search box submits `/{account}/messages?level=3&search=…`. On `senders` it is a case-insensitive substring match over the domain, the sender picker's search of [section 8.7](#87-policy). On `rules` it is a case-insensitive substring match over the rule identifiers and the domain suffixes, the search box above the policy screen's table. Sender and label search on messages are the ordinary `sender` and `label` filters |
+| search | a filter named `search`, declared in the registry as a filter-only entry of kind text, legal at every level, on three datasets. Its value is the text searched for, taken whole, so a comma or a leading `!` in it is part of the text and not the filter grammar's. On `messages` it is a case-insensitive substring match over the masked subject, filtered after the account's rows, since no index over the subject exists ([ADR-0016](./adr/data/0016-schema.md)), and the search box submits `/{account}/messages?level=3&search=…`. On `senders` it is a case-insensitive substring match over the domain, the sender picker's search of [section 8.7](#87-policy). On `rules` it is a case-insensitive substring match over the rule identifiers and the domain suffixes, the search box above the policy screen's table. Sender and label search on messages are the ordinary `sender` and `label` filters |
 
 **The route table.** The entry route first, then the fixed screens, the object screens, and the
 lens routes, which exist only for the five analysis datasets. The URL is the view state. The
@@ -2144,8 +2144,8 @@ decisions, the two setups, and the policy writes.
   also refused with `identity_missing` when the operator name is configured empty, so no write is
   recorded with no one named.
 - **The database connection carries the account.** Per request the UI opens a transaction and
-  sets the transaction-local setting `app.account`, which the row-level security policies of
-  ADR-0016's third layer read, by an ordinary statement like every other process.
+  sets the transaction-local setting `app.account`, which every statement compares its account
+  with (ADR-0135), by an ordinary statement like every other process.
 - **A decision is one transaction, written by the UI's own code.** The status, the decision time,
   and the identity are written together, and a confirmation also inserts its policy rule row and
   that rule's policy history row in the same transaction (ADR-0084, ADR-0102). A policy write is
@@ -2349,8 +2349,8 @@ search box reads, a substring match over identifiers and suffixes.
 | L0 figures | changes, those that added restriction (added, confirmed, and edits that only added suffixes) and those that lifted it (lifted, and edits that removed a suffix), each linking to the history with that filter |
 | Row | the policy change row of [section 7.2](#72-the-sender-row-the-audit-row-the-page-row-and-the-policy-change-row), with `id` as its identity |
 
-The account's history is its own rows and the base policy's, as row-level security confines it
-(ADR-0102). A row carries no account other than the one in the path or none.
+The account's history is its own rows and the base policy's, as every statement confines it to the
+transaction's account (ADR-0102, ADR-0135). A row carries no account other than the one in the path or none.
 
 `GET /api/{account}/{dataset}/{row-id}` (with the parent filter for a nested dataset, and no other
 parameter) returns one row with its provenance for L4, including the message's audit rows, for the

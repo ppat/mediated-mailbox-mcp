@@ -5,17 +5,20 @@ SELECT
     tokens,
     floor(extract(EPOCH FROM issued_at) * 1000)::bigint AS issued_ms
 FROM rate_grants
-WHERE account_id = @account_id;
+WHERE account_id = current_setting('app.account');
 
 -- name: InsertGrant :exec
 INSERT INTO rate_grants (account_id, class, tokens, issued_at)
-VALUES (@account_id, @class, @tokens, timestamptz 'epoch' + (@issued_ms::bigint) * interval '1 millisecond');
+VALUES (
+    current_setting('app.account'), @class, @tokens,
+    timestamptz 'epoch' + (@issued_ms::bigint) * interval '1 millisecond'
+);
 
 -- name: DeleteGrantsBefore :exec
 -- Deletes the grants issued at or before the cutoff, one second before the clock the issuer read.
 DELETE FROM rate_grants
 WHERE
-    account_id = @account_id
+    account_id = current_setting('app.account')
     AND issued_at <= timestamptz 'epoch' + (@cutoff_ms::bigint) * interval '1 millisecond';
 
 -- name: ClampGrants :exec
@@ -25,5 +28,5 @@ WHERE
 UPDATE rate_grants
 SET issued_at = timestamptz 'epoch' + (@now_ms::bigint) * interval '1 millisecond'
 WHERE
-    account_id = @account_id
+    account_id = current_setting('app.account')
     AND issued_at > timestamptz 'epoch' + (@now_ms::bigint) * interval '1 millisecond';

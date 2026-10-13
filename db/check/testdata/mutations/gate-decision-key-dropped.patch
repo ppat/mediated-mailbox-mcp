@@ -1,0 +1,21 @@
+control: Every log table references what it belongs to
+removes: the gate decisions lose their key to messages, so a decision for a message the index does not hold is stored and a removed message leaves its decision
+packages: ./db/check
+tests: TestEveryLogTableRefusesAnOrphan TestEveryLogTableRefusesAnOrphan/a_gate_decision TestEveryLogTableRefusesAnOrphan/a_gate_decision_for_another_account's_message TestAMessageOrRunRemovedTakesItsPartsWithIt
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/00002_schema.sql b/db/migrations/00002_schema.sql
+index 16df97b3..e2cfac9c 100644
+--- a/db/migrations/00002_schema.sql
++++ b/db/migrations/00002_schema.sql
+@@ -212,8 +212,7 @@ CREATE TABLE scan_gate_decisions (
+     -- restricted | high_volume_no_hits | ..., a vocabulary tuning grows, so not checked.
+     reason text NOT NULL,
+     decided_at timestamptz NOT NULL DEFAULT now(),
+-    PRIMARY KEY (account_id, message_id),
+-    FOREIGN KEY (account_id, message_id) REFERENCES messages ON DELETE CASCADE
++    PRIMARY KEY (account_id, message_id)
+ );
+ 
+ -- The heuristic review queue (ADR-0004).

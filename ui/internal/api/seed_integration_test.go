@@ -243,9 +243,8 @@ func seed(t *testing.T) {
 	}
 }
 
-// uiPool connects as the UI's own role, so every read below is held to the UI's grants and the
-// row-level security policies. The test database's superuser owns the connection and sets the role
-// on each new session.
+// uiPool connects as the UI's own role, so every read below is held to the UI's grants. The test
+// database's superuser owns the connection and sets the role on each new session.
 func uiPool(t *testing.T, role string) *pgxpool.Pool {
 	t.Helper()
 	pool, _ := countingPool(t, role)

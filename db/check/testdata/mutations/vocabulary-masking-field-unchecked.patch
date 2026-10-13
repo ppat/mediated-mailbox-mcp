@@ -6,12 +6,12 @@ scheduled-count: no
 integration: yes
 
 diff --git a/db/migrations/00002_schema.sql b/db/migrations/00002_schema.sql
-index f40c7fd3..20ca3724 100644
+index 16df97b3..c0d2aca9 100644
 --- a/db/migrations/00002_schema.sql
 +++ b/db/migrations/00002_schema.sql
-@@ -258,7 +258,7 @@ CREATE TABLE masking_events (
+@@ -276,7 +276,7 @@ CREATE TABLE masking_events (
      -- Indexed below with masked_at.
-     account_id text NOT NULL,
+     account_id text NOT NULL REFERENCES accounts,
      message_id text NOT NULL,
 -    field text NOT NULL CHECK (field IN ('subject')),
 +    field text NOT NULL,
