@@ -1,0 +1,1290 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "mediated-mailbox chart values",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "nameOverride": {
+      "type": "string"
+    },
+    "fullnameOverride": {
+      "type": "string"
+    },
+    "global": {
+      "type": "object",
+      "properties": {
+        "image": {
+          "type": "object",
+          "properties": {
+            "registry": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The registry."
+            },
+            "pullPolicy": {
+              "enum": [
+                "Always",
+                "IfNotPresent",
+                "Never"
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        "imagePullSecrets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "name"
+            ]
+          }
+        },
+        "commonLabels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "podSecurityContext": {
+          "type": "object"
+        },
+        "securityContext": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false
+    },
+    "database": {
+      "type": "object",
+      "properties": {
+        "host": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The server's host name. Required."
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The database's name. Required."
+        },
+        "sslmode": {
+          "enum": [
+            "disable",
+            "allow",
+            "prefer",
+            "require",
+            "verify-ca",
+            "verify-full"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "host",
+        "name"
+      ]
+    },
+    "secrets": {
+      "type": "object",
+      "properties": {
+        "databasePasswords": {
+          "type": "object",
+          "properties": {
+            "mediator": {
+              "type": "object",
+              "properties": {
+                "existingSecret": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The Secret's name. Required."
+                },
+                "secretKeys": {
+                  "type": "object",
+                  "properties": {
+                    "password": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "The key holding the password."
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "existingSecret"
+              ]
+            },
+            "ui": {
+              "type": "object",
+              "properties": {
+                "existingSecret": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The Secret's name. Required."
+                },
+                "secretKeys": {
+                  "type": "object",
+                  "properties": {
+                    "password": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "The key holding the password."
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "existingSecret"
+              ]
+            },
+            "worker": {
+              "type": "object",
+              "properties": {
+                "backfill": {
+                  "type": "object",
+                  "properties": {
+                    "existingSecret": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "The Secret's name. Required."
+                    },
+                    "secretKeys": {
+                      "type": "object",
+                      "properties": {
+                        "password": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "The key holding the password."
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  },
+                  "additionalProperties": false,
+                  "required": [
+                    "existingSecret"
+                  ]
+                },
+                "sync": {
+                  "type": "object",
+                  "properties": {
+                    "existingSecret": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "The Secret's name. Required."
+                    },
+                    "secretKeys": {
+                      "type": "object",
+                      "properties": {
+                        "password": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "The key holding the password."
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  },
+                  "additionalProperties": false,
+                  "required": [
+                    "existingSecret"
+                  ]
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "backfill",
+                "sync"
+              ],
+              "description": "One entry per job kind the worker runs, matching worker.jobKinds."
+            },
+            "migration": {
+              "type": "object",
+              "properties": {
+                "existingSecret": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The Secret's name. Required."
+                },
+                "secretKeys": {
+                  "type": "object",
+                  "properties": {
+                    "passwordFile": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "The key holding the password in the libpq password file format."
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "existingSecret"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "mediator",
+            "ui",
+            "worker",
+            "migration"
+          ]
+        },
+        "databaseCaCertificate": {
+          "type": "object",
+          "properties": {
+            "existingSecret": {
+              "type": "string"
+            },
+            "secretKeys": {
+              "type": "object",
+              "properties": {
+                "certificate": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The key holding the CA certificate."
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "credentialSealingKeyPair": {
+          "type": "object",
+          "properties": {
+            "existingSecret": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The Secret's name. Required."
+            },
+            "secretKeys": {
+              "type": "object",
+              "properties": {
+                "publicKey": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The key holding the public key."
+                },
+                "privateKeys": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "minItems": 1
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "existingSecret"
+          ]
+        },
+        "mediatorBearerToken": {
+          "type": "object",
+          "properties": {
+            "existingSecret": {
+              "type": "string"
+            },
+            "secretKeys": {
+              "type": "object",
+              "properties": {
+                "bearerToken": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The key holding the bearer token."
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "uiRequestTokenKey": {
+          "type": "object",
+          "properties": {
+            "existingSecret": {
+              "type": "string"
+            },
+            "secretKeys": {
+              "type": "object",
+              "properties": {
+                "requestTokenKey": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The key holding the request token key."
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "mediatorTls": {
+          "type": "object",
+          "properties": {
+            "existingSecret": {
+              "type": "string"
+            },
+            "secretKeys": {
+              "type": "object",
+              "properties": {
+                "certificate": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The key holding the certificate chain."
+                },
+                "privateKey": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The key holding the private key."
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "uiTls": {
+          "type": "object",
+          "properties": {
+            "existingSecret": {
+              "type": "string"
+            },
+            "secretKeys": {
+              "type": "object",
+              "properties": {
+                "certificate": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The key holding the certificate chain."
+                },
+                "privateKey": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The key holding the private key."
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "databasePasswords",
+        "credentialSealingKeyPair"
+      ]
+    },
+    "sharedConfig": {
+      "type": "object",
+      "properties": {
+        "log_level": {
+          "type": "string",
+          "enum": [
+            "debug",
+            "info",
+            "warn",
+            "error"
+          ]
+        },
+        "sync_interval": {
+          "type": "string",
+          "description": "A Go duration, such as 30s, 5m or 168h."
+        },
+        "scanner": {
+          "type": "object",
+          "properties": {
+            "triggers": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "propertyNames": {
+                "pattern": "^[a-z0-9]+(_[a-z0-9]+)*$",
+                "not": {
+                  "enum": [
+                    "true",
+                    "false"
+                  ]
+                }
+              },
+              "description": "Trigger words by language. A key Helm's YAML parser turned from an unquoted no, n, off, yes, y or on into false or true is refused; quote such a key."
+            },
+            "link_words": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "link_params": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "window": {
+              "type": "integer"
+            },
+            "dense_length": {
+              "type": "integer"
+            },
+            "dense_entropy": {
+              "type": "number"
+            },
+            "weights": {
+              "type": "object",
+              "properties": {
+                "entropy": {
+                  "type": "number"
+                },
+                "mix": {
+                  "type": "number"
+                },
+                "length": {
+                  "type": "number"
+                },
+                "proximity": {
+                  "type": "number"
+                },
+                "position": {
+                  "type": "number"
+                }
+              },
+              "additionalProperties": false
+            },
+            "threshold": {
+              "type": "number"
+            },
+            "subject_threshold": {
+              "type": "number"
+            }
+          },
+          "additionalProperties": false,
+          "description": "The scanner section (ADR-0005), rendered identically into the mediator and the worker."
+        }
+      },
+      "additionalProperties": false
+    },
+    "mediator": {
+      "type": "object",
+      "properties": {
+        "replicaCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "image": {
+          "type": "object",
+          "properties": {
+            "repository": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The repository."
+            },
+            "tag": {
+              "type": "string"
+            },
+            "digest": {
+              "type": "string",
+              "pattern": "^(sha256:[a-f0-9]{64})?$"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "repository"
+          ]
+        },
+        "database": {
+          "type": "object",
+          "properties": {
+            "user": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "description": "The connection's role. Its password is under secrets.databasePasswords."
+        },
+        "config": {
+          "type": "object",
+          "properties": {
+            "account_reload_interval": {
+              "type": "string",
+              "description": "A Go duration, such as 30s, 5m or 168h."
+            },
+            "provider_timeout": {
+              "type": "string",
+              "description": "A Go duration, such as 30s, 5m or 168h."
+            },
+            "log_level": {
+              "type": "string",
+              "enum": [
+                "debug",
+                "info",
+                "warn",
+                "error"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "description": "The mediator's own configuration keys. Keys the chart renders itself are refused here."
+        },
+        "serviceAccount": {
+          "type": "object",
+          "properties": {
+            "create": {
+              "type": "boolean"
+            },
+            "name": {
+              "type": "string"
+            },
+            "annotations": {
+              "type": "object"
+            }
+          },
+          "additionalProperties": false
+        },
+        "service": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string"
+            },
+            "port": {
+              "type": "integer"
+            },
+            "annotations": {
+              "type": "object"
+            }
+          },
+          "additionalProperties": false
+        },
+        "ingress": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "className": {
+              "type": "string"
+            },
+            "annotations": {
+              "type": "object"
+            },
+            "hosts": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "host": {
+                    "type": "string"
+                  },
+                  "paths": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "path": {
+                          "type": "string"
+                        },
+                        "pathType": {
+                          "type": "string"
+                        }
+                      },
+                      "additionalProperties": false,
+                      "required": [
+                        "path",
+                        "pathType"
+                      ]
+                    }
+                  }
+                },
+                "additionalProperties": false,
+                "required": [
+                  "host",
+                  "paths"
+                ]
+              }
+            },
+            "tls": {
+              "type": "array"
+            }
+          },
+          "additionalProperties": false
+        },
+        "httpRoute": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "annotations": {
+              "type": "object"
+            },
+            "parentRefs": {
+              "type": "array"
+            },
+            "hostnames": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "rules": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "matches": {
+                    "type": "array"
+                  },
+                  "filters": {
+                    "type": "array"
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "topologySpreadConstraints": {
+          "type": "array"
+        },
+        "priorityClassName": {
+          "type": "string"
+        },
+        "resources": {
+          "type": "object"
+        },
+        "podAnnotations": {
+          "type": "object"
+        },
+        "podLabels": {
+          "type": "object"
+        },
+        "podSecurityContext": {
+          "type": "object"
+        },
+        "securityContext": {
+          "type": "object"
+        },
+        "nodeSelector": {
+          "type": "object"
+        },
+        "tolerations": {
+          "type": "array"
+        },
+        "affinity": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ui": {
+      "type": "object",
+      "properties": {
+        "replicaCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "image": {
+          "type": "object",
+          "properties": {
+            "repository": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The repository."
+            },
+            "tag": {
+              "type": "string"
+            },
+            "digest": {
+              "type": "string",
+              "pattern": "^(sha256:[a-f0-9]{64})?$"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "repository"
+          ]
+        },
+        "database": {
+          "type": "object",
+          "properties": {
+            "user": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "description": "The connection's role. Its password is under secrets.databasePasswords."
+        },
+        "config": {
+          "type": "object",
+          "properties": {
+            "heuristics_interval": {
+              "type": "string",
+              "description": "A Go duration, such as 30s, 5m or 168h."
+            },
+            "stream_interval": {
+              "type": "string",
+              "description": "A Go duration, such as 30s, 5m or 168h."
+            },
+            "default_theme": {
+              "type": "string"
+            },
+            "stream_reconnect_max": {
+              "type": "string",
+              "description": "A Go duration, such as 30s, 5m or 168h."
+            },
+            "stream_poll_interval": {
+              "type": "string",
+              "description": "A Go duration, such as 30s, 5m or 168h."
+            },
+            "attention_backlog_share": {
+              "type": "number"
+            },
+            "attention_mask_count": {
+              "type": "integer"
+            },
+            "attention_serve_factor": {
+              "type": "number"
+            },
+            "attention_gap_days": {
+              "type": "integer"
+            },
+            "consent_redirect": {
+              "type": "string"
+            },
+            "identity_header": {
+              "type": "string"
+            },
+            "operator_name": {
+              "type": "string"
+            },
+            "log_level": {
+              "type": "string",
+              "enum": [
+                "debug",
+                "info",
+                "warn",
+                "error"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "description": "The UI's own configuration keys. Keys the chart renders itself are refused here."
+        },
+        "serviceAccount": {
+          "type": "object",
+          "properties": {
+            "create": {
+              "type": "boolean"
+            },
+            "name": {
+              "type": "string"
+            },
+            "annotations": {
+              "type": "object"
+            }
+          },
+          "additionalProperties": false
+        },
+        "service": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string"
+            },
+            "port": {
+              "type": "integer"
+            },
+            "annotations": {
+              "type": "object"
+            }
+          },
+          "additionalProperties": false
+        },
+        "ingress": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "className": {
+              "type": "string"
+            },
+            "annotations": {
+              "type": "object"
+            },
+            "hosts": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "host": {
+                    "type": "string"
+                  },
+                  "paths": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "path": {
+                          "type": "string"
+                        },
+                        "pathType": {
+                          "type": "string"
+                        }
+                      },
+                      "additionalProperties": false,
+                      "required": [
+                        "path",
+                        "pathType"
+                      ]
+                    }
+                  }
+                },
+                "additionalProperties": false,
+                "required": [
+                  "host",
+                  "paths"
+                ]
+              }
+            },
+            "tls": {
+              "type": "array"
+            }
+          },
+          "additionalProperties": false
+        },
+        "httpRoute": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "annotations": {
+              "type": "object"
+            },
+            "parentRefs": {
+              "type": "array"
+            },
+            "hostnames": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "rules": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "matches": {
+                    "type": "array"
+                  },
+                  "filters": {
+                    "type": "array"
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "topologySpreadConstraints": {
+          "type": "array"
+        },
+        "priorityClassName": {
+          "type": "string"
+        },
+        "resources": {
+          "type": "object"
+        },
+        "podAnnotations": {
+          "type": "object"
+        },
+        "podLabels": {
+          "type": "object"
+        },
+        "podSecurityContext": {
+          "type": "object"
+        },
+        "securityContext": {
+          "type": "object"
+        },
+        "nodeSelector": {
+          "type": "object"
+        },
+        "tolerations": {
+          "type": "array"
+        },
+        "affinity": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false
+    },
+    "worker": {
+      "type": "object",
+      "properties": {
+        "image": {
+          "type": "object",
+          "properties": {
+            "repository": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The repository."
+            },
+            "tag": {
+              "type": "string"
+            },
+            "digest": {
+              "type": "string",
+              "pattern": "^(sha256:[a-f0-9]{64})?$"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "repository"
+          ]
+        },
+        "jobKinds": {
+          "type": "object",
+          "properties": {
+            "backfill": {
+              "type": "object",
+              "properties": {
+                "database": {
+                  "type": "object",
+                  "properties": {
+                    "user": {
+                      "type": "string"
+                    },
+                    "poolSize": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "minimum": 1
+                    }
+                  },
+                  "additionalProperties": false,
+                  "description": "The connection's role. Its password is under secrets.databasePasswords."
+                },
+                "config": {
+                  "type": "object",
+                  "properties": {
+                    "concurrency": {
+                      "type": "integer"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "description": "Backfill's own section."
+                }
+              },
+              "additionalProperties": false
+            },
+            "sync": {
+              "type": "object",
+              "properties": {
+                "database": {
+                  "type": "object",
+                  "properties": {
+                    "user": {
+                      "type": "string"
+                    },
+                    "poolSize": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "minimum": 1
+                    }
+                  },
+                  "additionalProperties": false,
+                  "description": "The connection's role. Its password is under secrets.databasePasswords."
+                },
+                "config": {
+                  "type": "object",
+                  "properties": {
+                    "first_window": {
+                      "type": "string",
+                      "description": "A Go duration, such as 30s, 5m or 168h."
+                    },
+                    "decisions_per_tick": {
+                      "type": "integer"
+                    },
+                    "concurrency": {
+                      "type": "integer"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "description": "Delta sync's own section. The sync interval is sharedConfig.sync_interval."
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "backfill",
+            "sync"
+          ],
+          "description": "The worker's job kinds, keyed by name. Each is a section of the worker's configuration, so only job kinds the worker runs are accepted."
+        },
+        "config": {
+          "type": "object",
+          "properties": {
+            "reload_interval": {
+              "type": "string",
+              "description": "A Go duration, such as 30s, 5m or 168h."
+            },
+            "log_level": {
+              "type": "string",
+              "enum": [
+                "debug",
+                "info",
+                "warn",
+                "error"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "description": "The worker's own configuration keys. Keys the chart renders itself are refused here."
+        },
+        "terminationGracePeriodSeconds": {
+          "type": "integer"
+        },
+        "serviceAccount": {
+          "type": "object",
+          "properties": {
+            "create": {
+              "type": "boolean"
+            },
+            "name": {
+              "type": "string"
+            },
+            "annotations": {
+              "type": "object"
+            }
+          },
+          "additionalProperties": false
+        },
+        "priorityClassName": {
+          "type": "string"
+        },
+        "resources": {
+          "type": "object"
+        },
+        "podAnnotations": {
+          "type": "object"
+        },
+        "podLabels": {
+          "type": "object"
+        },
+        "podSecurityContext": {
+          "type": "object"
+        },
+        "securityContext": {
+          "type": "object"
+        },
+        "nodeSelector": {
+          "type": "object"
+        },
+        "tolerations": {
+          "type": "array"
+        },
+        "affinity": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false
+    },
+    "migration": {
+      "type": "object",
+      "properties": {
+        "image": {
+          "type": "object",
+          "properties": {
+            "repository": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The repository."
+            },
+            "tag": {
+              "type": "string"
+            },
+            "digest": {
+              "type": "string",
+              "pattern": "^(sha256:[a-f0-9]{64})?$"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "repository"
+          ]
+        },
+        "database": {
+          "type": "object",
+          "properties": {
+            "user": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The migration role."
+            }
+          },
+          "additionalProperties": false
+        },
+        "backoffLimit": {
+          "type": "integer"
+        },
+        "activeDeadlineSeconds": {
+          "type": "integer"
+        },
+        "resources": {
+          "type": "object"
+        },
+        "podAnnotations": {
+          "type": "object"
+        },
+        "podLabels": {
+          "type": "object"
+        },
+        "podSecurityContext": {
+          "type": "object"
+        },
+        "securityContext": {
+          "type": "object"
+        },
+        "nodeSelector": {
+          "type": "object"
+        },
+        "tolerations": {
+          "type": "array"
+        },
+        "affinity": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false
+    },
+    "monitoring": {
+      "type": "object",
+      "properties": {
+        "serviceMonitor": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "enum": [
+                "auto",
+                true,
+                false
+              ],
+              "description": "auto renders where the cluster serves the kind, true always, false never."
+            },
+            "interval": {
+              "type": "string"
+            },
+            "labels": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "prometheusRule": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "enum": [
+                "auto",
+                true,
+                false
+              ],
+              "description": "auto renders where the cluster serves the kind, true always, false never."
+            },
+            "labels": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "dashboard": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "labels": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "annotations": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "helmTest": {
+      "type": "object",
+      "properties": {
+        "image": {
+          "type": "object",
+          "properties": {
+            "repository": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The repository."
+            },
+            "tag": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The tag."
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

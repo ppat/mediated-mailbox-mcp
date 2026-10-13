@@ -4,10 +4,10 @@ packages: ./worker/internal/deltasync/tick
 tests: TestAlertingRules
 scheduled-count: no
 
-diff --git a/packaging/chart/alerting-rules.yaml b/packaging/chart/alerting-rules.yaml
+diff --git a/packaging/chart/rules/alerting-rules.yaml b/packaging/chart/rules/alerting-rules.yaml
 index ca2d76e..b0666a6 100644
---- a/packaging/chart/alerting-rules.yaml
-+++ b/packaging/chart/alerting-rules.yaml
+--- a/packaging/chart/rules/alerting-rules.yaml
++++ b/packaging/chart/rules/alerting-rules.yaml
 @@ -109,8 +109,6 @@ groups:
    - alert: MediatedMailboxSyncCursorGap
      expr: |

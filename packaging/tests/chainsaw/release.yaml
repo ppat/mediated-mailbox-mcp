@@ -1,0 +1,63 @@
+---
+# The chart at the commit under test, installed by flux into the test's namespace, with the images of the tag
+# under test. Each test's own values arrive from its ConfigMap, named for the release, which flux watches, so
+# changing it upgrades the release. Flux runs the chart's Helm test after the install and after each upgrade.
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: ($release)
+  namespace: flux-system
+spec:
+  interval: 1h
+  url: ($values.git.url)
+  ref:
+    commit: ($values.git.commit)
+  secretRef:
+    name: ($values.git.secretName)
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: ($release)
+  namespace: flux-system
+spec:
+  interval: 1h
+  releaseName: ($release)
+  targetNamespace: ($namespace)
+  storageNamespace: ($namespace)
+  timeout: 10m
+  chart:
+    spec:
+      chart: ($values.chart.path)
+      reconcileStrategy: Revision
+      sourceRef:
+        kind: GitRepository
+        name: ($release)
+  install:
+    remediation:
+      retries: 0
+  upgrade:
+    remediation:
+      retries: 0
+  test:
+    enable: true
+  valuesFrom:
+  - kind: ConfigMap
+    name: ($release)
+    valuesKey: values.yaml
+  values:
+    global:
+      image:
+        registry: ($values.registry)
+    mediator:
+      image:
+        tag: ($values.imageTag)
+    ui:
+      image:
+        tag: ($values.imageTag)
+    worker:
+      image:
+        tag: ($values.imageTag)
+    migration:
+      image:
+        tag: ($values.imageTag)

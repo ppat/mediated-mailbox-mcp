@@ -6,7 +6,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 )
 
-// The series the runaway rule reads, in packaging/chart/alerting-rules.yaml (ADR-0077). The rule
+// The series the runaway rule reads, in packaging/chart/rules/alerting-rules.yaml (ADR-0077). The rule
 // matches their names and compares the count against the hard cap per account, so both names stay
 // exactly as written.
 const (

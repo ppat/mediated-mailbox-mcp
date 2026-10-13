@@ -67,7 +67,7 @@ const MODELLED_MATCHERS = ['matchManagers', 'matchFileNames', 'matchDepNames', '
 // run so a new dependency file is a new cell. A file only an unmodelled manager reads is instead a
 // refusal, because its headers would be emitted and never enumerated here.
 const UNMODELLED_OCCUPANCY = [
-  [/(^|\/)Chart\.lock$/, 'helmv3'], [/(^|\/)values(-[^/]+)?\.ya?ml$/, 'helm-values'],
+  [/(^|\/)Chart\.lock$/, 'helmv3'], [/(^|\/)values-[^/]+\.ya?ml$/, 'helm-values'],
   [/(^|\/)(package-lock\.json|npm-shrinkwrap\.json)$/, 'npm'], [/(^|\/)yarn\.lock$/, 'npm'], [/(^|\/)pnpm-lock\.yaml$/, 'npm'],
   [/(^|\/)\.tool-versions$/, 'asdf'], [/(^|\/)go\.work$/, 'gomod'], [/(^|\/)Cargo\.toml$/, 'cargo'],
   [/(^|\/)pyproject\.toml$/, 'pep621'], [/(^|\/)requirements[^/]*\.txt$/, 'pip_requirements'], [/(^|\/)Gemfile$/, 'bundler'],
@@ -324,6 +324,24 @@ const extractRegex = (env, manager, tracked) => {
   return cells
 }
 
+// helm-values reads a chart's values.yaml and extracts every mapping holding an image repository and a non-empty tag,
+// with the registry beside them when one is given. A mapping whose tag is empty, such as an image whose tag defaults
+// to the chart's appVersion, carries no version for Renovate to move and yields no cell.
+const extractHelmValues = (env, file) => {
+  const cells = []
+  const walk = (node) => {
+    if (Array.isArray(node)) { node.forEach(walk); return }
+    if (!node || typeof node !== 'object') return
+    if (typeof node.repository === 'string' && typeof node.tag === 'string' && node.tag !== '') {
+      const depName = typeof node.registry === 'string' && node.registry ? `${node.registry}/${node.repository}` : node.repository
+      cells.push({ manager: 'helm-values', packageFile: file, depName, depType: null, datasource: 'docker' })
+    }
+    Object.values(node).forEach(walk)
+  }
+  walk(env.yaml(file))
+  return cells
+}
+
 const extractRenovateConfig = (env, file) => {
   const cells = []
   for (const ref of env.json(file).extends ?? []) {
@@ -346,6 +364,7 @@ const occupancy = (env) => {
     if (/(^|\/)package\.json$/.test(file)) cells.push(...extractBun(env, file, tracked))
     if (/^\.pre-commit-config\.ya?ml$/.test(file)) cells.push(...extractPreCommit(env, file))
     if (WORKFLOW.test(file)) cells.push(...extractGithubActions(env, file))
+    if (/(^|\/)values\.ya?ml$/.test(file)) cells.push(...extractHelmValues(env, file))
     if (file === '.github/renovate.json') cells.push(...extractRenovateConfig(env, file))
   }
   if (tracked.includes('mise.lock')) cells.push({ manager: 'mise', packageFile: 'mise.toml', depName: null, depType: null, datasource: null, lockfile: true })

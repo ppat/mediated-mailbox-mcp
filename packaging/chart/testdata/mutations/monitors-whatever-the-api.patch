@@ -1,0 +1,22 @@
+control: The Prometheus Operator's resources render where its API is served or a value forces them
+removes: the ServiceMonitors render whether or not the cluster serves their kind
+packages: ./packaging/chart
+tests: TestThePrometheusOperatorsResourcesFollowItsAPIAndTheSwitch
+scheduled-count: no
+
+diff --git a/packaging/chart/templates/servicemonitors.yaml b/packaging/chart/templates/servicemonitors.yaml
+index 270e6b3c..aa75432f 100644
+--- a/packaging/chart/templates/servicemonitors.yaml
++++ b/packaging/chart/templates/servicemonitors.yaml
+@@ -1,10 +1,10 @@
+ {{- /*
+ One ServiceMonitor per deployable, scraping its plain-HTTP metrics port. They render where the cluster serves the
+ ServiceMonitor kind, or when monitoring.serviceMonitor.enabled forces them on, and never when it is false.
+ */ -}}
+-{{- if include "mm.monitoringEnabled" (list $ .Values.monitoring.serviceMonitor.enabled "monitoring.coreos.com/v1/ServiceMonitor") }}
++{{- if ne (toString .Values.monitoring.serviceMonitor.enabled) "false" }}
+ {{- range $component := list "mediator" "ui" "worker" }}
+ ---
+ apiVersion: monitoring.coreos.com/v1
+ kind: ServiceMonitor
+ metadata:

@@ -4,7 +4,7 @@
 # minute it was taken in seconds is a job succeeding every minute, and one held at a value is a job whose latest
 # success stopped there.
 rule_files:
-- ../../../../packaging/chart/alerting-rules.yaml
+- ../../../../packaging/chart/rules/alerting-rules.yaml
 
 evaluation_interval: 1m
 

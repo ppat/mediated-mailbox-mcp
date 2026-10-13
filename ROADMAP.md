@@ -222,6 +222,7 @@ its part, and the rows it added. Which rows it proved are the rows whose Status 
 | [#352](https://github.com/ppat/mediated-mailbox-mcp/pull/352) | R1 | R1's transport for the mediator and the UI ([ADR-0127](./docs/adr/operability/0127-tls-when-given-a-key-pair-plain-http-otherwise.md)), TLS when the configuration names both TLS files, plain HTTP when it names neither and a start refused with one, in place of the mediator's declared ingress and the UI's plain HTTP from a binary built with a development build tag, which is removed | The rows of the mediator's and the UI's transport, the mediator's readiness and its refusal of a configuration it cannot serve with, proven for the TLS files as the record has them, and the row of the start log's record of the transport each deployable serves | The mediator's client surface transport, its readiness and its configuration refusals, the UI's transport, and the start log's record of the transport each deployable serves, demonstrated with the changed and added breaks, and every demonstration whose tests start either deployable or whose tests or patch the change touched, among them the ban-proof script's check of the vet step's tags and the consent redirect's validation, demonstrated again |
 | [#353](https://github.com/ppat/mediated-mailbox-mcp/pull/353) | M3 | M3's later work, the mutation runner carrying the checkout's built browser bundle into its copies and the `mutation-demonstrations` workflow building the bundle before it runs, so the demonstrations whose tests read the bundle run unaided again ([ADR-0124](./docs/adr/engineering/0124-each-kind-of-test-runs-in-a-workflow-of-its-own.md)) | — | Every go test demonstration whose patch sits under `ui/` or whose packages name a UI package or the mediator's entry package, and the runner's own, 274 in all, run again on the tree it merges into and held, with reproductions recorded on the two rows whose breaks now turn more tests red, a policy write refused for a route word and the route words being a closed list a test pins |
 | [#356](https://github.com/ppat/mediated-mailbox-mcp/pull/356) | R1 | R1's machinery ahead of the chart. The images workflow's job for each image also pushes, signs and tags it `latest` on a push to `main` matching its publish list, which names what the images are built from, and a release moves `latest` to its own commit's images, and the chainsaw suite on a pull request deploys those images by the digests it resolves, refusing a set built from different commits, from its new place at `packaging/tests/chainsaw/`. The release cut writes its version into `process/version` and the chart, the release refuses a chart whose version is not its tag's and checks the key-generation binaries it attached, every binary answers `--version`, the mediator's MCP server reports the same version, and each deployable writes a start banner to standard error ([ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md), [ADR-0054](./docs/adr/engineering/0054-one-repository-flat-layout-naming-convention.md), [ADR-0078](./docs/adr/engineering/0078-configuration-layers-through-an-owned-library.md), [ADR-0122](./docs/adr/engineering/0122-logs-through-slog-at-a-configured-level-handed-to-shells.md)) | It adds and proves the rows for a mixed or unlabelled `latest` set refused and a chart whose version disagrees with its tag refused, and rekeys the key-generation row's release part to production point 1 | Every demonstration whose patch or tests the change touched, the entry packages' patches regenerated for the moved lines, 220 in all, demonstrated again and held, with the new tests of `--version` and the start banner added where they also went red, and the worker's break of the keyring holding only the first private key recorded under the worker's package |
+| [#357](https://github.com/ppat/mediated-mailbox-mcp/pull/357) | R1 | R1's chart for the migration step, the mediator, the worker and the UI: one values tree with a schema, one ConfigMap holding one configuration file per process, each pod mounting only the secret keys its process reads, the migration step as a Helm hook Job ([ADR-0129](./docs/adr/data/0129-the-chart-runs-the-migration-step-as-a-pre-install-and-pre-upgrade-hook-job.md)), the worker as one pod with a Recreate rollout, restricted pod security, the bearer token and the request token key from Secrets the user names or one the chart creates and keeps, opt-in Ingress and HTTPRoute, the Prometheus Operator's resources where its API is served and an opt-in Grafana dashboard, its Helm test, its README with a CloudNativePG example, its unit tests and each deployable's test of the file the chart renders for it, and the chainsaw suite's first test, which installs the chart against a CloudNativePG cluster and upgrades it, with the commit taxonomy check taught the Renovate manager that reads the chart's values file | R1's rows, among them the chart's part of the private key's row and the chainsaw suite's emptiness row, and the rows it added for each pod's secrets, the worker's single copy, the restarts a configuration change makes, pod hardening, the migration step, the values schema, each deployable's rendered file, the bearer token and the request token key, exposure and the Prometheus Operator's resources, with the alerting rules' row proven again for rendering where the operator's API is served | Those of each of those controls, with the alerting rules' two breaks demonstrated again |
 | [#365](https://github.com/ppat/mediated-mailbox-mcp/pull/365) | S1 | S1's later work, the sender classifier comparing each sender with a policy `classify.Prepare` builds, every rule's suffixes converted once and the lookups they were converted with held for the sender, which the policy loader builds for each account it read in the reload that swaps the snapshot in and holds in that snapshot, so a classification converts only the sender. The UI's rules core converts the rules it reads once per request | The S1 row for the policy list alone deciding sender class proven again, and the rows it adds and proves for the prepared policy being swapped with its snapshot and for a sender being normalized only with its policy's own lookups | Those of the classifier, the policy loader, the Redaction Gate's policy and parameters and the stored-class comparisons, with the patches whose context or code the prepared policy moved regenerated, and new breaks for the prepared policy keeping the suffixes as written, a reload keeping the prepared policies of the snapshot it replaces, and the classifier taking a second set of lookups for the sender |
 
 ### What each composition root runs
@@ -479,7 +480,7 @@ What the code on `main` runs today, per composition root, none of it yet release
   and the scan's series, which [D4](#delivered-mapped-to-outcomes) delivered. Attaching the
   key-generation command's signed binaries to each release, which landed with
   [#181](https://github.com/ppat/mediated-mailbox-mcp/pull/181), with the check against a
-  published release added by [R1](#group-r--packaging) and proven at
+  published release added by [R1](#delivered-mapped-to-outcomes) and proven at
   [production point 1](#production-point-1--the-read-path). The UI's grants for its two setups,
   which landed with [M7](#delivered-mapped-to-outcomes)'s statements. The UI's read of
   `account_state`, which landed with [M3](#delivered-mapped-to-outcomes)'s
@@ -663,7 +664,7 @@ What the code on `main` runs today, per composition root, none of it yet release
   the page count pass 1's checkpoint now carries, which [M3](#delivered-mapped-to-outcomes)
   delivered under its ticket [#97](https://github.com/ppat/mediated-mailbox-mcp/issues/97). The
   key-generation release step's check against a published release, which
-  [R1](#group-r--packaging) adds and [production point 1](#production-point-1--the-read-path)
+  [R1](#delivered-mapped-to-outcomes) adds and [production point 1](#production-point-1--the-read-path)
   proves. Meeting the real corpus, killing the process running backfill mid-run on real substrate,
   the rotation write-back against the real provider and watching the rate gauge for the real
   ceiling, all at [production point 1](#production-point-1--the-read-path).
@@ -719,7 +720,7 @@ What the code on `main` runs today, per composition root, none of it yet release
   ([ADR-0078](./docs/adr/engineering/0078-configuration-layers-through-an-owned-library.md)). Every
   verification row keyed to it is proven for D2's part, and every control it delivered has its
   mutation demonstration. **What it did not deliver.** Running backfill after each release and each
-  change to the scanner's section with no manual step, which is [R1](#group-r--packaging)'s. A
+  change to the scanner's section with no manual step, which is [R1](#delivered-mapped-to-outcomes)'s. A
   configuration section for the gate's thresholds, which backfill
   takes as [ADR-0093](./docs/adr/redaction/0093-composite-scan-gate.md)'s defaults, so a change of
   thresholds is a release. How messages returned to pending are scanned once backfill has ended,
@@ -770,7 +771,7 @@ What the code on `main` runs today, per composition root, none of it yet release
   the deploying side. The removal of a message removed during a gap and dated before the gap's
   window, which stays in the index, since no workload reconciles it
   ([ADR-0105](./docs/adr/data/0105-a-cursor-gap-is-recovered-from-the-last-cursors-write-time.md)).
-  The chart's deployment of delta sync, which is [R1](#group-r--packaging)'s.
+  The chart's deployment of delta sync, which is [R1](#delivered-mapped-to-outcomes)'s.
   The sync-gap rule that shows a recovery to the operator, which
   [M3](#delivered-mapped-to-outcomes) delivered through pull request
   [#230](https://github.com/ppat/mediated-mailbox-mcp/pull/230). **Later work.** After production
@@ -854,7 +855,7 @@ What the code on `main` runs today, per composition root, none of it yet release
   its mutation demonstration. **What it did not deliver.** The mutating operations, which are
   [M1](#group-m--mutation-and-approval)'s, and the read-only plan tools,
   [M2](#group-m--mutation-and-approval)'s. The mediator's deployment, its TLS material and its bearer
-  token in a cluster, which are [R1](#group-r--packaging)'s and the deploying side's. The refusal of
+  token in a cluster, which are [R1](#delivered-mapped-to-outcomes)'s and the deploying side's. The refusal of
   an account identifier that is exactly `.`, `..` or `/`, which is
   [M7](#delivered-mapped-to-outcomes)'s account setup. Pairing each account with the OAuth client
   it connects through in the mediator's composition root, which landed with
@@ -1113,7 +1114,7 @@ What the code on `main` runs today, per composition root, none of it yet release
   [#339](https://github.com/ppat/mediated-mailbox-mcp/pull/339), D3's by pull request
   [#347](https://github.com/ppat/mediated-mailbox-mcp/pull/347) and M7's by pull request
   [#350](https://github.com/ppat/mediated-mailbox-mcp/pull/350). The chart's database setup without
-  an extension step, which is [R1](#group-r--packaging)'s. The rollback request's status, and the
+  an extension step, which is [R1](#delivered-mapped-to-outcomes)'s. The rollback request's status, and the
   heuristics run's pass and the storage of its embeddings, which are
   [M2](#group-m--mutation-and-approval)'s and [M4](#group-m--mutation-and-approval)'s. The UI's
   tests seed no apply or heuristics run, since the closed set of run pairs refuses them, so the
@@ -1169,10 +1170,10 @@ What the code on `main` runs today, per composition root, none of it yet release
   which key to [M4](#group-m--mutation-and-approval), every row of backfill and delta sync whose
   code or tests moved is proven again in the worker, and every control it delivered has its
   mutation demonstration. It changed the composition roots, so it finished at image. **What it did
-  not deliver.** The chart's object for the worker, a single copy, its role credentials, its
-  scratch space and one scanner block, which ticket
+  not deliver.** The chart's object for the worker, a single copy, its role credentials, a
+  read-only root that needs no scratch space, and one scanner block, which ticket
   [#103](https://github.com/ppat/mediated-mailbox-mcp/issues/103) builds for
-  [R1](#group-r--packaging). Reorg apply and rollback and the heuristics run as job kinds, which are
+  [R1](#delivered-mapped-to-outcomes). Reorg apply and rollback and the heuristics run as job kinds, which are
   [M2](#group-m--mutation-and-approval)'s and [M4](#group-m--mutation-and-approval)'s. Replicas of
   the worker, ruled out while the platform runs one copy. Interrupting and pausing a job. The hint
   from the mediator that a body waits, built only if
@@ -1295,7 +1296,7 @@ What the code on `main` runs today, per composition root, none of it yet release
   page M3 built. The plans screens, home's plan row and expiry rule, the analysis lenses and the
   review queue screens, which are M6's, so the maximum plan age the UI's configuration carries is
   first read there. The policy screens, which are [M8](#delivered-mapped-to-outcomes)'s. The UI's
-  separate deployment, which is packaged at [R1](#group-r--packaging). The proof of the UI's apply
+  separate deployment, which is packaged at [R1](#delivered-mapped-to-outcomes). The proof of the UI's apply
   surfaces, the plans dataset's apply run, the event stream's apply run carrying its plan's status,
   the jobs card's applying run and last run with rollback's availability, a plan's title in that
   card and in the runs table, and the home strip's apply cell, which
@@ -1304,6 +1305,73 @@ What the code on `main` runs today, per composition root, none of it yet release
   [M4](#group-m--mutation-and-approval) restores when it adds its pair. **Later work.** After
   production point 1, the UI's dataset reads run under a statement timeout, on a pool of a
   configured size, with custom plans.
+
+- [x] **R1 — Package the read path** → [O6](./USE_CASES.md#o6--deployable) ·
+  [V3](#v3--the-agent-arrives-read-only) · finished at packaged
+  Delivered by pull requests [#352](https://github.com/ppat/mediated-mailbox-mcp/pull/352),
+  [#356](https://github.com/ppat/mediated-mailbox-mcp/pull/356) and
+  [#357](https://github.com/ppat/mediated-mailbox-mcp/pull/357), which closed its tickets
+  [#265](https://github.com/ppat/mediated-mailbox-mcp/issues/265),
+  [#355](https://github.com/ppat/mediated-mailbox-mcp/issues/355) and
+  [#103](https://github.com/ppat/mediated-mailbox-mcp/issues/103), and not yet released. Its
+  machinery landed first. `main` publishes every image as `latest`, the chainsaw suite on a pull
+  request deploys those images, so a packaging pull request is proven before it merges and closes
+  its ticket as any other does, the release cut writes its version into the chart and into what each
+  binary's `--version` reports, the suite sits at `packaging/tests/chainsaw/`, and on every release
+  the release workflow downloads a key-generation binary attached to it, verifies its keyless
+  signature, sees a tampered copy refused, and checks the pair it writes is one the library seals and
+  opens with
+  ([ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md),
+  [ADR-0078](./docs/adr/engineering/0078-configuration-layers-through-an-owned-library.md),
+  [ADR-0088](./docs/adr/operability/0088-credentials-sealed-with-hpke-x-wing.md)). The
+  chart then stood up the migration step, the mediator, the worker and the UI, with the UI's
+  separate deployment and database role
+  ([ADR-0084](./docs/adr/mutation/0084-ui-writes-decisions-and-account-setup.md)), from one values
+  tree with a schema that refuses a value Helm's parser has changed, and one ConfigMap holding one
+  configuration file per process, each pod restarting when its own file changes
+  ([ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md),
+  [ADR-0078](./docs/adr/engineering/0078-configuration-layers-through-an-owned-library.md)). The
+  chart restarts the worker on each release and each change to its configuration, which starts
+  backfill's run-start comparisons with no manual step, as [D2](#delivered-mapped-to-outcomes)'s
+  re-scan after a change of scanner and its re-decision of the gate skips after a change of the gate's
+  thresholds need
+  ([ADR-0120](./docs/adr/redaction/0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md),
+  [ADR-0121](./docs/adr/redaction/0121-the-run-start-step-decides-each-gate-skip-again.md)). Each pod
+  mounts only the secret keys its process reads, the key pair reaching the mediator, the worker and
+  the UI alone ([ADR-0079](./docs/adr/operability/0079-secrets-arrive-as-mounted-files.md),
+  [ADR-0081](./docs/adr/operability/0081-credentials-sealed-to-a-public-key.md)), and runs under
+  the restricted pod security contexts of
+  [ADR-0028](./docs/adr/operability/0028-trust-anchor-hardening.md) with a read-only root and no
+  writable volume, so none needs scratch space
+  ([ADR-0009](./docs/adr/redaction/0009-scanner-verdicts-carry-no-content.md)). The worker runs as
+  one pod whose rollout stops the old one first, delivered each job kind's role credential
+  ([ADR-0117](./docs/adr/operability/0117-one-background-worker-runs-every-job-kind.md),
+  [ADR-0118](./docs/adr/data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)), the
+  migration step runs as one Helm hook Job before install and every upgrade
+  ([ADR-0129](./docs/adr/data/0129-the-chart-runs-the-migration-step-as-a-pre-install-and-pre-upgrade-hook-job.md)),
+  and the mediator's and the UI's TLS material is an optional input
+  ([ADR-0127](./docs/adr/operability/0127-tls-when-given-a-key-pair-plain-http-otherwise.md)). The
+  bearer token and the UI's request token key come from a Secret the user names or one the chart
+  creates once and keeps, Ingress and HTTPRoute are off until enabled, and the Prometheus Operator's
+  resources render where its API is served, beside an opt-in Grafana dashboard over
+  [F12](#delivered-mapped-to-outcomes)'s series
+  ([ADR-0077](./docs/adr/operability/0077-conditions-raised-as-alerting-rules.md)). The chart
+  carries a Helm test and a README with a CloudNativePG example, its controls are proven by unit
+  tests over `helm template` and by each deployable loading the file the chart renders for it, each
+  with its mutation demonstration, and the chainsaw suite installs it in namespaces enforcing the
+  restricted standard against a CloudNativePG cluster, runs the Helm test, and upgrades the release,
+  keeping the values the chart generated at install. Every verification row keyed to it is proven, among
+  them the chart's part of the private key's row and the chainsaw suite's emptiness row. The bare-cluster
+  install proof stands from here. **What it did not deliver.** The key-generation check's proof
+  against a published release: the check landed with
+  [#356](https://github.com/ppat/mediated-mailbox-mcp/pull/356) in the release workflow, and its run
+  on the release [production point 1](#production-point-1--the-read-path) deploys proves it
+  ([ADR-0088](./docs/adr/operability/0088-credentials-sealed-with-hpke-x-wing.md)). A lock against
+  two migration runs at once, which would be a change to the migration image
+  ([ADR-0129](./docs/adr/data/0129-the-chart-runs-the-migration-step-as-a-pre-install-and-pre-upgrade-hook-job.md)).
+  The reorganization and heuristics job kinds' inputs and the calendar scope's, which are
+  [R2](#group-r--packaging)'s. A BackendTLSPolicy for an HTTPRoute to a backend serving TLS.
+  Deploying the chart, which is [production point 1](#production-point-1--the-read-path)'s.
 
 What does **not** exist yet, stated so a cold reader does not assume otherwise. The mediator's API
 and MCP roots serve the reads of the index and the recorded state, release the bodies the gate lets
@@ -1359,7 +1427,7 @@ redesign after agent workflows exist.
 [M3](#delivered-mapped-to-outcomes) · [M7](#delivered-mapped-to-outcomes) ·
 [M8](#delivered-mapped-to-outcomes) · [F9](#delivered-mapped-to-outcomes) ·
 [F8](#delivered-mapped-to-outcomes) · [F10](#delivered-mapped-to-outcomes) · [F11](#delivered-mapped-to-outcomes) ·
-[F12](#delivered-mapped-to-outcomes) · [R1](#group-r--packaging), then
+[F12](#delivered-mapped-to-outcomes) · [R1](#delivered-mapped-to-outcomes), then
 [production point 1](#production-point-1--the-read-path). **Value shipped:** the first value from
 the deployed system, an agent doing whole-mailbox analysis over live, current data, with the
 invariant proven against a live adversary (an agent the operator, or a session on the operator's
@@ -1429,7 +1497,7 @@ holds, with an entry naming the point.
   [M3](#delivered-mapped-to-outcomes) · [M7](#delivered-mapped-to-outcomes) ·
   [M8](#delivered-mapped-to-outcomes) · [F9](#delivered-mapped-to-outcomes) ·
   [F8](#delivered-mapped-to-outcomes) · [F10](#delivered-mapped-to-outcomes) · [F11](#delivered-mapped-to-outcomes) ·
-  [F12](#delivered-mapped-to-outcomes) · [R1](#group-r--packaging), the end of
+  [F12](#delivered-mapped-to-outcomes) · [R1](#delivered-mapped-to-outcomes), the end of
   [V3](#v3--the-agent-arrives-read-only), and the later work recorded under
   [F4](#delivered-mapped-to-outcomes), [S1](#delivered-mapped-to-outcomes),
   [D1](#delivered-mapped-to-outcomes), [D2](#delivered-mapped-to-outcomes),
@@ -1444,8 +1512,9 @@ holds, with an entry naming the point.
     ([ADR-0048](./docs/adr/data/0048-forward-only-migrations.md),
     [ADR-0067](./docs/adr/data/0067-migration-runner-goose.md),
     [ADR-0118](./docs/adr/data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)).
-  - The client bearer token
-    ([ADR-0030](./docs/adr/operability/0030-api-core-mcp-thin-adapter.md)), and the client
+  - The client bearer token unless the chart generates it
+    ([ADR-0030](./docs/adr/operability/0030-api-core-mcp-thin-adapter.md),
+    [ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md)), and the client
     surface's TLS material unless the platform terminates TLS in front of the mediator
     ([ADR-0127](./docs/adr/operability/0127-tls-when-given-a-key-pair-plain-http-otherwise.md)).
   - The policy data, imported through the UI once the system runs
@@ -1913,54 +1982,10 @@ other, whatever else a release's images carry, and from [R2](#group-r--packaging
 [R3](#group-r--packaging) adds inputs only. What proves an R unit is the chainsaw suite passing,
 as [ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md) states, and the
 install on a bare kind cluster is the standing proof that the chart assumes nothing about its
-cluster. A configuration key a deployable gains lands in a pull request before the one that
-renders it in the chart, for the reason
+cluster. A configuration key a deployable gains lands, admitted in the chart's values schema, in a
+pull request before the one that renders it in the chart, for the reasons
 [ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md)'s consequences give.
 
-- [ ] **R1 — Package the read path** → [O6](./USE_CASES.md#o6--deployable) ·
-  [V3](#v3--the-agent-arrives-read-only) · finishes at packaged
-  Templates, Helm tests and chainsaw tests for the migration step, the mediator, the worker and the
-  UI, with the UI's separate deployment and database role
-  ([ADR-0084](./docs/adr/mutation/0084-ui-writes-decisions-and-account-setup.md)), the pod security
-  contexts of [ADR-0028](./docs/adr/operability/0028-trust-anchor-hardening.md), the secrets
-  mounted as files, the public key to the UI, the mediator and the worker and the private key only
-  to those processes, whose one isolated part opens an OAuth client's
-  secret with it
-  ([ADR-0079](./docs/adr/operability/0079-secrets-arrive-as-mounted-files.md),
-  [ADR-0081](./docs/adr/operability/0081-credentials-sealed-to-a-public-key.md)), memory-backed
-  scratch space for the processes that handle bodies
-  ([ADR-0009](./docs/adr/redaction/0009-scanner-verdicts-carry-no-content.md)), the worker as one
-  process that runs until stopped, never two at once, a rollout included, delivered the credential
-  of each role its job kinds run as
-  ([ADR-0103](./docs/adr/operability/0103-delta-sync-runs-continuously-and-ticks-on-the-sync-interval.md),
-  [ADR-0118](./docs/adr/data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)), and
-  every input supplied as values or pre-existing objects
-  ([ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md)), the mediator's and
-  the UI's TLS material among them as an optional input, both files or neither
-  ([ADR-0127](./docs/adr/operability/0127-tls-when-given-a-key-pair-plain-http-otherwise.md)). How the chart runs
-  the migration step is open against this unit
-  ([ADR-0048](./docs/adr/data/0048-forward-only-migrations.md)). Its machinery landed first.
-  `main` publishes every image as `latest`, the chainsaw suite on a pull request deploys those
-  images, so a packaging pull request is proven before it merges and closes its ticket as any other
-  does, the release cut writes its version into the chart and into what each binary's `--version`
-  reports, and the suite sits at `packaging/tests/chainsaw/`
-  ([ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md),
-  [ADR-0078](./docs/adr/engineering/0078-configuration-layers-through-an-owned-library.md)). The
-  chart restarts the worker on each release and each change to its configuration, which starts
-  backfill's run-start comparisons with no manual step, as [D2](#delivered-mapped-to-outcomes)'s re-scan after a change of scanner and
-  its re-decision of the gate skips after a change of the gate's thresholds need
-  ([ADR-0120](./docs/adr/redaction/0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md),
-  [ADR-0121](./docs/adr/redaction/0121-the-run-start-step-decides-each-gate-skip-again.md),
-  [ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md)). It builds on
-  [F9](#delivered-mapped-to-outcomes), [F10](#delivered-mapped-to-outcomes) and [F11](#delivered-mapped-to-outcomes), whose
-  worker, schema and roles it packages, and has no extension bootstrap to run.
-  On every release, the release workflow downloads a key-generation binary attached to it, verifies
-  its keyless signature, sees a tampered copy refused, and checks the pair it writes is one the
-  library seals and opens with
-  ([ADR-0088](./docs/adr/operability/0088-credentials-sealed-with-hpke-x-wing.md)). That check
-  landed with the machinery, and its run on the release
-  [production point 1](#production-point-1--the-read-path) deploys proves it.
-  The bare-cluster install proof stands from here.
 - [ ] **R2 — Package the action path and calendar** → [O6](./USE_CASES.md#o6--deployable) ·
   [V4](#v4--the-agent-acts-and-calendar-joins-mail) · finishes at packaged
   The chart and its suites gain the reorganization and heuristics job kinds' inputs, the worker
@@ -2006,7 +2031,7 @@ renders it in the chart, for the reason
 | [O3](./USE_CASES.md#o3--survives-its-failure-modes) survives failure | — | Writing the account-handling rules once where copies drifted landed with F9, and the schema settled before production point 1 makes the chain history landed with F11, both delivered. Otherwise no dedicated unit. The recovery mechanisms are proven at their units' finish lines, checkpoint and resume by the crash harness at D1 and M2, lease expiry at F3, rotation write-back's library and application half at F6, with the rest proven at D1, at each later deployable that calls a provider, and at [production point 1](#production-point-1--the-read-path), and the evidence that survives a compromise by F2's append-only audit grants and R1's pod security contexts. The drills on real substrate happen at the production points |
 | [O4](./USE_CASES.md#o4--the-operator-can-see-and-steer) operator legibility | M6 | The UI's reads of the read path landed with M3, which is delivered. The decisions ride M5, a G3 unit |
 | [O5](./USE_CASES.md#o5--clients-can-tell-failures-apart) failures distinguishable | — | Landed with D3 as criteria, flagged in Group D's preamble, and D3 is delivered. The system-status read ([ADR-0034](./docs/adr/operability/0034-system-status-operation.md)) is the transparency half |
-| [O6](./USE_CASES.md#o6--deployable) deployable | R1 · R2 · R3 | The chart's skeleton and every workflow landed with F4, which is delivered, and F4's later work, which is delivered, separated each kind of test into a CI workflow of its own before production point 1. The bare-cluster install proof stands from R1. Connecting a mailbox through the UI instead of at deployment landed with M7, which is delivered, and the worker taking up what the UI changes with no manual step landed with F10, a G4 unit, which is delivered, flagged in Group F's preamble |
+| [O6](./USE_CASES.md#o6--deployable) deployable | R2 · R3 | The chart's skeleton and every workflow landed with F4, which is delivered, and F4's later work, which is delivered, separated each kind of test into a CI workflow of its own before production point 1. The chart for the read path, its Helm test and the chainsaw suite landed with R1, which is delivered, and the bare-cluster install proof stands from it. Connecting a mailbox through the UI instead of at deployment landed with M7, which is delivered, and the worker taking up what the UI changes with no manual step landed with F10, a G4 unit, which is delivered, flagged in Group F's preamble |
 
 ## Dependencies
 
@@ -2230,7 +2255,6 @@ index](./docs/adr/README.md).
 | How calendar calls share an account's rate budget | X2 | [ADR-0085](./docs/adr/provider/0085-multi-account-contexts-with-an-installation-client.md) gives an account one rate profile and one rate controller, [ADR-0016](./docs/adr/data/0016-schema.md) keeps one rate-state row per account, and [ADR-0023](./docs/adr/operability/0023-adapter-declares-cost.md) defines costs for mail calls only. No record says what a calendar call costs, or how throttling on calendar calls affects the account's controller. The Google Calendar adapter makes the first calendar calls, so it is decided there. The calendar wiring, the CalDAV adapter and the Fastmail wiring follow it |
 | Which credentials the contract suite's run against a real provider holds | X2, X4 | [ADR-0043](./docs/adr/engineering/0043-no-mocking.md) runs it on an account set aside for testing, never the real mailbox, assuming nothing about what the account holds and deleting nothing, and [TESTING.md](./TESTING.md#when-tests-run) says where its credentials are held. For Gmail the operator ruled that nothing deletes mail, the test harness included, and supplies an old, unused account whose contents the run must not assume. So the run holds the adapter's modify grant alone and adds its messages by insertion, which that grant permits. The operator also ruled that the run may move a message it added to the trash and leave it there for Gmail to purge. Each later adapter unit settles its own provider |
 | Whether a Fastmail mail token can be issued without the ability to permanently delete mail | X4 | [A2](./USE_CASES.md#a2--no-destructive-action-on-sensitive-mail) requires that the granted token cannot permanently delete, [ADR-0012](./docs/adr/provider/0012-fastmail-scoped-jmap-tokens.md) scopes Fastmail tokens by protocol, and [DESIGN.md](./DESIGN.md) treats a capability missing from a credential as a guarantee wherever the provider allows it. No record says whether a Fastmail mail token can leave out permanent delete, or what takes its place if it cannot. The JMAP adapter is the first work that holds that token, so it is decided there, and its run against Fastmail is followed by a delete attempted by hand |
-| How the chart runs the migration step | R1 | [ADR-0048](./docs/adr/data/0048-forward-only-migrations.md) runs migrations as their own step before the deployables, from the migration image [ADR-0049](./docs/adr/engineering/0049-image-per-component-lockstep.md) lists. The chart can run it as an init container in each deployable's pod or as one job before them. The migration role's credential must reach only the migrating container, and several pods starting together must not run the chain at once |
 | How a per-project throttle reaches other accounts in the same Google Cloud project | X3 | [ADR-0023](./docs/adr/operability/0023-adapter-declares-cost.md) gives a per-project throttle the same response as a per-user one while one account uses a project. [ADR-0106](./docs/adr/provider/0106-accounts-of-a-provider-connect-through-any-of-its-oauth-clients.md) lets accounts share an OAuth client and so its Cloud project, and Gmail counts its limit per user per project. X3 brings the second account, so it is decided there |
 | Whether the rate may rise above the target so a ceiling above the declared one can be found | X4 | [ADR-0024](./docs/adr/operability/0024-conservative-target-aimd.md) keeps the rate between the floor and the target, which is half the declared ceiling, so the controller can find only a lower real ceiling. [ADR-0023](./docs/adr/operability/0023-adapter-declares-cost.md) has the controller discover JMAP's budget from a conservative guess, which needs finding a higher one, and [ADR-0024](./docs/adr/operability/0024-conservative-target-aimd.md)'s own alternatives count discovery as the only way to find JMAP's. ADR-0024's token bucket and one-second window are sized from the hard cap, which the answer does not move. Gmail publishes its ceiling, so only the JMAP adapter depends on the answer, and it is decided there |
 | What taking a message out of view means for the label verbs | M1 | [ADR-0019](./docs/adr/mutation/0019-asymmetric-mutation.md) lets restricted mail be labelled and moved but "nothing that removes a message from view: no archive, trash, or spam", and [USE_CASES A1](./USE_CASES.md#a1--asymmetric-mutation) is falsified if a restricted message cannot be moved. Label verbs can reach what the refused verbs do. A label or move into the trash or spam label trashes or spams a message in one operation, and an unlabel of the inbox archives it in one. A move out of the inbox followed by an unlabel of the new label reaches archive's end state over two operations, which a check of one operation at a time cannot see. M1 runs the verbs with the Mutation Authorizer and whole-batch validation, and decides where the line falls and how it is enforced |

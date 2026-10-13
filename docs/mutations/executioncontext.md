@@ -240,7 +240,7 @@ The demonstrations of the controls whose patches sit in `executioncontext/`. [MU
 
 ## The policy reload rule fires while a process's latest reload failed, and only then
 
-- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-12 at RAPID_SEED=1, after the policy prepared once per load for the classifier changed the code, tests or patches the row rests on · [pull request #365](https://github.com/ppat/mediated-mailbox-mcp/pull/365)
+- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-12 at RAPID_SEED=1, after the policy prepared once per load for the classifier changed the code, tests or patches the row rests on · [pull request #365](https://github.com/ppat/mediated-mailbox-mcp/pull/365), and every break again on 2026-10-13 at RAPID_SEED=1, after the rules file moved under `packaging/chart/rules/` · [pull request #357](https://github.com/ppat/mediated-mailbox-mcp/pull/357)
 - **Break (1):** the rule fires for every process that loads policy, whether its latest reload failed or succeeded
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/executioncontext/policyload`:** `TestAlertingRules`
 - **Break (2):** the rule compares the series with a value it never exceeds, so it never fires

@@ -4,10 +4,10 @@ packages: ./worker/internal/schedule
 tests: TestAlertingRules
 scheduled-count: no
 
-diff --git a/packaging/chart/alerting-rules.yaml b/packaging/chart/alerting-rules.yaml
+diff --git a/packaging/chart/rules/alerting-rules.yaml b/packaging/chart/rules/alerting-rules.yaml
 index f084d381..ee251742 100644
---- a/packaging/chart/alerting-rules.yaml
-+++ b/packaging/chart/alerting-rules.yaml
+--- a/packaging/chart/rules/alerting-rules.yaml
++++ b/packaging/chart/rules/alerting-rules.yaml
 @@ -153,7 +153,7 @@ groups:
        mediated_mailbox_job_slot_waited_seconds -
        (time() - mediated_mailbox_job_slot_waiting_since_timestamp_seconds) *

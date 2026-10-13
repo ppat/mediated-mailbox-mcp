@@ -1,0 +1,90 @@
+{{- /*
+The migration step (ADR-0048, ADR-0129): one Job run as a Helm hook before install and before every upgrade, so no
+deployable rolls onto a schema the chain did not reach. It reads only user-supplied Secrets and its own spec, since no
+object of this release exists yet at pre-install. goose reads the connection string from GOOSE_DBSTRING, which names
+the migration role and a password file mounted from the user's Secret and carries no password itself (ADR-0079).
+*/ -}}
+{{- $v := .Values.migration }}
+{{- $d := .Values.database }}
+{{- $query := list (printf "sslmode=%s" (urlquery $d.sslmode)) (printf "passfile=%s/database/pgpass" (include "mm.secretsDir" .)) }}
+{{- if .Values.secrets.databaseCaCertificate.existingSecret }}
+{{- $query = append $query (printf "sslrootcert=%s/ca/ca.crt" (include "mm.secretsDir" .)) }}
+{{- end }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "mm.componentName" (list $ "migration") }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "mm.labels" (list $ "migration") | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "0"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  parallelism: 1
+  completions: 1
+  podReplacementPolicy: Failed
+  backoffLimit: {{ $v.backoffLimit }}
+  activeDeadlineSeconds: {{ $v.activeDeadlineSeconds }}
+  template:
+    metadata:
+      {{- with $v.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "mm.labels" (list $ "migration") | nindent 8 }}
+        {{- with $v.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      restartPolicy: Never
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        {{- include "mm.podSecurityContext" (list $ $v) | nindent 8 }}
+      containers:
+      - name: migration
+        image: {{ include "mm.image" (list $ $v.image) }}
+        imagePullPolicy: {{ .Values.global.image.pullPolicy }}
+        env:
+        - name: GOOSE_DBSTRING
+          value: {{ printf "postgres://%s@%s:%v/%s?%s" (urlquery $v.database.user) (required "database.host is required" $d.host) $d.port (urlquery (required "database.name is required" $d.name)) (join "&" $query) | quote }}
+        securityContext:
+          {{- include "mm.securityContext" (list $ $v) | nindent 10 }}
+        {{- with $v.resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        volumeMounts:
+        - name: secrets
+          mountPath: {{ include "mm.secretsDir" . }}
+          readOnly: true
+      volumes:
+      - name: secrets
+        projected:
+          defaultMode: 0440
+          sources:
+          - secret:
+              name: {{ required "secrets.databasePasswords.migration.existingSecret is required" .Values.secrets.databasePasswords.migration.existingSecret }}
+              items:
+              - key: {{ .Values.secrets.databasePasswords.migration.secretKeys.passwordFile }}
+                path: database/pgpass
+          {{- include "mm.databaseCaCertificateSource" . | nindent 10 }}
+      {{- with $v.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $v.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $v.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

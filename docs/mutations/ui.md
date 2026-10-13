@@ -516,6 +516,16 @@ The demonstrations of the controls whose patches sit in `ui/`. [MUTATIONS.md](..
 - **Break (2):** the base policy is read in the first account's transaction, so that account's own rules reach the installation screen
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/internal/api`:** `TestTheBasePolicyReadsNoAccountsState`, `TestTheRecordedPolicyFixturesMatchTheServer`
 
+## The chart renders the UI a file it starts with, holding every UI key the chart admits
+
+- **Date · evidence:** 2026-10-12 · [pull request #357](https://github.com/ppat/mediated-mailbox-mcp/pull/357)
+- **Break (1):** the schema admits a key in the UI's own block that the UI does not read
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/app`:** `TestTheChartAdmitsEveryUIKeyItDoesNotRender`
+- **Break (2):** the chart leaves the request token's key file out of the UI's file
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/app`:** `TestTheChartRendersAFileTheUIStartsWith`
+- **Break (3):** the chart writes the UI's probe address as a bare port with no colon
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/app`:** `TestTheChartRendersAFileTheUIStartsWith`
+
 ## The dataset endpoint refuses a dataset, dimension, filter, filter value, group, sort column or row-detail parameter the registry does not declare
 
 - **Date · evidence:** 2026-09-30 · [pull request #205](https://github.com/ppat/mediated-mailbox-mcp/pull/205)

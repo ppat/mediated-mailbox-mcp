@@ -1,0 +1,23 @@
+control: The migration step is a hook that reads nothing the chart renders and carries no password
+removes: the migration Job runs after the install and the upgrade rather than before
+packages: ./packaging/chart
+tests: TestTheMigrationStepIsAHookThatReadsNothingTheChartRenders
+scheduled-count: no
+
+diff --git a/packaging/chart/templates/migration/job.yaml b/packaging/chart/templates/migration/job.yaml
+index 12b9922a..4f90309d 100644
+--- a/packaging/chart/templates/migration/job.yaml
++++ b/packaging/chart/templates/migration/job.yaml
+@@ -16,11 +16,11 @@ metadata:
+   name: {{ include "mm.componentName" (list $ "migration") }}
+   namespace: {{ .Release.Namespace }}
+   labels:
+     {{- include "mm.labels" (list $ "migration") | nindent 4 }}
+   annotations:
+-    helm.sh/hook: pre-install,pre-upgrade
++    helm.sh/hook: post-install,post-upgrade
+     helm.sh/hook-weight: "0"
+     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+ spec:
+   parallelism: 1
+   completions: 1

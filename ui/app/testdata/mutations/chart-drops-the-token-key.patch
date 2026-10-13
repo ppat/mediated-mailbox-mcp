@@ -1,0 +1,22 @@
+control: The chart renders the UI a file it starts with, holding every UI key the chart admits
+removes: the chart leaves the request token's key file out of the UI's file
+packages: ./ui/app
+tests: TestTheChartRendersAFileTheUIStartsWith
+scheduled-count: no
+
+diff --git a/packaging/chart/templates/_config.tpl b/packaging/chart/templates/_config.tpl
+index 02c2add5..354b6ad1 100644
+--- a/packaging/chart/templates/_config.tpl
++++ b/packaging/chart/templates/_config.tpl
+@@ -63,11 +63,10 @@ so no key is written twice.
+ {{- $_ := set $c "sync_interval" .Values.sharedConfig.sync_interval }}
+ {{- $_ := set $c "database" (include "mm.config.database" (list . $v.database) | fromYaml) }}
+ {{- $_ := set $c "credential" (include "mm.config.credential" . | fromYaml) }}
+ {{- $_ := set $c "listen" (printf ":%s" (include "mm.port.http" .)) }}
+ {{- $_ := set $c "probe_listen" (printf ":%s" (include "mm.port.metrics" .)) }}
+-{{- $_ := set $c "token_key_file" (printf "%s/request-token-key" (include "mm.secretsDir" .)) }}
+ {{- if .Values.secrets.uiTls.existingSecret }}
+ {{- $_ := set $c "tls_cert" (printf "%s/tls/tls.crt" (include "mm.secretsDir" .)) }}
+ {{- $_ := set $c "tls_key" (printf "%s/tls/tls.key" (include "mm.secretsDir" .)) }}
+ {{- end }}
+ {{- toYaml $c }}

@@ -1,0 +1,36 @@
+---
+# Values for TestTheChartRendersAFileTheUIStartsWith: every key the chart renders into the UI's file, the optional
+# ones included, on top of the chart's required values.
+database:
+  port: 6432
+  sslmode: verify-ca
+secrets:
+  databaseCaCertificate:
+    existingSecret: database-ca
+  credentialSealingKeyPair:
+    secretKeys:
+      privateKeys:
+      - old.key
+      - new.key
+  uiTls:
+    existingSecret: ui-tls
+sharedConfig:
+  log_level: warn
+  sync_interval: 3m
+ui:
+  database:
+    user: mailbox_ui
+  config:
+    heuristics_interval: 12h
+    stream_interval: 3s
+    default_theme: dark
+    stream_reconnect_max: 20s
+    stream_poll_interval: 4s
+    attention_backlog_share: 4
+    attention_mask_count: 10
+    attention_serve_factor: 3
+    attention_gap_days: 5
+    consent_redirect: http://127.0.0.1:50000/
+    identity_header: X-Forwarded-User
+    operator_name: owner
+    log_level: debug

@@ -4,9 +4,9 @@ packages: ./ratelimit/lease
 tests: TestAlertingRules
 scheduled-count: no
 
-diff --git a/packaging/chart/alerting-rules.yaml b/packaging/chart/alerting-rules.yaml
---- a/packaging/chart/alerting-rules.yaml
-+++ b/packaging/chart/alerting-rules.yaml
+diff --git a/packaging/chart/rules/alerting-rules.yaml b/packaging/chart/rules/alerting-rules.yaml
+--- a/packaging/chart/rules/alerting-rules.yaml
++++ b/packaging/chart/rules/alerting-rules.yaml
 @@ -39,7 +39,7 @@
    # last minute. It catches issuance stopped by anything else, such as a stored fill instant ahead of the clock.
    - alert: MediatedMailboxIssuanceStalled

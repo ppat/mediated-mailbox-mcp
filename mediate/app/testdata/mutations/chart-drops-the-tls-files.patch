@@ -1,0 +1,23 @@
+control: The chart renders the mediator a file it starts with, holding every mediator key the chart admits
+removes: the chart leaves the TLS files out of the mediator's file though their Secret is named
+packages: ./mediate/app
+tests: TestTheChartRendersAFileTheMediatorStartsWith
+scheduled-count: no
+
+diff --git a/packaging/chart/templates/_config.tpl b/packaging/chart/templates/_config.tpl
+index 02c2add5..0be5127e 100644
+--- a/packaging/chart/templates/_config.tpl
++++ b/packaging/chart/templates/_config.tpl
+@@ -47,11 +47,11 @@ so no key is written twice.
+ {{- $_ := set $c "database" (include "mm.config.database" (list . $v.database) | fromYaml) }}
+ {{- $_ := set $c "credential" (include "mm.config.credential" . | fromYaml) }}
+ {{- $_ := set $c "listen" (printf ":%s" (include "mm.port.http" .)) }}
+ {{- $_ := set $c "probe_listen" (printf ":%s" (include "mm.port.metrics" .)) }}
+ {{- $_ := set $c "token_file" (printf "%s/bearer-token" (include "mm.secretsDir" .)) }}
+-{{- if .Values.secrets.mediatorTls.existingSecret }}
++{{- if and .Values.secrets.mediatorTls.existingSecret false }}
+ {{- $_ := set $c "tls_cert" (printf "%s/tls/tls.crt" (include "mm.secretsDir" .)) }}
+ {{- $_ := set $c "tls_key" (printf "%s/tls/tls.key" (include "mm.secretsDir" .)) }}
+ {{- end }}
+ {{- toYaml $c }}
+ {{- end }}

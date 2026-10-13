@@ -187,7 +187,16 @@ roles with each one.
   reissue.
 - Assumptions about other components. The platform runs one copy of the worker at a time, a rollout
   included, keeps it running and restarts it when it stops
-  ([ADR-0103](./0103-delta-sync-runs-continuously-and-ticks-on-the-sync-interval.md)). It delivers
+  ([ADR-0103](./0103-delta-sync-runs-continuously-and-ticks-on-the-sync-interval.md)). The chart
+  runs it as a Deployment of exactly one replica whose rollout stops the old pod before it starts
+  the new one, which holds for a rollout. Outside a rollout Kubernetes does not hold it. Any deletion
+  of the pod, an eviction for a node drain, a scale-down by a cluster autoscaler, a preemption or a
+  deletion by hand, has the replacement created at once, so two workers can run together for up to
+  the pod's termination grace period, and a lost node's pod can keep running until its node stops
+  it. The harm that overlap can do is bounded as
+  [ADR-0119](./0119-the-workers-jobs-are-scheduled-from-recorded-state.md) states, since every run
+  reads recorded state and is idempotent or conditional, so the in-process exclusion is one layer of
+  several. It delivers
   the credentials of every role the worker's job kinds run as, and the private key's file to the
   worker. A job kind's code receives only its own pool, which the composition root wires, since the
   grant check sees which statements a list admits and not which pool reaches the code

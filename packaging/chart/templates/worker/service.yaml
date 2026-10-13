@@ -1,0 +1,17 @@
+{{- /* The worker serves only its probe and metrics port, which this Service exposes for scraping. */ -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "mm.componentName" (list $ "worker") }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "mm.labels" (list $ "worker") | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "mm.selectorLabels" (list $ "worker") | nindent 4 }}
+  ports:
+  - name: metrics
+    port: {{ include "mm.port.metrics" . }}
+    targetPort: metrics
+    protocol: TCP

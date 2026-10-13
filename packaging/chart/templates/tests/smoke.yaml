@@ -1,0 +1,52 @@
+{{- /*
+The Helm test, run by helm test. It checks through each Service that every process answers: the mediator and the UI
+report ready, which needs their database and their secret files, the worker reports healthy, the mediator's client
+surface refuses a request without the bearer token, and the UI serves its page. It mounts no secret.
+*/ -}}
+{{- $mediator := include "mm.componentName" (list $ "mediator") }}
+{{- $ui := include "mm.componentName" (list $ "ui") }}
+{{- $worker := include "mm.componentName" (list $ "worker") }}
+{{- $metrics := include "mm.port.metrics" . }}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ include "mm.componentName" (list $ "test") }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "mm.labels" (list $ "test") | nindent 4 }}
+  annotations:
+    helm.sh/hook: test
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  automountServiceAccountToken: false
+  enableServiceLinks: false
+  {{- with .Values.global.imagePullSecrets }}
+  imagePullSecrets:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  securityContext:
+    {{- include "mm.podSecurityContext" (list $ dict) | nindent 4 }}
+  containers:
+  - name: smoke
+    image: {{ printf "%s:%s" .Values.helmTest.image.repository .Values.helmTest.image.tag }}
+    imagePullPolicy: {{ .Values.global.image.pullPolicy }}
+    securityContext:
+      {{- include "mm.securityContext" (list $ dict) | nindent 6 }}
+    command:
+    - /bin/sh
+    - -ec
+    - |
+      check() {
+        code="$(curl --silent --insecure --max-time 10 --output /dev/null --write-out '%{http_code}' "$2")" || code="none"
+        if [ "$code" != "$1" ]; then
+          echo "$2 answered $code, want $1"
+          exit 1
+        fi
+        echo "$2 answered $1"
+      }
+      check 200 http://{{ $mediator }}:{{ $metrics }}/readyz
+      check 401 {{ if .Values.secrets.mediatorTls.existingSecret }}https{{ else }}http{{ end }}://{{ $mediator }}:{{ .Values.mediator.service.port }}/mcp
+      check 200 http://{{ $ui }}:{{ $metrics }}/readyz
+      check 200 {{ if .Values.secrets.uiTls.existingSecret }}https{{ else }}http{{ end }}://{{ $ui }}:{{ .Values.ui.service.port }}/
+      check 200 http://{{ $worker }}:{{ $metrics }}/healthz

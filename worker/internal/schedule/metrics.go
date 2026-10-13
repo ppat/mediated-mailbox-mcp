@@ -8,7 +8,7 @@ import (
 
 // The worker's own series, one set per job kind, labelled by the job kind as job_runs.workload
 // spells it and, for a job's own series, by the account the job serves, empty for a job of the whole
-// kind (ADR-0076, ADR-0119). The alerting rules in packaging/chart/alerting-rules.yaml read
+// kind (ADR-0076, ADR-0119). The alerting rules in packaging/chart/rules/alerting-rules.yaml read
 // lastSuccessName, lateName, waitedName and waitingName, so they stay exactly as written (ADR-0077).
 const (
 	startedName     = "mediated_mailbox_job_runs_started_total"

@@ -6,7 +6,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-// reloadFailedName is the series the reload-failure alarm reads, in packaging/chart/alerting-rules.yaml.
+// reloadFailedName is the series the reload-failure alarm reads, in packaging/chart/rules/alerting-rules.yaml.
 //
 // It is a gauge of the latest reload's outcome rather than a counter of failures. A process loads
 // policy first as it starts, usually before its first scrape, and a counter whose first sample is

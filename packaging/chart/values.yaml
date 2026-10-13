@@ -1,0 +1,475 @@
+---
+# Values for the mediated-mailbox chart. Keys that wire the chart to Kubernetes are camelCase. sharedConfig and every
+# block named config hold the processes' own configuration keys, snake_case, exactly as each process reads them
+# (ADR-0078), and the chart renders one file per process from them. values.schema.json refuses a key a process does
+# not read, and a value Helm's YAML parser has already changed: quote yes, no, on, off, y and n wherever they are
+# meant as words, such as a trigger word or the language code no.
+#
+# Helm merges maps per key and replaces lists whole, and an empty map given in an override file does not clear a
+# map set here.
+
+# -- Overrides the chart's name in object names and the app.kubernetes.io/name label.
+nameOverride: ""
+# -- Overrides the full name every object's name starts with.
+fullnameOverride: ""
+
+global:
+  image:
+    # -- The registry every image of this project is pulled from.
+    registry: ghcr.io/ppat
+    # -- The pull policy of every container.
+    pullPolicy: IfNotPresent
+  # -- Image pull secrets, as a list of {name: <secret>}, for every pod.
+  imagePullSecrets: []
+  # -- Labels added to every object.
+  commonLabels: {}
+  # -- The pod security context of every pod, the restricted Pod Security Standard (ADR-0028). A component's
+  # podSecurityContext overrides single keys of it.
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 65532
+    runAsGroup: 65532
+    fsGroup: 65532
+    seccompProfile:
+      type: RuntimeDefault
+  # -- The container security context of every container. A component's securityContext overrides single keys of it.
+  # The root filesystem is read-only and no process is given a writable volume, since none writes a file.
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop:
+      - ALL
+
+# The PostgreSQL server every process and the migration step connect to, which the user supplies (ADR-0052). Each
+# role's password is under secrets.databasePasswords.
+database:
+  # -- The server's host name. Required. With sslmode verify-full it must be a name the server's certificate
+  # carries, and for the migration step it must match the host field of the migration role's password file.
+  host: ""
+  # -- The server's port.
+  port: 5432
+  # -- The database's name. Required.
+  name: ""
+  # -- The TLS mode, one of disable, allow, prefer, require, verify-ca and verify-full.
+  sslmode: verify-full
+
+# Every Secret the chart reads, each entry named for what it holds. global.imagePullSecrets and the tls entries of
+# mediator.ingress and ui.ingress keep Kubernetes' own shape outside secrets, because the chart never reads those
+# Secrets and only passes them through to kubelet and the ingress controller. Each entry's existingSecret names a Secret
+# in the release's namespace, and its secretKeys name, for each value the chart reads from it, the key holding that
+# value. A Secret can come from anything, such as external-secrets, sealed-secrets or kubectl. The chart never creates
+# or changes a Secret it is given, reads only the keys it names, and mounts each of them only into the pods whose
+# process reads it.
+secrets:
+  # Each database role's password, one entry per role, mounted only into the process that connects as it.
+  databasePasswords:
+    mediator:
+      # -- The Secret holding the mediator role's password. Required.
+      existingSecret: ""
+      secretKeys:
+        # -- The key holding the password alone.
+        password: password
+    ui:
+      # -- The Secret holding the UI role's password. Required.
+      existingSecret: ""
+      secretKeys:
+        # -- The key holding the password alone.
+        password: password
+    # One entry per job kind the worker runs, matching worker.jobKinds.
+    worker:
+      backfill:
+        # -- The Secret holding backfill's role password. Required.
+        existingSecret: ""
+        secretKeys:
+          # -- The key holding the password alone.
+          password: password
+      sync:
+        # -- The Secret holding delta sync's role password. Required.
+        existingSecret: ""
+        secretKeys:
+          # -- The key holding the password alone.
+          password: password
+    migration:
+      # -- The Secret holding the migration role's password in the libpq password file format,
+      # host:port:database:user:password, such as CloudNativePG's <cluster>-app Secret. Required.
+      existingSecret: ""
+      secretKeys:
+        # -- The key holding the password file.
+        passwordFile: pgpass
+  databaseCaCertificate:
+    # -- A Secret holding the CA certificate the database server's certificate is checked against. Only that key is
+    # mounted, so a Secret that also holds the CA's private key, as CloudNativePG's <cluster>-ca does, can be named
+    # safely. Empty, no CA certificate is mounted.
+    existingSecret: ""
+    secretKeys:
+      # -- The key holding the CA certificate.
+      certificate: ca.crt
+  # The key pair stored credentials are sealed to (ADR-0081, ADR-0088), mounted into the mediator, the worker and the
+  # UI and no other pod. Write it with the keygen binary attached to each release, which writes credential.key and
+  # credential.pub. Helm cannot generate it.
+  credentialSealingKeyPair:
+    # -- The Secret holding the key pair. Required.
+    existingSecret: ""
+    secretKeys:
+      # -- The key holding the public key.
+      publicKey: credential.pub
+      # -- The keys holding every private key of the keyring. During a key replacement list the old key and the new
+      # one (ADR-0092).
+      privateKeys:
+      - credential.key
+  # The bearer token clients present to the mediator's API and MCP roots.
+  mediatorBearerToken:
+    # -- The Secret holding the token. When empty, the chart generates one into its own Secret,
+    # <release>-mediated-mailbox-access-credentials, which holds whichever of this token and uiRequestTokenKey no
+    # Secret is named for, keeps that Secret when the release is uninstalled, and reads each value back on every later
+    # install or upgrade. A renderer that cannot read the cluster, such as helm template or Argo CD, would generate a
+    # new value on every render, so under such a renderer name a Secret here.
+    existingSecret: ""
+    secretKeys:
+      # -- The key holding the token.
+      bearerToken: mediator-bearer-token
+  # The key the UI signs its request tokens with, which its replicas share and which must outlive a restart
+  # (ADR-0061, ADR-0111).
+  uiRequestTokenKey:
+    # -- The Secret holding the key, at least 32 bytes. When empty, the chart generates one into its own Secret, as
+    # mediatorBearerToken describes.
+    existingSecret: ""
+    secretKeys:
+      # -- The key holding the request token key.
+      requestTokenKey: ui-request-token-key
+  # The certificate chain and private key the mediator's client surface serves TLS with (ADR-0127).
+  mediatorTls:
+    # -- A Secret holding them, such as a kubernetes.io/tls Secret. Empty, the client surface serves plain HTTP.
+    existingSecret: ""
+    secretKeys:
+      # -- The key holding the certificate chain.
+      certificate: tls.crt
+      # -- The key holding the private key.
+      privateKey: tls.key
+  # The certificate chain and private key the UI serves TLS with (ADR-0127).
+  uiTls:
+    # -- A Secret holding them, such as a kubernetes.io/tls Secret. Empty, the UI serves plain HTTP.
+    existingSecret: ""
+    secretKeys:
+      # -- The key holding the certificate chain.
+      certificate: tls.crt
+      # -- The key holding the private key.
+      privateKey: tls.key
+
+# Configuration several processes read, given once and rendered into each process that reads it.
+sharedConfig:
+  # -- The lowest level every process logs at, debug, info, warn or error. A process's own config block may override
+  # it.
+  log_level: info
+  # -- How often delta sync ticks for each account, rendered into the worker's sync section and the UI, which shows
+  # it.
+  sync_interval: 5m
+  # -- The scanner's vocabulary and tuning (ADR-0005), rendered identically into the mediator and the worker, since
+  # every verdict records the section's revision. Empty, both use the vocabulary the application ships. Keys:
+  # triggers (a map from language to words, a language written in [a-z0-9_] such as pt_br, and the code no quoted),
+  # link_words, link_params, window, dense_length, dense_entropy, weights, threshold, subject_threshold.
+  scanner: {}
+
+mediator:
+  # -- How many mediator pods run.
+  replicaCount: 1
+  image:
+    # -- The image's repository under global.image.registry.
+    repository: mediated-mailbox-mediate
+    # -- The tag, the chart's appVersion when empty.
+    tag: ""
+    # -- A digest that pins the image whatever the tag.
+    digest: ""
+  # The mediator's connection to the database server above. Its password is secrets.databasePasswords.mediator.
+  database:
+    # -- The role it connects as, mediated_mailbox_mediate when empty.
+    user: ""
+  # -- The mediator's own configuration keys: account_reload_interval, provider_timeout and log_level.
+  config: {}
+  serviceAccount:
+    # -- Whether the chart creates the mediator's ServiceAccount. Its token is never mounted.
+    create: true
+    # -- The ServiceAccount's name, generated when empty.
+    name: ""
+    # -- Annotations on the ServiceAccount.
+    annotations: {}
+  service:
+    # -- The Service's type.
+    type: ClusterIP
+    # -- The port the client surface is served on.
+    port: 8443
+    # -- Annotations on the Service.
+    annotations: {}
+  # The Ingress in front of the client surface. Nothing is exposed until enabled. Annotations pass through untouched,
+  # so a controller's or cert-manager's annotations go here.
+  ingress:
+    # -- Whether the Ingress renders.
+    enabled: false
+    # -- The IngressClass.
+    className: ""
+    # -- Annotations on the Ingress.
+    annotations: {}
+    # -- Hosts and their paths, each path {path, pathType}.
+    hosts: []
+    # -- TLS blocks, each {secretName, hosts}.
+    tls: []
+  # The Gateway API HTTPRoute in front of the client surface. Nothing is exposed until enabled. TLS terminates on the
+  # Gateway's listener.
+  httpRoute:
+    # -- Whether the HTTPRoute renders.
+    enabled: false
+    # -- Annotations on the HTTPRoute.
+    annotations: {}
+    # -- The Gateways it attaches to, each {name, namespace, sectionName}.
+    parentRefs: []
+    # -- Host names it matches.
+    hostnames: []
+    # -- Rules, each {matches, filters}. The backend is always the mediator's Service.
+    rules:
+    - matches:
+      - path:
+          type: PathPrefix
+          value: /
+  # -- Resource requests and limits. No limit is set by default.
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+  # -- Annotations on the pods.
+  podAnnotations: {}
+  # -- Labels on the pods.
+  podLabels: {}
+  # -- Overrides of global.podSecurityContext.
+  podSecurityContext: {}
+  # -- Overrides of global.securityContext.
+  securityContext: {}
+  # -- Node selector.
+  nodeSelector: {}
+  # -- Tolerations.
+  tolerations: []
+  # -- Affinity.
+  affinity: {}
+  # -- Topology spread constraints.
+  topologySpreadConstraints: []
+  # -- Priority class.
+  priorityClassName: ""
+
+ui:
+  # -- How many UI pods run. Replicas share the request token key from secrets.uiRequestTokenKey.
+  replicaCount: 1
+  image:
+    # -- The image's repository under global.image.registry.
+    repository: mediated-mailbox-ui
+    # -- The tag, the chart's appVersion when empty.
+    tag: ""
+    # -- A digest that pins the image whatever the tag.
+    digest: ""
+  # The UI's connection to the database server above. Its password is secrets.databasePasswords.ui.
+  database:
+    # -- The role it connects as, mediated_mailbox_ui when empty.
+    user: ""
+  # -- The UI's own configuration keys: heuristics_interval, stream_interval, default_theme, stream_reconnect_max,
+  # stream_poll_interval, attention_backlog_share, attention_mask_count, attention_serve_factor, attention_gap_days,
+  # consent_redirect, identity_header, operator_name and log_level.
+  config: {}
+  serviceAccount:
+    # -- Whether the chart creates the UI's ServiceAccount. Its token is never mounted.
+    create: true
+    # -- The ServiceAccount's name, generated when empty.
+    name: ""
+    # -- Annotations on the ServiceAccount.
+    annotations: {}
+  service:
+    # -- The Service's type.
+    type: ClusterIP
+    # -- The port the UI is served on.
+    port: 8443
+    # -- Annotations on the Service.
+    annotations: {}
+  # The Ingress in front of the UI. The UI has no login of its own, so expose it only behind an authenticating proxy.
+  ingress:
+    # -- Whether the Ingress renders.
+    enabled: false
+    # -- The IngressClass.
+    className: ""
+    # -- Annotations on the Ingress.
+    annotations: {}
+    # -- Hosts and their paths, each path {path, pathType}.
+    hosts: []
+    # -- TLS blocks, each {secretName, hosts}.
+    tls: []
+  # The Gateway API HTTPRoute in front of the UI, under the same warning as its Ingress.
+  httpRoute:
+    # -- Whether the HTTPRoute renders.
+    enabled: false
+    # -- Annotations on the HTTPRoute.
+    annotations: {}
+    # -- The Gateways it attaches to, each {name, namespace, sectionName}.
+    parentRefs: []
+    # -- Host names it matches.
+    hostnames: []
+    # -- Rules, each {matches, filters}. The backend is always the UI's Service.
+    rules:
+    - matches:
+      - path:
+          type: PathPrefix
+          value: /
+  # -- Resource requests and limits. No limit is set by default.
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+  # -- Annotations on the pods.
+  podAnnotations: {}
+  # -- Labels on the pods.
+  podLabels: {}
+  # -- Overrides of global.podSecurityContext.
+  podSecurityContext: {}
+  # -- Overrides of global.securityContext.
+  securityContext: {}
+  # -- Node selector.
+  nodeSelector: {}
+  # -- Tolerations.
+  tolerations: []
+  # -- Affinity.
+  affinity: {}
+  # -- Topology spread constraints.
+  topologySpreadConstraints: []
+  # -- Priority class.
+  priorityClassName: ""
+
+# The worker runs every background job kind (ADR-0117) as exactly one pod, never two at once, a rollout included, so
+# it has no replica count and its rollout stops the old pod before starting the new one.
+worker:
+  image:
+    # -- The image's repository under global.image.registry.
+    repository: mediated-mailbox-worker
+    # -- The tag, the chart's appVersion when empty.
+    tag: ""
+    # -- A digest that pins the image whatever the tag.
+    digest: ""
+  # Each job kind the worker runs, keyed by its name, each connecting as a runtime role of its own (ADR-0118).
+  jobKinds:
+    backfill:
+      database:
+        # -- The role it connects as, mediated_mailbox_backfill when empty.
+        user: ""
+        # -- The most connections its pool opens, the worker's default when empty.
+        poolSize: null
+      # -- Backfill's own section, concurrency.
+      config: {}
+    sync:
+      database:
+        # -- The role it connects as, mediated_mailbox_sync when empty.
+        user: ""
+        # -- The most connections its pool opens, the worker's default when empty.
+        poolSize: null
+      # -- Delta sync's own section, first_window, decisions_per_tick and concurrency. The sync interval is
+      # sharedConfig.sync_interval.
+      config: {}
+  # -- The worker's own configuration keys: reload_interval and log_level.
+  config: {}
+  # -- How long the worker has to stop its jobs before it is killed.
+  terminationGracePeriodSeconds: 30
+  serviceAccount:
+    # -- Whether the chart creates the worker's ServiceAccount. Its token is never mounted.
+    create: true
+    # -- The ServiceAccount's name, generated when empty.
+    name: ""
+    # -- Annotations on the ServiceAccount.
+    annotations: {}
+  # -- Resource requests and limits. No limit is set by default.
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+  # -- Annotations on the pod.
+  podAnnotations: {}
+  # -- Labels on the pod.
+  podLabels: {}
+  # -- Overrides of global.podSecurityContext.
+  podSecurityContext: {}
+  # -- Overrides of global.securityContext.
+  securityContext: {}
+  # -- Node selector.
+  nodeSelector: {}
+  # -- Tolerations.
+  tolerations: []
+  # -- Affinity.
+  affinity: {}
+  # -- Priority class.
+  priorityClassName: ""
+
+# The migration step, a Helm hook Job run before install and before every upgrade (ADR-0129). It reads only the
+# Secrets named in secrets.databasePasswords.migration and secrets.databaseCaCertificate, never an object the chart
+# renders.
+migration:
+  image:
+    # -- The image's repository under global.image.registry.
+    repository: mediated-mailbox-migrate
+    # -- The tag, the chart's appVersion when empty.
+    tag: ""
+    # -- A digest that pins the image whatever the tag.
+    digest: ""
+  database:
+    # -- The migration role, which owns the schema (ADR-0048). Its password file is
+    # secrets.databasePasswords.migration.
+    user: mediated_mailbox_migrate
+  # -- How many times a failed run is retried, enough to outlast roles created within the release's timeout. Helm
+  # waits on the migration only up to that timeout, five minutes unless --timeout says otherwise.
+  backoffLimit: 10
+  # -- How long the Job may run in all before it fails.
+  activeDeadlineSeconds: 1800
+  # -- Resource requests and limits. No limit is set by default.
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+  # -- Annotations on the pod.
+  podAnnotations: {}
+  # -- Labels on the pod.
+  podLabels: {}
+  # -- Overrides of global.podSecurityContext.
+  podSecurityContext: {}
+  # -- Overrides of global.securityContext.
+  securityContext: {}
+  # -- Node selector.
+  nodeSelector: {}
+  # -- Tolerations.
+  tolerations: []
+  # -- Affinity.
+  affinity: {}
+
+# The Prometheus Operator's resources. auto renders one where the cluster serves its kind, true renders it anyway
+# and false never does. helm template sees no cluster, so pass --api-versions monitoring.coreos.com/v1/ServiceMonitor
+# and monitoring.coreos.com/v1/PrometheusRule to it, or set true.
+monitoring:
+  serviceMonitor:
+    # -- auto, true or false.
+    enabled: auto
+    # -- The scrape interval, the Prometheus default when empty.
+    interval: ""
+    # -- Labels a Prometheus selects ServiceMonitors by.
+    labels: {}
+  prometheusRule:
+    # -- auto, true or false. The rules are rules/alerting-rules.yaml in the chart (ADR-0077).
+    enabled: auto
+    # -- Labels a Prometheus selects rules by.
+    labels: {}
+  dashboard:
+    # -- Whether the Grafana dashboard's ConfigMap renders.
+    enabled: false
+    # -- Labels Grafana's dashboard sidecar finds the ConfigMap by.
+    labels:
+      grafana_dashboard: "1"
+    # -- Annotations on the ConfigMap, such as the folder annotation the sidecar reads.
+    annotations: {}
+
+# The Helm test run by helm test, which checks each process answers through its Service.
+helmTest:
+  image:
+    # -- The test's image, a full reference.
+    repository: quay.io/curl/curl
+    # -- Its tag, pinned by digest.
+    tag: 8.22.0@sha256:58adaa4e8dca9c988bae2aba4ab3434a0bb2da16bbe3f92dec39ec7785166777

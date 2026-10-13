@@ -3,7 +3,7 @@
 # threshold and stays silent below it. Series are sampled every 15 seconds, so 'a+bxN' is N+1 samples a quarter
 # minute apart.
 rule_files:
-- ../../../packaging/chart/alerting-rules.yaml
+- ../../../packaging/chart/rules/alerting-rules.yaml
 
 evaluation_interval: 15s
 

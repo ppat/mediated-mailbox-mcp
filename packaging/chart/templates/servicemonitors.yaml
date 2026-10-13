@@ -1,0 +1,29 @@
+{{- /*
+One ServiceMonitor per deployable, scraping its plain-HTTP metrics port. They render where the cluster serves the
+ServiceMonitor kind, or when monitoring.serviceMonitor.enabled forces them on, and never when it is false.
+*/ -}}
+{{- if include "mm.monitoringEnabled" (list $ .Values.monitoring.serviceMonitor.enabled "monitoring.coreos.com/v1/ServiceMonitor") }}
+{{- range $component := list "mediator" "ui" "worker" }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "mm.componentName" (list $ $component) }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "mm.labels" (list $ $component) | nindent 4 }}
+    {{- with $.Values.monitoring.serviceMonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "mm.selectorLabels" (list $ $component) | nindent 6 }}
+  endpoints:
+  - port: metrics
+    path: /metrics
+    {{- with $.Values.monitoring.serviceMonitor.interval }}
+    interval: {{ . }}
+    {{- end }}
+{{- end }}
+{{- end }}

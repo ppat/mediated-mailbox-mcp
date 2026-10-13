@@ -1,0 +1,18 @@
+{{- /*
+One ConfigMap holding one configuration file per process (ADR-0052, ADR-0078). Each pod mounts only its own file, and
+its checksum annotation hashes only that file's text, so a change to one process's file restarts only that process.
+*/ -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "mm.fullname" . }}-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "mm.sharedLabels" . | nindent 4 }}
+data:
+  mediator.yaml: |
+    {{- include "mm.config.mediator" . | nindent 4 }}
+  ui.yaml: |
+    {{- include "mm.config.ui" . | nindent 4 }}
+  worker.yaml: |
+    {{- include "mm.config.worker" . | nindent 4 }}

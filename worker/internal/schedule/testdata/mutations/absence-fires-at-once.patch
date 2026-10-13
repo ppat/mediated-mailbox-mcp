@@ -4,10 +4,10 @@ packages: ./worker/internal/schedule
 tests: TestAlertingRules
 scheduled-count: no
 
-diff --git a/packaging/chart/alerting-rules.yaml b/packaging/chart/alerting-rules.yaml
+diff --git a/packaging/chart/rules/alerting-rules.yaml b/packaging/chart/rules/alerting-rules.yaml
 index 659ddde1..05ed9787 100644
---- a/packaging/chart/alerting-rules.yaml
-+++ b/packaging/chart/alerting-rules.yaml
+--- a/packaging/chart/rules/alerting-rules.yaml
++++ b/packaging/chart/rules/alerting-rules.yaml
 @@ -128,7 +128,6 @@ groups:
    # been scraped for five minutes the rule fires, the same delay the mediator's absence rule uses.
    - alert: MediatedMailboxWorkerAbsent

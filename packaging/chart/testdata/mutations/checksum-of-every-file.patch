@@ -1,0 +1,23 @@
+control: A configuration change restarts only the processes that read it
+removes: the worker's checksum hashes every process's file, so any change restarts it
+packages: ./packaging/chart
+tests: TestAConfigurationChangeRestartsOnlyTheProcessesThatReadIt
+scheduled-count: no
+
+diff --git a/packaging/chart/templates/worker/deployment.yaml b/packaging/chart/templates/worker/deployment.yaml
+index 4e9c15f5..8822e395 100644
+--- a/packaging/chart/templates/worker/deployment.yaml
++++ b/packaging/chart/templates/worker/deployment.yaml
+@@ -19,11 +19,11 @@ spec:
+     matchLabels:
+       {{- include "mm.selectorLabels" (list $ "worker") | nindent 6 }}
+   template:
+     metadata:
+       annotations:
+-        checksum/config: {{ include "mm.config.worker" . | sha256sum }}
++        checksum/config: {{ list (include "mm.config.mediator" .) (include "mm.config.ui" .) (include "mm.config.worker" .) | join "" | sha256sum }}
+         {{- with $v.podAnnotations }}
+         {{- toYaml . | nindent 8 }}
+         {{- end }}
+       labels:
+         {{- include "mm.labels" (list $ "worker") | nindent 8 }}

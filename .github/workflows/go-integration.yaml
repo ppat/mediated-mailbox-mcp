@@ -19,7 +19,7 @@ on:
     - db/**
     - executioncontext/**
     - mediate/**
-    - packaging/chart/alerting-rules.yaml
+    - packaging/chart/rules/alerting-rules.yaml
     - process/**
     - provider/**
     - ratelimit/**

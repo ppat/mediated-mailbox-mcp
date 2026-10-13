@@ -28,7 +28,7 @@ The lease code also emits the rate limiter's metrics through the registry each p
 the lease wait is a gauge or counter labelled by `account`. In the worker each job kind passes a registry that also
 labels each series with `job_kind`, the job kind that produced it
 ([ADR-0117](../docs/adr/operability/0117-one-background-worker-runs-every-job-kind.md)). The
-alerting rules that read them are `packaging/chart/alerting-rules.yaml`, whose promtool tests sit
+alerting rules that read them are `packaging/chart/rules/alerting-rules.yaml`, whose promtool tests sit
 in `ratelimit/lease/testdata/`
 ([ADR-0077](../docs/adr/operability/0077-conditions-raised-as-alerting-rules.md)).
 

@@ -54,8 +54,9 @@ checks therefore need the go command `mise.toml` pins, which the job's tool setu
 ## What is modelled, and what is refused
 
 Occupancy is extracted from the tracked tree for the managers this repository uses: `gomod`,
-`dockerfile`, `mise`, `bun`, `pre-commit`, `github-actions` including the runner, the `custom.regex`
-managers declared in `.github/renovate.json`, and `renovate-config`. A file only another manager
+`dockerfile`, `mise`, `bun`, `pre-commit`, `github-actions` including the runner, `helm-values`
+over a chart's `values.yaml`, the `custom.regex` managers declared in `.github/renovate.json`, and
+`renovate-config`. A file only another manager
 would read is a hard failure, so a new kind of dependency file is taught to the model before its
 headers can be emitted unenumerated. The matchers the fold evaluates are `matchManagers`,
 `matchFileNames`, `matchDepNames`, `matchPackageNames`, `matchDepTypes`, `matchUpdateTypes` and

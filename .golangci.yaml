@@ -578,7 +578,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/db/"
           - "github.com/ppat/mediated-mailbox-mcp/provider/"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/"
-          # banproof reads .golangci.yaml.
+          # banproof reads .golangci.yaml, and helmchart decodes the rendered chart.
           - "go.yaml.in/yaml/v3$"
           # Restores the standard library under go/, which the entry above hides (see the notes at the top).
           - "go/"
@@ -614,7 +614,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/marker$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
-          # banproof reads .golangci.yaml.
+          # banproof reads .golangci.yaml, and helmchart decodes the rendered chart.
           - "go.yaml.in/yaml/v3$"
           # Restores the standard library under go/, which the entry above hides (see the notes at the top).
           - "go/"
@@ -681,6 +681,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/crash$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/helmchart$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/marker$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
@@ -774,6 +775,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/crash$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/helmchart$"
           - "github.com/ppat/mediated-mailbox-mcp/ui/"
           # The marker text the UI's integration tests seed into message-derived fields (ADR-0044).
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/marker$"
@@ -879,6 +881,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/process/version$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/helmchart$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/marker$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
@@ -1187,6 +1190,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/ratelimit/"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/helmchart$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/livecontract$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/marker$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
@@ -1218,6 +1222,7 @@ linters:
           - "!${base-path}/executioncontext/policyload/**"
           - "!${base-path}/executioncontext/session/**"
           - "!${base-path}/mediate/**"
+          - "!${base-path}/packaging/**"
           - "!${base-path}/process/dbconnect/**"
           - "!${base-path}/process/dbmetrics/**"
           - "!${base-path}/process/logging/**"

@@ -14,7 +14,7 @@ import (
 )
 
 // rulesFile is the chart's rules file, relative to this package.
-const rulesFile = "../../packaging/chart/alerting-rules.yaml"
+const rulesFile = "../../packaging/chart/rules/alerting-rules.yaml"
 
 // TestAlertingRules runs promtool's unit tests of the policy reload rule (ADR-0077). The rule fires
 // while a process's latest reload failed, from the first sample when the failure came before the

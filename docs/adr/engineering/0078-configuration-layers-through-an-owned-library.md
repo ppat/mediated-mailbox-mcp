@@ -187,8 +187,11 @@ What an implementer would otherwise pay to discover is the following.
 - With one prefix shared by every deployable and each refusing variables it does not read, an
   environment shared by several deployables fails to start. Each deployable is given only its own
   variables.
-- A chart that re-serializes values drops comments and can turn `no` into a boolean before the
-  process reads the file, so it passes the file through as the text the operator wrote.
+- Helm reads its values with a YAML 1.1 parser, which turns an unquoted `no`, `yes`, `on` or `off`
+  into a boolean, and the same word used as a map key into the key `false` or `true`, before any
+  template sees it. A chart that renders the file from its values, and so drops their comments,
+  therefore refuses such a value in its values schema, so no value is coerced before the process
+  reads the file.
 
 ## Alternatives considered
 
@@ -351,7 +354,7 @@ and observability, so the preference holds there by a smaller margin.
   map keys from the environment and flags, decodes strictly and records sources, or koanf dropping
   its archived dependencies.
 - It adds duties to the chart ([ADR-0052](./0052-kubernetes-deployment-helm-chart.md)), which are
-  restarting pods when their configuration changes, passing the file through as written, giving
+  restarting pods when their configuration changes, rendering the file with no value coerced, giving
   each deployable only its own environment variables, and turning Kubernetes' injected service
   variables off.
 - Accepting more than one file adds a rule for which file wins. Giving a deployable a mode adds a
