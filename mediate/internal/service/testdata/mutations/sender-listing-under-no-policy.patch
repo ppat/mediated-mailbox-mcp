@@ -14,7 +14,7 @@ index 4fac786f..81729554 100644
  	}
  	params := senders.SenderPageParams{AccountID: account, FirstPage: !found, AfterCount: from.Count, AfterDomain: from.Key, PageSize: pageSize}
 -	p := s.Policy(account)
-+	p := policy.Composed{}
++	p := classify.Policy{}
  	var rows []senders.SenderPageRow
  	err = tx.Run(ctx, tx.Snapshot(s.DB), account, func(t pgx.Tx) error {
  		var err error

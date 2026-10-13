@@ -90,7 +90,7 @@ func TestClassify(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			got := observe(classify.Classify(s.For(c.account), c.address, lookups))
+			got := observe(classify.Classify(classify.Prepare(s.For(c.account), lookups), c.address))
 			if diff := cmp.Diff(c.want, got, compare.Options); diff != "" {
 				t.Errorf("Classify(%q) (-want +got):\n%s", c.address, diff)
 			}
@@ -102,7 +102,7 @@ func TestClassify(t *testing.T) {
 // (ADR-0041).
 func TestNoPolicyRestrictsEverySender(t *testing.T) {
 	var none policy.Snapshot
-	got := observe(classify.Classify(none.For("acct-a"), "x@newsletter.example", lookups))
+	got := observe(classify.Classify(classify.Prepare(none.For("acct-a"), lookups), "x@newsletter.example"))
 	if diff := cmp.Diff(outcome{Restricted: true, Reason: "no policy"}, got, compare.Options); diff != "" {
 		t.Errorf("Classify with no policy (-want +got):\n%s", diff)
 	}
@@ -131,7 +131,7 @@ func TestTheVerdictNamesTheScopeOfTheRuleThatMatched(t *testing.T) {
 		"orders@shop.example": listedByAccount("shared"),
 		"news@other.example":  unlisted,
 	} {
-		if diff := cmp.Diff(want, observe(classify.Classify(s.For("acct-a"), address, lookups)), compare.Options); diff != "" {
+		if diff := cmp.Diff(want, observe(classify.Classify(classify.Prepare(s.For("acct-a"), lookups), address)), compare.Options); diff != "" {
 			t.Errorf("Classify(%q) (-want +got):\n%s", address, diff)
 		}
 	}

@@ -228,9 +228,15 @@ func (s Senders) under(i int, suffixes []classify.Name) bool {
 
 // suffixNames returns suffixes in the form the classifier compares.
 func (s Senders) suffixNames(suffixes []string) []classify.Name {
+	return SuffixNames(suffixes, s.lookups)
+}
+
+// SuffixNames returns suffixes in the form the classifier compares, converted once for every
+// comparison a request makes with them.
+func SuffixNames(suffixes []string, l classify.Lookups) []classify.Name {
 	out := make([]classify.Name, len(suffixes))
 	for i, x := range suffixes {
-		out[i] = classify.SuffixName(x, s.lookups)
+		out[i] = classify.SuffixName(x, l)
 	}
 	return out
 }
@@ -281,28 +287,42 @@ func (s Senders) Released(before, after []string) Count {
 	return c
 }
 
+// Named is a rule with its suffixes in the form the classifier compares, converted once for every
+// sender a request decides against it.
+type Named struct {
+	ID       string
+	suffixes []classify.Name
+}
+
+// Names returns rules, in order, each with its suffixes converted once.
+func Names(rules []Rule, l classify.Lookups) []Named {
+	out := make([]Named, len(rules))
+	for i, r := range rules {
+		out[i] = Named{ID: r.ID, suffixes: SuffixNames(r.Suffixes, l)}
+	}
+	return out
+}
+
 // RestrictedBy returns the identifier of the first rule of rules that matches domain, in the order
 // the classifier meets them, the base rules then the account's own, or the empty string for none.
-func RestrictedBy(domain string, rules []Rule, l classify.Lookups) string {
+func RestrictedBy(domain string, rules []Named, l classify.Lookups) string {
 	name, ok := classify.SenderName(domain, l)
 	if !ok {
 		return ""
 	}
 	for _, r := range rules {
-		for _, suffix := range r.Suffixes {
-			if name.Under(classify.SuffixName(suffix, l)) {
-				return r.ID
-			}
+		if slices.ContainsFunc(r.suffixes, name.Under) {
+			return r.ID
 		}
 	}
 	return ""
 }
 
-// Covers reports whether a rule of suffixes already matches suffix, the suffix being one of them or a
-// subdomain of one, in the form the classifier compares (docs/UI.md section 8.7).
-func Covers(suffixes []string, suffix string, l classify.Lookups) bool {
-	n := classify.SuffixName(suffix, l)
-	return slices.ContainsFunc(suffixes, func(x string) bool { return n.Under(classify.SuffixName(x, l)) })
+// Covers reports whether a rule whose suffixes are names already matches suffix, the suffix being one
+// of them or a subdomain of one, in the form the classifier compares (docs/UI.md section 8.7). The
+// names are SuffixNames', converted once for every suffix a request checks.
+func Covers(names []classify.Name, suffix string, l classify.Lookups) bool {
+	return slices.ContainsFunc(names, classify.SuffixName(suffix, l).Under)
 }
 
 // PublicSuffix reports whether suffix is itself a public suffix, so it has no registrable domain and

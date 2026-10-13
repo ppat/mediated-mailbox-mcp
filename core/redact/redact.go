@@ -20,7 +20,6 @@ package redact
 
 import (
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
-	"github.com/ppat/mediated-mailbox-mcp/core/policy"
 	"github.com/ppat/mediated-mailbox-mcp/core/sensitivity"
 )
 
@@ -101,9 +100,9 @@ func (v Verdict) ShowsSnippet() bool { return v.ReleasesBody() }
 func (v Verdict) ShowsAttachmentNames() bool { return v.ReleasesBody() }
 
 // Decide returns the gate's verdict on a message from sender, with the content flags and scan state
-// the index stores, under the account policy p. The lookups are the classifier's.
-func Decide(p policy.Composed, sender string, l classify.Lookups, flags sensitivity.ContentFlags, scan sensitivity.ScanState) Verdict {
-	c := classify.Classify(p, sender, l)
+// the index stores, under the account policy p, prepared with the classifier's lookups.
+func Decide(p classify.Policy, sender string, flags sensitivity.ContentFlags, scan sensitivity.ScanState) Verdict {
+	c := classify.Classify(p, sender)
 	v := Verdict{sender: c}
 	switch {
 	case flags.Any() && scan != sensitivity.Scanned():

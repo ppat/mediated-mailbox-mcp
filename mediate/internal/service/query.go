@@ -9,7 +9,6 @@ import (
 
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
 	"github.com/ppat/mediated-mailbox-mcp/core/index"
-	"github.com/ppat/mediated-mailbox-mcp/core/policy"
 	"github.com/ppat/mediated-mailbox-mcp/db/messages"
 )
 
@@ -186,10 +185,10 @@ type classes struct {
 }
 
 // classifyDomains classifies every sender domain under p.
-func classifyDomains(domains []string, p policy.Composed, l classify.Lookups) classes {
+func classifyDomains(domains []string, p classify.Policy) classes {
 	c := classes{normal: []string{}}
 	for _, d := range domains {
-		if !classify.Classify(p, "@"+d, l).Class().Restricted() {
+		if !classify.Classify(p, "@"+d).Class().Restricted() {
 			c.normal = append(c.normal, d)
 		}
 	}

@@ -171,7 +171,12 @@ active policy as one immutable snapshot and replace it only with an update that 
 composition of the base policy with an account's overlay and the atomic swap are pure and sit in
 `core/policy`. What is left is impure and the same in every one of them. It reads the base rows and
 each account's overlay rows from the policy tables, hands them to the pure half, and raises the
-reload-failure alarm when a reload fails, whether the read or the validation.
+reload-failure alarm when a reload fails, whether the read or the validation. The reload that swaps
+a snapshot in also prepares each account's policy for the sender classifier through
+`classify.Prepare`, converting every rule's suffixes once, and the snapshot holds the prepared
+policies, so they are swapped with it and never outlive it. A prepared policy also holds the
+lookups its suffixes were converted with, which the classifier normalizes the sender with. A
+classification then converts only the sender, however many suffixes the policy holds.
 
 The case for one package over per-deployable glue is one rule the glue could get wrong. The pure
 half accepts a policy with no rules as valid. A read of the tables that failed, or returned nothing

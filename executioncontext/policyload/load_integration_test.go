@@ -13,6 +13,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/prometheus/client_golang/prometheus"
 
+	"github.com/ppat/mediated-mailbox-mcp/core/classify"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/policyload"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 )
@@ -24,7 +25,7 @@ const grantRead = "GRANT SELECT (account_id, rule_id, class, domain_suffix) ON p
 func newLoader(t *testing.T, db *faulty, accounts []string) (*policyload.Loader, *prometheus.Registry) {
 	t.Helper()
 	reg := prometheus.NewRegistry()
-	l, err := policyload.New(db, accounts, reg)
+	l, err := policyload.New(db, accounts, reg, lookups)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -389,5 +390,56 @@ func TestSetAccountsChangesWhatTheNextReloadReads(t *testing.T) {
 	}
 	if diff := cmp.Diff(after, observe(l.Snapshot(), accounts...), compare.Options); diff != "" {
 		t.Errorf("after refused sets (-want +got):\n%s", diff)
+	}
+}
+
+// Each reload prepares the policy it swaps in for the classifier, so from that reload on a rule added
+// before it lists its senders and a rule deleted before it lists none, while a snapshot taken before
+// it keeps classifying under the policy it was taken with (ADR-0041). The classifier is what reads
+// the prepared policy, so the test classifies a sender of every rule it changes.
+func TestEachReloadPreparesThePolicyItSwapsIn(t *testing.T) {
+	conn := superuser(t)
+	accounts := newAccounts(t, conn, 2)
+	seed(t, conn, accounts)
+	l, _ := newLoader(t, &faulty{pool: backfill(t)}, accounts)
+	if err := l.Reload(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	taken := l.Snapshot()
+	senders := []string{"x@irs.gov", "x@added.example", "x@own.example", "x@examplebank.com"}
+	// classified returns, for each account and each of senders, the rule s classifies it listed by,
+	// empty for a sender no rule lists.
+	classified := func(s policyload.Snapshot) map[string]map[string]string {
+		out := map[string]map[string]string{}
+		for _, account := range accounts {
+			out[account] = map[string]string{}
+			for _, sender := range senders {
+				out[account][sender] = classify.Classify(s.For(account), sender).Rule()
+			}
+		}
+		return out
+	}
+	before := map[string]map[string]string{}
+	after := map[string]map[string]string{}
+	for _, account := range accounts {
+		before[account] = map[string]string{"x@irs.gov": "base.irs", "x@added.example": "", "x@own.example": "", "x@examplebank.com": account + ".bank"}
+		after[account] = map[string]string{"x@irs.gov": "", "x@added.example": "base.added", "x@own.example": "", "x@examplebank.com": account + ".bank"}
+	}
+	after[accounts[1]]["x@own.example"] = accounts[1] + ".own"
+	if diff := cmp.Diff(before, classified(taken), compare.Options); diff != "" {
+		t.Errorf("after the first reload (-want +got):\n%s", diff)
+	}
+
+	must(t, conn, "DELETE FROM policy_rules WHERE rule_id = 'base.irs'")
+	addRule(t, conn, "", "base.added", "added.example")
+	addRule(t, conn, accounts[1], accounts[1]+".own", "own.example")
+	if err := l.Reload(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	if diff := cmp.Diff(after, classified(l.Snapshot()), compare.Options); diff != "" {
+		t.Errorf("after a reload of the edited rules (-want +got):\n%s", diff)
+	}
+	if diff := cmp.Diff(before, classified(taken), compare.Options); diff != "" {
+		t.Errorf("the snapshot taken before the edit (-want +got):\n%s", diff)
 	}
 }

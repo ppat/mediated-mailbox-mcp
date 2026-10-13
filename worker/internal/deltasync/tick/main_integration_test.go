@@ -211,7 +211,7 @@ func deps(t tb, pool *pgxpool.Pool, p tick.Provider, pol policy.Snapshot, accoun
 	t.Helper()
 	return tick.Deps{
 		Store: tick.NewPostgres(pool), Provider: p,
-		Policy: pol.For(account), Lookups: lookups, Gate: gate, Scanner: scanner(t),
+		Policy: classify.Prepare(pol.For(account), lookups), Gate: gate, Scanner: scanner(t),
 		FirstWindow: 7 * day, Decisions: 200, PageSize: 2,
 		RunID: func() string { return fmt.Sprintf("%s-run%d", account, runIDs.Add(1)) },
 		Now:   func() time.Time { return now },

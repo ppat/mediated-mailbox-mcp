@@ -222,6 +222,7 @@ its part, and the rows it added. Which rows it proved are the rows whose Status 
 | [#352](https://github.com/ppat/mediated-mailbox-mcp/pull/352) | R1 | R1's transport for the mediator and the UI ([ADR-0127](./docs/adr/operability/0127-tls-when-given-a-key-pair-plain-http-otherwise.md)), TLS when the configuration names both TLS files, plain HTTP when it names neither and a start refused with one, in place of the mediator's declared ingress and the UI's plain HTTP from a binary built with a development build tag, which is removed | The rows of the mediator's and the UI's transport, the mediator's readiness and its refusal of a configuration it cannot serve with, proven for the TLS files as the record has them, and the row of the start log's record of the transport each deployable serves | The mediator's client surface transport, its readiness and its configuration refusals, the UI's transport, and the start log's record of the transport each deployable serves, demonstrated with the changed and added breaks, and every demonstration whose tests start either deployable or whose tests or patch the change touched, among them the ban-proof script's check of the vet step's tags and the consent redirect's validation, demonstrated again |
 | [#353](https://github.com/ppat/mediated-mailbox-mcp/pull/353) | M3 | M3's later work, the mutation runner carrying the checkout's built browser bundle into its copies and the `mutation-demonstrations` workflow building the bundle before it runs, so the demonstrations whose tests read the bundle run unaided again ([ADR-0124](./docs/adr/engineering/0124-each-kind-of-test-runs-in-a-workflow-of-its-own.md)) | — | Every go test demonstration whose patch sits under `ui/` or whose packages name a UI package or the mediator's entry package, and the runner's own, 274 in all, run again on the tree it merges into and held, with reproductions recorded on the two rows whose breaks now turn more tests red, a policy write refused for a route word and the route words being a closed list a test pins |
 | [#356](https://github.com/ppat/mediated-mailbox-mcp/pull/356) | R1 | R1's machinery ahead of the chart. The images workflow's job for each image also pushes, signs and tags it `latest` on a push to `main` matching its publish list, which names what the images are built from, and a release moves `latest` to its own commit's images, and the chainsaw suite on a pull request deploys those images by the digests it resolves, refusing a set built from different commits, from its new place at `packaging/tests/chainsaw/`. The release cut writes its version into `process/version` and the chart, the release refuses a chart whose version is not its tag's and checks the key-generation binaries it attached, every binary answers `--version`, the mediator's MCP server reports the same version, and each deployable writes a start banner to standard error ([ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md), [ADR-0054](./docs/adr/engineering/0054-one-repository-flat-layout-naming-convention.md), [ADR-0078](./docs/adr/engineering/0078-configuration-layers-through-an-owned-library.md), [ADR-0122](./docs/adr/engineering/0122-logs-through-slog-at-a-configured-level-handed-to-shells.md)) | It adds and proves the rows for a mixed or unlabelled `latest` set refused and a chart whose version disagrees with its tag refused, and rekeys the key-generation row's release part to production point 1 | Every demonstration whose patch or tests the change touched, the entry packages' patches regenerated for the moved lines, 220 in all, demonstrated again and held, with the new tests of `--version` and the start banner added where they also went red, and the worker's break of the keyring holding only the first private key recorded under the worker's package |
+| [#365](https://github.com/ppat/mediated-mailbox-mcp/pull/365) | S1 | S1's later work, the sender classifier comparing each sender with a policy `classify.Prepare` builds, every rule's suffixes converted once and the lookups they were converted with held for the sender, which the policy loader builds for each account it read in the reload that swaps the snapshot in and holds in that snapshot, so a classification converts only the sender. The UI's rules core converts the rules it reads once per request | The S1 row for the policy list alone deciding sender class proven again, and the rows it adds and proves for the prepared policy being swapped with its snapshot and for a sender being normalized only with its policy's own lookups | Those of the classifier, the policy loader, the Redaction Gate's policy and parameters and the stored-class comparisons, with the patches whose context or code the prepared policy moved regenerated, and new breaks for the prepared policy keeping the suffixes as written, a reload keeping the prepared policies of the snapshot it replaces, and the classifier taking a second set of lookups for the sender |
 
 ### What each composition root runs
 
@@ -492,14 +493,16 @@ What the code on `main` runs today, per composition root, none of it yet release
   [#142](https://github.com/ppat/mediated-mailbox-mcp/pull/142),
   [#143](https://github.com/ppat/mediated-mailbox-mcp/pull/143),
   [#144](https://github.com/ppat/mediated-mailbox-mcp/pull/144),
-  [#145](https://github.com/ppat/mediated-mailbox-mcp/pull/145) and
-  [#150](https://github.com/ppat/mediated-mailbox-mcp/pull/150), which closed its tickets
+  [#145](https://github.com/ppat/mediated-mailbox-mcp/pull/145),
+  [#150](https://github.com/ppat/mediated-mailbox-mcp/pull/150) and, as later work,
+  [#365](https://github.com/ppat/mediated-mailbox-mcp/pull/365), which closed its tickets
   [#122](https://github.com/ppat/mediated-mailbox-mcp/issues/122),
   [#71](https://github.com/ppat/mediated-mailbox-mcp/issues/71),
   [#72](https://github.com/ppat/mediated-mailbox-mcp/issues/72),
   [#79](https://github.com/ppat/mediated-mailbox-mcp/issues/79),
-  [#83](https://github.com/ppat/mediated-mailbox-mcp/issues/83) and
-  [#91](https://github.com/ppat/mediated-mailbox-mcp/issues/91), and not yet released. The gate's
+  [#83](https://github.com/ppat/mediated-mailbox-mcp/issues/83),
+  [#91](https://github.com/ppat/mediated-mailbox-mcp/issues/91) and
+  [#308](https://github.com/ppat/mediated-mailbox-mcp/issues/308), and not yet released. The gate's
   field-level matrix ([ADR-0001](./docs/adr/redaction/0001-redaction-matrix.md)), fetch-time
   re-evaluation and the deny branches
   ([ADR-0002](./docs/adr/redaction/0002-fetch-time-re-evaluation.md)), the sender classifier and the
@@ -526,9 +529,15 @@ What the code on `main` runs today, per composition root, none of it yet release
   [M1](#group-m--mutation-and-approval), which also decides which sender class a mutation is
   authorized against and fails a whole batch by authorization class. The policy loader that reads
   the policy tables, built in [D1](#delivered-mapped-to-outcomes). None of its cores runs in a deployable
-  yet. **Later work.** After [production point 1](#production-point-1--the-read-path), once the
-  policy reaches hundreds of suffixes or [X3](#group-x--expansion) lands, the sender classifier
-  normalizes the policy's suffixes once per snapshot rather than on every call.
+  yet. Its later work, delivered before
+  [production point 1](#production-point-1--the-read-path), converts the policy's domain suffixes
+  to the form the classifier compares once per policy load rather than on every call.
+  `classify.Prepare` builds an account's prepared policy from its composed policy and the lookups,
+  which it holds, the policy loader builds one for every account it read in the reload that swaps
+  the snapshot in and holds them in that snapshot, and the classifier takes the prepared policy and
+  the address alone, normalizing the sender with the policy's own lookups, so classifying every
+  sender domain of an account converts each suffix once per load rather than once per domain. The
+  UI's rules core, which reads the rules for each request, converts them once per request.
 - [x] **S2 — Content Scanner tiers 1–2 + subject masking** →
   [C3](./USE_CASES.md#c3--content-based-secrets-caught) ·
   [V1](#v1--the-safeguard-exists-before-anything-flows) · finished at tested
@@ -1368,8 +1377,7 @@ real adversary. Mutation capability opens only after that proof exists.
 [M4](#group-m--mutation-and-approval) · [M5](#group-m--mutation-and-approval) ·
 [M6](#group-m--mutation-and-approval) · [X2](#group-x--expansion) · [R2](#group-r--packaging), and
 the later work recorded under [D3](#delivered-mapped-to-outcomes), [D4](#delivered-mapped-to-outcomes),
-[F3](#delivered-mapped-to-outcomes), [M3](#delivered-mapped-to-outcomes) and
-[S1](#delivered-mapped-to-outcomes) that is placed after
+[F3](#delivered-mapped-to-outcomes) and [M3](#delivered-mapped-to-outcomes) that is placed after
 [production point 1](#production-point-1--the-read-path), then
 [production point 2](#production-point-2--the-agent-acts). **Value shipped:** the system's headline
 capability (organize, then propose and enact a mailbox-wide reorganization) with approval, rollback
@@ -1423,10 +1431,10 @@ holds, with an entry naming the point.
   [F8](#delivered-mapped-to-outcomes) · [F10](#delivered-mapped-to-outcomes) · [F11](#delivered-mapped-to-outcomes) ·
   [F12](#delivered-mapped-to-outcomes) · [R1](#group-r--packaging), the end of
   [V3](#v3--the-agent-arrives-read-only), and the later work recorded under
-  [F4](#delivered-mapped-to-outcomes), [D1](#delivered-mapped-to-outcomes),
-  [D2](#delivered-mapped-to-outcomes), [D3](#delivered-mapped-to-outcomes),
-  [M3](#delivered-mapped-to-outcomes) and [M7](#delivered-mapped-to-outcomes) that is placed before
-  this point.
+  [F4](#delivered-mapped-to-outcomes), [S1](#delivered-mapped-to-outcomes),
+  [D1](#delivered-mapped-to-outcomes), [D2](#delivered-mapped-to-outcomes),
+  [D3](#delivered-mapped-to-outcomes), [M3](#delivered-mapped-to-outcomes) and
+  [M7](#delivered-mapped-to-outcomes) that is placed before this point.
 - **Supplied there:**
   - PostgreSQL with the roles created, which needs the privilege to create roles and no superuser
     step inside the application database, the migration role, and the credentials of the runtime
@@ -1504,8 +1512,7 @@ holds, with an entry naming the point.
   [M6](#group-m--mutation-and-approval) · [X2](#group-x--expansion) · [R2](#group-r--packaging), the
   end of [V4](#v4--the-agent-acts-and-calendar-joins-mail), and the later work recorded under
   [D3](#delivered-mapped-to-outcomes), [D4](#delivered-mapped-to-outcomes),
-  [F3](#delivered-mapped-to-outcomes), [M3](#delivered-mapped-to-outcomes) and
-  [S1](#delivered-mapped-to-outcomes) that is placed after
+  [F3](#delivered-mapped-to-outcomes) and [M3](#delivered-mapped-to-outcomes) that is placed after
   [production point 1](#production-point-1--the-read-path).
 - **Preconditions:** [production point 1](#production-point-1--the-read-path) has run long enough
   for the index to hold the real corpus and the review loops to have traffic.

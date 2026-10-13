@@ -52,7 +52,6 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/content/markdown"
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
-	"github.com/ppat/mediated-mailbox-mcp/core/policy"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/db/accountstate"
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
@@ -333,20 +332,19 @@ func serve(ctx context.Context, c Configuration, surfaceListener, probeListener 
 }
 
 // sources are what the operations read from, the pool, the accounts and policy the serving state
-// holds in force, the classifier's lookups, the clock, and what the body operation needs beyond them.
+// holds in force, the clock, and what the body operation needs beyond them.
 func sources(pool *pgxpool.Pool, served *serving, bodies service.Bodies) service.Sources {
 	return service.Sources{
 		DB:       pool,
 		Accounts: served.accounts,
 		Policy:   served.policy,
-		Lookups:  lookups(),
 		Now:      time.Now,
 		Bodies:   bodies,
 	}
 }
 
 // lookups are the classifier's domain functions, the UTS #46 lookup profile and the public-suffix
-// list, which the pure classifier takes as parameters.
+// list, which the policy loader prepares each account's policy with for the pure classifier.
 func lookups() classify.Lookups {
 	return classify.Lookups{
 		ToUnicode:   idna.Lookup.ToUnicode,
@@ -421,7 +419,7 @@ func (s *serving) loadPolicy(ctx context.Context, accounts []string) error {
 	}
 	policies := s.policies.Load()
 	if policies == nil {
-		built, err := policyload.New(s.pool, accounts, s.metrics)
+		built, err := policyload.New(s.pool, accounts, s.metrics, lookups())
 		if err != nil {
 			return err
 		}
@@ -450,10 +448,10 @@ func (s *serving) reloadPolicy(ctx context.Context) error {
 // policy from the snapshot then active (ADR-0099). A load that fails leaves the active valid policy,
 // whose failure the loader alarms on (ADR-0041). A caller that stops waiting gets the policy that
 // restricts every sender, so a decision is never made against a policy the load did not reach.
-func (s *serving) currentPolicy(ctx context.Context, account string) policy.Composed {
+func (s *serving) currentPolicy(ctx context.Context, account string) classify.Policy {
 	if err := s.fresh.Load(ctx); err != nil {
 		if ctx.Err() != nil {
-			return policy.Composed{}
+			return classify.Policy{}
 		}
 		s.logger.Error("the policy was not loaded, so the active policy decides", "error", err)
 	}
@@ -488,10 +486,10 @@ func (s *serving) accounts() []service.Account {
 
 // policy returns the policy an account's messages are decided against. With no policy loaded it is
 // the policy that restricts every sender.
-func (s *serving) policy(account string) policy.Composed {
+func (s *serving) policy(account string) classify.Policy {
 	policies := s.policies.Load()
 	if policies == nil {
-		return policy.Composed{}
+		return classify.Policy{}
 	}
 	return policies.Snapshot().For(account)
 }

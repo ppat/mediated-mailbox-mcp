@@ -1,20 +1,32 @@
 control: The Redaction Gate classifies the sender against the policy it is given
-removes: the sender is classified against an empty policy instead of the one given
+removes: the sender is classified against an empty policy instead of the one given, prepared with the real lookups a composition root passes in, so only the policy changes
 packages: ./core/redact
 tests: TestAJustListedDomainDeniesOnTheNextDecision TestDecide/a_restricted_sender,_scanned_before_it_was_listed
 scheduled-count: no
 
 diff --git a/core/redact/redact.go b/core/redact/redact.go
-index 0e209d5..062975a 100644
+index 5c397bc8..bd09a091 100644
 --- a/core/redact/redact.go
 +++ b/core/redact/redact.go
-@@ -102,7 +102,8 @@ func (v Verdict) ShowsAttachmentNames() bool { return v.ReleasesBody() }
+@@ -20,7 +20,10 @@ package redact
+ 
+ import (
+ 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
++	"github.com/ppat/mediated-mailbox-mcp/core/policy"
+ 	"github.com/ppat/mediated-mailbox-mcp/core/sensitivity"
++	"golang.org/x/net/idna"
++	"golang.org/x/net/publicsuffix"
+ )
+ 
+ // Reason says why the gate released or withheld a body. The zero value is an invalid stored state.
+@@ -102,7 +105,9 @@ func (v Verdict) ShowsAttachmentNames() bool { return v.ReleasesBody() }
  // Decide returns the gate's verdict on a message from sender, with the content flags and scan state
- // the index stores, under the account policy p. The lookups are the classifier's.
- func Decide(p policy.Composed, sender string, l classify.Lookups, flags sensitivity.ContentFlags, scan sensitivity.ScanState) Verdict {
--	c := classify.Classify(p, sender, l)
+ // the index stores, under the account policy p, prepared with the classifier's lookups.
+ func Decide(p classify.Policy, sender string, flags sensitivity.ContentFlags, scan sensitivity.ScanState) Verdict {
+-	c := classify.Classify(p, sender)
 +	empty, _ := policy.Load(nil)
-+	c := classify.Classify(empty.For("any"), sender, l)
++	l := classify.Lookups{ToUnicode: idna.Lookup.ToUnicode, ToASCII: idna.Lookup.ToASCII, Registrable: publicsuffix.EffectiveTLDPlusOne}
++	c := classify.Classify(classify.Prepare(empty.For("any"), l), sender)
  	v := Verdict{sender: c}
  	switch {
  	case flags.Any() && scan != sensitivity.Scanned():

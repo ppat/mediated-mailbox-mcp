@@ -9,8 +9,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 
+	"github.com/ppat/mediated-mailbox-mcp/core/classify"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
-	"github.com/ppat/mediated-mailbox-mcp/core/policy"
 	"github.com/ppat/mediated-mailbox-mcp/core/redact"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/core/sensitivity"
@@ -26,7 +26,7 @@ type Bodies struct {
 	// Policy has the policy loaded for a body request and returns the account's policy from the
 	// snapshot that load left active (ADR-0099). A load that failed leaves the active valid policy.
 	// A request takes it once, before the gate decides.
-	Policy func(ctx context.Context, account string) policy.Composed
+	Policy func(ctx context.Context, account string) classify.Policy
 	// Open returns the provider session a released message's provider calls go through. It is called
 	// only once the gate has released the message, so a denial never reaches a provider (ADR-0002).
 	Open func(ctx context.Context, account string) (Provider, error)
@@ -155,7 +155,7 @@ func (s Sources) getMessageBody(ctx context.Context, account string, input json.
 	}
 	row := rows[0]
 	flags, state := storedFlags(row.ContentFlags), storedScanState(row.ScanState)
-	v := redact.Decide(p, row.FromEmail, s.Lookups, flags, state)
+	v := redact.Decide(p, row.FromEmail, flags, state)
 	g := gateDecided(v, flags, state, row.RuleIds)
 	denied := bodyResult{AccountID: account, MessageID: args.MessageID}
 	if !v.ReleasesBody() {

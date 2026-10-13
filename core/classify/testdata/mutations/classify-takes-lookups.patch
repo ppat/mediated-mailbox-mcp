@@ -1,0 +1,22 @@
+control: A sender is normalized with the lookups its policy was prepared with
+removes: the classifier takes a further set of lookups, which normalizes the sender in place of the policy's own
+packages: ./core/classify
+tests: TestASenderIsNormalizedWithThePoliciesOwnLookups
+scheduled-count: no
+
+diff --git a/core/classify/classify.go b/core/classify/classify.go
+index 17c864f6..44fdf7b5 100644
+--- a/core/classify/classify.go
++++ b/core/classify/classify.go
+@@ -141,7 +141,10 @@ func (p Policy) Composed() policy.Composed { return p.composed }
+ 
+ // Classify returns the class of the sender of address under the account's prepared policy p, the
+ // sender normalized with the lookups p was prepared with.
+-func Classify(p Policy, address string) Verdict {
++func Classify(p Policy, address string, other ...Lookups) Verdict {
++	if len(other) > 0 {
++		p.lookups = other[0]
++	}
+ 	if p.composed.RestrictsAll() {
+ 		return Verdict{class: sensitivity.RestrictedSender(), reason: NoPolicy}
+ 	}

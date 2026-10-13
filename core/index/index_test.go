@@ -30,14 +30,14 @@ var lookups = classify.Lookups{
 const account = "personal"
 
 // composed returns the account's policy with one rule listing bank.example.
-func composed(t *testing.T) policy.Composed {
+func composed(t *testing.T) classify.Policy {
 	t.Helper()
 	return listing(t, "bank.example")
 }
 
 // listing returns the account's policy with one rule listing each of domains, named rule.bank for
 // bank.example and rule.<domain> for any other.
-func listing(t *testing.T, domains ...string) policy.Composed {
+func listing(t *testing.T, domains ...string) classify.Policy {
 	t.Helper()
 	var rows []policy.Row
 	for _, d := range domains {
@@ -51,7 +51,7 @@ func listing(t *testing.T, domains ...string) policy.Composed {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return s.For(account)
+	return classify.Prepare(s.For(account), lookups)
 }
 
 func scanner(t *testing.T) scan.Scanner {
@@ -131,7 +131,7 @@ func TestDecide(t *testing.T) {
 		},
 		Domains: []string{"", "bank.example", "newsletter.example", "security.example", "shop.example"},
 	}
-	if diff := cmp.Diff(want, index.Decide(items, composed(t), scanner(t), lookups), compare.Options); diff != "" {
+	if diff := cmp.Diff(want, index.Decide(items, composed(t), scanner(t)), compare.Options); diff != "" {
 		t.Errorf("Decide (-want +got):\n%s", diff)
 	}
 }
@@ -141,7 +141,7 @@ func TestDecide(t *testing.T) {
 // No rule set the class, so the message names none.
 func TestDecideFailsClosed(t *testing.T) {
 	item := metadata("m1", fixture.Newsletter(), 1000)
-	got := index.Decide([]mail.MessageMetadata{item}, policy.Snapshot{}.For(account), scan.Scanner{}, lookups)
+	got := index.Decide([]mail.MessageMetadata{item}, classify.Prepare(policy.Snapshot{}.For(account), lookups), scan.Scanner{})
 	subject := strings.Repeat("█", len([]rune(item.Subject)))
 	want := index.Page{
 		Messages: []index.Message{{
@@ -185,17 +185,17 @@ func TestDelisted(t *testing.T) {
 	stored := []string{"bank.example", "mail.gov.example", "shop.example", ""}
 	cases := []struct {
 		name   string
-		policy policy.Composed
+		policy classify.Policy
 		want   []string
 	}{
 		{"every rule in place", listing(t, "bank.example", "gov.example", "shop.example"), nil},
 		{"the bank's rule removed", listing(t, "gov.example", "shop.example"), []string{"bank.example"}},
 		{"every rule removed", listing(t), []string{"bank.example", "mail.gov.example", "shop.example"}},
-		{"a policy that never loaded", policy.Composed{}, nil},
+		{"a policy that never loaded", classify.Policy{}, nil},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			if diff := cmp.Diff(c.want, index.Delisted(c.policy, lookups, stored), compare.Options); diff != "" {
+			if diff := cmp.Diff(c.want, index.Delisted(c.policy, stored), compare.Options); diff != "" {
 				t.Errorf("Delisted (-want +got):\n%s", diff)
 			}
 		})
@@ -209,7 +209,7 @@ func TestListed(t *testing.T) {
 	stored := []string{"bank.example", "mail.gov.example", "shop.example", ""}
 	cases := []struct {
 		name   string
-		policy policy.Composed
+		policy classify.Policy
 		want   []index.Listing
 	}{
 		{"no rule", listing(t), nil},
@@ -217,11 +217,11 @@ func TestListed(t *testing.T) {
 			{Domain: "bank.example", Rule: "rule.bank"},
 			{Domain: "mail.gov.example", Rule: "rule.gov.example"},
 		}},
-		{"a policy that never loaded", policy.Composed{}, nil},
+		{"a policy that never loaded", classify.Policy{}, nil},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			if diff := cmp.Diff(c.want, index.Listed(c.policy, lookups, stored), compare.Options); diff != "" {
+			if diff := cmp.Diff(c.want, index.Listed(c.policy, stored), compare.Options); diff != "" {
 				t.Errorf("Listed (-want +got):\n%s", diff)
 			}
 		})
@@ -248,7 +248,7 @@ const now = mail.UnixMilli(10 * 86_400_000)
 func TestGate(t *testing.T) {
 	cases := []struct {
 		name     string
-		policy   policy.Composed
+		policy   classify.Policy
 		message  func(index.Waiting) index.Waiting
 		pageHits int64
 		want     string
@@ -266,7 +266,7 @@ func TestGate(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			got := index.Gate(c.policy, lookups, thresholds, now, c.message(skipped()), c.pageHits)
+			got := index.Gate(c.policy, thresholds, now, c.message(skipped()), c.pageHits)
 			if got.Reason().String() != c.want {
 				t.Errorf("Gate decided %q, want %q", got.Reason().String(), c.want)
 			}

@@ -169,7 +169,7 @@ func TestReleased(t *testing.T) {
 func TestRestrictedBy(t *testing.T) {
 	policy := []rules.Rule{rule("base.schwab", "schwab.com"), rule("own.mail", "mail.schwab.com")}
 	for domain, want := range map[string]string{"mail.schwab.com": "base.schwab", "notschwab.com": "", "": ""} {
-		if got := rules.RestrictedBy(domain, policy, lookups); got != want {
+		if got := rules.RestrictedBy(domain, rules.Names(policy, lookups), lookups); got != want {
 			t.Errorf("RestrictedBy(%q) = %q, want %q", domain, got, want)
 		}
 	}

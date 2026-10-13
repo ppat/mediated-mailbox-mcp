@@ -343,9 +343,8 @@ func newWorld(t tb, s setup, account string, store pass1.Store, inspect func(tb)
 			return got, err
 		},
 		PerCall: perCall,
-		Policy:  fixed(rules.For(account)),
+		Policy:  fixed(classify.Prepare(rules.For(account), lookups)),
 		Scanner: scanner,
-		Lookups: classify.Lookups{ToUnicode: idna.Lookup.ToUnicode, ToASCII: idna.Lookup.ToASCII, Registrable: publicsuffix.EffectiveTLDPlusOne},
 		RunID: func() string {
 			w.runs++
 			return fmt.Sprintf("run%d", w.runs)
@@ -946,6 +945,9 @@ func modelWorld(t tb, s setup) *world {
 	})
 }
 
+// lookups are the classifier's domain functions the policies a test fixes are prepared with.
+var lookups = classify.Lookups{ToUnicode: idna.Lookup.ToUnicode, ToASCII: idna.Lookup.ToASCII, Registrable: publicsuffix.EffectiveTLDPlusOne}
+
 // fixed returns a policy function that returns c for every page, the active snapshot of a policy
 // nothing edits.
-func fixed(c policy.Composed) func() policy.Composed { return func() policy.Composed { return c } }
+func fixed(c classify.Policy) func() classify.Policy { return func() classify.Policy { return c } }

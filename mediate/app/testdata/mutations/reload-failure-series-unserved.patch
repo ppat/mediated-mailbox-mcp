@@ -5,17 +5,16 @@ tests: TestAFailedPolicyLoadStillFollowsTheSnapshot
 scheduled-count: no
 integration: yes
 
-
 diff --git a/mediate/app/app.go b/mediate/app/app.go
-index 8f9657ee..08e9a6ed 100644
+index 164cc08c..ec456aef 100644
 --- a/mediate/app/app.go
 +++ b/mediate/app/app.go
-@@ -366,7 +366,7 @@ func (s *serving) loadPolicy(ctx context.Context, accounts []string) error {
+@@ -420,7 +420,7 @@ func (s *serving) loadPolicy(ctx context.Context, accounts []string) error {
  	}
  	policies := s.policies.Load()
  	if policies == nil {
--		built, err := policyload.New(s.pool, accounts, s.metrics)
-+		built, err := policyload.New(s.pool, accounts, prometheus.NewRegistry())
+-		built, err := policyload.New(s.pool, accounts, s.metrics, lookups())
++		built, err := policyload.New(s.pool, accounts, prometheus.NewRegistry(), lookups())
  		if err != nil {
  			return err
  		}

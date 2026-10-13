@@ -6,7 +6,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
-	"github.com/ppat/mediated-mailbox-mcp/core/classify"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/core/scangate"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
@@ -23,7 +22,7 @@ func TestARunDecidesUnderTheSharedThresholdsAndScanner(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	deps := secondDeps(nil, nil, nil, classify.Lookups{}, scanner)
+	deps := secondDeps(nil, nil, nil, scanner)
 
 	want := scangate.Config{
 		NoReplyLocalParts: []string{"noreply", "no-reply", "security", "accounts", "verify", "auth", "support"},

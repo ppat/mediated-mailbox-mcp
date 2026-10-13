@@ -323,7 +323,7 @@ func TestARunTakesItsAccountsFromTheDatabase(t *testing.T) {
 		t.Errorf("warnings (-want +got):\n%s", diff)
 	}
 	for _, id := range []string{"no-credential", "no-state", "personal", "work"} {
-		if b.policies == nil || b.policies.Snapshot().For(id).RestrictsAll() {
+		if b.policies == nil || b.policies.Snapshot().For(id).Composed().RestrictsAll() {
 			t.Errorf("the reload read no rules of listed account %s, so it would restrict every sender once the account is served", id)
 		}
 	}
@@ -706,10 +706,9 @@ func firstPassDeps(t *testing.T, pool *pgxpool.Pool, account string) pass1.Deps 
 	n := 0
 	return pass1.Deps{
 		Store: pass1.NewPostgres(pool), Fetch: f.EnumerateAll, Metadata: f.GetMessageMetadata, PerCall: 3,
-		Policy: fixed(none.For(account)), Scanner: s,
-		Lookups: classify.Lookups{ToUnicode: idna.Lookup.ToUnicode, ToASCII: idna.Lookup.ToASCII, Registrable: publicsuffix.EffectiveTLDPlusOne},
-		RunID:   func() string { n++; return fmt.Sprintf("run%d", n) },
-		Now:     time.Now,
+		Policy: fixed(classify.Prepare(none.For(account), lookups)), Scanner: s,
+		RunID: func() string { n++; return fmt.Sprintf("run%d", n) },
+		Now:   time.Now,
 	}
 }
 
@@ -1128,9 +1127,12 @@ func TestTheRunsHandOverReturnsAFailedRecording(t *testing.T) {
 	}
 }
 
+// lookups are the classifier's domain functions the policies a test fixes are prepared with.
+var lookups = classify.Lookups{ToUnicode: idna.Lookup.ToUnicode, ToASCII: idna.Lookup.ToASCII, Registrable: publicsuffix.EffectiveTLDPlusOne}
+
 // fixed returns a policy function that returns c for every page, the active snapshot of a policy
 // nothing edits.
-func fixed(c policy.Composed) func() policy.Composed { return func() policy.Composed { return c } }
+func fixed(c classify.Policy) func() classify.Policy { return func() classify.Policy { return c } }
 
 // VERIFICATIONS' row for a job's latest success read from recorded state, backfill's part. Each
 // account's job is ensured with its latest success as its runs record it, so a worker that restarts

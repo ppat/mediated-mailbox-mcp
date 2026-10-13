@@ -5,15 +5,15 @@ tests: TestNoPolicyRestrictsEverySender
 scheduled-count: no
 
 diff --git a/core/classify/classify.go b/core/classify/classify.go
-index e163a55..a8c5d06 100644
+index 3d82c15d..a959f517 100644
 --- a/core/classify/classify.go
 +++ b/core/classify/classify.go
-@@ -91,7 +91,7 @@ func (v Verdict) Rule() string { return v.rule }
- 
- // Classify returns the class of the sender of address under the account policy p.
- func Classify(p policy.Composed, address string, l Lookups) Verdict {
--	if p.RestrictsAll() {
-+	if false && p.RestrictsAll() {
+@@ -145,7 +145,7 @@ func (p Policy) Composed() policy.Composed { return p.composed }
+ // Classify returns the class of the sender of address under the account's prepared policy p, the
+ // sender normalized with the lookups p was prepared with.
+ func Classify(p Policy, address string) Verdict {
+-	if p.composed.RestrictsAll() {
++	if false && p.composed.RestrictsAll() {
  		return Verdict{class: sensitivity.RestrictedSender(), reason: NoPolicy}
  	}
  	at := strings.LastIndexByte(address, '@')

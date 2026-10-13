@@ -5,17 +5,16 @@ tests: TestEveryServedMessageFollowsTheRedactionMatrix
 scheduled-count: no
 integration: yes
 
-
 diff --git a/mediate/internal/service/present.go b/mediate/internal/service/present.go
-index 38bb177..d71b57d 100644
+index d610d3ab..a05ae18d 100644
 --- a/mediate/internal/service/present.go
 +++ b/mediate/internal/service/present.go
-@@ -96,7 +96,7 @@ func storedScanState(name string) sensitivity.ScanState {
+@@ -122,7 +122,7 @@ func storedScanState(name string) sensitivity.ScanState {
  // Gate's decision against the account policy p (ADR-0001, ADR-0002).
- func present(account string, m stored, p policy.Composed, l classify.Lookups) message {
+ func present(account string, m stored, p classify.Policy) message {
  	flags, scan := storedFlags(m.ContentFlags), storedScanState(m.ScanState)
--	v := redact.Decide(p, m.FromEmail, l, flags, scan)
-+	v := redact.Decide(policy.Composed{}, m.FromEmail, l, flags, scan)
+-	v := redact.Decide(p, m.FromEmail, flags, scan)
++	v := redact.Decide(classify.Policy{}, m.FromEmail, flags, scan)
  	class := "normal"
  	if v.Sender().Class().Restricted() {
  		class = "restricted"

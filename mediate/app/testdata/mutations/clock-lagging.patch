@@ -5,15 +5,14 @@ tests: TestTheReadOperationsReadTheServingState
 scheduled-count: no
 integration: yes
 
-
 diff --git a/mediate/app/app.go b/mediate/app/app.go
-index 8f9657ee..0c40cada 100644
+index 22468459..562a6f6f 100644
 --- a/mediate/app/app.go
 +++ b/mediate/app/app.go
-@@ -285,7 +285,7 @@ func sources(pool *pgxpool.Pool, served *serving, bodies service.Bodies) service
+@@ -338,7 +338,7 @@ func sources(pool *pgxpool.Pool, served *serving, bodies service.Bodies) service
+ 		DB:       pool,
  		Accounts: served.accounts,
  		Policy:   served.policy,
- 		Lookups:  lookups(),
 -		Now:      time.Now,
 +		Now:      func() time.Time { return time.Now().Add(-10 * time.Minute) },
  		Bodies:   bodies,

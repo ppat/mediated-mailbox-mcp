@@ -5,6 +5,7 @@ import (
 
 	"pgregory.net/rapid"
 
+	"github.com/ppat/mediated-mailbox-mcp/core/classify"
 	"github.com/ppat/mediated-mailbox-mcp/core/policy"
 	"github.com/ppat/mediated-mailbox-mcp/core/redact"
 	"github.com/ppat/mediated-mailbox-mcp/core/sensitivity"
@@ -35,12 +36,12 @@ func draw(t *rapid.T) args {
 	}
 }
 
-var generated = func() policy.Composed {
+var generated = func() classify.Policy {
 	s, err := policy.Load([]policy.Row{fidelity})
 	if err != nil {
 		panic(err)
 	}
-	return s.For("acct-a")
+	return classify.Prepare(s.For("acct-a"), lookups)
 }()
 
 func decide(a args) redact.Verdict {
@@ -48,7 +49,7 @@ func decide(a args) redact.Verdict {
 	if a.Listed {
 		sender = listed
 	}
-	return redact.Decide(generated, sender, lookups, sensitivity.Flags(a.MFACode, a.LoginLink), scanStates[a.Scan]())
+	return redact.Decide(generated, sender, sensitivity.Flags(a.MFACode, a.LoginLink), scanStates[a.Scan]())
 }
 
 // releases states ADR-0002's release rule over the drawn arguments, apart from the code. A body is

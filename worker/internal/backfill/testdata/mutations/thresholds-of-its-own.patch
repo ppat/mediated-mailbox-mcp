@@ -5,14 +5,15 @@ tests: TestARunDecidesUnderTheSharedThresholdsAndScanner
 scheduled-count: no
 
 diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
+index 035c3f46..c2bcb48d 100644
 --- a/worker/internal/backfill/backfill.go
 +++ b/worker/internal/backfill/backfill.go
-@@ -438,7 +438,7 @@
+@@ -493,7 +493,7 @@ func perCall(profile mail.RateLimitProfile[context.Context]) int {
  // work (ADR-0120, ADR-0121, ADR-0104).
- func secondDeps(store pass2.Store, body pass2.Body, policy func() policy.Composed, lookups classify.Lookups, scanner scan.Scanner) pass2.Deps {
+ func secondDeps(store pass2.Store, body pass2.Body, policy func() classify.Policy, scanner scan.Scanner) pass2.Deps {
  	return pass2.Deps{
--		Store: store, Body: body, Policy: policy, Lookups: lookups, Gate: scangate.DefaultConfig(), Scanner: scanner,
-+		Store: store, Body: body, Policy: policy, Lookups: lookups, Gate: scangate.Config{SmallBytes: 1, RecentAgeMillis: 1, LowVolume: 1, HighVolume: 1}, Scanner: scanner,
+-		Store: store, Body: body, Policy: policy, Gate: scangate.DefaultConfig(), Scanner: scanner,
++		Store: store, Body: body, Policy: policy, Gate: scangate.Config{SmallBytes: 1, RecentAgeMillis: 1, LowVolume: 1, HighVolume: 1}, Scanner: scanner,
  		PageSize: pageSize, RunID: runID, Now: time.Now,
  	}
  }

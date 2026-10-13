@@ -12,6 +12,14 @@
 // list are not pure, so they stay out of the pure core, and the caller passes their functions in as
 // Lookups.
 //
+// A rule's suffixes change only when the policy does, so the classifier compares a sender with a
+// policy Prepare built, every suffix already converted to its Name. The shell that loads the policy
+// prepares each account's once per load and holds it beside the snapshot it came from, so a
+// classification converts only the sender, and the next load replaces both together (ADR-0041). The
+// prepared policy holds the lookups its suffixes were converted with, and Classify normalizes the
+// sender with those and takes no others, so the two sides of a comparison are never normalized by
+// different functions.
+//
 // Fail closed. A policy that never loaded restricts every sender, and an address whose domain cannot
 // be read or has no registrable domain is classified restricted, never normal.
 package classify
@@ -95,23 +103,63 @@ func (v Verdict) Rule() string { return v.rule }
 // (ADR-0110).
 func (v Verdict) Scope() policy.Scope { return v.scope }
 
-// Classify returns the class of the sender of address under the account policy p.
-func Classify(p policy.Composed, address string, l Lookups) Verdict {
+// Policy is an account's composed policy prepared for classification, every rule's domain suffixes
+// held as their Names. Prepare builds it once for each policy load, so classifying many senders
+// converts each suffix once rather than once per sender. The zero value restricts every sender, as
+// the zero policy.Composed does.
+type Policy struct {
+	composed policy.Composed
+	rules    []prepared
+	lookups  Lookups
+}
+
+// prepared is one rule with its suffixes as Names.
+type prepared struct {
+	id       string
+	scope    policy.Scope
+	suffixes []Name
+}
+
+// Prepare returns p prepared for classification with the lookups l. The prepared policy holds l, and
+// Classify normalizes each sender with it, so a sender is never compared with suffixes another set of
+// lookups converted.
+func Prepare(p policy.Composed, l Lookups) Policy {
+	out := Policy{composed: p, lookups: l}
 	if p.RestrictsAll() {
+		return out
+	}
+	for _, r := range p.Rules() {
+		suffixes := r.DomainSuffixes()
+		names := make([]Name, len(suffixes))
+		for i, suffix := range suffixes {
+			names[i] = SuffixName(suffix, l)
+		}
+		out.rules = append(out.rules, prepared{id: r.ID(), scope: r.Scope(), suffixes: names})
+	}
+	return out
+}
+
+// Composed returns the composed policy p was prepared from.
+func (p Policy) Composed() policy.Composed { return p.composed }
+
+// Classify returns the class of the sender of address under the account's prepared policy p, the
+// sender normalized with the lookups p was prepared with.
+func Classify(p Policy, address string) Verdict {
+	if p.composed.RestrictsAll() {
 		return Verdict{class: sensitivity.RestrictedSender(), reason: NoPolicy}
 	}
 	at := strings.LastIndexByte(address, '@')
 	if at < 0 {
 		return Verdict{}
 	}
-	sender, ok := SenderName(address[at+1:], l)
+	sender, ok := SenderName(address[at+1:], p.lookups)
 	if !ok {
 		return Verdict{}
 	}
-	for _, r := range p.Rules() {
-		for _, suffix := range r.DomainSuffixes() {
-			if sender.Under(SuffixName(suffix, l)) {
-				return Verdict{class: sensitivity.RestrictedSender(), reason: Listed, rule: r.ID(), scope: r.Scope()}
+	for _, r := range p.rules {
+		for _, suffix := range r.suffixes {
+			if sender.Under(suffix) {
+				return Verdict{class: sensitivity.RestrictedSender(), reason: Listed, rule: r.id, scope: r.scope}
 			}
 		}
 	}

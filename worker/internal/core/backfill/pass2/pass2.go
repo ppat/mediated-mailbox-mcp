@@ -18,7 +18,6 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
 	"github.com/ppat/mediated-mailbox-mcp/core/index"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
-	"github.com/ppat/mediated-mailbox-mcp/core/policy"
 	"github.com/ppat/mediated-mailbox-mcp/core/scangate"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/core/backfill/pass1"
 )
@@ -94,10 +93,10 @@ func Restart(at Progress) Progress {
 // at now. A skip stands only while the gate decides it again as high_volume_no_hits, so a message the
 // gate would now scan, one under thresholds that cannot decide and one whose sender p now restricts
 // are all overturned.
-func Overturned(p policy.Composed, l classify.Lookups, c scangate.Config, now mail.UnixMilli, skips []index.Waiting) []string {
+func Overturned(p classify.Policy, c scangate.Config, now mail.UnixMilli, skips []index.Waiting) []string {
 	var out []string
 	for _, m := range skips {
-		if index.Gate(p, l, c, now, m, 0).Reason() != scangate.HighVolumeNoHits {
+		if index.Gate(p, c, now, m, 0).Reason() != scangate.HighVolumeNoHits {
 			out = append(out, m.ID)
 		}
 	}

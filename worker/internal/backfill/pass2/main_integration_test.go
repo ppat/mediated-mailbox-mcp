@@ -271,7 +271,7 @@ func seedPostgres(t testing.TB, account string, f mail.Port[context.Context]) {
 	n := 0
 	deps := pass1.Deps{
 		Store: pass1.NewPostgres(backfillPool(t)), Fetch: f.EnumerateAll, Metadata: f.GetMessageMetadata, PerCall: 3,
-		Policy: fixed(policyListing(t, false).For(account)), Scanner: scanner(t), Lookups: lookups,
+		Policy: fixed(classify.Prepare(policyListing(t, false).For(account), lookups)), Scanner: scanner(t),
 		RunID: func() string { n++; return fmt.Sprintf("first%d", n) }, Now: time.Now,
 	}
 	p, err := pass1.Open(context.Background(), deps, account)
@@ -403,7 +403,7 @@ func newMemory(t tb, messages []fake.Message) *memory {
 	for _, m := range messages {
 		metadata = append(metadata, m.Metadata)
 	}
-	page := index.Decide(metadata, policyListing(t, false).For("personal"), scanner(t), lookups)
+	page := index.Decide(metadata, classify.Prepare(policyListing(t, false).For("personal"), lookups), scanner(t))
 	m := &memory{messages: map[string]*memoryMessage{}, volume: map[string]int64{}, hits: map[string]int64{}, items: map[string][]string{}}
 	for _, d := range page.Messages {
 		m.messages[d.ID] = &memoryMessage{
@@ -847,8 +847,8 @@ func newWorld(t tb, s setup, account string, messages []fake.Message, store pass
 			return b, err
 		},
 		// No policy is loaded until the world opens a run, so every sender is restricted until then.
-		Policy:  fixed(policy.Composed{}),
-		Lookups: lookups, Gate: gateConfig, Scanner: scanner(t), PageSize: w.pageSize,
+		Policy: fixed(classify.Policy{}),
+		Gate:   gateConfig, Scanner: scanner(t), PageSize: w.pageSize,
 		RunID: func() string {
 			w.runs++
 			return fmt.Sprintf("run%d", w.runs)
@@ -862,7 +862,7 @@ func newWorld(t tb, s setup, account string, messages []fake.Message, store pass
 func (w *world) restricted(id string) bool {
 	for _, m := range w.messages {
 		if m.Metadata.ID == id {
-			return classify.Classify(w.deps.Policy(), m.Metadata.From.Email, lookups).Class().Restricted()
+			return classify.Classify(w.deps.Policy(), m.Metadata.From.Email).Class().Restricted()
 		}
 	}
 	return false
@@ -873,7 +873,7 @@ func (w *world) restricted(id string) bool {
 // (ADR-0120, ADR-0121).
 func (w *world) open(t tb) {
 	t.Helper()
-	w.deps.Policy = fixed(policyAdding(t, w.delisted, w.added).For(w.account))
+	w.deps.Policy = fixed(classify.Prepare(policyAdding(t, w.delisted, w.added).For(w.account), lookups))
 	before := w.inspect(t)
 	if _, err := pass2.Reopen(w.ctx, w.deps, w.account); err != nil {
 		t.Fatalf("returning the stale verdicts to pending: %v", err)
@@ -1062,12 +1062,12 @@ func (w *world) progress(t tb) {
 	if latest, ok := got.latest(); !ok || latest.State != "succeeded" {
 		t.Errorf("the latest run is %+v, want one that succeeded", latest)
 	}
-	final := policyListing(t, w.delistApplied).For(w.account)
+	final := classify.Prepare(policyListing(t, w.delistApplied).For(w.account), lookups)
 	hits := map[string]int64{}
 	scanned := 0
 	for _, m := range w.messages {
 		id, st := m.Metadata.ID, got.Messages[m.Metadata.ID]
-		restricted := classify.Classify(final, m.Metadata.From.Email, lookups).Class().Restricted()
+		restricted := classify.Classify(final, m.Metadata.From.Email).Class().Restricted()
 		flagged := st.State == "scanned" && slices.Contains(st.Flags, "mfa_code")
 		hasCode := strings.Contains(m.Body.Text+m.Body.HTML, code)
 		switch {
@@ -1139,4 +1139,4 @@ func modelWorld(t tb, s setup) *world {
 
 // fixed returns a policy function that returns c for every page, the active snapshot of a policy
 // nothing edits.
-func fixed(c policy.Composed) func() policy.Composed { return func() policy.Composed { return c } }
+func fixed(c classify.Policy) func() classify.Policy { return func() classify.Policy { return c } }

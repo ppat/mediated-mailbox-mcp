@@ -250,7 +250,7 @@ func (d *DeltaSync) loadPolicy(ctx context.Context, accounts []string) error {
 		return nil
 	}
 	if d.policies == nil {
-		built, err := policyload.New(d.config.Pool, accounts, d.config.Registry)
+		built, err := policyload.New(d.config.Pool, accounts, d.config.Registry, d.lookups)
 		if err != nil {
 			return err
 		}
@@ -358,7 +358,6 @@ func (d *DeltaSync) tickDeps(account string, provider tick.Provider, policy poli
 		Store:       tick.NewPostgres(d.config.Pool),
 		Provider:    provider,
 		Policy:      policy.For(account),
-		Lookups:     d.lookups,
 		Gate:        scangate.DefaultConfig(),
 		Scanner:     d.config.Scanner,
 		Processing:  d.processing,

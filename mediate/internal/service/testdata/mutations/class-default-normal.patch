@@ -6,10 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/db/messages/search.sql b/db/messages/search.sql
-index 9f99b323..d784b851 100644
+index 7301a26c..9e921327 100644
 --- a/db/messages/search.sql
 +++ b/db/messages/search.sql
-@@ -35,13 +35,13 @@ WHERE
+@@ -46,13 +46,13 @@ WHERE
          OR coalesce((m.flags ->> 'starred')::boolean, FALSE) = any(@starred::boolean[])
      )
      AND (@has_attachments::boolean[] IS NULL OR m.has_attachments = any(@has_attachments::boolean[]))
@@ -24,7 +24,7 @@ index 9f99b323..d784b851 100644
          ) = any(@restricted::boolean[])
      )
      AND (
-@@ -124,13 +124,13 @@ WHERE
+@@ -135,13 +135,13 @@ WHERE
          OR coalesce((m.flags ->> 'starred')::boolean, FALSE) = any(@starred::boolean[])
      )
      AND (@has_attachments::boolean[] IS NULL OR m.has_attachments = any(@has_attachments::boolean[]))
@@ -39,7 +39,7 @@ index 9f99b323..d784b851 100644
          ) = any(@restricted::boolean[])
      );
  
-@@ -165,13 +165,13 @@ WHERE
+@@ -176,13 +176,13 @@ WHERE
          OR coalesce((m.flags ->> 'starred')::boolean, FALSE) = any(@starred::boolean[])
      )
      AND (@has_attachments::boolean[] IS NULL OR m.has_attachments = any(@has_attachments::boolean[]))
@@ -54,7 +54,7 @@ index 9f99b323..d784b851 100644
          ) = any(@restricted::boolean[])
      )
  GROUP BY m.from_email
-@@ -213,13 +213,13 @@ WHERE
+@@ -224,13 +224,13 @@ WHERE
          OR coalesce((m.flags ->> 'starred')::boolean, FALSE) = any(@starred::boolean[])
      )
      AND (@has_attachments::boolean[] IS NULL OR m.has_attachments = any(@has_attachments::boolean[]))
@@ -69,7 +69,7 @@ index 9f99b323..d784b851 100644
          ) = any(@restricted::boolean[])
      )
  GROUP BY m.from_domain
-@@ -264,13 +264,13 @@ WHERE
+@@ -275,13 +275,13 @@ WHERE
          OR coalesce((m.flags ->> 'starred')::boolean, FALSE) = any(@starred::boolean[])
      )
      AND (@has_attachments::boolean[] IS NULL OR m.has_attachments = any(@has_attachments::boolean[]))
@@ -84,7 +84,7 @@ index 9f99b323..d784b851 100644
          ) = any(@restricted::boolean[])
      )
  GROUP BY l.label
-@@ -316,13 +316,13 @@ FROM (
+@@ -327,13 +327,13 @@ FROM (
              OR coalesce((m.flags ->> 'starred')::boolean, FALSE) = any(@starred::boolean[])
          )
          AND (@has_attachments::boolean[] IS NULL OR m.has_attachments = any(@has_attachments::boolean[]))
@@ -100,7 +100,7 @@ index 9f99b323..d784b851 100644
          )
  ) AS g
 diff --git a/db/messages/search.sql.go b/db/messages/search.sql.go
-index c65924c5..e492a2f7 100644
+index feec1fc2..2426bb6a 100644
 --- a/db/messages/search.sql.go
 +++ b/db/messages/search.sql.go
 @@ -41,13 +41,13 @@ WHERE
@@ -163,7 +163,7 @@ index c65924c5..e492a2f7 100644
          ) = any($13::boolean[])
      )
  GROUP BY m.from_domain
-@@ -540,13 +540,13 @@ WHERE
+@@ -551,13 +551,13 @@ WHERE
          OR coalesce((m.flags ->> 'starred')::boolean, FALSE) = any($11::boolean[])
      )
      AND ($12::boolean[] IS NULL OR m.has_attachments = any($12::boolean[]))
@@ -178,7 +178,7 @@ index c65924c5..e492a2f7 100644
          ) = any($13::boolean[])
      )
      AND (
-@@ -726,13 +726,13 @@ WHERE
+@@ -739,13 +739,13 @@ WHERE
          OR coalesce((m.flags ->> 'starred')::boolean, FALSE) = any($11::boolean[])
      )
      AND ($12::boolean[] IS NULL OR m.has_attachments = any($12::boolean[]))
@@ -194,18 +194,18 @@ index c65924c5..e492a2f7 100644
      )
  `
 diff --git a/mediate/internal/service/query.go b/mediate/internal/service/query.go
-index 2c5d937b..e46a378e 100644
+index 4e855fcc..c5e1ee42 100644
 --- a/mediate/internal/service/query.go
 +++ b/mediate/internal/service/query.go
-@@ -186,13 +186,13 @@ type classes struct {
+@@ -185,13 +185,13 @@ type classes struct {
  }
  
  // classifyDomains classifies every sender domain under p.
- func classifyDomains(domains []string, p policy.Composed, l classify.Lookups) classes {
+ func classifyDomains(domains []string, p classify.Policy) classes {
  	c := classes{normal: []string{}}
  	for _, d := range domains {
--		if !classify.Classify(p, "@"+d, l).Class().Restricted() {
-+		if classify.Classify(p, "@"+d, l).Class().Restricted() {
+-		if !classify.Classify(p, "@"+d).Class().Restricted() {
++		if classify.Classify(p, "@"+d).Class().Restricted() {
  			c.normal = append(c.normal, d)
  		}
  	}

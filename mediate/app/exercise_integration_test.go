@@ -22,7 +22,6 @@ import (
 
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
-	"github.com/ppat/mediated-mailbox-mcp/core/policy"
 	"github.com/ppat/mediated-mailbox-mcp/core/redact"
 	"github.com/ppat/mediated-mailbox-mcp/core/sensitivity"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/session"
@@ -148,10 +147,9 @@ func TestServeTheExerciseCorpusToALiveAgent(t *testing.T) {
 
 // seedExercise writes the exercise corpus to the index as backfill's passes would under the policy p,
 // and returns the provider fake holding the same messages with their bodies.
-func seedExercise(t *testing.T, conn *pgx.Conn, account string, p policy.Composed) *fake.Fake {
+func seedExercise(t *testing.T, conn *pgx.Conn, account string, p classify.Policy) *fake.Fake {
 	t.Helper()
 	s := scanner(t)
-	l := lookups()
 	now := time.Now().UTC().Truncate(time.Minute)
 	var held []fake.Message
 	for _, m := range exerciseCorpus() {
@@ -161,7 +159,7 @@ func seedExercise(t *testing.T, conn *pgx.Conn, account string, p policy.Compose
 		class, scanState := "normal", "scanned"
 		flags := sensitivity.Flags(false, false)
 		var rules []string
-		if classify.Classify(p, f.FromAddress, l).Class().Restricted() {
+		if classify.Classify(p, f.FromAddress).Class().Restricted() {
 			class, scanState = "restricted", "skipped_restricted"
 		} else {
 			v := s.Scan(f.Body)

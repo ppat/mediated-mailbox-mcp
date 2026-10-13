@@ -24,7 +24,6 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
 	"github.com/ppat/mediated-mailbox-mcp/core/index"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
-	"github.com/ppat/mediated-mailbox-mcp/core/policy"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/core/scangate"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/pass1"
@@ -100,11 +99,10 @@ type Deps struct {
 	Store Store
 	Body  Body
 	// Policy returns the account's policy in the active snapshot, which each page takes at its entry,
-	// so a policy edit reaches the pages after it (ADR-0041, ADR-0119). Lookups are the classifier's
-	// domain functions, Gate the scan gate's thresholds and Scanner the scanner bodies are scanned
-	// with.
-	Policy  func() policy.Composed
-	Lookups classify.Lookups
+	// so a policy edit reaches the pages after it (ADR-0041, ADR-0119), with the classifier's domain
+	// functions it was prepared with. Gate is the scan gate's thresholds and Scanner the scanner
+	// bodies are scanned with.
+	Policy  func() classify.Policy
 	Gate    scangate.Config
 	Scanner scan.Scanner
 	// Processing times each body's conversion and scan, and a nil one times nothing (ADR-0125).
@@ -125,7 +123,7 @@ type Pass struct {
 	at      core.Progress
 	done    bool
 	// compared is the policy the run last made the delisting and added-rule comparisons under.
-	compared policy.Composed
+	compared classify.Policy
 }
 
 // Step is what one call of Next did.
@@ -158,7 +156,7 @@ func Reopen(ctx context.Context, deps Deps, account string) (Reopened, error) {
 	r, err := deps.Store.Reopen(ctx, account, index.StampOf(deps.Scanner), func(stored []pass1core.Stored) []index.Message {
 		return pass1core.Remasked(stored, deps.Scanner)
 	}, func(skips []index.Waiting) []string {
-		return core.Overturned(composed, deps.Lookups, deps.Gate, now, skips)
+		return core.Overturned(composed, deps.Gate, now, skips)
 	})
 	if err != nil {
 		return Reopened{}, fmt.Errorf("returning the verdicts another scanner made and the overturned gate skips to pending, and masking the subjects stored unmasked again: %w", err)
@@ -213,16 +211,16 @@ func Open(ctx context.Context, deps Deps, account string) (pass *Pass, err error
 // The run makes them at its start, and again at the first page after the policy it holds differs by
 // value from the active one, so a policy edit reaches the stored classes within one reload and one
 // page (ADR-0119).
-func (p *Pass) compare(ctx context.Context, composed policy.Composed) error {
+func (p *Pass) compare(ctx context.Context, composed classify.Policy) error {
 	restart := core.Restart(p.at)
 	marked, err := p.deps.Store.Delist(ctx, p.account, p.run, func(restricted []string) []string {
-		return index.Delisted(composed, p.deps.Lookups, restricted)
+		return index.Delisted(composed, restricted)
 	}, restart)
 	if err != nil {
 		return p.failed(ctx, fmt.Errorf("running the delisting transition: %w", err))
 	}
 	if _, err := p.deps.Store.List(ctx, p.account, func(normal []string) []index.Listing {
-		return index.Listed(composed, p.deps.Lookups, normal)
+		return index.Listed(composed, normal)
 	}); err != nil {
 		return p.failed(ctx, fmt.Errorf("restricting the stored classes a rule added since restricts: %w", err))
 	}
@@ -257,7 +255,7 @@ func (p *Pass) Next(ctx context.Context) (step Step, err error) {
 		}
 	}()
 	composed := p.deps.Policy()
-	if !composed.Equal(p.compared) {
+	if !composed.Composed().Equal(p.compared.Composed()) {
 		if err := p.compare(ctx, composed); err != nil {
 			return Step{}, err
 		}
@@ -276,7 +274,7 @@ func (p *Pass) Next(ctx context.Context) (step Step, err error) {
 	hits := map[string]int64{}
 	var items []pass1.Item
 	for _, m := range messages {
-		o := index.Outcome{ID: m.ID, Domain: m.Domain, Verdict: index.Gate(composed, p.deps.Lookups, p.deps.Gate, now, m, hits[m.Domain])}
+		o := index.Outcome{ID: m.ID, Domain: m.Domain, Verdict: index.Gate(composed, p.deps.Gate, now, m, hits[m.Domain])}
 		if o.Verdict.Scans() {
 			scanned, item, err := p.scan(ctx, m.ID, number)
 			if err != nil {
