@@ -97,7 +97,7 @@ func TestServeTheExerciseCorpusToALiveAgent(t *testing.T) {
 	connector := func(string, *gmail.TokenSource) (mail.Port[context.Context], error) {
 		return fake.Throttle(f, func(fake.Call) error { return nil }, time.Now), nil
 	}
-	bodies, _, err := newBodies(served, session.Connect(gmailSource, connector), scanner(t), 30*time.Second, metrics)
+	bodies, _, err := newBodies(served, session.Connect(gmailSource, connector), scanner(t), 30*time.Second, time.Minute, metrics)
 	if err != nil {
 		t.Fatal(err)
 	}

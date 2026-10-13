@@ -185,6 +185,7 @@ moves it. Records themselves link freely and deep, into
 | 0117 | [One background worker runs every job kind, with each job kind's code, role and observability kept apart inside it](./operability/0117-one-background-worker-runs-every-job-kind.md) | Accepted |
 | 0119 | [The worker's jobs are scheduled by an in-process scheduler that stores nothing, from recorded state, with no messaging through PostgreSQL](./operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md) | Accepted |
 | 0127 | [The mediator and the UI serve TLS when given a certificate and key, and plain HTTP when given neither](./operability/0127-tls-when-given-a-key-pair-plain-http-otherwise.md) | Accepted |
+| 0130 | [The mediator bounds what one request can make it hold, with batches refused, cancellation followed, one deadline on a request's lease waits and limits on each connection](./operability/0130-the-mediator-bounds-what-one-request-can-make-it-hold.md) | Accepted |
 
 ## Engineering — `engineering/`
 

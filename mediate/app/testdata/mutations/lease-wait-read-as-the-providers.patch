@@ -1,0 +1,19 @@
+control: A body request waits for its leases no longer than its deadline for them, and a wait cut off by it is the mediator's failure
+removes: a wait cut off by the deadline is wrapped as the provider's failure, so the rate controller's hold reads as the provider's
+packages: ./mediate/app
+tests: TestARequestWaitsForItsLeasesNoLongerThanItsDeadline
+scheduled-count: no
+integration: yes
+
+diff --git a/mediate/app/app.go b/mediate/app/app.go
+--- a/mediate/app/app.go
++++ b/mediate/app/app.go
+@@ -927,7 +927,7 @@ func leased[T any](ctx context.Context, limiter *lease.Limiter, port mail.Port[c
+ 	cutOff := errors.Is(waiting.Err(), context.DeadlineExceeded) && ctx.Err() == nil
+ 	stopWaiting()
+ 	if err != nil && cutOff {
+-		return zero, fmt.Errorf("leasing the call: no lease by the request's deadline for its leases: %w", err)
++		return zero, fmt.Errorf("leasing the call: no lease by the request's deadline for its leases: %w: %w", mail.ErrProvider, err)
+ 	}
+ 	if err != nil {
+ 		return zero, fmt.Errorf("leasing the call: %w", err)

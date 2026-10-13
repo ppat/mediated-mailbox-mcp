@@ -526,8 +526,8 @@ func TestTheConfiguredLevelGovernsTheLog(t *testing.T) {
 	}
 }
 
-// The UI's server closes a connection idle for two minutes between requests, and sets no read or
-// write timeout, which would cut an open event stream (docs/UI.md section 17.5).
+// The UI's server closes a connection idle for two minutes between requests, and sets no write
+// timeout, which would cut an open event stream, nor a read timeout (docs/UI.md section 17.5).
 func TestTheUIServerClosesIdleConnectionsAndNeverCutsAStream(t *testing.T) {
 	srv := uiServer(t.Context(), http.NotFoundHandler(), nil, slog.New(slog.DiscardHandler))
 	if srv.IdleTimeout != 2*time.Minute {

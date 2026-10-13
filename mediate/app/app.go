@@ -113,6 +113,40 @@ type Configuration struct {
 // maxProviderTimeout is the longest provider timeout the configuration accepts.
 const maxProviderTimeout = 5 * time.Minute
 
+// leaseWait bounds how long one body request waits for its leases, counted from the request's
+// arrival, so no request waits without limit whatever revision its client speaks. A request no lease
+// comes for is answered within it, before Claude Code's own 60-second timer on a request's first
+// response byte gives up on the call (ADR-0130).
+const leaseWait = 45 * time.Second
+
+// connectionLimits bound what one connection to the mediator's HTTP servers can hold. A request's
+// headers have 10 seconds to arrive and the whole request 30, and an idle keep-alive connection is
+// closed after two minutes. Nothing bounds writing the answer, since a request may wait for its
+// leases and its provider calls (ADR-0130).
+var connectionLimits = limits{header: 10 * time.Second, read: 30 * time.Second, idle: 2 * time.Minute}
+
+// limits are the timeouts an HTTP server of the mediator runs with.
+type limits struct{ header, read, idle time.Duration }
+
+// newServer returns an HTTP server of the mediator for h, bounded by l, logging through logger.
+func newServer(h http.Handler, l limits, logger *slog.Logger) *http.Server {
+	return &http.Server{
+		Handler:           h,
+		ReadHeaderTimeout: l.header,
+		ReadTimeout:       l.read,
+		IdleTimeout:       l.idle,
+		ErrorLog:          logging.ServerErrorLog(logger),
+	}
+}
+
+// servers returns the client surface's server for surface, with the TLS configuration c names, and
+// the probes' server for probes, both bounded by the connection limits.
+func servers(c Configuration, surface, probes http.Handler, logger *slog.Logger) (surfaceServer, probeServer *http.Server) {
+	surfaceServer = newServer(surface, connectionLimits, logger)
+	surfaceServer.TLSConfig = tlsConfig(c)
+	return surfaceServer, newServer(probes, connectionLimits, logger)
+}
+
 // scannerSection is the scanner's section of the configuration, whose revision the serve-time
 // pattern check runs under (ADR-0078).
 const scannerSection = "scanner"
@@ -230,7 +264,7 @@ func Run(ctx context.Context, args, environ []string, stderr io.Writer, logger *
 	if err != nil {
 		return err
 	}
-	bodies, _, err := newBodies(served, connect, scanner, c.ProviderTimeout, metrics)
+	bodies, _, err := newBodies(served, connect, scanner, c.ProviderTimeout, leaseWait, metrics)
 	if err != nil {
 		return err
 	}
@@ -297,17 +331,7 @@ func serve(ctx context.Context, c Configuration, surfaceListener, probeListener 
 	if err != nil {
 		return errors.Join(err, surfaceListener.Close(), probeListener.Close())
 	}
-	surfaceServer := &http.Server{
-		Handler:           surfaceHandler,
-		TLSConfig:         tlsConfig(c),
-		ReadHeaderTimeout: 10 * time.Second,
-		ErrorLog:          logging.ServerErrorLog(logger),
-	}
-	probeServer := &http.Server{
-		Handler:           probes(&ready, metrics, logger),
-		ReadHeaderTimeout: 10 * time.Second,
-		ErrorLog:          logging.ServerErrorLog(logger),
-	}
+	surfaceServer, probeServer := servers(c, surfaceHandler, probes(&ready, metrics, logger), logger)
 	reloading, stopReloading := context.WithCancel(ctx)
 	defer stopReloading()
 	// One slot for each server and one for the readiness check, so no send blocks.
@@ -741,8 +765,9 @@ const processingName = "mediated_mailbox_body_processing_duration_seconds"
 // sessions. Its policy is loaded for each request through served, its provider calls go through the
 // account sessions it holds, whose sources and ports connect builds, the serve-time pattern check runs
 // scanner, and its outcomes are counted on series
-// metrics serves, which also times each conversion. Each provider call is bounded by timeout.
-func newBodies(served *serving, connect session.Connector, scanner scan.Scanner, timeout time.Duration, metrics prometheus.Registerer) (service.Bodies, *providers, error) {
+// metrics serves, which also times each conversion. Each provider call is bounded by timeout, and
+// each request's waits for its leases together by wait.
+func newBodies(served *serving, connect session.Connector, scanner scan.Scanner, timeout, wait time.Duration, metrics prometheus.Registerer) (service.Bodies, *providers, error) {
 	leases, err := lease.NewMetrics(metrics)
 	if err != nil {
 		return service.Bodies{}, nil, err
@@ -766,7 +791,7 @@ func newBodies(served *serving, connect session.Connector, scanner scan.Scanner,
 		}
 	}
 	converted := processing.WithLabelValues("convert")
-	p := &providers{served: served, leases: leases, timeout: timeout, sessions: session.New(session.Config{
+	p := &providers{served: served, leases: leases, timeout: timeout, wait: wait, sessions: session.New(session.Config{
 		Loader: served.loader, DB: served.pool, Logger: served.logger,
 		Connectors: map[string]session.Connector{gmailProvider: connect}, Hold: true,
 	})}
@@ -820,11 +845,14 @@ type providers struct {
 	leases   *lease.Metrics
 	// timeout bounds each provider call (ADR-0101).
 	timeout time.Duration
+	// wait bounds a request's waits for its leases, counted from its arrival (ADR-0130).
+	wait time.Duration
 }
 
-// open returns a body request's session with the account's provider, the request's unit of work. It
-// is called only once the gate has released a message (ADR-0002).
-func (p *providers) open(ctx context.Context, account string) (service.Provider, error) {
+// open returns a body request's session with the account's provider, the request's unit of work,
+// whose waits for its leases end p.wait after the request arrived. It is called only once the gate
+// has released a message (ADR-0002).
+func (p *providers) open(ctx context.Context, account string, arrived time.Time) (service.Provider, error) {
 	opened, err := p.sessions.Open(p.served.loader.Snapshot(), account)
 	if err != nil {
 		return nil, err
@@ -833,7 +861,7 @@ func (p *providers) open(ctx context.Context, account string) (service.Provider,
 	if err != nil {
 		return nil, err
 	}
-	return &provider{p: p, account: account, session: opened, limiter: limiter}, nil
+	return &provider{p: p, account: account, session: opened, limiter: limiter, waitUntil: arrived.Add(p.wait)}, nil
 }
 
 // provider is one body request's calls to the account's provider, through its account session.
@@ -842,12 +870,14 @@ type provider struct {
 	account string
 	session *session.Session
 	limiter *lease.Limiter
+	// waitUntil is when the request stops waiting for a lease (ADR-0130).
+	waitUntil time.Time
 }
 
 // Body returns the message's body, under a lease in the interactive class.
 func (s *provider) Body(ctx context.Context, id string) (mail.MessageBody, error) {
 	return session.Call(ctx, s.session, func(ctx context.Context, port mail.Port[context.Context]) (mail.MessageBody, error) {
-		return leased(ctx, s.limiter, port, s.account, mail.OpGetMessageBody, 0, s.p.timeout, func(ctx context.Context) (mail.MessageBody, error) {
+		return leased(ctx, s.limiter, port, s.account, mail.OpGetMessageBody, 0, s.waitUntil, s.p.timeout, func(ctx context.Context) (mail.MessageBody, error) {
 			return port.GetMessageBody(ctx, id)
 		})
 	})
@@ -857,7 +887,7 @@ func (s *provider) Body(ctx context.Context, id string) (mail.MessageBody, error
 // wrapping mail.ErrNotFound when the provider no longer holds the message.
 func (s *provider) Metadata(ctx context.Context, id string) (mail.MessageMetadata, error) {
 	read, err := session.Call(ctx, s.session, func(ctx context.Context, port mail.Port[context.Context]) ([]mail.MessageMetadata, error) {
-		return leased(ctx, s.limiter, port, s.account, mail.OpGetMessageMetadata, 1, s.p.timeout, func(ctx context.Context) ([]mail.MessageMetadata, error) {
+		return leased(ctx, s.limiter, port, s.account, mail.OpGetMessageMetadata, 1, s.waitUntil, s.p.timeout, func(ctx context.Context) ([]mail.MessageMetadata, error) {
 			return port.GetMessageMetadata(ctx, []string{id})
 		})
 	})
@@ -890,15 +920,23 @@ func (s *provider) Done(ctx context.Context) {
 // leased makes one call of port's operation op for the account under a lease in the interactive
 // class, sized by what port's rate profile says a call naming messages messages costs, and tells the
 // limiter how the call went (ADR-0023, ADR-0024, ADR-0025). A failure to tell the limiter fails the
-// call, since a controller that never hears of a throttle would not slow down. The call has timeout
-// to answer, and one that has not answered by then while ctx is still live is the provider's failure
-// (ADR-0101). The lease's own wait is not bounded by it.
+// call, since a controller that never hears of a throttle would not slow down. The lease is waited for
+// until waitUntil, the request's deadline for its leases, and a wait cut off by it while ctx is still
+// live is the mediator's failure (ADR-0130). The call then has timeout to answer, and one that has
+// not answered by then while ctx is still live is the provider's failure (ADR-0101).
 func leased[T any](ctx context.Context, limiter *lease.Limiter, port mail.Port[context.Context], account string, op mail.Operation, messages int,
-	timeout time.Duration, call func(context.Context) (T, error),
+	waitUntil time.Time, timeout time.Duration, call func(context.Context) (T, error),
 ) (T, error) {
 	var zero T
 	cost := port.RateProfile().Cost(mail.ProviderOp{Operation: op, Messages: messages})
-	if _, err := limiter.Acquire(ctx, account, ratecore.Interactive, cost.Weight); err != nil {
+	waiting, stopWaiting := context.WithDeadline(ctx, waitUntil)
+	_, err := limiter.Acquire(waiting, account, ratecore.Interactive, cost.Weight)
+	cutOff := errors.Is(waiting.Err(), context.DeadlineExceeded) && ctx.Err() == nil
+	stopWaiting()
+	if err != nil && cutOff {
+		return zero, fmt.Errorf("leasing the call: no lease by the request's deadline for its leases: %w", err)
+	}
+	if err != nil {
 		return zero, fmt.Errorf("leasing the call: %w", err)
 	}
 	start := time.Now()

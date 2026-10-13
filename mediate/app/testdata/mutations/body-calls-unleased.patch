@@ -6,15 +6,14 @@ scheduled-count: no
 integration: yes
 
 diff --git a/mediate/app/app.go b/mediate/app/app.go
-index 8f9657ee..e0dbd21f 100644
 --- a/mediate/app/app.go
 +++ b/mediate/app/app.go
-@@ -811,7 +811,7 @@ func leased[T any](ctx context.Context, limiter *lease.Limiter, port mail.Port[c
- ) (T, error) {
+@@ -923,7 +923,7 @@ func leased[T any](ctx context.Context, limiter *lease.Limiter, port mail.Port[c
  	var zero T
  	cost := port.RateProfile().Cost(mail.ProviderOp{Operation: op, Messages: messages})
--	if _, err := limiter.Acquire(ctx, account, ratecore.Interactive, cost.Weight); err != nil {
-+	if _, err := struct{}{}, error(nil); err != nil || ratecore.Interactive == 0 {
- 		return zero, fmt.Errorf("leasing the call: %w", err)
- 	}
- 	start := time.Now()
+ 	waiting, stopWaiting := context.WithDeadline(ctx, waitUntil)
+-	_, err := limiter.Acquire(waiting, account, ratecore.Interactive, cost.Weight)
++	_, err := ratecore.Interactive, error(nil)
+ 	cutOff := errors.Is(waiting.Err(), context.DeadlineExceeded) && ctx.Err() == nil
+ 	stopWaiting()
+ 	if err != nil && cutOff {

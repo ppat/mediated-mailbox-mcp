@@ -6,10 +6,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -281,45 +283,128 @@ func TestTheRootOffersToolsOnly(t *testing.T) {
 		}
 	}
 
-	// Two requests a check reading the body apart from the SDK would read differently. One names a
-	// second method under a key differing only in case, and one is a batch, which 2025-03-26 allows.
-	crafted := []struct {
-		name, protocol, body string
-		answers              int
-	}{
-		{"a second method under a case-variant key", "", `{"jsonrpc":"2.0","id":1,"method":"prompts/list","METHOD":"tools/list","params":{}}`, 1},
-		{"a batch at 2025-03-26", "2025-03-26", `[{"jsonrpc":"2.0","id":1,"method":"prompts/list","params":{}},{"jsonrpc":"2.0","id":2,"method":"resources/list","params":{}}]`, 2},
+	// A request a check reading the body apart from the SDK would read differently, one naming a
+	// second method under a key differing only in case. A batch never reaches the SDK
+	// (TestABatchIsRefusedAtEveryRevision).
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/mcp",
+		strings.NewReader(`{"jsonrpc":"2.0","id":1,"method":"prompts/list","METHOD":"tools/list","params":{}}`))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json, text/event-stream")
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	var one response
+	if err := json.Unmarshal(rec.Body.Bytes(), &one); err != nil {
+		t.Fatalf("a second method under a case-variant key answered %d %q: %v", rec.Code, rec.Body, err)
 	}
-	for _, c := range crafted {
-		req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/mcp", bytes.NewReader([]byte(c.body)))
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Accept", "application/json, text/event-stream")
-		if c.protocol != "" {
-			req.Header.Set("MCP-Protocol-Version", c.protocol)
-		}
-		rec := httptest.NewRecorder()
-		h.ServeHTTP(rec, req)
-		body := bytes.TrimSpace(rec.Body.Bytes())
-		var answers []response
-		if len(body) > 0 && body[0] == '[' {
-			if err := json.Unmarshal(body, &answers); err != nil {
-				t.Fatalf("%s answered %q: %v", c.name, body, err)
+	if one.Error == nil || one.Error.Code != -32601 || one.Result != nil {
+		t.Errorf("a second method under a case-variant key answered %d %s, want it refused with -32601", rec.Code, rec.Body)
+	}
+}
+
+// counting returns a registry whose one operation, count, counts its calls, and the count.
+func counting(t *testing.T) (service.Registry, *atomic.Int64) {
+	t.Helper()
+	var calls atomic.Int64
+	reg, err := service.NewRegistry([]string{"acct-a"}, service.Operation{
+		Name: "count", Description: "Counts its calls.", Effect: service.Read, Path: "/api/accounts/{account_id}/count",
+		Input: json.RawMessage(accountInput), Output: json.RawMessage(`{"type":"object"}`),
+		Handle: func(context.Context, string, json.RawMessage) (json.RawMessage, error) {
+			calls.Add(1)
+			return json.RawMessage(`{}`), nil
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return reg, &calls
+}
+
+// post sends body to h as a POST to the MCP root, naming protocol in its header unless it is empty,
+// and returns the recorded answer.
+func post(t *testing.T, h http.Handler, protocol string, body io.Reader) *httptest.ResponseRecorder {
+	t.Helper()
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/mcp", body)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json, text/event-stream")
+	if protocol != "" {
+		req.Header.Set("MCP-Protocol-Version", protocol)
+	}
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	return rec
+}
+
+// A JSON-RPC batch is refused with 400 before any of its calls runs, at every revision and with no
+// revision named, which the SDK reads as 2025-03-26, a revision that allowed batches. JSON's
+// whitespace before the bracket does not hide one. A single call is served whatever whitespace leads
+// it or what arrays it holds, so the check decides on what leads the body and hands the call on
+// whole, and a body of whitespace past the SDK's limit is refused as too large (ADR-0130).
+func TestABatchIsRefusedAtEveryRevision(t *testing.T) {
+	reg, calls := counting(t)
+	h := mcp.Handler(reg, "test", slog.New(slog.DiscardHandler))
+	one := `{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"count","arguments":{"account_id":"acct-a"}}}`
+	batch := "[" + one + "," + strings.Replace(one, `"id":1`, `"id":2`, 1) + "]"
+	for _, protocol := range []string{"", "2024-11-05", "2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"} {
+		for _, lead := range []string{"", " ", "\t", "\r\n", " \n\t "} {
+			rec := post(t, h, protocol, strings.NewReader(lead+batch))
+			if rec.Code != http.StatusBadRequest || !strings.Contains(rec.Body.String(), "JSON-RPC batches are not accepted") {
+				t.Errorf("a batch led by %q at %q answered %d %q, want 400 refusing the batch", lead, protocol, rec.Code, rec.Body)
 			}
-		} else {
-			var one response
-			if err := json.Unmarshal(body, &one); err != nil {
-				t.Fatalf("%s answered %d %q: %v", c.name, rec.Code, body, err)
+		}
+	}
+	if n := calls.Load(); n != 0 {
+		t.Errorf("the refused batches ran %d calls, want none", n)
+	}
+
+	for _, lead := range []string{"", " \n\t "} {
+		withArray := strings.Replace(one, `"arguments":{"account_id":"acct-a"}`, `"arguments":{"account_id":"acct-a"},"_meta":{"list":[1,2]}`, 1)
+		for _, body := range []string{one, withArray} {
+			before := calls.Load()
+			rec := post(t, h, "2025-06-18", strings.NewReader(lead+body))
+			if rec.Code != http.StatusOK || calls.Load() != before+1 {
+				t.Errorf("a single call led by %q answered %d %q and ran %d calls, want 200 and one call", lead, rec.Code, rec.Body, calls.Load()-before)
 			}
-			answers = append(answers, one)
 		}
-		if len(answers) != c.answers {
-			t.Errorf("%s answered %d %s, want %d answers", c.name, rec.Code, body, c.answers)
-		}
-		for _, a := range answers {
-			if a.Error == nil || a.Error.Code != -32601 || a.Result != nil {
-				t.Errorf("%s answered %d %s, want every request refused with -32601", c.name, rec.Code, body)
+	}
+
+	spaces := io.MultiReader(strings.NewReader(strings.Repeat(" ", 4<<20+1)), strings.NewReader(batch))
+	if rec := post(t, h, "2025-03-26", spaces); rec.Code != http.StatusRequestEntityTooLarge {
+		t.Errorf("a batch behind more than 4 MiB of spaces answered %d %q, want 413", rec.Code, rec.Body)
+	}
+}
+
+// A call whose client abandons it at 2026-07-28 has the operation's context cancelled, so an
+// operation waiting for a lease stops waiting (ADR-0130).
+func TestAnAbandonedCallIsCancelled(t *testing.T) {
+	started, cancelled := make(chan struct{}), make(chan error, 1)
+	reg, err := service.NewRegistry([]string{"acct-a"}, service.Operation{
+		Name: "wait", Description: "Waits for its context.", Effect: service.Read, Path: "/api/accounts/{account_id}/wait",
+		Input: json.RawMessage(accountInput), Output: json.RawMessage(`{"type":"object"}`),
+		Handle: func(ctx context.Context, _ string, _ json.RawMessage) (json.RawMessage, error) {
+			close(started)
+			select {
+			case <-ctx.Done():
+				cancelled <- ctx.Err()
+			case <-time.After(10 * time.Second):
+				cancelled <- nil
 			}
-		}
+			return json.RawMessage(`{}`), nil
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	h := mcp.Handler(reg, "test", slog.New(slog.DiscardHandler))
+	ctx, abandon := context.WithCancel(t.Context())
+	defer abandon()
+	req := request(t, modern, "tools/call", "wait", map[string]any{"name": "wait", "arguments": map[string]any{"account_id": "acct-a"}}).WithContext(ctx)
+	go func() {
+		<-started
+		abandon()
+	}()
+	h.ServeHTTP(httptest.NewRecorder(), req)
+	if err := <-cancelled; !errors.Is(err, context.Canceled) {
+		t.Errorf("the abandoned call's operation ended with %v, want its context cancelled", err)
 	}
 }
 

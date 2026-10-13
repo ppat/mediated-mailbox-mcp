@@ -45,7 +45,10 @@ The UI's own read API already tells origins apart in one error shape
   `provider_timeout` configuration value, 30 seconds by default, refused unless it is positive and
   at most 5 minutes. It is not a safety setting
   ([ADR-0051](../engineering/0051-environment-contract.md)), since it can only fail a release. A
-  request its client abandoned is not the provider's failure, and nobody receives its answer.
+  request its client abandoned is not the provider's failure, and nobody receives its answer. The
+  wait for a lease before a provider call has a bound of its own, and a wait that bound cuts off
+  is the mediator's failure
+  ([ADR-0130](./0130-the-mediator-bounds-what-one-request-can-make-it-hold.md)).
 - **The origin is decided where the failure is known.** The registry's refusals and an operation's
   refusal of an argument are the client's. An error from a provider call is wrapped as the
   provider's at the call. Everything else is the mediator's, so a failure nobody classified never

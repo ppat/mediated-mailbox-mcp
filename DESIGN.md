@@ -134,6 +134,8 @@ The one narrative to read first, assembled from the decision records, resolved t
 - ADR-0036 — the sanitization applied to whatever is released, and ADR-0100 for text with no
   HTML form.
 - ADR-0101 — the result a denial returns, and the failure that names its origin.
+- ADR-0130 — what one request can make the mediator hold, its lease waits, its connection and the
+  release step's working memory among them.
 
 Metadata requests need none of it. Metadata paths cannot carry a body by construction.
 

@@ -5,15 +5,14 @@ tests: TestTheSurfaceIsServedOverTLSWhenGivenAKeyPair
 scheduled-count: no
 
 diff --git a/mediate/app/app.go b/mediate/app/app.go
-index 175bd9d6..e99a9f8b 100644
 --- a/mediate/app/app.go
 +++ b/mediate/app/app.go
-@@ -290,7 +290,7 @@ func serve(ctx context.Context, c Configuration, surfaceListener, probeListener
- 	}
- 	surfaceServer := &http.Server{
- 		Handler:           surfaceHandler,
--		TLSConfig:         tlsConfig(c),
-+		TLSConfig:         nil,
- 		ReadHeaderTimeout: 10 * time.Second,
- 		ErrorLog:          logging.ServerErrorLog(logger),
- 	}
+@@ -142,7 +142,7 @@ func newServer(h http.Handler, l limits, logger *slog.Logger) *http.Server {
+ // the probes' server for probes, both bounded by the connection limits.
+ func servers(c Configuration, surface, probes http.Handler, logger *slog.Logger) (surfaceServer, probeServer *http.Server) {
+ 	surfaceServer = newServer(surface, connectionLimits, logger)
+-	surfaceServer.TLSConfig = tlsConfig(c)
++	surfaceServer.TLSConfig = nil
+ 	return surfaceServer, newServer(probes, connectionLimits, logger)
+ }
+ 

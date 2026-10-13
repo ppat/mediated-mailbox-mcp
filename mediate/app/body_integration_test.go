@@ -57,6 +57,11 @@ type stored struct {
 // does not answer fails the request quickly.
 const providerTimeout = 300 * time.Millisecond
 
+// leaseWaitLimit is the deadline the harness's mediator puts on a request's waits for its leases,
+// long enough that no lease the tests expect granted misses it on a loaded runner, and short enough
+// that a request left waiting fails the test quickly.
+const leaseWaitLimit = 3 * time.Second
+
 // The links and the code the fixtures below carry.
 const (
 	loginLink = "https://accounts.example/reset?token=Zq8XvB3nT1kLm4Pw9sYd2Rf6" // gitleaks:allow, a synthetic value
@@ -195,7 +200,7 @@ func newHarness(t *testing.T) *harness {
 	if err != nil {
 		t.Fatal(err)
 	}
-	bodies, opener, err := newBodies(h.served, session.Connect(h.source, h.connect), scanner(t), providerTimeout, h.metrics)
+	bodies, opener, err := newBodies(h.served, session.Connect(h.source, h.connect), scanner(t), providerTimeout, leaseWaitLimit, h.metrics)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -991,7 +996,7 @@ func TestTheCredentialsAreTheClientAndTheAccountsToken(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, account := range []string{h.account, other} {
-		if _, err := h.providers.open(t.Context(), account); err != nil {
+		if _, err := h.providers.open(t.Context(), account, time.Now()); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -1002,7 +1007,7 @@ func TestTheCredentialsAreTheClientAndTheAccountsToken(t *testing.T) {
 	if diff := cmp.Diff(want, h.built, compare.Options); diff != "" {
 		t.Errorf("the credentials of the accounts' sources, in the order opened (-want +got):\n%s", diff)
 	}
-	if _, err := h.providers.open(t.Context(), "acct-unlisted"); !errors.Is(err, session.ErrNotConnected) {
+	if _, err := h.providers.open(t.Context(), "acct-unlisted", time.Now()); !errors.Is(err, session.ErrNotConnected) {
 		t.Errorf("an account the snapshot does not list opened a session, %v", err)
 	}
 }
@@ -1018,7 +1023,7 @@ func TestAnAccountNamingNoClientIsNotConnected(t *testing.T) {
 	if err := h.served.reload(t.Context()); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := h.providers.open(t.Context(), h.account); !errors.Is(err, session.ErrNotConnected) {
+	if _, err := h.providers.open(t.Context(), h.account, time.Now()); !errors.Is(err, session.ErrNotConnected) {
 		t.Errorf("an account naming no client opened a session, %v", err)
 	}
 	_, err := h.reg.Call(t.Context(), "get_message_body", json.RawMessage(`{"account_id":"`+h.account+`","message_id":"m-news"}`))
@@ -1299,7 +1304,7 @@ func TestABodyFetchSpendsFromTheInteractiveReservation(t *testing.T) {
 // discards it, and the operator's credential stays stored (ADR-0089, ADR-0090).
 func TestAStaleHandOverLeavesTheReauthorization(t *testing.T) {
 	h := newHarness(t)
-	opened, err := h.providers.open(t.Context(), h.account)
+	opened, err := h.providers.open(t.Context(), h.account, time.Now())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1332,5 +1337,53 @@ func TestAProviderThatDoesNotAnswerIsTheProvidersFailure(t *testing.T) {
 	_, err := h.reg.Call(t.Context(), "get_message_body", json.RawMessage(`{"account_id":"`+h.account+`","message_id":"m-news"}`))
 	if origin, message := service.Classify(err); err == nil || origin != service.OriginProvider {
 		t.Errorf("a provider that does not answer answered %v, read as %s: %s", err, origin, message)
+	}
+}
+
+// A body request whose lease is never granted fails once the request's deadline for its leases
+// passes, counted from the request's arrival, as the mediator's failure, and reaches no provider,
+// whatever its caller's own deadline. The account's rate controller sits in a backoff lasting an
+// hour, so every ask is left waiting. The policy load before the gate decides is held back by a lock
+// on the policy's rules for part of the deadline, so a deadline counted from any later point, such as
+// the provider session's opening, ends that much later (ADR-0130, ADR-0099, ADR-0025).
+func TestARequestWaitsForItsLeasesNoLongerThanItsDeadline(t *testing.T) {
+	h := newHarness(t)
+	must(t, h.conn, `INSERT INTO rate_state (account_id, current_rate, target_rate, hard_cap, backoff_until)
+		VALUES ($1, 50, 50, 80, now() + interval '1 hour')
+		ON CONFLICT (account_id) DO UPDATE SET backoff_until = now() + interval '1 hour'`, h.account)
+	const held = 2 * time.Second
+	lock, err := h.conn.Begin(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := lock.Exec(t.Context(), "LOCK TABLE policy_rules IN ACCESS EXCLUSIVE MODE"); err != nil {
+		t.Fatal(err)
+	}
+	done := make(chan error, 1)
+	start := time.Now()
+	go func() {
+		_, err := h.reg.Call(t.Context(), "get_message_body", json.RawMessage(`{"account_id":"`+h.account+`","message_id":"m-news"}`))
+		done <- err
+	}()
+	time.Sleep(held)
+	if err := lock.Commit(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case err := <-done:
+		switch elapsed := time.Since(start); {
+		case elapsed < leaseWaitLimit:
+			t.Errorf("the request gave up after %s, before its deadline for its leases", elapsed)
+		case elapsed >= leaseWaitLimit+held:
+			t.Errorf("the request gave up after %s, later than its deadline for its leases counted from its arrival", elapsed)
+		}
+		if origin, message := service.Classify(err); err == nil || origin != service.OriginMediator {
+			t.Errorf("a request whose lease never came answered %v, read as %s: %s", err, origin, message)
+		}
+	case <-time.After(20 * time.Second):
+		t.Fatal("the request was still waiting for its lease after 20 seconds")
+	}
+	if n := h.providerCalls(); n != 0 {
+		t.Errorf("a request whose lease never came made %d provider calls", n)
 	}
 }

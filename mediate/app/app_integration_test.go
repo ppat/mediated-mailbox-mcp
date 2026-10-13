@@ -548,7 +548,7 @@ func TestTheReadOperationsReadTheServingState(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	bodies, _, err := newBodies(s, session.Connector{}, scanner(t), time.Second, metrics)
+	bodies, _, err := newBodies(s, session.Connector{}, scanner(t), time.Second, time.Second, metrics)
 	if err != nil {
 		t.Fatal(err)
 	}

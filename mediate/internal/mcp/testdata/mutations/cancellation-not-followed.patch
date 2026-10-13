@@ -1,0 +1,18 @@
+control: A call its client abandons at 2026-07-28 or later has its operation's context cancelled
+removes: the SDK is not told to follow the request's cancellation, so the operation runs on after its client has gone
+packages: ./mediate/internal/mcp
+tests: TestAnAbandonedCallIsCancelled
+scheduled-count: no
+
+diff --git a/mediate/internal/mcp/mcp.go b/mediate/internal/mcp/mcp.go
+--- a/mediate/internal/mcp/mcp.go
++++ b/mediate/internal/mcp/mcp.go
+@@ -49,7 +49,7 @@ func Handler(reg service.Registry, version string, logger *slog.Logger) http.Han
+ 		Stateless:                    true,
+ 		JSONResponse:                 true,
+ 		Logger:                       logger,
+-		PropagateRequestCancellation: true,
++		PropagateRequestCancellation: false,
+ 	}))
+ }
+ 
