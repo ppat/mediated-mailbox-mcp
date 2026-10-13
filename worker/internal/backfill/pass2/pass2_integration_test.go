@@ -15,6 +15,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 
+	"github.com/ppat/mediated-mailbox-mcp/core/classify"
 	"github.com/ppat/mediated-mailbox-mcp/core/index"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/core/policy"
@@ -341,7 +342,7 @@ func releaseReason(t *testing.T, w *world, id string, st stored) redact.Reason {
 			from = m.Metadata.From.Email
 		}
 	}
-	return redact.Decide(policyListing(t, w.delisted).For(w.account), from, lookups, flags, states[st.State]).Reason()
+	return redact.Decide(classify.Prepare(policyListing(t, w.delisted).For(w.account), lookups), from, flags, states[st.State]).Reason()
 }
 
 // VERIFICATIONS' row for removing a fixture sender from the sensitive list. A run stops after the page
@@ -461,13 +462,13 @@ func TestAnAddedRuleRestrictsTheStoredClasses(t *testing.T) {
 	}
 
 	store := pass2.NewPostgres(backfillPool(t))
-	for name, p := range map[string]policy.Composed{
-		"a second comparison":           policyAdding(t, false, w.added).For(w.account),
+	for name, p := range map[string]classify.Policy{
+		"a second comparison":           classify.Prepare(policyAdding(t, false, w.added).For(w.account), lookups),
 		"a policy that never loaded":    {},
-		"a policy without the new rule": policyListing(t, false).For(w.account),
+		"a policy without the new rule": classify.Prepare(policyListing(t, false).For(w.account), lookups),
 	} {
 		marked, err := store.List(context.Background(), w.account, func(normal []string) []index.Listing {
-			return index.Listed(p, lookups, normal)
+			return index.Listed(p, normal)
 		})
 		if err != nil || marked != 0 {
 			t.Errorf("%s marked %d messages with error %v, want none", name, marked, err)
@@ -515,12 +516,12 @@ func TestARuleAddedAndRemovedDuringThePassReachesTheTransition(t *testing.T) {
 		message("m03", "c@other.example", false, marker.Body("other"), ""),
 	}
 	w := realWorldOf(t, 1, messages)
-	load := func(rows ...policy.Row) policy.Composed {
+	load := func(rows ...policy.Row) classify.Policy {
 		p, err := policy.Load(rows)
 		if err != nil {
 			t.Fatal(err)
 		}
-		return p.For(w.account)
+		return classify.Prepare(p.For(w.account), lookups)
 	}
 	w.deps.Policy = fixed(load(policy.Row{ID: "rule.shop", Class: policy.Restricted, DomainSuffixes: []string{"shop.example"}}))
 	p, err := pass2.Open(context.Background(), w.deps, w.account)

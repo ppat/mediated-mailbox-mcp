@@ -6,15 +6,15 @@ scheduled-count: no
 integration: yes
 
 diff --git a/core/index/scan.go b/core/index/scan.go
-index 5e07cbf..5a7e653 100644
+index 6e464728..1a1d7d4c 100644
 --- a/core/index/scan.go
 +++ b/core/index/scan.go
-@@ -19,7 +19,7 @@ import (
- func Delisted(p policy.Composed, l classify.Lookups, restricted []string) []string {
+@@ -18,7 +18,7 @@ import (
+ func Delisted(p classify.Policy, restricted []string) []string {
  	var out []string
  	for _, d := range restricted {
--		if !classify.Classify(p, "@"+d, l).Class().Restricted() {
-+		if classify.Classify(p, "@"+d, l).Class().Restricted() {
+-		if !classify.Classify(p, "@"+d).Class().Restricted() {
++		if classify.Classify(p, "@"+d).Class().Restricted() {
  			out = append(out, d)
  		}
  	}

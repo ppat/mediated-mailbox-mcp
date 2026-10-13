@@ -5,17 +5,16 @@ tests: TestTheReadOperationsReadTheServingState
 scheduled-count: no
 integration: yes
 
-
 diff --git a/mediate/app/app.go b/mediate/app/app.go
-index 8f9657ee..c5a92080 100644
+index 22468459..25095a44 100644
 --- a/mediate/app/app.go
 +++ b/mediate/app/app.go
-@@ -282,7 +282,7 @@ func serve(ctx context.Context, c Configuration, surfaceListener, probeListener
+@@ -336,7 +336,7 @@ func serve(ctx context.Context, c Configuration, surfaceListener, probeListener
  func sources(pool *pgxpool.Pool, served *serving, bodies service.Bodies) service.Sources {
  	return service.Sources{
  		DB:       pool,
 -		Accounts: served.accounts,
 +		Accounts: func() []service.Account { return nil },
  		Policy:   served.policy,
- 		Lookups:  lookups(),
  		Now:      time.Now,
+ 		Bodies:   bodies,

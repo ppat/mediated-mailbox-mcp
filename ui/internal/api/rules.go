@@ -11,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 
+	"github.com/ppat/mediated-mailbox-mcp/core/classify"
 	"github.com/ppat/mediated-mailbox-mcp/core/policy"
 	"github.com/ppat/mediated-mailbox-mcp/db/policychanges"
 	"github.com/ppat/mediated-mailbox-mcp/db/policyrules/base"
@@ -614,6 +615,10 @@ func (s *Server) getMatch(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			return err
 		}
+		names := make([][]classify.Name, len(stored))
+		for i, rule := range stored {
+			names[i] = rules.SuffixNames(rule.Suffixes, s.opts.Lookups)
+		}
 		out.SendersTotal = senders.Count()
 		together := senders.Match(suffixes)
 		out.Together = registry.Counts{Senders: together.Senders, Messages: together.Messages}
@@ -623,8 +628,8 @@ func (s *Server) getMatch(w http.ResponseWriter, r *http.Request) {
 				Suffix: suffix, Valid: len(rules.Check(rules.Account, []rules.Rule{{ID: "x", Suffixes: []string{suffix}}})) == 0,
 				PublicSuffix: rules.PublicSuffix(suffix, s.opts.Lookups), Senders: c.Senders, Messages: c.Messages, Rules: []RuleName{},
 			}
-			for _, rule := range stored {
-				if rules.Covers(rule.Suffixes, suffix, s.opts.Lookups) {
+			for i, rule := range stored {
+				if rules.Covers(names[i], suffix, s.opts.Lookups) {
 					m.Rules = append(m.Rules, RuleName{Scope: scopeOf(rule.Base), RuleID: rule.ID})
 				}
 			}
@@ -674,13 +679,17 @@ func (s *Server) getBaseMatch(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			return err
 		}
+		names := make([][]classify.Name, len(stored))
+		for i, rule := range stored {
+			names[i] = rules.SuffixNames(rule.Suffixes, s.opts.Lookups)
+		}
 		for _, suffix := range suffixes {
 			m := BaseSuffixMatch{
 				Suffix: suffix, Valid: len(rules.Check(rules.Base, []rules.Rule{{ID: "x", Suffixes: []string{suffix}}})) == 0,
 				PublicSuffix: rules.PublicSuffix(suffix, s.opts.Lookups), Rules: []RuleName{},
 			}
-			for _, rule := range stored {
-				if rules.Covers(rule.Suffixes, suffix, s.opts.Lookups) {
+			for i, rule := range stored {
+				if rules.Covers(names[i], suffix, s.opts.Lookups) {
 					m.Rules = append(m.Rules, RuleName{Scope: rules.Base, RuleID: rule.ID})
 				}
 			}

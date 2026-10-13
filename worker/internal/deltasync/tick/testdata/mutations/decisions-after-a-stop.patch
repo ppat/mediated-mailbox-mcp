@@ -6,19 +6,19 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/deltasync/tick/tick.go b/worker/internal/deltasync/tick/tick.go
-index 3237b9b..eee16de 100644
+index e6ff6ae0..b5c927dd 100644
 --- a/worker/internal/deltasync/tick/tick.go
 +++ b/worker/internal/deltasync/tick/tick.go
-@@ -359,7 +359,7 @@ func (t *ticker) page(ctx context.Context, waiting []index.Waiting) (bool, error
+@@ -378,7 +378,7 @@ func (t *ticker) page(ctx context.Context, waiting []index.Waiting) (bool, error
  	stop := false
  	for _, m := range waiting {
- 		o := index.Outcome{ID: m.ID, Domain: m.Domain, Verdict: index.Gate(t.deps.Policy, t.deps.Lookups, t.deps.Gate, mail.UnixMilli(now.UnixMilli()), m, hits[m.Domain])}
+ 		o := index.Outcome{ID: m.ID, Domain: m.Domain, Verdict: index.Gate(t.deps.Policy, t.deps.Gate, mail.UnixMilli(now.UnixMilli()), m, hits[m.Domain])}
 -		if o.Verdict.Scans() {
 +		if o.Verdict.Scans() && !stop {
  			scanned, item, next, err := t.scan(ctx, m.ID)
  			if err != nil {
  				return false, err
-@@ -369,7 +369,6 @@ func (t *ticker) page(ctx context.Context, waiting []index.Waiting) (bool, error
+@@ -388,7 +388,6 @@ func (t *ticker) page(ctx context.Context, waiting []index.Waiting) (bool, error
  			}
  			if next == core.StopScanning {
  				stop = true

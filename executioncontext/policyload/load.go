@@ -52,6 +52,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/prometheus/client_golang/prometheus"
 
+	"github.com/ppat/mediated-mailbox-mcp/core/classify"
 	"github.com/ppat/mediated-mailbox-mcp/core/policy"
 	"github.com/ppat/mediated-mailbox-mcp/db/policyrules"
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
@@ -64,24 +65,24 @@ var ErrUntrustedRead = errors.New("the read of the policy tables did not complet
 // ErrInvalidUpdate wraps the error of a reload whose rows do not validate.
 var ErrInvalidUpdate = errors.New("the policy tables do not validate, so the active policy stays")
 
-// Snapshot is one immutable policy together with the accounts whose own rules it holds. The zero
-// value is no policy at all.
+// Snapshot is one immutable policy, with the policy of each account whose own rules it holds
+// prepared for the sender classifier. The reload that swaps the policy in prepares each account's, so
+// the prepared policies are swapped with it and never outlive it, and each rule's suffixes are
+// converted once per load rather than on every classification. The zero value is no policy at all.
 type Snapshot struct {
 	policy   policy.Snapshot
-	accounts []string
+	prepared map[string]classify.Policy
 }
 
 // Loaded reports whether the snapshot came from a valid load.
 func (s Snapshot) Loaded() bool { return s.policy.Loaded() }
 
-// For returns the policy account's decisions are made against. An account whose own rules the
-// snapshot never read gets the policy that restricts every sender, because the base rules alone
-// would leave out every restriction its own rules add.
-func (s Snapshot) For(account string) policy.Composed {
-	if _, read := slices.BinarySearch(s.accounts, account); !read {
-		return policy.Composed{}
-	}
-	return s.policy.For(account)
+// For returns the policy account's decisions are made against, prepared for the classifier. An
+// account whose own rules the snapshot never read gets the policy that restricts every sender,
+// because the base rules alone would leave out every restriction its own rules add. The snapshot
+// prepares a policy only for the accounts it read, so such an account gets the zero policy.
+func (s Snapshot) For(account string) classify.Policy {
+	return s.prepared[account]
 }
 
 // Loader holds the active snapshot and replaces it on each reload that succeeds. Which accounts it
@@ -89,6 +90,7 @@ func (s Snapshot) For(account string) policy.Composed {
 type Loader struct {
 	db      tx.Beginner
 	metrics *metrics
+	lookups classify.Lookups
 
 	// mu makes reloads take turns, so each swaps against the snapshot the one before it left, and
 	// keeps a change of accounts from landing partway through a reload.
@@ -97,10 +99,11 @@ type Loader struct {
 	active   atomic.Pointer[Snapshot]
 }
 
-// New returns a Loader that reads the base rules and the rules of each of accounts from db, and
-// registers the reload-failure series on reg. Until its first reload succeeds, its snapshot is no
-// policy, which restricts every sender.
-func New(db tx.Beginner, accounts []string, reg prometheus.Registerer) (*Loader, error) {
+// New returns a Loader that reads the base rules and the rules of each of accounts from db, prepares
+// each account's policy for the classifier with lookups, and registers the reload-failure
+// series on reg. Until its first reload succeeds, its snapshot is no policy, which restricts every
+// sender.
+func New(db tx.Beginner, accounts []string, reg prometheus.Registerer, lookups classify.Lookups) (*Loader, error) {
 	read, err := readable(accounts)
 	if err != nil {
 		return nil, err
@@ -109,7 +112,7 @@ func New(db tx.Beginner, accounts []string, reg prometheus.Registerer) (*Loader,
 	if err != nil {
 		return nil, err
 	}
-	l := &Loader{db: db, accounts: read, metrics: m}
+	l := &Loader{db: db, accounts: read, metrics: m, lookups: lookups}
 	l.active.Store(&Snapshot{})
 	return l, nil
 }
@@ -180,7 +183,11 @@ func (l *Loader) reload(ctx context.Context) error {
 		l.metrics.failed()
 		return fmt.Errorf("%w: %s", ErrInvalidUpdate, strings.Join(outcome.Problems(), "; "))
 	}
-	l.active.Store(&Snapshot{policy: next, accounts: l.accounts})
+	prepared := make(map[string]classify.Policy, len(l.accounts))
+	for _, account := range l.accounts {
+		prepared[account] = classify.Prepare(next.For(account), l.lookups)
+	}
+	l.active.Store(&Snapshot{policy: next, prepared: prepared})
 	l.metrics.succeeded()
 	return nil
 }

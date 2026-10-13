@@ -6,9 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/backfill/pass2/pass2.go b/worker/internal/backfill/pass2/pass2.go
+index f49b2e88..4e0edb8a 100644
 --- a/worker/internal/backfill/pass2/pass2.go
 +++ b/worker/internal/backfill/pass2/pass2.go
-@@ -238,11 +238,7 @@
+@@ -250,11 +250,7 @@ func (p *Pass) Next(ctx context.Context) (step Step, err error) {
  	if p.done {
  		return Step{Done: true}, nil
  	}
@@ -19,5 +20,5 @@ diff --git a/worker/internal/backfill/pass2/pass2.go b/worker/internal/backfill/
 -	}()
 +	_ = schedule.Panicked
  	composed := p.deps.Policy()
- 	if !composed.Equal(p.compared) {
+ 	if !composed.Composed().Equal(p.compared.Composed()) {
  		if err := p.compare(ctx, composed); err != nil {

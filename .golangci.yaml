@@ -418,7 +418,8 @@ linters:
         # The policy loader, every file, a package of the execution context family. It is a library, so it connects
         # as no role of its own. db/check plans the statements of the subsection it names under the role of each
         # deployable or job kind whose list admits it (ADR-0066, ADR-0118). client_golang is admitted for the
-        # reload-failure series (ADR-0076, ADR-0077).
+        # reload-failure series (ADR-0076, ADR-0077), and core/classify for preparing each account's policy in the
+        # reload that swaps it in (ADR-0041).
         policyload:
           list-mode: strict
           files:
@@ -428,6 +429,7 @@ linters:
           - "github.com/google/go-cmp/cmp$"
           - "github.com/jackc/pgx/v5$"
           - "github.com/jackc/pgx/v5/"
+          - "github.com/ppat/mediated-mailbox-mcp/core/classify$"
           - "github.com/ppat/mediated-mailbox-mcp/core/policy$"
           - "github.com/ppat/mediated-mailbox-mcp/db/policyrules$"
           - "github.com/ppat/mediated-mailbox-mcp/db/tx$"

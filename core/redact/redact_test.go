@@ -44,13 +44,13 @@ const (
 	unlisted = "sam@example.com"
 )
 
-func load(t *testing.T, rows ...policy.Row) policy.Composed {
+func load(t *testing.T, rows ...policy.Row) classify.Policy {
 	t.Helper()
 	s, err := policy.Load(rows)
 	if err != nil {
 		t.Fatal(err)
 	}
-	return s.For("acct-a")
+	return classify.Prepare(s.For("acct-a"), lookups)
 }
 
 var fidelity = policy.Row{ID: "financial.brokerage.fidelity", Class: policy.Restricted, DomainSuffixes: []string{"fidelity.com"}}
@@ -72,13 +72,13 @@ func TestFailClosed(t *testing.T) {
 	p := load(t, fidelity)
 	cases := []struct {
 		name   string
-		p      policy.Composed
+		p      classify.Policy
 		sender string
 		flags  sensitivity.ContentFlags
 		scan   sensitivity.ScanState
 		want   outcome
 	}{
-		{"a policy that never loaded", never.For("acct-a"), unlisted, none, scanned, denied("restricted_sender", "no policy")},
+		{"a policy that never loaded", classify.Prepare(never.For("acct-a"), lookups), unlisted, none, scanned, denied("restricted_sender", "no policy")},
 		{"a sender the classifier cannot read", p, "no-at-sign", none, scanned, denied("restricted_sender", "unclassifiable")},
 		{"a sender with no registrable domain", p, "x@com", none, scanned, denied("restricted_sender", "unclassifiable")},
 		{"an unscanned message", p, unlisted, none, sensitivity.Pending(), denied("pending_scan", "unlisted")},
@@ -88,7 +88,7 @@ func TestFailClosed(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			got := observe(redact.Decide(c.p, c.sender, lookups, c.flags, c.scan))
+			got := observe(redact.Decide(c.p, c.sender, c.flags, c.scan))
 			if diff := cmp.Diff(c.want, got, compare.Options); diff != "" {
 				t.Errorf("Decide (-want +got):\n%s", diff)
 			}
@@ -127,7 +127,7 @@ func TestDecide(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			got := observe(redact.Decide(p, c.sender, lookups, c.flags, c.scan))
+			got := observe(redact.Decide(p, c.sender, c.flags, c.scan))
 			if diff := cmp.Diff(c.want, got, compare.Options); diff != "" {
 				t.Errorf("Decide (-want +got):\n%s", diff)
 			}
@@ -141,8 +141,8 @@ func TestAJustListedDomainDeniesOnTheNextDecision(t *testing.T) {
 	before := load(t)
 	after := load(t, policy.Row{ID: "just.listed", Class: policy.Restricted, DomainSuffixes: []string{"example.com"}})
 	got := []outcome{
-		observe(redact.Decide(before, unlisted, lookups, none, scanned)),
-		observe(redact.Decide(after, unlisted, lookups, none, scanned)),
+		observe(redact.Decide(before, unlisted, none, scanned)),
+		observe(redact.Decide(after, unlisted, none, scanned)),
 	}
 	want := []outcome{released, denied("restricted_sender", "listed")}
 	if diff := cmp.Diff(want, got, compare.Options); diff != "" {
@@ -167,13 +167,16 @@ func TestTheVerdictCannotCarryContent(t *testing.T) {
 	mustnotcompile.Require(t, "./testdata/mustnotcompile/verdictbody", "unknown field body in struct literal of type redact.Verdict")
 }
 
-// The decision takes the policy, the sender, the classifier's lookups and the stored flags and scan
-// state, and nothing a provider or a body could arrive through, so a denial never contacts the
-// provider (ADR-0002). Each struct among them is checked down to its last field, because a provider
-// method would arrive as a function value inside one.
+// The decision takes the prepared policy, which holds the classifier's lookups, the sender and the
+// stored flags and scan state, and nothing a provider or a body could arrive through, so a denial
+// never contacts the provider (ADR-0002). Each struct among them is checked down to its last field,
+// because a provider method would arrive as a function value inside one.
 func TestTheDecisionTakesNoProviderAndNoBody(t *testing.T) {
 	mustnotcompile.RequireParams(t, redactPackage, "Decide",
-		"policy.Composed", "string", "classify.Lookups", "sensitivity.ContentFlags", "sensitivity.ScanState")
+		"classify.Policy", "string", "sensitivity.ContentFlags", "sensitivity.ScanState")
+	mustnotcompile.RequireFields(t, classifyPackage, "Policy", "composed policy.Composed", "rules []prepared", "lookups Lookups")
+	mustnotcompile.RequireFields(t, classifyPackage, "prepared", "id string", "scope policy.Scope", "suffixes []Name")
+	mustnotcompile.RequireFields(t, classifyPackage, "Name", "form string")
 	mustnotcompile.RequireFields(t, policyPackage, "Composed", "loaded bool", "rules []Rule")
 	mustnotcompile.RequireFields(t, policyPackage, "Rule", "id string", "suffixes []string", "scope Scope")
 	mustnotcompile.RequireFields(t, classifyPackage, "Lookups",

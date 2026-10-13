@@ -6,14 +6,15 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
+index 15cc80e4..d9d3f787 100644
 --- a/worker/internal/backfill/backfill.go
 +++ b/worker/internal/backfill/backfill.go
-@@ -226,7 +226,7 @@
+@@ -243,7 +243,7 @@ func (b *Backfill) loadPolicy(ctx context.Context, accounts []string) error {
  		return nil
  	}
  	if b.policies == nil {
--		built, err := policyload.New(b.pool, accounts, b.registry)
-+		built, err := policyload.New(b.pool, accounts, prometheus.NewRegistry())
+-		built, err := policyload.New(b.pool, accounts, b.registry, b.lookups)
++		built, err := policyload.New(b.pool, accounts, prometheus.NewRegistry(), b.lookups)
  		if err != nil {
  			return err
  		}

@@ -7,7 +7,6 @@ import (
 
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
-	"github.com/ppat/mediated-mailbox-mcp/core/policy"
 	"github.com/ppat/mediated-mailbox-mcp/core/redact"
 	"github.com/ppat/mediated-mailbox-mcp/core/sensitivity"
 )
@@ -121,9 +120,9 @@ func storedScanState(name string) sensitivity.ScanState {
 
 // present returns the message m of account as the client surface serves it, under the Redaction
 // Gate's decision against the account policy p (ADR-0001, ADR-0002).
-func present(account string, m stored, p policy.Composed, l classify.Lookups) message {
+func present(account string, m stored, p classify.Policy) message {
 	flags, scan := storedFlags(m.ContentFlags), storedScanState(m.ScanState)
-	v := redact.Decide(p, m.FromEmail, l, flags, scan)
+	v := redact.Decide(p, m.FromEmail, flags, scan)
 	class := "normal"
 	if v.Sender().Class().Restricted() {
 		class = "restricted"

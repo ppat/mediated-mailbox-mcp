@@ -28,7 +28,6 @@ import (
 
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
-	"github.com/ppat/mediated-mailbox-mcp/core/policy"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/core/scangate"
 	"github.com/ppat/mediated-mailbox-mcp/db/accountstate"
@@ -244,7 +243,7 @@ func (b *Backfill) loadPolicy(ctx context.Context, accounts []string) error {
 		return nil
 	}
 	if b.policies == nil {
-		built, err := policyload.New(b.pool, accounts, b.registry)
+		built, err := policyload.New(b.pool, accounts, b.registry, b.lookups)
 		if err != nil {
 			return err
 		}
@@ -271,8 +270,8 @@ func (b *Backfill) job(account string) schedule.Job {
 
 // policyFor returns the account's policy in the active policy snapshot, which each page takes at its
 // entry (ADR-0041, ADR-0119).
-func (b *Backfill) policyFor(account string) func() policy.Composed {
-	return func() policy.Composed { return b.policies.Snapshot().For(account) }
+func (b *Backfill) policyFor(account string) func() classify.Policy {
+	return func() classify.Policy { return b.policies.Snapshot().For(account) }
 }
 
 // run asks the account's due decision and does the work it names. The run-start step returns the
@@ -299,9 +298,9 @@ func (b *Backfill) run(ctx context.Context, ask schedule.Ask, account string, st
 	u := &unit{sessions: b.sessions, loader: b.loader, account: account}
 	first := pass1.Deps{
 		Store: b.store, Fetch: u.fetch(limiter), Metadata: u.metadata(limiter), PerCall: perCall(gmail.Profile{}),
-		Policy: b.policyFor(account), Scanner: b.scanner, Lookups: b.lookups, RunID: runID, Now: time.Now,
+		Policy: b.policyFor(account), Scanner: b.scanner, RunID: runID, Now: time.Now,
 	}
-	second := secondDeps(b.second, u.body(limiter), b.policyFor(account), b.lookups, b.scanner)
+	second := secondDeps(b.second, u.body(limiter), b.policyFor(account), b.scanner)
 	second.Processing = b.processing
 	return backfillAccount(ctx, first, second, account, b.first, b.backlog, u, ask, logger, work.Start, started)
 }
@@ -492,9 +491,9 @@ func perCall(profile mail.RateLimitProfile[context.Context]) int {
 // delta sync decides under, which are one value in the worker, and the scanner is the one delta sync
 // scans with, built from the worker's one scanner section, so neither job kind reopens the other's
 // work (ADR-0120, ADR-0121, ADR-0104).
-func secondDeps(store pass2.Store, body pass2.Body, policy func() policy.Composed, lookups classify.Lookups, scanner scan.Scanner) pass2.Deps {
+func secondDeps(store pass2.Store, body pass2.Body, policy func() classify.Policy, scanner scan.Scanner) pass2.Deps {
 	return pass2.Deps{
-		Store: store, Body: body, Policy: policy, Lookups: lookups, Gate: scangate.DefaultConfig(), Scanner: scanner,
+		Store: store, Body: body, Policy: policy, Gate: scangate.DefaultConfig(), Scanner: scanner,
 		PageSize: pageSize, RunID: runID, Now: time.Now,
 	}
 }

@@ -33,7 +33,7 @@ func TestStoredDomain(t *testing.T) {
 }
 
 // rules returns the account's policy with one rule per suffix, named rule.<n> in order.
-func rules(t *testing.T, suffixes ...string) policy.Composed {
+func rules(t *testing.T, suffixes ...string) classify.Policy {
 	t.Helper()
 	var rows []policy.Row
 	for i, s := range suffixes {
@@ -43,7 +43,7 @@ func rules(t *testing.T, suffixes ...string) policy.Composed {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return s.For(account)
+	return classify.Prepare(s.For(account), lookups)
 }
 
 // A sender's class is decided from the domain the index stores for it as it is from its address, for
@@ -78,8 +78,8 @@ func TestAStoredDomainClassifiesAsItsAddress(t *testing.T) {
 	for i, s := range senders {
 		items = append(items, mail.MessageMetadata{AccountID: account, ID: strconv.Itoa(i), From: mail.Address{Email: s.address}})
 	}
-	for name, p := range map[string]policy.Composed{"listed": listed, "plain": plain} {
-		page := index.Decide(items, p, scanner(t), lookups)
+	for name, p := range map[string]classify.Policy{"listed": listed, "plain": plain} {
+		page := index.Decide(items, p, scanner(t))
 		var restricted, normal []string
 		for i, m := range page.Messages {
 			s := senders[i]
@@ -87,7 +87,7 @@ func TestAStoredDomainClassifiesAsItsAddress(t *testing.T) {
 				t.Errorf("under the %s policy %+q is stored as %+q, %s, want %+q, %s", name, s.address, m.Domain, m.Class, s.domain, s.under[name])
 			}
 			byDomain := index.Normal
-			if classify.Classify(p, "@"+m.Domain, lookups).Class().Restricted() {
+			if classify.Classify(p, "@"+m.Domain).Class().Restricted() {
 				byDomain = index.Restricted
 			}
 			if byDomain != s.under[name] {
@@ -101,16 +101,16 @@ func TestAStoredDomainClassifiesAsItsAddress(t *testing.T) {
 		}
 		// The delisting transition reopens none of the domains the policy restricts, and the listing
 		// transition restricts none of those it leaves normal.
-		if got := index.Delisted(p, lookups, restricted); len(got) != 0 {
+		if got := index.Delisted(p, restricted); len(got) != 0 {
 			t.Errorf("under the %s policy Delisted reopens %+q", name, got)
 		}
-		if got := index.Listed(p, lookups, normal); len(got) != 0 {
+		if got := index.Listed(p, normal); len(got) != 0 {
 			t.Errorf("under the %s policy Listed restricts %+q", name, got)
 		}
 	}
 	// Stored as normal under no rule, the domains the first policy lists are listed by it, each under its rule.
 	var stored []string
-	for _, m := range index.Decide(items, rules(t), scanner(t), lookups).Messages {
+	for _, m := range index.Decide(items, rules(t), scanner(t)).Messages {
 		if m.Class == index.Normal {
 			stored = append(stored, m.Domain)
 		}
@@ -123,7 +123,7 @@ func TestAStoredDomainClassifiesAsItsAddress(t *testing.T) {
 		{Domain: "\uff4d\uff49\uff58\uff45\uff44.example", Rule: "rule.1"},
 		{Domain: "xn--bcher-kva.example", Rule: "rule.2"},
 	}
-	if diff := cmp.Diff(want, index.Listed(listed, lookups, stored), compare.Options); diff != "" {
+	if diff := cmp.Diff(want, index.Listed(listed, stored), compare.Options); diff != "" {
 		t.Errorf("Listed over the domains stored as normal (-want +got):\n%s", diff)
 	}
 }

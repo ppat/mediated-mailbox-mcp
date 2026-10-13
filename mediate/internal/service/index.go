@@ -10,7 +10,6 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
-	"github.com/ppat/mediated-mailbox-mcp/core/policy"
 	"github.com/ppat/mediated-mailbox-mcp/db/messages"
 	"github.com/ppat/mediated-mailbox-mcp/db/senders"
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
@@ -163,7 +162,7 @@ func (s Sources) searchMessages(ctx context.Context, account string, input json.
 	}
 	out := make([]message, 0, len(rows))
 	for _, r := range rows {
-		out = append(out, present(account, fromRow(messages.MessageRow(r)), p, s.Lookups))
+		out = append(out, present(account, fromRow(messages.MessageRow(r)), p))
 	}
 	var next *string
 	if len(rows) == pageSize {
@@ -198,7 +197,7 @@ func withFilter(p *messages.SearchPageParams, f messages.SearchSummaryParams) {
 // classesFor classifies the account's sender domains under p when needed is set, and otherwise returns
 // no classes, which no term reads. The domains are read from the sender statistics, which hold exactly
 // the domains the account's messages are stored under (ADR-0109).
-func (s Sources) classesFor(ctx context.Context, q *senders.Queries, account string, needed bool, p policy.Composed) (classes, error) {
+func (s Sources) classesFor(ctx context.Context, q *senders.Queries, account string, needed bool, p classify.Policy) (classes, error) {
 	if !needed {
 		return classes{}, nil
 	}
@@ -206,7 +205,7 @@ func (s Sources) classesFor(ctx context.Context, q *senders.Queries, account str
 	if err != nil {
 		return classes{}, err
 	}
-	return classifyDomains(domains, p, s.Lookups), nil
+	return classifyDomains(domains, p), nil
 }
 
 // group is the counts of one group of messages, or of a whole selection, whose key is null.
@@ -483,7 +482,7 @@ func (s Sources) listSenders(ctx context.Context, account string, input json.Raw
 	for _, r := range rows {
 		// A domain's class is the class of every address at it, and one the classifier cannot read is
 		// restricted (ADR-0109).
-		restricted := classify.Classify(p, "@"+r.Domain, s.Lookups).Class().Restricted()
+		restricted := classify.Classify(p, "@"+r.Domain).Class().Restricted()
 		class := "normal"
 		if restricted {
 			class = "restricted"

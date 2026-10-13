@@ -22,7 +22,6 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
 	"github.com/ppat/mediated-mailbox-mcp/core/index"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
-	"github.com/ppat/mediated-mailbox-mcp/core/policy"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	core "github.com/ppat/mediated-mailbox-mcp/worker/internal/core/backfill/pass1"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/schedule"
@@ -138,11 +137,10 @@ type Deps struct {
 	Metadata Metadata
 	PerCall  int
 	// Policy returns the account's policy in the active snapshot, which each page takes at its entry,
-	// so a policy edit reaches the pages after it (ADR-0041, ADR-0119). Scanner is the scanner subjects
-	// are masked with, and Lookups the classifier's domain functions.
-	Policy  func() policy.Composed
+	// so a policy edit reaches the pages after it (ADR-0041, ADR-0119), with the classifier's domain
+	// functions it was prepared with. Scanner is the scanner subjects are masked with.
+	Policy  func() classify.Policy
 	Scanner scan.Scanner
-	Lookups classify.Lookups
 	// RunID returns a new run's identifier, a short opaque string.
 	RunID func() string
 	// Now is the clock a failure's first and last attempts are read from.
@@ -232,7 +230,7 @@ func (p *Pass) page(ctx context.Context) (Step, error) {
 	if err != nil {
 		return Step{}, err
 	}
-	decided := index.Decide(page.Items, p.deps.Policy(), p.deps.Scanner, p.deps.Lookups)
+	decided := index.Decide(page.Items, p.deps.Policy(), p.deps.Scanner)
 	from := p.at
 	c, err := p.deps.Store.Commit(ctx, p.account, p.run, decided, recovered, func(added, remasked int) core.Progress {
 		return core.Advance(from, page.Next, page.Total, added, remasked)

@@ -6,11 +6,11 @@ scheduled-count: no
 integration: yes
 
 diff --git a/mediate/internal/service/index.go b/mediate/internal/service/index.go
-index 4676f33..ff50ee3 100644
+index f4ae8478..e9c27244 100644
 --- a/mediate/internal/service/index.go
 +++ b/mediate/internal/service/index.go
 @@ -165,7 +165,7 @@ func (s Sources) searchMessages(ctx context.Context, account string, input json.
- 		out = append(out, present(account, fromRow(messages.MessageRow(r)), p, s.Lookups))
+ 		out = append(out, present(account, fromRow(messages.MessageRow(r)), p))
  	}
  	var next *string
 -	if len(rows) == pageSize {

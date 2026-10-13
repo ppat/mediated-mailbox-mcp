@@ -5,15 +5,15 @@ tests: TestTheVerdictNamesTheScopeOfTheRuleThatMatched TestClassify
 scheduled-count: no
 
 diff --git a/core/classify/classify.go b/core/classify/classify.go
-index 89f470a5..df64f306 100644
+index c53a1dda..3e11a059 100644
 --- a/core/classify/classify.go
 +++ b/core/classify/classify.go
-@@ -111,7 +111,7 @@ func Classify(p policy.Composed, address string, l Lookups) Verdict {
- 	for _, r := range p.Rules() {
- 		for _, suffix := range r.DomainSuffixes() {
- 			if sender.Under(SuffixName(suffix, l)) {
--				return Verdict{class: sensitivity.RestrictedSender(), reason: Listed, rule: r.ID(), scope: r.Scope()}
-+				return Verdict{class: sensitivity.RestrictedSender(), reason: Listed, rule: r.ID(), scope: policy.BaseScope}
+@@ -148,7 +148,7 @@ func Classify(p Policy, address string, l Lookups) Verdict {
+ 	for _, r := range p.rules {
+ 		for _, suffix := range r.suffixes {
+ 			if sender.Under(suffix) {
+-				return Verdict{class: sensitivity.RestrictedSender(), reason: Listed, rule: r.id, scope: r.scope}
++				return Verdict{class: sensitivity.RestrictedSender(), reason: Listed, rule: r.id, scope: policy.BaseScope}
  			}
  		}
  	}

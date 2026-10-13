@@ -6,7 +6,6 @@ import (
 
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
-	"github.com/ppat/mediated-mailbox-mcp/core/policy"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/core/scangate"
 	"github.com/ppat/mediated-mailbox-mcp/core/sensitivity"
@@ -16,10 +15,10 @@ import (
 // restricted or skipped as restricted, that the account policy p no longer restricts, in the order
 // given (ADR-0037). A domain the classifier cannot read stays restricted, and a policy that never
 // loaded restricts every domain, so neither delists anything.
-func Delisted(p policy.Composed, l classify.Lookups, restricted []string) []string {
+func Delisted(p classify.Policy, restricted []string) []string {
 	var out []string
 	for _, d := range restricted {
-		if !classify.Classify(p, "@"+d, l).Class().Restricted() {
+		if !classify.Classify(p, "@"+d).Class().Restricted() {
 			out = append(out, d)
 		}
 	}
@@ -36,10 +35,10 @@ type Listing struct {
 // the account policy p now restricts under a rule, each with that rule, in the order given (ADR-0113).
 // A domain the classifier cannot read, and every domain while no policy has loaded, are restricted
 // with no rule, so neither is listed.
-func Listed(p policy.Composed, l classify.Lookups, normal []string) []Listing {
+func Listed(p classify.Policy, normal []string) []Listing {
 	var out []Listing
 	for _, d := range normal {
-		if v := classify.Classify(p, "@"+d, l); v.Reason() == classify.Listed {
+		if v := classify.Classify(p, "@"+d); v.Reason() == classify.Listed {
 			out = append(out, Listing{Domain: d, Rule: v.Rule()})
 		}
 	}
@@ -66,13 +65,13 @@ type Waiting struct {
 // its prior hits counting pageHits, the hits found among the sender's messages decided before m in the
 // same read, so a sender's first hit reaches its next message (ADR-0094). The thresholds are c, and
 // the message's age is measured at now.
-func Gate(p policy.Composed, l classify.Lookups, c scangate.Config, now mail.UnixMilli, m Waiting, pageHits int64) scangate.Verdict {
+func Gate(p classify.Policy, c scangate.Config, now mail.UnixMilli, m Waiting, pageHits int64) scangate.Verdict {
 	local := m.From
 	if at := strings.LastIndexByte(m.From, '@'); at >= 0 {
 		local = m.From[:at]
 	}
 	return scangate.Decide(c, now, scangate.Input{
-		Class:         classify.Classify(p, m.From, l).Class(),
+		Class:         classify.Classify(p, m.From).Class(),
 		SubjectMasked: m.SubjectMasked,
 		ListID:        m.ListID,
 		LocalPart:     local,

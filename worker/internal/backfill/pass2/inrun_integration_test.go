@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
+	"github.com/ppat/mediated-mailbox-mcp/core/classify"
 	"github.com/ppat/mediated-mailbox-mcp/core/policy"
 	"github.com/ppat/mediated-mailbox-mcp/provider/fake"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
@@ -27,7 +28,7 @@ type active struct {
 	t       *testing.T
 	account string
 	rows    []policy.Row
-	current policy.Composed
+	current classify.Policy
 }
 
 // reload loads rows into a new snapshot and makes it the active one.
@@ -37,7 +38,7 @@ func (a *active) reload(rows ...policy.Row) {
 	if err != nil {
 		a.t.Fatal(err)
 	}
-	a.rows, a.current = rows, p.For(a.account)
+	a.rows, a.current = rows, classify.Prepare(p.For(a.account), lookups)
 }
 
 // next makes one page durable and fails the test when it fails.
@@ -64,7 +65,7 @@ func TestAPolicyEditReachesARunningSecondPassWithinAPage(t *testing.T) {
 	w := realWorldOf(t, 1, messages)
 	a := &active{t: t, account: w.account}
 	a.reload()
-	w.deps.Policy = func() policy.Composed { return a.current }
+	w.deps.Policy = func() classify.Policy { return a.current }
 	p, err := pass2.Open(context.Background(), w.deps, w.account)
 	if err != nil {
 		t.Fatal(err)
@@ -126,7 +127,7 @@ func TestARuleRemovedDuringARunningSecondPassReachesItWithinAPage(t *testing.T) 
 	bank := policy.Row{ID: "rule.bank", Class: policy.Restricted, DomainSuffixes: []string{listedDomain}}
 	a := &active{t: t, account: w.account}
 	a.reload(bank)
-	w.deps.Policy = func() policy.Composed { return a.current }
+	w.deps.Policy = func() classify.Policy { return a.current }
 	p, err := pass2.Open(context.Background(), w.deps, w.account)
 	if err != nil {
 		t.Fatal(err)
@@ -174,7 +175,7 @@ func TestARuleRemovedDuringARunningSecondPassReachesItWithinAPage(t *testing.T) 
 // and recorded as that run's failure with its stack, and Open returns it as its error (ADR-0119).
 func TestAPanicAtTheSecondPassesStartIsRecordedAsItsRunsFailure(t *testing.T) {
 	w := realWorldOf(t, 1, []fake.Message{message("m01", "news@news.example", false, marker.Body("news"), "")})
-	w.deps.Policy = func() policy.Composed { panic("a bug in the comparisons") }
+	w.deps.Policy = func() classify.Policy { panic("a bug in the comparisons") }
 	if _, err := pass2.Open(context.Background(), w.deps, w.account); !errors.Is(err, schedule.ErrPanicked) {
 		t.Fatalf("opening the pass returned %v, want the panic as its error", err)
 	}

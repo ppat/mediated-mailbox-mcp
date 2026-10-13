@@ -1,21 +1,26 @@
 control: An account whose own rules the loader did not read is held to the policy that restricts every sender
-removes: an account the loader did not read gets the base rules alone, without the restrictions its own rules add
+removes: an account the loader did not read gets the policy of an account it read, without the restrictions its own rules add
 packages: ./executioncontext/policyload
 tests: TestTheLoaderComposesEachAccountsPolicy
 scheduled-count: no
 integration: yes
 
 diff --git a/executioncontext/policyload/load.go b/executioncontext/policyload/load.go
-index 6ed1b43..473fd91 100644
+index 38b95aab..c80bdf82 100644
 --- a/executioncontext/policyload/load.go
 +++ b/executioncontext/policyload/load.go
-@@ -72,9 +72,6 @@ func (s Snapshot) Loaded() bool { return s.policy.Loaded() }
- // snapshot never read gets the policy that restricts every sender, because the base rules alone
- // would leave out every restriction its own rules add.
- func (s Snapshot) For(account string) policy.Composed {
--	if _, read := slices.BinarySearch(s.accounts, account); !read {
--		return policy.Composed{}
--	}
- 	return s.policy.For(account)
+@@ -82,7 +82,13 @@ func (s Snapshot) Loaded() bool { return s.policy.Loaded() }
+ // because the base rules alone would leave out every restriction its own rules add. The snapshot
+ // prepares a policy only for the accounts it read, so such an account gets the zero policy.
+ func (s Snapshot) For(account string) classify.Policy {
+-	return s.prepared[account]
++	if p, read := s.prepared[account]; read {
++		return p
++	}
++	for _, other := range s.prepared {
++		return other
++	}
++	return classify.Policy{}
  }
  
+ // Loader holds the active snapshot and replaces it on each reload that succeeds. Which accounts it

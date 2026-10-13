@@ -1,0 +1,19 @@
+control: The policy list alone decides sender class
+removes: the prepared policy keeps each rule's suffixes lowercased as written, without the conversion the sender gets
+packages: ./core/classify
+tests: TestThePreparedPolicyClassifiesAsConvertingOnEveryCall TestClassify/a_sender_in_Unicode_against_a_rule_in_punycode
+scheduled-count: no
+
+diff --git a/core/classify/classify.go b/core/classify/classify.go
+index c53a1dda..847f302f 100644
+--- a/core/classify/classify.go
++++ b/core/classify/classify.go
+@@ -122,7 +122,7 @@ func Prepare(p policy.Composed, l Lookups) Policy {
+ 		suffixes := r.DomainSuffixes()
+ 		names := make([]Name, len(suffixes))
+ 		for i, suffix := range suffixes {
+-			names[i] = SuffixName(suffix, l)
++			names[i] = Name{form: strings.ToLower(suffix)}
+ 		}
+ 		out.rules = append(out.rules, prepared{id: r.ID(), scope: r.Scope(), suffixes: names})
+ 	}

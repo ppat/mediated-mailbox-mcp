@@ -6,15 +6,15 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/deltasync/tick/tick.go b/worker/internal/deltasync/tick/tick.go
-index ce882013..899c0d1a 100644
+index e6ff6ae0..cef52097 100644
 --- a/worker/internal/deltasync/tick/tick.go
 +++ b/worker/internal/deltasync/tick/tick.go
-@@ -326,11 +326,6 @@ func (t *ticker) scanning(ctx context.Context) error {
+@@ -340,11 +340,6 @@ func (t *ticker) scanning(ctx context.Context) error {
  	if marked > 0 {
  		t.at.Checkpoint.After = ""
  	}
 -	if _, err := t.deps.Store.List(ctx, t.account, func(normal []string) []index.Listing {
--		return index.Listed(t.deps.Policy, t.deps.Lookups, normal)
+-		return index.Listed(t.deps.Policy, normal)
 -	}); err != nil {
 -		return fmt.Errorf("restricting the stored classes a rule added since restricts: %w", err)
 -	}

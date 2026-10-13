@@ -6,15 +6,15 @@ scheduled-count: no
 integration: yes
 
 diff --git a/mediate/internal/service/index.go b/mediate/internal/service/index.go
-index 4fac786f..8c115480 100644
+index f4ae8478..5a1f4714 100644
 --- a/mediate/internal/service/index.go
 +++ b/mediate/internal/service/index.go
-@@ -483,7 +483,7 @@ func (s Sources) listSenders(ctx context.Context, account string, input json.Raw
+@@ -482,7 +482,7 @@ func (s Sources) listSenders(ctx context.Context, account string, input json.Raw
  	for _, r := range rows {
  		// A domain's class is the class of every address at it, and one the classifier cannot read is
  		// restricted (ADR-0109).
--		restricted := classify.Classify(p, "@"+r.Domain, s.Lookups).Class().Restricted()
-+		restricted := false && classify.Classify(p, "@"+r.Domain, s.Lookups).Class().Restricted()
+-		restricted := classify.Classify(p, "@"+r.Domain).Class().Restricted()
++		restricted := false && classify.Classify(p, "@"+r.Domain).Class().Restricted()
  		class := "normal"
  		if restricted {
  			class = "restricted"

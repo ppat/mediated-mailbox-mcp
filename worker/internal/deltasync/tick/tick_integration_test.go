@@ -15,6 +15,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/prometheus/client_golang/prometheus"
 
+	"github.com/ppat/mediated-mailbox-mcp/core/classify"
 	coreindex "github.com/ppat/mediated-mailbox-mcp/core/index"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/provider/fake"
@@ -583,7 +584,7 @@ func TestATickRestrictsTheStoredClassOfAnAddedRulesSender(t *testing.T) {
 		t.Errorf("found %d restricted statistics for the shop, want 1", n)
 	}
 	marked, err := tick.NewPostgres(syncPool(t)).List(context.Background(), account, func(normal []string) []coreindex.Listing {
-		return coreindex.Listed(listing(t, "shop.example").For(account), lookups, normal)
+		return coreindex.Listed(classify.Prepare(listing(t, "shop.example").For(account), lookups), normal)
 	})
 	if err != nil || marked != 0 {
 		t.Errorf("a second comparison marked %d messages with error %v, want none", marked, err)

@@ -18,7 +18,6 @@ import (
 
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
-	"github.com/ppat/mediated-mailbox-mcp/core/policy"
 	"github.com/ppat/mediated-mailbox-mcp/core/redact"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 )
@@ -99,10 +98,10 @@ type Page struct {
 // account's policy p and each subject masked by s under subject masking's tuning and stamped with s. A
 // policy that never loaded restricts every sender, and a scanner nobody built masks every subject
 // whole, so neither fails open.
-func Decide(items []mail.MessageMetadata, p policy.Composed, s scan.Scanner, l classify.Lookups) Page {
+func Decide(items []mail.MessageMetadata, p classify.Policy, s scan.Scanner) Page {
 	var out Page
 	for _, m := range items {
-		verdict := classify.Classify(p, m.From.Email, l)
+		verdict := classify.Classify(p, m.From.Email)
 		masked := redact.MaskSubject(s, m.Subject)
 		msg := Message{
 			ID:              m.ID,

@@ -251,7 +251,7 @@ func TestTheMediatorServesTheAccountsEachReloadLists(t *testing.T) {
 	if !serves(t, reg, second) {
 		t.Error("an account connected while the mediator runs is not served after the next reload")
 	}
-	if s.policy(second).RestrictsAll() {
+	if s.policy(second).Composed().RestrictsAll() {
 		t.Error("an account served after a reload has no policy of its own loaded")
 	}
 	if got := s.accounts(); len(got) != 2 {
@@ -498,10 +498,10 @@ func TestAFailedPolicyLoadStillFollowsTheSnapshot(t *testing.T) {
 	if !serves(t, reg, kept) || !serves(t, reg, added) {
 		t.Errorf("after the policy load failed, %s is served %v and %s %v", kept, serves(t, reg, kept), added, serves(t, reg, added))
 	}
-	if s.policy(kept).RestrictsAll() {
+	if s.policy(kept).Composed().RestrictsAll() {
 		t.Error("an account whose policy was loaded before lost it when a later policy load failed")
 	}
-	if !s.policy(added).RestrictsAll() {
+	if !s.policy(added).Composed().RestrictsAll() {
 		t.Error("an account added while the policy load failed is decided under a policy that never read its rules")
 	}
 
@@ -512,7 +512,7 @@ func TestAFailedPolicyLoadStillFollowsTheSnapshot(t *testing.T) {
 	if got := reloadFailed(t, metrics); !slices.Equal(got, []float64{0}) {
 		t.Errorf("after the retried policy load succeeded, the reload-failure series reads %v, want one series at 0", got)
 	}
-	if s.policy(added).RestrictsAll() {
+	if s.policy(added).Composed().RestrictsAll() {
 		t.Error("the next reload did not load the policy of the account added meanwhile")
 	}
 }

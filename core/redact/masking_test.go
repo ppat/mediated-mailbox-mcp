@@ -94,7 +94,7 @@ func TestMaskSubject(t *testing.T) {
 func TestARestrictedSendersCodeSubjectIsMasked(t *testing.T) {
 	m := fixture.OneTimeCode()
 	p := load(t, policy.Row{ID: "security", Class: policy.Restricted, DomainSuffixes: []string{"security.example"}})
-	if !classify.Classify(p, m.FromAddress, lookups).Class().Restricted() {
+	if !classify.Classify(p, m.FromAddress).Class().Restricted() {
 		t.Fatal("the fixture's sender is not restricted under the test's policy")
 	}
 	got := redact.MaskSubject(defaultScanner(t), m.Subject).Subject()

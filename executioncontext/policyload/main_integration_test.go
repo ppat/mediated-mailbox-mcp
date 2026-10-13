@@ -120,7 +120,7 @@ type view struct {
 func observe(s policyload.Snapshot, accounts ...string) map[string]view {
 	out := map[string]view{}
 	for _, account := range accounts {
-		c := s.For(account)
+		c := s.For(account).Composed()
 		v := view{RestrictsAll: c.RestrictsAll(), Rules: map[string][]string{}}
 		for _, r := range c.Rules() {
 			v.Rules[r.ID()] = r.DomainSuffixes()

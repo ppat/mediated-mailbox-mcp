@@ -14,7 +14,7 @@ index 8a83d5eb..c6276e10 100644
  		return &Pass{deps: deps, account: account, done: true}, nil
  	}
 +	frozen := deps.Policy()
-+	deps.Policy = func() policy.Composed { return frozen }
++	deps.Policy = func() classify.Policy { return frozen }
  	p := &Pass{deps: deps, account: account, run: deps.RunID(), at: start.From}
  	if start.ResumedFrom != "" {
  		p.resumed = start.From.Checkpoint.Token

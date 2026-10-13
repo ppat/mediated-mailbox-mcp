@@ -6,15 +6,15 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
-index c3cf033..e8bf672 100644
+index 035c3f46..79b94fc5 100644
 --- a/worker/internal/backfill/backfill.go
 +++ b/worker/internal/backfill/backfill.go
-@@ -299,7 +299,7 @@ func (b *Backfill) run(ctx context.Context, ask schedule.Ask, account string, st
+@@ -298,7 +298,7 @@ func (b *Backfill) run(ctx context.Context, ask schedule.Ask, account string, st
  	u := &unit{sessions: b.sessions, loader: b.loader, account: account}
  	first := pass1.Deps{
  		Store: b.store, Fetch: u.fetch(limiter), Metadata: u.metadata(limiter), PerCall: perCall(gmail.Profile{}),
--		Policy: b.policyFor(account), Scanner: b.scanner, Lookups: b.lookups, RunID: runID, Now: time.Now,
-+		Policy: func() func() policy.Composed { p := b.policyFor(account)(); return func() policy.Composed { return p } }(), Scanner: b.scanner, Lookups: b.lookups, RunID: runID, Now: time.Now,
+-		Policy: b.policyFor(account), Scanner: b.scanner, RunID: runID, Now: time.Now,
++		Policy: func() func() classify.Policy { p := b.policyFor(account)(); return func() classify.Policy { return p } }(), Scanner: b.scanner, RunID: runID, Now: time.Now,
  	}
- 	second := secondDeps(b.second, u.body(limiter), b.policyFor(account), b.lookups, b.scanner)
+ 	second := secondDeps(b.second, u.body(limiter), b.policyFor(account), b.scanner)
  	second.Processing = b.processing

@@ -804,7 +804,7 @@ func senderRows(ctx context.Context, q Queries, r Read, l classify.Lookups) (any
 	if err != nil {
 		return nil, err
 	}
-	policy := Composed(stored)
+	policy := rules.Names(Composed(stored), l)
 	for _, row := range rows {
 		s := SenderRow{
 			Domain: row.Domain, SenderClass: row.SenderClass, MessageCount: row.MessageCount,

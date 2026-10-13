@@ -6,12 +6,13 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/backfill/pass2/pass2.go b/worker/internal/backfill/pass2/pass2.go
+index 8f02f954..85f2f44b 100644
 --- a/worker/internal/backfill/pass2/pass2.go
 +++ b/worker/internal/backfill/pass2/pass2.go
-@@ -263,7 +263,7 @@
+@@ -275,7 +275,7 @@ func (p *Pass) Next(ctx context.Context) (step Step, err error) {
  	var items []pass1.Item
  	for _, m := range messages {
- 		o := index.Outcome{ID: m.ID, Domain: m.Domain, Verdict: index.Gate(composed, p.deps.Lookups, p.deps.Gate, now, m, hits[m.Domain])}
+ 		o := index.Outcome{ID: m.ID, Domain: m.Domain, Verdict: index.Gate(composed, p.deps.Gate, now, m, hits[m.Domain])}
 -		if o.Verdict.Scans() {
 +		if true {
  			scanned, item, err := p.scan(ctx, m.ID, number)

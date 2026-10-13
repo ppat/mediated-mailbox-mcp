@@ -14,7 +14,6 @@ import (
 
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
-	"github.com/ppat/mediated-mailbox-mcp/core/policy"
 	"github.com/ppat/mediated-mailbox-mcp/db/accountstate"
 	"github.com/ppat/mediated-mailbox-mcp/db/jobruns"
 	"github.com/ppat/mediated-mailbox-mcp/db/maskingevents"
@@ -41,9 +40,7 @@ type Sources struct {
 	Accounts func() []Account
 	// Policy returns the policy an account's messages are decided against, from the policy snapshot
 	// in force. A call takes it once.
-	Policy func(account string) policy.Composed
-	// Lookups are the sender classifier's domain functions.
-	Lookups classify.Lookups
+	Policy func(account string) classify.Policy
 	// Now returns the current time, which the system status measures ages and backoff against.
 	Now func() time.Time
 	// Bodies are what the body operation needs beyond the index.
@@ -264,7 +261,7 @@ func (s Sources) listMessages(ctx context.Context, account string, input json.Ra
 	p := s.Policy(account)
 	out := make([]message, 0, len(rows))
 	for _, r := range rows {
-		out = append(out, present(account, fromRow(messages.MessageRow(r)), p, s.Lookups))
+		out = append(out, present(account, fromRow(messages.MessageRow(r)), p))
 	}
 	var next *string
 	if len(rows) == pageSize {
@@ -297,7 +294,7 @@ func (s Sources) getMessage(ctx context.Context, account string, input json.RawM
 	if len(rows) == 0 {
 		return nil, Refuse("the account holds no message with that message_id")
 	}
-	return ok(present(account, fromRow(rows[0]), s.Policy(account), s.Lookups))
+	return ok(present(account, fromRow(rows[0]), s.Policy(account)))
 }
 
 type thread struct {
@@ -367,7 +364,7 @@ func (s Sources) getThread(ctx context.Context, account string, input json.RawMe
 	p := s.Policy(account)
 	out := make([]message, 0, len(rows))
 	for _, r := range rows {
-		out = append(out, present(account, fromRow(messages.MessageRow(r)), p, s.Lookups))
+		out = append(out, present(account, fromRow(messages.MessageRow(r)), p))
 	}
 	return ok(struct {
 		ThreadID string    `json:"thread_id"`

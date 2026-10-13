@@ -134,11 +134,11 @@ func rescanDeps(t *testing.T, pool *pgxpool.Pool, account string, f *fake.Fake, 
 	runID := func() string { n++; return fmt.Sprintf("%s%d", run, n) }
 	gate := scangate.Config{NoReplyLocalParts: []string{"noreply"}, SmallBytes: 1, RecentAgeMillis: 1, LowVolume: 1, HighVolume: 2}
 	first := pass1.Deps{
-		Store: pass1.NewPostgres(pool), Fetch: f.EnumerateAll, Metadata: f.GetMessageMetadata, PerCall: 3, Policy: fixed(rules.For(account)), Scanner: s, Lookups: lookups,
+		Store: pass1.NewPostgres(pool), Fetch: f.EnumerateAll, Metadata: f.GetMessageMetadata, PerCall: 3, Policy: fixed(classify.Prepare(rules.For(account), lookups)), Scanner: s,
 		RunID: runID, Now: time.Now,
 	}
 	second := pass2.Deps{
-		Store: pass2.NewPostgres(pool), Body: f.GetMessageBody, Policy: fixed(rules.For(account)), Lookups: lookups,
+		Store: pass2.NewPostgres(pool), Body: f.GetMessageBody, Policy: fixed(classify.Prepare(rules.For(account), lookups)),
 		Gate: gate, Scanner: s, PageSize: 2, RunID: runID, Now: time.Now,
 	}
 	return first, second

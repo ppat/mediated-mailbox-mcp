@@ -43,7 +43,7 @@ func TestAlertingRules(t *testing.T) {
 // name, so the reload rule never watches a name nothing emits (ADR-0076).
 func TestTheRulesReadOnlyEmittedSeries(t *testing.T) {
 	reg := prometheus.NewRegistry()
-	if _, err := policyload.New(nil, []string{"acct"}, reg); err != nil {
+	if _, err := policyload.New(nil, []string{"acct"}, reg, lookups); err != nil {
 		t.Fatal(err)
 	}
 	families, err := reg.Gather()

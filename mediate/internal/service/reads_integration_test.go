@@ -21,7 +21,6 @@ import (
 	"golang.org/x/net/publicsuffix"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
-	"github.com/ppat/mediated-mailbox-mcp/core/policy"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/policyload"
 	"github.com/ppat/mediated-mailbox-mcp/mediate/internal/service"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
@@ -129,7 +128,8 @@ func reads(t *testing.T, accounts ...string) service.Registry {
 // loaded through pool.
 func readsOver(t *testing.T, pool *pgxpool.Pool, db service.Database, accounts ...string) service.Registry {
 	t.Helper()
-	policies, err := policyload.New(pool, accounts, prometheus.NewRegistry())
+	lookups := classify.Lookups{ToUnicode: idna.Lookup.ToUnicode, ToASCII: idna.Lookup.ToASCII, Registrable: publicsuffix.EffectiveTLDPlusOne}
+	policies, err := policyload.New(pool, accounts, prometheus.NewRegistry(), lookups)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -143,8 +143,7 @@ func readsOver(t *testing.T, pool *pgxpool.Pool, db service.Database, accounts .
 	reg, err := service.NewRegistry(accounts, service.Operations(service.Sources{
 		DB:       db,
 		Accounts: func() []service.Account { return listed },
-		Policy:   func(account string) policy.Composed { return policies.Snapshot().For(account) },
-		Lookups:  classify.Lookups{ToUnicode: idna.Lookup.ToUnicode, ToASCII: idna.Lookup.ToASCII, Registrable: publicsuffix.EffectiveTLDPlusOne},
+		Policy:   func(account string) classify.Policy { return policies.Snapshot().For(account) },
 		Now:      func() time.Time { return time.Date(2026, 7, 22, 0, 0, 0, 0, time.UTC) },
 	})...)
 	if err != nil {

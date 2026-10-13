@@ -28,7 +28,7 @@ var lookups = classify.Lookups{
 const account = "personal"
 
 // listing returns the account's policy with one rule listing each of domains.
-func listing(t *testing.T, domains ...string) policy.Composed {
+func listing(t *testing.T, domains ...string) classify.Policy {
 	t.Helper()
 	var rows []policy.Row
 	for _, d := range domains {
@@ -38,7 +38,7 @@ func listing(t *testing.T, domains ...string) policy.Composed {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return s.For(account)
+	return classify.Prepare(s.For(account), lookups)
 }
 
 func scanner(t *testing.T) scan.Scanner {
@@ -146,7 +146,7 @@ func TestOverturned(t *testing.T) {
 	widened.HighVolume = 20
 	cases := []struct {
 		name       string
-		policy     policy.Composed
+		policy     classify.Policy
 		thresholds scangate.Config
 		skips      []index.Waiting
 		want       []string
@@ -159,7 +159,7 @@ func TestOverturned(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			if diff := cmp.Diff(c.want, pass2.Overturned(c.policy, lookups, c.thresholds, now, c.skips), compare.Options); diff != "" {
+			if diff := cmp.Diff(c.want, pass2.Overturned(c.policy, c.thresholds, now, c.skips), compare.Options); diff != "" {
 				t.Errorf("Overturned (-want +got):\n%s", diff)
 			}
 		})
@@ -208,14 +208,14 @@ func TestAdvance(t *testing.T) {
 	s := scanner(t)
 	flagged := index.Scan(s, "Your verification code is 419283.", "")
 	clean := index.Scan(s, "Hello there.", "")
-	scanned := index.Gate(listing(t), lookups, thresholds, now, index.Waiting{From: "a@a.example", SenderVolume: 1}, 0)
-	skip := index.Gate(listing(t), lookups, thresholds, now, skipped(), 0)
+	scanned := index.Gate(listing(t), thresholds, now, index.Waiting{From: "a@a.example", SenderVolume: 1}, 0)
+	skip := index.Gate(listing(t), thresholds, now, skipped(), 0)
 	page := pass2.Page{Last: pass2.Position{SentAt: 1_699_999_995_000, ID: "m5"}, Outcomes: []index.Outcome{
 		{ID: "m1", Domain: "a.example", Verdict: scanned, Scanned: &flagged},
 		{ID: "m2", Domain: "a.example", Verdict: scanned, Scanned: &clean},
 		{ID: "m3", Domain: "list.example", Verdict: skip},
 		{ID: "m4", Domain: "a.example", Verdict: scanned},
-		{ID: "m5", Domain: "b.example", Verdict: index.Gate(listing(t), lookups, scangate.Config{}, now, skipped(), 0)},
+		{ID: "m5", Domain: "b.example", Verdict: index.Gate(listing(t), scangate.Config{}, now, skipped(), 0)},
 	}}
 	at := pass2.Progress{Checkpoint: pass2.Checkpoint{Page: 1, After: pass2.Position{SentAt: 1_700_000_000_000, ID: "m0"}}, Counters: pass2.Counters{Pages: 1, Decided: 1, Scanned: 1}}
 	want := pass2.Progress{

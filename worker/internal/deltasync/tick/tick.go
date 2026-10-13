@@ -22,7 +22,6 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
 	"github.com/ppat/mediated-mailbox-mcp/core/index"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
-	"github.com/ppat/mediated-mailbox-mcp/core/policy"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/core/scangate"
 	core "github.com/ppat/mediated-mailbox-mcp/worker/internal/core/deltasync/tick"
@@ -40,11 +39,10 @@ const (
 type Deps struct {
 	Store    Store
 	Provider Provider
-	// Policy is the account's policy, Lookups the classifier's domain functions, Gate the scan gate's
-	// thresholds and Scanner the scanner subjects are masked and bodies scanned with, the same as
-	// backfill's (ADR-0120, ADR-0121).
-	Policy  policy.Composed
-	Lookups classify.Lookups
+	// Policy is the account's policy with the classifier's domain functions it was prepared with, Gate
+	// the scan gate's thresholds and Scanner the scanner subjects are masked and bodies scanned with,
+	// the same as backfill's (ADR-0120, ADR-0121).
+	Policy  classify.Policy
 	Gate    scangate.Config
 	Scanner scan.Scanner
 	// Processing times each body's conversion and scan, and a nil one times nothing (ADR-0125).
@@ -156,7 +154,7 @@ func (t *ticker) changes(ctx context.Context, state State) (mail.Cursor, error) 
 		if err != nil {
 			return "", fmt.Errorf("asking for the metadata of the changed messages: %w", err)
 		}
-		page := index.Decide(metadata, t.deps.Policy, t.deps.Scanner, t.deps.Lookups)
+		page := index.Decide(metadata, t.deps.Policy, t.deps.Scanner)
 		next := t.at
 		next.Counters.Added += len(cs.Added)
 		next.Counters.Modified += len(cs.Modified)
@@ -276,7 +274,7 @@ func (t *ticker) reconcile(ctx context.Context, run string, start mail.UnixMilli
 				listed[m.ID] = true
 			}
 		}
-		decided := index.Decide(metadata, t.deps.Policy, t.deps.Scanner, t.deps.Lookups)
+		decided := index.Decide(metadata, t.deps.Policy, t.deps.Scanner)
 		so := reconciled
 		applied, err := t.deps.Store.Apply(ctx, t.account, run, Application{Page: decided}, func(a Applied) Recorder {
 			return progress(so + a.Inserted + a.Changed)
@@ -334,7 +332,7 @@ func window(start, end mail.UnixMilli) *Window {
 // read from the first waiting message (ADR-0037, ADR-0113, ADR-0104).
 func (t *ticker) scanning(ctx context.Context) error {
 	marked, err := t.deps.Store.Delist(ctx, t.account, t.run, func(restricted []string) []string {
-		return index.Delisted(t.deps.Policy, t.deps.Lookups, restricted)
+		return index.Delisted(t.deps.Policy, restricted)
 	})
 	if err != nil {
 		return fmt.Errorf("running the delisting transition: %w", err)
@@ -343,7 +341,7 @@ func (t *ticker) scanning(ctx context.Context) error {
 		t.at.Checkpoint.After = ""
 	}
 	if _, err := t.deps.Store.List(ctx, t.account, func(normal []string) []index.Listing {
-		return index.Listed(t.deps.Policy, t.deps.Lookups, normal)
+		return index.Listed(t.deps.Policy, normal)
 	}); err != nil {
 		return fmt.Errorf("restricting the stored classes a rule added since restricts: %w", err)
 	}
@@ -379,7 +377,7 @@ func (t *ticker) page(ctx context.Context, waiting []index.Waiting) (bool, error
 	var items []Item
 	stop := false
 	for _, m := range waiting {
-		o := index.Outcome{ID: m.ID, Domain: m.Domain, Verdict: index.Gate(t.deps.Policy, t.deps.Lookups, t.deps.Gate, mail.UnixMilli(now.UnixMilli()), m, hits[m.Domain])}
+		o := index.Outcome{ID: m.ID, Domain: m.Domain, Verdict: index.Gate(t.deps.Policy, t.deps.Gate, mail.UnixMilli(now.UnixMilli()), m, hits[m.Domain])}
 		if o.Verdict.Scans() {
 			scanned, item, next, err := t.scan(ctx, m.ID)
 			if err != nil {
