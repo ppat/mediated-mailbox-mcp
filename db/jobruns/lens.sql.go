@@ -87,61 +87,105 @@ func (q *Queries) RunFigures(ctx context.Context, arg RunFiguresParams) (RunFigu
 }
 
 const runRows = `-- name: RunRows :many
-WITH failure_counts AS (
-    SELECT
-        f.run_id,
-        count(*) AS failures
-    FROM job_run_failures AS f
-    WHERE f.account_id = current_setting('app.account')
-    GROUP BY f.run_id
+WITH failure_counts AS MATERIALIZED (
+    SELECT coalesce(jsonb_object_agg(g.run_id, g.failures), '{}') AS by_run
+    FROM (
+        SELECT
+            f.run_id,
+            count(*) AS failures
+        FROM job_run_failures AS f
+        WHERE f.account_id = current_setting('app.account') AND $11::text = 'failures'
+        GROUP BY f.run_id
+    ) AS g
 )
 
 SELECT
-    r.run_id,
-    r.workload,
-    r.pass,
-    r.state,
-    r.plan_id,
+    p.run_id,
+    p.workload,
+    p.pass,
+    p.state,
+    p.plan_id,
     pl.description AS plan_description,
     pl.status AS plan_status,
-    r.resumed_from,
-    r.started_at,
-    r.finished_at,
-    r.heartbeat_at,
-    r.checkpoint,
-    r.counters,
-    r.last_error,
-    coalesce(fc.failures, 0)::bigint AS failures
-FROM job_runs AS r
-LEFT JOIN reorg_plans AS pl ON r.account_id = pl.account_id AND r.plan_id = pl.plan_id
-LEFT JOIN failure_counts AS fc ON r.run_id = fc.run_id
-WHERE
-    r.account_id = current_setting('app.account')
-    AND ($1::timestamptz IS NULL OR r.started_at >= $1::timestamptz)
-    AND ($2::timestamptz IS NULL OR r.started_at < $2::timestamptz)
-    AND ($3::text[] IS NULL OR r.workload = any($3::text[]))
-    AND ($4::text[] IS NULL OR r.workload != all($4::text[]))
-    AND ($5::text[] IS NULL OR r.state = any($5::text[]))
-    AND ($6::text[] IS NULL OR r.state != all($6::text[]))
-    AND ($7::text[] IS NULL OR r.pass = any($7::text[]))
-    AND ($8::text[] IS NULL OR r.pass IS NULL OR r.pass != all($8::text[]))
-    AND ($9::date[] IS NULL OR (r.started_at AT TIME ZONE 'UTC')::date = any($9::date[]))
-    AND ($10::date[] IS NULL OR (r.started_at AT TIME ZONE 'UTC')::date != all($10::date[]))
+    p.resumed_from,
+    p.started_at,
+    p.finished_at,
+    p.heartbeat_at,
+    p.checkpoint,
+    p.counters,
+    p.last_error,
+    fc.failures
+FROM (
+    SELECT
+        r.run_id,
+        r.workload,
+        r.pass,
+        r.state,
+        r.plan_id,
+        r.resumed_from,
+        r.started_at,
+        r.finished_at,
+        r.heartbeat_at,
+        r.checkpoint,
+        r.counters,
+        r.last_error
+    FROM job_runs AS r
+    CROSS JOIN failure_counts AS c
+    WHERE
+        r.account_id = current_setting('app.account')
+        AND ($1::timestamptz IS NULL OR r.started_at >= $1::timestamptz)
+        AND ($2::timestamptz IS NULL OR r.started_at < $2::timestamptz)
+        AND ($3::text[] IS NULL OR r.workload = any($3::text[]))
+        AND ($4::text[] IS NULL OR r.workload != all($4::text[]))
+        AND ($5::text[] IS NULL OR r.state = any($5::text[]))
+        AND ($6::text[] IS NULL OR r.state != all($6::text[]))
+        AND ($7::text[] IS NULL OR r.pass = any($7::text[]))
+        AND ($8::text[] IS NULL OR r.pass IS NULL OR r.pass != all($8::text[]))
+        AND ($9::date[] IS NULL OR (r.started_at AT TIME ZONE 'UTC')::date = any($9::date[]))
+        AND ($10::date[] IS NULL OR (r.started_at AT TIME ZONE 'UTC')::date != all($10::date[]))
+    ORDER BY
+        CASE WHEN $11::text = 'started_at' AND $12::boolean THEN r.started_at END DESC,
+        CASE WHEN $11::text = 'started_at' AND NOT $12::boolean THEN r.started_at END ASC,
+        CASE
+            WHEN $11::text = 'duration' AND $12::boolean
+                THEN coalesce(r.finished_at, $13::timestamptz) - r.started_at
+        END DESC,
+        CASE
+            WHEN $11::text = 'duration' AND NOT $12::boolean
+                THEN coalesce(r.finished_at, $13::timestamptz) - r.started_at
+        END ASC,
+        CASE
+            WHEN $11::text = 'failures' AND $12::boolean
+                THEN coalesce((c.by_run ->> r.run_id)::bigint, 0)
+        END DESC,
+        CASE
+            WHEN $11::text = 'failures' AND NOT $12::boolean
+                THEN coalesce((c.by_run ->> r.run_id)::bigint, 0)
+        END ASC,
+        r.run_id ASC
+    LIMIT 50 OFFSET $14
+) AS p
+LEFT JOIN reorg_plans AS pl ON pl.account_id = current_setting('app.account') AND p.plan_id = pl.plan_id
+CROSS JOIN
+    LATERAL (
+        SELECT count(*) AS failures
+        FROM job_run_failures AS f
+        WHERE f.account_id = current_setting('app.account') AND f.run_id = p.run_id
+    ) AS fc
 ORDER BY
-    CASE WHEN $11::text = 'started_at' AND $12::boolean THEN r.started_at END DESC,
-    CASE WHEN $11::text = 'started_at' AND NOT $12::boolean THEN r.started_at END ASC,
+    CASE WHEN $11::text = 'started_at' AND $12::boolean THEN p.started_at END DESC,
+    CASE WHEN $11::text = 'started_at' AND NOT $12::boolean THEN p.started_at END ASC,
     CASE
         WHEN $11::text = 'duration' AND $12::boolean
-            THEN coalesce(r.finished_at, $13::timestamptz) - r.started_at
+            THEN coalesce(p.finished_at, $13::timestamptz) - p.started_at
     END DESC,
     CASE
         WHEN $11::text = 'duration' AND NOT $12::boolean
-            THEN coalesce(r.finished_at, $13::timestamptz) - r.started_at
+            THEN coalesce(p.finished_at, $13::timestamptz) - p.started_at
     END ASC,
-    CASE WHEN $11::text = 'failures' AND $12::boolean THEN coalesce(fc.failures, 0) END DESC,
-    CASE WHEN $11::text = 'failures' AND NOT $12::boolean THEN coalesce(fc.failures, 0) END ASC,
-    r.run_id ASC
-LIMIT 50 OFFSET $14
+    CASE WHEN $11::text = 'failures' AND $12::boolean THEN fc.failures END DESC,
+    CASE WHEN $11::text = 'failures' AND NOT $12::boolean THEN fc.failures END ASC,
+    p.run_id ASC
 `
 
 type RunRowsParams struct {
@@ -184,6 +228,15 @@ type RunRowsRow struct {
 // failures. sort_column names one of the three sortable columns, started_at, duration or failures, in
 // either direction, and the run's identity ends the sort. duration runs to the finish, or to as_of
 // while the run has none.
+//
+// The page's runs are chosen first, and only then is each page run's failures counted, on the
+// failures' primary key, so a sort by start or by duration counts the failures of the page's runs
+// alone, in any plan. A sort by failures must know the count of every run in the range before it can
+// order them, so it reads the account's failures once, as one aggregate holding each run's count by
+// its identity, which each run looks its count up in. To order the runs it neither counts each run in
+// the range apart nor joins the runs to the aggregate, since a generic plan estimates one run and
+// joins by scanning the aggregate once per run. Only the page's runs are then counted, as for every
+// sort. Every other sort skips the aggregate.
 func (q *Queries) RunRows(ctx context.Context, arg RunRowsParams) ([]RunRowsRow, error) {
 	rows, err := q.db.Query(ctx, runRows,
 		arg.RangeStart,

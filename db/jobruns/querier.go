@@ -58,6 +58,15 @@ type Querier interface {
 	// failures. sort_column names one of the three sortable columns, started_at, duration or failures, in
 	// either direction, and the run's identity ends the sort. duration runs to the finish, or to as_of
 	// while the run has none.
+	//
+	// The page's runs are chosen first, and only then is each page run's failures counted, on the
+	// failures' primary key, so a sort by start or by duration counts the failures of the page's runs
+	// alone, in any plan. A sort by failures must know the count of every run in the range before it can
+	// order them, so it reads the account's failures once, as one aggregate holding each run's count by
+	// its identity, which each run looks its count up in. To order the runs it neither counts each run in
+	// the range apart nor joins the runs to the aggregate, since a generic plan estimates one run and
+	// joins by scanning the aggregate once per run. Only the page's runs are then counted, as for every
+	// sort. Every other sort skips the aggregate.
 	RunRows(ctx context.Context, arg RunRowsParams) ([]RunRowsRow, error)
 	// Every group of the runs dataset by the UTC day each run started on, as RunsByWorkload.
 	RunsByDay(ctx context.Context, arg RunsByDayParams) ([]RunsByDayRow, error)
