@@ -26,7 +26,8 @@ set. Its preamble carries the reading rules; hold these lines:
   delivered unit as later work, filed under the unit whose mechanism it concerns as a discovery is,
   keys that later work and does not hold the unit open either.
 - **Delivered work states what it did NOT deliver** alongside what it did, so a cold reader
-  cannot over-assume.
+  cannot over-assume, until the collapse after its production point's crossing carries it in the
+  point's summary.
 - The delivery posture's non-deferrables list is edited only with the operator's agreement — the
   membership test is "deferral is irreversible, or the failure it permits is silent."
 - **Every unit names its finish line**, tested, image, or packaged, the lowest one that proves
@@ -35,6 +36,9 @@ set. Its preamble carries the reading rules; hold these lines:
 - **Production is touched only at the production points**, and a proof that needs the real
   mailbox or the deployed system keys to one of them, never to a unit. A point names what is
   supplied there and nothing about how it is supplied.
-- **A production point's `Crossed:` line changes only on the operator's decision.** Once it
-  reads yes, no ticket is added to a value increment before that point (CLAUDE.md, Repository
-  process).
+- **A production point is crossed when its issue closes, on the operator's decision alone.** The
+  first pull request after it replaces the rows of the work behind the point in the table by pull
+  request and its entries in the delivered register with a summary per outcome, which keeps each
+  unit as one `[x]` line with its identifier and name under its outcome, after moving the later work
+  they record, as the preamble states, and no work is placed in an increment whose issue is closed
+  (CLAUDE.md, Repository process).

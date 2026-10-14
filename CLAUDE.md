@@ -405,34 +405,43 @@ condition either. Its triggers alone decide when it runs, and the workflows that
   sections are its format and whose placeholders say what fills each slot. Units are cut for finish
   lines, tickets for parallel work inside a unit, so a ticket takes a slice of the unit's body and
   says what stays with the unit's other tickets. Its header line names the one unit it serves and
-  the value increment its work is placed in. That is the increment ROADMAP.md places the work in,
-  so a unit's later work that ROADMAP.md places after a production point following the unit's own
-  increment sits in the increment whose section of the value path names it. Each value increment
-  has one issue, titled by the increment's name, which lists the increment's tickets by unit with
-  each ticket's State, and every ticket is a sub-issue of its increment's issue. Each increment's
-  issue is a sub-issue of [#118](https://github.com/ppat/mediated-mailbox-mcp/issues/118), which
-  lists the increments with their units, their ticket counts and the production point that follows
-  each. Neither #118 nor an increment's issue is a ticket. A unit recut in ROADMAP.md recuts its
-  open tickets. Its title says what lands, in the words the pull request title will use without the
-  commit type and scope, followed by the word unit and the unit's identifier in parentheses. Its
-  links are full URLs to files on `main`. A discovery is a ticket under the unit whose mechanism it
-  concerns, whether or not the unit is delivered, and work no unit covers gets its unit in
-  ROADMAP.md first, since what is built and in what order has no other home and documents change
-  before code. No ticket is added to a value increment before a production point whose `Crossed:`
-  line in ROADMAP.md reads yes, judged by the increment the ticket's work is placed in, not the
-  increment its unit sits in. Work that would otherwise sit in such an increment, a discovery
-  included, is placed in a later increment, which ROADMAP.md records first. The bodies of #118 and
-  of every increment's issue, meaning #118's row per increment with its copy of each production
-  point's `Crossed:` line, and each increment's ticket rows with their States, are written only by
-  the control session that [.claude/loop.md](./.claude/loop.md) runs. It also creates the issue of
-  an increment ROADMAP.md adds, and moves a ticket whose work is placed in another increment to that
-  increment's issue. A ticket the operator holds carries the State `hold`, and is not launched until
-  the operator lifts the hold. The control session marks a ticket in-progress when it launches the
-  ticket's session, and built only once the ticket's pull request has merged, so no dependent
-  ticket starts before its blocker is on `main`. A session that cuts a ticket links it as a
-  sub-issue of its increment's issue and sends the control session its row. The control session
-  derives every State again on each iteration, so a change made while none runs is caught when it
-  next runs.
+  the value increment or production point its work belongs in. A production point's issue takes
+  whatever belongs to the point, such as its release, the verification of that release, preparatory
+  work and fixes, and never work of a later point's increments, a point's increments being those
+  before it and after any previous point. Before a point's release is cut, every test and lint
+  workflow, the mutation demonstrations included, is run on `main`, and once it is cut no `feat` or
+  breaking change is placed under the point. Each value increment has one issue, titled by the
+  increment's name. Each production point has one too, titled by the point's name and created only
+  once a ticket of the point's increments has started. Each lists its tickets by unit with each
+  ticket's State, and every ticket is a sub-issue of the issue its work is placed in. A point's
+  issue can also hold a checklist, and tickets of the operator's deployment repositories as
+  sub-issues. These issues and [#118](https://github.com/ppat/mediated-mailbox-mcp/issues/118), of
+  which they are sub-issues and which lists them with their units and their ticket counts, are the
+  epics ([Glossary](./DESIGN.md#glossary)). The issues of a point's increments close together once
+  ROADMAP.md on `main` lists every unit of those increments as delivered and every ticket under them
+  is built. Closing the point's issue crosses the point, which the operator alone decides, and the
+  first work after it is the collapse of ROADMAP.md that its [preamble](./ROADMAP.md) describes. A
+  unit recut in ROADMAP.md recuts its open tickets. Its title says what lands, in the words the pull
+  request title will use without the commit type and scope, followed by the word unit and the unit's
+  identifier in parentheses. Its links are full URLs to files on `main`. A discovery is a ticket
+  under the unit whose mechanism it concerns, whether or not the unit is delivered, and work no unit
+  covers gets its unit in ROADMAP.md first, since what is built and in what order has no other home
+  and documents change before code. No ticket is added to a closed issue. The epics' bodies are
+  written only by the control session that [.claude/loop.md](./.claude/loop.md) runs, in the formats
+  of [roadmap.md](./.github/ISSUE_TEMPLATE/roadmap.md),
+  [value-increment.md](./.github/ISSUE_TEMPLATE/value-increment.md) and
+  [production-point.md](./.github/ISSUE_TEMPLATE/production-point.md) beside the ticket template. It
+  also creates the epics, closes the increments' issues, and moves a ticket whose work is placed in
+  another increment or point to that issue, as its `reconcile-epics` skill lays out. A ticket the
+  operator holds carries the State `hold`, and is not launched until the operator lifts the hold.
+  The control session marks a ticket in-progress when it launches the ticket's session, and built
+  only once the ticket's pull request has merged, so no dependent ticket starts before its blocker
+  is on `main`. A session that cuts a ticket links it as a sub-issue of the issue its work is placed
+  in and sends the control session its row. The control session derives every State again on each
+  iteration, so a change made while none runs is caught when it next runs.
+- **No real mail content in issues or pull requests.** A subject, a sender, a body or an address
+  from the real mailbox goes into no issue or pull request, nor a comment on either, because the
+  repository is public.
 - **A ticket is done** when its pull request has merged with CI green, the unit's acceptance in
   [ROADMAP.md](./ROADMAP.md) is met for the part keyed to what the ticket lands, and every document
   its work touched is updated in that pull request, with its GitHub labels matching its diff. The
@@ -464,4 +473,4 @@ condition either. Its triggers alone decide when it runs, and the workflows that
   blue `1D76DB` and `component` in purple `5319E7`. The commit scope never carries the component
   ([ADR-0073](./docs/adr/engineering/0073-commit-header-type-sizes-release-scope-names-surface.md)),
   so the component labels are the one channel that does. Tickets carry no other GitHub label, and
-  no milestone or project.
+  no milestone or project. Each epic carries the label `epic` and no other.

@@ -8,20 +8,21 @@ Used by nearly every ticket's pull request. Touches `ROADMAP.md` and the ticket 
 
 - Cutting tickets: a ticket is cut from the template to the rules of
   [CLAUDE.md](../../../../CLAUDE.md#repository-process), and the ticket is added as a sub-issue of
-  the issue of the value increment its work is placed in, one of the sub-issues of
-  [#118](https://github.com/ppat/mediated-mailbox-mcp/issues/118), and its row under its unit in
-  that issue's body goes to the control session, which writes the body, as CLAUDE.md states. A unit
-  recut here recuts its open tickets, as CLAUDE.md states.
+  the issue of the value increment or production point its work is placed in, one of the
+  sub-issues of [#118](https://github.com/ppat/mediated-mailbox-mcp/issues/118), and its row under
+  its unit in that issue's body goes to the control session, which writes the body, as CLAUDE.md
+  states. A unit recut here recuts its open tickets, as CLAUDE.md states.
 - Delivered work: move the unit to the delivered register with `[x]`, its outcomes, its tickets or
-  that it was delivered before any were cut, and state what it did NOT deliver. Re-date
+  that it was delivered before any were cut, and state what it did NOT deliver, which the summary of
+  its production point carries once the collapse after the point's crossing lands. Re-date
   `**Position:**` whenever checklists are reconciled against reality.
 - New unit: group letter + next index, and a retired identifier is never reused; header
   `**ID — name** → <one outcome> · <value increment> · finishes at <tested | image | packaged>`;
   prose body naming the records whose mechanisms the unit carries, what proves it, and which of its
   proofs wait for a production point; `*Criteria:*` for observability riders. One outcome per unit
   — a genuine exception is flagged in the group preamble, out loud. A new unit never goes into a
-  value increment before a production point whose `Crossed:` line reads yes, since no ticket may
-  be added there, as CLAUDE.md's Repository process states.
+  value increment whose issue is closed, since no ticket may be added there, as CLAUDE.md's
+  Repository process states.
 - New value increment: `**Units:** / **Value shipped:** / **Why it is …:**` — an increment that
   cannot name the value shipped is not an increment.
 - Update the mapping table (outcome ↔ units, with the Gaps column honest), the dependency table
