@@ -274,9 +274,13 @@ period, `worker.terminationGracePeriodSeconds`, and a lost node's pod can keep r
 node stops it. The worker's runs tolerate that overlap, since each reads recorded state and is
 idempotent or conditional.
 
+A new worker pod reports ready once each job kind's database pool answers and each job kind has read
+its accounts and ensured their jobs at least once, so an upgrade that waits on its pods finishes
+only when the worker can run its jobs.
+
 ## Tests
 
-`helm test <release>` runs a pod that checks through each Service that the API server and the UI
-report ready, the worker reports healthy, the API server refuses a request without the bearer token,
-and the UI serves its root page at `/ui/`. The redirect at `/` is proven by the UI's own test, since
+`helm test <release>` runs a pod that checks through each Service that the API server, the UI and
+the worker report ready, the API server refuses a request without the bearer token, and the UI
+serves its root page at `/ui/`. The redirect at `/` is proven by the UI's own test, since
 a pull request's suite runs this test against `main`'s images.

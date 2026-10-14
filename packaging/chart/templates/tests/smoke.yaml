@@ -1,8 +1,8 @@
 {{- /*
-The Helm test, run by helm test. It checks through each Service that every process answers: the API server and the UI
-report ready, which needs their database and their secret files, the worker reports healthy, the API server's client
-surface refuses a request without the bearer token, and the UI serves its root page at /ui/. The redirect at / is the
-UI's own test's, since a pull request's suite runs this against main's images. It mounts no secret.
+The Helm test, run by helm test. It checks through each Service that every process answers: the API server, the UI and
+the worker report ready, which needs their database and their secret files, the API server's client surface refuses a
+request without the bearer token, and the UI serves its root page at /ui/. The redirect at / is the UI's own test's,
+since a pull request's suite runs this against main's images. It mounts no secret.
 */ -}}
 {{- $api := include "mm.componentName" (list $ "api") }}
 {{- $ui := include "mm.componentName" (list $ "ui") }}
@@ -50,4 +50,4 @@ spec:
       check 401 {{ if .Values.secrets.apiTls.existingSecret }}https{{ else }}http{{ end }}://{{ $api }}:{{ .Values.api.service.port }}/mcp
       check 200 http://{{ $ui }}:{{ $metrics }}/readyz
       check 200 {{ if .Values.secrets.uiTls.existingSecret }}https{{ else }}http{{ end }}://{{ $ui }}:{{ .Values.ui.service.port }}/ui/
-      check 200 http://{{ $worker }}:{{ $metrics }}/healthz
+      check 200 http://{{ $worker }}:{{ $metrics }}/readyz

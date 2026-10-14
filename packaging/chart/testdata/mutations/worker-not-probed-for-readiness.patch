@@ -1,0 +1,25 @@
+control: Every process the chart runs is probed for health and readiness on its operations endpoints
+removes: the worker's Deployment carries no readiness probe, so its rollout completes as soon as the pod starts
+packages: ./packaging/chart
+tests: TestEveryProcessIsProbedForHealthAndReadiness
+scheduled-count: no
+
+diff --git a/packaging/chart/templates/worker/deployment.yaml b/packaging/chart/templates/worker/deployment.yaml
+index e5eb5797..0ff53fcd 100644
+--- a/packaging/chart/templates/worker/deployment.yaml
++++ b/packaging/chart/templates/worker/deployment.yaml
+@@ -64,14 +64,10 @@ spec:
+           protocol: TCP
+         livenessProbe:
+           httpGet:
+             path: /healthz
+             port: metrics
+-        readinessProbe:
+-          httpGet:
+-            path: /readyz
+-            port: metrics
+         securityContext:
+           {{- include "mm.securityContext" (list $ $v) | nindent 10 }}
+         {{- with $v.resources }}
+         resources:
+           {{- toYaml . | nindent 10 }}
