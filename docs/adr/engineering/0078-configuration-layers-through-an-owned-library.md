@@ -140,8 +140,9 @@ calls for one and the second because policy lives in the database.
   the chart's `version` and `appVersion`, so every binary reports the release it was built for
   ([ADR-0049](./0049-image-per-component-lockstep.md)). A binary built between releases, such as a
   `latest` image ([ADR-0052](./0052-kubernetes-deployment-helm-chart.md)), reports the version of
-  the newest release at or before the commit it was built from. The key-generation command reads
-  no configuration, and takes the same flag in its own flag set.
+  the newest release at or before the commit it was built from. The command-line program reads no
+  configuration, and takes the same flag in its own flag set, as its key-generation subcommand does
+  in its own.
 
 Two things are left open, each settled where it is first needed.
 

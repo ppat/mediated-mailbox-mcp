@@ -1,4 +1,4 @@
-package main
+package keygen_test
 
 import (
 	"bytes"
@@ -6,48 +6,18 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/open"
+	"github.com/ppat/mediated-mailbox-mcp/cli/internal/keygen"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal"
 	"github.com/ppat/mediated-mailbox-mcp/process/version"
 )
 
-// F6's part of VERIFICATIONS' row for the key-generation command. Its main function writes a key pair
-// into a temporary directory, executioncontext/credential/seal seals a value to the public key file and
-// executioncontext/credential/open opens it with a keyring loaded from both files (ADR-0088).
-func TestTheCommandWritesAPairTheLibrarySealsToAndOpensWith(t *testing.T) {
-	dir := t.TempDir()
-	privatePath, publicPath := filepath.Join(dir, "credential.key"), filepath.Join(dir, "credential.pub")
-	args := os.Args
-	t.Cleanup(func() { os.Args = args })
-	os.Args = []string{"keygen", "-private-key-file", privatePath, "-public-key-file", publicPath}
-
-	main()
-
-	public, err := seal.LoadPublicKey(publicPath)
-	if err != nil {
-		t.Fatalf("loading the public key the command wrote: %v", err)
-	}
-	c := seal.AccountCredential("personal")
-	sealed, err := public.Seal([]byte("refresh-token"), c)
-	if err != nil {
-		t.Fatal(err)
-	}
-	ring, err := open.Load(publicPath, privatePath)
-	if err != nil {
-		t.Fatalf("loading the keyring from the files the command wrote: %v", err)
-	}
-	if got, err := ring.Open(sealed, c); err != nil || string(got) != "refresh-token" {
-		t.Errorf("opened %q, %v, want the value sealed", got, err)
-	}
-}
-
-// The command prints the identifier of the key it wrote, and refuses to overwrite a key file, so a
+// The subcommand prints the identifier of the key it wrote, and refuses to overwrite a key file, so a
 // key in use is never replaced by accident.
 func TestTheCommandPrintsTheKeyAndOverwritesNothing(t *testing.T) {
 	dir := t.TempDir()
 	privatePath, publicPath := filepath.Join(dir, "credential.key"), filepath.Join(dir, "credential.pub")
 	var out bytes.Buffer
-	if err := run([]string{"-private-key-file", privatePath, "-public-key-file", publicPath}, &out); err != nil {
+	if err := keygen.Run([]string{"-private-key-file", privatePath, "-public-key-file", publicPath}, &out); err != nil {
 		t.Fatalf("run: %v", err)
 	}
 	public, err := os.ReadFile(publicPath)
@@ -67,8 +37,8 @@ func TestTheCommandPrintsTheKeyAndOverwritesNothing(t *testing.T) {
 		"an existing public key file":  {"-private-key-file", filepath.Join(dir, "new.key"), "-public-key-file", publicPath},
 		"no public key file named":     {"-private-key-file", filepath.Join(dir, "other.key")},
 	} {
-		if err := run(args, &out); err == nil {
-			t.Errorf("%s: the command succeeded", name)
+		if err := keygen.Run(args, &out); err == nil {
+			t.Errorf("%s: the subcommand succeeded", name)
 		}
 	}
 	if got, err := os.ReadFile(privatePath); err != nil || !bytes.Equal(got, seed) {
@@ -87,7 +57,7 @@ func TestTheVersionFlagPrintsTheReleaseVersionAndWritesNothing(t *testing.T) {
 	privatePath, publicPath := filepath.Join(dir, "credential.key"), filepath.Join(dir, "credential.pub")
 	for _, flag := range []string{"-version", "--version"} {
 		var out bytes.Buffer
-		if err := run([]string{flag, "-private-key-file", privatePath, "-public-key-file", publicPath}, &out); err != nil {
+		if err := keygen.Run([]string{flag, "-private-key-file", privatePath, "-public-key-file", publicPath}, &out); err != nil {
 			t.Fatalf("run %s: %v", flag, err)
 		}
 		if want := version.Number + "\n"; out.String() != want {

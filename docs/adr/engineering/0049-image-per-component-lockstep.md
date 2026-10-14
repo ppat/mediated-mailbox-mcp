@@ -30,7 +30,7 @@ extend to the artifact layer or quietly stop at the process boundary.
   only that binary, so which source a build stage copies is mechanism and never widens what the
   image holds.
 - **Everything moves in lockstep.** Images, the deployment artifact that consumes them and the
-  key-generation binaries attached to the release
+  command-line program's binaries attached to the release
   ([ADR-0088](../operability/0088-credentials-sealed-with-hpke-x-wing.md)) carry one version, the
   release's. Deployed-together always means built-together, and no version-compatibility matrix
   exists to maintain.
@@ -41,8 +41,8 @@ extend to the artifact layer or quietly stop at the process boundary.
   achievement. Tests never ship, because the final stage copies only runtime artifacts.
 - **Images are published signed**, extending
   [ADR-0028](../operability/0028-trust-anchor-hardening.md)'s signed-and-verified rule to every
-  deployable's artifact. The key-generation binaries attached to a release are signed the same
-  way.
+  deployable's artifact. The command-line program's binaries attached to a release are signed the
+  same way.
 
 ## Alternatives considered
 

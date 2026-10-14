@@ -28,7 +28,9 @@ intended for eventual open sourcing.
   subdirectory, arranged at authoring time. A top-level component may be a family, one shared
   library holding several packages of one concept with depth below its directory
   ([ADR-0050](./0050-shared-code-pure-or-narrow.md)), so the top level stays a flat list of
-  components while a component has depth.
+  components while a component has depth. The command-line program an operator runs by hand is
+  one top-level directory too, holding no Dockerfile, and documentation alone tells it apart from
+  a library.
 - **The Helm chart sits at `packaging/chart/`**, under a common `packaging/` directory so a
   later packaging format lands beside it and nothing moves. The suites that test the packaged
   system sit beside the formats, under `packaging/tests/`.
@@ -76,7 +78,8 @@ intended for eventual open sourcing.
     ([CLAUDE.md](../../../CLAUDE.md#inside-a-component)), since those names fail on fit.
   - **Fixed names stay fixed.** They are `core` for pure code, a deployable's entry package,
     whose name is the same in every deployable and is the one
-    [CLAUDE.md](../../../CLAUDE.md#inside-a-component) gives, and `cmd/<name>` for commands.
+    [CLAUDE.md](../../../CLAUDE.md#inside-a-component) gives, and `cmd/<name>` for a
+    developer's command under its library.
   - **A package that moves keeps its name** where that name still fits, to keep churn down.
   - **Builders choose names, and the operator approves them** in the pull request that introduces
     them, which lists each name with what it holds and the alternatives considered.

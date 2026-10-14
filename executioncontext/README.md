@@ -22,7 +22,7 @@ of the concept, the steps every provider-calling root repeated around the snapsh
 | `accountload/` | The account snapshot, the compare-and-set write-back of a rotated credential, and delta sync's re-seal |
 | `session/` | The account session every provider-calling composition root holds its accounts' provider connections through |
 | `policyload/` | The policy snapshot's loading, and the reload-failure alarm |
-| `credential/` | The sealing and opening of a credential, the loading of its keys, the configuration section naming the key files in `credential/core`, and the key-generation command in `credential/cmd/keygen` |
+| `credential/` | The sealing and opening of a credential, the loading of its keys, and the configuration section naming the key files in `credential/core` |
 
 Each package is admitted to each component by its own entry in that component's import list, and
 each has a list of its own in `.golangci.yaml`, so joining this family never widens what any
@@ -239,8 +239,9 @@ UI's code outside its one opening part links no code that opens a value. `seal` 
 public key. `open` holds the keyring of private keys and opens a value by the key its header names.
 `core` holds the configuration section naming the key files a deployable loads, which every process
 that reads them holds under the same keys, the UI's composition root included, since it holds paths
-and opens nothing. `cmd/keygen` writes a key pair, since no standard tool writes X-Wing keys. The
-construction and the sealed value's bytes are
+and opens nothing. The key pair comes from the `keygen` subcommand of the command-line program,
+`cli/`, since no standard tool writes X-Wing keys, and the subcommand takes the suite and the key
+identifier from `seal`. The construction and the sealed value's bytes are
 [ADR-0088](../docs/adr/operability/0088-credentials-sealed-with-hpke-x-wing.md)'s, and how a key is
 replaced is
 [ADR-0092](../docs/adr/operability/0092-key-replacement-by-keyring-and-re-seal.md)'s. Every write of
@@ -252,7 +253,6 @@ a sealed value by a deployable is the compare-and-set of
 | `credential/seal/` | The public key, the sealed value's bytes and the contexts a value is bound to. It never imports `credential/open/`, and since `credential/open/` imports it the compiler refuses the reverse as a cycle |
 | `credential/open/` | The private keys, the keyring, opening, the refusals and the re-seal |
 | `credential/core/` | The credential section of a deployable's configuration, naming the mounted public key file and every private key file, and its validation ([ADR-0078](../docs/adr/engineering/0078-configuration-layers-through-an-owned-library.md)). It is the credential code's own pure core ([ADR-0040](../docs/adr/engineering/0040-pure-core-decisions-as-values.md)) |
-| `credential/cmd/keygen/` | The key-generation command |
 
 The values below are part of the sealed format. They feed the key identifier, the HPKE key
 schedule or the additional data of every stored value, so changing any of them makes every value
@@ -275,8 +275,8 @@ whose X-Wing derives other keys or another public key, then fails the test befor
 would otherwise refuse every stored value or every opener's start. The files are the expectation, so
 they are never regenerated, and the key pair was generated for the test and protects nothing.
 
-`credential/cmd/keygen` takes two flags, both required. `-private-key-file` names the file the
+The `keygen` subcommand takes two flags, both required. `-private-key-file` names the file the
 32-byte seed is written to with mode 0600, and `-public-key-file` the file the 1216-byte public key
-is written to with mode 0644. Each file holds the raw key and nothing else, and the command refuses
-a path that already exists, so a key in use is never overwritten. It prints the new key's
+is written to with mode 0644. Each file holds the raw key and nothing else, and the subcommand
+refuses a path that already exists, so a key in use is never overwritten. It prints the new key's
 identifier.

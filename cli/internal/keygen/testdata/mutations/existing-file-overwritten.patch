@@ -1,14 +1,14 @@
 control: The key-generation command writes a pair the library seals to and opens with
 removes: an existing key file is truncated and overwritten rather than refused
-packages: ./executioncontext/credential/cmd/keygen
+packages: ./cli/internal/keygen
 tests: TestTheCommandPrintsTheKeyAndOverwritesNothing
 scheduled-count: no
 
-diff --git a/executioncontext/credential/cmd/keygen/main.go b/executioncontext/credential/cmd/keygen/main.go
-index a676dd9..9be03ec 100644
---- a/executioncontext/credential/cmd/keygen/main.go
-+++ b/executioncontext/credential/cmd/keygen/main.go
-@@ -60,7 +60,7 @@ func run(args []string, stdout io.Writer) error {
+diff --git a/cli/internal/keygen/keygen.go b/cli/internal/keygen/keygen.go
+index f2f307aa..39aff591 100644
+--- a/cli/internal/keygen/keygen.go
++++ b/cli/internal/keygen/keygen.go
+@@ -62,7 +62,7 @@ func Run(args []string, stdout io.Writer) error {
  // create writes content to a new file at path, refusing a path that exists. The mode is set
  // explicitly once the file exists, so the process's umask cannot narrow it.
  func create(path string, content []byte, mode os.FileMode) error {

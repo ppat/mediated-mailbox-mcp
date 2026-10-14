@@ -47,8 +47,8 @@ spec:
 
   - name: Create the key pair and the role passwords
     description: >-
-      The key pair comes from the repository's key generation command. Each runtime role's password is a basic-auth
-      Secret CloudNativePG sets the role's password from.
+      The key pair comes from the keygen subcommand of the repository's command-line program. Each runtime role's
+      password is a basic-auth Secret CloudNativePG sets the role's password from.
     try:
     - script:
         content: ../keypair.sh

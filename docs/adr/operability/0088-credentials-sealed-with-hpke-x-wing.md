@@ -82,14 +82,15 @@ released recently and none is deprecated.
   start unless its mounted public key matches one, because an opener seals rotated credentials to
   that public key ([ADR-0082](./0082-rotation-writeback-to-the-database.md)) and a mismatched one
   would store values no opener can read.
-- **A command beside the credential code, `executioncontext/credential/cmd/keygen`, generates the
-  key pair**, because no standard tool writes X-Wing keys. It ships as static binaries attached to
-  each GitHub release, at the lockstep release version and signed with the same keyless signing the
-  release applies to the images and the chart
-  ([ADR-0049](../engineering/0049-image-per-component-lockstep.md)). An operator command sits under
-  its library as `cmd/<name>`, and a library holds no Dockerfile
-  ([ADR-0054](../engineering/0054-one-repository-flat-layout-naming-convention.md)), so it has no
-  image of its own. Wherever the credential code sits, the command sits under it. Carrying it in
+- **The `keygen` subcommand of the project's command-line program, `cli/`, generates the key
+  pair**, because no standard tool writes X-Wing keys. The program is the one binary an operator
+  runs by hand, with a subcommand per task, and the operator placed the command there so later
+  operator tasks join it as subcommands. The subcommand takes its suite and its key identifier from
+  the credential code. The program ships as static binaries attached to each GitHub release, at the
+  lockstep release version and signed with the same keyless signing the release applies to the
+  images and the chart ([ADR-0049](../engineering/0049-image-per-component-lockstep.md)). It holds
+  no Dockerfile, so it has no image of its own
+  ([ADR-0054](../engineering/0054-one-repository-flat-layout-naming-convention.md)). Carrying it in
   an existing image would give that image a second, unrelated job. The UI must never carry key
   material, and the migrator holds none of this project's Go code by design. A signed
   release binary is a published artifact, so the system still comes up from published artifacts
@@ -117,14 +118,14 @@ The table below names what the ordinary path does that the design forbids, and w
 | R5 | Raw seed and public key files |
 | R6 | RFC 9180 with draft-ietf-hpke-pq's registered suite and Go's bundled vectors |
 | R7 | X-Wing's ML-KEM-768 half |
-| R8 | Not met. The library's key-generation command stands in for a standard tool |
+| R8 | Not met. The command-line program's key-generation subcommand stands in for a standard tool |
 | R9 | The library's sealing and opening subsections |
 | R10 | The Go release the module pins |
 
 An implementer would otherwise pay to discover these.
 
 - OpenSSL generates ML-KEM and X25519 keys but has no encoder for an X-Wing key, so the key pair
-  comes from the library's command.
+  comes from the command-line program's `keygen` subcommand.
 - A seal-only binary links no HPKE opening code, but it does link ML-KEM decapsulation primitives
   through the standard library's self-test. That does not breach the rule that the UI's code
   outside its one opening part links no opening code, which concerns this project's opening
