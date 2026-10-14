@@ -65,8 +65,9 @@ their own directory.
 
 ### Components
 
-Each row is one top-level directory. Published names follow ADR-0054's convention, and a directory
-carries the bare word.
+Each row is one component, which is one top-level directory except the packaging row, whose two
+directories are one component and share its `component:` label. Published names follow ADR-0054's
+convention, and a directory carries the bare word.
 
 | Directory | Kind | Published as | Holds |
 | --- | --- | --- | --- |
@@ -82,8 +83,7 @@ carries the bare word.
 | `worker/` | Deployable | `mediated-mailbox-worker` | The worker, which runs every background job kind ([ADR-0117](./docs/adr/operability/0117-one-background-worker-runs-every-job-kind.md)). Its scheduler is `worker/internal/schedule` ([ADR-0119](./docs/adr/operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md)), and the series its job kinds share are `worker/internal/series`. Each job kind's shell code sits under `worker/internal/<job kind>/` and its pure core under `worker/internal/core/<job kind>/`, with backfill as `backfill` and delta sync as `deltasync`, and each job kind has an import list of its own |
 | `ui/` | Deployable | `mediated-mailbox-ui` | The UI, both halves ([docs/UI.md](./docs/UI.md#18-repository-and-build-layout)) |
 | `migrator/` | Image | `mediated-mailbox-migrator` | The migrator, the migration step's image, which is not a deployable and holds none of this project's Go code ([ADR-0048](./docs/adr/data/0048-forward-only-migrations.md), [ADR-0049](./docs/adr/engineering/0049-image-per-component-lockstep.md)) |
-| `packaging/chart/` | Packaging | `mediated-mailbox` | The Helm chart ([ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md)), its usage guide in [packaging/chart/README.md](./packaging/chart/README.md), and its unit tests, a Go package of test files alone that `.helmignore` keeps out of the packaged chart with their `testdata/` and the values file under `ci/` |
-| `packaging/tests/chainsaw/` | System tests | | The chainsaw suite ([ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md)) |
+| `packaging/chart/`, `packaging/tests/chainsaw/` | Packaging | `mediated-mailbox` | The Helm chart ([ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md)), its usage guide in [packaging/chart/README.md](./packaging/chart/README.md), and its unit tests, a Go package of test files alone that `.helmignore` keeps out of the packaged chart with their `testdata/` and the values file under `ci/`. The chainsaw suite in `packaging/tests/chainsaw/` is the system test of the chart ([ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md)), apart from every deployable ([ADR-0054](./docs/adr/engineering/0054-one-repository-flat-layout-naming-convention.md)), and carries the chart's label |
 
 A deployable is named for its role in one plain word, as `api` and `worker` are. `ui` keeps
 the directory the Glossary gives it. Shared code is the shared pure library, or a narrow, named library
@@ -353,7 +353,7 @@ that need the repository's tools install them from `mise.toml` through
 | `release` | A release | Builds, pushes and signs every image by digest with keyless signing, the build action tagging each `latest` as well, so a release moves `latest` to its own commit's images, packages the chart, refusing one whose `version` or `appVersion` is not the release version, pushes and signs it, and builds the `executioncontext/credential/cmd/keygen` binaries as `mediated-mailbox-keygen-<os>-<arch>` for linux and darwin on amd64 and arm64, signs each keylessly into a Sigstore bundle, and attaches each binary and its bundle to the release ([ADR-0049](./docs/adr/engineering/0049-image-per-component-lockstep.md), [ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md), [ADR-0088](./docs/adr/operability/0088-credentials-sealed-with-hpke-x-wing.md)). Once the binaries are attached it runs the key-generation check of the release, which downloads every attached binary, verifies each bundle against this workflow's identity at the release's tag, sees a copy with one byte changed refused, runs the linux amd64 binary and has `go tool keypaircheck` seal to and open with the pair it wrote ([ADR-0088](./docs/adr/operability/0088-credentials-sealed-with-hpke-x-wing.md)). The release cut itself, release-please's pull request, writes the release version into `process/version` and into the chart's `version` and `appVersion` through the `extra-files` of `release-please-config.json`. Every release builds every image, including a release cut by documentation alone, because the chart it publishes points at images of that version |
 | `lint` | Every pull request | The repository's existing hygiene checks, `commit-messages`, commitlint over the branch commits, and `commit-taxonomy`, which derives every header Renovate and release-please can emit and lints it, requires each to be true of its file, and checks a pull request's headers against its diff ([ADR-0073](./docs/adr/engineering/0073-commit-header-type-sizes-release-scope-names-surface.md)). `commit-taxonomy` carries no path filter, `needs:` or `if:`, because a skipped job satisfies a required check |
 | `pr-title` | Every pull request, on open, edit, synchronize and reopen | commitlint over the pull request title, the string that lands on `main` for a multi-commit pull request ([ADR-0073](./docs/adr/engineering/0073-commit-header-type-sizes-release-scope-names-surface.md)). Never gated, for the same reason |
-| `pr-labels` | Every pull request, on open, edit, synchronize, reopen, label and unlabel | Sets the pull request's `component:` labels to exactly the components its diff touches, read from the [component table](#components) at the pull request's head, creating a missing label in the component color. A new component needs only its table row. A pull request from a fork cannot write labels, so its run fails |
+| `pr-labels` | Every pull request, on open, edit, synchronize, reopen, label and unlabel | Sets the pull request's `component:` labels to exactly the components its diff touches, read from the [component table](#components) at the pull request's head, creating a missing label in the component color. A new component needs only its table row. A closed or merged pull request's labels are left alone, decided in the script from the event's pull request state, because the run is that pull request's own old head and would put back a label since renamed. A pull request merged before the guard landed keeps its old copy, so its labels are moved with the workflow disabled for the window. A pull request from a fork cannot write labels, so its run fails |
 | `renovate` | A schedule | Dependency updates |
 
 A job skipped by its own condition counts as passed under a required check, which is why the three
@@ -452,7 +452,9 @@ condition either. Its triggers alone decide when it runs, and the workflows that
 - **GitHub labels.** A ticket carries `unit:<ID>` for the unit it serves and one
   `component:<directory>` per component of the [component table](#components) it touches, with the
   directory spelled as that table's first column spells it without the trailing slash, so
-  `packaging/chart` and `packaging/tests/chainsaw` keep every segment. The pull request that closes
+  `packaging/chart` keeps every segment. A row listing several directories is one component with
+  the label of its first, so a change under `packaging/tests/chainsaw/` carries
+  `component:packaging/chart`. The pull request that closes
   it carries the unit label and one component label per component its diff touches. A change
   touching no component carries the unit label alone. The author applies the ticket's labels and
   the pull request's unit label at creation. The `pr-labels` workflow of the [workflow

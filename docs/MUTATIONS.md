@@ -44,15 +44,17 @@ request by the `mutation-patches` workflow ([CLAUDE.md](../CLAUDE.md#ci-workflow
 
 ## Where the rows are
 
-A control's row sits in the file of the component whose directory holds its patches. A patch sits
-in the package whose control it demonstrates ([CLAUDE.md](../CLAUDE.md#tests)), and its component
-is the top-level directory of its path, with `packaging/chart` and `packaging/tests/chainsaw`
-taken whole as in [CLAUDE.md](../CLAUDE.md#components). A control whose patches sit in more than
-one component's directory has its row in [cross-component.md](./mutations/cross-component.md),
-which keeps every such control whole in one place. A row whose control gains or loses a patch so that its home
-changes moves to its new file in the same change. Inside a file, rows are ordered by control name,
-alphabetically, ignoring letter case and code formatting, so rows added by different changes land
-at different places in the file. A component's first row creates its file and its line below.
+A control's row sits in the file of the component whose directory holds its patches. A patch sits in
+the package whose control it demonstrates ([CLAUDE.md](../CLAUDE.md#tests)), and its component is
+the top-level directory of its path, with `packaging/chart` taken whole as in
+[CLAUDE.md](../CLAUDE.md#components), and a patch under `packaging/tests/chainsaw` belonging to the
+same component, whose file is [mutations/packaging-chart.md](./mutations/packaging-chart.md). A
+control whose patches sit in more than one component's directory has its row in
+[cross-component.md](./mutations/cross-component.md), which keeps every such control whole in one
+place. A row whose control gains or loses a patch so that its home changes moves to its new file in
+the same change. Inside a file, rows are ordered by control name, alphabetically, ignoring letter
+case and code formatting, so rows added by different changes land at different places in the file. A
+component's first row creates its file and its line below.
 
 | File | Holds the rows of the controls whose patches sit in |
 | --- | --- |
@@ -67,5 +69,5 @@ at different places in the file. A component's first row creates its file and it
 | [mutations/api.md](./mutations/api.md) | `api/` |
 | [mutations/worker.md](./mutations/worker.md) | `worker/` |
 | [mutations/ui.md](./mutations/ui.md) | `ui/` |
-| [mutations/packaging-chart.md](./mutations/packaging-chart.md) | `packaging/chart/` |
+| [mutations/packaging-chart.md](./mutations/packaging-chart.md) | `packaging/chart/` and `packaging/tests/chainsaw/` |
 | [mutations/cross-component.md](./mutations/cross-component.md) | More than one component's directory |

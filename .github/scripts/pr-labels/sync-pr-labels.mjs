@@ -3,14 +3,14 @@
 // missing label in the component color. Run by the `pr-labels` workflow from a checkout of the pull
 // request's head, so the component table read is the one the pull request itself carries.
 //
-//   sync-pr-labels.mjs            reads GITHUB_TOKEN, GITHUB_REPOSITORY, PR_NUMBER, BASE_REF, HEAD_SHA
+//   sync-pr-labels.mjs            reads GITHUB_TOKEN, GITHUB_REPOSITORY, PR_NUMBER, PR_STATE, BASE_REF, HEAD_SHA
 //   sync-pr-labels.mjs --dry-run  prints the labels the diff calls for and calls no API
 //
 // The diff's base is the base branch as fetched now, never the event's base commit, which can lag
 // the branch (see changedPaths).
 
 import { readFileSync } from 'node:fs'
-import { LABEL_COLOR, changedPaths, labelChanges, parseComponents, wantedLabels } from './labels.mjs'
+import { LABEL_COLOR, changedPaths, labelChanges, labelsAreOurs, parseComponents, wantedLabels } from './labels.mjs'
 
 const dryRun = process.argv.includes('--dry-run')
 const env = (name) => {
@@ -19,13 +19,18 @@ const env = (name) => {
   return value
 }
 
+if (!dryRun && !labelsAreOurs(env('PR_STATE'))) {
+  console.log(`pull request ${env('PR_NUMBER')} is ${env('PR_STATE')}, so its labels are left alone`)
+  process.exit(0)
+}
+
 const base = `origin/${dryRun ? (process.env.BASE_REF ?? 'main') : env('BASE_REF')}`
 const head = dryRun ? (process.env.HEAD_SHA ?? 'HEAD') : env('HEAD_SHA')
 const paths = changedPaths(base, head)
-const directories = parseComponents(readFileSync('CLAUDE.md', 'utf8'))
-const wanted = wantedLabels(paths, directories)
+const components = parseComponents(readFileSync('CLAUDE.md', 'utf8'))
+const wanted = wantedLabels(paths, components)
 
-console.log(`${paths.length} changed paths, ${directories.length} components in CLAUDE.md`)
+console.log(`${paths.length} changed paths, ${components.length} components in CLAUDE.md`)
 console.log(`component labels the diff calls for: ${wanted.length ? wanted.join(', ') : '(none)'}`)
 if (dryRun) process.exit(0)
 
