@@ -5,15 +5,15 @@ tests: TestGoroutines
 scheduled-count: no
 
 diff --git a/testsupport/analysis/goroutines.go b/testsupport/analysis/goroutines.go
-index 42f880fa..f4a24eda 100644
+index a19e71a3..3f8615c7 100644
 --- a/testsupport/analysis/goroutines.go
 +++ b/testsupport/analysis/goroutines.go
-@@ -56,7 +56,7 @@ const goroutinesMessage = "starts a goroutine outside schedule.Go, so a panic in
- 
- func runGoroutines(pass *analysis.Pass) (any, error) {
+@@ -71,7 +71,7 @@ func runGoroutines(pass *analysis.Pass) (any, error) {
  	path := pass.Pkg.Path()
--	if path != workerPath && !strings.HasPrefix(path, workerPath+"/") || path == schedulerPath || strings.HasPrefix(path, schedulerPath+"/") {
-+	if path != workerPath && !strings.HasPrefix(path, workerPath) || path == schedulerPath || strings.HasPrefix(path, schedulerPath+"/") {
- 		return nil, nil
- 	}
- 	for _, file := range pass.Files {
+ 	var message string
+ 	switch {
+-	case within(path, workerPath) && !within(path, schedulerPath):
++	case strings.HasPrefix(path, workerPath) && !within(path, schedulerPath):
+ 		message = goroutinesMessage
+ 	case within(path, apiPath), within(path, uiPath):
+ 		message = componentGoroutinesMessage

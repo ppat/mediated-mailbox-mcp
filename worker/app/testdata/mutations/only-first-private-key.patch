@@ -5,14 +5,15 @@ tests: TestThePublicKeyMustMatchAPrivateKey TestThePublicKeyMustMatchAPrivateKey
 scheduled-count: no
 
 diff --git a/worker/app/app.go b/worker/app/app.go
+index 0d0bf2b1..0a48213c 100644
 --- a/worker/app/app.go
 +++ b/worker/app/app.go
-@@ -214,7 +214,7 @@
- 	if err != nil {
- 		return fmt.Errorf("validating the configuration: %w", err)
+@@ -225,7 +225,7 @@ func fromConfiguration(ctx context.Context, provided host.Provided[Configuration
+ 		return host.Parts{}, fmt.Errorf("validating the configuration: %w", err)
  	}
+ 	c := provided.Loaded.Config
 -	keys, err := open.Load(c.Credential.PublicKeyFile, c.Credential.PrivateKeyFiles...)
 +	keys, err := open.Load(c.Credential.PublicKeyFile, c.Credential.PrivateKeyFiles[:1]...)
  	if err != nil {
- 		return fmt.Errorf("loading the keyring: %w", err)
+ 		return host.Parts{}, fmt.Errorf("loading the keyring: %w", err)
  	}

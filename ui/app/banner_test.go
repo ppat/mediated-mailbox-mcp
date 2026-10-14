@@ -11,18 +11,18 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/process/version"
 )
 
-// The start writes a banner naming the deployable, its release version and where it serves to the
+// The start writes a banner naming the UI, its release version and where it serves to the
 // writer main.go hands in as standard error, and standard output carries only JSON records, the
-// banner never among them (ADR-0122). The key files do not exist, so the start stops at the keyring,
+// banner never among them (ADR-0122). The password file does not exist, so the start stops at it,
 // after the banner and before any connection is made.
 func TestTheStartBannerGoesToStandardErrorAndStandardOutputStaysJSON(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	level := new(slog.LevelVar)
-	err := Run(t.Context(), []string{"--database.host=db", "--database.name=mailbox", "--database.password_file=/absent", "--credential.public_key_file=/absent", "--credential.private_key_files=[/absent]"}, nil, &stderr, logging.New(&stdout, level), level, bundle)
-	if err == nil || !strings.HasPrefix(err.Error(), "loading the public key: ") {
-		t.Fatalf("Run returned %v, want the start to stop at loading the public key: ", err)
+	err := Run(t.Context(), []string{"--database.host=db", "--database.name=mailbox", "--database.password_file=/absent", "--credential.public_key_file=/absent", "--credential.private_key_files=[/absent]"}, nil, &stdout, &stderr, logging.New(&stdout, level), level)
+	if err == nil || !strings.HasPrefix(err.Error(), "configuring the database connection of mediated_mailbox_ui: ") {
+		t.Fatalf("Run returned %v, want the start to stop at the password file", err)
 	}
-	if want := "mediated-mailbox-ui " + version.Number + "\n  ui      http on :8443\n  probes  http on :8080\n"; stderr.String() != want {
+	if want := "mediated-mailbox-ui " + version.Number + "\n  serves  http on :8443\n  probes  http on :8080\n"; stderr.String() != want {
 		t.Errorf("the banner is\n%s\nwant\n%s", stderr.String(), want)
 	}
 	lines := strings.Split(strings.TrimSuffix(stdout.String(), "\n"), "\n")

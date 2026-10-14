@@ -1,0 +1,20 @@
+control: An unknown log level is refused, and each of the four names reads as its own level
+removes: the host does not refuse a log level that names none, so the process starts at info
+packages: ./process/host
+tests: TestTheConfiguredLevelGovernsTheLog/a_name_in_upper_case TestTheConfiguredLevelGovernsTheLog/an_offset TestTheConfiguredLevelGovernsTheLog/warning
+scheduled-count: no
+
+diff --git a/process/host/host.go b/process/host/host.go
+index f5afd783..cd6fb646 100644
+--- a/process/host/host.go
++++ b/process/host/host.go
+@@ -89,7 +89,8 @@ func processLevel(p Process) (slog.Level, error) {
+ 	if strings.TrimSpace(p.ProbeListen) == "" {
+ 		return 0, errors.New("probe_listen is empty")
+ 	}
+-	return logging.ParseLevel(p.LogLevel)
++	lv, _ := logging.ParseLevel(p.LogLevel)
++	return lv, nil
+ }
+ 
+ // ValidateServing refuses an empty listen, and one of the two TLS files set without the other, a blank

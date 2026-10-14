@@ -1,0 +1,20 @@
+control: A process serves its application server over TLS when its configuration names a key pair and over plain HTTP when it names neither, with the key pair read from its mounted files, and refuses to start with one of the two or with a pair that does not load
+removes: the key pair is not loaded before the process serves, so a process whose mounts cannot serve starts and answers no handshake
+packages: ./process/host
+tests: TestAKeyPairThatDoesNotLoadRefusesTheStart TestTheStartBannerGoesToStandardError
+scheduled-count: no
+
+diff --git a/process/host/host.go b/process/host/host.go
+index 7e940118..7e42f5a6 100644
+--- a/process/host/host.go
++++ b/process/host/host.go
+@@ -443,9 +443,6 @@ func (h *Host) Serve(ctx context.Context, l Listeners, s Serving) error {
+ 	h.mu.Unlock()
+ 	var tlsConf *tls.Config
+ 	if l.App != nil && s.ServesTLS() {
+-		if _, err := tls.LoadX509KeyPair(s.TLSCert, s.TLSKey); err != nil {
+-			return errors.Join(fmt.Errorf("loading the TLS key pair: %w", err), l.close())
+-		}
+ 		tlsConf = tlsConfig(s.TLSCert, s.TLSKey)
+ 	}
+ 	var serving atomic.Bool

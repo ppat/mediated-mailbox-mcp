@@ -5,10 +5,10 @@ tests: TestABooleanInsideAValueIsTrueOrFalse/in_a_map_in_a_list TestABooleanInsi
 scheduled-count: no
 
 diff --git a/process/settings/settings.go b/process/settings/settings.go
-index 0e4fc65..0e1c34c 100644
+index 6bcf5a72..bd59502b 100644
 --- a/process/settings/settings.go
 +++ b/process/settings/settings.go
-@@ -411,11 +411,6 @@ func checkBooleans(n *yaml.Node, t reflect.Type) error {
+@@ -422,11 +422,6 @@ func checkBooleans(n *yaml.Node, t reflect.Type) error {
  			}
  		}
  	case reflect.Map:
@@ -19,4 +19,4 @@ index 0e4fc65..0e1c34c 100644
 -		}
  	case reflect.Struct:
  		for i := 0; i+1 < len(n.Content); i += 2 {
- 			for j := range t.NumField() {
+ 			if ft, ok := yamlField(t, n.Content[i].Value); ok {

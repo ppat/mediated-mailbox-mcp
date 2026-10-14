@@ -1,0 +1,19 @@
+control: The API server is ready only while its bearer token file holds a token
+removes: the readiness check passes without reading the token file, so an API server whose token file was emptied or removed stays ready
+packages: ./api/app
+tests: TestReadyOnlyWhileTheBearerTokenLoads
+scheduled-count: no
+
+diff --git a/api/app/app.go b/api/app/app.go
+index 843a78ed..4b8b0038 100644
+--- a/api/app/app.go
++++ b/api/app/app.go
+@@ -292,7 +292,7 @@ func parts(served *serving, s Section, logger *slog.Logger) (host.Parts, error)
+ 	return host.Parts{
+ 		Handler: handler,
+ 		Ready: []host.Check{{Name: "bearer token", Check: func(context.Context) error {
+-			return tokenReadable(s.TokenFile)
++			return nil
+ 		}}},
+ 		Tasks: []host.Task{{Name: "account reload", Run: func(ctx context.Context) error {
+ 			served.reloadEvery(ctx, s.AccountReloadInterval)

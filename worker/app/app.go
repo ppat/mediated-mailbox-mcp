@@ -1,16 +1,18 @@
-// Package app is the worker's entry package and composition root. It constructs the object graph by
-// hand in ordinary code, and worker/main.go calls it. It sits outside internal, so a composition root
-// other than the worker's own can compose it, and every other package of this deployable sits under
-// internal.
+// Package app is the worker's entry package. It exports the worker's section of the configuration
+// and its assembly, which takes what the worker needs as values, starts nothing and returns what it
+// provides, and its composition root, Run, which hands the host the worker and the configuration it
+// reads (ADR-0040, ADR-0138). worker/main.go calls Run. It sits outside internal, so a composition
+// root other than the worker's own can compose it, and every other package of this deployable sits
+// under internal.
 //
 // It builds one scheduler, one connection pool per job kind under that kind's own runtime role, and
-// each job kind with what it needs and nothing more, then ensures each kind's reload, which adds and
-// drops the kind's account jobs (ADR-0117, ADR-0118, ADR-0119). It links no data-access subsection
-// itself and runs no statement on the pools it opens. Each pool reaches only its own job kind's code,
-// which runs its statements under its role. The import lists cannot see which pool reaches which
-// code, so TestEachJobKindIsHandedThePoolOfItsOwnRole holds that openPools opens each pool as its
-// kind's role and that kinds hands each kind its own, and review holds that Run passes the pools it
-// opens on through assemble (ADR-0118).
+// each job kind with what it needs and nothing more, and its one task ensures each kind's reload,
+// which adds and drops the kind's account jobs (ADR-0117, ADR-0118, ADR-0119). It links no data-access
+// subsection itself and runs no statement on the pools it opens. Each pool reaches only its own job
+// kind's code, which runs its statements under its role. The import lists cannot see which pool
+// reaches which code, so TestEachJobKindIsHandedThePoolOfItsOwnRole holds that openPools opens each
+// pool as its kind's role and that kinds hands each kind its own, and review holds that the root
+// passes the pools it opens on through Assemble (ADR-0118).
 package app
 
 import (
@@ -19,8 +21,8 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
-	"net"
 	"net/http"
+	"sync/atomic"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -29,14 +31,9 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	credentialcore "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/core"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/open"
-	"github.com/ppat/mediated-mailbox-mcp/process/dbconnect"
 	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core"
-	"github.com/ppat/mediated-mailbox-mcp/process/dbmetrics"
-	"github.com/ppat/mediated-mailbox-mcp/process/logging"
-	"github.com/ppat/mediated-mailbox-mcp/process/probes"
-	"github.com/ppat/mediated-mailbox-mcp/process/runtimemetrics"
+	"github.com/ppat/mediated-mailbox-mcp/process/host"
 	"github.com/ppat/mediated-mailbox-mcp/process/settings"
-	"github.com/ppat/mediated-mailbox-mcp/process/version"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/deltasync"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/schedule"
@@ -48,25 +45,28 @@ import (
 const scannerSection = "scanner"
 
 // Configuration is the worker's root configuration type, loaded by the configuration library
-// (ADR-0078). It holds the sections every job kind shares, read once, and a section per job kind. Its
+// (ADR-0078). It composes the process's section and the worker's own section, inline, with the
+// sections every job kind shares, read once, and the database section with a role per job kind. Its
 // fields are pinned by the test beside this file, so a new value is a visible change. No account and
 // no provider credential is configuration. Both come from the database (ADR-0080).
 type Configuration struct {
-	// ProbeListen is the address the health probe and the metrics endpoint listen on, over plain
-	// HTTP (ADR-0051).
-	ProbeListen string `yaml:"probe_listen"`
+	host.Process `yaml:",inline"`
+	Section      `yaml:",inline"`
+	Database     Database              `yaml:"database"`
+	Credential   credentialcore.Config `yaml:"credential"`
+	// Scanner is the scanner's section, one for every job kind that masks or scans (ADR-0120).
+	Scanner scan.Config `yaml:"scanner"`
+}
+
+// Section is the worker's own section of the configuration, the values every job kind reads and a
+// section per job kind.
+type Section struct {
 	// ReloadInterval is how often each job kind reloads its account snapshot and its policy, and so
 	// how soon an account connected, a credential replaced or a policy edited reaches the worker, and
 	// how often backfill asks each account whether it has work (ADR-0090, ADR-0119).
-	ReloadInterval time.Duration         `yaml:"reload_interval"`
-	Database       Database              `yaml:"database"`
-	Credential     credentialcore.Config `yaml:"credential"`
-	// Scanner is the scanner's section, one for every job kind that masks or scans (ADR-0120).
-	Scanner scan.Config `yaml:"scanner"`
-	// LogLevel is the lowest level the worker logs at, debug, info, warn or error (ADR-0122).
-	LogLevel string   `yaml:"log_level"`
-	Backfill Backfill `yaml:"backfill"`
-	Sync     Sync     `yaml:"sync"`
+	ReloadInterval time.Duration `yaml:"reload_interval"`
+	Backfill       Backfill      `yaml:"backfill"`
+	Sync           Sync          `yaml:"sync"`
 }
 
 // Database is the worker's database section. The server is named once, and each job kind connects as
@@ -110,26 +110,32 @@ type Sync struct {
 	Concurrency int `yaml:"concurrency"`
 }
 
+// DefaultSection is the worker's own section's defaults. The reload interval is the API server's, the
+// sync interval ADR-0018's, the first window ADR-0105's, and the bound on the waiting messages a tick
+// decides the top of ADR-0018's steady-state tick.
+func DefaultSection() Section {
+	return Section{
+		ReloadInterval: time.Minute,
+		Backfill:       Backfill{Concurrency: 2},
+		Sync:           Sync{SyncInterval: 5 * time.Minute, FirstWindow: 7 * 24 * time.Hour, DecisionsPerTick: 200, Concurrency: 4},
+	}
+}
+
 // defaults are the worker's defaults. Each job kind's user is its own runtime role (ADR-0118), and the
 // TLS mode is the one that fails closed. Each pool's size is set explicitly, since the driver's default
-// follows the node's processors and not the worker's limit. The reload interval is the API server's, the
-// sync interval ADR-0018's, the first window ADR-0105's, and the bound on the waiting messages a tick
-// decides the top of ADR-0018's steady-state tick. The key files and the password files have no
-// default, since a default path assumes the environment. The scanner's vocabulary and tuning are the
-// ones the application ships.
+// follows the node's processors and not the worker's limit. The key files and the password files have
+// no default, since a default path assumes the environment. The scanner's vocabulary and tuning are
+// the ones the application ships.
 func defaults() Configuration {
 	return Configuration{
-		ProbeListen:    ":8080",
-		ReloadInterval: time.Minute,
+		Process: host.DefaultProcess(),
+		Section: DefaultSection(),
 		Database: Database{
 			Port: 5432, SSLMode: "verify-full",
 			Backfill: Role{User: "mediated_mailbox_backfill", PoolSize: 4},
 			Sync:     Role{User: "mediated_mailbox_sync", PoolSize: 4},
 		},
-		Scanner:  scan.DefaultConfig(),
-		LogLevel: logging.DefaultLevel,
-		Backfill: Backfill{Concurrency: 2},
-		Sync:     Sync{SyncInterval: 5 * time.Minute, FirstWindow: 7 * 24 * time.Hour, DecisionsPerTick: 200, Concurrency: 4},
+		Scanner: scan.DefaultConfig(),
 	}
 }
 
@@ -142,9 +148,9 @@ func (d Database) connection(r Role) dbconnectcore.Config {
 	}
 }
 
-// validate refuses a configuration the worker cannot run with. Each job kind's connection passes the
-// database section's validation, every pool, interval, window and bound is positive, and the
-// credential section names its key files.
+// validate refuses a configuration the worker cannot run with, past the process's section, which the
+// host validates. Each job kind's connection passes the database section's validation, every pool,
+// interval, window and bound is positive, and the credential section names its key files.
 func validate(c Configuration) error {
 	for _, kind := range []struct {
 		name string
@@ -164,6 +170,15 @@ func validate(c Configuration) error {
 			return err
 		}
 	}
+	if err := ValidateSection(c.Section); err != nil {
+		return err
+	}
+	return credentialcore.Validate(c.Credential)
+}
+
+// ValidateSection refuses a worker section the worker cannot run with. Every interval, window and
+// bound is positive.
+func ValidateSection(c Section) error {
 	switch {
 	case c.ReloadInterval <= 0:
 		return fmt.Errorf("reload_interval %s is not positive", c.ReloadInterval)
@@ -178,121 +193,68 @@ func validate(c Configuration) error {
 	case c.Sync.Concurrency <= 0:
 		return fmt.Errorf("sync.concurrency %d is not positive", c.Sync.Concurrency)
 	}
-	return credentialcore.Validate(c.Credential)
+	return nil
 }
 
-// Run loads the configuration and the keyring, connects each job kind to the database as its own
-// role, and runs every job kind until ctx ends, serving the health probe and the metrics endpoint the
-// whole time (ADR-0051, ADR-0117). It logs the effective configuration first, each value with the
-// layer that set it (ADR-0078). The scanner is built from its section before anything else starts, so
-// a section it refuses refuses the start. The keyring is loaded before any connection is made, so a
-// public key matching none of the private keys refuses the start (ADR-0088). When ctx ends, every
-// run's context is cancelled and Run returns once each has returned (ADR-0119).
+// Run is the worker's process. The host loads the configuration, and the worker is assembled from
+// it, the scanner built from its section before anything else starts, so a section it refuses refuses
+// the start, and the keyring loaded before any connection is made, so a public key matching none of
+// the private keys refuses the start (ADR-0088). When ctx ends, every run's context is cancelled and
+// Run returns once each has returned (ADR-0119, ADR-0138).
 //
-// logger is the logger main.go built over level, at info until Run sets level from log_level once
-// the effective configuration is written, so every logger derived from logger follows it (ADR-0122).
-//
-// stderr is where the start banner goes, standard error in main.go, so standard output carries only
-// the logger's JSON records (ADR-0122).
-func Run(ctx context.Context, args, environ []string, stderr io.Writer, logger *slog.Logger, level *slog.LevelVar) error {
-	if err := dbconnect.RefusePasswordVariables(environ); err != nil {
-		return err
-	}
-	loaded, err := settings.Load(defaults(), args, environ)
-	var help *settings.HelpRequested
-	if errors.As(err, &help) {
-		fmt.Print(help.Text)
-		return nil
-	}
-	if errors.As(err, new(*settings.VersionRequested)) {
-		fmt.Println(version.Number)
-		return nil
-	}
+// logger is the logger main.go built over level, at info until the host sets level from log_level
+// once the effective configuration is written, so every logger derived from logger follows it
+// (ADR-0122). stdout answers --help and --version, and stderr is where the start banner goes,
+// standard error in main.go, so standard output carries only the logger's JSON records otherwise.
+func Run(ctx context.Context, args, environ []string, stdout, stderr io.Writer, logger *slog.Logger, level *slog.LevelVar) error {
+	return host.Run(ctx, args, environ, stdout, stderr, logger, level, host.Spec[Configuration]{
+		Name:       "mediated-mailbox-worker",
+		Defaults:   defaults(),
+		Process:    func(c Configuration) host.Process { return c.Process },
+		Validate:   validate,
+		Components: []host.Component[Configuration]{{Name: "worker", Assemble: fromConfiguration}},
+	})
+}
+
+// fromConfiguration builds what the worker needs from the configuration, the scanner from its section
+// under the section's revision, the keyring and a pool per job kind connecting as that kind's role, and
+// assembles the worker from them.
+func fromConfiguration(ctx context.Context, provided host.Provided[Configuration]) (host.Parts, error) {
+	scanner, err := buildScanner(provided.Loaded)
 	if err != nil {
-		return fmt.Errorf("loading the configuration: %w", err)
+		return host.Parts{}, fmt.Errorf("validating the configuration: %w", err)
 	}
-	// The effective configuration is written before the level applies, so a refused value's source,
-	// log_level's included, reaches the log whatever level the configuration sets (ADR-0078, ADR-0122).
-	for _, v := range loaded.Values {
-		logger.Info("configuration", "path", v.Path, "source", v.Source.String(), "value", v.Value)
-	}
-	lv, err := logging.ParseLevel(loaded.Config.LogLevel)
-	if err != nil {
-		return fmt.Errorf("validating the configuration: %w", err)
-	}
-	level.Set(lv)
-	c := loaded.Config
-	if err := validate(c); err != nil {
-		return fmt.Errorf("validating the configuration: %w", err)
-	}
-	writeBanner(stderr, fmt.Sprintf("mediated-mailbox-worker %s\n  probes  http on %s\n", version.Number, c.ProbeListen), logger)
-	scanner, err := buildScanner(loaded)
-	if err != nil {
-		return fmt.Errorf("validating the configuration: %w", err)
-	}
+	c := provided.Loaded.Config
 	keys, err := open.Load(c.Credential.PublicKeyFile, c.Credential.PrivateKeyFiles...)
 	if err != nil {
-		return fmt.Errorf("loading the keyring: %w", err)
+		return host.Parts{}, fmt.Errorf("loading the keyring: %w", err)
 	}
-	registry := prometheus.NewRegistry()
-	if err := runtimemetrics.Register(registry); err != nil {
-		return err
-	}
-	pools, err := openPools(ctx, c.Database, registry)
+	pools, err := openPools(ctx, c.Database, provided.OpenPool, provided.Registerer)
 	if err != nil {
-		return err
+		return host.Parts{}, err
 	}
-	defer pools.Backfill.Close()
-	defer pools.Sync.Close()
-	ln, err := net.Listen("tcp", c.ProbeListen)
-	if err != nil {
-		return fmt.Errorf("listening for the probes: %w", err)
-	}
-	w, err := assemble(ctx, registry, pools, keys, scanner, c, http.DefaultClient, logger)
-	if err != nil {
-		return errors.Join(err, ln.Close())
-	}
-	stopProbes := probes.Serve(ln, w.registry, logger)
-	err = w.run(ctx)
-	return errors.Join(err, stopProbes())
+	return Assemble(ctx, Needs{
+		Section: c.Section, Pools: pools, Keys: keys, Scanner: scanner, Client: http.DefaultClient,
+		Registerer: provided.Registerer, Logger: provided.Logger,
+	})
 }
 
-// writeBanner writes the start banner, a few lines for a person reading the process's output that
-// name the deployable, its release version and where it serves. It is no log record, and a failed
-// write stops nothing (ADR-0122).
-func writeBanner(stderr io.Writer, text string, logger *slog.Logger) {
-	if _, err := io.WriteString(stderr, text); err != nil {
-		logger.Warn("writing the start banner failed", "error", err)
-	}
-}
+// opener opens a pool from a connection, measured on a registerer.
+type opener func(ctx context.Context, c dbconnectcore.Config, reg prometheus.Registerer) (*pgxpool.Pool, error)
 
-// openPools returns each job kind's pool, connecting as that kind's own role, measured on registry
-// labelled with the job kind. A pool opens no connection until its first use (ADR-0118, ADR-0125).
-func openPools(ctx context.Context, d Database, registry prometheus.Registerer) (Pools, error) {
-	backfillPool, err := connect(ctx, d, d.Backfill, labelled(registry, backfill.Kind))
+// openPools returns each job kind's pool through open, connecting as that kind's own role with its
+// password file, opening at most its pool size of connections, measured on registry labelled with the
+// job kind. A pool opens no connection until its first use (ADR-0118, ADR-0125).
+func openPools(ctx context.Context, d Database, open opener, registry prometheus.Registerer) (Pools, error) {
+	backfillPool, err := open(ctx, d.connection(d.Backfill), labelled(registry, backfill.Kind))
 	if err != nil {
 		return Pools{}, err
 	}
-	syncPool, err := connect(ctx, d, d.Sync, labelled(registry, deltasync.Kind))
+	syncPool, err := open(ctx, d.connection(d.Sync), labelled(registry, deltasync.Kind))
 	if err != nil {
-		backfillPool.Close()
 		return Pools{}, err
 	}
 	return Pools{Backfill: backfillPool, Sync: syncPool}, nil
-}
-
-// connect returns the job kind's pool, connecting as its role with its password file, opening at most
-// its pool size of connections, measured on the job kind's registerer (ADR-0118, ADR-0125).
-func connect(ctx context.Context, d Database, r Role, registry prometheus.Registerer) (*pgxpool.Pool, error) {
-	config, err := dbconnect.PoolConfig(d.connection(r))
-	if err != nil {
-		return nil, fmt.Errorf("configuring the database connection of %s: %w", r.User, err)
-	}
-	pool, err := dbmetrics.OpenPool(ctx, config, registry)
-	if err != nil {
-		return nil, fmt.Errorf("configuring the database connection of %s: %w", r.User, err)
-	}
-	return pool, nil
 }
 
 // buildScanner builds the scanner from its section of the loaded configuration, under the
@@ -312,33 +274,75 @@ type Pools struct {
 	Backfill, Sync *pgxpool.Pool
 }
 
-// worker is the assembled worker, its registry, its scheduler and the reload of each job kind.
+// Needs are what the worker is assembled from.
+type Needs struct {
+	Section Section
+	// Pools are the job kinds' pools, each connecting as its kind's runtime role (ADR-0118).
+	Pools Pools
+	// Keys open the accounts' sealed credentials (ADR-0081).
+	Keys *open.Keyring
+	// Scanner is the one scanner every job kind masks and scans with (ADR-0120).
+	Scanner scan.Scanner
+	// Client is the HTTP client each Gmail adapter calls through.
+	Client *http.Client
+	// Registerer is where every series of the worker is registered, each job kind's labelled with it
+	// (ADR-0076, ADR-0117).
+	Registerer prometheus.Registerer
+	Logger     *slog.Logger
+}
+
+// Assemble builds the worker from n and returns its parts, the task that runs the scheduler and the
+// readiness checks, each job kind's pool answering as its role and each job kind's first reload done.
+// It starts nothing. The scheduler's runs end when ctx ends (ADR-0119).
+func Assemble(ctx context.Context, n Needs) (host.Parts, error) {
+	w, err := assemble(ctx, n)
+	if err != nil {
+		return host.Parts{}, err
+	}
+	parts := host.Parts{Tasks: []host.Task{{Name: "scheduler", Run: w.run}}}
+	for _, r := range w.reloads {
+		parts.Ready = append(parts.Ready, host.Check{Name: r.key.Kind + " reload", Check: r.reloaded})
+	}
+	for kind, pool := range map[string]*pgxpool.Pool{backfill.Kind: n.Pools.Backfill, deltasync.Kind: n.Pools.Sync} {
+		parts.Ready = append(parts.Ready, host.Check{Name: kind + " database", Check: pool.Ping})
+	}
+	return parts, nil
+}
+
+// worker is the assembled worker, its scheduler and the reload of each job kind.
 type worker struct {
-	registry  *prometheus.Registry
 	scheduler *schedule.Scheduler
-	reloads   []reload
+	reloads   []*reload
 }
 
-// reload is one job kind's reload job and its key.
+// reload is one job kind's reload job and its key, and whether a run of it has succeeded.
 type reload struct {
-	key schedule.Key
-	job schedule.Job
+	key  schedule.Key
+	job  schedule.Job
+	done atomic.Bool
 }
 
-// assemble builds everything the worker runs on the process's registry, the scheduler with its series
-// on it, and each job kind on its own pool, with its series on the registry labelled by its job kind
-// and a logger carrying it. Each Gmail adapter calls through client. Run and the tests of the scrape
+// reloaded returns nil once a run of the reload has succeeded, so the job kind has read its accounts
+// and ensured their jobs at least once.
+func (r *reload) reloaded(context.Context) error {
+	if !r.done.Load() {
+		return errors.New("no reload has succeeded yet")
+	}
+	return nil
+}
+
+// assemble builds everything the worker runs, the scheduler with its series on n's registerer, and
+// each job kind on its own pool, with its series on the registerer labelled by its job kind and a
+// logger carrying it. Each Gmail adapter calls through n's client. Assemble and the tests of the scrape
 // both call it, so every series the worker emits is the one the metrics endpoint serves (ADR-0076,
 // ADR-0077).
-func assemble(ctx context.Context, registry *prometheus.Registry, pools Pools, keys *open.Keyring, scanner scan.Scanner, c Configuration, client *http.Client,
-	logger *slog.Logger,
-) (*worker, error) {
-	metrics, err := schedule.NewMetrics(registry)
+func assemble(ctx context.Context, n Needs) (*worker, error) {
+	metrics, err := schedule.NewMetrics(n.Registerer)
 	if err != nil {
 		return nil, err
 	}
 	s := schedule.New(ctx, metrics)
-	bc, dc := kinds(pools, keys, scanner, c, client, logger, registry, s)
+	bc, dc := kinds(n.Pools, n.Keys, n.Scanner, n.Section, n.Client, n.Logger, n.Registerer, s)
 	b, err := backfill.New(bc)
 	if err != nil {
 		return nil, err
@@ -347,21 +351,31 @@ func assemble(ctx context.Context, registry *prometheus.Registry, pools Pools, k
 	if err != nil {
 		return nil, err
 	}
-	w := &worker{registry: registry, scheduler: s}
+	w := &worker{scheduler: s}
 	for _, kind := range []interface {
 		Reload() (schedule.Key, schedule.Job)
 	}{b, d} {
 		key, job := kind.Reload()
-		w.reloads = append(w.reloads, reload{key: key, job: job})
+		r := &reload{key: key}
+		run := job.Run
+		job.Run = func(ctx context.Context, ask schedule.Ask) error {
+			err := run(ctx, ask)
+			if err == nil {
+				r.done.Store(true)
+			}
+			return err
+		}
+		r.job = job
+		w.reloads = append(w.reloads, r)
 	}
 	return w, nil
 }
 
 // kinds returns what each job kind is built from. Each is handed its own pool, the one keyring, the
 // one scanner built from the worker's scanner section, so both record the same scanner version and
-// revision on every verdict and mask (ADR-0117, ADR-0120), the registry labelled with its job kind, a
-// logger carrying it, and the scheduler, which adds and drops its jobs.
-func kinds(pools Pools, keys *open.Keyring, scanner scan.Scanner, c Configuration, client *http.Client, logger *slog.Logger,
+// revision on every verdict and mask (ADR-0117, ADR-0120), the registerer labelled with its job kind,
+// a logger carrying it, and the scheduler, which adds and drops its jobs.
+func kinds(pools Pools, keys *open.Keyring, scanner scan.Scanner, c Section, client *http.Client, logger *slog.Logger,
 	registry prometheus.Registerer, s *schedule.Scheduler,
 ) (backfill.Config, deltasync.Config) {
 	return backfill.Config{

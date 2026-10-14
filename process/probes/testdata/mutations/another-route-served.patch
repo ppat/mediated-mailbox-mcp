@@ -1,0 +1,20 @@
+control: The operations endpoints answer the health probe, the readiness probe and the metrics endpoint as plain text, and nothing else
+removes: every path the operations listener is asked for is answered as the health probe
+packages: ./process/host
+tests: TestTheOperationsEndpoints
+scheduled-count: no
+
+diff --git a/process/probes/probes.go b/process/probes/probes.go
+index 42170765..272fea91 100644
+--- a/process/probes/probes.go
++++ b/process/probes/probes.go
+@@ -29,6 +29,9 @@ func Handler(gatherer prometheus.Gatherer, ready func(*http.Request) (bool, stri
+ 		answer(w, r, logger, http.StatusOK, "ready")
+ 	})
+ 	mux.Handle("GET /metrics", promhttp.HandlerFor(gatherer, promhttp.HandlerOpts{}))
++	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
++		answer(w, r, logger, http.StatusOK, "ok")
++	})
+ 	return mux
+ }
+ 

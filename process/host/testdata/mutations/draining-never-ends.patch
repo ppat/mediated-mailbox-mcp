@@ -1,0 +1,18 @@
+control: A stopping process ends what draining components listen for, drains its requests, and only then stops its tasks
+removes: draining never ends, so an event stream holds the stop until its drain times out
+packages: ./process/host
+tests: TestTheProcessStopsInOrder
+scheduled-count: no
+
+diff --git a/process/host/host.go b/process/host/host.go
+index 7e940118..4848bb20 100644
+--- a/process/host/host.go
++++ b/process/host/host.go
+@@ -518,7 +518,6 @@ func (h *Host) Serve(ctx context.Context, l Listeners, s Serving) error {
+ 	case <-ctx.Done():
+ 	}
+ 	serving.Store(false)
+-	h.drain()
+ 	shutdown, cancel := context.WithTimeout(context.WithoutCancel(ctx), drainTimeout)
+ 	defer cancel()
+ 	if app != nil {

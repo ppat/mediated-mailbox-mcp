@@ -5,15 +5,15 @@ tests: TestCallersWaitingTogetherShareOneLoad TestLoadsRunOneAtATime
 scheduled-count: no
 
 diff --git a/api/internal/reload/reload.go b/api/internal/reload/reload.go
-index fa28d06..023f257 100644
+index 4d4747c8..dc83666d 100644
 --- a/api/internal/reload/reload.go
 +++ b/api/internal/reload/reload.go
-@@ -39,6 +39,9 @@ func New(ctx context.Context, load func(context.Context) error) *Coalesced {
- // Load waits for a load that starts after it was called and returns that load's error, or ctx's error
- // when ctx ends first. The load goes on for the other callers waiting on it.
+@@ -57,6 +57,9 @@ const loadName = "coalesced load"
+ // when ctx ends first. The load goes on for the other callers waiting on it. A load the starter does
+ // not start returns ErrNotStarted.
  func (c *Coalesced) Load(ctx context.Context) error {
 +	if ctx != nil {
-+		return c.load(c.ctx)
++		return c.load(ctx)
 +	}
  	c.mu.Lock()
  	r := c.next

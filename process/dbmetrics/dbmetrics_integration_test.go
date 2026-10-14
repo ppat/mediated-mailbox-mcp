@@ -20,7 +20,7 @@ import (
 )
 
 // measured returns a pool of at most one connection to the test database, opened through OpenPool on
-// reg as a composition root opens one.
+// reg as the host opens one for a composition root.
 func measured(t *testing.T, reg prometheus.Registerer) *pgxpool.Pool {
 	t.Helper()
 	config, err := pgxpool.ParseConfig(postgres.URL(t))

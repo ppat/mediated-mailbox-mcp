@@ -100,7 +100,9 @@ Some of the terms are a client's to choose.
   agent's connection open between the calls of one task and releases a connection its client
   abandoned. Nothing bounds writing the answer, since a request legitimately waits for its leases
   and its provider calls. The limits apply to the client surface's server and the probes' server
-  alike.
+  alike, which the host that runs the process builds, so every process it runs, the UI's included,
+  serves under them
+  ([ADR-0138](../engineering/0138-one-host-runs-each-process-and-each-component-provides-its-parts.md)).
 - **The lease-wait deadline and the connection limits are constants in code, not settings.** Each
   bounds what a client can make the API server hold, so no deployment has a reason of its own to
   tune it, and a setting would need a range a start refuses outside of. A change to one is a change

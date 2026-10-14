@@ -5,11 +5,11 @@ tests: TestADeclarationThatCannotBeConfiguredIsRefused/a_required_value_with_a_d
 scheduled-count: no
 
 diff --git a/process/settings/settings.go b/process/settings/settings.go
-index 4299ed0..f02c695 100644
+index 6bcf5a72..08ffc495 100644
 --- a/process/settings/settings.go
 +++ b/process/settings/settings.go
-@@ -203,7 +203,7 @@ func collectDefaults(n *node, v reflect.Value, path []string, out *[]assignment)
- 			fv := v.Field(f.index)
+@@ -214,7 +214,7 @@ func collectDefaults(n *node, v reflect.Value, path []string, out *[]assignment)
+ 			fv := v.FieldByIndex(f.index)
  			at := append(slices.Clone(path), f.name)
  			if f.required {
 -				if !fv.IsZero() {

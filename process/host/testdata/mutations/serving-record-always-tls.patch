@@ -1,0 +1,19 @@
+control: Each deployable's start log records which transport it serves
+removes: the serving record says the process serves TLS whatever transport it took
+packages: ./process/host
+tests: TestTheApplicationServerGivenNoKeyPairIsPlain/neither_file TestTheApplicationServerGivenNoKeyPairIsPlain/both_blank
+scheduled-count: no
+
+diff --git a/process/host/host.go b/process/host/host.go
+index e4eb2a02..3c0c92a2 100644
+--- a/process/host/host.go
++++ b/process/host/host.go
+@@ -506,7 +506,7 @@ func (h *Host) Serve(ctx context.Context, l Listeners, s Serving) error {
+ 		}
+ 	}
+ 	serving.Store(true)
+-	h.logger.Info("serving", "listen", address(l.App), "probe_listen", l.Probes.Addr().String(), "tls", tlsConf != nil)
++	h.logger.Info("serving", "listen", address(l.App), "probe_listen", l.Probes.Addr().String(), "tls", true)
+ 
+ 	var err error
+ 	select {

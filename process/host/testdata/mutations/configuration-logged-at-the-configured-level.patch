@@ -1,0 +1,29 @@
+control: The effective configuration is logged at start, each value with its source
+removes: the host sets the level before it logs the effective configuration, so under warn a refused value's source is never written, and a refused level's source is never written at all
+packages: ./process/host
+tests: TestTheConfiguredLevelGovernsTheLog/a_name_in_upper_case TestTheConfiguredLevelGovernsTheLog/an_offset TestTheConfiguredLevelGovernsTheLog/warning TestTheConfiguredLevelGovernsTheLog/warn TestTheConfiguredLevelGovernsTheLog/error,_from_the_environment TestTheConfiguredLevelGovernsTheLog/a_refused_value_at_error
+scheduled-count: no
+
+diff --git a/process/host/host.go b/process/host/host.go
+index f5afd783..8821f081 100644
+--- a/process/host/host.go
++++ b/process/host/host.go
+@@ -206,15 +206,15 @@ func Run[T any](ctx context.Context, args, environ []string, stdout, stderr io.W
+ 	}
+ 	// The effective configuration is written before the level applies, so a refused value's source,
+ 	// log_level's included, reaches the log whatever level the configuration sets (ADR-0078, ADR-0122).
+-	for _, v := range loaded.Values {
+-		logger.Info("configuration", "path", v.Path, "source", v.Source.String(), "value", v.Value)
+-	}
+ 	process := spec.Process(loaded.Config)
+ 	lv, err := processLevel(process)
+ 	if err != nil {
+ 		return fmt.Errorf("validating the configuration: %w", err)
+ 	}
+ 	level.Set(lv)
++	for _, v := range loaded.Values {
++		logger.Info("configuration", "path", v.Path, "source", v.Source.String(), "value", v.Value)
++	}
+ 	var serving Serving
+ 	if spec.Serving != nil {
+ 		serving = spec.Serving(loaded.Config)

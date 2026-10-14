@@ -8,53 +8,13 @@ import (
 
 func valid() serving.Config {
 	return serving.Config{
-		Listen: ":8443", ProbeListen: ":8080", TLSCert: "/tls/cert", TLSKey: "/tls/key",
 		SyncInterval: 1, HeuristicsInterval: 1, StreamInterval: 1,
 		DefaultTheme: "system", StreamReconnectMax: 1_000_000, StreamPollInterval: 1_000_000,
 		ConsentRedirect: "http://127.0.0.1:47823/",
 	}
 }
 
-// TestTLSIsBothFilesOrNeither admits both TLS files, serving TLS, and neither, serving plain HTTP, a
-// blank path counting as unset, and refuses one without the other, naming the one missing (ADR-0127).
-func TestTLSIsBothFilesOrNeither(t *testing.T) {
-	admitted := []struct {
-		name, cert, key string
-		tls             bool
-	}{
-		{"both files", "/tls/cert", "/tls/key", true},
-		{"neither file", "", "", false},
-		{"both blank", " ", "\t", false},
-	}
-	for _, tc := range admitted {
-		c := valid()
-		c.TLSCert, c.TLSKey = tc.cert, tc.key
-		if err := serving.Validate(c); err != nil {
-			t.Errorf("%s was refused: %v", tc.name, err)
-		}
-		if got := serving.ServesTLS(c); got != tc.tls {
-			t.Errorf("%s serves TLS %v, want %v", tc.name, got, tc.tls)
-		}
-	}
-	certOnly := "tls_cert is set and tls_key is not, and the UI serves TLS with both or plain HTTP with neither"
-	keyOnly := "tls_key is set and tls_cert is not, and the UI serves TLS with both or plain HTTP with neither"
-	refused := []struct{ name, cert, key, want string }{
-		{"a certificate without its key", "/tls/cert", "", certOnly},
-		{"a key without its certificate", "", "/tls/key", keyOnly},
-		{"a certificate with a blank key", "/tls/cert", "  ", certOnly},
-		{"a key with a blank certificate", " ", "/tls/key", keyOnly},
-	}
-	for _, tc := range refused {
-		c := valid()
-		c.TLSCert, c.TLSKey = tc.cert, tc.key
-		if err := serving.Validate(c); err == nil || err.Error() != tc.want {
-			t.Errorf("%s gave %v, want %q", tc.name, err, tc.want)
-		}
-	}
-}
-
-// TestTheConfigurationIsValidated covers every refusal apart from the TLS files' and the consent
-// redirect's, and the valid configuration.
+// TestTheConfigurationIsValidated covers every refusal apart from the consent redirect's, and the valid configuration.
 func TestTheConfigurationIsValidated(t *testing.T) {
 	if err := serving.Validate(valid()); err != nil {
 		t.Fatalf("a valid configuration was refused: %v", err)
@@ -70,8 +30,6 @@ func TestTheConfigurationIsValidated(t *testing.T) {
 		change func(*serving.Config)
 		want   string
 	}{
-		{"no listen", func(c *serving.Config) { c.Listen = " " }, "listen is empty"},
-		{"no probe listen", func(c *serving.Config) { c.ProbeListen = "" }, "probe_listen is empty"},
 		{"a zero sync interval", func(c *serving.Config) { c.SyncInterval = 0 }, "sync_interval is not positive"},
 		{"a negative heuristics interval", func(c *serving.Config) { c.HeuristicsInterval = -1 }, "heuristics_interval is not positive"},
 		{"a zero stream interval", func(c *serving.Config) { c.StreamInterval = 0 }, "stream_interval is not positive"},

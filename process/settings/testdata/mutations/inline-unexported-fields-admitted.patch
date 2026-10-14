@@ -1,0 +1,19 @@
+control: A declaration the layers cannot name or set is refused before any layer is read
+removes: an unexported inline field is no longer refused
+packages: ./process/settings
+tests: TestADeclarationThatCannotBeConfiguredIsRefused/an_unexported_inline_field
+scheduled-count: no
+
+diff --git a/process/settings/declaration.go b/process/settings/declaration.go
+index 6c7a7aaa..d286f73e 100644
+--- a/process/settings/declaration.go
++++ b/process/settings/declaration.go
+@@ -151,8 +151,6 @@ const inlineTag = ",inline"
+ // name it shares with another field of n is declared twice.
+ func declareInline(n *node, f reflect.StructField, i int, path string, inValue bool) error {
+ 	switch {
+-	case !f.IsExported():
+-		return fmt.Errorf("%s: field %s is unexported, so no layer can set it", describe(path, n.typ), f.Name)
+ 	case f.Type.Kind() != reflect.Struct:
+ 		return fmt.Errorf("%s: field %s is inline and of type %s, and only a struct can be inline", describe(path, n.typ), f.Name, f.Type)
+ 	case f.Tag.Get("settings") != "":

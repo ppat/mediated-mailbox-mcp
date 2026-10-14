@@ -1,6 +1,7 @@
 package app
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	credentialcore "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/core"
+	"github.com/ppat/mediated-mailbox-mcp/process/host"
 	"github.com/ppat/mediated-mailbox-mcp/process/settings"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/helmchart"
@@ -35,7 +37,7 @@ func TestTheChartRendersAFileTheWorkerStartsWith(t *testing.T) {
 	if err != nil {
 		t.Fatalf("the worker refuses the chart's file: %v", err)
 	}
-	if err := validate(loaded.Config); err != nil {
+	if err := errors.Join(host.ValidateProcess(loaded.Config.Process), validate(loaded.Config)); err != nil {
 		t.Fatalf("the worker's validation refuses the chart's file: %v", err)
 	}
 	if _, err := buildScanner(loaded); err != nil {
@@ -43,8 +45,12 @@ func TestTheChartRendersAFileTheWorkerStartsWith(t *testing.T) {
 	}
 	mounted := "/etc/mediated-mailbox/secrets/"
 	want := Configuration{
-		ProbeListen:    ":8080",
-		ReloadInterval: 90 * time.Second,
+		Process: host.Process{ProbeListen: ":8080", LogLevel: "error"},
+		Section: Section{
+			ReloadInterval: 90 * time.Second,
+			Backfill:       Backfill{Concurrency: 5},
+			Sync:           Sync{SyncInterval: 3 * time.Minute, FirstWindow: 48 * time.Hour, DecisionsPerTick: 50, Concurrency: 6},
+		},
 		Database: Database{
 			Host: "db.example", Port: 6432, Name: "mediated_mailbox", SSLMode: "require", SSLRootCert: mounted + "ca/ca.crt",
 			Backfill: Role{User: "mailbox_backfill", PasswordFile: mounted + "database/backfill/password", PoolSize: 3},
@@ -62,9 +68,6 @@ func TestTheChartRendersAFileTheWorkerStartsWith(t *testing.T) {
 			Weights:   scan.Weights{Entropy: 1, Mix: 1, Length: 1, Proximity: 0.5, Position: 1},
 			Threshold: 0.7, SubjectThreshold: 0.65,
 		},
-		LogLevel: "error",
-		Backfill: Backfill{Concurrency: 5},
-		Sync:     Sync{SyncInterval: 3 * time.Minute, FirstWindow: 48 * time.Hour, DecisionsPerTick: 50, Concurrency: 6},
 	}
 	if diff := cmp.Diff(want, loaded.Config, compare.Options); diff != "" {
 		t.Errorf("the worker's configuration from the chart's file (-want +got):\n%s", diff)

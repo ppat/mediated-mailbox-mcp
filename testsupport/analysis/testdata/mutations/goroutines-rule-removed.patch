@@ -5,11 +5,11 @@ tests: TestGoroutines
 scheduled-count: no
 
 diff --git a/testsupport/analysis/goroutines.go b/testsupport/analysis/goroutines.go
-index 42f880fa..c7fb8152 100644
+index a19e71a3..e473008c 100644
 --- a/testsupport/analysis/goroutines.go
 +++ b/testsupport/analysis/goroutines.go
-@@ -59,7 +59,7 @@ func runGoroutines(pass *analysis.Pass) (any, error) {
- 	if path != workerPath && !strings.HasPrefix(path, workerPath+"/") || path == schedulerPath || strings.HasPrefix(path, schedulerPath+"/") {
+@@ -78,7 +78,7 @@ func runGoroutines(pass *analysis.Pass) (any, error) {
+ 	default:
  		return nil, nil
  	}
 -	for _, file := range pass.Files {

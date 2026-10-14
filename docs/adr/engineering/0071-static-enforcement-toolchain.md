@@ -665,7 +665,12 @@ its probe routes on muxes with nothing recording them.
   route the composition root adds by hand, could be refused only by a list of the patterns the
   composition root may mount, which would copy `api/app` into the analyser and drift from it, or by
   exempting the functions that mount them, which lets a route added inside them through. The
-  API server's routes stay with review.
+  API server's routes stay with review. The host that runs every process
+  ([ADR-0138](./0138-one-host-runs-each-process-and-each-component-provides-its-parts.md)) mounts
+  each component's handler at the patterns its root gives and serves the three probe routes, outside
+  `ui/`, and is left to review as the API server's mounting is. A component hands the host its
+  handler as a value and registers no route on a mux it is handed, so the UI's routes stay on its
+  recording mux whatever process hosts it.
 - **Moving the recording mux into a package of its own** was rejected. The compiler would then
   refuse a call on the mux beneath the recorder from package `api`, with no analyser. It needs a new
   directory, and it leaves a registration on a second mux built in package `api` unrefused, which the

@@ -1,0 +1,20 @@
+control: The API server is ready only while its bearer token file holds a token
+removes: the assembly builds the API server whatever its token file holds, so a process that admits no client starts
+packages: ./api/app
+tests: TestReadyOnlyWhileTheBearerTokenLoads
+scheduled-count: no
+
+diff --git a/api/app/app.go b/api/app/app.go
+index 843a78ed..36ae551c 100644
+--- a/api/app/app.go
++++ b/api/app/app.go
+@@ -286,9 +286,6 @@ func parts(served *serving, s Section, logger *slog.Logger) (host.Parts, error)
+ 	if err != nil {
+ 		return host.Parts{}, err
+ 	}
+-	if err := tokenReadable(s.TokenFile); err != nil {
+-		return host.Parts{}, err
+-	}
+ 	return host.Parts{
+ 		Handler: handler,
+ 		Ready: []host.Check{{Name: "bearer token", Check: func(context.Context) error {

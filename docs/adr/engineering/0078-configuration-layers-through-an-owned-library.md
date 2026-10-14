@@ -72,6 +72,14 @@ calls for one and the second because policy lives in the database.
   and a section per job kind it runs
   ([ADR-0117](../operability/0117-one-background-worker-runs-every-job-kind.md)). A value several
   job kinds use, such as the scanner's, is read once, so they agree on it by construction.
+- **A root type is composed from sections.** A struct field is a section named by its YAML tag. An
+  embedded struct tagged `yaml:",inline"` is a section whose values sit beside the embedding
+  section's own, at the same paths, as the YAML decoder reads it, and every refusal applies to
+  them as to the section's own, a name both declare included. It is the only tag that is not a
+  name. So each deployable's root embeds the process's sections and its component's own section
+  inline, keeping their keys at the top of its tree, and declares the sections it shares with the
+  other deployables by name
+  ([ADR-0138](./0138-one-host-runs-each-process-and-each-component-provides-its-parts.md)).
 - **Keyed values.** Per-language word lists are a map keyed by language, so a flag or an
   environment variable can override one language's list or add a language. Map keys are runs of
   `[a-z0-9]` joined by single underscores, with none leading or trailing, because a key becomes a
@@ -114,8 +122,9 @@ calls for one and the second because policy lives in the database.
     trailing newline, written `\n` or `\r\n`, is trimmed from it, because files written by editors
     and by `kubectl create secret --from-file` commonly end in one. A file holding no password once
     that newline is trimmed refuses the start.
-- **Read once, at start, by the library.** The composition root passes the library its arguments,
-  its environment and its root configuration type. The library reads the file those name, layers the
+- **Read once, at start, by the library.** The host passes the library the arguments, the
+  environment and the root configuration type a composition root hands it
+  ([ADR-0138](./0138-one-host-runs-each-process-and-each-component-provides-its-parts.md)). The library reads the file those name, layers the
   values, and returns them with each value's source and a revision per top-level concern, or an
   error. A pure validation per concern then checks the merged value before anything else starts
   ([ADR-0040](./0040-pure-core-decisions-as-values.md)). A change takes a restart. The effective
@@ -123,7 +132,7 @@ calls for one and the second because policy lives in the database.
   verdict is the library's revision of the scanner's section, so a change in any layer changes it.
 - **The environment is read in one place.** In the deployables and the shared libraries, outside
   test files and the test tooling, the environment is read only by a deployable's `main.go`, and
-  handed through its composition root to the library from there.
+  handed through its composition root and the host to the library from there.
 - **The library is the project's own**, `process/settings/`, about five hundred lines on
   `go.yaml.in/yaml/v3` and the standard library. The grid below does not separate it from the
   flag-layer koanf column on any gate, so this is a preference. It adds no module beyond the YAML
@@ -134,8 +143,9 @@ calls for one and the second because policy lives in the database.
   schema and no validation, which stay with each concern.
 - **No command-line framework**, because no deployable has a mode.
 - **`--help` and `--version` are not modes.** `Load` recognizes each before it reads any layer.
-  `--help` returns the generated help, and `--version` returns a request the composition root
-  answers by printing the release version and exiting, with no configuration read. The version is
+  `--help` returns the generated help, and `--version` returns a request the host answers by
+  printing the release version on the standard output it is handed and returning, with no
+  configuration read. The version is
   one constant in `process/version`, which the release cut writes into the repository as it writes
   the chart's `version` and `appVersion`, so every binary reports the release it was built for
   ([ADR-0049](./0049-image-per-component-lockstep.md)). A binary built between releases, such as a
@@ -319,6 +329,11 @@ and observability, so the preference holds there by a smaller margin.
   needs, where policy, which does change while the system runs, already has its own reload
   ([ADR-0041](./0041-policy-as-immutable-snapshots.md)). A file watch re-running `Load` can be added
   if a need appears.
+- **Each component's keys nested under its name**, such as `api.token_file`, with no inline
+  section. For it, the library needs no inline section, and a process hosting several components
+  keeps their keys apart by construction. Against it, every key a deployable reads would sit under
+  a new parent and the chart with it, for a process that hosts one component, while a root hosting several can
+  still name each component's section rather than inline it.
 - **A revision derived from a section's values rather than its rendering**, its keys sorted and its
   defaults omitted. For it, a field added with a default that keeps today's behaviour would leave
   the revision unchanged, so it would not re-mask and re-scan the index. Not taken, because the

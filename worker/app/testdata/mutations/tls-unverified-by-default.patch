@@ -5,11 +5,12 @@ tests: TestTheDefaults
 scheduled-count: no
 
 diff --git a/worker/app/app.go b/worker/app/app.go
+index 809f079e..9d36c45f 100644
 --- a/worker/app/app.go
 +++ b/worker/app/app.go
-@@ -114,7 +114,7 @@
- 		ProbeListen:    ":8080",
- 		ReloadInterval: time.Minute,
+@@ -131,7 +131,7 @@ func defaults() Configuration {
+ 		Process: host.DefaultProcess(),
+ 		Section: DefaultSection(),
  		Database: Database{
 -			Port: 5432, SSLMode: "verify-full",
 +			Port: 5432, SSLMode: "prefer",

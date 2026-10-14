@@ -1,0 +1,18 @@
+control: A process answers ready only while it serves and every readiness check of every component it hosts passes
+removes: the readiness probe answers ready while the process stops
+packages: ./process/host
+tests: TestTheProcessStopsInOrder
+scheduled-count: no
+
+diff --git a/process/host/host.go b/process/host/host.go
+index 7063aa61..37dc80a7 100644
+--- a/process/host/host.go
++++ b/process/host/host.go
+@@ -585,7 +585,6 @@ func (h *Host) Serve(ctx context.Context, l Listeners, s Serving) error {
+ 	case <-h.failed:
+ 	case <-ctx.Done():
+ 	}
+-	serving.Store(false)
+ 	h.drain()
+ 	shutdown, cancel := context.WithTimeout(context.WithoutCancel(ctx), drainTimeout)
+ 	defer cancel()

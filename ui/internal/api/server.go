@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
@@ -55,7 +54,11 @@ type Options struct {
 	Database Database
 	Datasets []registry.Dataset
 	Logger   *slog.Logger
-	Metrics  *prometheus.Registry
+	// Metrics is where the server registers its series (ADR-0076).
+	Metrics prometheus.Registerer
+	// Draining ends when the process begins to stop serving requests, which ends every open event
+	// stream so the rest of the requests can drain. Nil never ends.
+	Draining context.Context
 	// Clock is the server's time, which as_of and every relative range read.
 	Clock    func() time.Time
 	Cadences Cadences
@@ -93,16 +96,13 @@ type Server struct {
 	descriptors []lens.Descriptor
 	metrics     *metrics
 	handler     http.Handler
-	probes      http.Handler
-	// uiMux and probesMux are kept, not their patterns, so Served and ProbesServed read every pattern
-	// registered through Handle, whenever it was registered.
-	uiMux     *recordingMux
-	probesMux *recordingMux
+	// uiMux is kept, not its patterns, so Served reads every pattern registered through Handle, whenever
+	// it was registered.
+	uiMux *recordingMux
 }
 
-// recordingMux is the mux of both the UI's listener and the probes listener. A route registered
-// through its Handle is recorded, and the contract's test compares the UI's routes with the contract
-// and the probes' with their three. The go vet routes analyser refuses, under ui/ outside this type's
+// recordingMux is the UI's mux. A route registered through its Handle is recorded, and the contract's
+// test compares the UI's routes with the contract. The go vet routes analyser refuses, under ui/ outside this type's
 // Handle, a use of a mux's Handle or HandleFunc, of http.Handle or http.HandleFunc, and of an
 // interface's or type parameter's method of the same name and parameters, so a direct call on the
 // underlying mux is refused, and Handle keeps its name and its receiver. Left to review are a handler
@@ -115,9 +115,9 @@ type Server struct {
 // unrecorded.
 type recordingMux struct {
 	// noCopy makes go vet's copylocks check refuse a copy of a recording mux, since a copy shares the
-	// underlying mux and records its patterns where Served and ProbesServed never read them. A copy
-	// whose line carries a //nolint:govet directive with a reason passes, because govet is an ordinary
-	// linter, and is left to review.
+	// underlying mux and records its patterns where Served never reads them. A copy whose line carries
+	// a //nolint:govet directive with a reason passes, because govet is an ordinary linter, and is left
+	// to review.
 	noCopy   noCopy
 	mux      *http.ServeMux
 	patterns []string
@@ -242,15 +242,6 @@ func New(opts Options) (*Server, error) {
 	// Every request is given its session, and every request whose method is not GET or HEAD is refused
 	// before it is routed unless it carries the session's request token (ADR-0061).
 	s.handler = observe(opts.Logger, withPolicy(withSession(withToken(k, mux))))
-
-	probes := &recordingMux{mux: http.NewServeMux()}
-	probes.Handle("GET /healthz", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		answer(w, r, opts.Logger, http.StatusOK, "ok")
-	}))
-	probes.Handle("GET /readyz", http.HandlerFunc(s.ready))
-	probes.Handle("GET /metrics", promhttp.HandlerFor(opts.Metrics, promhttp.HandlerOpts{}))
-	s.probesMux = probes
-	s.probes = withPolicy(probes)
 	return s, nil
 }
 
@@ -275,38 +266,25 @@ func (s *Server) Served() []string {
 	return slices.Clone(s.uiMux.patterns)
 }
 
-// ProbesServed is every pattern registered through the probes listener's recording mux. The contract's
-// test requires it to be exactly the three probe routes, so any other pattern registered there fails
-// the test.
-func (s *Server) ProbesServed() []string {
-	return slices.Clone(s.probesMux.patterns)
-}
-
 // Handler serves the UI, the entry document, the bundle and the read API.
 func (s *Server) Handler() http.Handler { return s.handler }
 
-// Probes serves /healthz, /readyz and /metrics, on the plain-HTTP listener apart from the UI's own.
-func (s *Server) Probes() http.Handler { return s.probes }
-
-// ready answers 200 only while the database answers as the UI's role, since every screen reads it.
-func (s *Server) ready(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
-	defer cancel()
+// Ready returns nil only while the database answers as the UI's role, since every screen reads it.
+// It is the UI's readiness check.
+func (s *Server) Ready(ctx context.Context) error {
 	if err := s.opts.Database.Ping(ctx); err != nil {
-		answer(w, r, s.opts.Logger, http.StatusServiceUnavailable, "the database does not answer")
-		return
+		return fmt.Errorf("the database does not answer: %w", err)
 	}
-	answer(w, r, s.opts.Logger, http.StatusOK, "ready")
+	return nil
 }
 
-// answer writes a plain-text probe answer. A failed write means the prober went away, which leaves the
-// operator nothing to act on, so it is detail.
-func answer(w http.ResponseWriter, r *http.Request, logger *slog.Logger, status int, text string) {
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	w.WriteHeader(status)
-	if _, err := w.Write([]byte(text + "\n")); err != nil {
-		logger.DebugContext(r.Context(), "writing a probe answer failed", "error", err)
+// draining returns what ends when the process begins to stop serving requests, or nil, which never
+// ends, when the server was given nothing.
+func (s *Server) draining() <-chan struct{} {
+	if s.opts.Draining == nil {
+		return nil
 	}
+	return s.opts.Draining.Done()
 }
 
 // named records the route pattern for the log line.

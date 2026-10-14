@@ -12,7 +12,6 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"errors"
-	"fmt"
 	"io"
 	"log/slog"
 	"math/big"
@@ -30,13 +29,12 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/prometheus/client_golang/prometheus"
 
-	"github.com/ppat/mediated-mailbox-mcp/api/internal/readiness"
 	"github.com/ppat/mediated-mailbox-mcp/api/internal/service"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal"
 	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core"
+	"github.com/ppat/mediated-mailbox-mcp/process/host"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile"
 )
@@ -134,7 +132,7 @@ func TestEveryRequestPassesTheBearerCheckFirst(t *testing.T) {
 		{"an empty token file", tokenFile(t, "\n"), apiCall.with("Bearer "), 401},
 		{"an empty token file and a token", tokenFile(t, ""), mcpCall.with("Bearer s3cret"), 401},
 		{"a token file that is absent", missing, apiCall.with("Bearer "), 401},
-		{"a path outside both roots, unauthenticated", tokenFile(t, "s3cret\n"), request{method: http.MethodGet, path: "/healthz"}, 401},
+		{"a path outside both roots reaching the surface's handler, unauthenticated", tokenFile(t, "s3cret\n"), request{method: http.MethodGet, path: "/healthz"}, 401},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -218,7 +216,7 @@ func TestTheSurfaceIsServedOverTLSWhenGivenAKeyPair(t *testing.T) {
 	dir := t.TempDir()
 	certFile, keyFile := filepath.Join(dir, "tls.crt"), filepath.Join(dir, "tls.key")
 	first := writeKeyPair(t, certFile, keyFile, 1)
-	addr, calls, log := started(t, Configuration{TLSCert: certFile, TLSKey: keyFile})
+	addr, calls, log := started(t, host.Serving{TLSCert: certFile, TLSKey: keyFile})
 
 	request := func(client *http.Client, scheme, token string) (*http.Response, error) {
 		req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, scheme+"://"+addr+"/api/accounts/acct-a/echo", http.NoBody)
@@ -305,20 +303,29 @@ func (b *lockedBuffer) String() string {
 	return b.buf.String()
 }
 
-// started runs the API server's start, serve, with c and the bearer token s3cret on two loopback
-// listeners, the counted registry behind the surface, until the test ends. It returns once the start
-// reports ready, with the surface's address, the operation's call count and the start's log, and
-// fails the test when the start stops or never reports ready.
-func started(t *testing.T, c Configuration) (string, *atomic.Int64, *lockedBuffer) {
+// started serves the API server's parts over the counted registry, behind the bearer token s3cret, on
+// two loopback listeners through the host, as the API server's process serves them, with s, until the
+// test ends. It returns once the process reports ready, with the client surface's address, the
+// operation's call count and the process's log, and fails the test when the process stops or never
+// reports ready.
+func started(t *testing.T, s host.Serving) (string, *atomic.Int64, *lockedBuffer) {
 	t.Helper()
-	c.TokenFile, c.AccountReloadInterval = tokenFile(t, "s3cret"), time.Hour
 	surfaceListener, probeListener := loopback(t), loopback(t)
 	reg, calls := counted(t)
 	log := &lockedBuffer{}
+	h, err := host.New(slog.New(slog.NewTextHandler(log, nil)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	p, err := parts(&serving{registry: reg, logger: discard()}, Section{TokenFile: tokenFile(t, "s3cret"), AccountReloadInterval: time.Hour}, discard())
+	if err != nil {
+		t.Fatal(err)
+	}
+	h.Add("api", Mount, p)
 	ctx, cancel := context.WithCancel(t.Context())
 	done := make(chan error, 1)
 	go func() {
-		done <- serve(ctx, c, surfaceListener, probeListener, &serving{registry: reg, logger: discard()}, prometheus.NewRegistry(), slog.New(slog.NewTextHandler(log, nil)))
+		done <- h.Serve(ctx, host.Listeners{App: surfaceListener, Probes: probeListener}, s)
 	}()
 	t.Cleanup(func() {
 		cancel()
@@ -369,44 +376,16 @@ func servingRecord(t *testing.T, log *lockedBuffer) string {
 	return ""
 }
 
-// The readiness endpoint answers 503 until the API server is marked ready and after it is marked not
-// ready, and 200 between. Health answers 200 and metrics serves the registry.
-func TestTheProbes(t *testing.T) {
-	metrics := prometheus.NewRegistry()
-	gauge := prometheus.NewGauge(prometheus.GaugeOpts{Name: "mediated_mailbox_test_gauge", Help: "A test gauge."})
-	metrics.MustRegister(gauge)
-	var ready readiness.State
-	h := probes(&ready, metrics, discard())
-	get := func(path string) string {
-		rec := httptest.NewRecorder()
-		h.ServeHTTP(rec, httptest.NewRequestWithContext(t.Context(), http.MethodGet, path, nil))
-		return fmt.Sprintf("%d %s", rec.Code, strings.TrimSpace(rec.Body.String()))
-	}
-	got := map[string]string{"before": get("/readyz")}
-	ready.MarkReady()
-	got["ready"] = get("/readyz")
-	ready.MarkNotReady()
-	got["shutting down"] = get("/readyz")
-	got["health"] = get("/healthz")
-	want := map[string]string{"before": "503 not ready", "ready": "200 ready", "shutting down": "503 not ready", "health": "200 ok"}
-	if diff := cmp.Diff(want, got, compare.Options); diff != "" {
-		t.Errorf("probes (-want +got):\n%s", diff)
-	}
-	if metricsAnswer := get("/metrics"); !strings.Contains(metricsAnswer, "mediated_mailbox_test_gauge 0") {
-		t.Errorf("metrics: %q", metricsAnswer)
-	}
-}
-
 // Given no key pair, or two TLS paths of spaces, the API server's start serves the client surface over
 // plain HTTP, behind the bearer check, and logs that it does not serve TLS (ADR-0127,
 // ADR-0087).
 func TestTheSurfaceGivenNoKeyPairIsPlain(t *testing.T) {
-	for name, c := range map[string]Configuration{
+	for name, s := range map[string]host.Serving{
 		"neither file": {},
 		"both blank":   {TLSCert: " ", TLSKey: "\t"},
 	} {
 		t.Run(name, func(t *testing.T) {
-			addr, calls, log := started(t, c)
+			addr, calls, log := started(t, s)
 			statuses := map[string]int{}
 			for name, token := range map[string]string{"with the token": "Bearer s3cret", "without": ""} {
 				req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "http://"+addr+"/api/accounts/acct-a/echo", http.NoBody)
@@ -438,72 +417,113 @@ func TestTheSurfaceGivenNoKeyPairIsPlain(t *testing.T) {
 	}
 }
 
-// The API server's root configuration type is pinned field by field, so a new value is a visible
-// change (ADR-0078). Each section's own type is pinned in its package.
+// In the API server's process a path outside the API root and the MCP root is not found, answered
+// by the application server before any bearer check, since the host mounts the client surface at
+// those two patterns alone. A path under either still meets the bearer check (ADR-0138, ADR-0030).
+func TestAPathOutsideBothRootsIsNotFound(t *testing.T) {
+	addr, calls, _ := started(t, host.Serving{})
+	statuses := map[string]int{}
+	for _, path := range []string{"/healthz", "/readyz", "/metrics", "/", "/apix", "/mcp/x", "/api/accounts/acct-a/echo"} {
+		req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "http://"+addr+path, http.NoBody)
+		if err != nil {
+			t.Fatal(err)
+		}
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := resp.Body.Close(); err != nil {
+			t.Error(err)
+		}
+		statuses[path] = resp.StatusCode
+	}
+	want := map[string]int{
+		"/healthz": 404, "/readyz": 404, "/metrics": 404, "/": 404, "/apix": 404, "/mcp/x": 404,
+		"/api/accounts/acct-a/echo": 401,
+	}
+	if diff := cmp.Diff(want, statuses, compare.Options); diff != "" {
+		t.Errorf("statuses without the token (-want +got):\n%s", diff)
+	}
+	if n := calls.Load(); n != 0 {
+		t.Errorf("the operation ran %d times without the token", n)
+	}
+}
+
+// The API server's root configuration type and its own section are pinned field by field, so a new
+// value is a visible change (ADR-0078). Each other section's own type is pinned in its package.
 func TestTheConfigurationTypeIsPinned(t *testing.T) {
 	mustnotcompile.RequireFields(t, "github.com/ppat/mediated-mailbox-mcp/api/app", "Configuration",
-		"Listen string",
-		"ProbeListen string",
-		"TLSCert string",
-		"TLSKey string",
-		"TokenFile string",
-		"AccountReloadInterval time.Duration",
+		"Process host.Process",
+		"Serving host.Serving",
+		"Section Section",
 		"Database core.Config",
 		"Credential core.Config",
 		"Scanner scan.Config",
+	)
+	mustnotcompile.RequireFields(t, "github.com/ppat/mediated-mailbox-mcp/api/app", "Section",
+		"TokenFile string",
+		"AccountReloadInterval time.Duration",
 		"ProviderTimeout time.Duration",
-		"LogLevel string",
 	)
 }
 
 func discard() *slog.Logger { return slog.New(slog.DiscardHandler) }
 
-// The API server's defaults are its two listeners, a reload each minute, the port, its own runtime role,
-// the TLS mode that fails closed, the driver's own pool size, the larger of 4 and the processor
-// count, the scanner configuration the application ships and a provider timeout of thirty seconds. The token file, the database host, name and password file and the key
-// files are required.
+// starter returns the starter of a host that serves nothing, for a test that assembles the API server
+// without serving it, so the API server's goroutines are the host's as in its process, and the host
+// waits for them when the test ends.
+func starter(t *testing.T) host.Starter {
+	t.Helper()
+	h, err := host.New(discard())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(h.Close)
+	return h.Starter("api")
+}
+
+// The API server's defaults are the process's, its two listeners and the info level, a reload each
+// minute, the port, its own runtime role, the TLS mode that fails closed, the driver's own pool size,
+// the larger of 4 and the processor count, the scanner configuration the application ships and a
+// provider timeout of thirty seconds. The token file, the database host, name and password file and
+// the key files are required.
 func TestTheDefaults(t *testing.T) {
 	want := Configuration{
-		Listen: ":8443", ProbeListen: ":8080", AccountReloadInterval: time.Minute,
+		Process:  host.Process{ProbeListen: ":8080", LogLevel: "info"},
+		Serving:  host.Serving{Listen: ":8443"},
+		Section:  Section{AccountReloadInterval: time.Minute, ProviderTimeout: 30 * time.Second},
 		Database: dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_api", SSLMode: "verify-full", PoolSize: max(4, runtime.NumCPU())},
-		Scanner:  scan.DefaultConfig(), ProviderTimeout: 30 * time.Second,
-		LogLevel: "info",
+		Scanner:  scan.DefaultConfig(),
 	}
 	if diff := cmp.Diff(want, defaults(), compare.Options); diff != "" {
 		t.Errorf("defaults (-want +got):\n%s", diff)
 	}
-	err := Run(t.Context(), nil, nil, io.Discard, discard(), new(slog.LevelVar))
+	err := Run(t.Context(), nil, nil, io.Discard, io.Discard, discard(), new(slog.LevelVar))
 	wantErr := "loading the configuration: token_file is required, and neither the file, MEDIATED_MAILBOX_TOKEN_FILE nor --token_file sets it"
 	if err == nil || err.Error() != wantErr {
 		t.Errorf("Run returned %v, want %q", err, wantErr)
 	}
 }
 
-// valid returns a configuration the API server starts with, serving TLS.
+// valid returns a configuration the API server starts with.
 func valid() Configuration {
 	c := defaults()
-	c.TLSCert, c.TLSKey, c.TokenFile = "/run/tls/crt", "/run/tls/key", "/run/token"
+	c.TokenFile = "/run/token"
 	c.Database.Host, c.Database.Name, c.Database.PasswordFile = "db", "mailbox", "/run/password"
 	c.Credential.PublicKeyFile, c.Credential.PrivateKeyFiles = "/run/keys/public", []string{"/run/keys/private"}
 	return c
 }
 
-// The configuration the API server cannot serve with is refused before anything is read or connected.
-// The TLS files are both set or both unset, a blank path counting as unset (ADR-0127). No account
-// reaches the API server from its configuration (ADR-0080).
+// The configuration the API server cannot serve with is refused before anything is read or connected,
+// past the process's sections, which the host refuses (ADR-0138). No account reaches the API server
+// from its configuration (ADR-0080).
 func TestAConfigurationTheAPIServerCannotServeWithIsRefused(t *testing.T) {
 	cases := []struct {
 		name   string
 		change func(*Configuration)
 		want   string
 	}{
-		{"TLS, both files set", func(*Configuration) {}, ""},
-		{"plain HTTP, neither file set", func(c *Configuration) { c.TLSCert, c.TLSKey = "", "" }, ""},
-		{"plain HTTP, both files blank", func(c *Configuration) { c.TLSCert, c.TLSKey = " ", "\t" }, ""},
-		{"a certificate without its key", func(c *Configuration) { c.TLSKey = "" }, "tls_cert is set and tls_key is not, and the API server serves TLS with both or plain HTTP with neither"},
-		{"a key without its certificate", func(c *Configuration) { c.TLSCert = "" }, "tls_key is set and tls_cert is not, and the API server serves TLS with both or plain HTTP with neither"},
-		{"a certificate with a blank key", func(c *Configuration) { c.TLSKey = "  " }, "tls_cert is set and tls_key is not, and the API server serves TLS with both or plain HTTP with neither"},
-		{"a key with a blank certificate", func(c *Configuration) { c.TLSCert = " " }, "tls_key is set and tls_cert is not, and the API server serves TLS with both or plain HTTP with neither"},
+		{"a valid configuration", func(*Configuration) {}, ""},
 		{"a blank token file path", func(c *Configuration) { c.TokenFile = " " }, "token_file is empty"},
 		{"a reload interval of zero", func(c *Configuration) { c.AccountReloadInterval = 0 }, "account_reload_interval 0s is not positive"},
 		{"a negative reload interval", func(c *Configuration) { c.AccountReloadInterval = -time.Second }, "account_reload_interval -1s is not positive"},
@@ -529,7 +549,7 @@ func TestAConfigurationTheAPIServerCannotServeWithIsRefused(t *testing.T) {
 // An argument that is not a configuration flag is refused, so no account reaches the API server from its
 // command line (ADR-0080).
 func TestAnAccountArgumentIsRefused(t *testing.T) {
-	err := Run(t.Context(), []string{"acct-a"}, nil, io.Discard, discard(), new(slog.LevelVar))
+	err := Run(t.Context(), []string{"acct-a"}, nil, io.Discard, io.Discard, discard(), new(slog.LevelVar))
 	if err == nil || !strings.Contains(err.Error(), "loading the configuration") {
 		t.Errorf("Run returned %v, want the argument refused", err)
 	}
@@ -574,7 +594,7 @@ func TestTheEffectiveConfigurationIsLogged(t *testing.T) {
 	// The key files do not exist, so the start stops at the keyring, after the log and before any
 	// connection is made.
 	err := Run(t.Context(), args(servingArgs, []string{"--database.host=db.example", "--database.password_file=" + passwordFile}, absentKeys),
-		[]string{"MEDIATED_MAILBOX_DATABASE__NAME=mailbox"}, io.Discard, logger, new(slog.LevelVar))
+		[]string{"MEDIATED_MAILBOX_DATABASE__NAME=mailbox"}, io.Discard, io.Discard, logger, new(slog.LevelVar))
 	if err == nil || !strings.HasPrefix(err.Error(), "loading the keyring: ") {
 		t.Fatalf("Run returned %v, want the keyring's refusal", err)
 	}
@@ -633,7 +653,7 @@ func TestACredentialInTheConfigurationRefusesTheStart(t *testing.T) {
 		{"a credential flag", []string{"--credential.refresh_token=a-token"}, nil},
 	} {
 		t.Run(c.name, func(t *testing.T) {
-			err := Run(t.Context(), args(servingArgs, database, absentKeys, c.args), c.environ, io.Discard, discard(), new(slog.LevelVar))
+			err := Run(t.Context(), args(servingArgs, database, absentKeys, c.args), c.environ, io.Discard, io.Discard, discard(), new(slog.LevelVar))
 			if err == nil || !strings.HasPrefix(err.Error(), "loading the configuration: ") {
 				t.Errorf("Run returned %v, want the configuration library's refusal", err)
 			}
@@ -671,7 +691,7 @@ func TestNoConfigurationValueWeakensTheGate(t *testing.T) {
 		{"a scanner section with nothing to match", []string{"--config-file=" + emptied}, nil, "validating the configuration: scanner: "},
 	} {
 		t.Run(c.name, func(t *testing.T) {
-			err := Run(t.Context(), args(servingArgs, database, absentKeys, c.args), c.environ, io.Discard, discard(), new(slog.LevelVar))
+			err := Run(t.Context(), args(servingArgs, database, absentKeys, c.args), c.environ, io.Discard, io.Discard, discard(), new(slog.LevelVar))
 			if err == nil || !strings.HasPrefix(err.Error(), c.want) {
 				t.Errorf("Run returned %v, want an error starting %q", err, c.want)
 			}
@@ -712,9 +732,9 @@ func TestThePublicKeyMustMatchAPrivateKey(t *testing.T) {
 	_, otherPublic := keyFiles(t, dir, "other")
 	start := func(public string, privates ...string) error {
 		keys := []string{"--credential.public_key_file=" + public, "--credential.private_key_files=[" + strings.Join(privates, ", ") + "]"}
-		return Run(t.Context(), args(servingArgs, database, keys), nil, io.Discard, discard(), new(slog.LevelVar))
+		return Run(t.Context(), args(servingArgs, database, keys), nil, io.Discard, io.Discard, discard(), new(slog.LevelVar))
 	}
-	pastTheKeyring := "configuring the database connection: reading the password file: "
+	pastTheKeyring := "configuring the database connection of mediated_mailbox_api: reading the password file: "
 	for _, c := range []struct {
 		name     string
 		public   string
@@ -745,84 +765,43 @@ func TestThePublicKeyMustMatchAPrivateKey(t *testing.T) {
 // (ADR-0086).
 func TestMCPGODEBUGStopsTheStart(t *testing.T) {
 	for _, value := range []string{"allowsessionsinstateless=1", ""} {
-		err := Run(t.Context(), nil, []string{"MCPGODEBUG=" + value}, io.Discard, discard(), new(slog.LevelVar))
+		err := Run(t.Context(), nil, []string{"MCPGODEBUG=" + value}, io.Discard, io.Discard, discard(), new(slog.LevelVar))
 		if err == nil || !strings.Contains(err.Error(), "MCPGODEBUG is set") {
 			t.Errorf("with MCPGODEBUG=%q, run returned %v", value, err)
 		}
 	}
 }
 
-// The API server reports ready only once the bearer token and, when it serves TLS, the key pair load
-// (ADR-0127). A mount that cannot serve a client leaves it not ready and stops the start.
-func TestReadyOnlyOnceTheKeysLoad(t *testing.T) {
+// The API server is assembled only when its bearer token file holds a token, so a mount that cannot
+// serve a client stops the start, and its readiness check passes only while the file holds one, so a
+// token file emptied or removed while the API server runs leaves it not ready (ADR-0051).
+func TestReadyOnlyWhileTheBearerTokenLoads(t *testing.T) {
 	dir := t.TempDir()
-	certFile, keyFile := filepath.Join(dir, "tls.crt"), filepath.Join(dir, "tls.key")
-	writeKeyPair(t, certFile, keyFile, 1)
 	absent := filepath.Join(dir, "absent")
-	token, empty := tokenFile(t, "s3cret"), tokenFile(t, "\n")
-	cases := []struct {
-		name string
-		c    Configuration
-		want bool
-	}{
-		{"TLS, with the key pair and a token", Configuration{TLSCert: certFile, TLSKey: keyFile, TokenFile: token}, true},
-		{"plain HTTP, with a token", Configuration{TokenFile: token}, true},
-		{"a certificate that is absent", Configuration{TLSCert: absent, TLSKey: keyFile, TokenFile: token}, false},
-		{"a key that does not match", Configuration{TLSCert: certFile, TLSKey: token, TokenFile: token}, false},
-		{"a token file that is absent", Configuration{TLSCert: certFile, TLSKey: keyFile, TokenFile: absent}, false},
-		{"a token file holding no token", Configuration{TokenFile: empty}, false},
-	}
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			var ready readiness.State
-			err := markReadyWhenServable(&ready, c.c)
-			if ready.Ready() != c.want || (err == nil) != c.want {
-				t.Errorf("ready %v with error %v, want ready %v", ready.Ready(), err, c.want)
-			}
-		})
-	}
-}
-
-// The API server refuses to start while PGPASSWORD or PGSSLPASSWORD is set, even to an empty value,
-// before it reads its configuration, because pgx reads either on every parse and it would win over the
-// mounted password file (ADR-0078).
-func TestAPasswordInTheEnvironmentStopsTheStart(t *testing.T) {
-	for _, name := range []string{"PGPASSWORD", "PGSSLPASSWORD"} {
-		for _, value := range []string{"s3cret", ""} {
-			err := Run(t.Context(), nil, []string{name + "=" + value}, io.Discard, discard(), new(slog.LevelVar))
-			if err == nil || !strings.Contains(err.Error(), "the environment sets "+name) {
-				t.Errorf("with %s=%q, run returned %v", name, value, err)
-			}
+	for name, file := range map[string]string{"absent": absent, "holding no token": tokenFile(t, "\n")} {
+		reg, _ := counted(t)
+		if _, err := parts(&serving{registry: reg, logger: discard()}, Section{TokenFile: file, AccountReloadInterval: time.Hour}, discard()); err == nil {
+			t.Errorf("a token file %s was assembled", name)
 		}
 	}
-}
-
-// The refusal of a password variable comes before the start uses the configuration it read, so a
-// start whose environment sets one logs no value and connects nowhere. The configuration file named
-// here does not exist, so a refusal moved anywhere after the read's error is checked reports the
-// missing file's error instead of the refusal.
-func TestAPasswordVariableIsRefusedBeforeTheConfigurationIsRead(t *testing.T) {
-	dir := t.TempDir()
-	private, public := keyFiles(t, dir, "key")
-	password := filepath.Join(dir, "password")
-	if err := os.WriteFile(password, []byte("s3cret"), 0o600); err != nil {
+	token := tokenFile(t, "s3cret")
+	reg, _ := counted(t)
+	p, err := parts(&serving{registry: reg, logger: discard()}, Section{TokenFile: token, AccountReloadInterval: time.Hour}, discard())
+	if err != nil {
 		t.Fatal(err)
 	}
-	var out bytes.Buffer
-	logger := slog.New(slog.NewTextHandler(&out, nil))
-	full := args(servingArgs, []string{
-		"--config-file=" + filepath.Join(dir, "absent.yaml"),
-		"--database.host=127.0.0.1", "--database.port=1", "--database.name=mailbox",
-		"--database.password_file=" + password, "--database.sslmode=disable",
-		"--credential.public_key_file=" + public, "--credential.private_key_files=[" + private + "]",
-	})
-	err := Run(t.Context(), full, []string{"PGPASSWORD=s3cret"}, io.Discard, logger, new(slog.LevelVar))
-	want := "the environment sets PGPASSWORD, and the database password comes only from the mounted password file"
-	if err == nil || err.Error() != want {
-		t.Errorf("Run returned %v, want %q", err, want)
+	ready := func() error { return p.Ready[0].Check(t.Context()) }
+	got := map[string]bool{"a token": ready() == nil}
+	if err := os.WriteFile(token, []byte(" \n"), 0o600); err != nil {
+		t.Fatal(err)
 	}
-	if out.Len() != 0 {
-		t.Errorf("the start logged before refusing the password variable:\n%s", out.String())
+	got["emptied"] = ready() == nil
+	if err := os.Remove(token); err != nil {
+		t.Fatal(err)
+	}
+	got["removed"] = ready() == nil
+	if diff := cmp.Diff(map[string]bool{"a token": true, "emptied": false, "removed": false}, got, compare.Options); diff != "" {
+		t.Errorf("ready (-want +got):\n%s", diff)
 	}
 }
 
@@ -835,47 +814,6 @@ func loopback(t *testing.T) net.Listener {
 		t.Fatal(err)
 	}
 	return ln
-}
-
-// A start whose bearer token file holds no token fails, and the readiness probe never answers ready
-// while it runs (ADR-0051). The probe is polled for as long as the start runs.
-func TestAStartThatCannotServeFailsAndNeverReportsReady(t *testing.T) {
-	surfaceListener, probeListener := loopback(t), loopback(t)
-	probe := probeListener.Addr().String()
-	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
-	defer cancel()
-	reg, _ := counted(t)
-	c := Configuration{TokenFile: tokenFile(t, "\n"), AccountReloadInterval: time.Hour}
-	done := make(chan error, 1)
-	go func() {
-		done <- serve(ctx, c, surfaceListener, probeListener, &serving{registry: reg, logger: discard()}, prometheus.NewRegistry(), discard())
-	}()
-	client := &http.Client{Timeout: 200 * time.Millisecond}
-	sawReady := false
-	for running := true; running; {
-		select {
-		case err := <-done:
-			running = false
-			if err == nil || !strings.Contains(err.Error(), "holds no token") {
-				t.Errorf("serve returned %v, want the blank token refused", err)
-			}
-		default:
-			req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://"+probe+"/readyz", nil)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if resp, err := client.Do(req); err == nil {
-				sawReady = sawReady || resp.StatusCode == http.StatusOK
-				if err := resp.Body.Close(); err != nil {
-					t.Error(err)
-				}
-			}
-			time.Sleep(10 * time.Millisecond)
-		}
-	}
-	if sawReady {
-		t.Error("the readiness probe answered ready for a start that cannot serve a client")
-	}
 }
 
 // Every response of the client surface carries Cache-Control: no-store and no ETag, whichever root
@@ -937,56 +875,5 @@ func TestNoStoreOverridesAHandlersCaching(t *testing.T) {
 		if got := rec.Header().Values("ETag"); len(got) != 0 {
 			t.Errorf("%s: ETag %q", name, got)
 		}
-	}
-}
-
-// The start writes the effective configuration with each value's source before the level applies,
-// then sets the level of the logger it was handed from log_level. So whatever the level, a refused
-// value's source is written, log_level's own included, and once the level is set no record below it
-// is written. A level that names none is refused (ADR-0078, ADR-0122).
-func TestTheConfiguredLevelGovernsTheLog(t *testing.T) {
-	refused := func(name string) string {
-		return `validating the configuration: log_level "` + name + `" is not one of debug, info, warn and error`
-	}
-	logLevelFrom := func(source, value string) string {
-		return `"msg":"configuration","path":"log_level","source":"` + source + `","value":"` + value + `"`
-	}
-	cases := []struct {
-		name    string
-		args    []string
-		environ []string
-		wantErr string
-		// wantLine is a record the start must write, whatever the level.
-		wantLine string
-		// wantInfo is whether an info record is written once the start has returned.
-		wantInfo bool
-	}{
-		{name: "no level", wantErr: "loading the keyring: ", wantLine: logLevelFrom("default", "info"), wantInfo: true},
-		{name: "info", args: []string{"--log_level=info"}, wantErr: "loading the keyring: ", wantLine: logLevelFrom("flag --log_level", "info"), wantInfo: true},
-		{name: "warn", args: []string{"--log_level=warn"}, wantErr: "loading the keyring: ", wantLine: logLevelFrom("flag --log_level", "warn")},
-		{name: "error, from the environment", environ: []string{"MEDIATED_MAILBOX_LOG_LEVEL=error"}, wantErr: "loading the keyring: ", wantLine: logLevelFrom("environment variable MEDIATED_MAILBOX_LOG_LEVEL", "error")},
-		{name: "a name in upper case", args: []string{"--log_level=INFO"}, wantErr: refused("INFO"), wantLine: logLevelFrom("flag --log_level", "INFO"), wantInfo: true},
-		{name: "an offset", args: []string{"--log_level=info+2"}, wantErr: refused("info+2"), wantLine: logLevelFrom("flag --log_level", "info+2"), wantInfo: true},
-		{name: "warning", environ: []string{"MEDIATED_MAILBOX_LOG_LEVEL=warning"}, wantErr: refused("warning"), wantLine: logLevelFrom("environment variable MEDIATED_MAILBOX_LOG_LEVEL", "warning"), wantInfo: true},
-		{name: "a refused value at warn", args: append([]string{"--log_level=warn"}, []string{"--provider_timeout=0s"}...), wantErr: "validating the configuration: provider_timeout 0s is not positive", wantLine: `"msg":"configuration","path":"provider_timeout","source":"flag --provider_timeout","value":0`},
-	}
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			var out bytes.Buffer
-			level := new(slog.LevelVar)
-			logger := slog.New(slog.NewJSONHandler(&out, &slog.HandlerOptions{Level: level}))
-			err := Run(t.Context(), append(args(servingArgs, database, absentKeys), c.args...), c.environ, io.Discard, logger, level)
-			if err == nil || !strings.HasPrefix(err.Error(), c.wantErr) {
-				t.Fatalf("Run returned %v, want %q", err, c.wantErr)
-			}
-			if !strings.Contains(out.String(), c.wantLine) {
-				t.Errorf("the start did not write %s:\n%s", c.wantLine, out.String())
-			}
-			out.Reset()
-			logger.Info("after the start")
-			if written := out.Len() != 0; written != c.wantInfo {
-				t.Errorf("an info record after the start was written: %v, want %v", written, c.wantInfo)
-			}
-		})
 	}
 }

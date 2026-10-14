@@ -1,0 +1,18 @@
+control: A process's servers close an idle connection and cut off a request that has not arrived within their limits, and bound no answer
+removes: the servers set no read limit, so a client that stops sending its body holds its connection
+packages: ./process/host
+tests: TestTheConnectionLimits TestTheServersCloseIdleAndSlowConnectionsAndNeverCutAnAnswer
+scheduled-count: no
+
+diff --git a/process/host/host.go b/process/host/host.go
+index 7e940118..13097791 100644
+--- a/process/host/host.go
++++ b/process/host/host.go
+@@ -589,7 +589,6 @@ func newServer(h http.Handler, logger *slog.Logger) *http.Server {
+ 	return &http.Server{
+ 		Handler:           h,
+ 		ReadHeaderTimeout: connectionLimits.Header,
+-		ReadTimeout:       connectionLimits.Read,
+ 		IdleTimeout:       connectionLimits.Idle,
+ 		ErrorLog:          logging.ServerErrorLog(logger),
+ 	}

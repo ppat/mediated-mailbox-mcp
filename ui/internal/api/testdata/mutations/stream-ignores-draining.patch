@@ -1,0 +1,20 @@
+control: The UI's event stream ends when the process begins to drain
+removes: an open event stream ignores the draining context, so it holds the stop until the drain times out
+packages: ./ui/internal/api
+tests: TestTheStreamEndsWhenTheProcessDrains
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/api/stream.go b/ui/internal/api/stream.go
+index ac966afa..6afd5943 100644
+--- a/ui/internal/api/stream.go
++++ b/ui/internal/api/stream.go
+@@ -116,8 +116,6 @@ func (s *Server) streamEvents(w http.ResponseWriter, r *http.Request) {
+ 		select {
+ 		case <-r.Context().Done():
+ 			return
+-		case <-s.draining():
+-			return
+ 		case <-ticker.C:
+ 		}
+ 	}

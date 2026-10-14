@@ -1,0 +1,25 @@
+control: The UI's event stream ends when the process begins to drain
+removes: every event stream ends after its first poll, as if the process were always draining
+packages: ./ui/internal/api
+tests: TestTheStreamEndsWhenTheProcessDrains
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/api/server.go b/ui/internal/api/server.go
+index 5b39be92..14b43e4c 100644
+--- a/ui/internal/api/server.go
++++ b/ui/internal/api/server.go
+@@ -282,10 +282,9 @@ func (s *Server) Ready(ctx context.Context) error {
+ // draining returns what ends when the process begins to stop serving requests, or nil, which never
+ // ends, when the server was given nothing.
+ func (s *Server) draining() <-chan struct{} {
+-	if s.opts.Draining == nil {
+-		return nil
+-	}
+-	return s.opts.Draining.Done()
++	closed := make(chan struct{})
++	close(closed)
++	return closed
+ }
+ 
+ // named records the route pattern for the log line.

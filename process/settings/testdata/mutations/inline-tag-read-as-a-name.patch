@@ -1,0 +1,19 @@
+control: An inline section's values sit at the paths of the section that embeds it
+removes: the inline tag is read as a name, so a root composed from inline sections is refused
+packages: ./process/settings
+tests: TestAnInlineSectionsValuesSitBesideTheSectionsOwn
+scheduled-count: no
+
+diff --git a/process/settings/declaration.go b/process/settings/declaration.go
+index 6c7a7aaa..a8ec9a4d 100644
+--- a/process/settings/declaration.go
++++ b/process/settings/declaration.go
+@@ -80,7 +80,7 @@ func declareType(t reflect.Type, path string, inValue bool) (*node, error) {
+ 		for i := range t.NumField() {
+ 			f := t.Field(i)
+ 			name := f.Tag.Get("yaml")
+-			if f.Anonymous && name == inlineTag {
++			if false && f.Anonymous && name == inlineTag {
+ 				if err := declareInline(n, f, i, path, inValue); err != nil {
+ 					return nil, err
+ 				}

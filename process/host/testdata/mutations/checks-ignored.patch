@@ -1,0 +1,20 @@
+control: A process answers ready only while it serves and every readiness check of every component it hosts passes
+removes: the readiness probe answers ready without running any component's check
+packages: ./process/host
+tests: TestTheOperationsEndpoints
+scheduled-count: no
+
+diff --git a/process/host/host.go b/process/host/host.go
+index e4eb2a02..987cae0a 100644
+--- a/process/host/host.go
++++ b/process/host/host.go
+@@ -452,7 +452,8 @@ func (h *Host) Serve(ctx context.Context, l Listeners, s Serving) error {
+ 		for _, c := range components {
+ 			for _, check := range c.parts.Ready {
+ 				checking, cancel := context.WithTimeout(r.Context(), checkTimeout)
+-				err := check.Check(checking)
++				err := error(nil)
++				_, _ = check.Check, checking
+ 				cancel()
+ 				if err != nil {
+ 					h.logger.DebugContext(r.Context(), "a readiness check failed", componentLabel, c.name, "check", check.Name, "error", err)

@@ -1,0 +1,21 @@
+control: The worker answers ready once each job kind's pool answers and each job kind's reload has succeeded
+removes: a reload that fails marks its job kind as reloaded, so a worker that cannot read its accounts reports ready
+packages: ./worker/app
+tests: TestAReloadThatFailsLeavesItsJobKindNotReady
+scheduled-count: no
+
+diff --git a/worker/app/app.go b/worker/app/app.go
+index 809f079e..357eb162 100644
+--- a/worker/app/app.go
++++ b/worker/app/app.go
+@@ -360,9 +360,7 @@ func assemble(ctx context.Context, n Needs) (*worker, error) {
+ 		run := job.Run
+ 		job.Run = func(ctx context.Context, ask schedule.Ask) error {
+ 			err := run(ctx, ask)
+-			if err == nil {
+-				r.done.Store(true)
+-			}
++			r.done.Store(true)
+ 			return err
+ 		}
+ 		r.job = job

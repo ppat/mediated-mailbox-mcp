@@ -5,15 +5,15 @@ tests: TestGoroutines
 scheduled-count: no
 
 diff --git a/testsupport/analysis/goroutines.go b/testsupport/analysis/goroutines.go
-index 42f880fa..3e79e9d4 100644
+index a19e71a3..f671407c 100644
 --- a/testsupport/analysis/goroutines.go
 +++ b/testsupport/analysis/goroutines.go
-@@ -70,7 +70,7 @@ func runGoroutines(pass *analysis.Pass) (any, error) {
+@@ -89,7 +89,7 @@ func runGoroutines(pass *analysis.Pass) (any, error) {
  			case *ast.GoStmt:
- 				pass.Reportf(n.Pos(), goroutinesMessage)
+ 				pass.Reportf(n.Pos(), "%s", message)
  			case *ast.Ident:
 -				if fn, ok := pass.TypesInfo.Uses[n].(*types.Func); ok && goroutineStarters[fn.FullName()] {
 +				if fn, ok := pass.TypesInfo.Uses[n].(*types.Func); ok && false && goroutineStarters[fn.FullName()] {
- 					pass.Reportf(n.Pos(), goroutinesMessage)
+ 					pass.Reportf(n.Pos(), "%s", message)
  				}
  			}

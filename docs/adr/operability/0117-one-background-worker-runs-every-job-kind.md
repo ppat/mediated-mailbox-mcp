@@ -100,7 +100,10 @@ roles with each one.
   [ADR-0042](../engineering/0042-implementation-stack.md) already allows for an embedding service.
 - **Observability per job kind inside the worker.** Every shared metric series stays attributable
   to the job kind that produced it, the library series for request cost, leases, throttles and the
-  policy reload included. Logs carry the job kind and the account. Liveness is reported per job.
+  policy reload included. Logs carry the job kind and the account. Liveness is reported per job,
+  and the worker reports ready once each job kind's pool answers as its role and each job kind's
+  reload has succeeded
+  ([ADR-0138](../engineering/0138-one-host-runs-each-process-and-each-component-provides-its-parts.md)).
   Something alerts when the worker stops
   ([ADR-0077](./0077-conditions-raised-as-alerting-rules.md)). A panic in one job does not take down
   the others.

@@ -1,0 +1,19 @@
+control: A process answers ready only while it serves and every readiness check of every component it hosts passes
+removes: the readiness probe runs the first component's checks alone, so a later component that is not ready leaves the process ready
+packages: ./process/host
+tests: TestTheOperationsEndpoints
+scheduled-count: no
+
+diff --git a/process/host/host.go b/process/host/host.go
+index 7e940118..ce3d24b2 100644
+--- a/process/host/host.go
++++ b/process/host/host.go
+@@ -453,7 +453,7 @@ func (h *Host) Serve(ctx context.Context, l Listeners, s Serving) error {
+ 		if !serving.Load() {
+ 			return false, "not ready"
+ 		}
+-		for _, c := range components {
++		for _, c := range components[:1] {
+ 			for _, check := range c.parts.Ready {
+ 				checking, cancel := context.WithTimeout(r.Context(), checkTimeout)
+ 				err := check.Check(checking)

@@ -1,21 +1,20 @@
 control: The serving API server reloads its account snapshot on the interval its configuration sets
-removes: the serving API server starts no scheduled reload
+removes: the API server's reload task waits for the stop and reloads nothing
 packages: ./api/app
 tests: TestTheAPIServerReloadsOnItsInterval
 scheduled-count: no
 integration: yes
 
-
 diff --git a/api/app/app.go b/api/app/app.go
-index 8f9657ee..c4d12e7a 100644
+index 843a78ed..248d7e33 100644
 --- a/api/app/app.go
 +++ b/api/app/app.go
-@@ -260,7 +260,7 @@ func serve(ctx context.Context, c Configuration, surfaceListener, probeListener
- 	errs := make(chan error, 3)
- 	go func() { errs <- serveSurface(surfaceServer, surfaceListener) }()
- 	go func() { errs <- serveProbes(probeServer, probeListener) }()
--	go served.reloadEvery(reloading, c.AccountReloadInterval)
-+	_ = reloading
- 	if err := markReadyWhenServable(&ready, c); err != nil {
- 		errs <- err
- 	}
+@@ -295,7 +295,7 @@ func parts(served *serving, s Section, logger *slog.Logger) (host.Parts, error)
+ 			return tokenReadable(s.TokenFile)
+ 		}}},
+ 		Tasks: []host.Task{{Name: "account reload", Run: func(ctx context.Context) error {
+-			served.reloadEvery(ctx, s.AccountReloadInterval)
++			<-ctx.Done()
+ 			return nil
+ 		}}},
+ 	}, nil

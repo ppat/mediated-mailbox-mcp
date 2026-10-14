@@ -1,0 +1,19 @@
+control: Each deployable logs at the level its configuration sets
+removes: the host reads log_level and never sets the level variable, so the logger stays at info
+packages: ./process/host
+tests: TestTheConfiguredLevelGovernsTheLog/warn TestTheConfiguredLevelGovernsTheLog/error,_from_the_environment TestTheConfiguredLevelGovernsTheLog/a_refused_value_at_error
+scheduled-count: no
+
+diff --git a/process/host/host.go b/process/host/host.go
+index f5afd783..60599e87 100644
+--- a/process/host/host.go
++++ b/process/host/host.go
+@@ -214,7 +214,7 @@ func Run[T any](ctx context.Context, args, environ []string, stdout, stderr io.W
+ 	if err != nil {
+ 		return fmt.Errorf("validating the configuration: %w", err)
+ 	}
+-	level.Set(lv)
++	_ = lv
+ 	var serving Serving
+ 	if spec.Serving != nil {
+ 		serving = spec.Serving(loaded.Config)

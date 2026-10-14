@@ -45,7 +45,9 @@ carries an advisory on the code path used here.
   lines. Measured in a scratch program, a label value holding a quote and a newline came out
   escaped as the format requires.
 - **Each process builds one registry with `prometheus.NewRegistry()`** and passes it to whatever
-  registers metrics. The handler serves that registry through `promhttp.HandlerFor`.
+  registers metrics, through a registerer that labels every series a component registers with the
+  component's name ([ADR-0138](./0138-one-host-runs-each-process-and-each-component-provides-its-parts.md)).
+  The handler serves that registry through `promhttp.HandlerFor`.
 
 The table gives what the library's ordinary path does that this project forbids.
 

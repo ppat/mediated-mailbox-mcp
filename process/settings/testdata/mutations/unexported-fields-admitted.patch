@@ -5,11 +5,11 @@ tests: TestADeclarationThatCannotBeConfiguredIsRefused/an_unexported_field
 scheduled-count: no
 
 diff --git a/process/settings/declaration.go b/process/settings/declaration.go
-index 43acc05..1eb7c07 100644
+index 6c7a7aaa..1a7b6a09 100644
 --- a/process/settings/declaration.go
 +++ b/process/settings/declaration.go
-@@ -79,8 +79,6 @@ func declareType(t reflect.Type, path string, inValue bool) (*node, error) {
- 			name := f.Tag.Get("yaml")
+@@ -88,8 +88,6 @@ func declareType(t reflect.Type, path string, inValue bool) (*node, error) {
+ 			}
  			at := join(path, name)
  			switch {
 -			case !f.IsExported():

@@ -19,8 +19,8 @@ const (
 )
 
 // OpenPool opens a pool from config with every statement its connections run timed by the tracer
-// and its statistics collected, both on reg. Each composition root opens its pools through it, so
-// every pool is measured alike (ADR-0125, ADR-0050). It opens no connection until the pool's first
+// and its statistics collected, both on reg. The host opens every pool a composition root asks for
+// through it, so every pool is measured alike (ADR-0125, ADR-0050, ADR-0138). It opens no connection until the pool's first
 // use, as pgxpool.NewWithConfig does.
 func OpenPool(ctx context.Context, config *pgxpool.Config, reg prometheus.Registerer) (*pgxpool.Pool, error) {
 	tracer, err := NewTracer(reg)

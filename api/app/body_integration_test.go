@@ -196,27 +196,15 @@ func newHarness(t *testing.T) *harness {
 		t.Fatal(err)
 	}
 	h.fake = f
-	h.served, err = newServing(t.Context(), h.pool, ring, h.metrics, slog.New(slog.NewJSONHandler(h.log, nil)))
+	a, err := assemble(t.Context(), Needs{
+		Section: Section{TokenFile: bearerToken(t), AccountReloadInterval: time.Hour, ProviderTimeout: providerTimeout},
+		Pool:    h.pool, Keys: ring, Scanner: scanner(t), Registerer: h.metrics, Logger: slog.New(slog.NewJSONHandler(h.log, nil)),
+		Start: starter(t),
+	}, session.Connect(h.source, h.connect), leaseWaitLimit)
 	if err != nil {
 		t.Fatal(err)
 	}
-	bodies, opener, err := newBodies(h.served, session.Connect(h.source, h.connect), scanner(t), providerTimeout, leaseWaitLimit, h.metrics)
-	if err != nil {
-		t.Fatal(err)
-	}
-	h.providers = opener
-	ops, err := timed(service.Operations(sources(h.pool, h.served, bodies)), h.metrics)
-	if err != nil {
-		t.Fatal(err)
-	}
-	h.reg, err = service.NewRegistry(nil, ops...)
-	if err != nil {
-		t.Fatal(err)
-	}
-	h.served.registry = h.reg
-	if err := h.served.reload(t.Context()); err != nil {
-		t.Fatal(err)
-	}
+	h.served, h.providers, h.reg = a.served, a.providers, a.served.registry
 	return h
 }
 

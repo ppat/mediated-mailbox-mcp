@@ -18,14 +18,13 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/prometheus/client_golang/prometheus"
 
-	"github.com/ppat/mediated-mailbox-mcp/api/internal/service"
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/core/redact"
 	"github.com/ppat/mediated-mailbox-mcp/core/sensitivity"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/session"
+	"github.com/ppat/mediated-mailbox-mcp/process/host"
 	"github.com/ppat/mediated-mailbox-mcp/provider/fake"
 	"github.com/ppat/mediated-mailbox-mcp/provider/gmail"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/fixture"
@@ -63,7 +62,7 @@ func exerciseCorpus() []exerciseMessage {
 
 // The manual exercises of the live agent against the invariant (docs/VERIFICATIONS.md, unit D3) run
 // against this harness. It serves one account holding the exercise corpus through the client surface
-// as the composition root builds it, over the provider fake, with the bank's domain restricted by a
+// as the API server's assembly builds it and the host serves it, over the provider fake, with the bank's domain restricted by a
 // base rule. The index is written as backfill's two passes write it, with each subject masked,
 // each sender classified under the policy, each unrestricted body scanned and its verdict stored,
 // and each sender's statistics built. The harness listens on the address the variable names, over
@@ -86,46 +85,39 @@ func TestServeTheExerciseCorpusToALiveAgent(t *testing.T) {
 	must(t, conn, `INSERT INTO policy_rules (account_id, rule_id, class, domain_suffix, source, created_by)
 		VALUES (NULL, 'base.bank', 'restricted', ARRAY['bank.example'], 'operator', 'exercise')`)
 
-	pool := apiServer(t)
-	metrics := prometheus.NewRegistry()
-	served, err := newServing(t.Context(), pool, ring, metrics, slog.New(slog.NewTextHandler(os.Stderr, nil)))
-	if err != nil {
-		t.Fatal(err)
-	}
 	// The connector reads the fake when the body operation opens the account, after the corpus is seeded.
 	var f *fake.Fake
 	connector := func(string, *gmail.TokenSource) (mail.Port[context.Context], error) {
 		return fake.Throttle(f, func(fake.Call) error { return nil }, time.Now), nil
 	}
-	bodies, _, err := newBodies(served, session.Connect(gmailSource, connector), scanner(t), 30*time.Second, time.Minute, metrics)
-	if err != nil {
-		t.Fatal(err)
-	}
-	reg, err := service.NewRegistry(nil, service.Operations(sources(pool, served, bodies))...)
-	if err != nil {
-		t.Fatal(err)
-	}
-	served.registry = reg
-	if err := served.reload(t.Context()); err != nil {
-		t.Fatal(err)
-	}
-	f = seedExercise(t, conn, account, served.policy(account))
 	token := strings.ToLower(rand.Text())
 	tokenPath := filepath.Join(t.TempDir(), "token")
 	if err := os.WriteFile(tokenPath, []byte(token), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	handler, err := surface(reg, tokenPath, slog.New(slog.NewTextHandler(os.Stderr, nil)))
+	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
+	h, err := host.New(logger)
 	if err != nil {
 		t.Fatal(err)
 	}
+	a, err := assemble(h.Context(), Needs{
+		Section: Section{TokenFile: tokenPath, AccountReloadInterval: time.Minute, ProviderTimeout: 30 * time.Second},
+		Pool:    apiServer(t), Keys: ring, Scanner: scanner(t), Registerer: h.Registerer("api"), Logger: h.Logger("api"),
+		Start: h.Starter("api"),
+	}, session.Connect(gmailSource(http.DefaultClient), connector), leaseWait)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f = seedExercise(t, conn, account, a.served.policy(account))
+	h.Add("api", Mount, a.parts)
 	ln, err := net.Listen("tcp", address)
 	if err != nil {
 		t.Fatal(err)
 	}
-	srv := &http.Server{Handler: handler, ReadHeaderTimeout: 10 * time.Second}
-	serving := make(chan error, 1)
-	go func() { serving <- srv.Serve(ln) }()
+	probes, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(errors.Join(err, ln.Close()))
+	}
 	fmt.Fprintf(os.Stderr, "\nexercise: serving account %q at http://%s\n", account, ln.Addr())
 	fmt.Fprintf(os.Stderr, "exercise: MCP root http://%s/mcp, API root http://%s/api/accounts\n", ln.Addr(), ln.Addr())
 	fmt.Fprintf(os.Stderr, "exercise: bearer token %s\n", token)
@@ -133,13 +125,7 @@ func TestServeTheExerciseCorpusToALiveAgent(t *testing.T) {
 
 	stop, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
-	<-stop.Done()
-	shutdown, done := context.WithTimeout(context.Background(), 5*time.Second)
-	defer done()
-	if err := srv.Shutdown(shutdown); err != nil {
-		t.Error(err)
-	}
-	if err := <-serving; !errors.Is(err, http.ErrServerClosed) {
+	if err := h.Serve(stop, host.Listeners{App: ln, Probes: probes}, host.Serving{}); err != nil {
 		t.Error(err)
 	}
 	printAudit(t, conn, account)

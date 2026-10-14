@@ -1,0 +1,20 @@
+control: The effective configuration is logged at start, each value with its source
+removes: the effective configuration is not logged
+packages: ./api/app ./ui/app ./worker/app
+tests: TestTheEffectiveConfigurationIsLogged
+scheduled-count: no
+
+diff --git a/process/host/host.go b/process/host/host.go
+index f5afd783..319a6930 100644
+--- a/process/host/host.go
++++ b/process/host/host.go
+@@ -206,9 +206,6 @@ func Run[T any](ctx context.Context, args, environ []string, stdout, stderr io.W
+ 	}
+ 	// The effective configuration is written before the level applies, so a refused value's source,
+ 	// log_level's included, reaches the log whatever level the configuration sets (ADR-0078, ADR-0122).
+-	for _, v := range loaded.Values {
+-		logger.Info("configuration", "path", v.Path, "source", v.Source.String(), "value", v.Value)
+-	}
+ 	process := spec.Process(loaded.Config)
+ 	lv, err := processLevel(process)
+ 	if err != nil {

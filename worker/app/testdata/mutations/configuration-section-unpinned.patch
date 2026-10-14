@@ -5,13 +5,14 @@ tests: TestTheConfigurationTypeIsPinned
 scheduled-count: no
 
 diff --git a/worker/app/app.go b/worker/app/app.go
+index 809f079e..45931de4 100644
 --- a/worker/app/app.go
 +++ b/worker/app/app.go
-@@ -59,6 +59,7 @@
- 	LogLevel string   `yaml:"log_level"`
- 	Backfill Backfill `yaml:"backfill"`
- 	Sync     Sync     `yaml:"sync"`
-+	Extra    Backfill `yaml:"extra"`
+@@ -67,6 +67,7 @@ type Section struct {
+ 	ReloadInterval time.Duration `yaml:"reload_interval"`
+ 	Backfill       Backfill      `yaml:"backfill"`
+ 	Sync           Sync          `yaml:"sync"`
++	Extra          Backfill      `yaml:"extra"`
  }
  
  // Database is the worker's database section. The server is named once, and each job kind connects as

@@ -1,0 +1,20 @@
+control: A goroutine a component starts through the host's starter is the host's, recovered as the component's failure, waited for before the pools close, and refused once the host waits
+removes: a starter starts a goroutine after the host has waited for them, one that may run after the pools close
+packages: ./process/host
+tests: TestAStartedGoroutineIsTheHosts
+scheduled-count: no
+
+diff --git a/process/host/host.go b/process/host/host.go
+index 7063aa61..e1260c93 100644
+--- a/process/host/host.go
++++ b/process/host/host.go
+@@ -405,9 +405,6 @@ func (h *Host) Starter(component string) Starter {
+ 	return func(name string, run func(context.Context)) bool {
+ 		h.startedMu.Lock()
+ 		defer h.startedMu.Unlock()
+-		if h.joining {
+-			return false
+-		}
+ 		h.started.Add(1)
+ 		go func() {
+ 			defer h.started.Done()

@@ -1,0 +1,18 @@
+control: A background task's panic or failure is its own and stops the process in order, and every task is joined before the pools close
+removes: the process stops without waiting for its tasks, so the pools close under a task still running
+packages: ./process/host
+tests: TestATaskPanicIsItsFailure TestATaskFailureStopsTheProcess TestTheProcessStopsInOrder
+scheduled-count: no
+
+diff --git a/process/host/host.go b/process/host/host.go
+index 7063aa61..fb9acbb9 100644
+--- a/process/host/host.go
++++ b/process/host/host.go
+@@ -593,7 +593,6 @@ func (h *Host) Serve(ctx context.Context, l Listeners, s Serving) error {
+ 		err = errors.Join(err, shutdownServer(shutdown, app))
+ 	}
+ 	h.stopRun()
+-	running.Wait()
+ 	h.joinStarted()
+ 	return errors.Join(err, drained(failed), h.startedFailures(), shutdownServer(shutdown, probeServer))
+ }

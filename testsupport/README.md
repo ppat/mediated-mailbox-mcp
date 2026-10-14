@@ -41,7 +41,8 @@ an image, because only test files and the tooling programs import it. Its packag
   ADR-0078's rule against reading the environment outside a deployable's `main.go`, ADR-0047's
   rule that every generated data-access function runs inside the transaction helper, and
   ADR-0119's rule that the worker's job code starts a goroutine only through its scheduler's
-  helper, and ADR-0117's rule that no code of this project imports `unsafe` or takes an unsafe
+  helper, ADR-0138's rule that the API server's and the UI's code start a goroutine only through
+  the host's starter, and ADR-0117's rule that no code of this project imports `unsafe` or takes an unsafe
   pointer from `reflect`.
 - `helmchart`, the render of the chart under `packaging/chart` with the pinned `helm` and the chart's
   required values, which the chart's own tests and each deployable's test of the file the chart

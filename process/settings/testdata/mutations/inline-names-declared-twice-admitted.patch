@@ -1,0 +1,20 @@
+control: A declaration the layers cannot name or set is refused before any layer is read
+removes: a name an inline section declares beside the embedding section's own field of that name is no longer refused
+packages: ./process/settings
+tests: TestADeclarationThatCannotBeConfiguredIsRefused/a_name_an_inline_section_also_declares TestADeclarationThatCannotBeConfiguredIsRefused/a_name_an_inline_section_in_a_list_also_declares
+scheduled-count: no
+
+diff --git a/process/settings/declaration.go b/process/settings/declaration.go
+index 6c7a7aaa..9616735c 100644
+--- a/process/settings/declaration.go
++++ b/process/settings/declaration.go
+@@ -163,9 +163,6 @@ func declareInline(n *node, f reflect.StructField, i int, path string, inValue b
+ 		return err
+ 	}
+ 	for _, g := range inner.fields {
+-		if _, ok := n.field(g.name); ok {
+-			return fmt.Errorf("%s is declared twice", join(path, g.name))
+-		}
+ 		g.index = append([]int{i}, g.index...)
+ 		n.fields = append(n.fields, g)
+ 	}

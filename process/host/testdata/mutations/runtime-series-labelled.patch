@@ -1,0 +1,19 @@
+control: Every series a component registers carries its name as the component label, and the runtime series carry none
+removes: the runtime series are registered under a component label, as if a component owned them
+packages: ./process/host
+tests: TestTheOperationsEndpoints
+scheduled-count: no
+
+diff --git a/process/host/host.go b/process/host/host.go
+index 7063aa61..22b7a392 100644
+--- a/process/host/host.go
++++ b/process/host/host.go
+@@ -349,7 +349,7 @@ type component struct {
+ // registered on it once (ADR-0125).
+ func New(logger *slog.Logger) (*Host, error) {
+ 	registry := prometheus.NewRegistry()
+-	if err := runtimemetrics.Register(registry); err != nil {
++	if err := runtimemetrics.Register(prometheus.WrapRegistererWith(prometheus.Labels{componentLabel: "process"}, registry)); err != nil {
+ 		return nil, err
+ 	}
+ 	h := &Host{logger: logger, registry: registry, failed: make(chan struct{})}

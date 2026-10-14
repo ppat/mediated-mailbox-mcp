@@ -52,6 +52,7 @@ on:
     - ui/main.go
     - ui/app/**
     - ui/internal/**
+    - ui/browser/bundle.go
     - ui/browser/package.json
     - ui/browser/bun.lock
     - ui/browser/bunfig.toml
