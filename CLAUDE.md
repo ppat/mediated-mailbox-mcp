@@ -421,7 +421,7 @@ condition either. Its triggers alone decide when it runs, and the workflows that
   ticket's State, and every ticket is a sub-issue of the issue its work is placed in. A point's
   issue can also hold a checklist, and tickets of the operator's deployment repositories as
   sub-issues. These issues and [#118](https://github.com/ppat/mediated-mailbox-mcp/issues/118), of
-  which they are sub-issues and which lists them with their units and their ticket counts, are the
+  which they are sub-issues and which lists them with their status, their units and their ticket counts, are the
   epics ([Glossary](./DESIGN.md#glossary)). The issues of a point's increments close together once
   ROADMAP.md on `main` lists every unit of those increments as delivered and every ticket under them
   is built. Closing the point's issue crosses the point, which the operator alone decides, and the
@@ -478,4 +478,4 @@ condition either. Its triggers alone decide when it runs, and the workflows that
   blue `1D76DB` and `component` in purple `5319E7`. The commit scope never carries the component
   ([ADR-0073](./docs/adr/engineering/0073-commit-header-type-sizes-release-scope-names-surface.md)),
   so the component labels are the one channel that does. Tickets carry no other GitHub label, and
-  no milestone or project. Each epic carries the label `epic` and no other.
+  no milestone or project. Each epic carries the label `epic`.

@@ -28,15 +28,15 @@ incident notice [loop.md](../../loop.md#messages) describes.
 
 **Pause and holds.** The user can pause all new agent session launches and/or hold individual
 tickets. Holds you can record by writing hold as its State in its issue, with the
-`identify-ticket-dependencies` skill's `sync --set <N>=hold --apply`. Since pauses affect all new
+`identify-ticket-dependencies` skill's `set-state <N> hold --write`. Since pauses affect all new
 session launches, it's best recorded up front in `sessions.md`. Both stay until the user lifts them.
 While launches are paused, launch nothing, and say so in the report. A held ticket is never
 launched. When the user lifts a hold, write the State the `reconcile-epics` skill gives the ticket
-by the rules below its hold rule, with `sync --set <N>=pending --apply`.
+by the rules below its hold rule, with `reset-state <N> --write`.
 
 ## Which ticket
 
-The `identify-ticket-dependencies` skill's `candidates` command, given as `--busy` the tickets of
+The `identify-ticket-dependencies` skill's `candidates --exclude N,N`, given as `N,N` the tickets of
 the roster and of the sessions the user runs outside the loop, lists the tickets eligible to launch.
 Those are pending, with every blocker built, no open pull request, no session, and under an epic the
 production point gate below admits by its order and its closed epics. The gate's sentence on a point
@@ -84,7 +84,7 @@ For ticket number N of unit U, the session's name is `mmm-<u>-<n>`, written here
    the line names a blocker of another unit, and the table lists no edge from that unit or its later
    work into this ticket's unit or its later work. When they disagree, follow the kickoff with one
    message naming those units.
-4. Set the ticket's State in its issue to in-progress, with `sync --set <N>=in-progress --apply`.
+4. Set the ticket's State in its issue to in-progress, with `set-state <N> in-progress --write`.
 5. Add the session to your roster with its ticket, session ID, launch time and slot kind.
 6. Send every other live ticket session the roster ([loop.md](../../loop.md#messages)).
 
