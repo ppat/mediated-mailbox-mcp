@@ -13,30 +13,33 @@ template under [.github/ISSUE_TEMPLATE/](../../../.github/ISSUE_TEMPLATE/), `roa
 The `identify-ticket-dependencies` skill's script reads every epic and ticket in a few calls. Its
 `refresh` and `diff` name each ticket with no row in its epic, each row with no sub-issue, each open
 ticket under no epic and each ticket whose header names another epic than its own, which are the
-cases the steps below act on.
+cases the steps below act on. The script's `add-ticket`, `move-ticket`, `remove-row` and `update-overview` make those edits,
+printing what they change and writing it with `--write`, so no epic body is edited by hand. Which
+epic a ticket belongs in stays a judgement made here.
 
 ## Epics and rows
 
 - **Increments.** When ROADMAP.md on `main` adds a value increment, create its increment issue,
-  link it as a sub-issue of the roadmap ticket, and add its row to the overview.
+  link it as a sub-issue of the roadmap ticket, and run the script's `update-overview --write`, which adds its row.
 - **Points.** Once a ticket under the issue of one of a production point's increments, those
   before it and after any previous point, has started, create the point's issue if it has none,
-  link it as a sub-issue of the roadmap ticket, and link it from its row in the overview. Once
-  ROADMAP.md on `main` lists every unit of those increments as delivered and every ticket under
+  link it as a sub-issue of the roadmap ticket, and run the script's `update-overview --write`, which links it from
+  its row in place of the ROADMAP.md section the row linked. Once ROADMAP.md on `main` lists every
+  unit of those increments as delivered and every ticket under
   their issues is built, close those increment issues.
 - **Placement.** When a ticket's work is placed in another increment or point than the issue it
   sits under, as its header line and ROADMAP.md on `main` read, move the ticket to that issue,
-  both its sub-issue link and its row. When the two disagree, move nothing and name the ticket
+  both its sub-issue link and its row, with the script's `move-ticket TICKET --epic EPIC --write`. When the two disagree, move nothing and name the ticket
   in the report.
 - **Rows.** Add a row to an increment or point issue for every ticket under it that has none, and
-  for every row a ticket session sent, by the rule for [a ticket row](#a-ticket-row), which also
+  for every row a ticket session sent, with the script's `add-ticket TICKET --epic EPIC --write` and by the rule for [a ticket row](#a-ticket-row), which also
   says which rows are refused.
 - **Overview.** Keep each row of the roadmap ticket's overview true to its issue's tickets and
-  to ROADMAP.md on `main`.
+  to ROADMAP.md on `main`, with the script's `update-overview --write`, which recomputes each row's Status, Units
+  cell and ticket count from the epics. A row with no sub-issue is removed with `remove-row TICKET --epic EPIC --write`.
 
-Then set every row's State from what is true now, by the first rule that fits. The script's `sync`
-prints the rows whose State these rules change, leaving hold and in-progress rows of open tickets
-alone, and `sync --apply` writes only those State cells. For an open ticket, read its `Blocked by`
+Then set every row's State from what is true now, by the first rule that fits. The script's `update-states` prints the rows whose State these rules change, leaving hold and
+in-progress rows of open tickets alone, and `update-states --write` writes only those State cells. For an open ticket, read its `Blocked by`
 line from the issue body. Each blocker it names is a ticket, a pull request or a unit, and counts as
 built when the ticket is closed with its pull request merged, the pull request has merged, or
 ROADMAP.md on `main` lists the unit as delivered.
@@ -60,8 +63,8 @@ change missed while no control session ran is caught on the next one.
 
 A ticket row a ticket session sends is added to the issue of the increment or point its work is
 placed in, once you have checked on GitHub that the ticket exists and is a sub-issue of that issue,
-with the State its `Blocked by` line gives it. Then raise that issue's ticket count in the roadmap
-ticket's overview, and keep its Units column as the overview step states. Refuse a row, whether a
-session sent it or you found the sub-issue without one, when that issue is closed, since CLAUDE.md's
-Repository process adds no ticket there. Name the refused sub-issue in the report, and tell the
+with the State its `Blocked by` line gives it. Then run the script's `update-overview --write`, which raises that
+issue's ticket count in the roadmap ticket's overview and keeps its Status and Units columns as the
+overview step states. Refuse a row, whether a session sent it or you found the sub-issue without
+one, when that issue is closed, since CLAUDE.md's Repository process adds no ticket there. Name the refused sub-issue in the report, and tell the
 session that cut it, if one is live, to place the work in the open epic it belongs in.

@@ -8,7 +8,10 @@ Every ticket cut from [ROADMAP.md](https://github.com/ppat/mediated-mailbox-mcp/
 
 ## Overview
 
-| Value increment or production point | Units | Tickets |
-| --- | --- | --- |
-| [V`<n>` — `<increment name>`](https://github.com/ppat/mediated-mailbox-mcp/issues/INCREMENT-ISSUE) | `<unit>` · `<unit>`, and later work under `<unit>` · `<unit>` | `<count>` |
-| [Production point `<n>` — `<point name>`](https://github.com/ppat/mediated-mailbox-mcp/issues/POINT-ISSUE) | `<unit>` · `<unit>` | `<count>` |
+| Value increment or production point | Status | Units | Tickets |
+| --- | --- | --- | --- |
+| [V`<n>` — `<increment name>`](https://github.com/ppat/mediated-mailbox-mcp/issues/INCREMENT-ISSUE) | `open` or `closed` | `<unit>` · `<unit>`, and later work under `<unit>` · `<unit>` | `<built>` / `<total>` |
+| [Production point `<n>` — `<point name>`](https://github.com/ppat/mediated-mailbox-mcp/issues/POINT-ISSUE) | `open` or `crossed` | `<unit>` · `<unit>` | `<built>` / `<total>` |
+| [Production point `<n>` — `<point name>`](https://github.com/ppat/mediated-mailbox-mcp/blob/main/ROADMAP.md#production-point-N--SECTION) | `not created` | `<unit>` · `<unit>` | `<built>` / `<total>` |
+
+Status is the state of the row's issue, `crossed` once a point's issue has closed, and `not created` for a point that has no issue yet, whose row links its ROADMAP.md section. Tickets is the number built over the number of the issue's tickets, leaving out those closed as a duplicate or as not planned.

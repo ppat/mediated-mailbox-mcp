@@ -49,8 +49,7 @@ past runs.
 
 Where the roster and Herdr disagree about which sessions are live, Herdr is right. A roster entry
 whose session is no longer live is marked stopped, never deleted, since its session ID is what a
-relaunch resumes. An entry is removed only once its ticket has landed, the user has set it back, or
-the user has stopped its session.
+relaunch resumes. An entry is removed only once its ticket has landed or the user has set it back.
 
 The GitHub App token behind `gh` lasts an hour. Run `eval "$(~/.local/bin/gh-app-env)"` in the same
 command before every `gh` command and every `git` command that reaches the remote, such as a
@@ -67,8 +66,8 @@ Work through these in order. Each step is cheap when there is nothing to do.
 2. **Bring the checkout current.** Fetch, and fast-forward the main checkout, which stays on
    `main`.
 3. **Read the state** from the sources above. Run the `identify-ticket-dependencies` skill's script
-   with `diff --write` against `ticket-map.json` to see what changed on GitHub since the last
-   iteration, and use its other commands as needed.
+   with `diff --map ~/code/.session-notes/mediated-mailbox-control/ticket-map.json --save` to see
+   what changed on GitHub since the last iteration, and use its other commands as needed.
 4. **Handle landings** ([Landing](#landing)), for every landing message received since the last
    iteration and every roster entry, live or stopped, whose ticket has closed with its pull request
    merged.
@@ -131,11 +130,9 @@ ticket session, whatever its name.
 
 ### Stopping a session
 
-When the user tells you to stop a ticket session, close its tab, write hold as the ticket's State,
-and remove the session from the roster, since a launch after the hold lifts starts a fresh session.
-Name in the report any pull request, branch or worktree it left, for the user to close or clear. If
-its pull request is still open when the user lifts the hold, the ticket becomes a
-[stranded ticket](#stranded-tickets) with no session ID.
+When the user tells you to stop a ticket session, close its tab and mark its roster entry stopped,
+keeping its session ID. Name in the report any pull request, branch or worktree it left, for the user
+to close or clear.
 
 ### Stranded tickets
 
@@ -150,11 +147,12 @@ Nothing is relaunched until the user confirms.
   Once it is idle, send it one prompt saying it was resumed after its session stopped, and that it
   checks its worktree, branch and pull request before continuing. It gets no kickoff. Update its
   roster entry with the new launch time. If the resume fails, tell the user and wait.
-- **No session ID** in the roster, for a session this loop did not launch, one the user stopped, or
-  one whose entry is lost, leaves nothing to resume. The report says so and offers only set back,
+- **No session ID** in the roster, for a session this loop did not launch or one whose entry is
+  lost, leaves nothing to resume. The report says so and offers only set back,
   after which the ticket launches afresh with the kickoff.
 - **Set back**, when the user chooses it instead, needs the user to close the ticket's pull request
-  first if it has one. Then you write the State its `Blocked by` line gives.
+  first if it has one. Then you write the State its `Blocked by` line gives, with
+  `reset-state N --write`, which writes pending or blocked.
 
 ## Landing
 
@@ -188,8 +186,8 @@ request merged. Take each landed ticket through these steps.
    changes land with the work that makes them true. If it does not, keep the session open, tell the
    user what is wrong, and ask the session to fix it in a follow-up pull request, which lands the
    same way.
-3. **Update the ticket's row.** Set the ticket to built in its issue. The `reconcile-epics` skill
-   then sets its dependents' States.
+3. **Update the ticket's row.** Set the ticket to built in its issue through the script's `update-states --write`, as
+   the `reconcile-epics` skill states. That skill then sets its dependents' States.
 4. **Tell the others.** Send every other live ticket session the tickets that just landed, the new
    `main` commit, and that each rebases its branch onto it. The session of every pull request that
    was ready rebases it, launches the `coherence-check` skill afresh with the Skill tool and uses it
@@ -197,10 +195,10 @@ request merged. Take each landed ticket through these steps.
    sends a new ready report with that head. Check each again as
    [above](#before-a-pull-request-reaches-the-user) before it is reported ready again.
 5. **Close the session, or hand it the next ticket.** When the user names a follow-on ticket for
-   the same session, send it that ticket in place of closing it, set the ticket in-progress, and
-   update its roster entry. Otherwise, if it is live, confirm with `herdr agent get` that the agent
-   is idle, and only then close its tab with `herdr tab close`. If it is stopped, close any tab it
-   left. Remove it from the roster, and send the remaining sessions the new roster.
+   the same session, send it that ticket in place of closing it, set the ticket in-progress with
+   `set-state N in-progress --write`, and update its roster entry. Otherwise, if it is live, confirm
+   with `herdr agent get` that the agent is idle, and only then close its tab with `herdr tab close`.
+   If it is stopped, close any tab it left. Remove it from the roster, and send the remaining sessions the new roster.
 
 ## Messages
 
@@ -242,8 +240,9 @@ idle, since a prompt typed into a busy pane lands in the user's input.
 
 - You change no file in the repository and push nothing. Your writes are the epics' bodies, the
   epics you create and their `epic` label, closing increment issues as the `reconcile-epics` skill
-  states, `ticket-map.json` through its script, the sub-issue links of the issues you create and of
-  the tickets you move, your session notes, and the Herdr tabs and agents you launched.
+  states, `ticket-map.json` and the backups of the bodies it replaces under `/tmp/tickets/` through its
+  script, the sub-issue links of the issues you create and the links and unlinks of tickets the
+  script makes, your session notes, and the Herdr tabs and agents you launched.
 - You close only tabs you created for sessions, and only after their ticket has landed or the user
   tells you to.
 - A ticket session that is blocked on a question or an approval waits for the user. Name it in the
