@@ -8,7 +8,7 @@ import { execFileSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
-import { changedPaths, labelChanges, parseComponents, wantedLabels } from './labels.mjs'
+import { changedPaths, labelChanges, labelsAreOurs, parseComponents, wantedLabels } from './labels.mjs'
 
 // A throwaway repository shaped like a pull request whose head merged a newer base commit. `main`
 // starts at `fork`, the head moves a file out of provider/ and adds a file with a non-ASCII name
@@ -67,16 +67,19 @@ const table = (rows) => [
   '| `not/a-component/` | a later table that must not be read |',
 ].join('\n')
 
-const directories = parseComponents(table([
+const components = parseComponents(table([
   '| `core/` | Library | `mediated-mailbox-core` | The shared pure library |',
   '| `api/` | Deployable | `mediated-mailbox-api` | The API server |',
-  '| `packaging/chart/` | Packaging | `mediated-mailbox` | The Helm chart |',
-  '| `packaging/tests/chainsaw/` | System tests | | The chainsaw suite |',
+  '| `packaging/chart/`, `packaging/tests/chainsaw/` | Packaging | `mediated-mailbox` | The Helm chart and the chainsaw suite |',
 ]))
 
 const cases = [
   ['the table is read up to its end and no further', () =>
-    deepStrictEqual(directories, ['core/', 'api/', 'packaging/chart/', 'packaging/tests/chainsaw/'])],
+    deepStrictEqual(components, [
+      { directories: ['core/'], label: 'component:core' },
+      { directories: ['api/'], label: 'component:api' },
+      { directories: ['packaging/chart/', 'packaging/tests/chainsaw/'], label: 'component:packaging/chart' },
+    ])],
 
   ['a second table in the same section is not read as components', () =>
     deepStrictEqual(parseComponents([
@@ -84,27 +87,61 @@ const cases = [
       '| Directory | Kind |', '| --- | --- |', '| `core/` | Library |', '',
       'Prose between the tables.', '',
       '| Directory | Note |', '| --- | --- |', '| `other/` | not a component |',
-    ].join('\n')), ['core/'])],
+    ].join('\n')), [{ directories: ['core/'], label: 'component:core' }])],
 
   ['a diff spanning two components calls for both labels', () =>
-    deepStrictEqual(wantedLabels(['core/mail/port.go', 'api/main.go', 'ROADMAP.md'], directories),
+    deepStrictEqual(wantedLabels(['core/mail/port.go', 'api/main.go', 'ROADMAP.md'], components),
       ['component:api', 'component:core'])],
 
   ['a directory of several segments keeps every segment in its label', () =>
-    deepStrictEqual(wantedLabels(['packaging/chart/Chart.yaml', 'packaging/tests/chainsaw/.chainsaw.yaml'], directories),
-      ['component:packaging/chart', 'component:packaging/tests/chainsaw'])],
+    deepStrictEqual(wantedLabels(['packaging/chart/Chart.yaml'], components), ['component:packaging/chart'])],
+
+  ['a path under the chainsaw suite is labelled as the chart, and no label of its own is produced', () =>
+    deepStrictEqual(wantedLabels(['packaging/tests/chainsaw/.chainsaw.yaml'], components), ['component:packaging/chart'])],
+
+  ['the chart and the chainsaw suite together call for the chart label once', () =>
+    deepStrictEqual(wantedLabels(['packaging/chart/Chart.yaml', 'packaging/tests/chainsaw/a/b.yaml'], components), ['component:packaging/chart'])],
+
+  ['a second directory in a row is read from a comma-separated first cell', () =>
+    deepStrictEqual(parseComponents(table(['| `a/`, `b/c/` | Library | | |'])), [{ directories: ['a/', 'b/c/'], label: 'component:a' }])],
+
+  ['a directory listed in two rows fails', () =>
+    throws(() => parseComponents(table(['| `a/`, `b/` | Library | | |', '| `b/` | Library | | |'])), /twice/)],
+
+  ['a first cell mixing a directory with other text fails', () =>
+    throws(() => parseComponents(table(['| `a/` and `b/` | Library | | |'])), /cannot read a component directory/)],
+
+  ['the labels of an open pull request are the workflow\'s to set', () =>
+    deepStrictEqual(labelsAreOurs('open'), true)],
+
+  // The script itself, run as the workflow runs it, with no token and no repository: it must reach
+  // its exit before it needs either, so a closed pull request can change nothing.
+  ['the script exits cleanly on a closed pull request before it reads a token or touches a label', () => {
+    const out = execFileSync('node', [join(import.meta.dirname, 'sync-pr-labels.mjs')], {
+      encoding: 'utf8', env: { PATH: process.env.PATH, PR_NUMBER: '7', PR_STATE: 'closed' },
+    })
+    if (!/left alone/.test(out)) throw new Error(`no statement that the labels were left alone: ${out}`)
+  }],
+
+  ['the script does not exit early on an open pull request', () =>
+    throws(() => execFileSync('node', [join(import.meta.dirname, 'sync-pr-labels.mjs')], {
+      stdio: 'pipe', env: { PATH: process.env.PATH, PR_NUMBER: '7', PR_STATE: 'open' },
+    }), /BASE_REF is not set/)],
+
+  ['the labels of a closed pull request are left alone, merged ones included', () =>
+    deepStrictEqual(['closed', 'merged', '', undefined].map(labelsAreOurs), [false, false, false, false])],
 
   ['a path under only the leading segments of a component directory is no component', () =>
-    deepStrictEqual(wantedLabels(['packaging/README.md', 'packaging/tests/README.md'], directories), [])],
+    deepStrictEqual(wantedLabels(['packaging/README.md', 'packaging/tests/README.md'], components), [])],
 
   ['a directory whose name starts with a component\'s name is no component', () =>
-    deepStrictEqual(wantedLabels(['core-extra/x.go', 'apis/x.go', 'core'], directories), [])],
+    deepStrictEqual(wantedLabels(['core-extra/x.go', 'apis/x.go', 'core'], components), [])],
 
   ['a diff touching no component calls for no label', () =>
-    deepStrictEqual(wantedLabels(['CLAUDE.md', 'docs/adr/README.md', '.github/workflows/lint.yaml', 'go.mod'], directories), [])],
+    deepStrictEqual(wantedLabels(['CLAUDE.md', 'docs/adr/README.md', '.github/workflows/lint.yaml', 'go.mod'], components), [])],
 
   ['many paths in one component call for its label once', () =>
-    deepStrictEqual(wantedLabels(['core/a.go', 'core/b/c.go'], directories), ['component:core'])],
+    deepStrictEqual(wantedLabels(['core/a.go', 'core/b/c.go'], components), ['component:core'])],
 
   ['a stale component label is removed and a missing one added', () =>
     deepStrictEqual(labelChanges(['unit:F4', 'component:ui', 'component:core'], ['component:core', 'component:api']),
@@ -139,7 +176,7 @@ const cases = [
     deepStrictEqual(changedPaths('main', 'head', scratch.dir).filter((p) => p.startsWith('core/')), ['core/é.go'])],
 
   ['a file moved out of a component still labels the component it left', () =>
-    deepStrictEqual(wantedLabels(changedPaths('main', 'head', scratch.dir), [...directories, 'provider/']), ['component:core', 'component:provider'])],
+    deepStrictEqual(wantedLabels(changedPaths('main', 'head', scratch.dir), [...components, { directories: ['provider/'], label: 'component:provider' }]), ['component:core', 'component:provider'])],
 
   ['the diff against the base branch leaves out base commits, merged into the head or not', () =>
     deepStrictEqual(changedPaths('main', 'head', scratch.dir).sort(), ['core/é.go', 'moved.go', 'provider/moved.go'])],
@@ -153,6 +190,13 @@ const cases = [
   ['CLAUDE.md in this tree parses', () => {
     const own = parseComponents(readFileSync('CLAUDE.md', 'utf8'))
     if (own.length === 0) throw new Error('no components parsed')
+  }],
+
+  // The fold of the chainsaw suite into the chart, read from the table the workflow really reads.
+  ['CLAUDE.md in this tree labels the chainsaw suite as the chart and produces no label of the suite\'s own', () => {
+    const own = parseComponents(readFileSync('CLAUDE.md', 'utf8'))
+    deepStrictEqual(wantedLabels(['packaging/tests/chainsaw/x.yaml'], own), ['component:packaging/chart'])
+    if (own.some((c) => c.label === 'component:packaging/tests/chainsaw')) throw new Error('the suite has a label of its own')
   }],
 ]
 

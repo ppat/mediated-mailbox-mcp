@@ -13,9 +13,13 @@ export const LABEL_PREFIX = 'component:'
 export const LABEL_COLOR = '5319E7'
 
 const SECTION_HEADING = '### Components'
-// A component row's first cell is the directory in backticks with its trailing slash, `core/` or
-// `packaging/chart/`. The label drops the slash and keeps every other segment.
-const DIRECTORY_CELL = /^`((?:[a-z0-9][a-z0-9-]*\/)+)`$/
+// A component row's first cell is its directory in backticks with its trailing slash, `core/` or
+// `packaging/chart/`. The label drops the slash and keeps every other segment. A row may list
+// several directories, separated by commas, as one component. They all carry the label of the
+// first, which is how a directory shares another's label without a label of its own.
+const DIRECTORY = '`((?:[a-z0-9][a-z0-9-]*\\/)+)`'
+const DIRECTORY_CELL = new RegExp(`^${DIRECTORY}(?:, ${DIRECTORY})*$`)
+const DIRECTORY_IN_CELL = new RegExp(DIRECTORY, 'g')
 
 export function parseComponents(claudeMd) {
   const lines = claudeMd.split('\n')
@@ -38,14 +42,26 @@ export function parseComponents(claudeMd) {
   const header = cells(rows[0])
   if (header[0] !== 'Directory') throw new Error(`the table under '${SECTION_HEADING}' in CLAUDE.md no longer starts with a Directory column: ${rows[0]}`)
 
-  const directories = rows.slice(2).map((row) => {
-    const match = DIRECTORY_CELL.exec(cells(row)[0])
-    if (!match) throw new Error(`cannot read a component directory from this row of CLAUDE.md: ${row}`)
-    return match[1]
+  // Each component is `{ directories, label }`, the label being the first directory's.
+  const components = rows.slice(2).map((row) => {
+    const cell = cells(row)[0]
+    if (!DIRECTORY_CELL.test(cell)) throw new Error(`cannot read a component directory from this row of CLAUDE.md: ${row}`)
+    const directories = [...cell.matchAll(DIRECTORY_IN_CELL)].map((m) => m[1])
+    return { directories, label: LABEL_PREFIX + directories[0].slice(0, -1) }
   })
-  const duplicate = directories.find((d, i) => directories.indexOf(d) !== i)
+  const all = components.flatMap((c) => c.directories)
+  const duplicate = all.find((d, i) => all.indexOf(d) !== i)
   if (duplicate) throw new Error(`CLAUDE.md lists the component directory ${duplicate} twice`)
-  return directories
+  return components
+}
+
+// Whether the labels of a pull request are this workflow's to set. Only an open pull request's are.
+// GitHub starts the workflow on a closed or merged pull request too, when a label on it is edited,
+// and the run would use that pull request's old head, where the component table may name
+// directories that have since been renamed, and put the old labels back. The event's
+// `pull_request.state` is 'open' or 'closed', and a merged pull request is closed.
+export function labelsAreOurs(state) {
+  return state === 'open'
 }
 
 function cells(row) {
@@ -63,13 +79,13 @@ export function changedPaths(base, head, cwd = process.cwd()) {
     .split('\0').filter(Boolean)
 }
 
-// Every component whose directory holds at least one of the paths, as label names. A path outside
+// Every component with a directory holding at least one of the paths, as label names. A path outside
 // every component directory, such as a root file or a document under docs/, calls for no label.
-export function wantedLabels(paths, directories) {
+export function wantedLabels(paths, components) {
   const wanted = new Set()
   for (const path of paths) {
-    for (const directory of directories) {
-      if (path.startsWith(directory)) wanted.add(LABEL_PREFIX + directory.slice(0, -1))
+    for (const { directories, label } of components) {
+      if (directories.some((directory) => path.startsWith(directory))) wanted.add(label)
     }
   }
   return [...wanted].sort()

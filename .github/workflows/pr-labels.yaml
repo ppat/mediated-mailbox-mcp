@@ -11,8 +11,17 @@ name: pr-labels
 #
 # WHY EVERY EVENT THAT CAN MAKE THE LABELS UNTRUE IS A TRIGGER
 # A push changes the diff, `edited` covers a changed base branch, and `labeled` and `unlabeled` undo a hand edit of
-# a component label. The labels this job writes carry the workflow's own token, and GitHub starts no workflow from
-# an event that token causes, so the job never re-triggers itself.
+# a component label while the pull request is open (see below). The labels this job writes carry the workflow's own
+# token, and GitHub starts no workflow from an event that token causes, so the job never re-triggers itself.
+#
+# WHY A CLOSED OR MERGED PULL REQUEST IS LEFT ALONE
+# GitHub starts this workflow on `labeled` and `unlabeled` for a closed or merged pull request too, and it runs the
+# workflow file, the script and the table of that pull request's own, old head. After a component is renamed, that
+# run puts the old label back on every old pull request whose labels were moved to the new name. The script
+# therefore reads the event's pull request state and, when it is not `open`, logs that it left the labels alone and
+# changes none. The decision is made in the script so that the self-test proves it, the case that runs the real
+# script included, and so that the run says why it did nothing. Only a pull request whose head holds this guard is
+# protected, so to relabel an older one, disable the workflow for the window and enable it again.
 #
 # WHY `pull_request` AND NOT `pull_request_target`
 # The job runs the script and reads the table from the pull request's own head, which `pull_request_target` would
@@ -57,6 +66,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         PR_NUMBER: ${{ github.event.pull_request.number }}
+        PR_STATE: ${{ github.event.pull_request.state }}
         BASE_REF: ${{ github.event.pull_request.base.ref }}
         HEAD_SHA: ${{ github.event.pull_request.head.sha }}
       run: node .github/scripts/pr-labels/sync-pr-labels.mjs
