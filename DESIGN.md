@@ -790,5 +790,9 @@ top-level documents, a decision record, or a ticket from here without guessing.
   rules are [CLAUDE.md](./CLAUDE.md#repository-process)'s. The word keeps its ordinary meaning for
   a tracker item anywhere else, including the deployment repositories' own tickets that
   [ROADMAP.md](./ROADMAP.md) names.
+- **Epic** — the roadmap ticket, a value increment's issue or a production point's issue, each a
+  GitHub issue in this repository listing its tickets. An epic is not a ticket. Its formats are the
+  templates beside [the ticket template](./.github/ISSUE_TEMPLATE/ticket.md), and its rules are
+  [CLAUDE.md](./CLAUDE.md#repository-process)'s.
 - **Zoom levels L0–L4** — the five levels of the zoom ladder, defined in
   [docs/UI.md](./docs/UI.md#4-the-zoom-ladder).

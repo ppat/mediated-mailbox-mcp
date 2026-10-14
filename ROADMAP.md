@@ -30,12 +30,20 @@ steps, and there are three. Between points, new versions flow as ordinary versio
 manual step. Each point names the units behind it, any precondition a build or a proof needs from
 the real mailbox or the deployed system, the inputs the chart declares that arrive there
 ([ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md)), the proofs, and the
-learning that can happen only there. Each point also carries a **Crossed:** line, which reads *no*
-until the operator alone decides the point is crossed and a pull request sets it to *yes*. This line
-is the authority on whether a point is crossed. The work of standing the system up, a module in the
-operator's repository homelab-ops-kubernetes-apps used from the repository
-homelab-ops-kubernetes-clusters, and its tickets belong to those repositories. *The real mailbox*
-and *production* are terms of [DESIGN.md's Glossary](./DESIGN.md#glossary).
+learning that can happen only there. A point is crossed when its issue closes, which the operator
+alone decides. The first work after a crossing, before any ticket past the point, is a pull request
+from a session the control session launches for it, which replaces the rows of [the table by pull
+request](#what-each-pull-request-landed-proved-and-demonstrated) and the entries of [the delivered
+register](#delivered-mapped-to-outcomes) for the work behind the point with a summary per outcome in
+the point's section. Later work those entries place after the point moves first into the open unit
+that carries it, or the section of the increment it is placed in. The summary states, per outcome,
+what holds in production and what was deliberately left, with its owner, keeps each unit behind the
+point as one `[x]` line with its identifier and name under its outcome, and links the point's issue
+and the issues of its increments, those before it and after any previous point, for the detail. The
+work of standing the system up, a module in the operator's repository homelab-ops-kubernetes-apps
+used from the repository homelab-ops-kubernetes-clusters, and its tickets belong to those
+repositories. *The real mailbox* and *production* are terms of [DESIGN.md's
+Glossary](./DESIGN.md#glossary).
 
 **Acceptance.** Every control's proving injection lives in
 [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md), keyed to the units and production points below. A
@@ -63,11 +71,11 @@ defining it. Table cells and dependency edges within this document may use bare 
 
 **How this document relates to tickets.** How a ticket is cut and when it is done are
 [CLAUDE.md](./CLAUDE.md#repository-process)'s. Every ticket names the one unit it serves and the
-value increment this document places its work in, and is a sub-issue of that increment's issue,
-which lists the increment's tickets by unit. Each increment's issue is a sub-issue of
-[#118](https://github.com/ppat/mediated-mailbox-mcp/issues/118). The **Position** line below is
-re-dated whenever the checklists are reconciled against the tickets, so staleness is detectable
-instead of silent.
+value increment or production point its work is placed in, and is a sub-issue of that increment's
+or point's issue, which lists its tickets by unit. Each increment's and each point's issue is a
+sub-issue of [#118](https://github.com/ppat/mediated-mailbox-mcp/issues/118). The **Position** line
+below is re-dated whenever the checklists are reconciled against the tickets, so staleness is
+detectable instead of silent.
 
 **Position: 2026-10-13.**
 
@@ -233,7 +241,7 @@ its part, and the rows it added. Which rows it proved are the rows whose Status 
 | [#373](https://github.com/ppat/mediated-mailbox-mcp/pull/373) | D3 | D3's later work, the summary and the groups by sender, domain and month counting a selection by thread first rather than counting distinct threads, indexes on the messages' thread and sender address in place of the unused partial index on unlabelled mail, edited into the baseline schema, a search by date continuing by a row comparison with its tie broken in its own direction, the last successful tick read newest first, and the statement check following a FROM-list subquery's output for its cast and paged-sort checks ([ADR-0016](./docs/adr/data/0016-schema.md), [ADR-0109](./docs/adr/operability/0109-the-index-is-read-through-search-count-and-the-sender-listing.md)) | It adds and proves the row for a summary and each group counting each thread once, and proves again D3's rows for paging every row once, for a denied message staying in every count, for counting the whole corpus and for the status carrying operational state only, and the cast and paged-sort rows of the statement check | The counts' control, new, with six breaks, two new breaks of paging by date, and every demonstration whose statements, tests or patches the change touched, those of paging, denied messages in the counts, the whole corpus, the sender class, the status, the query terms, the statement form, the operation log, the content-flags check and the stored domain's check, with the nine patches whose context moved regenerated |
 | [#374](https://github.com/ppat/mediated-mailbox-mcp/pull/374) | M3 | M3's later work, the corpus figures counting the account's threads by grouping its messages by thread rather than by a distinct count, and a page of the runs dataset choosing its runs first and then counting the item failures of those runs alone on the failures' primary key, with a sort by failures reading the account's failure counts once as one aggregate each run looks its count up in, in place of aggregating the account's whole failure history and joining it to the runs, which a generic plan aggregated again for every run | It proves again M3's row for every account-scoped read keeping to its account, for the corpus route and the `runs` dataset, and M8's row for the UI classifying every sender under the policy in force, for the corpus | Every demonstration whose statements or tests the change touched, those of every account-scoped read refusing a request without its account and of the UI classifying every sender under the policy in force |
 | [#376](https://github.com/ppat/mediated-mailbox-mcp/pull/376) | F9 | F9's later work, two components named for their roles under [ADR-0054](./docs/adr/engineering/0054-one-repository-flat-layout-naming-convention.md)'s convention, the deployable serving the client surface as the API server, `api/`, published as `mediated-mailbox-api`, and the migration step's image as the migrator, `migrator/`, published as `mediated-mailbox-migrator`, with their roles edited into the schema baseline in place, their series, chart keys and resources, import lists, workflow filters and the failure origin the client surface reports following the new names | No row added. The proven rows whose tests or code the rename moved name them under the new names, and their tests ran again | Every mutation patch whose path or context the rename moved, regenerated with its changed lines kept. Every demonstration in the ledger ran again in one full run of the `mutation-demonstrations` workflow on 2026-10-13 and held, with no surviving mutant, and the rows of the 224 controls whose code, tests or patches the rename touched record that run |
-| [#378](https://github.com/ppat/mediated-mailbox-mcp/pull/378) | F4 | F4's component-labels later work, placed after [production point 1](#production-point-1--the-read-path), the `pr-labels` workflow leaving the labels of a closed or merged pull request alone, decided in its script from the event's pull request state, and labelling a change under `packaging/tests/chainsaw/` as the chart, the component table's chart row naming both directories | — | — |
+| [#378](https://github.com/ppat/mediated-mailbox-mcp/pull/378) | F4 | F4's component-labels later work, placed before [production point 1](#production-point-1--the-read-path), the `pr-labels` workflow leaving the labels of a closed or merged pull request alone, decided in its script from the event's pull request state, and labelling a change under `packaging/tests/chainsaw/` as the chart, the component table's chart row naming both directories | — | — |
 
 ### What each composition root runs
 
@@ -332,7 +340,7 @@ What the code on `main` runs today, per composition root, none of it yet release
   [ADR-0046](./docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md) in place, and the
   bounded crash runs keep gating every pull request in a workflow of their own, which clarified
   [ADR-0045](./docs/adr/engineering/0045-crash-injection-testing.md) in place. **Later work**,
-  placed after [production point 1](#production-point-1--the-read-path) and delivered by pull
+  placed before [production point 1](#production-point-1--the-read-path) and delivered by pull
   request [#378](https://github.com/ppat/mediated-mailbox-mcp/pull/378), which closed its ticket
   [#377](https://github.com/ppat/mediated-mailbox-mcp/issues/377), and not yet released. The
   `pr-labels` workflow leaves the labels of a closed or merged pull request alone, so relabelling
@@ -1571,8 +1579,7 @@ real adversary. Mutation capability opens only after that proof exists.
 [M4](#group-m--mutation-and-approval) · [M5](#group-m--mutation-and-approval) ·
 [M6](#group-m--mutation-and-approval) · [X2](#group-x--expansion) · [R2](#group-r--packaging), and
 the later work recorded under [D3](#delivered-mapped-to-outcomes), [D4](#delivered-mapped-to-outcomes),
-[F3](#delivered-mapped-to-outcomes), [F4](#delivered-mapped-to-outcomes) and
-[M3](#delivered-mapped-to-outcomes) that is placed after
+[F3](#delivered-mapped-to-outcomes) and [M3](#delivered-mapped-to-outcomes) that is placed after
 [production point 1](#production-point-1--the-read-path), then
 [production point 2](#production-point-2--the-agent-acts). **Value shipped:** the system's headline
 capability (organize, then propose and enact a mailbox-wide reorganization) with approval, rollback
@@ -1613,7 +1620,6 @@ holds, with an entry naming the point.
 
 ### Production point 1 — the read path
 
-- **Crossed:** no.
 - **After:** [F4](#delivered-mapped-to-outcomes) · [S1](#delivered-mapped-to-outcomes) ·
   [S2](#delivered-mapped-to-outcomes) · [S3](#delivered-mapped-to-outcomes) ·
   [F2](#delivered-mapped-to-outcomes) · [F5](#delivered-mapped-to-outcomes) ·
@@ -1704,14 +1710,12 @@ holds, with an entry naming the point.
 
 ### Production point 2 — the agent acts
 
-- **Crossed:** no.
 - **After:** [M1](#group-m--mutation-and-approval) · [M2](#group-m--mutation-and-approval) ·
   [M4](#group-m--mutation-and-approval) · [M5](#group-m--mutation-and-approval) ·
   [M6](#group-m--mutation-and-approval) · [X2](#group-x--expansion) · [R2](#group-r--packaging), the
   end of [V4](#v4--the-agent-acts-and-calendar-joins-mail), and the later work recorded under
   [D3](#delivered-mapped-to-outcomes), [D4](#delivered-mapped-to-outcomes),
-  [F3](#delivered-mapped-to-outcomes), [F4](#delivered-mapped-to-outcomes) and
-  [M3](#delivered-mapped-to-outcomes) that is placed after
+  [F3](#delivered-mapped-to-outcomes) and [M3](#delivered-mapped-to-outcomes) that is placed after
   [production point 1](#production-point-1--the-read-path).
 - **Preconditions:** [production point 1](#production-point-1--the-read-path) has run long enough
   for the index to hold the real corpus and the review loops to have traffic.
@@ -1734,7 +1738,6 @@ holds, with an entry naming the point.
 
 ### Production point 3 — a second of everything
 
-- **Crossed:** no.
 - **After:** [X3](#group-x--expansion) · [X4](#group-x--expansion) · [R3](#group-r--packaging), the
   end of [V5](#v5--a-second-of-everything).
 - **Supplied there:**
