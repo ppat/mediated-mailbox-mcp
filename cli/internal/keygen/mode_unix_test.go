@@ -1,6 +1,6 @@
 //go:build unix
 
-package main
+package keygen_test
 
 import (
 	"io"
@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"syscall"
 	"testing"
+
+	"github.com/ppat/mediated-mailbox-mcp/cli/internal/keygen"
 )
 
 // The private key file is written with mode 0600 and the public key file with 0644 whatever the
@@ -18,7 +20,7 @@ func TestTheKeyFilesModesHoldUnderAnyUmask(t *testing.T) {
 		dir := t.TempDir()
 		privatePath, publicPath := filepath.Join(dir, "credential.key"), filepath.Join(dir, "credential.pub")
 		previous := syscall.Umask(umask)
-		err := run([]string{"-private-key-file", privatePath, "-public-key-file", publicPath}, io.Discard)
+		err := keygen.Run([]string{"-private-key-file", privatePath, "-public-key-file", publicPath}, io.Discard)
 		syscall.Umask(previous)
 		if err != nil {
 			t.Fatalf("run under umask %04o: %v", umask, err)

@@ -300,7 +300,6 @@ linters:
           list-mode: strict
           files:
           - "${base-path}/executioncontext/credential/**.go"
-          - "!${base-path}/executioncontext/credential/cmd/keygen/**"
           allow:
           - "$gostd"
           - "github.com/google/go-cmp/cmp$"
@@ -308,19 +307,19 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
 
-        # The key-generation command, every file, an operator command of the execution context family. It is the
-        # family's list with the release version, which its -version flag prints (ADR-0078).
-        keygen:
+        # The command-line program, every file. Its keygen subcommand takes the suite and the key identifier from the
+        # sealing half, its tests open the pair it writes with the opening half, and its -version flags print the
+        # release version (ADR-0078, ADR-0088).
+        cli:
           list-mode: strict
           files:
-          - "${base-path}/executioncontext/credential/cmd/keygen/**.go"
+          - "${base-path}/cli/**.go"
           allow:
           - "$gostd"
-          - "github.com/google/go-cmp/cmp$"
-          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/"
+          - "github.com/ppat/mediated-mailbox-mcp/cli/internal/keygen$"
+          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/open$"
+          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal$"
           - "github.com/ppat/mediated-mailbox-mcp/process/version$"
-          - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
-          - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
 
         # The database connection, every file, a package of the process family. It builds the connection a
         # deployable's database section describes, and connects as no role of its own.
@@ -1129,6 +1128,7 @@ linters:
           - "github.com/jackc/pgx/v5/"
           - "github.com/modelcontextprotocol/go-sdk/jsonrpc$"
           - "github.com/modelcontextprotocol/go-sdk/mcp$"
+          - "github.com/ppat/mediated-mailbox-mcp/cli/"
           - "github.com/ppat/mediated-mailbox-mcp/content/"
           - "github.com/ppat/mediated-mailbox-mcp/core/"
           - "github.com/ppat/mediated-mailbox-mcp/db/"
@@ -1190,6 +1190,7 @@ linters:
           - "github.com/jackc/pgx/v5$"
           - "github.com/jackc/pgx/v5/"
           - "github.com/pganalyze/pg_query_go/v6$"
+          - "github.com/ppat/mediated-mailbox-mcp/cli/"
           - "github.com/ppat/mediated-mailbox-mcp/content/"
           - "github.com/ppat/mediated-mailbox-mcp/core/"
           - "github.com/ppat/mediated-mailbox-mcp/db/"
@@ -1239,6 +1240,7 @@ linters:
           list-mode: strict
           files:
           - "$all"
+          - "!${base-path}/cli/**"
           - "!${base-path}/content/**"
           - "!${base-path}/core/**"
           - "!${base-path}/db/**"

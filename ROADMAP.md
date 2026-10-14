@@ -243,6 +243,7 @@ its part, and the rows it added. Which rows it proved are the rows whose Status 
 | [#376](https://github.com/ppat/mediated-mailbox-mcp/pull/376) | F9 | F9's later work, two components named for their roles under [ADR-0054](./docs/adr/engineering/0054-one-repository-flat-layout-naming-convention.md)'s convention, the deployable serving the client surface as the API server, `api/`, published as `mediated-mailbox-api`, and the migration step's image as the migrator, `migrator/`, published as `mediated-mailbox-migrator`, with their roles edited into the schema baseline in place, their series, chart keys and resources, import lists, workflow filters and the failure origin the client surface reports following the new names | No row added. The proven rows whose tests or code the rename moved name them under the new names, and their tests ran again | Every mutation patch whose path or context the rename moved, regenerated with its changed lines kept. Every demonstration in the ledger ran again in one full run of the `mutation-demonstrations` workflow on 2026-10-13 and held, with no surviving mutant, and the rows of the 224 controls whose code, tests or patches the rename touched record that run |
 | [#378](https://github.com/ppat/mediated-mailbox-mcp/pull/378) | F4 | F4's component-labels later work, placed before [production point 1](#production-point-1--the-read-path), the `pr-labels` workflow leaving the labels of a closed or merged pull request alone, decided in its script from the event's pull request state, and labelling a change under `packaging/tests/chainsaw/` as the chart, the component table's chart row naming both directories | — | — |
 | [#383](https://github.com/ppat/mediated-mailbox-mcp/pull/383) | F9 | F9's later work, every top-level path belonging to one surface ([ADR-0137](./docs/adr/operability/0137-the-top-level-paths-are-the-surfaces-and-the-ui-serves-under-ui.md)), the client surface at `/api` and `/mcp` and the UI under `/ui`, its pages at `/ui/accounts/{account}/…` and `/ui/setup/…` with a rule's page taking the word `rules`, its read API at `/ui/api/…` and its bundle's files, `/` answered with a redirect to `/ui/`, the UI's cookies scoped to its subtree, the browser building every address from one module, every identifier after a word naming it so that no route word is refused as one, and the chart's HTTPRoute for the UI matching `/ui` and `/`, with the Helm test checking the UI's root page at `/ui/` | It adds and proves the row for every route the UI registers sitting under its root, retires the row for the route words being closed lists and the account half of the row for an identifier equal to a top-level word, and proves again the rows for the identifier agreement, the client name `new`, a policy write's refusal, the route check, per-account reads and the content security policy | The control that every route the UI registers sits under its root demonstrated with seven breaks, the policy write's refusal of an identifier no path segment can hold broken both ways, with two breaks that refuse too much, the demonstrations of the route words and the reserved words retired with their twenty patches, and every other demonstration under the UI's server, contract, registry, setup and rules packages and the browser run again and held, 215 in all with the two identifier checks of the database, with fifteen patches regenerated for their context |
+| [#389](https://github.com/ppat/mediated-mailbox-mcp/pull/389) | F9 | F9's later work, the command-line program, `cli/`, published as `mediated-mailbox-cli`, with the key-generation command moved into it as its `keygen` subcommand, its behaviour held, and the release attaching the program's binaries as `mediated-mailbox-cli-<os>-<arch>` with its key-generation check running the subcommand | It proves again the key-generation command's row for the command's test, run through the program's main function | The key-generation command's five demonstrations, their patches regenerated for the move, run again and held |
 
 ### What each composition root runs
 
@@ -510,7 +511,8 @@ What the code on `main` runs today, per composition root, none of it yet release
   ([ADR-0084](./docs/adr/mutation/0084-ui-writes-decisions-and-account-setup.md),
   [ADR-0118](./docs/adr/data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)). The
   credential library, `executioncontext/credential/`, seals to the public key and opens with a
-  keyring of private keys, and its `keygen` command writes the key pair
+  keyring of private keys, and the `keygen` subcommand of the command-line program, `cli/`, writes
+  the key pair
   ([ADR-0081](./docs/adr/operability/0081-credentials-sealed-to-a-public-key.md),
   [ADR-0088](./docs/adr/operability/0088-credentials-sealed-with-hpke-x-wing.md)).
   `executioncontext/accountload/` builds the account snapshot
@@ -1175,7 +1177,17 @@ What the code on `main` runs today, per composition root, none of it yet release
   UI's, and the policy writes refuse only an identifier no path segment can hold. The browser builds every address from one module holding the root, the
   UI's cookies are scoped to its subtree, and the chart's HTTPRoute for the UI matches `/ui` and
   `/` alone, so the API server and the UI can share one host name routed by path. The chart's Helm
-  test checks the UI's root page at `/ui/`.
+  test checks the UI's root page at `/ui/`. Also as later work before production point 1, pull
+  request [#389](https://github.com/ppat/mediated-mailbox-mcp/pull/389), which closed its ticket
+  [#388](https://github.com/ppat/mediated-mailbox-mcp/issues/388), adds the command-line program,
+  `cli/`, published as `mediated-mailbox-cli`, the one binary an operator runs by hand, with a
+  subcommand per task
+  ([ADR-0088](./docs/adr/operability/0088-credentials-sealed-with-hpke-x-wing.md)). The
+  key-generation command moves into it as its `keygen` subcommand with its behaviour held, and the
+  release attaches the program's binaries and their bundles as `mediated-mailbox-cli-<os>-<arch>`
+  in place of the command's, with the release's key-generation check running the subcommand. The
+  command's verification row is proven again and its demonstration ran again and held. Further
+  subcommands come after production point 1.
 
 - [x] **F8 — Logging levels** → [O2](./USE_CASES.md#o2--observable) ·
   [V3](#v3--the-agent-arrives-read-only) · finished at image

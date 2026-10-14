@@ -659,6 +659,11 @@ top-level documents, a decision record, or a ticket from here without guessing.
   image the migration step runs, which applies the migration chain. It is not a deployable and
   holds none of this project's Go code (ADR-0048 and ADR-0049, via the
   [decision-record index](./docs/adr/README.md)).
+- **The command-line program** (published as `mediated-mailbox-cli` from the directory `cli/`) —
+  the one binary an operator runs by hand, outside every deployment, with a subcommand per task,
+  such as `keygen`, which writes the key pair credentials are sealed to. It is not a deployable and
+  has no image, and it ships as signed binaries attached to each release (ADR-0088, via the
+  [decision-record index](./docs/adr/README.md)).
 - **Mutation Authorizer** — the API server's component that checks every write against the message's
   sensitivity, independently of who approved what. Mutation here is the mailbox-write sense,
   not the test-suite sense of **Mutation demonstration**.

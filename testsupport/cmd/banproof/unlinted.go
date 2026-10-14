@@ -30,8 +30,8 @@ const toolUnlinted = "unlinted"
 //
 // The graph depends on the build configuration, so the check runs in every configuration code
 // ships in, with no build tag, as the images and the release build. The images build with
-// CGO_ENABLED=0 for linux, in each Dockerfile, and the release builds executioncontext/credential/cmd/keygen with
-// CGO_ENABLED=0 for linux and darwin on amd64 and arm64, in .github/workflows/release.yaml. A
+// CGO_ENABLED=0 for linux, in each Dockerfile, and the release builds the command-line program, cli,
+// with CGO_ENABLED=0 for linux and darwin on amd64 and arm64, in .github/workflows/release.yaml. A
 // configuration added there is added here by hand. When banproof proves the violation files it runs
 // the check once more with their tag, in the first configuration, so their imports are refused too.
 var unlintedConfigurations = []unlintedConfiguration{

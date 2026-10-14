@@ -129,7 +129,7 @@ the rendered configuration names (ADR-0079).
 {{- define "mm.credentialSealingKeyPairSource" -}}
 {{- $k := .Values.secrets.credentialSealingKeyPair }}
 - secret:
-    name: {{ required "secrets.credentialSealingKeyPair.existingSecret is required: the Secret holding the key pair keygen writes" $k.existingSecret }}
+    name: {{ required "secrets.credentialSealingKeyPair.existingSecret is required: the Secret holding the key pair mediated-mailbox-cli keygen writes" $k.existingSecret }}
     items:
     - key: {{ $k.secretKeys.publicKey }}
       path: credential-sealing-key-pair/{{ $k.secretKeys.publicKey }}

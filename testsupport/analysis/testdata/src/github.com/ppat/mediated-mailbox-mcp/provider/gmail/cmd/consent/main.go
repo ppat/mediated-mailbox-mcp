@@ -1,4 +1,4 @@
-// An operator command is a package main, and its main.go is not a deployable's.
+// A command a person runs by hand is a package main, and its main.go is not a deployable's.
 package main
 
 import "os"

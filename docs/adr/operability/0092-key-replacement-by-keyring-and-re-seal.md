@@ -41,7 +41,8 @@ account's credential and each stored client secret each time it loads its accoun
   [ADR-0103](./0103-delta-sync-runs-continuously-and-ticks-on-the-sync-interval.md) names them. The
   UI logs the key identifier it seals to at start.
 - **A key is replaced in this order.**
-  1. A new key pair is generated with the key-generation binary attached to the release
+  1. A new key pair is generated with the `keygen` subcommand of the command-line program attached
+     to the release
      ([ADR-0088](./0088-credentials-sealed-with-hpke-x-wing.md)).
   2. The new private key is mounted beside the old one in every deployable that opens credentials,
      and in the UI.

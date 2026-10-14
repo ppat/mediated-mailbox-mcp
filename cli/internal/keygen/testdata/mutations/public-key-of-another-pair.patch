@@ -1,14 +1,14 @@
 control: The key-generation command writes a pair the library seals to and opens with
 removes: the public key file holds another pair's public key
-packages: ./executioncontext/credential/cmd/keygen
+packages: ./cli
 tests: TestTheCommandWritesAPairTheLibrarySealsToAndOpensWith
 scheduled-count: no
 
-diff --git a/executioncontext/credential/cmd/keygen/main.go b/executioncontext/credential/cmd/keygen/main.go
-index ecdbaff..56bfdfd 100644
---- a/executioncontext/credential/cmd/keygen/main.go
-+++ b/executioncontext/credential/cmd/keygen/main.go
-@@ -46,7 +46,11 @@ func run(args []string, stdout io.Writer) error {
+diff --git a/cli/internal/keygen/keygen.go b/cli/internal/keygen/keygen.go
+index f2f307aa..32c67598 100644
+--- a/cli/internal/keygen/keygen.go
++++ b/cli/internal/keygen/keygen.go
+@@ -48,7 +48,11 @@ func Run(args []string, stdout io.Writer) error {
  	if err != nil {
  		return fmt.Errorf("serializing the private key: %w", err)
  	}

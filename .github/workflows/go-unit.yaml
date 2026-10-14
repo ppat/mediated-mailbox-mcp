@@ -22,6 +22,7 @@ on:
     - go.sum
     - mise.lock
     - mise.toml
+    - cli/**
     - content/**
     - core/**
     - db/**

@@ -239,7 +239,7 @@ whether to run the analysers individually or under one command. Everything else 
   - **It runs in each configuration code ships in, with no build tag.** The graph depends on the
     configuration, as a file built only without cgo, only on another operating system, or only
     without a tag shows. The images build with `CGO_ENABLED=0` for Linux and no tag, and the release
-    builds the key-generation command with `CGO_ENABLED=0` for Linux and macOS on amd64 and arm64
+    builds the command-line program with `CGO_ENABLED=0` for Linux and macOS on amd64 and arm64
     and no tag. The script holds that list of configurations as a copy of what the Dockerfiles and
     the release workflow build, and nothing checks the copy against them. A configuration added
     there is added to the script by hand. When the script proves the violation files it runs the

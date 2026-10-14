@@ -216,20 +216,6 @@ The demonstrations of the controls whose patches sit in `executioncontext/`. [MU
 - **Break (2):** the private key becomes a type any value satisfies, so a public key passed where a private key belongs compiles
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/open`:** `TestAPublicKeyIsNotAPrivateKey`
 
-## The key-generation command writes a pair the library seals to and opens with
-
-- **Date · evidence:** 2026-09-26 · [pull request #178](https://github.com/ppat/mediated-mailbox-mcp/pull/178), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-12 at RAPID_SEED=1, after the start banner, `--version` and the release version changed the code, tests or patches the row rests on · [pull request #356](https://github.com/ppat/mediated-mailbox-mcp/pull/356)
-- **Break (1):** an existing key file is truncated and overwritten rather than refused
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/cmd/keygen`:** `TestTheCommandPrintsTheKeyAndOverwritesNothing`
-- **Break (2):** the mode is left to the process's umask, so a restrictive umask narrows the public key file's mode
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/cmd/keygen`:** `TestTheKeyFilesModesHoldUnderAnyUmask`
-- **Break (3):** the private key file is written with mode 0644, readable by every user
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/cmd/keygen`:** `TestTheKeyFilesModesHoldUnderAnyUmask`
-- **Break (4):** the public key file holds another pair's public key
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/cmd/keygen`:** `TestTheCommandWritesAPairTheLibrarySealsToAndOpensWith`
-- **Break (5):** the private key file holds the seed followed by a newline
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/cmd/keygen`:** `TestTheCommandWritesAPairTheLibrarySealsToAndOpensWith`
-
 ## The policy loader reads the accounts it is set to from its next reload on
 
 - **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and every break again on 2026-10-11 at RAPID_SEED=1, after the performance measurements changed the code, tests or patches the row rests on · [pull request #341](https://github.com/ppat/mediated-mailbox-mcp/pull/341), and every break again on 2026-10-12 at RAPID_SEED=1, after the policy prepared once per load for the classifier changed the code, tests or patches the row rests on · [pull request #365](https://github.com/ppat/mediated-mailbox-mcp/pull/365), and every break again on 2026-10-13 at RAPID_SEED=1, after the rename of the API server and the migrator moved the code, tests or patches the row rests on · [pull request #376](https://github.com/ppat/mediated-mailbox-mcp/pull/376), in run [38440944897](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/38440944897) of the `mutation-demonstrations` workflow

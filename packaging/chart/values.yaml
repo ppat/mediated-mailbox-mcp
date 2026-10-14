@@ -106,8 +106,8 @@ secrets:
       # -- The key holding the CA certificate.
       certificate: ca.crt
   # The key pair stored credentials are sealed to (ADR-0081, ADR-0088), mounted into the API server, the worker and the
-  # UI and no other pod. Write it with the keygen binary attached to each release, which writes credential.key and
-  # credential.pub. Helm cannot generate it.
+  # UI and no other pod. Write it with the keygen subcommand of the command-line program attached to each release,
+  # which writes credential.key and credential.pub. Helm cannot generate it.
   credentialSealingKeyPair:
     # -- The Secret holding the key pair. Required.
     existingSecret: ""

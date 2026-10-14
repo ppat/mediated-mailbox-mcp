@@ -35,11 +35,20 @@ Standard with a read-only root filesystem and no ServiceAccount token.
    otherwise, so create the roles before installing, or give `helm install --timeout` or the
    HelmRelease's `spec.timeout` enough time for them to appear.
 2. **A Secret per role password**, and **the key pair** stored credentials are sealed to, as the
-   next section lists. Write the key pair with the `mediated-mailbox-keygen` binary attached to each
-   release, and keep a copy elsewhere: losing the private key loses every stored credential.
+   next section lists. Write the key pair with the `keygen` subcommand of the command-line program,
+   attached to each release as `mediated-mailbox-cli-<os>-<arch>` with its Sigstore bundle
+   `mediated-mailbox-cli-<os>-<arch>.sigstore.json`, and keep a copy elsewhere: losing the private
+   key loses every stored credential. Verify the binary against the release workflow's identity
+   before running it, with `<tag>` the release's tag.
 
    ```sh
-   mediated-mailbox-keygen -private-key-file credential.key -public-key-file credential.pub
+   cosign verify-blob \
+     --bundle mediated-mailbox-cli-<os>-<arch>.sigstore.json \
+     --certificate-identity https://github.com/ppat/mediated-mailbox-mcp/.github/workflows/release.yaml@refs/tags/<tag> \
+     --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+     mediated-mailbox-cli-<os>-<arch>
+   install -m 0755 mediated-mailbox-cli-<os>-<arch> mediated-mailbox-cli
+   ./mediated-mailbox-cli keygen -private-key-file credential.key -public-key-file credential.pub
    kubectl create secret generic sealing-keys \
      --from-file=credential.key --from-file=credential.pub
    ```
