@@ -28,7 +28,7 @@ func TestTheCorpusCountsEachThreadOnce(t *testing.T) {
 		Unfiled  int64 `json:"unfiled"`
 	}
 	var got figures
-	read(t, b.h, "/api/{account}/corpus", "/api/personal/corpus", &got)
+	read(t, b.h, "/ui/api/accounts/{account}/corpus", "/ui/api/accounts/personal/corpus", &got)
 	// The seed holds five messages in four threads, three of them unfiled.
 	if diff := cmp.Diff(figures{Messages: 5, Threads: 4, Unfiled: 3}, got, compare.Options); diff != "" {
 		t.Fatalf("the seeded corpus (-want +got):\n%s", diff)
@@ -43,12 +43,12 @@ func TestTheCorpusCountsEachThreadOnce(t *testing.T) {
 		($1, 'm-composed', 't-caf`+"é"+`', 'a@shop.example', 'shop.example', $3, '{INBOX}', false, 'scanned'),
 		($1, 'm-decomposed', 't-cafe`+"́"+`', 'a@shop.example', 'shop.example', $3, '{INBOX}', false, 'scanned'),
 		($2, 'm-other-many', 't-many', 'a@shop.example', 'shop.example', $3, '{}', false, 'scanned')`, personal, other, now)
-	read(t, b.h, "/api/{account}/corpus", "/api/personal/corpus", &got)
+	read(t, b.h, "/ui/api/accounts/{account}/corpus", "/ui/api/accounts/personal/corpus", &got)
 	if diff := cmp.Diff(figures{Messages: 13, Threads: 10, Unfiled: 5}, got, compare.Options); diff != "" {
 		t.Errorf("the corpus with the added threads (-want +got):\n%s", diff)
 	}
 	emptyOther(t)
-	read(t, b.h, "/api/{account}/corpus", "/api/other/corpus", &got)
+	read(t, b.h, "/ui/api/accounts/{account}/corpus", "/ui/api/accounts/other/corpus", &got)
 	if diff := cmp.Diff(figures{}, got, compare.Options); diff != "" {
 		t.Errorf("an account with no message (-want +got):\n%s", diff)
 	}
@@ -102,7 +102,7 @@ func everyPage(t *testing.T, b *browser, sort string) []runPage {
 	var pages []runPage
 	for p := 1; p == 1 || p <= pages[0].Pages; p++ {
 		var page runPage
-		read(t, b.h, "/api/{account}/lens", fmt.Sprintf("/api/personal/lens?dataset=runs&level=3&range=all&sort=%s&page=%d", sort, p), &page)
+		read(t, b.h, "/ui/api/accounts/{account}/lens", fmt.Sprintf("/ui/api/accounts/personal/lens?dataset=runs&level=3&range=all&sort=%s&page=%d", sort, p), &page)
 		pages = append(pages, page)
 	}
 	if pages[0].Pages != 2 {

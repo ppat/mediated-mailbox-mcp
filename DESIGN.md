@@ -442,7 +442,8 @@ top-level documents, a decision record, or a ticket from here without guessing.
   and rules in ADR-0030, via the [decision-record index](./docs/adr/README.md)).
 - **The API** — the client surface's HTTP root, served under `/api/` beside the MCP root at
   `/mcp`. Distinct from **the API server**, the process that serves both roots, and from the UI's
-  read API, which the UI's server serves to its own browser app under its own `/api/`.
+  read API, which the UI's server serves to its own browser app under `/ui/api/`
+  ([ADR-0137](./docs/adr/operability/0137-the-top-level-paths-are-the-surfaces-and-the-ui-serves-under-ui.md)).
 - **Effect class** — the one declaration each operation of the client surface makes about what it
   does to the mailbox, from which its HTTP method and its MCP annotations are derived (classes and
   derivation in ADR-0087, via the [decision-record index](./docs/adr/README.md)).

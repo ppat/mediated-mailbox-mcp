@@ -13,7 +13,7 @@ index fb7a4ecf..64f0317c 100644
  	seen := map[string]string{}
  	for _, route := range bespoke {
 -		if slices.Contains(registryPaths, route.Pattern) {
-+		if slices.Contains([]string{"/api/accounts"}, route.Pattern) && len(registryPaths) > 0 {
++		if slices.Contains([]string{paths.Accounts}, route.Pattern) && len(registryPaths) > 0 {
  			return fmt.Errorf("the path %s is claimed by both the registry and the bespoke handler %s", route.Pattern, route.Operation)
  		}
  		key := route.Verb() + " " + route.Pattern

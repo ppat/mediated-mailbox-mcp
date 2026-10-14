@@ -77,7 +77,7 @@ sub-issue of [#118](https://github.com/ppat/mediated-mailbox-mcp/issues/118). Th
 below is re-dated whenever the checklists are reconciled against the tickets, so staleness is
 detectable instead of silent.
 
-**Position: 2026-10-13.**
+**Position: 2026-10-14.**
 
 ## Delivery posture
 
@@ -242,6 +242,7 @@ its part, and the rows it added. Which rows it proved are the rows whose Status 
 | [#374](https://github.com/ppat/mediated-mailbox-mcp/pull/374) | M3 | M3's later work, the corpus figures counting the account's threads by grouping its messages by thread rather than by a distinct count, and a page of the runs dataset choosing its runs first and then counting the item failures of those runs alone on the failures' primary key, with a sort by failures reading the account's failure counts once as one aggregate each run looks its count up in, in place of aggregating the account's whole failure history and joining it to the runs, which a generic plan aggregated again for every run | It proves again M3's row for every account-scoped read keeping to its account, for the corpus route and the `runs` dataset, and M8's row for the UI classifying every sender under the policy in force, for the corpus | Every demonstration whose statements or tests the change touched, those of every account-scoped read refusing a request without its account and of the UI classifying every sender under the policy in force |
 | [#376](https://github.com/ppat/mediated-mailbox-mcp/pull/376) | F9 | F9's later work, two components named for their roles under [ADR-0054](./docs/adr/engineering/0054-one-repository-flat-layout-naming-convention.md)'s convention, the deployable serving the client surface as the API server, `api/`, published as `mediated-mailbox-api`, and the migration step's image as the migrator, `migrator/`, published as `mediated-mailbox-migrator`, with their roles edited into the schema baseline in place, their series, chart keys and resources, import lists, workflow filters and the failure origin the client surface reports following the new names | No row added. The proven rows whose tests or code the rename moved name them under the new names, and their tests ran again | Every mutation patch whose path or context the rename moved, regenerated with its changed lines kept. Every demonstration in the ledger ran again in one full run of the `mutation-demonstrations` workflow on 2026-10-13 and held, with no surviving mutant, and the rows of the 224 controls whose code, tests or patches the rename touched record that run |
 | [#378](https://github.com/ppat/mediated-mailbox-mcp/pull/378) | F4 | F4's component-labels later work, placed before [production point 1](#production-point-1--the-read-path), the `pr-labels` workflow leaving the labels of a closed or merged pull request alone, decided in its script from the event's pull request state, and labelling a change under `packaging/tests/chainsaw/` as the chart, the component table's chart row naming both directories | — | — |
+| [#383](https://github.com/ppat/mediated-mailbox-mcp/pull/383) | F9 | F9's later work, every top-level path belonging to one surface ([ADR-0137](./docs/adr/operability/0137-the-top-level-paths-are-the-surfaces-and-the-ui-serves-under-ui.md)), the client surface at `/api` and `/mcp` and the UI under `/ui`, its pages at `/ui/accounts/{account}/…` and `/ui/setup/…` with a rule's page taking the word `rules`, its read API at `/ui/api/…` and its bundle's files, `/` answered with a redirect to `/ui/`, the UI's cookies scoped to its subtree, the browser building every address from one module, every identifier after a word naming it so that no route word is refused as one, and the chart's HTTPRoute for the UI matching `/ui` and `/`, with the Helm test checking the UI's root page at `/ui/` | It adds and proves the row for every route the UI registers sitting under its root, retires the row for the route words being closed lists and the account half of the row for an identifier equal to a top-level word, and proves again the rows for the identifier agreement, the client name `new`, a policy write's refusal, the route check, per-account reads and the content security policy | The control that every route the UI registers sits under its root demonstrated with seven breaks, the policy write's refusal of an identifier no path segment can hold broken both ways, with two breaks that refuse too much, the demonstrations of the route words and the reserved words retired with their twenty patches, and every other demonstration under the UI's server, contract, registry, setup and rules packages and the browser run again and held, 215 in all with the two identifier checks of the database, with fifteen patches regenerated for their context |
 
 ### What each composition root runs
 
@@ -997,8 +998,11 @@ What the code on `main` runs today, per composition root, none of it yet release
   ([ADR-0128](./docs/adr/data/0128-account-identifiers-are-one-lowercase-dns-label.md)), and every
   identifier it accepts is a path segment the API server's API root can address
   ([ADR-0087](./docs/adr/operability/0087-client-surface-derives-method-and-hints-from-each-operations-effect.md)).
-  Account setup also refuses an identifier equal to a top-level path segment the UI serves, which
-  the proposal avoids ([docs/UI.md section 8.12](./docs/UI.md#812-connect-an-account-and-re-authorize)).
+  Account setup also refused an identifier equal to a top-level path segment the UI served, which
+  the proposal avoided. [F9](#delivered-mapped-to-outcomes)'s later work, pull request
+  [#383](https://github.com/ppat/mediated-mailbox-mcp/pull/383), placed the UI's pages under
+  `/ui/accounts/` and retired that refusal
+  ([docs/UI.md section 8.12](./docs/UI.md#812-connect-an-account-and-re-authorize)).
   The consent code lives in
   `provider/gmail/consent`, a package of the provider library holding no Provider Port code, so the
   UI links it without the Gmail adapter, and a consent attempt travels in a cookie the UI's server
@@ -1159,7 +1163,19 @@ What the code on `main` runs today, per composition root, none of it yet release
   names, the roles edited into the schema baseline in place, and every behaviour is otherwise
   held. The HTTP routes of the client surface and of the UI's read API keep their paths. Every
   mutation demonstration ran again in one full run of the `mutation-demonstrations` workflow and
-  held.
+  held. Also as later work before production point 1, pull request
+  [#383](https://github.com/ppat/mediated-mailbox-mcp/pull/383), which closed its ticket
+  [#380](https://github.com/ppat/mediated-mailbox-mcp/issues/380), makes every top-level path
+  belong to one surface
+  ([ADR-0137](./docs/adr/operability/0137-the-top-level-paths-are-the-surfaces-and-the-ui-serves-under-ui.md)).
+  The client surface serves `/api` and `/mcp`. The UI serves everything under `/ui`, its pages at
+  `/ui/accounts/{account}/…` and `/ui/setup/…`, its read API at `/ui/api/…` and its bundle's
+  files, and answers `/` with a redirect to `/ui/`. A rule's page takes the word `rules` before its
+  identifier. Every identifier follows a word naming it, so account setup refuses no word of the
+  UI's, and the policy writes refuse only an identifier no path segment can hold. The browser builds every address from one module holding the root, the
+  UI's cookies are scoped to its subtree, and the chart's HTTPRoute for the UI matches `/ui` and
+  `/` alone, so the API server and the UI can share one host name routed by path. The chart's Helm
+  test checks the UI's root page at `/ui/`.
 
 - [x] **F8 — Logging levels** → [O2](./USE_CASES.md#o2--observable) ·
   [V3](#v3--the-agent-arrives-read-only) · finished at image
@@ -1396,9 +1412,12 @@ What the code on `main` runs today, per composition root, none of it yet release
   packages it uses exactly, sqlfluff's rule against unqualified column references stays on in every
   data-access subsection the UI's multi-table reads sit in, the home screen's attention endpoint
   derives its cards at read time from recorded state, and the UI's route words, its top-level words
-  and each policy scope's route words, are closed lists tests pin as literals
-  ([docs/UI.md section 5](./docs/UI.md#5-information-architecture-and-the-url)). As later work
-  before [production point 1](#production-point-1--the-read-path), the UI server's mutation
+  and each policy scope's route words, were closed lists tests pinned as literals
+  ([docs/UI.md section 5](./docs/UI.md#5-information-architecture-and-the-url)).
+  [F9](#delivered-mapped-to-outcomes)'s later work, pull request
+  [#383](https://github.com/ppat/mediated-mailbox-mcp/pull/383), put every identifier after a word
+  naming it and retired the lists and the refusals of identifiers equal to those words. As later
+  work before [production point 1](#production-point-1--the-read-path), the UI server's mutation
   demonstrations run through the runner unaided, against the built browser bundle the runner
   carries into its copies. Also as later work before it, Home's corpus figures are a read of their
   own that Home alone makes, so the system endpoint the partial-index banner reads again on every

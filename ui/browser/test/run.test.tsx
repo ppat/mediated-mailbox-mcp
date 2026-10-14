@@ -89,16 +89,18 @@ function barsOf(f: Element | undefined) {
 
 // failureDetail is a failure's panel over r-0912's items.
 function failureDetail(row: FailureRow): string {
-  return `/personal/jobs/r-0912/failures/${row.seq}`;
+  return `/ui/accounts/personal/jobs/r-0912/failures/${row.seq}`;
 }
 
 test("a URL missing parameters is replaced by the failures view's canonical form", async () => {
-  await open("/personal/jobs/r-0912", r0912);
-  expect(location.pathname + location.search).toBe(`/personal/jobs/r-0912?${canonical}`);
+  await open("/ui/accounts/personal/jobs/r-0912", r0912);
+  expect(location.pathname + location.search).toBe(
+    `/ui/accounts/personal/jobs/r-0912?${canonical}`,
+  );
 });
 
 test("the strip shows the run, where it failed, its failures and its resumer", async () => {
-  const root = await open(`/personal/jobs/r-0912?${canonical}`, r0912);
+  const root = await open(`/ui/accounts/personal/jobs/r-0912?${canonical}`, r0912);
   const head = root.querySelector('[aria-label="Run"]');
   expect([...(head?.querySelectorAll(".figure") ?? [])].map((f) => f.textContent)).toEqual([
     "backfill pass2r-0912",
@@ -117,12 +119,12 @@ test("the strip shows the run, where it failed, its failures and its resumer", a
     "r-0913 runningresumed by",
   ]);
   expect(root.querySelector('[aria-label="Failures of the run"] a')?.getAttribute("href")).toBe(
-    "/personal/jobs/r-0913",
+    "/ui/accounts/personal/jobs/r-0913",
   );
 });
 
 test("the timeline draws a shaped mark per event, a legend of the six kinds, and no mark for progress", async () => {
-  const root = await open(`/personal/jobs/r-0912?${canonical}`, r0912);
+  const root = await open(`/ui/accounts/personal/jobs/r-0912?${canonical}`, r0912);
   const marks = [...root.querySelectorAll(".timeline-mark")];
   expect(marks.map((m) => m.getAttribute("data-kind"))).toEqual([
     "start",
@@ -143,7 +145,7 @@ test("the timeline draws a shaped mark per event, a legend of the six kinds, and
 });
 
 test("an event's detail carrying markup arrives in its mark's hover as text", async () => {
-  const root = await open(`/personal/jobs/r-0912?${canonical}`, r0912);
+  const root = await open(`/ui/accounts/personal/jobs/r-0912?${canonical}`, r0912);
   const failure = root.querySelector('.timeline-mark[data-kind="failure"] title');
   expect(failure?.textContent).toBe(
     "failure at 2026-09-08 08:36Z, page 12: <script>mmfieldmarker-eventdetail</script>",
@@ -153,7 +155,7 @@ test("an event's detail carrying markup arrives in its mark's hover as text", as
 });
 
 test("the breakdown draws bars by error class with the restricted share, and one by disposition", async () => {
-  const root = await open(`/personal/jobs/r-0912?${canonical}`, r0912);
+  const root = await open(`/ui/accounts/personal/jobs/r-0912?${canonical}`, r0912);
   const [byClass, byDisposition] = [...root.querySelectorAll("figure.bars")];
   expect(barsOf(byClass)).toEqual([
     ["provider error", "2", 0],
@@ -168,7 +170,7 @@ test("the breakdown draws bars by error class with the restricted share, and one
     ["recovered", "1", 1],
   ]);
   expect(byClass?.querySelector(".bar")?.getAttribute("href")).toBe(
-    "/personal/jobs/r-0912?level=2&group=sender&sort=last_at,desc&error_class=provider_error",
+    "/ui/accounts/personal/jobs/r-0912?level=2&group=sender&sort=last_at,desc&error_class=provider_error",
   );
   expect(
     [...root.querySelectorAll(".groupby a")].map((a) => [
@@ -184,7 +186,7 @@ test("the breakdown draws bars by error class with the restricted share, and one
 });
 
 test("the items render message rows with the failure's columns, and a page item as a page row", async () => {
-  const root = await open(`/personal/jobs/r-0912?${canonical}`, r0912);
+  const root = await open(`/ui/accounts/personal/jobs/r-0912?${canonical}`, r0912);
   const table = [...root.querySelectorAll("table.rows")].find((t) =>
     t.querySelector("caption")?.textContent?.startsWith("Failed items"),
   );
@@ -218,7 +220,7 @@ test("the items render message rows with the failure's columns, and a page item 
 });
 
 test("a subject carrying markup arrives as text in its message row, and nothing is built from it", async () => {
-  const root = await open(`/personal/jobs/r-0912?${canonical}`, r0912);
+  const root = await open(`/ui/accounts/personal/jobs/r-0912?${canonical}`, r0912);
   const cells = [...root.querySelectorAll("tbody td")].filter((td) =>
     td.textContent?.includes("mmfieldmarker-newslettersubject"),
   );
@@ -261,12 +263,12 @@ test("markup in every field of every message row and page row arrives as text", 
       <RowsTable
         caption="Failed items"
         rowsName="failed items"
-        columns={failureColumns(failureDetail, (id) => `/personal/jobs/${id}`)}
+        columns={failureColumns(failureDetail, (id) => `/ui/accounts/personal/jobs/${id}`)}
         span={pageRow(failureDetail)}
         rows={rows}
         page={1}
         pages={1}
-        pageHref={(p) => `/personal/jobs/r-0912?page=${p}`}
+        pageHref={(p) => `/ui/accounts/personal/jobs/r-0912?page=${p}`}
       />
     </LocationProvider>,
   );
@@ -296,7 +298,7 @@ test("markup in every field of every message row and page row arrives as text", 
 
 test("a click on a bar applies its group and regroups at level 2, and the items follow the filter", async () => {
   const filtered = `${failures}&level=2&group=sender&sort=last_at,desc&error_class=provider_error`;
-  const root = await open(`/personal/jobs/r-0912?${canonical}`, {
+  const root = await open(`/ui/accounts/personal/jobs/r-0912?${canonical}`, {
     ...r0912,
     [lensPath("personal", filtered)]: ok("failures-provider-error-by-sender.json"),
     [lensPath(
@@ -322,7 +324,7 @@ test("a click on a bar applies its group and regroups at level 2, and the items 
 });
 
 test("a failure opens as a panel with what happened, what it means, its provenance and audit rows", async () => {
-  const path = `/personal/jobs/r-0912/failures/1?${canonical}`;
+  const path = `/ui/accounts/personal/jobs/r-0912/failures/1?${canonical}`;
   const root = await open(path, {
     ...r0912,
     [failurePath("personal", "r-0912", "1")]: ok("failure-1.json"),
@@ -343,13 +345,18 @@ test("a failure opens as a panel with what happened, what it means, its provenan
   expect(document.querySelectorAll("script").length).toBe(0);
   await press("Escape");
   await settle();
-  expect(location.pathname + location.search).toBe(`/personal/jobs/r-0912?${canonical}`);
+  expect(location.pathname + location.search).toBe(
+    `/ui/accounts/personal/jobs/r-0912?${canonical}`,
+  );
 });
 
 test("a run with no failures says so, and reads neither the breakdown nor the items", async () => {
-  const root = await open("/personal/jobs/r-0913?level=1&group=error_class&sort=last_at,desc", {
-    [runPath("personal", "r-0913")]: ok("run-r-0913.json"),
-  });
+  const root = await open(
+    "/ui/accounts/personal/jobs/r-0913?level=1&group=error_class&sort=last_at,desc",
+    {
+      [runPath("personal", "r-0913")]: ok("run-r-0913.json"),
+    },
+  );
   expect(root.textContent).toContain("no failures");
   expect(server?.calls.some((c) => c.includes("/lens?"))).toBe(false);
 });
@@ -371,9 +378,12 @@ test("a run event redraws the strip and the indicator shows, and the screen neve
     previous?.(vnode);
   };
   try {
-    const root = await open("/personal/jobs/r-0913?level=1&group=error_class&sort=last_at,desc", {
-      [runPath("personal", "r-0913")]: ok("run-r-0913.json"),
-    });
+    const root = await open(
+      "/ui/accounts/personal/jobs/r-0913?level=1&group=error_class&sort=last_at,desc",
+      {
+        [runPath("personal", "r-0913")]: ok("run-r-0913.json"),
+      },
+    );
     expect(root.querySelector(".live")?.textContent).toBe("live · connecting");
     const checkpoint = () =>
       [...root.querySelectorAll('[aria-label="Run"] .figure')].at(-1)?.textContent;
@@ -408,7 +418,7 @@ test("a run event redraws the strip and the indicator shows, and the screen neve
 });
 
 test("a failed run whose resumer runs is live, and follows the stream", async () => {
-  const root = await open(`/personal/jobs/r-0912?${canonical}`, r0912);
+  const root = await open(`/ui/accounts/personal/jobs/r-0912?${canonical}`, r0912);
   expect(connections.some((c) => c.open && c.account === "personal")).toBe(true);
   expect(root.querySelector(".live")?.textContent).toBe("live · connecting");
 });
@@ -447,7 +457,7 @@ test("a group's value carrying markup arrives as text in its bar and its row", a
 });
 
 test("a gone item says the message was not found at the provider, and what the index holds of it", async () => {
-  await open(`/personal/jobs/r-0912/failures/4?${canonical}`, {
+  await open(`/ui/accounts/personal/jobs/r-0912/failures/4?${canonical}`, {
     ...r0912,
     [failurePath("personal", "r-0912", "4")]: ok("failure-4.json"),
   });
@@ -483,7 +493,7 @@ test("a refused failure says its body is denied and not fetched again until the 
 });
 
 test("a failure's panel shows its message's rule ids, scan time and scanner version", async () => {
-  await open(`/personal/jobs/r-0912/failures/5?${canonical}`, {
+  await open(`/ui/accounts/personal/jobs/r-0912/failures/5?${canonical}`, {
     ...r0912,
     [failurePath("personal", "r-0912", "5")]: ok("failure-5.json"),
   });
@@ -509,7 +519,7 @@ test("a failure's panel shows its message's rule ids, scan time and scanner vers
 });
 
 test("a failure's panel shows the rule that restricts its message's sender apart from the rule ids that fired", async () => {
-  await open(`/personal/jobs/r-0912/failures/1?${canonical}`, {
+  await open(`/ui/accounts/personal/jobs/r-0912/failures/1?${canonical}`, {
     ...r0912,
     [failurePath("personal", "r-0912", "1")]: ok("failure-1.json"),
   });
@@ -527,13 +537,15 @@ test("a failure's panel shows the rule that restricts its message's sender apart
   const rule = [...(provenance?.querySelectorAll("dt") ?? [])].find(
     (dt) => dt.textContent === "rule that restricts the sender",
   )?.nextElementSibling;
-  expect(rule?.querySelector("a")?.getAttribute("href")).toBe("/personal/policy?search=rule.bank");
+  expect(rule?.querySelector("a")?.getAttribute("href")).toBe(
+    "/ui/accounts/personal/policy?search=rule.bank",
+  );
   // A restricted sender carries no Restrict control.
   expect(provenance?.textContent).not.toContain("Restrict");
 });
 
 test("a failure's panel offers Restrict {domain}… for a sender whose class reads normal", async () => {
-  await open(`/personal/jobs/r-0912/failures/5?${canonical}`, {
+  await open(`/ui/accounts/personal/jobs/r-0912/failures/5?${canonical}`, {
     ...r0912,
     [failurePath("personal", "r-0912", "5")]: ok("failure-5.json"),
   });
@@ -542,7 +554,9 @@ test("a failure's panel offers Restrict {domain}… for a sender whose class rea
     a.textContent?.startsWith("Restrict "),
   );
   expect(restrict?.textContent).toBe("Restrict newsletter.example…");
-  expect(restrict?.getAttribute("href")).toBe("/personal/policy/new?suffix=newsletter.example");
+  expect(restrict?.getAttribute("href")).toBe(
+    "/ui/accounts/personal/policy/new?suffix=newsletter.example",
+  );
 });
 
 test("markup in every message-derived field of a failure's panel arrives as text", async () => {
@@ -665,7 +679,7 @@ test("the empty group links with the word empty, and a stored value the grammar 
 });
 
 test("j moves one row cursor, the failed items', and Enter opens one failure", async () => {
-  const root = await open(`/personal/jobs/r-0912?${canonical}`, {
+  const root = await open(`/ui/accounts/personal/jobs/r-0912?${canonical}`, {
     ...r0912,
     [failurePath("personal", "r-0912", "1")]: ok("failure-1.json"),
   });
@@ -679,12 +693,12 @@ test("j moves one row cursor, the failed items', and Enter opens one failure", a
   await press("Enter");
   await settle();
   expect(history.length).toBe(entries + 1);
-  expect(location.pathname).toBe("/personal/jobs/r-0912/failures/1");
+  expect(location.pathname).toBe("/ui/accounts/personal/jobs/r-0912/failures/1");
 });
 
 test("an unlisted account's failure path opens no panel and reads no failure", async () => {
   // The run screen's body reads its run before the accounts endpoint answers, and is refused.
-  await open(`/nobody/jobs/r-0912/failures/1?${canonical}`, {
+  await open(`/ui/accounts/nobody/jobs/r-0912/failures/1?${canonical}`, {
     [runPath("nobody", "r-0912")]: { file: "error-unknown-account-run.json", status: 400 },
   });
   expect(document.querySelector('aside[role="dialog"]')).toBeNull();
@@ -697,18 +711,21 @@ test("an unlisted account's failure path opens no panel and reads no failure", a
 const runLinks: [string, string][] = [
   [
     "the resumer",
-    '[aria-label="Failures of the run"] .figure:last-child a[href="/personal/jobs/r-0913"]',
+    '[aria-label="Failures of the run"] .figure:last-child a[href="/ui/accounts/personal/jobs/r-0913"]',
   ],
   [
     "recovered by",
-    '[aria-label="Failures of the run"] .figure:nth-child(3) a[href="/personal/jobs/r-0913"]',
+    '[aria-label="Failures of the run"] .figure:nth-child(3) a[href="/ui/accounts/personal/jobs/r-0913"]',
   ],
-  ["a failed item's recovering run", 'table.rows tbody a.mono[href="/personal/jobs/r-0913"]'],
+  [
+    "a failed item's recovering run",
+    'table.rows tbody a.mono[href="/ui/accounts/personal/jobs/r-0913"]',
+  ],
 ];
 
 for (const [kind, selector] of runLinks) {
   test(`following ${kind} to another run shows that run's strip and follows its events`, async () => {
-    const root = await open(`/personal/jobs/r-0912?${canonical}`, {
+    const root = await open(`/ui/accounts/personal/jobs/r-0912?${canonical}`, {
       ...r0912,
       [runPath("personal", "r-0913")]: ok("run-r-0913.json"),
     });
@@ -716,7 +733,7 @@ for (const [kind, selector] of runLinks) {
     expect(link).not.toBeNull();
     await act(() => link?.click());
     await settle();
-    expect(location.pathname).toBe("/personal/jobs/r-0913");
+    expect(location.pathname).toBe("/ui/accounts/personal/jobs/r-0913");
     const head = () =>
       [...root.querySelectorAll('[aria-label="Run"] .figure')].map((f) => f.textContent);
     expect(head().slice(0, 2)).toEqual(["backfill pass2r-0913", "runningstate"]);
@@ -742,7 +759,7 @@ for (const [kind, selector] of runLinks) {
 }
 
 test("switching account on the run screen shows the other account's run and none of the last one's", async () => {
-  const root = await open(`/personal/jobs/r-0912?${canonical}`, {
+  const root = await open(`/ui/accounts/personal/jobs/r-0912?${canonical}`, {
     ...r0912,
     [systemPath("other")]: ok("system-other.json"),
     [runPath("other", "r-0912")]: { file: "error-unknown-run-other.json", status: 404 },
@@ -754,11 +771,11 @@ test("switching account on the run screen shows the other account's run and none
   expect(head()[0]).toBe("backfill pass2");
   // A link to the same run under the other account, as a pasted address or a bookmark reaches it.
   const link = document.createElement("a");
-  link.href = `/other/jobs/r-0912?${canonical}`;
+  link.href = `/ui/accounts/other/jobs/r-0912?${canonical}`;
   root.append(link);
   await act(() => link.click());
   await settle();
-  expect(location.pathname).toBe("/other/jobs/r-0912");
+  expect(location.pathname).toBe("/ui/accounts/other/jobs/r-0912");
   expect(head().every((text) => text === "")).toBe(true);
   expect(root.querySelector('[role="alert"] h2')?.textContent).toBe("This request was refused");
   expect(root.textContent).not.toContain("page 14 of 3,368");

@@ -1,0 +1,19 @@
+control: Every route the UI registers sits under its root, apart from the redirect at /
+removes: the app is served at the top level, /, rather than under the UI's root
+packages: ./ui/internal/api
+tests: TestEveryRouteSitsUnderTheUIsRoot TestTheRootRedirectsToTheUIAndNothingElseOutsideItAnswers
+scheduled-count: no
+
+diff --git a/ui/internal/api/server.go b/ui/internal/api/server.go
+index 7400f1e..937901a 100644
+--- a/ui/internal/api/server.go
++++ b/ui/internal/api/server.go
+@@ -233,7 +233,7 @@ func New(opts Options) (*Server, error) {
+ 	mux.Handle(paths.API+"/", named("unrouted", func(w http.ResponseWriter, r *http.Request) {
+ 		writeFailure(w, r, clientFault(http.StatusNotFound, "not_found", "no read API route answers this path"))
+ 	}))
+-	mux.Handle(paths.Root+"/", a)
++	mux.Handle("/", a)
+ 	// The one route outside the root. Everything else outside it is the mux's own 404 (ADR-0137).
+ 	mux.Handle("GET /{$}", named("root", func(w http.ResponseWriter, r *http.Request) {
+ 		http.Redirect(w, r, paths.Root+"/", http.StatusFound)

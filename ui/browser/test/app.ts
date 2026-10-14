@@ -151,13 +151,8 @@ export function testDeps(
     localStorage,
     regionTiming,
     timers,
-    // The entry document's consent redirect, as the server renders it from its configuration, and
-    // the words account setup refuses, as the server reads them from the built bundle.
-    {
-      ...configDefaults,
-      consentRedirect: "http://127.0.0.1:47823/",
-      reservedIdentifiers: ["setup", "api", "fonts", "main.css", "main.js"],
-    },
+    // The entry document's consent redirect, as the server renders it from its configuration.
+    { ...configDefaults, consentRedirect: "http://127.0.0.1:47823/" },
     (account, objects, refetch) => {
       const connection: Connection = {
         account,

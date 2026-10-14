@@ -80,7 +80,7 @@ func TestOneResponseClassifiesUnderOnePolicy(t *testing.T) {
 			SenderClass *string `json:"sender_class"`
 		} `json:"rows"`
 	}
-	read(t, s.Handler(), "/api/{account}/lens", "/api/personal/lens?dataset=failures&run=r-0912&level=3", &page)
+	read(t, s.Handler(), "/ui/api/accounts/{account}/lens", "/ui/api/accounts/personal/lens?dataset=failures&run=r-0912&level=3", &page)
 	if n := l.reads.Load(); n < 2 {
 		t.Fatalf("the response read the policy %d times, so the rule was never lifted inside it", n)
 	}
@@ -176,23 +176,23 @@ func TestEveryClassifyingResponseBeginsOneSnapshot(t *testing.T) {
 		name string
 		do   func() response
 	}{
-		{"corpus", func() response { return b.get("/api/personal/corpus") }},
-		{"failures figures", func() response { return b.get("/api/personal/lens?dataset=failures&run=r-0912&level=0") }},
+		{"corpus", func() response { return b.get("/ui/api/accounts/personal/corpus") }},
+		{"failures figures", func() response { return b.get("/ui/api/accounts/personal/lens?dataset=failures&run=r-0912&level=0") }},
 		{"failures groups", func() response {
-			return b.get("/api/personal/lens?dataset=failures&run=r-0912&level=1&group=sender")
+			return b.get("/ui/api/accounts/personal/lens?dataset=failures&run=r-0912&level=1&group=sender")
 		}},
-		{"failures rows", func() response { return b.get("/api/personal/lens?dataset=failures&run=r-0912&level=3") }},
-		{"failure detail", func() response { return b.get("/api/personal/failures/1?run=r-0912") }},
-		{"rules figures", func() response { return b.get("/api/personal/lens?dataset=rules&level=0&range=all") }},
-		{"rules rows", func() response { return b.get("/api/personal/lens?dataset=rules&level=3&range=all") }},
-		{"rule detail", func() response { return b.get("/api/personal/rules/base%3Abase.bank") }},
+		{"failures rows", func() response { return b.get("/ui/api/accounts/personal/lens?dataset=failures&run=r-0912&level=3") }},
+		{"failure detail", func() response { return b.get("/ui/api/accounts/personal/failures/1?run=r-0912") }},
+		{"rules figures", func() response { return b.get("/ui/api/accounts/personal/lens?dataset=rules&level=0&range=all") }},
+		{"rules rows", func() response { return b.get("/ui/api/accounts/personal/lens?dataset=rules&level=3&range=all") }},
+		{"rule detail", func() response { return b.get("/ui/api/accounts/personal/rules/base%3Abase.bank") }},
 		{"sender picker", func() response {
-			return b.get("/api/personal/lens?dataset=senders&level=3&sort=message_count,desc&page=1")
+			return b.get("/ui/api/accounts/personal/lens?dataset=senders&level=3&sort=message_count,desc&page=1")
 		}},
-		{"match", func() response { return b.get("/api/personal/policy/match?suffix=lender.example") }},
-		{"release", func() response { return b.get("/api/personal/policy/release?scope=base&rule=base.bank") }},
+		{"match", func() response { return b.get("/ui/api/accounts/personal/policy/match?suffix=lender.example") }},
+		{"release", func() response { return b.get("/ui/api/accounts/personal/policy/release?scope=base&rule=base.bank") }},
 		{"import preview", func() response {
-			return b.post("/api/personal/policy/import/preview", map[string]any{"file": ownFile})
+			return b.post("/ui/api/accounts/personal/policy/import/preview", map[string]any{"file": ownFile})
 		}},
 	}
 	for _, c := range cases {

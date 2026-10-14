@@ -3,8 +3,8 @@ package api_test
 import (
 	"io"
 	"log/slog"
+	"net/http"
 	"net/http/httptest"
-	"slices"
 	"strings"
 	"testing"
 	"testing/fstest"
@@ -24,8 +24,8 @@ import (
 var lookups = classify.Lookups{ToUnicode: idna.Lookup.ToUnicode, ToASCII: idna.Lookup.ToASCII, Registrable: publicsuffix.EffectiveTLDPlusOne}
 
 // TestTheEntryDocumentCarriesTheBrowsersConfiguration requires the four keys the browser reads in
-// the entry document as meta tags, durations in whole milliseconds, and the words account setup
-// refuses as identifiers, which the connect page's proposal avoids (docs/UI.md section 18.1).
+// the entry document as meta tags, durations in whole milliseconds, and the bundle's stylesheet and
+// entry module linked under the UI's root (docs/UI.md sections 18 and 18.1).
 func TestTheEntryDocumentCarriesTheBrowsersConfiguration(t *testing.T) {
 	s, err := api.New(api.Options{
 		Bundle: fstest.MapFS{"main.js": {}, "main.css": {}, "fonts/a.woff2": {}}, Datasets: registry.Datasets(lookups), Logger: slog.New(slog.NewTextHandler(io.Discard, nil)),
@@ -39,14 +39,15 @@ func TestTheEntryDocumentCarriesTheBrowsersConfiguration(t *testing.T) {
 		t.Fatal(err)
 	}
 	w := httptest.NewRecorder()
-	s.Handler().ServeHTTP(w, httptest.NewRequest("GET", "/personal", nil))
+	s.Handler().ServeHTTP(w, httptest.NewRequest("GET", "/ui/accounts/personal", nil))
 	body := w.Body.String()
 	for _, want := range []string{
 		`<meta name="mediated-mailbox.default_theme" content="dark">`,
 		`<meta name="mediated-mailbox.stream_reconnect_max" content="45000">`,
 		`<meta name="mediated-mailbox.stream_poll_interval" content="2500">`,
 		`<meta name="mediated-mailbox.consent_redirect" content="http://[::1]:5000/">`,
-		`<meta name="mediated-mailbox.reserved_identifiers" content="setup api fonts main.css main.js">`,
+		`<link rel="stylesheet" href="/ui/main.css">`,
+		`<script type="module" src="/ui/main.js"></script>`,
 	} {
 		if !strings.Contains(body, want) {
 			t.Errorf("the entry document lacks %s:\n%s", want, body)
@@ -54,43 +55,75 @@ func TestTheEntryDocumentCarriesTheBrowsersConfiguration(t *testing.T) {
 	}
 }
 
-// topLevelWords is every word the UI's own top-level paths use, which account setup refuses as an
-// account identifier (docs/UI.md section 5). They are the browser router's setup, the server's api,
-// and the built bundle's main.js, main.css and fonts. The list is written out, so a word the UI starts
-// using is a change to it, which review checks against the accounts already stored. The browser's
-// tests pin the router's word in test/routes.test.ts and the bundle's top level in test/build.test.ts.
-var topLevelWords = []string{"api", "fonts", "main.css", "main.js", "setup"}
+// root is the UI's root, written out here rather than read from the code under test, under which every
+// route the server registers sits, apart from the redirect at / (ADR-0137, docs/UI.md section 5).
+const root = "/ui/"
 
-// Given a bundle whose top level is the built bundle's, the words account setup refuses are the pinned
-// top-level words, and every route the server registers starts with one of them or is the catch-all
-// that serves the entry document, so a route outside the list fails here even when its contract
-// operation is added with it (docs/UI.md section 5). TestTheBuiltBundleReservesThePinnedWords reads
-// the built bundle itself.
-func TestTheTopLevelWordsAreAClosedList(t *testing.T) {
-	bundle := fstest.MapFS{"main.js": {}, "main.css": {}, "fonts/a.woff2": {}, ".gitkeep": {}}
-	reserved, err := api.Reserved(bundle)
-	if err != nil {
-		t.Fatal(err)
-	}
-	slices.Sort(reserved)
-	if !slices.Equal(reserved, topLevelWords) {
-		t.Errorf("account setup refuses %v, and the pinned top-level words are %v", reserved, topLevelWords)
-	}
+// Every route the server registers sits under the UI's root, apart from the redirect at /, so the
+// product's top-level words are its surfaces, and an account's or a rule's identifier follows the word
+// naming it and never sits where a route word does (ADR-0137, docs/UI.md section 5).
+func TestEveryRouteSitsUnderTheUIsRoot(t *testing.T) {
 	s, err := api.New(api.Options{
-		Bundle: bundle, Datasets: registry.Datasets(lookups), Logger: slog.New(slog.DiscardHandler),
+		Bundle: fstest.MapFS{"main.js": {}, "main.css": {}, "fonts/a.woff2": {}}, Datasets: registry.Datasets(lookups), Logger: slog.New(slog.DiscardHandler),
 		Metrics: prometheus.NewRegistry(), Clock: time.Now, StreamInterval: time.Second, TokenKey: make([]byte, api.MinTokenKey),
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
+	redirects := 0
 	for _, pattern := range s.Served() {
 		path := pattern
 		if _, after, ok := strings.Cut(pattern, " "); ok {
 			path = after
 		}
-		word, _, _ := strings.Cut(strings.TrimPrefix(path, "/"), "/")
-		if path != "/" && !slices.Contains(topLevelWords, word) {
-			t.Errorf("the server registers %s, whose first word %q is not a pinned top-level word", pattern, word)
+		switch {
+		case path == "/{$}":
+			redirects++
+		case !strings.HasPrefix(path, root):
+			t.Errorf("the server registers %s, outside the UI's root %s", pattern, root)
 		}
+	}
+	if redirects != 1 {
+		t.Errorf("the server registers / %d times, want once, as the redirect to %s", redirects, root)
+	}
+}
+
+// / answers with a redirect to the UI's root and issues no session, since the session's cookie is
+// scoped to the root and a new one issued at / would replace the session the browser's open pages
+// hold. A path outside the root that is not / answers 404, and the root issues the session scoped to
+// itself (ADR-0137, docs/UI.md sections 5 and 15).
+func TestTheRootRedirectsToTheUIAndNothingElseOutsideItAnswers(t *testing.T) {
+	s, err := api.New(api.Options{
+		Bundle: fstest.MapFS{"main.js": {}, "main.css": {}, "fonts/a.woff2": {}}, Datasets: registry.Datasets(lookups), Logger: slog.New(slog.DiscardHandler),
+		Metrics: prometheus.NewRegistry(), Clock: time.Now, StreamInterval: time.Second, TokenKey: make([]byte, api.MinTokenKey),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	w := httptest.NewRecorder()
+	s.Handler().ServeHTTP(w, httptest.NewRequest("GET", "/", nil))
+	if w.Code != http.StatusFound || w.Header().Get("Location") != root {
+		t.Errorf("/ answers %d with Location %q, want %d with %q", w.Code, w.Header().Get("Location"), http.StatusFound, root)
+	}
+	if c := w.Header().Values("Set-Cookie"); len(c) != 0 {
+		t.Errorf("/ issues cookies %v, want none", c)
+	}
+	for _, p := range []string{"/personal", "/setup", "/main.js", "/api/accounts", "/mcp"} {
+		w := httptest.NewRecorder()
+		s.Handler().ServeHTTP(w, httptest.NewRequest("GET", p, nil))
+		if w.Code != http.StatusNotFound {
+			t.Errorf("%s answers %d, want %d, since the UI serves nothing outside its root but /", p, w.Code, http.StatusNotFound)
+		}
+	}
+	w = httptest.NewRecorder()
+	s.Handler().ServeHTTP(w, httptest.NewRequest("GET", root, nil))
+	cookies := w.Result().Cookies()
+	if w.Code != http.StatusOK || len(cookies) != 1 || cookies[0].Path != root {
+		t.Errorf("%s answers %d with cookies %v, want %d with one session cookie scoped to %s", root, w.Code, cookies, http.StatusOK, root)
+	}
+	w = httptest.NewRecorder()
+	s.Handler().ServeHTTP(w, httptest.NewRequest("GET", root+"main.js", nil))
+	if w.Code != http.StatusOK || strings.Contains(w.Body.String(), "<!doctype html>") {
+		t.Errorf("%smain.js answers %d with %q, want the bundle's file", root, w.Code, w.Body.String())
 	}
 }

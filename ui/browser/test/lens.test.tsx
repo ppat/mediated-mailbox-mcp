@@ -96,7 +96,7 @@ function Plans(props: { account: string }) {
       rowsName="plans"
       columns={columns}
       rows={plansOf}
-      open={(row) => `/${props.account}/plans/${row.plan_id}`}
+      open={(row) => `/ui/accounts/${props.account}/plans/${row.plan_id}`}
       panelOpen={false}
     />
   );
@@ -131,8 +131,8 @@ async function open(path: string, answers: Record<string, Answer>): Promise<HTML
     <DepsContext.Provider value={testDeps(server)}>
       <LocationProvider>
         <Router>
-          <Route path="/:account/plans" component={Plans} />
-          <Route path="/:account/candidates" component={Candidates} />
+          <Route path="/ui/accounts/:account/plans" component={Plans} />
+          <Route path="/ui/accounts/:account/candidates" component={Candidates} />
         </Router>
       </LocationProvider>
     </DepsContext.Provider>,
@@ -148,27 +148,27 @@ const plansAnswers = {
 };
 
 test("a URL missing parameters is replaced by its canonical form", async () => {
-  await open("/personal/plans", plansAnswers);
-  expect(location.pathname + location.search).toBe(`/personal/plans?${plansDefault}`);
+  await open("/ui/accounts/personal/plans", plansAnswers);
+  expect(location.pathname + location.search).toBe(`/ui/accounts/personal/plans?${plansDefault}`);
 });
 
 test("the summary strip shows every figure and the time the read began", async () => {
-  const root = await open(`/personal/plans?${plansDefault}`, plansAnswers);
+  const root = await open(`/ui/accounts/personal/plans?${plansDefault}`, plansAnswers);
   const figures = [...root.querySelectorAll(".strip .figure")];
   expect(figures.map((f) => [f.textContent, f.getAttribute("href")])).toEqual([
-    ["1Awaiting approval", "/personal/plans?status=DRAFT"],
-    ["0Approved, waiting to apply", "/personal/plans?status=APPROVED"],
-    ["1Applying", "/personal/plans?status=APPLYING"],
-    ["1Applied", "/personal/plans?status=APPLIED"],
-    ["0Rolled back", "/personal/plans?status=ROLLED_BACK"],
-    ["0Rejected", "/personal/plans?status=REJECTED"],
-    ["0Apply refused", "/personal/plans?status=APPLY_REFUSED"],
+    ["1Awaiting approval", "/ui/accounts/personal/plans?status=DRAFT"],
+    ["0Approved, waiting to apply", "/ui/accounts/personal/plans?status=APPROVED"],
+    ["1Applying", "/ui/accounts/personal/plans?status=APPLYING"],
+    ["1Applied", "/ui/accounts/personal/plans?status=APPLIED"],
+    ["0Rolled back", "/ui/accounts/personal/plans?status=ROLLED_BACK"],
+    ["0Rejected", "/ui/accounts/personal/plans?status=REJECTED"],
+    ["0Apply refused", "/ui/accounts/personal/plans?status=APPLY_REFUSED"],
   ]);
   expect(root.querySelector(".strip .as-of")?.textContent).toBe("as of 2026-09-10 10:16Z");
 });
 
 test("level 3 is one page of rows under the strip", async () => {
-  const root = await open(`/personal/plans?${plansDefault}`, plansAnswers);
+  const root = await open(`/ui/accounts/personal/plans?${plansDefault}`, plansAnswers);
   const table = root.querySelector("table.rows");
   expect(table?.querySelector("caption")?.textContent).toBe("Plans, 3 in all");
   expect([...(table?.querySelectorAll("th") ?? [])].map((th) => th.getAttribute("scope"))).toEqual([
@@ -192,7 +192,7 @@ test("level 3 is one page of rows under the strip", async () => {
 });
 
 test("a description carrying markup arrives as text, and nothing is built from it", async () => {
-  const root = await open(`/personal/plans?${plansDefault}`, plansAnswers);
+  const root = await open(`/ui/accounts/personal/plans?${plansDefault}`, plansAnswers);
   const cell = root.querySelectorAll("tbody tr")[1]?.querySelectorAll("td")[1];
   expect(cell?.textContent).toBe("<script>mmfieldmarker-plandescription</script>\nSecond line");
   expect(cell?.getAttribute("title")).toBe(
@@ -216,7 +216,7 @@ test("a description carrying markup arrives as text, and nothing is built from i
         rows={answer.rows}
         page={1}
         pages={1}
-        pageHref={(p) => `/personal/plans?page=${p}`}
+        pageHref={(p) => `/ui/accounts/personal/plans?page=${p}`}
       />
     </LocationProvider>,
   );
@@ -234,7 +234,7 @@ test("a description carrying markup arrives as text, and nothing is built from i
 });
 
 test("j and k move the row cursor and Enter opens the row under it", async () => {
-  const root = await open(`/personal/plans?${plansDefault}`, plansAnswers);
+  const root = await open(`/ui/accounts/personal/plans?${plansDefault}`, plansAnswers);
   const selected = () =>
     [...root.querySelectorAll("tbody tr")].map((r) => r.getAttribute("aria-selected"));
   await press("j");
@@ -243,7 +243,9 @@ test("j and k move the row cursor and Enter opens the row under it", async () =>
   await press("k");
   expect(selected()).toEqual(["true", "false", "false"]);
   await press("Enter");
-  expect(location.pathname).toBe("/personal/plans/7f3a9c00-0000-4000-8000-000000000002");
+  expect(location.pathname).toBe(
+    "/ui/accounts/personal/plans/7f3a9c00-0000-4000-8000-000000000002",
+  );
 });
 
 const candidatesAnswers = {
@@ -262,13 +264,13 @@ const candidatesAnswers = {
 };
 
 test("a default filter is a chip, and removing it writes it empty so it stays removed", async () => {
-  const root = await open("/personal/candidates", candidatesAnswers);
+  const root = await open("/ui/accounts/personal/candidates", candidatesAnswers);
   const chip = root.querySelector<HTMLAnchorElement>(".breadcrumb .chip");
   expect(root.querySelector(".breadcrumb")?.firstChild?.textContent).toBe("Review queue");
   expect(chip?.textContent).toBe("status Awaiting review ×");
   expect(chip?.getAttribute("aria-label")).toBe("Remove the filter status Awaiting review");
   expect(chip?.getAttribute("href")).toBe(
-    "/personal/candidates?level=3&range=all&sort=score,desc&page=1&status=",
+    "/ui/accounts/personal/candidates?level=3&range=all&sort=score,desc&page=1&status=",
   );
   await act(() => chip?.click());
   await settle();
@@ -277,14 +279,14 @@ test("a default filter is a chip, and removing it writes it empty so it stays re
 });
 
 test("Escape removes the last chip", async () => {
-  await open("/personal/candidates", candidatesAnswers);
+  await open("/ui/accounts/personal/candidates", candidatesAnswers);
   await press("Escape");
   await settle();
   expect(location.search).toBe("?level=3&range=all&sort=score,desc&page=1&status=");
 });
 
 test("the range control offers the presets and writes range=", async () => {
-  const root = await open(`/personal/plans?${plansDefault}`, plansAnswers);
+  const root = await open(`/ui/accounts/personal/plans?${plansDefault}`, plansAnswers);
   const presets = [...root.querySelectorAll(".range a")];
   expect(presets.map((a) => [a.textContent, a.getAttribute("aria-current")])).toEqual([
     ["24 hours", null],
@@ -294,13 +296,13 @@ test("the range control offers the presets and writes range=", async () => {
     ["all time", "true"],
   ]);
   expect(presets[1]?.getAttribute("href")).toBe(
-    "/personal/plans?level=3&range=7d&sort=created_at,desc&page=1",
+    "/ui/accounts/personal/plans?level=3&range=7d&sort=created_at,desc&page=1",
   );
 });
 
 test("a refused read shows its error card with the origin and request id, and Retry reads again", async () => {
   const search = "level=3&range=all&sort=bogus,desc&page=1";
-  const root = await open(`/personal/plans?${search}`, {
+  const root = await open(`/ui/accounts/personal/plans?${search}`, {
     [lensPath("personal", "dataset=plans&level=0&range=all&sort=bogus,desc")]: refused(
       "error-unknown-sort-summary.json",
     ),
@@ -345,13 +347,13 @@ test("a region past its timeout shows its card, a late answer replaces it, and R
   const held: Held[] = [];
   const timers = new ManualTimers();
   const deps = testDeps({ ...server, fetch: holding(server, held) }, [], undefined, timers);
-  at(`/personal/plans?${plansDefault}`);
+  at(`/ui/accounts/personal/plans?${plansDefault}`);
   mounted = mount(
     <DepsContext.Provider value={deps}>
       <LocationProvider>
         <Router>
-          <Route path="/:account/plans" component={Plans} />
-          <Route path="/:account/candidates" component={Candidates} />
+          <Route path="/ui/accounts/:account/plans" component={Plans} />
+          <Route path="/ui/accounts/:account/candidates" component={Candidates} />
         </Router>
       </LocationProvider>
     </DepsContext.Provider>,
@@ -396,7 +398,7 @@ test("a region past its timeout shows its card, a late answer replaces it, and R
 
 test("a lens with no rows keeps its strip and chips and says no rows match", async () => {
   const search = `${plansDefault}&status=REJECTED`;
-  const root = await open(`/personal/plans?${search}`, {
+  const root = await open(`/ui/accounts/personal/plans?${search}`, {
     [lensPath("personal", "dataset=plans&level=0&range=all&sort=created_at,desc&status=REJECTED")]:
       ok("plans-summary-rejected.json"),
     [lensPath("personal", `dataset=plans&${search}`)]: ok("plans-rows-empty.json"),
@@ -417,7 +419,7 @@ test("a lens with no rows keeps its strip and chips and says no rows match", asy
 
 test("Escape leaves the chips alone while a detail panel is open", async () => {
   panelOpen = true;
-  await open("/personal/candidates", candidatesAnswers);
+  await open("/ui/accounts/personal/candidates", candidatesAnswers);
   await press("Escape");
   await settle();
   expect(location.search).toBe(`?${candidatesDefault}`);
@@ -463,7 +465,7 @@ test("a new page starts with no row under the cursor", async () => {
         rows={page.rows}
         page={n}
         pages={2}
-        pageHref={(p) => `/personal/plans?page=${p}`}
+        pageHref={(p) => `/ui/accounts/personal/plans?page=${p}`}
       />
     </LocationProvider>
   );
@@ -576,7 +578,7 @@ test("the custom range's fields start again from a new range", async () => {
     [lensPath("personal", "dataset=runs&level=3&range=7d&sort=started_at,desc&page=1&pass=!tick")]:
       ok("runs-rows.json"),
   });
-  at(`/personal/jobs?${custom}`);
+  at(`/ui/accounts/personal/jobs?${custom}`);
   const app = mount(<App deps={testDeps(server)} />);
   mounted = app;
   await settle();

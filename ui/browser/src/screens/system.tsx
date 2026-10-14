@@ -11,6 +11,7 @@ import { systemPath, type Run, type System } from "../app/api.ts";
 import { useDeps } from "../app/deps.ts";
 import { ListedAccount, numberIn, refetchOf, settingsPath } from "../app/frame.tsx";
 import { age, count, local, rate, share, utc } from "../app/format.ts";
+import { accountPage } from "../app/paths.ts";
 import { Region } from "../app/region.tsx";
 import { ProgressBar } from "../lens/progress.tsx";
 
@@ -35,7 +36,7 @@ export type Value = {
 // jobsHref is the jobs screen of an account, where the rows of the backfill run, delta sync and the
 // rate link (docs/UI.md section 8.8).
 export function jobsHref(account: string): string {
-  return `/${encodeURIComponent(account)}/jobs`;
+  return accountPage(account, "jobs");
 }
 
 // pass is a backfill pass's value, complete, or running with its progress while its latest run runs,

@@ -227,7 +227,7 @@ var tokenMeta = regexp.MustCompile(`<meta name="mediated-mailbox.request_token" 
 func (r *rig) browser() *browser {
 	r.t.Helper()
 	b := &browser{t: r.t, h: r.s.Handler(), cookies: map[string]string{}}
-	res := b.do(http.MethodGet, "/setup", nil)
+	res := b.do(http.MethodGet, "/ui/setup", nil)
 	m := tokenMeta.FindSubmatch(res.body)
 	if m == nil || b.cookies["ui_session"] == "" {
 		r.t.Fatalf("the entry document carried no token or no session:\n%s", res.body)
@@ -317,14 +317,14 @@ type started struct {
 func (b *browser) addClient(name, id, secret string) {
 	b.t.Helper()
 	project := name
-	decode[map[string]any](b.t, b.post("/api/setup/gmail/clients", map[string]any{"name": name, "client_id": id, "client_secret": secret, "project_id": project}))
+	decode[map[string]any](b.t, b.post("/ui/api/setup/gmail/clients", map[string]any{"name": name, "client_id": id, "client_secret": secret, "project_id": project}))
 }
 
 // connect starts an attempt to connect the account through the client, failing the test unless it
 // starts, and returns what the page shows of it.
 func (b *browser) connect(account, client, mailbox string) started {
 	b.t.Helper()
-	return decode[started](b.t, b.post("/api/setup/connect", map[string]any{"account": account, "client": client, "mailbox": mailbox, "lowered_target": nil}))
+	return decode[started](b.t, b.post("/ui/api/setup/connect", map[string]any{"account": account, "client": client, "mailbox": mailbox, "lowered_target": nil}))
 }
 
 // grant plays the person granting the attempt's consent at the provider, signed in as mailbox, and
@@ -342,7 +342,7 @@ func (r *rig) grant(a started, mailbox string) string {
 func (r *rig) connected(b *browser, account, client, mailbox string) {
 	r.t.Helper()
 	a := b.connect(account, client, mailbox)
-	decode[map[string]any](r.t, b.post("/api/setup/connect/finish", map[string]any{"address": r.grant(a, mailbox)}))
+	decode[map[string]any](r.t, b.post("/ui/api/setup/connect/finish", map[string]any{"address": r.grant(a, mailbox)}))
 }
 
 // pasted is a redirect address with its query replaced, for the refusals a pasted address can meet.

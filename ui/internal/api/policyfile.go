@@ -128,7 +128,7 @@ func checkFile(scope string, file []fileRule) []ProblemAnswer {
 		list[i], classes[i] = f.rule, f.class
 	}
 	var out []ProblemAnswer
-	for _, p := range rules.CheckClasses(scope, list, classes) {
+	for _, p := range rules.CheckClasses(list, classes) {
 		line := file[p.Rule].line
 		a := ProblemAnswer{Kind: string(p.Kind), RuleID: file[p.Rule].rule.ID, Line: &line}
 		if p.Suffix != "" {
@@ -393,12 +393,12 @@ func (s *Server) preview(ctx context.Context, q registry.Queries, isBase bool, s
 	return p, d, nil
 }
 
-// postAccountPreview is POST /api/{account}/policy/import/preview.
+// postAccountPreview is POST /ui/api/accounts/{account}/policy/import/preview.
 func (s *Server) postAccountPreview(w http.ResponseWriter, r *http.Request) {
 	s.writePreview(w, r, r.PathValue("account"), false)
 }
 
-// postBasePreview is POST /api/setup/policy/import/preview.
+// postBasePreview is POST /ui/api/setup/policy/import/preview.
 func (s *Server) postBasePreview(w http.ResponseWriter, r *http.Request) {
 	s.writePreview(w, r, "", true)
 }
@@ -432,12 +432,12 @@ func (s *Server) writePreview(w http.ResponseWriter, r *http.Request, account st
 // errStalePreview is an import whose scope's rules changed since its preview was computed.
 var errStalePreview = errors.New("the scope's rules changed since the preview")
 
-// postAccountImport is POST /api/{account}/policy/import.
+// postAccountImport is POST /ui/api/accounts/{account}/policy/import.
 func (s *Server) postAccountImport(w http.ResponseWriter, r *http.Request) {
 	s.writeImport(w, r, r.PathValue("account"), false)
 }
 
-// postBaseImport is POST /api/setup/policy/import.
+// postBaseImport is POST /ui/api/setup/policy/import.
 func (s *Server) postBaseImport(w http.ResponseWriter, r *http.Request) {
 	s.writeImport(w, r, "", true)
 }
@@ -573,13 +573,13 @@ func (s *Server) readScope(ctx context.Context, account string, isBase bool, fn 
 	})
 }
 
-// getAccountExport is GET /api/{account}/policy/export.
+// getAccountExport is GET /ui/api/accounts/{account}/policy/export.
 func (s *Server) getAccountExport(w http.ResponseWriter, r *http.Request) {
 	account := r.PathValue("account")
 	s.writeExport(w, r, account, false, "policy-"+account+".yaml")
 }
 
-// getBaseExport is GET /api/setup/policy/export.
+// getBaseExport is GET /ui/api/setup/policy/export.
 func (s *Server) getBaseExport(w http.ResponseWriter, r *http.Request) {
 	s.writeExport(w, r, "", true, "policy-base.yaml")
 }

@@ -68,12 +68,12 @@ func errorOf(t *testing.T, r response) (origin, code string) {
 func TestEveryResponseCarriesThePolicy(t *testing.T) {
 	s, _ := server(t)
 	paths := []string{
-		"/", "/personal", "/personal/jobs", "/personal/plans/" + draftPlan,
-		"/api/accounts", "/api/personal/system", "/api/personal/lens?dataset=plans",
-		"/api/personal/lens?dataset=nothing", "/api/all/system", "/api/lens", "/api/personal/nothing",
+		"/", "/ui/", "/ui/accounts/personal", "/ui/accounts/personal/jobs", "/ui/accounts/personal/plans/" + draftPlan, "/personal",
+		"/ui/api/accounts", "/ui/api/accounts/personal/system", "/ui/api/accounts/personal/lens?dataset=plans",
+		"/ui/api/accounts/personal/lens?dataset=nothing", "/ui/api/accounts/all/system", "/ui/api/lens", "/ui/api/accounts/personal/nothing",
 	}
 	if built(t) {
-		paths = append(paths, "/main.js", "/main.css", "/fonts/IBMPlexSans-Regular-Latin1.woff2")
+		paths = append(paths, "/ui/main.js", "/ui/main.css", "/ui/fonts/IBMPlexSans-Regular-Latin1.woff2")
 	}
 	for _, p := range paths {
 		r := get(t, s.Handler(), p)
@@ -102,17 +102,17 @@ func built(t *testing.T) bool {
 // origin.
 func TestTheEntryDocumentIsRenderedForEveryScreenRoute(t *testing.T) {
 	s, _ := server(t)
-	for _, p := range []string{"/", "/personal", "/personal/candidates?status=pending", "/personal/jobs/r-0913"} {
+	for _, p := range []string{"/ui/", "/ui/accounts/personal", "/ui/accounts/personal/candidates?status=pending", "/ui/accounts/personal/jobs/r-0913"} {
 		r := get(t, s.Handler(), p)
-		if r.status != http.StatusOK || !strings.Contains(string(r.body), `<script type="module" src="/main.js"></script>`) ||
-			!strings.Contains(string(r.body), `<link rel="stylesheet" href="/main.css">`) {
+		if r.status != http.StatusOK || !strings.Contains(string(r.body), `<script type="module" src="/ui/main.js"></script>`) ||
+			!strings.Contains(string(r.body), `<link rel="stylesheet" href="/ui/main.css">`) {
 			t.Errorf("%s answered %d without the entry document:\n%s", p, r.status, r.body)
 		}
 		if r.header.Get("Content-Type") != "text/html; charset=utf-8" {
 			t.Errorf("%s answered as %q", p, r.header.Get("Content-Type"))
 		}
 	}
-	if r := get(t, s.Handler(), "/.gitkeep"); !strings.Contains(string(r.body), "<!doctype html>") {
+	if r := get(t, s.Handler(), "/ui/.gitkeep"); !strings.Contains(string(r.body), "<!doctype html>") {
 		t.Errorf("the bundle's placeholder was served as a file: %d %q", r.status, r.body)
 	}
 }
@@ -126,7 +126,7 @@ func TestTheRegistryRefusesWhatItDoesNotDeclare(t *testing.T) {
 	seed(t)
 	pool, sent := countingPool(t, "mediated_mailbox_ui")
 	s, _ := serverAs(t, pool)
-	if r := get(t, s.Handler(), "/api/personal/lens?dataset=plans&level=0"); r.status != http.StatusOK || sent.sent.Load() == 0 {
+	if r := get(t, s.Handler(), "/ui/api/accounts/personal/lens?dataset=plans&level=0"); r.status != http.StatusOK || sent.sent.Load() == 0 {
 		t.Fatalf("a declared request answered %d after %d statements, so the count proves nothing", r.status, sent.sent.Load())
 	}
 	cases := []struct {
@@ -160,7 +160,7 @@ func TestTheRegistryRefusesWhatItDoesNotDeclare(t *testing.T) {
 	}...)
 	for _, c := range cases {
 		before := sent.sent.Load()
-		r := get(t, s.Handler(), "/api/personal/"+c.query)
+		r := get(t, s.Handler(), "/ui/api/accounts/personal/"+c.query)
 		if n := sent.sent.Load() - before; n != 0 {
 			t.Errorf("%s sent %d statements before its refusal", c.query, n)
 		}
@@ -177,7 +177,7 @@ func TestTheRegistryRefusesWhatItDoesNotDeclare(t *testing.T) {
 // the per-account row).
 func TestEveryReadIsPerAccount(t *testing.T) {
 	s, _ := server(t)
-	for _, p := range []string{"/api/lens?dataset=plans", "/api/system", "/api/corpus", "/api/attention", "/api/jobs", "/api/events", "/api/jobs/r-0912", "/api/failures/1?run=r-0912"} {
+	for _, p := range []string{"/ui/api/accounts/lens?dataset=plans", "/ui/api/accounts/system", "/ui/api/accounts/corpus", "/ui/api/accounts/attention", "/ui/api/accounts/jobs", "/ui/api/accounts/events", "/ui/api/accounts/jobs/r-0912", "/ui/api/accounts/failures/1?run=r-0912"} {
 		r := get(t, s.Handler(), p)
 		if origin, code := errorOf(t, r); r.status != http.StatusNotFound || origin != "client" || code != "not_found" {
 			t.Errorf("%s answered %d %s %s, want 404", p, r.status, origin, code)
@@ -185,23 +185,23 @@ func TestEveryReadIsPerAccount(t *testing.T) {
 	}
 	for account, want := range map[string]string{"all": "all_accounts", "nobody": "unknown_account"} {
 		for _, route := range []string{"lens?dataset=plans", "system", "corpus", "attention", "jobs", "events", "jobs/r-0912", "failures/1?run=r-0912", "lens?dataset=runs", "lens?dataset=failures&run=r-0912"} {
-			r := get(t, s.Handler(), "/api/"+account+"/"+route)
+			r := get(t, s.Handler(), "/ui/api/accounts/"+account+"/"+route)
 			if origin, code := errorOf(t, r); r.status != http.StatusBadRequest || origin != "client" || code != want {
-				t.Errorf("/api/%s/%s answered %d %s %s, want 400 %s", account, route, r.status, origin, code, want)
+				t.Errorf("/ui/api/accounts/%s/%s answered %d %s %s, want 400 %s", account, route, r.status, origin, code, want)
 			}
 		}
 	}
-	accounts := get(t, s.Handler(), "/api/accounts")
+	accounts := get(t, s.Handler(), "/ui/api/accounts")
 	if accounts.status != http.StatusOK || !strings.Contains(string(accounts.body), `"personal"`) || !strings.Contains(string(accounts.body), `"other"`) {
 		t.Fatalf("the account list is not every account: %d %s", accounts.status, accounts.body)
 	}
 	for _, p := range []string{
-		"/api/personal/lens?dataset=plans&level=3", "/api/personal/lens?dataset=candidates&level=3",
-		"/api/personal/lens?dataset=plans&level=0", "/api/personal/system", "/api/personal/corpus", "/api/personal/jobs", "/api/personal/attention",
-		"/api/personal/lens?dataset=runs&level=3&range=all", "/api/personal/lens?dataset=runs&level=1&group=workload&range=all",
-		"/api/personal/lens?dataset=failures&run=r-0912&level=3", "/api/personal/lens?dataset=failures&run=r-0912&level=1&group=sender",
-		"/api/personal/failures/1?run=r-0912", "/api/personal/jobs/r-0912",
-		"/api/personal/lens?dataset=failures&run=r-other&level=3", "/api/personal/lens?dataset=failures&run=r-other&level=1&group=sender",
+		"/ui/api/accounts/personal/lens?dataset=plans&level=3", "/ui/api/accounts/personal/lens?dataset=candidates&level=3",
+		"/ui/api/accounts/personal/lens?dataset=plans&level=0", "/ui/api/accounts/personal/system", "/ui/api/accounts/personal/corpus", "/ui/api/accounts/personal/jobs", "/ui/api/accounts/personal/attention",
+		"/ui/api/accounts/personal/lens?dataset=runs&level=3&range=all", "/ui/api/accounts/personal/lens?dataset=runs&level=1&group=workload&range=all",
+		"/ui/api/accounts/personal/lens?dataset=failures&run=r-0912&level=3", "/ui/api/accounts/personal/lens?dataset=failures&run=r-0912&level=1&group=sender",
+		"/ui/api/accounts/personal/failures/1?run=r-0912", "/ui/api/accounts/personal/jobs/r-0912",
+		"/ui/api/accounts/personal/lens?dataset=failures&run=r-other&level=3", "/ui/api/accounts/personal/lens?dataset=failures&run=r-other&level=1&group=sender",
 	} {
 		r := get(t, s.Handler(), p)
 		if r.status != http.StatusOK {
@@ -257,7 +257,7 @@ func TestTheLensAnswersItsLevels(t *testing.T) {
 		}
 		return out
 	}
-	decode("/api/personal/lens?dataset=plans&level=3")
+	decode("/ui/api/accounts/personal/lens?dataset=plans&level=3")
 	if want := []string{applyingPlan, draftPlan, appliedPlan}; !slices.Equal(ids(), want) || page.Total.Count != 3 || page.Pages != 1 {
 		t.Fatalf("the default page is %v of %d, want %v newest first", ids(), page.Total.Count, want)
 	}
@@ -265,15 +265,15 @@ func TestTheLensAnswersItsLevels(t *testing.T) {
 	if page.Rows[0].Messages != 2 || page.Rows[0].ApplyRun != nil {
 		t.Fatalf("the applying plan's row is %+v", page.Rows[0])
 	}
-	decode("/api/personal/lens?dataset=plans&level=3&sort=created_at,asc&status=!DRAFT")
+	decode("/ui/api/accounts/personal/lens?dataset=plans&level=3&sort=created_at,asc&status=!DRAFT")
 	if want := []string{appliedPlan, applyingPlan}; !slices.Equal(ids(), want) || page.Total.Count != 2 {
 		t.Fatalf("the exclusion sorted oldest first is %v of %d, want %v", ids(), page.Total.Count, want)
 	}
-	decode("/api/personal/lens?dataset=plans&level=3&status=DRAFT,APPLIED&range=7d")
+	decode("/ui/api/accounts/personal/lens?dataset=plans&level=3&status=DRAFT,APPLIED&range=7d")
 	if want := []string{draftPlan}; !slices.Equal(ids(), want) {
 		t.Fatalf("the any-of filter within 7 days is %v, want %v", ids(), want)
 	}
-	decode("/api/personal/lens?dataset=plans&level=3&page=2")
+	decode("/ui/api/accounts/personal/lens?dataset=plans&level=3&page=2")
 	if len(page.Rows) != 0 || page.Total.Count != 3 {
 		t.Fatalf("the page past the end holds %v", ids())
 	}
@@ -285,7 +285,7 @@ func TestTheLensAnswersItsLevels(t *testing.T) {
 func TestADatabaseFailureReportsTheDatabaseOrigin(t *testing.T) {
 	seed(t)
 	s, _ := serverAs(t, uiPool(t, "mediated_mailbox_backfill"))
-	r := get(t, s.Handler(), "/api/personal/lens?dataset=plans&level=3")
+	r := get(t, s.Handler(), "/ui/api/accounts/personal/lens?dataset=plans&level=3")
 	if origin, _ := errorOf(t, r); r.status != http.StatusServiceUnavailable || origin != "database" {
 		t.Fatalf("a refused read answered %d %s, want 503 database: %s", r.status, origin, r.body)
 	}
@@ -312,7 +312,7 @@ func TestReadinessFollowsTheDatabase(t *testing.T) {
 // TestTheMetricsCarryReadsAndSubscribers requires the read latency by dataset and level after a read.
 func TestTheMetricsCarryReadsAndSubscribers(t *testing.T) {
 	s, _ := server(t)
-	get(t, s.Handler(), "/api/personal/lens?dataset=candidates&level=0")
+	get(t, s.Handler(), "/ui/api/accounts/personal/lens?dataset=candidates&level=0")
 	r := get(t, s.Probes(), "/metrics")
 	for _, want := range []string{
 		`mediated_mailbox_ui_read_duration_seconds_count{dataset="candidates",level="0"} 1`,
@@ -335,7 +335,7 @@ func TestTheStreamForgetsRunsItNoLongerReads(t *testing.T) {
 	t.Cleanup(ts.Close)
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, ts.URL+"/api/personal/events", nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, ts.URL+"/ui/api/accounts/personal/events", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -445,7 +445,7 @@ func TestTheStreamSendsEachChangedObject(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	refs, ok := doc.Paths.Value("/api/{account}/events").Get.Extensions["x-events"].(map[string]any)
+	refs, ok := doc.Paths.Value("/ui/api/accounts/{account}/events").Get.Extensions["x-events"].(map[string]any)
 	if !ok {
 		t.Fatal("the contract's stream route declares no x-events")
 	}
@@ -461,7 +461,7 @@ func TestTheStreamSendsEachChangedObject(t *testing.T) {
 	t.Cleanup(ts.Close)
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, ts.URL+"/api/personal/events", nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, ts.URL+"/ui/api/accounts/personal/events", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -546,7 +546,7 @@ func TestTheStreamSendsEachChangedObject(t *testing.T) {
 			} `json:"pass2"`
 		} `json:"backfill"`
 	}
-	if err := json.Unmarshal(get(t, s.Handler(), "/api/personal/jobs").body, &jobs); err != nil {
+	if err := json.Unmarshal(get(t, s.Handler(), "/ui/api/accounts/personal/jobs").body, &jobs); err != nil {
 		t.Fatal(err)
 	}
 	delete(running, "account")

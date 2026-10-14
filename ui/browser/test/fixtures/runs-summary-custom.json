@@ -14,7 +14,7 @@
       "value": 5,
       "at": null,
       "unit": null,
-      "link": "/personal/jobs"
+      "link": "/ui/accounts/personal/jobs"
     },
     {
       "key": "running",
@@ -22,7 +22,7 @@
       "value": 2,
       "at": null,
       "unit": null,
-      "link": "/personal/jobs?state=running"
+      "link": "/ui/accounts/personal/jobs?state=running"
     },
     {
       "key": "failed",
@@ -30,7 +30,7 @@
       "value": 1,
       "at": null,
       "unit": null,
-      "link": "/personal/jobs?state=failed"
+      "link": "/ui/accounts/personal/jobs?state=failed"
     },
     {
       "key": "last_failure",
@@ -38,7 +38,7 @@
       "value": null,
       "at": "2026-09-08T09:16:04Z",
       "unit": null,
-      "link": "/personal/jobs/r-0912"
+      "link": "/ui/accounts/personal/jobs/r-0912"
     }
   ]
 }

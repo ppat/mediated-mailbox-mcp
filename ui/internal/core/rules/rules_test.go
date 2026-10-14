@@ -1,7 +1,6 @@
 package rules_test
 
 import (
-	"slices"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -17,31 +16,28 @@ var lookups = classify.Lookups{ToUnicode: idna.Lookup.ToUnicode, ToASCII: idna.L
 
 func rule(id string, suffixes ...string) rules.Rule { return rules.Rule{ID: id, Suffixes: suffixes} }
 
-// A write is refused for what the snapshot's validation refuses, and for an identifier its scope's
-// screens could not reach. Each scope has its own route words, and an identifier repeated only across
-// two writes of different scopes is never seen together here (docs/UI.md sections 8.7 and 8.14).
+// A write is refused for what the snapshot's validation refuses, and for an identifier no path segment
+// can hold, while a word the policy screens' addresses use is an identifier like any other, since a
+// rule's identifier follows rules or base in its address (docs/UI.md sections 5, 8.7 and 8.14).
 func TestCheck(t *testing.T) {
 	cases := []struct {
 		name  string
-		scope string
 		rules []rules.Rule
 		want  []rules.Problem
 	}{
-		{"a valid rule", rules.Account, []rules.Rule{rule("operator.schwab.com", "schwab.com", "schwabmail.com")}, nil},
-		{"an empty identifier", rules.Account, []rules.Rule{rule("", "schwab.com")}, []rules.Problem{{Rule: 0, Kind: rules.BlankIdentifier}}},
-		{"an identifier with surrounding space", rules.Base, []rules.Rule{rule(" x", "schwab.com")}, []rules.Problem{{Rule: 0, Kind: rules.BlankIdentifier}}},
-		{"an identifier the scope holds", rules.Account, []rules.Rule{rule("x", "a.example"), rule("x", "b.example")}, []rules.Problem{{Rule: 1, Kind: rules.RepeatedIdentifier}}},
-		{"no suffix", rules.Account, []rules.Rule{rule("x")}, []rules.Problem{{Rule: 0, Kind: rules.NoSuffix}}},
-		{"a suffix not shaped like a domain name", rules.Account, []rules.Rule{rule("x", "a.example", "*.b.example")}, []rules.Problem{{Rule: 0, Kind: rules.InvalidSuffix, Suffix: "*.b.example"}}},
-		{"an account's route word", rules.Account, []rules.Rule{rule("pick", "a.example")}, []rules.Problem{{Rule: 0, Kind: rules.ReservedIdentifier}}},
-		{"base is an account's route word", rules.Account, []rules.Rule{rule("base", "a.example")}, []rules.Problem{{Rule: 0, Kind: rules.ReservedIdentifier}}},
-		{"base is no route word of the base policy", rules.Base, []rules.Rule{rule("base", "a.example")}, nil},
-		{"pick is no route word of the base policy", rules.Base, []rules.Rule{rule("pick", "a.example")}, nil},
-		{"the base policy's route word", rules.Base, []rules.Rule{rule("history", "a.example")}, []rules.Problem{{Rule: 0, Kind: rules.ReservedIdentifier}}},
-		{"a dot", rules.Base, []rules.Rule{rule(".", "a.example")}, []rules.Problem{{Rule: 0, Kind: rules.ReservedIdentifier}}},
-		{"two dots", rules.Account, []rules.Rule{rule("..", "a.example")}, []rules.Problem{{Rule: 0, Kind: rules.ReservedIdentifier}}},
-		{"a slash", rules.Account, []rules.Rule{rule("a/b", "a.example")}, []rules.Problem{{Rule: 0, Kind: rules.ReservedIdentifier}}},
-		{"several problems, in rule order", rules.Account, []rules.Rule{rule("new", "bad suffix"), rule("")}, []rules.Problem{
+		{"a valid rule", []rules.Rule{rule("operator.schwab.com", "schwab.com", "schwabmail.com")}, nil},
+		{"an empty identifier", []rules.Rule{rule("", "schwab.com")}, []rules.Problem{{Rule: 0, Kind: rules.BlankIdentifier}}},
+		{"an identifier with surrounding space", []rules.Rule{rule(" x", "schwab.com")}, []rules.Problem{{Rule: 0, Kind: rules.BlankIdentifier}}},
+		{"an identifier the scope holds", []rules.Rule{rule("x", "a.example"), rule("x", "b.example")}, []rules.Problem{{Rule: 1, Kind: rules.RepeatedIdentifier}}},
+		{"no suffix", []rules.Rule{rule("x")}, []rules.Problem{{Rule: 0, Kind: rules.NoSuffix}}},
+		{"a suffix not shaped like a domain name", []rules.Rule{rule("x", "a.example", "*.b.example")}, []rules.Problem{{Rule: 0, Kind: rules.InvalidSuffix, Suffix: "*.b.example"}}},
+		{"a word an account's policy screens use", []rules.Rule{rule("pick", "a.example"), rule("base", "b.example"), rule("new", "c.example"), rule("rules", "d.example")}, nil},
+		{"a word the base policy's screens use", []rules.Rule{rule("history", "a.example"), rule("import", "b.example"), rule("rules", "c.example")}, nil},
+		{"an identifier holding a hyphen", []rules.Rule{rule("operator-bank", "bank.example")}, nil},
+		{"a dot", []rules.Rule{rule(".", "a.example")}, []rules.Problem{{Rule: 0, Kind: rules.ReservedIdentifier}}},
+		{"two dots", []rules.Rule{rule("..", "a.example")}, []rules.Problem{{Rule: 0, Kind: rules.ReservedIdentifier}}},
+		{"a slash", []rules.Rule{rule("a/b", "a.example")}, []rules.Problem{{Rule: 0, Kind: rules.ReservedIdentifier}}},
+		{"several problems, in rule order", []rules.Rule{rule("..", "bad suffix"), rule("")}, []rules.Problem{
 			{Rule: 0, Kind: rules.InvalidSuffix, Suffix: "bad suffix"},
 			{Rule: 0, Kind: rules.ReservedIdentifier},
 			{Rule: 1, Kind: rules.BlankIdentifier},
@@ -50,32 +46,16 @@ func TestCheck(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			if diff := cmp.Diff(c.want, rules.Check(c.scope, c.rules), compare.Options); diff != "" {
+			if diff := cmp.Diff(c.want, rules.Check(c.rules), compare.Options); diff != "" {
 				t.Errorf("Check (-want +got):\n%s", diff)
 			}
 		})
 	}
 }
 
-// Each scope's route words are written out, so a word a policy screen's address starts using is a
-// change to this list, which review checks against the rules already stored, since a rule stored under
-// a word that becomes a route word could no longer be reached (docs/UI.md section 5). The browser's
-// test/routes.test.ts pins the router's words after each scope's policy path to the same lists.
-func TestTheRouteWordsAreAClosedList(t *testing.T) {
-	for scope, want := range map[string][]string{
-		rules.Account: {"base", "history", "import", "new", "pick"},
-		rules.Base:    {"history", "import", "new"},
-	} {
-		got := slices.Sorted(slices.Values(rules.Reserved(scope)))
-		if !slices.Equal(got, want) {
-			t.Errorf("the %s scope's route words are %v, and its pinned words are %v", scope, got, want)
-		}
-	}
-}
-
 // A file stating another class than restricted is refused, as the snapshot's validation refuses it.
 func TestCheckClasses(t *testing.T) {
-	got := rules.CheckClasses(rules.Account, []rules.Rule{rule("x", "a.example")}, []string{"normal"})
+	got := rules.CheckClasses([]rules.Rule{rule("x", "a.example")}, []string{"normal"})
 	if diff := cmp.Diff([]rules.Problem{{Rule: 0, Kind: rules.OtherClass}}, got, compare.Options); diff != "" {
 		t.Errorf("CheckClasses (-want +got):\n%s", diff)
 	}

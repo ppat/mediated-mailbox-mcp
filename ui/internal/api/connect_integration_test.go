@@ -17,7 +17,7 @@ import (
 
 // finish pastes an address into the connect page of a session.
 func (b *browser) finish(address string) response {
-	return b.post("/api/setup/connect/finish", map[string]any{"address": address})
+	return b.post("/ui/api/setup/connect/finish", map[string]any{"address": address})
 }
 
 // An account connected through the UI holds its two rows, written together, its credential sealed to
@@ -29,7 +29,7 @@ func TestAConnectedAccountHoldsItsSealedGrant(t *testing.T) {
 	b := r.browser()
 	b.addClient(household, householdID, householdSecret)
 	target := 0.3
-	a := decode[started](t, b.post("/api/setup/connect", map[string]any{"account": "household", "client": household, "mailbox": "Jo.Smith@gmail.com", "lowered_target": target}))
+	a := decode[started](t, b.post("/ui/api/setup/connect", map[string]any{"account": "household", "client": household, "mailbox": "Jo.Smith@gmail.com", "lowered_target": target}))
 	if a.Attempt.Kind != "connect" || a.Attempt.Account != "household" || !strings.HasPrefix(a.Attempt.ConsentAddress, "https://accounts.google.com/o/oauth2/v2/auth?") {
 		t.Fatalf("the attempt reads %+v", a.Attempt)
 	}
@@ -61,24 +61,23 @@ func TestAConnectedAccountHoldsItsSealedGrant(t *testing.T) {
 	if _, err := r.open(sealed, seal.AccountCredential(personal)); err == nil {
 		t.Errorf("the credential opened bound to another account's row")
 	}
-	if got := decode[started](t, b.get("/api/setup/connect")); got.Attempt.Attempt != "" {
+	if got := decode[started](t, b.get("/ui/api/setup/connect")); got.Attempt.Attempt != "" {
 		t.Errorf("the attempt outlived its success: %+v", got)
 	}
 }
 
-// An account identifier outside the grammar, or one of the words the UI's own top-level paths use,
-// is refused when the attempt starts, before anything happens at the provider, and nothing is stored,
-// for every case of the shared table of identifier cases the server refuses, while every case it
-// accepts and every proposal starts an attempt (docs/UI.md section 8.12, VERIFICATIONS, the account
-// identifier rows). The bundle here holds main.js, main.css and a fonts directory, so those three are
-// its top level.
+// An account identifier outside the grammar is refused when the attempt starts, before anything
+// happens at the provider, and nothing is stored, for every case of the shared table of identifier
+// cases the server refuses, while every case it accepts, the words the UI's paths use among them, and
+// every proposal starts an attempt (docs/UI.md section 8.12, VERIFICATIONS, the account identifier
+// rows).
 func TestAnIdentifierNoScreenCouldReachIsRefused(t *testing.T) {
 	r := newRig(t)
 	b := r.browser()
 	b.addClient(household, householdID, householdSecret)
 	before := r.stored()
 	start := func(id string) response {
-		return b.post("/api/setup/connect", map[string]any{"account": id, "client": household, "mailbox": "jo@example.com", "lowered_target": nil})
+		return b.post("/ui/api/setup/connect", map[string]any{"account": id, "client": household, "mailbox": "jo@example.com", "lowered_target": nil})
 	}
 	for _, c := range identifierCases {
 		if !c.Server {
@@ -98,12 +97,12 @@ func TestAnIdentifierNoScreenCouldReachIsRefused(t *testing.T) {
 			}
 		}
 	}
-	refused(t, b.post("/api/setup/connect", map[string]any{"account": personal, "client": household, "mailbox": "jo@example.com", "lowered_target": nil}),
+	refused(t, b.post("/ui/api/setup/connect", map[string]any{"account": personal, "client": household, "mailbox": "jo@example.com", "lowered_target": nil}),
 		http.StatusConflict, "identifier_taken")
-	refused(t, b.post("/api/setup/connect", map[string]any{"account": "jo", "client": "absent-client", "mailbox": "jo@example.com", "lowered_target": nil}),
+	refused(t, b.post("/ui/api/setup/connect", map[string]any{"account": "jo", "client": "absent-client", "mailbox": "jo@example.com", "lowered_target": nil}),
 		http.StatusNotFound, "unknown_client")
 	for _, target := range []float64{0.05, 0.51} {
-		refused(t, b.post("/api/setup/connect", map[string]any{"account": "jo", "client": household, "mailbox": "jo@example.com", "lowered_target": target}),
+		refused(t, b.post("/ui/api/setup/connect", map[string]any{"account": "jo", "client": household, "mailbox": "jo@example.com", "lowered_target": target}),
 			http.StatusBadRequest, "target_refused")
 	}
 	if got := r.stored(); got != before {
@@ -162,7 +161,7 @@ func TestOnlyTheSessionsLatestAttemptFinishes(t *testing.T) {
 	firstAddress := r.grant(first, "jo@gmail.com")
 	second := b.connect("jo", household, "jo@gmail.com")
 	refused(t, b.finish(firstAddress), http.StatusBadRequest, "wrong_attempt")
-	if got := decode[started](t, b.get("/api/setup/connect")); got.Attempt.Attempt != second.Attempt.Attempt {
+	if got := decode[started](t, b.get("/ui/api/setup/connect")); got.Attempt.Attempt != second.Attempt.Attempt {
 		t.Errorf("the session reads the attempt %q, want the newer %q", got.Attempt.Attempt, second.Attempt.Attempt)
 	}
 	refused(t, r.browser().finish(r.grant(second, "jo@gmail.com")), http.StatusBadRequest, "no_attempt")
@@ -240,7 +239,7 @@ func TestAClientReplacedMidAttemptFailsTheFinish(t *testing.T) {
 	b.addClient(household, householdID, householdSecret)
 	a := b.connect("jo", household, "jo@gmail.com")
 	r.consent.AddClient("replacement.apps.example", householdSecret)
-	decode[map[string]any](t, b.post("/api/setup/gmail/clients/"+household, map[string]any{"client_id": "replacement.apps.example", "client_secret": householdSecret, "project_id": nil}))
+	decode[map[string]any](t, b.post("/ui/api/setup/gmail/clients/"+household, map[string]any{"client_id": "replacement.apps.example", "client_secret": householdSecret, "project_id": nil}))
 	before := r.stored()
 	refused(t, b.finish(r.grant(a, "jo@gmail.com")), http.StatusConflict, "client_changed")
 	if got := r.stored(); got != before {
@@ -281,11 +280,11 @@ func TestAnAttemptFinishesOnAnyReplicaSharingTheKey(t *testing.T) {
 	stranger := b.on(r.server([]byte("another replica's key, 32 bytes or more")))
 	refused(t, stranger.finish(address), http.StatusForbidden, "stale_page")
 	stranger.token = ""
-	if got := decode[started](t, stranger.get("/api/setup/connect")); got.Attempt.Attempt != "" {
+	if got := decode[started](t, stranger.get("/ui/api/setup/connect")); got.Attempt.Attempt != "" {
 		t.Errorf("a replica with another key opened the attempt")
 	}
 	replica := b.on(r.server(tokenKey))
-	if got := decode[started](t, replica.get("/api/setup/connect")); got.Attempt.Attempt != a.Attempt.Attempt {
+	if got := decode[started](t, replica.get("/ui/api/setup/connect")); got.Attempt.Attempt != a.Attempt.Attempt {
 		t.Errorf("the replica reads the attempt %+v", got)
 	}
 	decode[map[string]any](t, replica.finish(address))
@@ -293,7 +292,7 @@ func TestAnAttemptFinishesOnAnyReplicaSharingTheKey(t *testing.T) {
 
 // reauthorize starts the re-authorization of an account in a session.
 func (b *browser) reauthorize(account string, body map[string]any) response {
-	return b.post("/api/"+account+"/account/reauthorize", body)
+	return b.post("/ui/api/accounts/"+account+"/account/reauthorize", body)
 }
 
 // Re-authorizing checks the grant against the mailbox the account remembers, and refuses a request
@@ -310,7 +309,7 @@ func TestReauthorizingCannotChangeTheMailbox(t *testing.T) {
 	if a.Attempt.Kind != "reauthorize" || a.Attempt.Mailbox != "jo@gmail.com" {
 		t.Fatalf("the attempt reads %+v", a.Attempt)
 	}
-	refused(t, b.post("/api/jo/account/reauthorize/finish", map[string]any{"address": r.grant(a, "other@gmail.com")}), http.StatusBadRequest, "wrong_mailbox")
+	refused(t, b.post("/ui/api/accounts/jo/account/reauthorize/finish", map[string]any{"address": r.grant(a, "other@gmail.com")}), http.StatusBadRequest, "wrong_mailbox")
 	if got := r.stored(); got != before {
 		t.Errorf("a refused re-authorization changed:\nbefore %s\nafter  %s", before, got)
 	}
@@ -329,13 +328,13 @@ func TestAReauthorizationRecordsItsAttemptAndAlwaysLands(t *testing.T) {
 	r.exec("UPDATE account_state SET credential = 'a deployable wrote this', last_auth_outcome = 'refused', last_auth_at = $1 WHERE account_id = 'jo'", r.clock)
 	before := r.stored()
 	a := decode[started](t, b.reauthorize("jo", map[string]any{"mailbox": nil, "client": nil}))
-	refused(t, b.post("/api/jo/account/reauthorize/finish", map[string]any{"address": pasted(t, r.grant(a, "jo@gmail.com"), func(q url.Values) { q.Set("code", "refused") })}),
+	refused(t, b.post("/ui/api/accounts/jo/account/reauthorize/finish", map[string]any{"address": pasted(t, r.grant(a, "jo@gmail.com"), func(q url.Values) { q.Set("code", "refused") })}),
 		http.StatusBadRequest, "code_refused")
 	if got := r.stored(); got != before {
 		t.Fatalf("a refused code changed:\nbefore %s\nafter  %s", before, got)
 	}
 	r.clock = r.clock.Add(time.Minute)
-	got := decode[map[string]string](t, b.post("/api/jo/account/reauthorize/finish", map[string]any{"address": r.grant(a, "J.O@gmail.com")}))
+	got := decode[map[string]string](t, b.post("/ui/api/accounts/jo/account/reauthorize/finish", map[string]any{"address": r.grant(a, "J.O@gmail.com")}))
 	if got["kind"] != "reauthorize" || got["mailbox"] != "jo@gmail.com" {
 		t.Errorf("the finish answered %v", got)
 	}
@@ -364,18 +363,18 @@ func TestAMoveWritesTheClientAndTheCredentialTogether(t *testing.T) {
 	if a.Attempt.Kind != "move" || a.Attempt.Client != spare {
 		t.Fatalf("the attempt reads %+v", a.Attempt)
 	}
-	refused(t, b.post("/api/jo/account/reauthorize/finish", map[string]any{"address": pasted(t, r.grant(a, "jo@gmail.com"), func(q url.Values) { q.Set("code", "refused") })}),
+	refused(t, b.post("/ui/api/accounts/jo/account/reauthorize/finish", map[string]any{"address": pasted(t, r.grant(a, "jo@gmail.com"), func(q url.Values) { q.Set("code", "refused") })}),
 		http.StatusBadRequest, "code_refused")
 	if got := r.stored(); got != before {
 		t.Fatalf("a refused move changed:\nbefore %s\nafter  %s", before, got)
 	}
 	api.SetFault(r.s, func(string) error { return errors.New("a fault injected between the writes") })
-	refused(t, b.post("/api/jo/account/reauthorize/finish", map[string]any{"address": r.grant(a, "jo@gmail.com")}), http.StatusServiceUnavailable, "database")
+	refused(t, b.post("/ui/api/accounts/jo/account/reauthorize/finish", map[string]any{"address": r.grant(a, "jo@gmail.com")}), http.StatusServiceUnavailable, "database")
 	if got := r.stored(); got != before {
 		t.Fatalf("a move failed between its writes changed:\nbefore %s\nafter  %s", before, got)
 	}
 	api.SetFault(r.s, nil)
-	decode[map[string]any](t, b.post("/api/jo/account/reauthorize/finish", map[string]any{"address": r.grant(a, "jo@gmail.com")}))
+	decode[map[string]any](t, b.post("/ui/api/accounts/jo/account/reauthorize/finish", map[string]any{"address": r.grant(a, "jo@gmail.com")}))
 	if n := r.count("SELECT 1 FROM accounts WHERE account_id = 'jo' AND oauth_client = $1", spare); n != 1 {
 		t.Errorf("the moved account reads:\n%s", r.stored())
 	}
@@ -390,7 +389,7 @@ func TestAnAccountWithNoStateIsConnectedByReauthorizing(t *testing.T) {
 	r.exec("UPDATE accounts SET oauth_client = $1 WHERE account_id = $2", household, other)
 	refused(t, b.reauthorize(other, map[string]any{"mailbox": nil, "client": nil}), http.StatusBadRequest, "mailbox_required")
 	a := decode[started](t, b.reauthorize(other, map[string]any{"mailbox": "Other.Person@gmail.com", "client": nil}))
-	got := decode[map[string]any](t, b.post("/api/"+other+"/account/reauthorize/finish", map[string]any{"address": r.grant(a, "otherperson@gmail.com")}))
+	got := decode[map[string]any](t, b.post("/ui/api/accounts/"+other+"/account/reauthorize/finish", map[string]any{"address": r.grant(a, "otherperson@gmail.com")}))
 	if got["mailbox"] != "otherperson@gmail.com" {
 		t.Errorf("the finish answered %v", got)
 	}
@@ -408,7 +407,7 @@ func TestAccountSettingsReadAndSetTheTarget(t *testing.T) {
 	b.addClient(household, householdID, householdSecret)
 	b.addClient(spare, spareID, spareSecret)
 	r.connected(b, "jo", household, "jo@gmail.com")
-	res := b.get("/api/jo/account")
+	res := b.get("/ui/api/accounts/jo/account")
 	got := decode[map[string]any](t, res)
 	if got["oauth_client"] != household || got["mailbox"] != "jo@gmail.com" || got["connected"] != true || got["lowered_target"] != nil {
 		t.Errorf("account settings read %v", got)
@@ -419,16 +418,16 @@ func TestAccountSettingsReadAndSetTheTarget(t *testing.T) {
 	if strings.Contains(string(res.body), "fake-refresh-token") || strings.Contains(string(res.body), "credential") {
 		t.Errorf("account settings carry the credential:\n%s", res.body)
 	}
-	decode[map[string]any](t, b.post("/api/jo/account/target", map[string]any{"lowered_target": 0.25}))
+	decode[map[string]any](t, b.post("/ui/api/accounts/jo/account/target", map[string]any{"lowered_target": 0.25}))
 	if n := r.count("SELECT 1 FROM account_state WHERE account_id = 'jo' AND lowered_target_rate = 0.25::real"); n != 1 {
 		t.Errorf("the target is not stored")
 	}
-	refused(t, b.post("/api/jo/account/target", map[string]any{"lowered_target": 0.05}), http.StatusBadRequest, "target_refused")
-	decode[map[string]any](t, b.post("/api/jo/account/target", map[string]any{"lowered_target": nil}))
+	refused(t, b.post("/ui/api/accounts/jo/account/target", map[string]any{"lowered_target": 0.05}), http.StatusBadRequest, "target_refused")
+	decode[map[string]any](t, b.post("/ui/api/accounts/jo/account/target", map[string]any{"lowered_target": nil}))
 	if n := r.count("SELECT 1 FROM account_state WHERE account_id = 'jo' AND lowered_target_rate IS NULL"); n != 1 {
 		t.Errorf("the target is not cleared")
 	}
-	refused(t, b.post("/api/"+other+"/account/target", map[string]any{"lowered_target": 0.25}), http.StatusConflict, "not_connected")
+	refused(t, b.post("/ui/api/accounts/"+other+"/account/target", map[string]any{"lowered_target": 0.25}), http.StatusConflict, "not_connected")
 }
 
 // A client's secret in plaintext lives only for the client check and the code exchange. It reaches no
@@ -443,12 +442,12 @@ func TestAClientsSecretReachesNoAnswerCookieOrLog(t *testing.T) {
 		seen = append(seen, res.header.Values("Set-Cookie")...)
 		return res
 	}
-	keep(b.post("/api/setup/gmail/clients", map[string]any{"name": household, "client_id": householdID, "client_secret": householdSecret, "project_id": nil}))
-	a := decode[started](t, keep(b.post("/api/setup/connect", map[string]any{"account": "jo", "client": household, "mailbox": "jo@gmail.com", "lowered_target": nil})))
-	keep(b.get("/api/setup/connect"))
-	keep(b.get("/api/setup"))
+	keep(b.post("/ui/api/setup/gmail/clients", map[string]any{"name": household, "client_id": householdID, "client_secret": householdSecret, "project_id": nil}))
+	a := decode[started](t, keep(b.post("/ui/api/setup/connect", map[string]any{"account": "jo", "client": household, "mailbox": "jo@gmail.com", "lowered_target": nil})))
+	keep(b.get("/ui/api/setup/connect"))
+	keep(b.get("/ui/api/setup"))
 	decode[map[string]any](t, keep(b.finish(r.grant(a, "jo@gmail.com"))))
-	keep(b.get("/api/jo/account"))
+	keep(b.get("/ui/api/accounts/jo/account"))
 	seen = append(seen, r.log.String())
 	for _, s := range seen {
 		if strings.Contains(s, householdSecret) {
@@ -466,7 +465,7 @@ func TestAnAttemptOpensOnlyInItsSession(t *testing.T) {
 	a := owner.connect("jo", household, "jo@gmail.com")
 	other := r.browser()
 	other.cookies["ui_consent"] = owner.cookies["ui_consent"]
-	if got := decode[started](t, other.get("/api/setup/connect")); got.Attempt.Attempt != "" {
+	if got := decode[started](t, other.get("/ui/api/setup/connect")); got.Attempt.Attempt != "" {
 		t.Errorf("another session read the attempt %+v", got)
 	}
 	before := r.stored()
@@ -484,11 +483,11 @@ func TestTheAccountSetupRoutesAreScoped(t *testing.T) {
 	before := r.stored()
 	for _, account := range []string{"all", "nobody"} {
 		code := map[string]string{"all": "all_accounts", "nobody": "unknown_account"}[account]
-		refused(t, b.get("/api/"+account+"/account"), http.StatusBadRequest, code)
-		refused(t, b.get("/api/"+account+"/account/reauthorize"), http.StatusBadRequest, code)
-		refused(t, b.post("/api/"+account+"/account/reauthorize", map[string]any{"mailbox": nil, "client": nil}), http.StatusBadRequest, code)
-		refused(t, b.post("/api/"+account+"/account/reauthorize/finish", map[string]any{"address": "x"}), http.StatusBadRequest, code)
-		refused(t, b.post("/api/"+account+"/account/target", map[string]any{"lowered_target": nil}), http.StatusBadRequest, code)
+		refused(t, b.get("/ui/api/accounts/"+account+"/account"), http.StatusBadRequest, code)
+		refused(t, b.get("/ui/api/accounts/"+account+"/account/reauthorize"), http.StatusBadRequest, code)
+		refused(t, b.post("/ui/api/accounts/"+account+"/account/reauthorize", map[string]any{"mailbox": nil, "client": nil}), http.StatusBadRequest, code)
+		refused(t, b.post("/ui/api/accounts/"+account+"/account/reauthorize/finish", map[string]any{"address": "x"}), http.StatusBadRequest, code)
+		refused(t, b.post("/ui/api/accounts/"+account+"/account/target", map[string]any{"lowered_target": nil}), http.StatusBadRequest, code)
 	}
 	if got := r.stored(); got != before {
 		t.Errorf("a refused request stored:\n%s", got)
@@ -503,7 +502,7 @@ func TestAnotherConfiguredRedirectIsUsedEverywhere(t *testing.T) {
 	const redirect = "http://[::1]:5000/"
 	r := newRigAt(t, redirect)
 	b := r.browser()
-	if res := b.get("/setup"); !strings.Contains(string(res.body), `<meta name="mediated-mailbox.consent_redirect" content="http://[::1]:5000/">`) {
+	if res := b.get("/ui/setup"); !strings.Contains(string(res.body), `<meta name="mediated-mailbox.consent_redirect" content="http://[::1]:5000/">`) {
 		t.Errorf("the entry document does not carry the configured redirect:\n%s", res.body)
 	}
 	b.addClient(household, householdID, householdSecret)

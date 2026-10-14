@@ -10,6 +10,9 @@ import (
 	"encoding/base64"
 	"errors"
 	"net/http"
+	"strings"
+
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/paths"
 )
 
 // sessionCookie is the anonymous session the request token is bound to (ADR-0061).
@@ -80,18 +83,22 @@ func sessionOf(ctx context.Context) session {
 	return session{}
 }
 
-// withSession gives every request a session. A request without the cookie, or with one that is not a
-// session identifier this server could have issued, is issued a new one with its response, HttpOnly,
-// Secure and SameSite=Strict with browser-session lifetime (ADR-0061).
+// withSession gives every request under the UI's root a session. A request without the cookie, or
+// with one that is not a session identifier this server could have issued, is issued a new one with
+// its response, HttpOnly, Secure and SameSite=Strict with browser-session lifetime (ADR-0061), scoped
+// to the root, so a browser sends it to no other surface on a shared origin (ADR-0137). A request
+// outside the root, which is only / answered with a redirect to it, is issued none, since the cookie
+// it would carry is not sent there, and a new session issued for it would replace the one the
+// browser's open pages hold.
 func withSession(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		s := session{}
 		if c, err := r.Cookie(sessionCookie); err == nil && validSession(c.Value) {
 			s = session{id: c.Value, carried: true}
-		} else {
+		} else if strings.HasPrefix(r.URL.Path, paths.Root+"/") {
 			s = session{id: rand.Text() + rand.Text()}
 			http.SetCookie(w, &http.Cookie{
-				Name: sessionCookie, Value: s.id, Path: "/", HttpOnly: true, Secure: true, SameSite: http.SameSiteStrictMode,
+				Name: sessionCookie, Value: s.id, Path: paths.Root + "/", HttpOnly: true, Secure: true, SameSite: http.SameSiteStrictMode,
 			})
 		}
 		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), sessionKey{}, s)))

@@ -49,7 +49,7 @@ const chrome = {
 };
 
 async function open(
-  path = "/personal",
+  path = "/ui/accounts/personal",
   answers: Readonly<Record<string, Answer | readonly Answer[]>> = {
     ...chrome,
     ...homeAnswers("personal"),
@@ -128,7 +128,9 @@ const markup = (tag: string) => `<script>mmfieldmarker-${tag}</script>`;
 
 test("the strip shows each workload's cell, with the pass running and the batch class", async () => {
   const root = await open();
-  expect(root.querySelector(".running-now h2 a")?.getAttribute("href")).toBe("/personal/jobs");
+  expect(root.querySelector(".running-now h2 a")?.getAttribute("href")).toBe(
+    "/ui/accounts/personal/jobs",
+  );
   expect(cells(root)).toEqual([
     [
       "Backfill running",
@@ -216,7 +218,7 @@ test("an event redraws the strip's run and the batch class, and nothing re-runs"
 test("a run event for a run the strip does not show reads the jobs endpoint again, and a poll every read", async () => {
   // The mount and the new run's event each read the corpus once before the poll, so the poll's read
   // is the third, and the attention endpoint's the second.
-  const root = await open("/personal", {
+  const root = await open("/ui/accounts/personal", {
     ...chrome,
     ...homeAnswers("personal"),
     [corpusPath("personal")]: [ok("corpus.json"), ok("corpus.json"), ok("corpus-later.json")],
@@ -271,7 +273,7 @@ test("the System column's as-of time is the older of the system and corpus reads
 test("the System column's as-of line shows the corpus read's time when that read is the older", async () => {
   // corpus-earlier.json is the corpus answer from a server whose clock read a minute before the
   // system answer's.
-  const root = await open("/personal", {
+  const root = await open("/ui/accounts/personal", {
     ...chrome,
     ...homeAnswers("personal"),
     [corpusPath("personal")]: ok("corpus-earlier.json"),
@@ -382,7 +384,7 @@ test("worth a look shows each card newest first, linking only into a screen that
       "Sync gap",
       "1 since 2026-09-08 10:16Z",
       "See Jobs",
-      "/personal/jobs?range=7d&pass=gap_recovery",
+      "/ui/accounts/personal/jobs?range=7d&pass=gap_recovery",
     ],
     ["Masking", "21 since 2026-09-04 10:16Z", null, null],
   ]);
@@ -395,11 +397,21 @@ test("the System column shows the operational rows and the corpus figures, linki
   const root = await open();
   expect(root.querySelector(".home-system .as-of")?.textContent).toBe("as of 2026-09-10 10:16Z");
   expect(values(root, "Operational")).toEqual([
-    ["Backfill pass 1", "complete", null, "/personal/jobs"],
+    ["Backfill pass 1", "complete", null, "/ui/accounts/personal/jobs"],
     ["Backfill pass 2", "91.0%, 1 pending", null, null],
-    ["Sync cursor age", "4m", " · last successful tick 2026-09-10 10:15Z", "/personal/jobs"],
-    ["Rate", "3.1 of 5.0 units/s, cap 8.0 units/s, not in backoff", null, "/personal/jobs"],
-    ["Last authentication", "succeeded", " · 2026-09-10 04:16Z", "/personal/account"],
+    [
+      "Sync cursor age",
+      "4m",
+      " · last successful tick 2026-09-10 10:15Z",
+      "/ui/accounts/personal/jobs",
+    ],
+    [
+      "Rate",
+      "3.1 of 5.0 units/s, cap 8.0 units/s, not in backoff",
+      null,
+      "/ui/accounts/personal/jobs",
+    ],
+    ["Last authentication", "succeeded", " · 2026-09-10 04:16Z", "/ui/accounts/personal/account"],
   ]);
   expect(values(root, "Corpus")).toEqual([
     ["body served, 24 hours", "1", null, null],
@@ -463,7 +475,7 @@ test("while a re-opened backfill pass 1 runs, the corpus counts are not counts s
 });
 
 test("an account with nothing indexed, nothing to decide and nothing worth a look says so", async () => {
-  const root = await open("/other", {
+  const root = await open("/ui/accounts/other", {
     [accountsPath()]: ok("accounts.json"),
     [systemPath("other")]: ok("system-other-empty.json"),
     [jobsPath("other")]: ok("jobs-other-empty.json"),
@@ -565,7 +577,7 @@ test("the strip and the banner share the account's one connection, which closes 
   await press("g");
   await press("s");
   await settle();
-  expect(location.pathname).toBe("/personal/system");
+  expect(location.pathname).toBe("/ui/accounts/personal/system");
   expect(connections.filter((c) => c.open).map((c) => c.account)).toEqual(["personal"]);
   expect(connections[0]?.open).toBe(false);
   const homeReads = [
@@ -595,21 +607,23 @@ test("the strip and the banner share the account's one connection, which closes 
 });
 
 test("switching accounts closes the last account's connection and follows the new one's", async () => {
-  const root = await open("/personal", {
+  const root = await open("/ui/accounts/personal", {
     ...chrome,
     ...homeAnswers("personal"),
     ...homeAnswers("other"),
   });
   await act(() => root.querySelector<HTMLButtonElement>('button[aria-label="Account"]')?.click());
-  await act(() => root.querySelector<HTMLAnchorElement>('[role="menu"] a[href="/other"]')?.click());
+  await act(() =>
+    root.querySelector<HTMLAnchorElement>('[role="menu"] a[href="/ui/accounts/other"]')?.click(),
+  );
   await settle();
-  expect(location.pathname).toBe("/other");
+  expect(location.pathname).toBe("/ui/accounts/other");
   expect(connections.filter((c) => c.open).map((c) => c.account)).toEqual(["other"]);
   expect(connections.filter((c) => c.account === "personal").map((c) => c.open)).toEqual([false]);
 });
 
 test("an account's first rate event reads the jobs endpoint again and brings up the strip's batch class", async () => {
-  const root = await open("/other", {
+  const root = await open("/ui/accounts/other", {
     ...chrome,
     ...homeAnswers("other"),
     [jobsPath("other")]: [ok("jobs-other.json"), ok("jobs-other-spent.json")],
@@ -645,7 +659,7 @@ test("a pass that starts while Home is open draws its checkpoint and bar on its 
     previous?.(vnode);
   };
   try {
-    const root = await open("/personal", {
+    const root = await open("/ui/accounts/personal", {
       ...chrome,
       ...homeAnswers("personal"),
       [jobsPath("personal")]: ok("jobs-pass2-started.json"),
@@ -674,7 +688,7 @@ test("a pass that starts while Home is open draws its checkpoint and bar on its 
 });
 
 test("a backfill run event reads the corpus endpoint again, and the corpus rows move with the pass", async () => {
-  const root = await open("/personal", {
+  const root = await open("/ui/accounts/personal", {
     ...chrome,
     ...homeAnswers("personal"),
     [corpusPath("personal")]: [ok("corpus.json"), ok("corpus-later.json")],
@@ -738,7 +752,7 @@ test("a re-opened pass 1 shows the subjects it fetched again of all it fetches, 
     previous?.(vnode);
   };
   try {
-    const root = await open("/personal", {
+    const root = await open("/ui/accounts/personal", {
       ...chrome,
       [systemPath("personal")]: ok("system-reopened.json"),
       ...homeAnswers("personal"),

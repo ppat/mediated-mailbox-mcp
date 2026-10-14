@@ -7,6 +7,7 @@
 // not declare, and a present parameter is written back as it was read, so a wrong value reaches the
 // server and its refusal is shown rather than silently corrected.
 import { descriptors } from "../generated/descriptors.ts";
+import { accountPage } from "./paths.ts";
 
 export type DatasetName = keyof typeof descriptors;
 type Descriptor = (typeof descriptors)[DatasetName];
@@ -196,7 +197,7 @@ export function withPage(view: View, page: number): View {
 // the dataset's name for an analysis lens, or the screen that shows the dataset, such as jobs for the
 // runs.
 export function href(account: string, view: View, screen: string = view.dataset): string {
-  return `/${encodeURIComponent(account)}/${screen}?${serialize(view)}`;
+  return `${accountPage(account, screen)}?${serialize(view)}`;
 }
 
 // filterWord is how a filter names a group, by its stored value, none for the null group and empty

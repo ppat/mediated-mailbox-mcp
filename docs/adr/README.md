@@ -192,6 +192,7 @@ moves it. Records themselves link freely and deep, into
 | 0119 | [The worker's jobs are scheduled by an in-process scheduler that stores nothing, from recorded state, with no messaging through PostgreSQL](./operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md) | Accepted |
 | 0127 | [The API server and the UI serve TLS when given a certificate and key, and plain HTTP when given neither](./operability/0127-tls-when-given-a-key-pair-plain-http-otherwise.md) | Accepted |
 | 0130 | [The API server bounds what one request can make it hold, with batches refused, cancellation followed, one deadline on a request's lease waits and limits on each connection](./operability/0130-the-api-server-bounds-what-one-request-can-make-it-hold.md) | Accepted |
+| 0137 | [The product's top-level paths are its surfaces, and the UI serves everything under `/ui`](./operability/0137-the-top-level-paths-are-the-surfaces-and-the-ui-serves-under-ui.md) | Accepted |
 
 ## Engineering — `engineering/`
 

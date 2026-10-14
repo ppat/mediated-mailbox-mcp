@@ -1,11 +1,4 @@
 {
-  "reserved": [
-    "api",
-    "fonts",
-    "main.css",
-    "main.js",
-    "setup"
-  ],
   "cases": [
     {
       "identifier": "jo",
@@ -317,31 +310,52 @@
     },
     {
       "identifier": "setup",
-      "server": false,
+      "server": true,
       "database": true,
       "taken": [],
-      "proposal": "setup-2"
+      "proposal": "setup"
     },
     {
       "identifier": "api",
-      "server": false,
+      "server": true,
       "database": true,
       "taken": [],
-      "proposal": "api-2"
+      "proposal": "api"
     },
     {
       "identifier": "fonts",
-      "server": false,
+      "server": true,
       "database": true,
       "taken": [],
-      "proposal": "fonts-2"
+      "proposal": "fonts"
+    },
+    {
+      "identifier": "ui",
+      "server": true,
+      "database": true,
+      "taken": [],
+      "proposal": "ui"
+    },
+    {
+      "identifier": "mcp",
+      "server": true,
+      "database": true,
+      "taken": [],
+      "proposal": "mcp"
+    },
+    {
+      "identifier": "accounts",
+      "server": true,
+      "database": true,
+      "taken": [],
+      "proposal": "accounts"
     },
     {
       "identifier": "Setup",
       "server": false,
       "database": false,
       "taken": [],
-      "proposal": "setup-2"
+      "proposal": "setup"
     },
     {
       "identifier": "main.js",
@@ -378,9 +392,10 @@
     },
     {
       "identifier": "setup",
-      "server": false,
+      "server": true,
       "database": true,
       "taken": [
+        "setup",
         "setup-2"
       ],
       "proposal": "setup-3"

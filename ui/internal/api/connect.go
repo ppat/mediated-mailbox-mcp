@@ -138,8 +138,8 @@ func (s *Server) startConnect(w http.ResponseWriter, r *http.Request) {
 	if !readBody(w, r, &body) {
 		return
 	}
-	if refusal := setup.Identifier(body.Account, s.reserved); refusal != setup.None {
-		writeFailure(w, r, clientFault(http.StatusBadRequest, string(refusal), identifierGrammar+", and is not a word the UI's own paths use"))
+	if refusal := setup.Identifier(body.Account); refusal != setup.None {
+		writeFailure(w, r, clientFault(http.StatusBadRequest, string(refusal), identifierGrammar))
 		return
 	}
 	if !s.validStart(w, r, body.Mailbox, body.LoweredTarget) {

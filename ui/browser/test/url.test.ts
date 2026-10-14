@@ -80,12 +80,12 @@ describe("links", () => {
       "level=3&range=2026-09-01,2026-09-10&sort=created_at,desc&page=1",
     );
     expect(href("personal", withPage(view, 5))).toBe(
-      "/personal/plans?level=3&range=all&sort=created_at,desc&page=5",
+      "/ui/accounts/personal/plans?level=3&range=all&sort=created_at,desc&page=5",
     );
   });
 
   test("the account is one encoded path segment", () => {
-    expect(href("a/b", canonicalize(parse("plans", "")))).toStartWith("/a%2Fb/plans?");
+    expect(href("a/b", canonicalize(parse("plans", "")))).toStartWith("/ui/accounts/a%2Fb/plans?");
   });
 });
 

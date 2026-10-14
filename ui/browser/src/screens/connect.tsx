@@ -7,6 +7,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "preact/hooks"
 import { useLocation } from "preact-iso";
 import {
   accountPath,
+  accountsPath,
   connectPath,
   installationPath,
   reauthorizePath,
@@ -32,6 +33,7 @@ import {
   type PasteChecks,
 } from "../app/guide.ts";
 import { Region } from "../app/region.tsx";
+import { accountPage, setupPage } from "../app/paths.ts";
 import { setupPath } from "./clientsetup.tsx";
 
 // What the page does, connect a new account or re-authorize the account in the path.
@@ -200,7 +202,7 @@ function Steps(props: StepsProps) {
             onConnected={(connected) => {
               setOutcome({ connected });
               void deps.installation.refresh(installationPath());
-              void deps.accounts.refresh("/api/accounts");
+              void deps.accounts.refresh(accountsPath());
               if (mode.kind === "reauthorize") {
                 void deps.settings.refresh(accountPath(mode.account));
               }
@@ -224,19 +226,15 @@ function fit(s: string, length: number): string {
 // one lowercase DNS label that the server's check and the database hold (section 8.12). It lowercases
 // the local part, replaces each run of characters outside letters, digits and hyphens with a hyphen,
 // trims hyphens at both ends, cuts the rest to 63 characters and trims hyphens again, and takes
-// account when nothing is left. When an account already holds that, or it is one of reserved, the
-// words the UI's own top-level paths use, it adds the first free numeric suffix, shortening what
-// precedes it so the whole stays within 63 characters. The operator may edit what it proposes.
-export function proposeIdentifier(
-  mailbox: string,
-  taken: readonly string[],
-  reserved: readonly string[],
-): string {
+// account when nothing is left. When an account already holds that, it adds the first free numeric
+// suffix, shortening what precedes it so the whole stays within 63 characters. The operator may edit
+// what it proposes.
+export function proposeIdentifier(mailbox: string, taken: readonly string[]): string {
   const at = mailbox.lastIndexOf("@");
   const local = (at < 0 ? mailbox : mailbox.slice(0, at)).toLowerCase();
   const base =
     fit(local.replace(/[^a-z0-9-]+/g, "-").replace(/^-+/, ""), identifierLength) || "account";
-  const free = (candidate: string) => !taken.includes(candidate) && !reserved.includes(candidate);
+  const free = (candidate: string) => !taken.includes(candidate);
   if (free(base)) {
     return base;
   }
@@ -279,7 +277,7 @@ function NameStep(props: NameProps) {
   const [failure, setFailure] = useState<Failure | undefined>(undefined);
   const [moving, setMoving] = useState(props.chosen !== undefined);
   const taken = answer.accounts.map((a) => a.account_id);
-  const proposed = identifier ?? proposeIdentifier(mailbox, taken, deps.config.reservedIdentifiers);
+  const proposed = identifier ?? proposeIdentifier(mailbox, taken);
   const clients = clientsFor(answer);
   const remembered = account?.mailbox ?? null;
   const start = async () => {
@@ -646,7 +644,7 @@ function PasteStep(props: PasteProps) {
           type="button"
           onClick={() => {
             const opened = deps.guides.open(
-              "/setup/connect?guide=paste",
+              setupPage("connect?guide=paste"),
               guideWindow,
               sideFeatures(screen.availWidth),
             );
@@ -857,7 +855,7 @@ export function refusalText(
     case "identifier_taken":
       return `An account named ${identifier} already exists, or was connected while this one was in progress. Nothing was saved. Start again from step 1 with another identifier.`;
     case "identifier_refused":
-      return `${identifier} cannot be an account's identifier. An identifier is 1 to 63 lowercase letters, digits and hyphens, starting and ending with a letter or a digit, and is not a word the UI's own paths use.`;
+      return `${identifier} cannot be an account's identifier. An identifier is 1 to 63 lowercase letters, digits and hyphens, starting and ending with a letter or a digit.`;
     case "client_changed":
       return `The client ${client} changed while this was in progress. Nothing was saved. Start again from step 1.`;
     case "unknown_client":
@@ -878,7 +876,7 @@ export function refusalText(
 // Success says what finishing stored and what comes next (section 8.12).
 function Success(props: { mode: Mode; connected: Connected; answer: Installation }) {
   const { connected } = props;
-  const home = `/${encodeURIComponent(connected.account)}`;
+  const home = accountPage(connected.account);
   if (connected.kind === "connect") {
     return (
       <>

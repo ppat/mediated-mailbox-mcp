@@ -9,9 +9,12 @@ import (
 	"errors"
 	"net/http"
 	"time"
+
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/paths"
 )
 
-// attemptCookie carries the session's one consent attempt, sealed by the server (ADR-0111).
+// attemptCookie carries the session's one consent attempt, sealed by the server (ADR-0111). It is
+// scoped to the read API, which alone reads it (ADR-0137).
 const attemptCookie = "ui_consent"
 
 // attemptLifetime is how long an attempt lasts, the design's starting value (docs/UI.md section 8.12).
@@ -96,13 +99,13 @@ func (k keys) openAttempt(r *http.Request) (attempt, error) {
 // keepAttempt sets the session's attempt, replacing any it held, so only the newest can finish.
 func keepAttempt(w http.ResponseWriter, value string) {
 	http.SetCookie(w, &http.Cookie{
-		Name: attemptCookie, Value: value, Path: "/api/", HttpOnly: true, Secure: true, SameSite: http.SameSiteStrictMode,
+		Name: attemptCookie, Value: value, Path: paths.API + "/", HttpOnly: true, Secure: true, SameSite: http.SameSiteStrictMode,
 	})
 }
 
 // endAttempt clears the session's attempt once a finish has stored what it was for.
 func endAttempt(w http.ResponseWriter) {
 	http.SetCookie(w, &http.Cookie{
-		Name: attemptCookie, Value: "", Path: "/api/", MaxAge: -1, HttpOnly: true, Secure: true, SameSite: http.SameSiteStrictMode,
+		Name: attemptCookie, Value: "", Path: paths.API + "/", MaxAge: -1, HttpOnly: true, Secure: true, SameSite: http.SameSiteStrictMode,
 	})
 }

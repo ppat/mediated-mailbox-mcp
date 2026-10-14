@@ -57,7 +57,7 @@ test("a pass 1 fetching stale subjects again shows the subjects fetched again of
 });
 
 test("the screen shows each operational value, and the rows UI.md sends to Jobs link there", async () => {
-  const root = await open("/personal/system");
+  const root = await open("/ui/accounts/personal/system");
   expect(root.querySelector("main h1")?.textContent).toBe("System");
   expect(root.querySelector("main .as-of")?.textContent).toBe("as of 2026-09-10 10:16Z");
   expect(rows(root)).toEqual([
@@ -80,22 +80,22 @@ test("the screen shows each operational value, and the rows UI.md sends to Jobs 
   );
   expect(linked).toEqual([
     null,
-    "/personal/jobs",
+    "/ui/accounts/personal/jobs",
     null,
-    "/personal/jobs",
-    "/personal/jobs",
+    "/ui/accounts/personal/jobs",
+    "/ui/accounts/personal/jobs",
     null,
-    "/personal/jobs",
-    "/personal/jobs",
-    "/personal/jobs",
-    "/personal/account",
+    "/ui/accounts/personal/jobs",
+    "/ui/accounts/personal/jobs",
+    "/ui/accounts/personal/jobs",
+    "/ui/accounts/personal/account",
   ]);
   const rate = [...root.querySelectorAll('dl[aria-label="Operational state"] dd')][6];
   expect(
     [...(rate?.querySelectorAll("a") ?? [])].map((a) => [a.textContent, a.getAttribute("href")]),
   ).toEqual([
-    ["3.1 of 5.0 units/s, cap 8.0 units/s", "/personal/jobs"],
-    ["rate target", "/personal/account"],
+    ["3.1 of 5.0 units/s, cap 8.0 units/s", "/ui/accounts/personal/jobs"],
+    ["rate target", "/ui/accounts/personal/account"],
   ]);
   const bars = [...root.querySelectorAll("main svg.progress")];
   expect(bars.map((b) => b.getAttribute("aria-label"))).toEqual(["Backfill pass 2 progress"]);
@@ -107,7 +107,7 @@ test("the screen shows each operational value, and the rows UI.md sends to Jobs 
 });
 
 test("an account with no state row reads not connected, with nothing recorded", async () => {
-  const root = await open("/other/system");
+  const root = await open("/ui/accounts/other/system");
   expect(rows(root)).toEqual([
     ["Account", "other", " · gmail, not connected"],
     ["Backfill pass 1", "running", null],
@@ -131,7 +131,7 @@ test("a backoff reads until its time while that time is ahead, and not in backof
 });
 
 test("the screen and the partial-index banner share one read of the system endpoint", async () => {
-  const root = await open("/personal/system");
+  const root = await open("/ui/accounts/personal/system");
   expect(root.querySelector(".banner")).not.toBeNull();
   expect(server?.calls.filter((c) => c === systemPath("personal"))).toEqual([
     systemPath("personal"),
@@ -139,7 +139,7 @@ test("the screen and the partial-index banner share one read of the system endpo
 });
 
 test("a failed system read shows the region's error card, and its retry reads again", async () => {
-  const root = await open("/personal/system", {
+  const root = await open("/ui/accounts/personal/system", {
     ...answers,
     [systemPath("personal")]: { file: "error-unknown-account.json", status: 400 },
   });
@@ -153,7 +153,7 @@ test("a failed system read shows the region's error card, and its retry reads ag
 });
 
 test("an account the listing does not name reads no system", async () => {
-  const root = await open("/nobody/system");
+  const root = await open("/ui/accounts/nobody/system");
   expect(root.querySelector("main [role=alert]")?.textContent).toBe(
     "This request was refusedNo account nobody is served here.",
   );
@@ -161,7 +161,7 @@ test("an account the listing does not name reads no system", async () => {
 });
 
 test("the navigation marks System, and g then s goes to it", async () => {
-  const root = await open("/personal");
+  const root = await open("/ui/accounts/personal");
   const links = () =>
     [...root.querySelectorAll('nav[aria-label="Screens"] a')].map((a) => [
       a.textContent,
@@ -169,10 +169,10 @@ test("the navigation marks System, and g then s goes to it", async () => {
       a.getAttribute("aria-current"),
     ]);
   expect(links()).toEqual([
-    ["Home", "/personal", "page"],
-    ["Jobs running", "/personal/jobs", null],
-    ["Policy", "/personal/policy", null],
-    ["System", "/personal/system", null],
+    ["Home", "/ui/accounts/personal", "page"],
+    ["Jobs running", "/ui/accounts/personal/jobs", null],
+    ["Policy", "/ui/accounts/personal/policy", null],
+    ["System", "/ui/accounts/personal/system", null],
   ]);
   for (const key of ["g", "s"]) {
     await act(() => {
@@ -180,17 +180,17 @@ test("the navigation marks System, and g then s goes to it", async () => {
     });
   }
   await settle();
-  expect(location.pathname).toBe("/personal/system");
+  expect(location.pathname).toBe("/ui/accounts/personal/system");
   expect(links()).toEqual([
-    ["Home", "/personal", null],
-    ["Jobs running", "/personal/jobs", null],
-    ["Policy", "/personal/policy", null],
-    ["System", "/personal/system", "page"],
+    ["Home", "/ui/accounts/personal", null],
+    ["Jobs running", "/ui/accounts/personal/jobs", null],
+    ["Policy", "/ui/accounts/personal/policy", null],
+    ["System", "/ui/accounts/personal/system", "page"],
   ]);
 });
 
 test("the operational values arrive as text, and markup in any of them builds nothing", async () => {
-  const root = await open("/personal/system");
+  const root = await open("/ui/accounts/personal/system");
   const list = root.querySelector('dl[aria-label="Operational state"]');
   const auth = [...(list?.querySelectorAll("dd .value") ?? [])].at(-1);
   expect(auth?.textContent).toBe("succeeded");

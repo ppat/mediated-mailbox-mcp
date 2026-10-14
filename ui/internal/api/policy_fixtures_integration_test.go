@@ -82,20 +82,20 @@ func TestTheRecordedPolicyFixturesMatchTheServer(t *testing.T) {
 		return setupRecording{name, http.MethodPost, path, pattern, body}
 	}
 	const (
-		lens       = "/api/{account}/lens"
-		row        = "/api/{account}/rules/{row}"
-		match      = "/api/{account}/policy/match"
-		baseMatch  = "/api/setup/policy/match"
-		release    = "/api/{account}/policy/release"
-		add        = "/api/{account}/policy/rules"
-		edit       = "/api/{account}/policy/rules/{rule}"
-		lift       = "/api/{account}/policy/rules/{rule}/lift"
-		previewed  = "/api/{account}/policy/import/preview"
-		apply      = "/api/{account}/policy/import"
-		rules      = "/api/personal/lens?dataset=rules&level=3&range=all&sort=rule_id,asc&page=1"
-		figures    = "/api/personal/lens?dataset=rules&level=0&range=all&sort=rule_id,asc"
-		lender     = "/api/personal/rules/account%3Aoperator.lender.example"
-		basePolicy = "/api/setup/policy"
+		lens       = "/ui/api/accounts/{account}/lens"
+		row        = "/ui/api/accounts/{account}/rules/{row}"
+		match      = "/ui/api/accounts/{account}/policy/match"
+		baseMatch  = "/ui/api/setup/policy/match"
+		release    = "/ui/api/accounts/{account}/policy/release"
+		add        = "/ui/api/accounts/{account}/policy/rules"
+		edit       = "/ui/api/accounts/{account}/policy/rules/{rule}"
+		lift       = "/ui/api/accounts/{account}/policy/rules/{rule}/lift"
+		previewed  = "/ui/api/accounts/{account}/policy/import/preview"
+		apply      = "/ui/api/accounts/{account}/policy/import"
+		rules      = "/ui/api/accounts/personal/lens?dataset=rules&level=3&range=all&sort=rule_id,asc&page=1"
+		figures    = "/ui/api/accounts/personal/lens?dataset=rules&level=0&range=all&sort=rule_id,asc"
+		lender     = "/ui/api/accounts/personal/rules/account%3Aoperator.lender.example"
+		basePolicy = "/ui/api/setup/policy"
 	)
 	accountAdd := func(scope, id string, suffixes ...string) map[string]any {
 		return map[string]any{"scope": scope, "rule_id": id, "suffixes": suffixes}
@@ -106,63 +106,63 @@ func TestTheRecordedPolicyFixturesMatchTheServer(t *testing.T) {
 	play(
 		get("rules-summary.json", figures, lens),
 		get("rules-rows.json", rules, lens),
-		get("rules-summary-search.json", "/api/personal/lens?dataset=rules&level=0&range=all&sort=rule_id,asc&search=bank", lens),
-		get("rules-rows-search.json", "/api/personal/lens?dataset=rules&level=3&range=all&sort=rule_id,asc&page=1&search=bank", lens),
-		get("rule-base-bank.json", "/api/personal/rules/base%3Abase.bank", row),
+		get("rules-summary-search.json", "/ui/api/accounts/personal/lens?dataset=rules&level=0&range=all&sort=rule_id,asc&search=bank", lens),
+		get("rules-rows-search.json", "/ui/api/accounts/personal/lens?dataset=rules&level=3&range=all&sort=rule_id,asc&page=1&search=bank", lens),
+		get("rule-base-bank.json", "/ui/api/accounts/personal/rules/base%3Abase.bank", row),
 		get("rule-lender.json", lender, row),
-		get("error-unknown-rule-row.json", "/api/personal/rules/account%3Abase.bank", row),
-		get("senders-summary.json", "/api/personal/lens?dataset=senders&level=0&sort=message_count,desc", lens),
-		get("senders-rows.json", "/api/personal/lens?dataset=senders&level=3&sort=message_count,desc&page=1", lens),
-		get("senders-summary-search.json", "/api/personal/lens?dataset=senders&level=0&sort=message_count,desc&search=newsletter", lens),
-		get("senders-rows-search.json", "/api/personal/lens?dataset=senders&level=3&sort=message_count,desc&page=1&search=newsletter", lens),
-		get("changes-summary.json", "/api/personal/lens?dataset=policy_changes&level=0&range=30d&sort=ts,desc", lens),
-		get("changes-rows.json", "/api/personal/lens?dataset=policy_changes&level=3&range=30d&sort=ts,desc&page=1", lens),
-		get("match-newsletter.json", "/api/personal/policy/match?suffix=newsletter.example", match),
-		get("match-newsletter-both.json", "/api/personal/policy/match?suffix=newsletter.example&suffix=mail.newsletter.example", match),
-		get("match-public.json", "/api/personal/policy/match?suffix=newsletter.example&suffix=com", match),
-		get("match-invalid.json", "/api/personal/policy/match?suffix=newsletter.example&suffix=bad+suffix", match),
-		get("match-lender.json", "/api/personal/policy/match?suffix=lender.example", match),
-		get("match-old.json", "/api/personal/policy/match?suffix=old.example", match),
-		get("base-match-invalid.json", "/api/setup/policy/match?suffix=bad+suffix", baseMatch),
-		get("base-match-newsletter.json", "/api/setup/policy/match?suffix=newsletter.example", baseMatch),
-		get("base-match-public.json", "/api/setup/policy/match?suffix=com", baseMatch),
-		get("base-match-bank.json", "/api/setup/policy/match?suffix=bank.example", baseMatch),
-		get("release-bank.json", "/api/personal/policy/release?scope=base&rule=base.bank", release),
+		get("error-unknown-rule-row.json", "/ui/api/accounts/personal/rules/account%3Abase.bank", row),
+		get("senders-summary.json", "/ui/api/accounts/personal/lens?dataset=senders&level=0&sort=message_count,desc", lens),
+		get("senders-rows.json", "/ui/api/accounts/personal/lens?dataset=senders&level=3&sort=message_count,desc&page=1", lens),
+		get("senders-summary-search.json", "/ui/api/accounts/personal/lens?dataset=senders&level=0&sort=message_count,desc&search=newsletter", lens),
+		get("senders-rows-search.json", "/ui/api/accounts/personal/lens?dataset=senders&level=3&sort=message_count,desc&page=1&search=newsletter", lens),
+		get("changes-summary.json", "/ui/api/accounts/personal/lens?dataset=policy_changes&level=0&range=30d&sort=ts,desc", lens),
+		get("changes-rows.json", "/ui/api/accounts/personal/lens?dataset=policy_changes&level=3&range=30d&sort=ts,desc&page=1", lens),
+		get("match-newsletter.json", "/ui/api/accounts/personal/policy/match?suffix=newsletter.example", match),
+		get("match-newsletter-both.json", "/ui/api/accounts/personal/policy/match?suffix=newsletter.example&suffix=mail.newsletter.example", match),
+		get("match-public.json", "/ui/api/accounts/personal/policy/match?suffix=newsletter.example&suffix=com", match),
+		get("match-invalid.json", "/ui/api/accounts/personal/policy/match?suffix=newsletter.example&suffix=bad+suffix", match),
+		get("match-lender.json", "/ui/api/accounts/personal/policy/match?suffix=lender.example", match),
+		get("match-old.json", "/ui/api/accounts/personal/policy/match?suffix=old.example", match),
+		get("base-match-invalid.json", "/ui/api/setup/policy/match?suffix=bad+suffix", baseMatch),
+		get("base-match-newsletter.json", "/ui/api/setup/policy/match?suffix=newsletter.example", baseMatch),
+		get("base-match-public.json", "/ui/api/setup/policy/match?suffix=com", baseMatch),
+		get("base-match-bank.json", "/ui/api/setup/policy/match?suffix=bank.example", baseMatch),
+		get("release-bank.json", "/ui/api/accounts/personal/policy/release?scope=base&rule=base.bank", release),
 		get("base-policy.json", basePolicy, basePolicy),
 		get("base-policy-search.json", basePolicy+"?search=bank", basePolicy),
-		get("base-history.json", "/api/setup/policy/history?range=30d", "/api/setup/policy/history"),
-		get("base-history-bank.json", "/api/setup/policy/history?range=all&rule=base.bank", "/api/setup/policy/history"),
-		post("error-rule-refused.json", "/api/personal/policy/rules", add, accountAdd("account", "new", "bad suffix")),
-		post("error-identifier-taken.json", "/api/personal/policy/rules", add, accountAdd("account", "operator.lender.example", "lender.example")),
-		post("preview-refused.json", "/api/personal/policy/import/preview", previewed, map[string]any{"file": "rules: [not"}),
-		post("preview-equal.json", "/api/personal/policy/import/preview", previewed, map[string]any{"file": ownFile}),
-		post("preview-lifting.json", "/api/personal/policy/import/preview", previewed, map[string]any{"file": liftingFile}),
-		post("preview-adding.json", "/api/personal/policy/import/preview", previewed, map[string]any{"file": addingFile}),
-		post("error-stale-preview.json", "/api/personal/policy/import", apply,
+		get("base-history.json", "/ui/api/setup/policy/history?range=30d", "/ui/api/setup/policy/history"),
+		get("base-history-bank.json", "/ui/api/setup/policy/history?range=all&rule=base.bank", "/ui/api/setup/policy/history"),
+		post("error-rule-refused.json", "/ui/api/accounts/personal/policy/rules", add, accountAdd("account", "..", "bad suffix")),
+		post("error-identifier-taken.json", "/ui/api/accounts/personal/policy/rules", add, accountAdd("account", "operator.lender.example", "lender.example")),
+		post("preview-refused.json", "/ui/api/accounts/personal/policy/import/preview", previewed, map[string]any{"file": "rules: [not"}),
+		post("preview-equal.json", "/ui/api/accounts/personal/policy/import/preview", previewed, map[string]any{"file": ownFile}),
+		post("preview-lifting.json", "/ui/api/accounts/personal/policy/import/preview", previewed, map[string]any{"file": liftingFile}),
+		post("preview-adding.json", "/ui/api/accounts/personal/policy/import/preview", previewed, map[string]any{"file": addingFile}),
+		post("error-stale-preview.json", "/ui/api/accounts/personal/policy/import", apply,
 			map[string]any{"file": liftingFile, "computed_against": "stale", "confirmation": "lift 1"}),
-		post("base-preview-lifting.json", "/api/setup/policy/import/preview", "/api/setup/policy/import/preview", map[string]any{"file": baseLifting}),
+		post("base-preview-lifting.json", "/ui/api/setup/policy/import/preview", "/ui/api/setup/policy/import/preview", map[string]any{"file": baseLifting}),
 	)
 
 	// Adding a rule from the account's screen.
 	play(
-		post("rule-added.json", "/api/personal/policy/rules", add, accountAdd("account", "operator.newsletter.example", "newsletter.example")),
+		post("rule-added.json", "/ui/api/accounts/personal/policy/rules", add, accountAdd("account", "operator.newsletter.example", "newsletter.example")),
 	)
 	play(
-		get("rule-newsletter.json", "/api/personal/rules/account%3Aoperator.newsletter.example", row),
+		get("rule-newsletter.json", "/ui/api/accounts/personal/rules/account%3Aoperator.newsletter.example", row),
 		get("rules-rows-added.json", rules, lens),
 		get("rules-summary-added.json", figures, lens),
 	)
 
 	// Adding a suffix to the account's rule, and removing it again.
 	r.seedPolicyScreens()
-	play(post("rule-edited.json", "/api/personal/policy/rules/operator.lender.example", edit, map[string]any{
+	play(post("rule-edited.json", "/ui/api/accounts/personal/policy/rules/operator.lender.example", edit, map[string]any{
 		"scope": "account", "suffixes_before": []string{"lender.example"}, "suffixes": []string{"lender.example", "lendermail.example"}, "confirmation": nil,
 	}))
 	play(
 		get("rule-lender-two.json", lender, row),
-		get("release-lendermail.json", "/api/personal/policy/release?scope=account&rule=operator.lender.example&keep=lender.example", release),
+		get("release-lendermail.json", "/ui/api/accounts/personal/policy/release?scope=account&rule=operator.lender.example&keep=lender.example", release),
 	)
-	play(post("rule-suffix-removed.json", "/api/personal/policy/rules/operator.lender.example", edit, map[string]any{
+	play(post("rule-suffix-removed.json", "/ui/api/accounts/personal/policy/rules/operator.lender.example", edit, map[string]any{
 		"scope": "account", "suffixes_before": []string{"lender.example", "lendermail.example"}, "suffixes": []string{"lender.example"}, "confirmation": nil,
 	}))
 	play(get("rule-lender-removed.json", lender, row))
@@ -170,28 +170,28 @@ func TestTheRecordedPolicyFixturesMatchTheServer(t *testing.T) {
 	// A rule of three suffixes, two of which cover one sender together, so removing both releases
 	// more than the sum of removing each alone.
 	r.seedPolicyScreens()
-	decode[api.RuleAnswer](t, b.post("/api/personal/policy/rules/operator.lender.example", map[string]any{
+	decode[api.RuleAnswer](t, b.post("/ui/api/accounts/personal/policy/rules/operator.lender.example", map[string]any{
 		"scope": "account", "suffixes_before": []string{"lender.example"},
 		"suffixes": []string{"lender.example", "newsletter.example", "mail.newsletter.example"}, "confirmation": nil,
 	}))
 	r.settleWrites()
 	play(
 		get("rule-lender-three.json", lender, row),
-		get("release-newsletters.json", "/api/personal/policy/release?scope=account&rule=operator.lender.example&keep=lender.example", release),
+		get("release-newsletters.json", "/ui/api/accounts/personal/policy/release?scope=account&rule=operator.lender.example&keep=lender.example", release),
 	)
 
 	// Lifting the account's rule, and putting it back.
 	r.seedPolicyScreens()
-	play(post("rule-lifted.json", "/api/personal/policy/rules/operator.lender.example/lift", lift, map[string]any{
+	play(post("rule-lifted.json", "/ui/api/accounts/personal/policy/rules/operator.lender.example/lift", lift, map[string]any{
 		"scope": "account", "suffixes_before": []string{"lender.example"}, "confirmation": nil,
 	}))
 	play(get("rules-rows-lifted.json", rules, lens), get("rules-summary-lifted.json", figures, lens))
-	play(post("rule-put-back.json", "/api/personal/policy/rules", add, accountAdd("account", "operator.lender.example", "lender.example")))
+	play(post("rule-put-back.json", "/ui/api/accounts/personal/policy/rules", add, accountAdd("account", "operator.lender.example", "lender.example")))
 	play(get("rules-rows-put-back.json", rules, lens), get("rules-summary-put-back.json", figures, lens))
 
 	// Lifting the base rule from the account's screen, the identifier typed.
 	r.seedPolicyScreens()
-	play(post("base-lifted-from-account.json", "/api/personal/policy/rules/base.bank/lift", lift, map[string]any{
+	play(post("base-lifted-from-account.json", "/ui/api/accounts/personal/policy/rules/base.bank/lift", lift, map[string]any{
 		"scope": "base", "suffixes_before": []string{"bank.example"}, "confirmation": "base.bank",
 	}))
 	play(get("rules-rows-base-lifted.json", rules, lens), get("rules-summary-base-lifted.json", figures, lens))
@@ -199,43 +199,43 @@ func TestTheRecordedPolicyFixturesMatchTheServer(t *testing.T) {
 	// Moving the account's rule to every account, the add before the lift. A second add of the same
 	// identifier to the base policy is refused, as a move whose add fails is.
 	r.seedPolicyScreens()
-	play(post("rule-moved-add.json", "/api/personal/policy/rules", add, accountAdd("base", "operator.lender.example", "lender.example")))
+	play(post("rule-moved-add.json", "/ui/api/accounts/personal/policy/rules", add, accountAdd("base", "operator.lender.example", "lender.example")))
 	play(
 		get("rule-lender-covered.json", lender, row),
-		post("error-identifier-taken-base.json", "/api/personal/policy/rules", add, accountAdd("base", "operator.lender.example", "lender.example")),
+		post("error-identifier-taken-base.json", "/ui/api/accounts/personal/policy/rules", add, accountAdd("base", "operator.lender.example", "lender.example")),
 	)
-	play(post("rule-moved-lift.json", "/api/personal/policy/rules/operator.lender.example/lift", lift, map[string]any{
+	play(post("rule-moved-lift.json", "/ui/api/accounts/personal/policy/rules/operator.lender.example/lift", lift, map[string]any{
 		"scope": "account", "suffixes_before": []string{"lender.example"}, "confirmation": nil,
 	}))
-	play(get("rule-lender-base.json", "/api/personal/rules/base%3Aoperator.lender.example", row))
+	play(get("rule-lender-base.json", "/ui/api/accounts/personal/rules/base%3Aoperator.lender.example", row))
 
 	// Importing a file that lifts the account's rule, and putting the lifted rule back.
 	r.seedPolicyScreens()
-	against := decode[preview](t, b.post("/api/personal/policy/import/preview", map[string]any{"file": liftingFile})).ComputedAgainst
-	play(post("imported.json", "/api/personal/policy/import", apply, map[string]any{"file": liftingFile, "computed_against": against, "confirmation": "lift 1"}))
+	against := decode[preview](t, b.post("/ui/api/accounts/personal/policy/import/preview", map[string]any{"file": liftingFile})).ComputedAgainst
+	play(post("imported.json", "/ui/api/accounts/personal/policy/import", apply, map[string]any{"file": liftingFile, "computed_against": against, "confirmation": "lift 1"}))
 	play(get("rules-rows-imported.json", rules, lens), get("rules-summary-imported.json", figures, lens))
-	play(post("imported-put-back.json", "/api/personal/policy/rules", add, accountAdd("account", "operator.lender.example", "lender.example")))
+	play(post("imported-put-back.json", "/ui/api/accounts/personal/policy/rules", add, accountAdd("account", "operator.lender.example", "lender.example")))
 
 	// Importing a file that only adds.
 	r.seedPolicyScreens()
-	against = decode[preview](t, b.post("/api/personal/policy/import/preview", map[string]any{"file": addingFile})).ComputedAgainst
-	play(post("imported-adding.json", "/api/personal/policy/import", apply, map[string]any{"file": addingFile, "computed_against": against, "confirmation": nil}))
+	against = decode[preview](t, b.post("/ui/api/accounts/personal/policy/import/preview", map[string]any{"file": addingFile})).ComputedAgainst
+	play(post("imported-adding.json", "/ui/api/accounts/personal/policy/import", apply, map[string]any{"file": addingFile, "computed_against": against, "confirmation": nil}))
 
 	// The base policy's own screen adds a rule, lifts one and imports a file.
 	r.seedPolicyScreens()
-	play(post("base-added.json", "/api/setup/policy/rules", "/api/setup/policy/rules", map[string]any{"rule_id": "base.newsletter", "suffixes": []string{"newsletter.example"}}))
+	play(post("base-added.json", "/ui/api/setup/policy/rules", "/ui/api/setup/policy/rules", map[string]any{"rule_id": "base.newsletter", "suffixes": []string{"newsletter.example"}}))
 	play(
 		get("base-policy-added.json", basePolicy, basePolicy),
-		get("base-history-newsletter.json", "/api/setup/policy/history?range=all&rule=base.newsletter", "/api/setup/policy/history"),
+		get("base-history-newsletter.json", "/ui/api/setup/policy/history?range=all&rule=base.newsletter", "/ui/api/setup/policy/history"),
 	)
 	r.seedPolicyScreens()
-	play(post("base-lifted.json", "/api/setup/policy/rules/base.bank/lift", "/api/setup/policy/rules/{rule}/lift", map[string]any{
+	play(post("base-lifted.json", "/ui/api/setup/policy/rules/base.bank/lift", "/ui/api/setup/policy/rules/{rule}/lift", map[string]any{
 		"suffixes_before": []string{"bank.example"}, "confirmation": "base.bank",
 	}))
 	play(get("base-policy-lifted.json", basePolicy, basePolicy))
 	r.seedPolicyScreens()
-	against = decode[preview](t, b.post("/api/setup/policy/import/preview", map[string]any{"file": baseLifting})).ComputedAgainst
-	play(post("base-imported.json", "/api/setup/policy/import", "/api/setup/policy/import", map[string]any{"file": baseLifting, "computed_against": against, "confirmation": "lift 1"}))
+	against = decode[preview](t, b.post("/ui/api/setup/policy/import/preview", map[string]any{"file": baseLifting})).ComputedAgainst
+	play(post("base-imported.json", "/ui/api/setup/policy/import", "/ui/api/setup/policy/import", map[string]any{"file": baseLifting, "computed_against": against, "confirmation": "lift 1"}))
 	play(get("base-policy-imported.json", basePolicy, basePolicy))
 
 	// An installation with base rules and no account yet.
@@ -243,7 +243,7 @@ func TestTheRecordedPolicyFixturesMatchTheServer(t *testing.T) {
 	r.exec(`INSERT INTO policy_rules (account_id, rule_id, class, domain_suffix, source, created_by, created_at) VALUES
 		(NULL, 'base.bank', 'restricted', '{bank.example}', 'operator', 'operator', $1)`, now.Add(-72*time.Hour))
 	play(
-		get("setup-base-rules.json", "/api/setup", "/api/setup"),
+		get("setup-base-rules.json", "/ui/api/setup", "/ui/api/setup"),
 		get("base-policy-no-accounts.json", basePolicy, basePolicy),
 	)
 }

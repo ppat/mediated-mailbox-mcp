@@ -6,6 +6,7 @@ import (
 	"slices"
 
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/schema"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/paths"
 )
 
 // Route is one bespoke handler as the contract describes it.
@@ -51,185 +52,185 @@ func (r Route) Verb() string {
 
 // Bespoke is the list of bespoke handlers, the second of the two sources the contract is generated
 // from (ADR-0057). A handler exists only where a screen needs a shape the ladder does not produce, and
-// the server mounts exactly these and the dataset endpoint under /api. Each route's handler is bound
+// the server mounts exactly these and the dataset endpoint under the read API's root, paths.API. Each route's handler is bound
 // by its operation in New, which refuses a route without one and a handler without a route.
 func Bespoke() []Route {
 	return []Route{
 		{
-			Pattern: "/api/accounts", Operation: "listAccounts",
+			Pattern: paths.Accounts, Operation: "listAccounts",
 			Summary:  "Every account's identifier and provider, the one unscoped read",
 			Response: accountsType(),
 		},
 		{
-			Pattern: "/api/{account}/attention", Operation: "getAttention", Scoped: true,
+			Pattern: paths.Accounts + "/{account}/attention", Operation: "getAttention", Scoped: true,
 			Summary:  "Home's worth-a-look cards, each worded, in their order",
 			Response: attentionType(),
 		},
 		{
-			Pattern: "/api/{account}/system", Operation: "getSystem", Scoped: true,
+			Pattern: paths.Accounts + "/{account}/system", Operation: "getSystem", Scoped: true,
 			Summary:  "The account's operational and decisions blocks",
 			Response: systemType(),
 		},
 		{
-			Pattern: "/api/{account}/corpus", Operation: "getCorpus", Scoped: true,
+			Pattern: paths.Accounts + "/{account}/corpus", Operation: "getCorpus", Scoped: true,
 			Summary:  "Home's corpus figures, which count every message of the account, and the time they were read",
 			Response: corpusType(),
 		},
 		{
-			Pattern: "/api/{account}/jobs", Operation: "getJobs", Scoped: true,
+			Pattern: paths.Accounts + "/{account}/jobs", Operation: "getJobs", Scoped: true,
 			Summary:  "One block per workload, the rate block and the cadences",
 			Response: jobsType(),
 		},
 		{
-			Pattern: "/api/{account}/jobs/{run}", Operation: "getRun", Scoped: true,
+			Pattern: paths.Accounts + "/{account}/jobs/{run}", Operation: "getRun", Scoped: true,
 			Summary:  "One run, its resumer, its item failures by disposition and the runs that recovered them, and its timeline",
 			Response: runSummaryType(),
 		},
 		{
-			Pattern: "/api/{account}/events", Operation: "streamEvents", Scoped: true,
+			Pattern: paths.Accounts + "/{account}/events", Operation: "streamEvents", Scoped: true,
 			Summary: "The live stream, one event per changed object with its whole current state",
 			Events:  eventTypes(),
 		},
 		{
-			Pattern: "/api/setup", Operation: "getInstallation",
+			Pattern: paths.Setup, Operation: "getInstallation",
 			Summary:  "Each OAuth client's identity and accounts, and every account's identifier, provider and client, reading no account's state",
 			Response: installationType(),
 		},
 		{
-			Method: http.MethodPost, Pattern: "/api/setup/{provider}/clients", Operation: "addClient",
+			Method: http.MethodPost, Pattern: paths.Setup + "/{provider}/clients", Operation: "addClient",
 			Summary: "Checks a new OAuth client with its provider and stores it under its name, its secret sealed",
 			Request: ptr(addClientType()), Response: clientAnswerType(),
 		},
 		{
-			Method: http.MethodPost, Pattern: "/api/setup/{provider}/clients/{client}", Operation: "replaceClient",
+			Method: http.MethodPost, Pattern: paths.Setup + "/{provider}/clients/{client}", Operation: "replaceClient",
 			Summary: "Checks and stores the named client's identifier and secret, or its secret alone",
 			Request: ptr(replaceClientType()), Response: clientAnswerType(),
 		},
 		{
-			Method: http.MethodPost, Pattern: "/api/setup/{provider}/clients/{client}/remove", Operation: "removeClient",
+			Method: http.MethodPost, Pattern: paths.Setup + "/{provider}/clients/{client}/remove", Operation: "removeClient",
 			Summary:  "Removes a client no account connects through",
 			Response: removedType(),
 		},
 		{
-			Method: http.MethodPost, Pattern: "/api/setup/connect", Operation: "startConnect",
+			Method: http.MethodPost, Pattern: paths.Setup + "/connect", Operation: "startConnect",
 			Summary: "Starts the session's consent attempt to connect an account, replacing any it held",
 			Request: ptr(connectType()), Response: attemptAnswerType(),
 		},
 		{
-			Pattern: "/api/setup/connect", Operation: "getConnect",
+			Pattern: paths.Setup + "/connect", Operation: "getConnect",
 			Summary:  "The session's attempt to connect an account, or none",
 			Response: attemptAnswerType(),
 		},
 		{
-			Method: http.MethodPost, Pattern: "/api/setup/connect/finish", Operation: "finishConnect",
+			Method: http.MethodPost, Pattern: paths.Setup + "/connect/finish", Operation: "finishConnect",
 			Summary: "Finishes the session's attempt from the pasted address and writes the account's two rows",
 			Request: ptr(finishType()), Response: finishAnswerType(),
 		},
 		{
-			Pattern: "/api/{account}/account", Operation: "getAccount", Scoped: true,
+			Pattern: paths.Accounts + "/{account}/account", Operation: "getAccount", Scoped: true,
 			Summary:  "What the UI reads of the account's two rows and its rate state, never the credential",
 			Response: accountType(),
 		},
 		{
-			Method: http.MethodPost, Pattern: "/api/{account}/account/target", Operation: "setTarget", Scoped: true,
+			Method: http.MethodPost, Pattern: paths.Accounts + "/{account}/account/target", Operation: "setTarget", Scoped: true,
 			Summary: "Stores the account's lowered target, or clears it",
 			Request: ptr(targetType()), Response: targetAnswerType(),
 		},
 		{
-			Method: http.MethodPost, Pattern: "/api/{account}/account/reauthorize", Operation: "startReauthorize", Scoped: true,
+			Method: http.MethodPost, Pattern: paths.Accounts + "/{account}/account/reauthorize", Operation: "startReauthorize", Scoped: true,
 			Summary: "Starts the session's consent attempt to re-authorize the account, or move it to another client",
 			Request: ptr(reauthorizeType()), Response: attemptAnswerType(),
 		},
 		{
-			Pattern: "/api/{account}/account/reauthorize", Operation: "getReauthorize", Scoped: true,
+			Pattern: paths.Accounts + "/{account}/account/reauthorize", Operation: "getReauthorize", Scoped: true,
 			Summary:  "The session's attempt to re-authorize the account, or none",
 			Response: attemptAnswerType(),
 		},
 		{
-			Method: http.MethodPost, Pattern: "/api/{account}/account/reauthorize/finish", Operation: "finishReauthorize", Scoped: true,
+			Method: http.MethodPost, Pattern: paths.Accounts + "/{account}/account/reauthorize/finish", Operation: "finishReauthorize", Scoped: true,
 			Summary: "Finishes the session's attempt from the pasted address and replaces the account's credential",
 			Request: ptr(finishType()), Response: finishAnswerType(),
 		},
 		{
-			Pattern: "/api/{account}/policy/match", Operation: "getPolicyMatch", Scoped: true, Query: []string{"suffix"},
+			Pattern: paths.Accounts + "/{account}/policy/match", Operation: "getPolicyMatch", Scoped: true, Query: []string{"suffix"},
 			Summary:  "What each suffix typed in Add a rule matches in the account, and the rules already matching it",
 			Response: matchAnswerType(),
 		},
 		{
-			Pattern: "/api/{account}/policy/release", Operation: "getPolicyRelease", Scoped: true, Query: []string{"scope", "rule", "keep"},
+			Pattern: paths.Accounts + "/{account}/policy/release", Operation: "getPolicyRelease", Scoped: true, Query: []string{"scope", "rule", "keep"},
 			Summary:  "What keeping only some of a rule's suffixes, or none, would release in the account",
 			Response: schema.Obj("Counts", schema.F("senders", schema.Int()), schema.F("messages", schema.Int())),
 		},
 		{
-			Pattern: "/api/setup/policy/match", Operation: "getBaseMatch", Query: []string{"suffix"},
+			Pattern: paths.Setup + "/policy/match", Operation: "getBaseMatch", Query: []string{"suffix"},
 			Summary:  "Whether each suffix typed in Add a base rule is valid or a public suffix, and the base rules already matching it",
 			Response: baseMatchAnswerType(),
 		},
 		{
-			Method: http.MethodPost, Pattern: "/api/{account}/policy/rules", Operation: "addRule", Scoped: true,
+			Method: http.MethodPost, Pattern: paths.Accounts + "/{account}/policy/rules", Operation: "addRule", Scoped: true,
 			Summary: "Adds a rule to the account's own rules or the base policy, with its history row",
 			Request: ptr(ruleRequestType(true, "AddRule")), Response: ruleAnswerType(), Refusal: ptr(RefusalType()),
 		},
 		{
-			Method: http.MethodPost, Pattern: "/api/{account}/policy/rules/{rule}", Operation: "editRule", Scoped: true,
+			Method: http.MethodPost, Pattern: paths.Accounts + "/{account}/policy/rules/{rule}", Operation: "editRule", Scoped: true,
 			Summary: "Sets a rule's suffixes, with its history row",
 			Request: ptr(editRequestType(true, "EditRule")), Response: ruleAnswerType(), Refusal: ptr(RefusalType()),
 		},
 		{
-			Method: http.MethodPost, Pattern: "/api/{account}/policy/rules/{rule}/lift", Operation: "liftRule", Scoped: true,
+			Method: http.MethodPost, Pattern: paths.Accounts + "/{account}/policy/rules/{rule}/lift", Operation: "liftRule", Scoped: true,
 			Summary: "Lifts a rule, with its history row",
 			Request: ptr(liftRequestType(true, "LiftRule")), Response: ruleAnswerType(),
 		},
 		{
-			Pattern: "/api/{account}/policy/export", Operation: "exportPolicy", Scoped: true, Download: policyFileType,
+			Pattern: paths.Accounts + "/{account}/policy/export", Operation: "exportPolicy", Scoped: true, Download: policyFileType,
 			Summary: "Downloads the account's own rules as a policy file",
 		},
 		{
-			Method: http.MethodPost, Pattern: "/api/{account}/policy/import/preview", Operation: "previewImport", Scoped: true,
+			Method: http.MethodPost, Pattern: paths.Accounts + "/{account}/policy/import/preview", Operation: "previewImport", Scoped: true,
 			Summary: "Reads and checks a policy file and answers what importing it into the account's own rules would change",
 			Request: ptr(previewRequestType()), Response: previewType(), Refusal: ptr(RefusalType()),
 		},
 		{
-			Method: http.MethodPost, Pattern: "/api/{account}/policy/import", Operation: "importPolicy", Scoped: true,
+			Method: http.MethodPost, Pattern: paths.Accounts + "/{account}/policy/import", Operation: "importPolicy", Scoped: true,
 			Summary: "Makes the account's own rules equal to a policy file, in one transaction",
 			Request: ptr(importRequestType()), Response: importedType(), Refusal: ptr(RefusalType()),
 		},
 		{
-			Pattern: "/api/setup/policy", Operation: "getBasePolicy", Query: []string{"search"},
+			Pattern: paths.Setup + "/policy", Operation: "getBasePolicy", Query: []string{"search"},
 			Summary:  "The base rules and every account's identifier, reading no account's state",
 			Response: basePolicyType(),
 		},
 		{
-			Pattern: "/api/setup/policy/history", Operation: "getBaseHistory", Query: []string{"range", "rule"},
+			Pattern: paths.Setup + "/policy/history", Operation: "getBaseHistory", Query: []string{"range", "rule"},
 			Summary:  "The base policy's changes, newest first",
 			Response: baseHistoryType(),
 		},
 		{
-			Method: http.MethodPost, Pattern: "/api/setup/policy/rules", Operation: "addBaseRule",
+			Method: http.MethodPost, Pattern: paths.Setup + "/policy/rules", Operation: "addBaseRule",
 			Summary: "Adds a base rule, with its history row",
 			Request: ptr(ruleRequestType(false, "AddBaseRule")), Response: ruleAnswerType(), Refusal: ptr(RefusalType()),
 		},
 		{
-			Method: http.MethodPost, Pattern: "/api/setup/policy/rules/{rule}", Operation: "editBaseRule",
+			Method: http.MethodPost, Pattern: paths.Setup + "/policy/rules/{rule}", Operation: "editBaseRule",
 			Summary: "Sets a base rule's suffixes, with its history row",
 			Request: ptr(editRequestType(false, "EditBaseRule")), Response: ruleAnswerType(), Refusal: ptr(RefusalType()),
 		},
 		{
-			Method: http.MethodPost, Pattern: "/api/setup/policy/rules/{rule}/lift", Operation: "liftBaseRule",
+			Method: http.MethodPost, Pattern: paths.Setup + "/policy/rules/{rule}/lift", Operation: "liftBaseRule",
 			Summary: "Lifts a base rule, with its history row",
 			Request: ptr(liftRequestType(false, "LiftBaseRule")), Response: ruleAnswerType(),
 		},
 		{
-			Pattern: "/api/setup/policy/export", Operation: "exportBasePolicy", Download: policyFileType,
+			Pattern: paths.Setup + "/policy/export", Operation: "exportBasePolicy", Download: policyFileType,
 			Summary: "Downloads the base rules as a policy file",
 		},
 		{
-			Method: http.MethodPost, Pattern: "/api/setup/policy/import/preview", Operation: "previewBaseImport",
+			Method: http.MethodPost, Pattern: paths.Setup + "/policy/import/preview", Operation: "previewBaseImport",
 			Summary: "Reads and checks a policy file and answers what importing it into the base policy would change",
 			Request: ptr(previewRequestType()), Response: previewType(), Refusal: ptr(RefusalType()),
 		},
 		{
-			Method: http.MethodPost, Pattern: "/api/setup/policy/import", Operation: "importBasePolicy",
+			Method: http.MethodPost, Pattern: paths.Setup + "/policy/import", Operation: "importBasePolicy",
 			Summary: "Makes the base rules equal to a policy file, in one transaction",
 			Request: ptr(importRequestType()), Response: importedType(), Refusal: ptr(RefusalType()),
 		},

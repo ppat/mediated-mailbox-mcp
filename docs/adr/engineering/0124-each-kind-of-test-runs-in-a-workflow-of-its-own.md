@@ -97,8 +97,8 @@ stale.
   Its trigger on a pull request changing its own file exercises it before the change lands.
 - **A workflow builds what its tests read.** The UI's unit and integration tests read the built
   browser bundle, the scan of every bundled file for what would need a looser content security
-  policy, the entry document loading the bundle's entry module, and the reserved words a bundle's
-  top level holds. Against the checked-in placeholder they skip, check less or fail. So the unit and
+  policy and the entry document loading the bundle's entry module. Against the checked-in
+  placeholder they skip, check less or fail. So the unit and
   the integration workflows build the bundle before their run, as the `ui` workflow builds it before
   the recording, and watch the bundle's sources. The mutation workflow runs those same tests in the
   runner's copies of the tree, so it builds the bundle before the runner starts, and the runner

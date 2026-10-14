@@ -24,7 +24,6 @@ test("each key is read from its meta tag, durations in whole milliseconds", () =
     stream_poll_interval: "2500",
     request_token: "the-token",
     consent_redirect: "http://[::1]:5000/",
-    reserved_identifiers: "setup api fonts main.css main.js",
   });
   expect(readConfig(metaReader(document))).toEqual({
     defaultTheme: "dark",
@@ -32,7 +31,6 @@ test("each key is read from its meta tag, durations in whole milliseconds", () =
     pollInterval: 2_500,
     consentRedirect: "http://[::1]:5000/",
     requestToken: "the-token",
-    reservedIdentifiers: ["setup", "api", "fonts", "main.css", "main.js"],
   });
 });
 
@@ -43,7 +41,6 @@ test("an absent tag takes the record's default", () => {
     pollInterval: 5_000,
     consentRedirect: "",
     requestToken: "",
-    reservedIdentifiers: [],
   });
   expect(configDefaults).toEqual({
     defaultTheme: "system",
@@ -51,7 +48,6 @@ test("an absent tag takes the record's default", () => {
     pollInterval: 5_000,
     consentRedirect: "",
     requestToken: "",
-    reservedIdentifiers: [],
   });
 });
 
@@ -69,7 +65,6 @@ test("a tag the browser cannot read takes the record's default", () => {
       pollInterval: 5_000,
       consentRedirect: duration,
       requestToken: duration,
-      reservedIdentifiers: [duration],
     });
   }
 });

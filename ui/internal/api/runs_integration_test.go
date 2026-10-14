@@ -110,19 +110,19 @@ func TestTheRunsDatasetAnswersItsLevels(t *testing.T) {
 	var summary struct {
 		Figures []figure `json:"figures"`
 	}
-	read(t, h, "/api/{account}/lens", "/api/personal/lens?dataset=runs&level=0&range=all&pass=!tick", &summary)
+	read(t, h, "/ui/api/accounts/{account}/lens", "/ui/api/accounts/personal/lens?dataset=runs&level=0&range=all&pass=!tick", &summary)
 	failedAt := now.Add(-49 * 60 * 60 * 1e9).UTC().Format("2006-01-02T15:04:05Z")
 	want := []figure{
-		{Key: "runs", Value: n(5), Link: "/personal/jobs"},
-		{Key: "running", Value: n(2), Link: "/personal/jobs?state=running"},
-		{Key: "failed", Value: n(1), Link: "/personal/jobs?state=failed"},
-		{Key: "last_failure", At: &failedAt, Link: "/personal/jobs/r-0912"},
+		{Key: "runs", Value: n(5), Link: "/ui/accounts/personal/jobs"},
+		{Key: "running", Value: n(2), Link: "/ui/accounts/personal/jobs?state=running"},
+		{Key: "failed", Value: n(1), Link: "/ui/accounts/personal/jobs?state=failed"},
+		{Key: "last_failure", At: &failedAt, Link: "/ui/accounts/personal/jobs/r-0912"},
 	}
 	if d := cmp.Diff(want, summary.Figures); d != "" {
 		t.Fatalf("the figures (-want +got):\n%s", d)
 	}
-	read(t, h, "/api/{account}/lens", "/api/personal/lens?dataset=runs&level=0&state=succeeded", &summary)
-	if last := summary.Figures[3]; last.At != nil || last.Value != nil || last.Link != "/personal/jobs?state=failed" {
+	read(t, h, "/ui/api/accounts/{account}/lens", "/ui/api/accounts/personal/lens?dataset=runs&level=0&state=succeeded", &summary)
+	if last := summary.Figures[3]; last.At != nil || last.Value != nil || last.Link != "/ui/accounts/personal/jobs?state=failed" {
 		t.Fatalf("with no failed run the last failure is %+v, want no time and the failed runs' link", last)
 	}
 
@@ -143,42 +143,42 @@ func TestTheRunsDatasetAnswersItsLevels(t *testing.T) {
 		}
 		return out
 	}
-	read(t, h, "/api/{account}/lens", "/api/personal/lens?dataset=runs&level=3&range=all&pass=!tick", &page)
+	read(t, h, "/ui/api/accounts/{account}/lens", "/ui/api/accounts/personal/lens?dataset=runs&level=3&range=all&pass=!tick", &page)
 	if want := []string{"r-0913", "r-0908", "r-0911", "r-0912", "r-0901"}; !slices.Equal(ids(), want) || page.Total.Count != 5 {
 		t.Fatalf("the runs newest first, ticks excluded, are %v of %d, want %v", ids(), page.Total.Count, want)
 	}
-	read(t, h, "/api/{account}/lens", "/api/personal/lens?dataset=runs&level=3&range=all&sort=failures,desc&pass=!tick", &page)
+	read(t, h, "/ui/api/accounts/{account}/lens", "/ui/api/accounts/personal/lens?dataset=runs&level=3&range=all&sort=failures,desc&pass=!tick", &page)
 	if page.Rows[0].RunID != "r-0912" || page.Rows[0].Failures != 5 || page.Rows[1].RunID != "r-0901" || page.Rows[1].Failures != 2 || page.Rows[2].Failures != 0 {
 		t.Fatalf("sorted by failures the first rows are %+v, want r-0912 with 5 then r-0901 with 2", page.Rows[:3])
 	}
-	read(t, h, "/api/{account}/lens", "/api/personal/lens?dataset=runs&level=3&range=all&sort=duration,desc&workload=backfill", &page)
+	read(t, h, "/ui/api/accounts/{account}/lens", "/ui/api/accounts/personal/lens?dataset=runs&level=3&range=all&sort=duration,desc&workload=backfill", &page)
 	if want := []string{"r-0901", "r-0912", "r-0913"}; !slices.Equal(ids(), want) {
 		t.Fatalf("backfill by duration longest first is %v, want %v, the running one's to as_of", ids(), want)
 	}
-	read(t, h, "/api/{account}/lens", "/api/personal/lens?dataset=runs&level=3&range=7d&pass=tick", &page)
+	read(t, h, "/ui/api/accounts/{account}/lens", "/ui/api/accounts/personal/lens?dataset=runs&level=3&range=7d&pass=tick", &page)
 	if want := []string{"r-0914"}; !slices.Equal(ids(), want) {
 		t.Fatalf("the ticks in 7 days are %v, want %v", ids(), want)
 	}
-	read(t, h, "/api/{account}/lens", "/api/personal/lens?dataset=runs&level=3&range=all&day=2026-09-01,2026-09-08", &page)
+	read(t, h, "/ui/api/accounts/{account}/lens", "/ui/api/accounts/personal/lens?dataset=runs&level=3&range=all&day=2026-09-01,2026-09-08", &page)
 	if want := []string{"r-0911", "r-0912", "r-0901"}; !slices.Equal(ids(), want) {
 		t.Fatalf("the runs started on two days are %v, want %v", ids(), want)
 	}
 
 	var g groups
-	read(t, h, "/api/{account}/lens", "/api/personal/lens?dataset=runs&level=1&group=workload&range=all", &g)
+	read(t, h, "/ui/api/accounts/{account}/lens", "/ui/api/accounts/personal/lens?dataset=runs&level=1&group=workload&range=all", &g)
 	// The two groups tie, so the workload's own order breaks it.
 	if want := []string{"backfill=3", "sync=3"}; !slices.Equal(g.counts(), want) || g.Total.Count != 6 || g.Total.Restricted != nil {
 		t.Fatalf("by workload the groups are %v of %d, want %v of 6 and no sensitivity", g.counts(), g.Total.Count, want)
 	}
-	read(t, h, "/api/{account}/lens", "/api/personal/lens?dataset=runs&level=2&group=state&range=all&workload=backfill", &g)
+	read(t, h, "/ui/api/accounts/{account}/lens", "/ui/api/accounts/personal/lens?dataset=runs&level=2&group=state&range=all&workload=backfill", &g)
 	if want := []string{"failed=1", "running=1", "succeeded=1"}; !slices.Equal(g.counts(), want) {
 		t.Fatalf("backfill by state is %v, want %v", g.counts(), want)
 	}
-	read(t, h, "/api/{account}/lens", "/api/personal/lens?dataset=runs&level=1&group=day&range=all", &g)
+	read(t, h, "/ui/api/accounts/{account}/lens", "/ui/api/accounts/personal/lens?dataset=runs&level=1&group=day&range=all", &g)
 	if want := []string{"2026-09-10=3", "2026-09-08=2", "2026-09-01=1"}; !slices.Equal(g.counts(), want) {
 		t.Fatalf("by day the groups are %v, want %v, the most runs first", g.counts(), want)
 	}
-	read(t, h, "/api/{account}/lens", "/api/personal/lens?dataset=runs&level=1&group=day&range=all&workload=!sync", &g)
+	read(t, h, "/ui/api/accounts/{account}/lens", "/ui/api/accounts/personal/lens?dataset=runs&level=1&group=day&range=all&workload=!sync", &g)
 	if want := []string{"2026-09-01=1", "2026-09-08=1", "2026-09-10=1"}; !slices.Equal(g.counts(), want) {
 		t.Fatalf("by day without delta sync the groups are %v, want %v", g.counts(), want)
 	}
@@ -194,10 +194,10 @@ func TestTheFailuresDatasetAnswersItsLevels(t *testing.T) {
 	var summary struct {
 		Figures []figure `json:"figures"`
 	}
-	read(t, h, "/api/{account}/lens", "/api/personal/lens?dataset=failures&run=r-0912&level=0", &summary)
-	link := func(d string) string { return "/personal/jobs/r-0912?disposition=" + d + "&level=3" }
+	read(t, h, "/ui/api/accounts/{account}/lens", "/ui/api/accounts/personal/lens?dataset=failures&run=r-0912&level=0", &summary)
+	link := func(d string) string { return "/ui/accounts/personal/jobs/r-0912?disposition=" + d + "&level=3" }
 	want := []figure{
-		{Key: "failures", Value: n(5), Link: "/personal/jobs/r-0912?level=3"},
+		{Key: "failures", Value: n(5), Link: "/ui/accounts/personal/jobs/r-0912?level=3"},
 		{Key: "recovered", Value: n(1), Link: link("recovered")},
 		{Key: "pending", Value: n(2), Link: link("pending")},
 		{Key: "gone", Value: n(1), Link: link("gone")},
@@ -209,7 +209,7 @@ func TestTheFailuresDatasetAnswersItsLevels(t *testing.T) {
 	}
 
 	var g groups
-	read(t, h, "/api/{account}/lens", "/api/personal/lens?dataset=failures&run=r-0912&level=1&group=error_class", &g)
+	read(t, h, "/ui/api/accounts/{account}/lens", "/ui/api/accounts/personal/lens?dataset=failures&run=r-0912&level=1&group=error_class", &g)
 	if want := []string{"provider_error=2", "gone=1", "scanner_timeout=1", "throttled=1"}; !slices.Equal(g.counts(), want) {
 		t.Fatalf("by error class the groups are %v, want %v", g.counts(), want)
 	}
@@ -219,7 +219,7 @@ func TestTheFailuresDatasetAnswersItsLevels(t *testing.T) {
 	if first := g.Rows[0]; *first.Restricted != 0 || *first.Flagged != 1 {
 		t.Fatalf("provider errors count %d restricted and %d flagged, want 0 and 1", *first.Restricted, *first.Flagged)
 	}
-	read(t, h, "/api/{account}/lens", "/api/personal/lens?dataset=failures&run=r-0912&level=1&group=sender", &g)
+	read(t, h, "/ui/api/accounts/{account}/lens", "/ui/api/accounts/personal/lens?dataset=failures&run=r-0912&level=1&group=sender", &g)
 	if want := []string{"newsletter.example=2", "none=2", "bank.example=1"}; !slices.Equal(g.counts(), want) {
 		t.Fatalf("by sender the groups are %v, want %v, the page item and the gone message in none last among equals", g.counts(), want)
 	}
@@ -232,34 +232,34 @@ func TestTheFailuresDatasetAnswersItsLevels(t *testing.T) {
 		} `json:"total"`
 	}
 	for _, spelling := range []string{"newsletter.example", "Newsletter.Example", "NEWSLETTER.EXAMPLE"} {
-		read(t, h, "/api/{account}/lens", "/api/personal/lens?dataset=failures&run=r-0912&level=3&sender="+spelling, &items)
+		read(t, h, "/ui/api/accounts/{account}/lens", "/ui/api/accounts/personal/lens?dataset=failures&run=r-0912&level=3&sender="+spelling, &items)
 		if items.Total.Count != 2 {
 			t.Errorf("sender=%s returns %d items, want the group's 2", spelling, items.Total.Count)
 		}
-		read(t, h, "/api/{account}/lens", "/api/personal/lens?dataset=failures&run=r-0912&level=3&sender=!"+spelling, &items)
+		read(t, h, "/ui/api/accounts/{account}/lens", "/ui/api/accounts/personal/lens?dataset=failures&run=r-0912&level=3&sender=!"+spelling, &items)
 		if items.Total.Count != 3 {
 			t.Errorf("sender=!%s leaves %d items, want 3 with the group's 2 dropped", spelling, items.Total.Count)
 		}
 	}
 	// A message stored with an empty domain is a group of its own, keyed empty, apart from the null
 	// group of the items with no message, and none selects the null group alone.
-	read(t, h, "/api/{account}/lens", "/api/personal/lens?dataset=failures&run=r-0901&level=1&group=sender", &g)
+	read(t, h, "/ui/api/accounts/{account}/lens", "/ui/api/accounts/personal/lens?dataset=failures&run=r-0901&level=1&group=sender", &g)
 	if len(g.Rows) != 2 || g.Rows[0].Key["sender"] != "" || g.Rows[0].Count != 1 || g.Rows[1].Key["sender"] != nil || g.Rows[1].Count != 1 {
 		t.Fatalf("r-0901 by sender is %+v, want the empty domain's group and the null group, one each", g.Rows)
 	}
-	read(t, h, "/api/{account}/lens", "/api/personal/lens?dataset=failures&run=r-0901&level=3&sender=none", &items)
+	read(t, h, "/ui/api/accounts/{account}/lens", "/ui/api/accounts/personal/lens?dataset=failures&run=r-0901&level=3&sender=none", &items)
 	if items.Total.Count != 1 {
 		t.Fatalf("sender=none on r-0901 returns %d items, want the page item alone", items.Total.Count)
 	}
-	read(t, h, "/api/{account}/lens", "/api/personal/lens?dataset=failures&run=r-0912&level=1&group=page_number", &g)
+	read(t, h, "/ui/api/accounts/{account}/lens", "/ui/api/accounts/personal/lens?dataset=failures&run=r-0912&level=1&group=page_number", &g)
 	if want := []string{"12=2", "13=1", "14=1", "none=1"}; !slices.Equal(g.counts(), want) {
 		t.Fatalf("by page the groups are %v, want %v with none last", g.counts(), want)
 	}
-	read(t, h, "/api/{account}/lens", "/api/personal/lens?dataset=failures&run=r-0912&level=2&group=disposition&sender=none", &g)
+	read(t, h, "/ui/api/accounts/{account}/lens", "/ui/api/accounts/personal/lens?dataset=failures&run=r-0912&level=2&group=disposition&sender=none", &g)
 	if want := []string{"abandoned=1", "gone=1"}; !slices.Equal(g.counts(), want) {
 		t.Fatalf("the items with no sender by disposition are %v, want %v", g.counts(), want)
 	}
-	read(t, h, "/api/{account}/lens", "/api/personal/lens?dataset=failures&run=r-0912&level=2&group=error_class&page_number=!none", &g)
+	read(t, h, "/ui/api/accounts/{account}/lens", "/ui/api/accounts/personal/lens?dataset=failures&run=r-0912&level=2&group=error_class&page_number=!none", &g)
 	if g.Total.Count != 4 {
 		t.Fatalf("excluding the items with no page leaves %d, want 4", g.Total.Count)
 	}
@@ -276,7 +276,7 @@ func TestTheFailuresDatasetAnswersItsLevels(t *testing.T) {
 			RecoveredBy *string  `json:"recovered_by"`
 		} `json:"rows"`
 	}
-	read(t, h, "/api/{account}/lens", "/api/personal/lens?dataset=failures&run=r-0912&level=3&sort=attempts,desc", &page)
+	read(t, h, "/ui/api/accounts/{account}/lens", "/ui/api/accounts/personal/lens?dataset=failures&run=r-0912&level=3&sort=attempts,desc", &page)
 	var seqs []int64
 	for _, r := range page.Rows {
 		seqs = append(seqs, r.Seq)
@@ -298,7 +298,7 @@ func TestTheFailuresDatasetAnswersItsLevels(t *testing.T) {
 	if gone.FromEmail != nil || gone.SenderClass != nil {
 		t.Fatalf("the gone message's row is %+v, want no message fields", gone)
 	}
-	read(t, h, "/api/{account}/lens", "/api/personal/lens?dataset=failures&run=r-0912&level=3&sender=bank.example,none&page_number=13,14", &page)
+	read(t, h, "/ui/api/accounts/{account}/lens", "/ui/api/accounts/personal/lens?dataset=failures&run=r-0912&level=3&sender=bank.example,none&page_number=13,14", &page)
 	seqs = nil
 	for _, r := range page.Rows {
 		seqs = append(seqs, r.Seq)
@@ -330,7 +330,7 @@ func TestTheRowDetailAnswersItsRow(t *testing.T) {
 		} `json:"audit"`
 		AuditCount int64 `json:"audit_count"`
 	}
-	read(t, h, "/api/{account}/failures/{row}", "/api/personal/failures/1?run=r-0912", &detail)
+	read(t, h, "/ui/api/accounts/{account}/failures/{row}", "/ui/api/accounts/personal/failures/1?run=r-0912", &detail)
 	if detail.Row.Seq != 1 || detail.ErrorSummary == nil || *detail.ErrorSummary != marker.MarkupField("errorsummary") ||
 		len(detail.Audit) != 1 || detail.Audit[0].Action != "DENY_BODY" || detail.AuditCount != 1 {
 		t.Fatalf("the bank message's failure detail is %+v", detail)
@@ -340,7 +340,7 @@ func TestTheRowDetailAnswersItsRow(t *testing.T) {
 		t.Fatalf("the bank message's sensitivity block is %v %v %v %v, want its sender restricted by rule.bank, no content rule, never scanned",
 			detail.ClassRuleID, detail.RuleIDs, detail.ScannedAt, detail.ScannerVersion)
 	}
-	read(t, h, "/api/{account}/failures/{row}", "/api/personal/failures/5?run=r-0912", &detail)
+	read(t, h, "/ui/api/accounts/{account}/failures/{row}", "/ui/api/accounts/personal/failures/5?run=r-0912", &detail)
 	if len(detail.Audit) != 2 || detail.AuditCount != 2 {
 		t.Fatalf("the newsletter's failure carries %d audit rows of %d, want 2 of 2", len(detail.Audit), detail.AuditCount)
 	}
@@ -350,16 +350,16 @@ func TestTheRowDetailAnswersItsRow(t *testing.T) {
 		t.Fatalf("the newsletter's sensitivity block is %v %v %v %v, want no class rule, %v, %s and version 3",
 			detail.ClassRuleID, detail.RuleIDs, detail.ScannedAt, detail.ScannerVersion, want, scanned)
 	}
-	read(t, h, "/api/{account}/failures/{row}", "/api/personal/failures/3?run=r-0912", &detail)
+	read(t, h, "/ui/api/accounts/{account}/failures/{row}", "/ui/api/accounts/personal/failures/3?run=r-0912", &detail)
 	if len(detail.Audit) != 0 || detail.AuditCount != 0 || detail.ClassRuleID != nil || detail.RuleIDs != nil {
 		t.Fatalf("the page item's detail carries audit rows or a sensitivity block: %+v", detail)
 	}
-	for _, p := range []string{"/api/personal/failures/9?run=r-0912", "/api/personal/failures/1?run=r-0913", "/api/personal/failures/1?run=r-other"} {
+	for _, p := range []string{"/ui/api/accounts/personal/failures/9?run=r-0912", "/ui/api/accounts/personal/failures/1?run=r-0913", "/ui/api/accounts/personal/failures/1?run=r-other"} {
 		r := get(t, h, p)
 		if origin, code := errorOf(t, r); r.status != http.StatusNotFound || origin != "client" || code != "unknown_row" {
 			t.Errorf("%s answered %d %s %s, want 404 unknown_row", p, r.status, origin, code)
 		}
-		conforms(t, "/api/{account}/failures/{row}", r)
+		conforms(t, "/ui/api/accounts/{account}/failures/{row}", r)
 	}
 }
 
@@ -393,7 +393,7 @@ func TestTheRunSummaryAnswersItsRun(t *testing.T) {
 			Detail *string `json:"detail"`
 		} `json:"events"`
 	}
-	read(t, h, "/api/{account}/jobs/{run}", "/api/personal/jobs/r-0912", &summary)
+	read(t, h, "/ui/api/accounts/{account}/jobs/{run}", "/ui/api/accounts/personal/jobs/r-0912", &summary)
 	if summary.Run.RunID != "r-0912" || summary.Run.State != "failed" || summary.Resumer == nil || summary.Resumer.RunID != "r-0913" {
 		t.Fatalf("the failed run and its resumer are %+v, %+v", summary.Run, summary.Resumer)
 	}
@@ -413,11 +413,11 @@ func TestTheRunSummaryAnswersItsRun(t *testing.T) {
 	if e := summary.Events[2]; e.Detail == nil || *e.Detail != marker.MarkupField("eventdetail") || e.Page == nil || *e.Page != 12 {
 		t.Fatalf("the failure event is %+v", e)
 	}
-	read(t, h, "/api/{account}/jobs/{run}", "/api/personal/jobs/r-0911", &summary)
+	read(t, h, "/ui/api/accounts/{account}/jobs/{run}", "/ui/api/accounts/personal/jobs/r-0911", &summary)
 	if summary.Resumer != nil || summary.Failures.Count != 0 || len(summary.Failures.Dispositions) != 0 || len(summary.Events) != 0 {
 		t.Fatalf("a run with no resumer, failure or event reads %+v", summary)
 	}
-	for _, p := range []string{"/api/personal/jobs/r-9999", "/api/personal/jobs/r-other"} {
+	for _, p := range []string{"/ui/api/accounts/personal/jobs/r-9999", "/ui/api/accounts/personal/jobs/r-other"} {
 		r := get(t, h, p)
 		if origin, code := errorOf(t, r); r.status != http.StatusNotFound || origin != "client" || code != "unknown_run" {
 			t.Errorf("%s answered %d %s %s, want 404 unknown_run", p, r.status, origin, code)
@@ -433,7 +433,7 @@ func TestTheEmptyGroupsWordSelectsTheRowsItCounts(t *testing.T) {
 	h := s.Handler()
 
 	var g groups
-	read(t, h, "/api/{account}/lens", "/api/personal/lens?dataset=failures&run=r-0901&level=1&group=sender", &g)
+	read(t, h, "/ui/api/accounts/{account}/lens", "/ui/api/accounts/personal/lens?dataset=failures&run=r-0901&level=1&group=sender", &g)
 	var empty int64 = -1
 	for _, row := range g.Rows {
 		if row.Key["sender"] == "" {
@@ -451,11 +451,11 @@ func TestTheEmptyGroupsWordSelectsTheRowsItCounts(t *testing.T) {
 			ItemID string `json:"item_id"`
 		} `json:"rows"`
 	}
-	read(t, h, "/api/{account}/lens", "/api/personal/lens?dataset=failures&run=r-0901&level=3&sender=empty", &page)
+	read(t, h, "/ui/api/accounts/{account}/lens", "/ui/api/accounts/personal/lens?dataset=failures&run=r-0901&level=3&sender=empty", &page)
 	if page.Total.Count != empty || len(page.Rows) != 1 || page.Rows[0].ItemID != "m-empty" {
 		t.Fatalf("sender=empty returns %d items, %+v, want the group's %d, the message stored with an empty domain", page.Total.Count, page.Rows, empty)
 	}
-	read(t, h, "/api/{account}/lens", "/api/personal/lens?dataset=failures&run=r-0901&level=3&sender=!empty", &page)
+	read(t, h, "/ui/api/accounts/{account}/lens", "/ui/api/accounts/personal/lens?dataset=failures&run=r-0901&level=3&sender=!empty", &page)
 	if page.Total.Count != g.Total.Count-empty {
 		t.Fatalf("sender=!empty leaves %d items, want %d, every item but the group's", page.Total.Count, g.Total.Count-empty)
 	}

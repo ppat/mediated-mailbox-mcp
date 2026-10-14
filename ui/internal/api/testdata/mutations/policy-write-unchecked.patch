@@ -1,4 +1,4 @@
-control: A policy write the snapshot's validation or the UI's route words refuse is refused before it is written
+control: A policy write the snapshot's validation refuses, or whose identifier no path segment can hold, is refused before it is written
 removes: a write is never checked, so a rule the snapshot's validation refuses is written and fails every reload
 packages: ./ui/internal/api
 tests: TestAWriteTheValidationRefusesIsRefusedBeforeItIsWritten

@@ -12,6 +12,7 @@ import {
 import { useDeps } from "../app/deps.ts";
 import { ListedAccount, providerName, settingsPath } from "../app/frame.tsx";
 import { utc } from "../app/format.ts";
+import { accountPage } from "../app/paths.ts";
 import { Region } from "../app/region.tsx";
 import { Values, type Value } from "./system.tsx";
 import { setupPath } from "./clientsetup.tsx";
@@ -63,9 +64,7 @@ function Settings(props: { answer: AccountSettings }) {
       <section aria-labelledby="rows-title">
         <h2 id="rows-title">What this account&apos;s rows hold</h2>
         <Values label="The account's rows" values={rows(answer)} />
-        <a href={`/${encodeURIComponent(answer.account_id)}/system`}>
-          See System for the live view
-        </a>
+        <a href={accountPage(answer.account_id, "system")}>See System for the live view</a>
       </section>
     </>
   );

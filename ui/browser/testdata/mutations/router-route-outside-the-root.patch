@@ -1,0 +1,20 @@
+control: Every route the UI registers sits under its root, apart from the redirect at /
+removes: the router matches the installation screen at /setup, outside the UI's root
+packages: ./ui/browser/test/routes.test.ts
+tests: every route sits under the UI's root
+scheduled-count: no
+runner: bun
+
+diff --git a/ui/browser/src/app/router.tsx b/ui/browser/src/app/router.tsx
+index cb34490..90fa382 100644
+--- a/ui/browser/src/app/router.tsx
++++ b/ui/browser/src/app/router.tsx
+@@ -54,7 +54,7 @@ export function Routes() {
+   return (
+     <Router>
+       <Route path={entryPage()} component={Entry} />
+-      <Route path={setupRoute} component={InstallationRoute} />
++      <Route path="/setup" component={InstallationRoute} />
+       <Route path={`${setupRoute}/connect`} component={ConnectScreenRoute} />
+       <Route path={`${setupRoute}/policy`} component={BasePolicyRoute} />
+       <Route path={`${setupRoute}/policy/new`} component={BaseAddRoute} />

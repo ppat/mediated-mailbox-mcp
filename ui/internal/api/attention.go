@@ -18,6 +18,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/attention"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/schema"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/paths"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/registry"
 )
 
@@ -190,7 +191,7 @@ func recovery(row jobruns.GapRecoveriesSinceRow) attention.Recovery {
 // attentionLink is the screen that explains a card with its value applied as a filter, as section
 // 8.1's table names it. The browser links it only when that screen exists.
 func (s *Server) attentionLink(account string, c attention.Card, now time.Time) string {
-	base := "/" + url.PathEscape(account) + "/"
+	base := paths.Account(account) + "/"
 	switch c.Rule {
 	case attention.Backlog:
 		return base + "messages?level=3&scan_state=pending"

@@ -6,20 +6,21 @@
 //
 // The stylesheet src/app/main.ts imports is written beside the entry as main.css, which the entry document
 // links. Bun inlines every font a stylesheet's url() reaches as a data: URI, which the policy's
-// font-src 'self' blocks, so the font URLs stay external as /fonts/ paths and the build copies the font
-// files there (docs/UI.md section 14.3). test/build.test.ts proves the built stylesheet names only files
-// the build copied.
+// font-src 'self' blocks, so the font URLs stay external as /ui/fonts/ paths under the UI's root and the
+// build copies the font files there (docs/UI.md sections 14.3 and 18). test/build.test.ts proves the
+// built stylesheet names only files the build copied.
 //
 // Run it from ui/browser: bun scripts/build.ts
 import { copyFile, mkdir, readdir, rm } from "node:fs/promises";
 import { join } from "node:path";
+import { uiRoot } from "../src/app/paths.ts";
 
 export const options = {
   entrypoints: ["src/app/main.ts"],
   target: "browser",
   minify: true,
   define: { "process.env.NODE_ENV": JSON.stringify("production") },
-  external: ["/fonts/*"],
+  external: [`${uiRoot}/fonts/*`],
 } satisfies Bun.BuildConfig;
 
 // fonts is where the vendored font files sit, and fontsOut the bundle directory the stylesheet names them in.

@@ -6,7 +6,7 @@
     {
       "at": null,
       "key": "changes",
-      "link": "/personal/policy/history?level=3",
+      "link": "/ui/accounts/personal/policy/history?level=3",
       "unit": null,
       "value": 5,
       "wording": "changes"
@@ -14,7 +14,7 @@
     {
       "at": null,
       "key": "added",
-      "link": "/personal/policy/history?action=added%2Cconfirmed&level=3",
+      "link": "/ui/accounts/personal/policy/history?action=added%2Cconfirmed&level=3",
       "unit": null,
       "value": 2,
       "wording": "added restriction"
@@ -22,7 +22,7 @@
     {
       "at": null,
       "key": "lifted",
-      "link": "/personal/policy/history?action=lifted&level=3",
+      "link": "/ui/accounts/personal/policy/history?action=lifted&level=3",
       "unit": null,
       "value": 3,
       "wording": "lifted restriction"

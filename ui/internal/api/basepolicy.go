@@ -92,7 +92,7 @@ func basePolicyType() schema.Type {
 	)
 }
 
-// getBasePolicy is GET /api/setup/policy?search=…, read in a base-policy transaction, which names no
+// getBasePolicy is GET /ui/api/setup/policy?search=…, read in a base-policy transaction, which names no
 // account and reads no account's rows (ADR-0112). The search is a case-insensitive substring of a
 // rule's identifier or one of its suffixes.
 func (s *Server) getBasePolicy(w http.ResponseWriter, r *http.Request) {
@@ -143,7 +143,7 @@ func baseHistoryType() schema.Type {
 	return schema.Obj("BaseHistory", schema.F("range", schema.Str()), schema.F("rows", schema.ArrayOf(registry.ChangeRowType())))
 }
 
-// getBaseHistory is GET /api/setup/policy/history?range=…&rule=…, the base policy's changes alone, read
+// getBaseHistory is GET /ui/api/setup/policy/history?range=…&rule=…, the base policy's changes alone, read
 // in a base-policy transaction. The range is the dataset endpoint's grammar, the last 30 days by
 // default, and rule narrows the rows to one rule's.
 func (s *Server) getBaseHistory(w http.ResponseWriter, r *http.Request) {

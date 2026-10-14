@@ -55,10 +55,9 @@ jobs:
         current_repository: ${{ github.repository }}
         token: ${{ secrets.GITHUB_TOKEN }}
 
-    # The UI's tests read the built browser bundle, the policy scan of every bundled file, the entry document
-    # loading the bundle's entry module, and the reserved words a bundle's top level holds, so the bundle is built
-    # first, as the ui workflow builds it. A fresh clone holds only its placeholder, against which those tests skip,
-    # check less or fail.
+    # The UI's tests read the built browser bundle, the policy scan of every bundled file and the entry document
+    # loading the bundle's entry module, so the bundle is built first, as the ui workflow builds it. A fresh clone
+    # holds only its placeholder, against which those tests skip, check less or fail.
     - name: Build the browser bundle the UI's tests read
       shell: bash
       working-directory: ./current/ui/browser

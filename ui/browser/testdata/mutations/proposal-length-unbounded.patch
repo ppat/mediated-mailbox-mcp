@@ -6,15 +6,15 @@ scheduled-count: no
 runner: bun
 
 diff --git a/ui/browser/src/screens/connect.tsx b/ui/browser/src/screens/connect.tsx
-index 4ae6391f..e8388fe1 100644
+index fa6b264..b7daf02 100644
 --- a/ui/browser/src/screens/connect.tsx
 +++ b/ui/browser/src/screens/connect.tsx
-@@ -235,7 +235,7 @@ export function proposeIdentifier(
+@@ -233,7 +233,7 @@ export function proposeIdentifier(mailbox: string, taken: readonly string[]): st
    const at = mailbox.lastIndexOf("@");
    const local = (at < 0 ? mailbox : mailbox.slice(0, at)).toLowerCase();
    const base =
 -    fit(local.replace(/[^a-z0-9-]+/g, "-").replace(/^-+/, ""), identifierLength) || "account";
 +    fit(local.replace(/[^a-z0-9-]+/g, "-").replace(/^-+/, ""), Infinity) || "account";
-   const free = (candidate: string) => !taken.includes(candidate) && !reserved.includes(candidate);
+   const free = (candidate: string) => !taken.includes(candidate);
    if (free(base)) {
      return base;

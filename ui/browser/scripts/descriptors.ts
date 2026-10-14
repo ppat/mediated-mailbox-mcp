@@ -13,7 +13,7 @@
 
 const documentPath = "../contract/openapi.json";
 const tablePath = "src/generated/descriptors.ts";
-const lensPath = "/api/{account}/lens";
+const lensPath = "/ui/api/accounts/{account}/lens";
 
 type Dimension = {
   name: string;

@@ -25,7 +25,7 @@ func TestADomainTypedInAnyCaseFindsItsStoredForm(t *testing.T) {
 	r.exec(`INSERT INTO job_run_failures (account_id, run_id, seq, item_kind, item_id, page, error_class, error_summary, attempts, first_at, last_at, disposition, recovered_by)
 		VALUES ($1, 'r-0901', 3, 'message', 'm-dotted', 7, 'provider_error', NULL, 1, $2, $2, 'pending', NULL)`, personal, now)
 	b := r.browser()
-	lens := func(values url.Values) string { return "/api/personal/lens?" + values.Encode() }
+	lens := func(values url.Values) string { return "/ui/api/accounts/personal/lens?" + values.Encode() }
 
 	type item struct {
 		ItemID string `json:"item_id"`
@@ -47,7 +47,7 @@ func TestADomainTypedInAnyCaseFindsItsStoredForm(t *testing.T) {
 		t.Errorf("sender=!%+q leaves %d items, want r-0901's other 2", typed, dropped.Total.Count)
 	}
 	var g groups
-	read(t, b.h, "/api/{account}/lens", lens(url.Values{"dataset": {"failures"}, "run": {"r-0901"}, "level": {"1"}, "group": {"sender"}}), &g)
+	read(t, b.h, "/ui/api/accounts/{account}/lens", lens(url.Values{"dataset": {"failures"}, "run": {"r-0901"}, "level": {"1"}, "group": {"sender"}}), &g)
 	keys := map[string]int64{}
 	for _, row := range g.Rows {
 		if k, ok := row.Key["sender"].(string); ok {

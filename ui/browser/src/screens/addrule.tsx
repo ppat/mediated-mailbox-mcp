@@ -222,7 +222,7 @@ function AddForm(props: {
   }, [typed, timers]);
   const suffixes = lines(typed);
   const identifier = idEdited ? id : `operator.${suffixes[0] ?? ""}`;
-  const idProblem = identifierProblem(identifier, scope);
+  const idProblem = identifierProblem(identifier);
   const match =
     account === undefined || checked.length === 0
       ? undefined

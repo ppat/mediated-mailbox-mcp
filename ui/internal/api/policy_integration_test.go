@@ -112,7 +112,7 @@ func TestThePolicyDatasetsAnswer(t *testing.T) {
 	r.seedPolicy()
 	b := r.browser()
 
-	page := decode[rowsPage[policyRow]](t, b.get("/api/personal/lens?dataset=rules&level=3"))
+	page := decode[rowsPage[policyRow]](t, b.get("/ui/api/accounts/personal/lens?dataset=rules&level=3"))
 	want := []policyRow{
 		{Scope: "base", RuleID: "base.bank", Suffixes: []string{"bank.example"}, Senders: 1, Messages: 1},
 		{Scope: "account", RuleID: "operator.lender.example", Suffixes: []string{"lender.example"}, Senders: 1, Messages: 4},
@@ -120,7 +120,7 @@ func TestThePolicyDatasetsAnswer(t *testing.T) {
 	if diff := cmp.Diff(want, page.Rows, compare.Options); diff != "" {
 		t.Errorf("the rules (-want +got):\n%s", diff)
 	}
-	searched := decode[rowsPage[policyRow]](t, b.get("/api/personal/lens?dataset=rules&level=3&search=LENDER"))
+	searched := decode[rowsPage[policyRow]](t, b.get("/ui/api/accounts/personal/lens?dataset=rules&level=3&search=LENDER"))
 	if len(searched.Rows) != 1 || searched.Rows[0].RuleID != "operator.lender.example" || searched.Total.Count != 1 {
 		t.Errorf("the search for LENDER found %+v", searched)
 	}
@@ -131,14 +131,14 @@ func TestThePolicyDatasetsAnswer(t *testing.T) {
 		Released struct{ Senders, Messages int64 } `json:"released"`
 		History  []historyRow                      `json:"history"`
 		Accounts []string                          `json:"accounts"`
-	}](t, b.get("/api/personal/rules/base:base.bank"))
+	}](t, b.get("/ui/api/accounts/personal/rules/base:base.bank"))
 	if detail.Scope != "base" || detail.Released.Senders != 1 || len(detail.History) != 1 || !slices.Equal(detail.Accounts, []string{other, personal}) {
 		t.Errorf("the base rule's detail is %+v", detail)
 	}
-	refused(t, b.get("/api/personal/rules/account:base.bank"), http.StatusNotFound, "unknown_row")
-	refused(t, b.get("/api/personal/rules/account:other.only"), http.StatusNotFound, "unknown_row")
+	refused(t, b.get("/ui/api/accounts/personal/rules/account:base.bank"), http.StatusNotFound, "unknown_row")
+	refused(t, b.get("/ui/api/accounts/personal/rules/account:other.only"), http.StatusNotFound, "unknown_row")
 
-	history := decode[rowsPage[historyRow]](t, b.get("/api/personal/lens?dataset=policy_changes&level=3&range=all"))
+	history := decode[rowsPage[historyRow]](t, b.get("/ui/api/accounts/personal/lens?dataset=policy_changes&level=3&range=all"))
 	var named []string
 	for _, h := range history.Rows {
 		named = append(named, h.RuleID)
@@ -147,7 +147,7 @@ func TestThePolicyDatasetsAnswer(t *testing.T) {
 	if !slices.Equal(named, []string{"base.bank", "operator.lender.example"}) {
 		t.Errorf("personal's history names %v, want its own change and the base policy's", named)
 	}
-	base := decode[rowsPage[historyRow]](t, b.get("/api/personal/lens?dataset=policy_changes&level=3&range=all&scope=none"))
+	base := decode[rowsPage[historyRow]](t, b.get("/ui/api/accounts/personal/lens?dataset=policy_changes&level=3&range=all&scope=none"))
 	if len(base.Rows) != 1 || base.Rows[0].Account != nil {
 		t.Errorf("the base scope's history is %+v", base.Rows)
 	}
@@ -155,7 +155,7 @@ func TestThePolicyDatasetsAnswer(t *testing.T) {
 	senders := decode[rowsPage[struct {
 		Domain       string  `json:"domain"`
 		RestrictedBy *string `json:"restricted_by"`
-	}]](t, b.get("/api/personal/lens?dataset=senders&level=3&search=example"))
+	}]](t, b.get("/ui/api/accounts/personal/lens?dataset=senders&level=3&search=example"))
 	byDomain := map[string]string{}
 	for _, s := range senders.Rows {
 		byDomain[s.Domain] = ""
@@ -186,10 +186,10 @@ func TestAPolicyWriteLeavesItsHistoryRowOrNothing(t *testing.T) {
 	api.SetFault(r.s, failing)
 	stored := r.stored()
 	for name, res := range map[string]response{
-		"add":      b.post("/api/personal/policy/rules", map[string]any{"scope": "account", "rule_id": "operator.shop.example", "suffixes": []string{"shop.example"}}),
-		"edit":     b.post("/api/personal/policy/rules/operator.lender.example", map[string]any{"scope": "account", "suffixes_before": []string{"lender.example"}, "suffixes": []string{"lender.example", "loans.example"}, "confirmation": nil}),
-		"lift":     b.post("/api/personal/policy/rules/operator.lender.example/lift", map[string]any{"scope": "account", "suffixes_before": []string{"lender.example"}, "confirmation": nil}),
-		"base add": b.post("/api/setup/policy/rules", map[string]any{"rule_id": "base.shop", "suffixes": []string{"shop.example"}}),
+		"add":      b.post("/ui/api/accounts/personal/policy/rules", map[string]any{"scope": "account", "rule_id": "operator.shop.example", "suffixes": []string{"shop.example"}}),
+		"edit":     b.post("/ui/api/accounts/personal/policy/rules/operator.lender.example", map[string]any{"scope": "account", "suffixes_before": []string{"lender.example"}, "suffixes": []string{"lender.example", "loans.example"}, "confirmation": nil}),
+		"lift":     b.post("/ui/api/accounts/personal/policy/rules/operator.lender.example/lift", map[string]any{"scope": "account", "suffixes_before": []string{"lender.example"}, "confirmation": nil}),
+		"base add": b.post("/ui/api/setup/policy/rules", map[string]any{"rule_id": "base.shop", "suffixes": []string{"shop.example"}}),
 	} {
 		if res.status != http.StatusServiceUnavailable {
 			t.Errorf("%s failed between its writes answered %d, want the database's 503:\n%s", name, res.status, res.body)
@@ -200,10 +200,10 @@ func TestAPolicyWriteLeavesItsHistoryRowOrNothing(t *testing.T) {
 	}
 	api.SetFault(r.s, nil)
 
-	decode[map[string]any](t, b.post("/api/personal/policy/rules", map[string]any{"scope": "account", "rule_id": "operator.shop.example", "suffixes": []string{"shop.example"}}))
-	decode[map[string]any](t, b.post("/api/personal/policy/rules/operator.shop.example", map[string]any{"scope": "account", "suffixes_before": []string{"shop.example"}, "suffixes": []string{"shop.example", "store.example"}, "confirmation": nil}))
-	decode[map[string]any](t, b.post("/api/personal/policy/rules/operator.shop.example/lift", map[string]any{"scope": "account", "suffixes_before": []string{"shop.example", "store.example"}, "confirmation": nil}))
-	decode[map[string]any](t, b.post("/api/personal/policy/rules", map[string]any{"scope": "base", "rule_id": "base.shop", "suffixes": []string{"shop.example"}}))
+	decode[map[string]any](t, b.post("/ui/api/accounts/personal/policy/rules", map[string]any{"scope": "account", "rule_id": "operator.shop.example", "suffixes": []string{"shop.example"}}))
+	decode[map[string]any](t, b.post("/ui/api/accounts/personal/policy/rules/operator.shop.example", map[string]any{"scope": "account", "suffixes_before": []string{"shop.example"}, "suffixes": []string{"shop.example", "store.example"}, "confirmation": nil}))
+	decode[map[string]any](t, b.post("/ui/api/accounts/personal/policy/rules/operator.shop.example/lift", map[string]any{"scope": "account", "suffixes_before": []string{"shop.example", "store.example"}, "confirmation": nil}))
+	decode[map[string]any](t, b.post("/ui/api/accounts/personal/policy/rules", map[string]any{"scope": "base", "rule_id": "base.shop", "suffixes": []string{"shop.example"}}))
 	want := append(slices.Clone(before),
 		"personal added operator.shop.example >shop.example by operator",
 		"personal edited operator.shop.example shop.example>shop.example,store.example by operator",
@@ -229,9 +229,9 @@ func TestAWriteTheValidationRefusesIsRefusedBeforeItIsWritten(t *testing.T) {
 	}
 	add := func(scope, id string, suffixes ...string) attempt {
 		if scope == "setup" {
-			return attempt{"/api/setup/policy/rules", map[string]any{"rule_id": id, "suffixes": suffixes}}
+			return attempt{"/ui/api/setup/policy/rules", map[string]any{"rule_id": id, "suffixes": suffixes}}
 		}
-		return attempt{"/api/personal/policy/rules", map[string]any{"scope": scope, "rule_id": id, "suffixes": suffixes}}
+		return attempt{"/ui/api/accounts/personal/policy/rules", map[string]any{"scope": scope, "rule_id": id, "suffixes": suffixes}}
 	}
 	for _, scope := range []string{"account", "base", "setup"} {
 		for name, a := range map[string]attempt{
@@ -239,8 +239,6 @@ func TestAWriteTheValidationRefusesIsRefusedBeforeItIsWritten(t *testing.T) {
 			"an identifier with a space": add(scope, " shop", "shop.example"),
 			"no suffix":                  add(scope, "operator.none"),
 			"a suffix not a domain name": add(scope, "operator.bad", "*.shop.example"),
-			"the route word new":         add(scope, "new", "shop.example"),
-			"the route word history":     add(scope, "history", "shop.example"),
 			"a dot":                      add(scope, ".", "shop.example"),
 			"two dots":                   add(scope, "..", "shop.example"),
 			"a slash":                    add(scope, "a/b", "shop.example"),
@@ -251,15 +249,16 @@ func TestAWriteTheValidationRefusesIsRefusedBeforeItIsWritten(t *testing.T) {
 			}
 		}
 	}
-	refused(t, b.post("/api/personal/policy/rules", map[string]any{"scope": "account", "rule_id": "pick", "suffixes": []string{"shop.example"}}), http.StatusBadRequest, "rule_refused")
-	refused(t, b.post("/api/personal/policy/rules", map[string]any{"scope": "account", "rule_id": "operator.lender.example", "suffixes": []string{"shop.example"}}), http.StatusConflict, "identifier_taken")
-	refused(t, b.post("/api/setup/policy/rules", map[string]any{"rule_id": "base.bank", "suffixes": []string{"shop.example"}}), http.StatusConflict, "identifier_taken")
-	refused(t, b.post("/api/personal/policy/rules/operator.lender.example", map[string]any{"scope": "account", "suffixes_before": []string{"lender.example"}, "suffixes": []string{}, "confirmation": nil}), http.StatusBadRequest, "rule_refused")
+	refused(t, b.post("/ui/api/accounts/personal/policy/rules", map[string]any{"scope": "account", "rule_id": "operator.lender.example", "suffixes": []string{"shop.example"}}), http.StatusConflict, "identifier_taken")
+	refused(t, b.post("/ui/api/setup/policy/rules", map[string]any{"rule_id": "base.bank", "suffixes": []string{"shop.example"}}), http.StatusConflict, "identifier_taken")
+	refused(t, b.post("/ui/api/accounts/personal/policy/rules/operator.lender.example", map[string]any{"scope": "account", "suffixes_before": []string{"lender.example"}, "suffixes": []string{}, "confirmation": nil}), http.StatusBadRequest, "rule_refused")
 	if got := r.stored(); got != stored {
 		t.Errorf("a refused write wrote:\nbefore %s\nafter  %s", stored, got)
 	}
-	// The base policy's route words are not an account's, so pick names a base rule.
-	decode[map[string]any](t, b.post("/api/setup/policy/rules", map[string]any{"rule_id": "pick", "suffixes": []string{"shop.example"}}))
+	// A word the policy screens' addresses use is an identifier like any other in either scope, since
+	// a rule's identifier follows rules or base in its address (ADR-0137).
+	decode[map[string]any](t, b.post("/ui/api/accounts/personal/policy/rules", map[string]any{"scope": "account", "rule_id": "pick", "suffixes": []string{"shop.example"}}))
+	decode[map[string]any](t, b.post("/ui/api/setup/policy/rules", map[string]any{"rule_id": "history", "suffixes": []string{"shop.example"}}))
 }
 
 // A base rule's lift, and an edit removing one of its suffixes, need the rule's identifier typed, the
@@ -271,17 +270,17 @@ func TestABaseLiftNeedsTheIdentifierTyped(t *testing.T) {
 	b := r.browser()
 	stored := r.stored()
 	for _, confirmation := range []any{nil, "base", "lift 1"} {
-		refused(t, b.post("/api/personal/policy/rules/base.bank/lift", map[string]any{"scope": "base", "suffixes_before": []string{"bank.example"}, "confirmation": confirmation}), http.StatusBadRequest, "confirmation_required")
-		refused(t, b.post("/api/setup/policy/rules/base.bank/lift", map[string]any{"suffixes_before": []string{"bank.example"}, "confirmation": confirmation}), http.StatusBadRequest, "confirmation_required")
-		refused(t, b.post("/api/personal/policy/rules/base.bank", map[string]any{"scope": "base", "suffixes_before": []string{"bank.example"}, "suffixes": []string{"bank.test"}, "confirmation": confirmation}), http.StatusBadRequest, "confirmation_required")
-		refused(t, b.post("/api/setup/policy/rules/base.bank", map[string]any{"suffixes_before": []string{"bank.example"}, "suffixes": []string{"bank.test"}, "confirmation": confirmation}), http.StatusBadRequest, "confirmation_required")
+		refused(t, b.post("/ui/api/accounts/personal/policy/rules/base.bank/lift", map[string]any{"scope": "base", "suffixes_before": []string{"bank.example"}, "confirmation": confirmation}), http.StatusBadRequest, "confirmation_required")
+		refused(t, b.post("/ui/api/setup/policy/rules/base.bank/lift", map[string]any{"suffixes_before": []string{"bank.example"}, "confirmation": confirmation}), http.StatusBadRequest, "confirmation_required")
+		refused(t, b.post("/ui/api/accounts/personal/policy/rules/base.bank", map[string]any{"scope": "base", "suffixes_before": []string{"bank.example"}, "suffixes": []string{"bank.test"}, "confirmation": confirmation}), http.StatusBadRequest, "confirmation_required")
+		refused(t, b.post("/ui/api/setup/policy/rules/base.bank", map[string]any{"suffixes_before": []string{"bank.example"}, "suffixes": []string{"bank.test"}, "confirmation": confirmation}), http.StatusBadRequest, "confirmation_required")
 	}
 	if got := r.stored(); got != stored {
 		t.Fatalf("an unconfirmed base lift wrote:\nbefore %s\nafter  %s", stored, got)
 	}
 	// An edit that only adds a suffix to a base rule lifts nothing and needs no confirmation.
-	decode[map[string]any](t, b.post("/api/setup/policy/rules/base.bank", map[string]any{"suffixes_before": []string{"bank.example"}, "suffixes": []string{"bank.example", "bank.test"}, "confirmation": nil}))
-	decode[map[string]any](t, b.post("/api/personal/policy/rules/base.bank/lift", map[string]any{"scope": "base", "suffixes_before": []string{"bank.example", "bank.test"}, "confirmation": " base.bank "}))
+	decode[map[string]any](t, b.post("/ui/api/setup/policy/rules/base.bank", map[string]any{"suffixes_before": []string{"bank.example"}, "suffixes": []string{"bank.example", "bank.test"}, "confirmation": nil}))
+	decode[map[string]any](t, b.post("/ui/api/accounts/personal/policy/rules/base.bank/lift", map[string]any{"scope": "base", "suffixes_before": []string{"bank.example", "bank.test"}, "confirmation": " base.bank "}))
 	if slices.ContainsFunc(r.rulesOf(), func(s string) bool { return strings.HasPrefix(s, "base base.bank ") }) {
 		t.Errorf("the confirmed lift left the base rule: %v", r.rulesOf())
 	}
@@ -295,10 +294,10 @@ func TestAnotherAccountsRuleIsUnknown(t *testing.T) {
 	r.seedPolicy()
 	b := r.browser()
 	stored := r.stored()
-	refused(t, b.post("/api/personal/policy/rules/other.only", map[string]any{"scope": "account", "suffixes_before": []string{"other.example"}, "suffixes": []string{"other.example", "x.example"}, "confirmation": nil}), http.StatusNotFound, "unknown_rule")
-	refused(t, b.post("/api/personal/policy/rules/other.only/lift", map[string]any{"scope": "account", "suffixes_before": []string{"other.example"}, "confirmation": nil}), http.StatusNotFound, "unknown_rule")
-	refused(t, b.post("/api/personal/policy/rules/operator.lender.example", map[string]any{"scope": "account", "suffixes_before": []string{"loans.example"}, "suffixes": []string{"lender.example", "x.example"}, "confirmation": nil}), http.StatusConflict, "stale_rule")
-	refused(t, b.post("/api/personal/policy/rules/operator.lender.example/lift", map[string]any{"scope": "account", "suffixes_before": []string{"loans.example"}, "confirmation": nil}), http.StatusConflict, "stale_rule")
+	refused(t, b.post("/ui/api/accounts/personal/policy/rules/other.only", map[string]any{"scope": "account", "suffixes_before": []string{"other.example"}, "suffixes": []string{"other.example", "x.example"}, "confirmation": nil}), http.StatusNotFound, "unknown_rule")
+	refused(t, b.post("/ui/api/accounts/personal/policy/rules/other.only/lift", map[string]any{"scope": "account", "suffixes_before": []string{"other.example"}, "confirmation": nil}), http.StatusNotFound, "unknown_rule")
+	refused(t, b.post("/ui/api/accounts/personal/policy/rules/operator.lender.example", map[string]any{"scope": "account", "suffixes_before": []string{"loans.example"}, "suffixes": []string{"lender.example", "x.example"}, "confirmation": nil}), http.StatusConflict, "stale_rule")
+	refused(t, b.post("/ui/api/accounts/personal/policy/rules/operator.lender.example/lift", map[string]any{"scope": "account", "suffixes_before": []string{"loans.example"}, "confirmation": nil}), http.StatusConflict, "stale_rule")
 	if got := r.stored(); got != stored {
 		t.Errorf("a refused write wrote:\nbefore %s\nafter  %s", stored, got)
 	}
@@ -312,9 +311,9 @@ func TestAnIdentifierComesBackInItsScopeAndBesideTheOther(t *testing.T) {
 	r := newRig(t)
 	r.seedPolicy()
 	b := r.browser()
-	decode[map[string]any](t, b.post("/api/personal/policy/rules/operator.lender.example/lift", map[string]any{"scope": "account", "suffixes_before": []string{"lender.example"}, "confirmation": nil}))
-	decode[map[string]any](t, b.post("/api/personal/policy/rules", map[string]any{"scope": "account", "rule_id": "operator.lender.example", "suffixes": []string{"lender.example"}}))
-	decode[map[string]any](t, b.post("/api/personal/policy/rules", map[string]any{"scope": "account", "rule_id": "base.bank", "suffixes": []string{"bank.test"}}))
+	decode[map[string]any](t, b.post("/ui/api/accounts/personal/policy/rules/operator.lender.example/lift", map[string]any{"scope": "account", "suffixes_before": []string{"lender.example"}, "confirmation": nil}))
+	decode[map[string]any](t, b.post("/ui/api/accounts/personal/policy/rules", map[string]any{"scope": "account", "rule_id": "operator.lender.example", "suffixes": []string{"lender.example"}}))
+	decode[map[string]any](t, b.post("/ui/api/accounts/personal/policy/rules", map[string]any{"scope": "account", "rule_id": "base.bank", "suffixes": []string{"bank.test"}}))
 	type detail struct {
 		Scope     string       `json:"scope"`
 		Suffixes  []string     `json:"suffixes"`
@@ -323,7 +322,7 @@ func TestAnIdentifierComesBackInItsScopeAndBesideTheOther(t *testing.T) {
 			Scope string `json:"scope"`
 		} `json:"elsewhere"`
 	}
-	lender := decode[detail](t, b.get("/api/personal/rules/account:operator.lender.example"))
+	lender := decode[detail](t, b.get("/ui/api/accounts/personal/rules/account:operator.lender.example"))
 	var actions []string
 	for _, h := range lender.History {
 		actions = append(actions, h.Action)
@@ -331,8 +330,8 @@ func TestAnIdentifierComesBackInItsScopeAndBesideTheOther(t *testing.T) {
 	if !slices.Equal(actions, []string{"added", "lifted", "added"}) {
 		t.Errorf("the lender rule's history reads %v, newest first, want added, lifted, added", actions)
 	}
-	own := decode[detail](t, b.get("/api/personal/rules/account:base.bank"))
-	baseRule := decode[detail](t, b.get("/api/personal/rules/base:base.bank"))
+	own := decode[detail](t, b.get("/ui/api/accounts/personal/rules/account:base.bank"))
+	baseRule := decode[detail](t, b.get("/ui/api/accounts/personal/rules/base:base.bank"))
 	if own.Scope != "account" || !slices.Equal(own.Suffixes, []string{"bank.test"}) || len(own.History) != 1 || own.Elsewhere == nil || own.Elsewhere.Scope != "base" {
 		t.Errorf("personal's base.bank is %+v", own)
 	}
@@ -375,7 +374,7 @@ func TestAnImportThatLiftsNeedsItsConfirmation(t *testing.T) {
 	r := newRig(t)
 	r.seedPolicy()
 	b := r.browser()
-	for _, c := range []struct{ prefix, keep string }{{"/api/personal/policy/import", "operator.lender.example"}, {"/api/setup/policy/import", "base.bank"}} {
+	for _, c := range []struct{ prefix, keep string }{{"/ui/api/accounts/personal/policy/import", "operator.lender.example"}, {"/ui/api/setup/policy/import", "base.bank"}} {
 		file := policyFile([]string{"operator.shop.example", "shop.example"})
 		p := decode[preview](t, b.post(c.prefix+"/preview", map[string]any{"file": file}))
 		if p.Lifts != 1 || len(p.Lifted) != 1 || p.Lifted[0].RuleID != c.keep {
@@ -413,7 +412,7 @@ func TestAnImportIsAppliedWholeOrNotAtAll(t *testing.T) {
 	r.seedPolicy()
 	b := r.browser()
 	file := policyFile([]string{"operator.lender.example", "lender.example", "loans.example"}, []string{"operator.shop.example", "shop.example"}, []string{"operator.store.example", "store.example"})
-	p := decode[preview](t, b.post("/api/personal/policy/import/preview", map[string]any{"file": file}))
+	p := decode[preview](t, b.post("/ui/api/accounts/personal/policy/import/preview", map[string]any{"file": file}))
 	stored := r.stored()
 	api.SetFault(r.s, func(at string) error {
 		if at == "after an import's first change" {
@@ -421,7 +420,7 @@ func TestAnImportIsAppliedWholeOrNotAtAll(t *testing.T) {
 		}
 		return nil
 	})
-	if res := b.post("/api/personal/policy/import", map[string]any{"file": file, "computed_against": p.ComputedAgainst, "confirmation": nil}); res.status != http.StatusServiceUnavailable {
+	if res := b.post("/ui/api/accounts/personal/policy/import", map[string]any{"file": file, "computed_against": p.ComputedAgainst, "confirmation": nil}); res.status != http.StatusServiceUnavailable {
 		t.Errorf("the import failed after its first change answered %d:\n%s", res.status, res.body)
 	}
 	api.SetFault(r.s, nil)
@@ -430,9 +429,9 @@ func TestAnImportIsAppliedWholeOrNotAtAll(t *testing.T) {
 	}
 	// The other write keeps every identifier and the count of rules, and changes one rule's suffixes, so
 	// only a comparison of the rules themselves tells the preview is stale.
-	decode[map[string]any](t, b.post("/api/personal/policy/rules/operator.lender.example", map[string]any{"scope": "account", "suffixes_before": []string{"lender.example"}, "suffixes": []string{"lender.example", "credit.example"}, "confirmation": nil}))
+	decode[map[string]any](t, b.post("/ui/api/accounts/personal/policy/rules/operator.lender.example", map[string]any{"scope": "account", "suffixes_before": []string{"lender.example"}, "suffixes": []string{"lender.example", "credit.example"}, "confirmation": nil}))
 	stored = r.stored()
-	refused(t, b.post("/api/personal/policy/import", map[string]any{"file": file, "computed_against": p.ComputedAgainst, "confirmation": nil}), http.StatusConflict, "stale_preview")
+	refused(t, b.post("/ui/api/accounts/personal/policy/import", map[string]any{"file": file, "computed_against": p.ComputedAgainst, "confirmation": nil}), http.StatusConflict, "stale_preview")
 	if got := r.stored(); got != stored {
 		t.Errorf("a stale import wrote:\nbefore %s\nafter  %s", stored, got)
 	}
@@ -470,7 +469,7 @@ func TestAFileIsCheckedWholeAndImportsIntoAnyScope(t *testing.T) {
 		"not YAML of the form":        {"policy: [1, 2]\n", []string{"not_the_form"}, 1},
 		"over a megabyte":             {"rules: []\n" + strings.Repeat("#", 1<<20), []string{"too_large"}, 0},
 	} {
-		res := b.post("/api/personal/policy/import/preview", map[string]any{"file": c.file})
+		res := b.post("/ui/api/accounts/personal/policy/import/preview", map[string]any{"file": c.file})
 		if res.status != http.StatusBadRequest {
 			t.Errorf("%s answered %d:\n%s", name, res.status, res.body)
 			continue
@@ -495,7 +494,7 @@ func TestAFileIsCheckedWholeAndImportsIntoAnyScope(t *testing.T) {
 		t.Fatalf("a refused file wrote:\nbefore %s\nafter  %s", stored, got)
 	}
 
-	res := b.get("/api/personal/policy/export")
+	res := b.get("/ui/api/accounts/personal/policy/export")
 	if res.status != http.StatusOK || res.header.Get("Content-Type") != "application/yaml" || !strings.Contains(res.header.Get("Content-Disposition"), `filename="policy-personal.yaml"`) {
 		t.Fatalf("the export answered %d %v:\n%s", res.status, res.header, res.body)
 	}
@@ -503,7 +502,7 @@ func TestAFileIsCheckedWholeAndImportsIntoAnyScope(t *testing.T) {
 	if want := policyFile([]string{"operator.lender.example", "lender.example"}); exported != want {
 		t.Errorf("the export is\n%s\nwant\n%s", exported, want)
 	}
-	for _, prefix := range []string{"/api/other/policy/import", "/api/setup/policy/import"} {
+	for _, prefix := range []string{"/ui/api/accounts/other/policy/import", "/ui/api/setup/policy/import"} {
 		p := decode[preview](t, b.post(prefix+"/preview", map[string]any{"file": exported}))
 		decode[map[string]any](t, b.post(prefix, map[string]any{"file": exported, "computed_against": p.ComputedAgainst, "confirmation": "lift 1"}))
 	}
@@ -523,11 +522,11 @@ func TestAPreviewCarriesTheAccountsNumbers(t *testing.T) {
 	r := newRig(t)
 	r.seedPolicy()
 	b := r.browser()
-	account := decode[preview](t, b.post("/api/personal/policy/import/preview", map[string]any{"file": policyFile()}))
+	account := decode[preview](t, b.post("/ui/api/accounts/personal/policy/import/preview", map[string]any{"file": policyFile()}))
 	if len(account.Lifted) != 1 || account.Lifted[0].Released == nil || account.Lifted[0].Released.Senders != 1 || account.Lifted[0].Released.Messages != 4 || account.Released == nil || account.Released.Senders != 1 {
 		t.Errorf("personal's preview is %+v", account)
 	}
-	base := decode[preview](t, b.post("/api/setup/policy/import/preview", map[string]any{"file": policyFile()}))
+	base := decode[preview](t, b.post("/ui/api/setup/policy/import/preview", map[string]any{"file": policyFile()}))
 	if len(base.Lifted) != 1 || base.Lifted[0].Released != nil || base.Released != nil || !slices.Equal(base.Accounts, []string{other, personal}) {
 		t.Errorf("the base policy's preview is %+v", base)
 	}
@@ -545,13 +544,13 @@ func TestAPolicyWriteRecordsTheDeclaredIdentity(t *testing.T) {
 	b := r.browser()
 	stored := r.stored()
 	add := map[string]any{"scope": "account", "rule_id": "operator.shop.example", "suffixes": []string{"shop.example"}}
-	refused(t, b.post("/api/personal/policy/rules", add), http.StatusForbidden, "identity_missing")
-	refused(t, b.post("/api/setup/policy/rules", map[string]any{"rule_id": "base.shop", "suffixes": []string{"shop.example"}}), http.StatusForbidden, "identity_missing")
+	refused(t, b.post("/ui/api/accounts/personal/policy/rules", add), http.StatusForbidden, "identity_missing")
+	refused(t, b.post("/ui/api/setup/policy/rules", map[string]any{"rule_id": "base.shop", "suffixes": []string{"shop.example"}}), http.StatusForbidden, "identity_missing")
 	if got := r.stored(); got != stored {
 		t.Fatalf("a write without its identity wrote:\nbefore %s\nafter  %s", stored, got)
 	}
 	b.header = map[string]string{"X-Forwarded-User": "jo@example.org"}
-	decode[map[string]any](t, b.post("/api/personal/policy/rules", add))
+	decode[map[string]any](t, b.post("/ui/api/accounts/personal/policy/rules", add))
 	changes := r.changes()
 	if last := changes[len(changes)-1]; !strings.HasSuffix(last, " by jo@example.org") {
 		t.Errorf("the write recorded %q", last)
@@ -567,7 +566,7 @@ func TestThePolicyRoutesAreScoped(t *testing.T) {
 	stored := r.stored()
 	for _, account := range []string{"all", "nobody"} {
 		code := map[string]string{"all": "all_accounts", "nobody": "unknown_account"}[account]
-		prefix := "/api/" + account
+		prefix := "/ui/api/accounts/" + account
 		refused(t, b.get(prefix+"/lens?dataset=rules"), http.StatusBadRequest, code)
 		refused(t, b.get(prefix+"/lens?dataset=policy_changes"), http.StatusBadRequest, code)
 		refused(t, b.get(prefix+"/lens?dataset=senders"), http.StatusBadRequest, code)
@@ -592,7 +591,7 @@ func TestTheBasePolicyReadsNoAccountsState(t *testing.T) {
 	r.seedPolicy()
 	b := r.browser()
 	var answers []string
-	for _, path := range []string{"/api/setup/policy", "/api/setup/policy/history?range=all", "/api/setup/policy/export", "/setup/policy", "/api/setup"} {
+	for _, path := range []string{"/ui/api/setup/policy", "/ui/api/setup/policy/history?range=all", "/ui/api/setup/policy/export", "/ui/setup/policy", "/ui/api/setup"} {
 		res := b.get(path)
 		if res.status != http.StatusOK {
 			t.Fatalf("%s answered %d:\n%s", path, res.status, res.body)
@@ -612,19 +611,19 @@ func TestTheBasePolicyReadsNoAccountsState(t *testing.T) {
 		} `json:"rules"`
 		Total    int      `json:"total"`
 		Accounts []string `json:"accounts"`
-	}](t, b.get("/api/setup/policy?"+url.Values{"search": {"BANK"}}.Encode()))
+	}](t, b.get("/ui/api/setup/policy?"+url.Values{"search": {"BANK"}}.Encode()))
 	if len(got.Rules) != 1 || got.Rules[0].RuleID != "base.bank" || got.Total != 1 || !slices.Equal(got.Accounts, []string{other, personal}) {
 		t.Errorf("the base policy reads %+v", got)
 	}
 	history := decode[struct {
 		Rows []historyRow `json:"rows"`
-	}](t, b.get("/api/setup/policy/history?range=all&rule=base.bank"))
+	}](t, b.get("/ui/api/setup/policy/history?range=all&rule=base.bank"))
 	if len(history.Rows) != 1 || history.Rows[0].RuleID != "base.bank" {
 		t.Errorf("the base rule's history is %+v", history.Rows)
 	}
 	if n := decode[struct {
 		BaseRules int `json:"base_rules"`
-	}](t, b.get("/api/setup")).BaseRules; n != 1 {
+	}](t, b.get("/ui/api/setup")).BaseRules; n != 1 {
 		t.Errorf("the installation counts %d base rules, want 1", n)
 	}
 }
@@ -648,7 +647,7 @@ func TestTheAddPanelReadsEachSuffixsMatch(t *testing.T) {
 				RuleID string `json:"rule_id"`
 			} `json:"rules"`
 		} `json:"suffixes"`
-	}](t, b.get("/api/personal/policy/match?"+url.Values{"suffix": {"mail.bank.example", "example", "*.x"}}.Encode()))
+	}](t, b.get("/ui/api/accounts/personal/policy/match?"+url.Values{"suffix": {"mail.bank.example", "example", "*.x"}}.Encode()))
 	if got.SendersTotal != 2 || len(got.Suffixes) != 3 {
 		t.Fatalf("the match reads %+v", got)
 	}
@@ -673,11 +672,11 @@ func TestTheAddPanelsCountTogetherAndTheBasePanelNamesNoAccount(t *testing.T) {
 	b := r.browser()
 	together := decode[struct {
 		Together struct{ Senders, Messages int64 } `json:"together"`
-	}](t, b.get("/api/personal/policy/match?"+url.Values{"suffix": {"lender.example", "example"}}.Encode()))
+	}](t, b.get("/ui/api/accounts/personal/policy/match?"+url.Values{"suffix": {"lender.example", "example"}}.Encode()))
 	if together.Together.Senders != 2 || together.Together.Messages != 5 {
 		t.Errorf("two suffixes matching lender.example count %+v together, want 2 senders and 5 messages", together.Together)
 	}
-	res := b.get("/api/setup/policy/match?" + url.Values{"suffix": {"mail.bank.example", "example", "*.x"}}.Encode())
+	res := b.get("/ui/api/setup/policy/match?" + url.Values{"suffix": {"mail.bank.example", "example", "*.x"}}.Encode())
 	if strings.Contains(string(res.body), "senders") || strings.Contains(string(res.body), "lender") {
 		t.Errorf("the base panel's read holds an account's numbers or rules:\n%s", res.body)
 	}
@@ -702,12 +701,12 @@ func TestAReleaseCountsTheSetOfSuffixesRemoved(t *testing.T) {
 	r := newRig(t)
 	r.seedPolicy()
 	b := r.browser()
-	decode[map[string]any](t, b.post("/api/personal/policy/rules/operator.lender.example", map[string]any{
+	decode[map[string]any](t, b.post("/ui/api/accounts/personal/policy/rules/operator.lender.example", map[string]any{
 		"scope": "account", "suffixes_before": []string{"lender.example"}, "suffixes": []string{"lender.example", "example"}, "confirmation": nil,
 	}))
 	release := func(keep ...string) struct{ Senders, Messages int64 } {
 		t.Helper()
-		return decode[struct{ Senders, Messages int64 }](t, b.get("/api/personal/policy/release?"+url.Values{"scope": {"account"}, "rule": {"operator.lender.example"}, "keep": keep}.Encode()))
+		return decode[struct{ Senders, Messages int64 }](t, b.get("/ui/api/accounts/personal/policy/release?"+url.Values{"scope": {"account"}, "rule": {"operator.lender.example"}, "keep": keep}.Encode()))
 	}
 	if one := release("example"); one.Senders != 0 {
 		t.Errorf("removing lender.example alone releases %+v, want nothing, since example still covers it", one)
@@ -715,7 +714,7 @@ func TestAReleaseCountsTheSetOfSuffixesRemoved(t *testing.T) {
 	if both := release(); both.Senders != 1 || both.Messages != 4 {
 		t.Errorf("removing both suffixes releases %+v, want the lender's sender and its 4 messages", both)
 	}
-	refused(t, b.get("/api/personal/policy/release?scope=account&rule=other.only"), http.StatusNotFound, "unknown_rule")
+	refused(t, b.get("/ui/api/accounts/personal/policy/release?scope=account&rule=other.only"), http.StatusNotFound, "unknown_rule")
 }
 
 // With no identity header declared and the operator name configured empty, a policy write has no
@@ -728,8 +727,8 @@ func TestAPolicyWriteWithAnEmptyIdentityIsRefused(t *testing.T) {
 	r.seedPolicy()
 	b := r.browser()
 	stored := r.stored()
-	refused(t, b.post("/api/personal/policy/rules", map[string]any{"scope": "account", "rule_id": "operator.shop.example", "suffixes": []string{"shop.example"}}), http.StatusForbidden, "identity_missing")
-	refused(t, b.post("/api/setup/policy/rules", map[string]any{"rule_id": "base.shop", "suffixes": []string{"shop.example"}}), http.StatusForbidden, "identity_missing")
+	refused(t, b.post("/ui/api/accounts/personal/policy/rules", map[string]any{"scope": "account", "rule_id": "operator.shop.example", "suffixes": []string{"shop.example"}}), http.StatusForbidden, "identity_missing")
+	refused(t, b.post("/ui/api/setup/policy/rules", map[string]any{"rule_id": "base.shop", "suffixes": []string{"shop.example"}}), http.StatusForbidden, "identity_missing")
 	if got := r.stored(); got != stored {
 		t.Errorf("a write with no identity wrote:\nbefore %s\nafter  %s", stored, got)
 	}
@@ -757,10 +756,10 @@ func TestTheUIClassifiesEverySenderUnderThePolicyInForce(t *testing.T) {
 		v := view{Classes: map[string]string{}, Rules: map[int]string{}}
 		v.Restricted = decode[struct {
 			Restricted int64 `json:"restricted"`
-		}](t, b.get("/api/personal/corpus")).Restricted
+		}](t, b.get("/ui/api/accounts/personal/corpus")).Restricted
 		for _, f := range decode[struct {
 			Figures []figure `json:"figures"`
-		}](t, b.get("/api/personal/lens?dataset=rules&level=0")).Figures {
+		}](t, b.get("/ui/api/accounts/personal/lens?dataset=rules&level=0")).Figures {
 			if f.Key == "restricted" {
 				v.SendersRestricted = *f.Value
 			}
@@ -768,14 +767,14 @@ func TestTheUIClassifiesEverySenderUnderThePolicyInForce(t *testing.T) {
 		for _, s := range decode[rowsPage[struct {
 			Domain      string `json:"domain"`
 			SenderClass string `json:"sender_class"`
-		}]](t, b.get("/api/personal/lens?dataset=senders&level=3")).Rows {
+		}]](t, b.get("/ui/api/accounts/personal/lens?dataset=senders&level=3")).Rows {
 			v.Classes[s.Domain] = s.SenderClass
 		}
-		v.FailuresRestricted = *decode[groups](t, b.get("/api/personal/lens?dataset=failures&run=r-0912&level=1&group=sender")).Total.Restricted
+		v.FailuresRestricted = *decode[groups](t, b.get("/ui/api/accounts/personal/lens?dataset=failures&run=r-0912&level=1&group=sender")).Total.Restricted
 		for _, seq := range []int{1, 5} {
 			if rule := decode[struct {
 				ClassRuleID *string `json:"class_rule_id"`
-			}](t, b.get("/api/personal/failures/"+strconv.Itoa(seq)+"?run=r-0912")).ClassRuleID; rule != nil {
+			}](t, b.get("/ui/api/accounts/personal/failures/"+strconv.Itoa(seq)+"?run=r-0912")).ClassRuleID; rule != nil {
 				v.Rules[seq] = *rule
 			}
 		}

@@ -21,6 +21,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/attention"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/lens"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/paths"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/registry"
 )
 
@@ -87,9 +88,6 @@ type Options struct {
 type Server struct {
 	opts Options
 	keys keys
-	// reserved are the words the UI's own top-level paths use, which no account identifier may be
-	// (docs/UI.md section 8.12).
-	reserved []string
 	// between is the fault a test injects between a setup's writes, nil otherwise.
 	between     func(at string) error
 	descriptors []lens.Descriptor
@@ -109,7 +107,7 @@ type Server struct {
 // interface's or type parameter's method of the same name and parameters, so a direct call on the
 // underlying mux is refused, and Handle keeps its name and its receiver. Left to review are a handler
 // wrapped in front of the mux in api.New or the composition root, a path answered inside a
-// catch-all's handler, the / app handler or the /api/ unrouted handler, which has no pattern to
+// catch-all's handler, the /ui/ app handler or the /ui/api/ unrouted handler, which has no pattern to
 // compare, a registration through reflection, a route an imported package such as net/http/pprof
 // registers on the default mux when it is initialised, served only by a server given no handler, and
 // a registration through an interface method one of whose parameter types is a type parameter. The
@@ -157,15 +155,11 @@ func New(opts Options) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	reserved, err := Reserved(opts.Bundle)
-	if err != nil {
-		return nil, err
-	}
 	if opts.ClientSecrets == nil {
 		opts.ClientSecrets = noSecrets{}
 	}
-	s := &Server{opts: opts, keys: k, reserved: reserved, descriptors: registry.Descriptors(opts.Datasets), metrics: m}
-	a, err := newApp(opts.Bundle, opts.Browser, k, reserved)
+	s := &Server{opts: opts, keys: k, descriptors: registry.Descriptors(opts.Datasets), metrics: m}
+	a, err := newApp(opts.Bundle, opts.Browser, k)
 	if err != nil {
 		return nil, err
 	}
@@ -236,10 +230,14 @@ func New(opts Options) (*Server, error) {
 	if len(handlers) > 0 {
 		return nil, fmt.Errorf("handlers with no route: %v", slices.Sorted(maps.Keys(handlers)))
 	}
-	mux.Handle("/api/", named("unrouted", func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle(paths.API+"/", named("unrouted", func(w http.ResponseWriter, r *http.Request) {
 		writeFailure(w, r, clientFault(http.StatusNotFound, "not_found", "no read API route answers this path"))
 	}))
-	mux.Handle("/", a)
+	mux.Handle(paths.Root+"/", a)
+	// The one route outside the root. Everything else outside it is the mux's own 404 (ADR-0137).
+	mux.Handle("GET /{$}", named("root", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, paths.Root+"/", http.StatusFound)
+	}))
 	s.uiMux = mux
 	// Every request is given its session, and every request whose method is not GET or HEAD is refused
 	// before it is routed unless it carries the session's request token (ADR-0061).
@@ -270,8 +268,9 @@ func apiRoutes(datasets []registry.Dataset) []Route {
 }
 
 // Served is every pattern registered through the UI listener's recording mux, in registration order.
-// The contract's test requires it to be exactly the document's operations and the two catch-alls it
-// names, /api/ and /, so any other pattern registered through Handle fails the test.
+// The contract's test requires it to be exactly the document's operations, the two catch-alls it
+// names, /ui/api/ and /ui/, and the redirect at /, so any other pattern registered through Handle
+// fails the test.
 func (s *Server) Served() []string {
 	return slices.Clone(s.uiMux.patterns)
 }

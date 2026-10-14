@@ -13,7 +13,7 @@
       "value": 1,
       "at": null,
       "unit": null,
-      "link": "/personal/plans?status=DRAFT"
+      "link": "/ui/accounts/personal/plans?status=DRAFT"
     },
     {
       "key": "APPROVED",
@@ -21,7 +21,7 @@
       "value": 0,
       "at": null,
       "unit": null,
-      "link": "/personal/plans?status=APPROVED"
+      "link": "/ui/accounts/personal/plans?status=APPROVED"
     },
     {
       "key": "APPLYING",
@@ -29,7 +29,7 @@
       "value": 1,
       "at": null,
       "unit": null,
-      "link": "/personal/plans?status=APPLYING"
+      "link": "/ui/accounts/personal/plans?status=APPLYING"
     },
     {
       "key": "APPLIED",
@@ -37,7 +37,7 @@
       "value": 1,
       "at": null,
       "unit": null,
-      "link": "/personal/plans?status=APPLIED"
+      "link": "/ui/accounts/personal/plans?status=APPLIED"
     },
     {
       "key": "ROLLED_BACK",
@@ -45,7 +45,7 @@
       "value": 0,
       "at": null,
       "unit": null,
-      "link": "/personal/plans?status=ROLLED_BACK"
+      "link": "/ui/accounts/personal/plans?status=ROLLED_BACK"
     },
     {
       "key": "REJECTED",
@@ -53,7 +53,7 @@
       "value": 0,
       "at": null,
       "unit": null,
-      "link": "/personal/plans?status=REJECTED"
+      "link": "/ui/accounts/personal/plans?status=REJECTED"
     },
     {
       "key": "APPLY_REFUSED",
@@ -61,7 +61,7 @@
       "value": 0,
       "at": null,
       "unit": null,
-      "link": "/personal/plans?status=APPLY_REFUSED"
+      "link": "/ui/accounts/personal/plans?status=APPLY_REFUSED"
     }
   ]
 }

@@ -13,7 +13,7 @@
       "value": 6,
       "at": null,
       "unit": null,
-      "link": "/personal/candidates?status=pending"
+      "link": "/ui/accounts/personal/candidates?status=pending"
     },
     {
       "key": "confirmed",
@@ -21,7 +21,7 @@
       "value": 1,
       "at": null,
       "unit": null,
-      "link": "/personal/candidates?status=confirmed"
+      "link": "/ui/accounts/personal/candidates?status=confirmed"
     },
     {
       "key": "dismissed",
@@ -29,7 +29,7 @@
       "value": 0,
       "at": null,
       "unit": null,
-      "link": "/personal/candidates?status=dismissed"
+      "link": "/ui/accounts/personal/candidates?status=dismissed"
     }
   ]
 }
