@@ -4,6 +4,7 @@
 // to screens that exist (section 7.1).
 import type { SenderRow } from "../app/api.ts";
 import { count, local, utc, utcDate } from "../app/format.ts";
+import { accountPage } from "../app/paths.ts";
 import { senderClass } from "../app/wording.ts";
 import type { Column } from "../lens/table.tsx";
 import { addScreen } from "../screens/policywrites.tsx";
@@ -94,7 +95,10 @@ export function senderColumns(account: string): Column<SenderRow>[] {
         row.restricted_by !== null ? (
           <a
             class="mono"
-            href={`/${encodeURIComponent(account)}/policy?${new URLSearchParams({ search: row.restricted_by }).toString()}`}
+            href={accountPage(
+              account,
+              `policy?${new URLSearchParams({ search: row.restricted_by }).toString()}`,
+            )}
           >
             {row.restricted_by}
           </a>

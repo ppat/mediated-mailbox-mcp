@@ -55,38 +55,38 @@ func TestTheRecordedSetupFixturesMatchTheServer(t *testing.T) {
 	}
 	r.exec("TRUNCATE accounts CASCADE")
 	play(
-		setupRecording{"accounts-empty.json", http.MethodGet, "/api/accounts", "/api/accounts", nil},
-		setupRecording{"setup-first-run.json", http.MethodGet, "/api/setup", "/api/setup", nil},
+		setupRecording{"accounts-empty.json", http.MethodGet, "/ui/api/accounts", "/ui/api/accounts", nil},
+		setupRecording{"setup-first-run.json", http.MethodGet, "/ui/api/setup", "/ui/api/setup", nil},
 		setupRecording{
-			"error-client-refused.json", http.MethodPost, "/api/setup/gmail/clients", "/api/setup/{provider}/clients",
+			"error-client-refused.json", http.MethodPost, "/ui/api/setup/gmail/clients", "/ui/api/setup/{provider}/clients",
 			map[string]any{"name": household, "client_id": householdID, "client_secret": "wrong", "project_id": household},
 		},
 		setupRecording{
-			"client-added.json", http.MethodPost, "/api/setup/gmail/clients", "/api/setup/{provider}/clients",
+			"client-added.json", http.MethodPost, "/ui/api/setup/gmail/clients", "/ui/api/setup/{provider}/clients",
 			map[string]any{"name": household, "client_id": householdID, "client_secret": householdSecret, "project_id": household},
 		},
-		setupRecording{"setup-client.json", http.MethodGet, "/api/setup", "/api/setup", nil},
-		setupRecording{"connect-none.json", http.MethodGet, "/api/setup/connect", "/api/setup/connect", nil},
+		setupRecording{"setup-client.json", http.MethodGet, "/ui/api/setup", "/ui/api/setup", nil},
+		setupRecording{"connect-none.json", http.MethodGet, "/ui/api/setup/connect", "/ui/api/setup/connect", nil},
 		setupRecording{
-			"error-identifier-refused.json", http.MethodPost, "/api/setup/connect", "/api/setup/connect",
-			map[string]any{"account": "setup", "client": household, "mailbox": "jo.smith@gmail.com", "lowered_target": nil},
+			"error-identifier-refused.json", http.MethodPost, "/ui/api/setup/connect", "/ui/api/setup/connect",
+			map[string]any{"account": "Setup", "client": household, "mailbox": "jo.smith@gmail.com", "lowered_target": nil},
 		},
 		// The account's identifier and mailbox carry markers, which no guide window may show
 		// (VERIFICATIONS, the guide window row).
 		setupRecording{
-			"connect-started.json", http.MethodPost, "/api/setup/connect", "/api/setup/connect",
+			"connect-started.json", http.MethodPost, "/ui/api/setup/connect", "/ui/api/setup/connect",
 			map[string]any{"account": markedAccount, "client": household, "mailbox": markedMailbox, "lowered_target": nil},
 		},
-		setupRecording{"connect-attempt.json", http.MethodGet, "/api/setup/connect", "/api/setup/connect", nil},
+		setupRecording{"connect-attempt.json", http.MethodGet, "/ui/api/setup/connect", "/ui/api/setup/connect", nil},
 	)
-	attempt := decode[started](t, b.get("/api/setup/connect"))
+	attempt := decode[started](t, b.get("/ui/api/setup/connect"))
 	play(
 		setupRecording{
-			"error-wrong-mailbox.json", http.MethodPost, "/api/setup/connect/finish", "/api/setup/connect/finish",
+			"error-wrong-mailbox.json", http.MethodPost, "/ui/api/setup/connect/finish", "/ui/api/setup/connect/finish",
 			map[string]any{"address": r.grant(attempt, "someone.else@gmail.com")},
 		},
 		setupRecording{
-			"connected.json", http.MethodPost, "/api/setup/connect/finish", "/api/setup/connect/finish",
+			"connected.json", http.MethodPost, "/ui/api/setup/connect/finish", "/ui/api/setup/connect/finish",
 			map[string]any{"address": r.grant(attempt, markedMailbox)},
 		},
 	)
@@ -95,12 +95,12 @@ func TestTheRecordedSetupFixturesMatchTheServer(t *testing.T) {
 	r.exec("UPDATE accounts SET oauth_client = $1", household)
 	r.exec("UPDATE account_state SET mailbox = 'personal@gmail.com', lowered_target_rate = 0.3 WHERE account_id = $1", personal)
 	play(
-		setupRecording{"setup.json", http.MethodGet, "/api/setup", "/api/setup", nil},
-		setupRecording{"account-personal.json", http.MethodGet, "/api/personal/account", "/api/{account}/account", nil},
-		setupRecording{"account-other.json", http.MethodGet, "/api/other/account", "/api/{account}/account", nil},
-		setupRecording{"reauthorize-none.json", http.MethodGet, "/api/personal/account/reauthorize", "/api/{account}/account/reauthorize", nil},
+		setupRecording{"setup.json", http.MethodGet, "/ui/api/setup", "/ui/api/setup", nil},
+		setupRecording{"account-personal.json", http.MethodGet, "/ui/api/accounts/personal/account", "/ui/api/accounts/{account}/account", nil},
+		setupRecording{"account-other.json", http.MethodGet, "/ui/api/accounts/other/account", "/ui/api/accounts/{account}/account", nil},
+		setupRecording{"reauthorize-none.json", http.MethodGet, "/ui/api/accounts/personal/account/reauthorize", "/ui/api/accounts/{account}/account/reauthorize", nil},
 		setupRecording{
-			"target-set.json", http.MethodPost, "/api/personal/account/target", "/api/{account}/account/target",
+			"target-set.json", http.MethodPost, "/ui/api/accounts/personal/account/target", "/ui/api/accounts/{account}/account/target",
 			map[string]any{"lowered_target": 0.25},
 		},
 	)

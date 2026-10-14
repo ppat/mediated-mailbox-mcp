@@ -25,6 +25,14 @@ import { ImportScreen } from "../screens/policyimport.tsx";
 import { BaseRulePanel, RulePanel } from "../screens/rule.tsx";
 import { Live, useStream } from "./live.tsx";
 import { Frame, InstallationFrame } from "./frame.tsx";
+import {
+  accountPage,
+  accountRoute,
+  belowAccount,
+  entryPage,
+  setupPage,
+  setupRoute,
+} from "./paths.ts";
 import { Region } from "./region.tsx";
 import { entryAccount, readLastAccount } from "./routes.ts";
 import { apiQuery, canonical, canonicalize, parse, type DatasetName, type View } from "./url.ts";
@@ -39,34 +47,35 @@ export function App(props: { deps: Deps }) {
   );
 }
 
-// Routes is the route table, one route for each screen that exists. The installation routes come
-// before every account route, so setup is never read as an account (section 5).
+// Routes is the route table, one route for each screen that exists, every route under the UI's root
+// (src/app/paths.ts). An account's identifier follows accounts and a rule's identifier follows rules or
+// base, so neither sits where a route word does (section 5).
 export function Routes() {
   return (
     <Router>
-      <Route path="/" component={Entry} />
-      <Route path="/setup" component={InstallationRoute} />
-      <Route path="/setup/connect" component={ConnectScreenRoute} />
-      <Route path="/setup/policy" component={BasePolicyRoute} />
-      <Route path="/setup/policy/new" component={BaseAddRoute} />
-      <Route path="/setup/policy/history" component={BaseHistoryRoute} />
-      <Route path="/setup/policy/import" component={BaseImportRoute} />
-      <Route path="/setup/policy/:rule" component={BaseRuleRoute} />
-      <Route path="/setup/:provider/:client" component={ClientSetupScreenRoute} />
-      <Route path="/:account" component={AccountHomeScreen} />
-      <Route path="/:account/account" component={AccountSettingsRoute} />
-      <Route path="/:account/account/reauthorize" component={ReauthorizeScreenRoute} />
-      <Route path="/:account/system" component={SystemScreenRoute} />
-      <Route path="/:account/jobs" component={JobsScreenRoute} />
-      <Route path="/:account/jobs/:run" component={RunScreenRoute} />
-      <Route path="/:account/jobs/:run/failures/:seq" component={RunScreenRoute} />
-      <Route path="/:account/policy" component={PolicyListRoute} />
-      <Route path="/:account/policy/new" component={PolicyAddRoute} />
-      <Route path="/:account/policy/pick" component={PolicyPickRoute} />
-      <Route path="/:account/policy/history" component={PolicyHistoryRoute} />
-      <Route path="/:account/policy/import" component={PolicyImportRoute} />
-      <Route path="/:account/policy/base/:rule" component={PolicyBaseRuleRoute} />
-      <Route path="/:account/policy/:rule" component={PolicyRuleRoute} />
+      <Route path={entryPage()} component={Entry} />
+      <Route path={setupRoute} component={InstallationRoute} />
+      <Route path={`${setupRoute}/connect`} component={ConnectScreenRoute} />
+      <Route path={`${setupRoute}/policy`} component={BasePolicyRoute} />
+      <Route path={`${setupRoute}/policy/new`} component={BaseAddRoute} />
+      <Route path={`${setupRoute}/policy/history`} component={BaseHistoryRoute} />
+      <Route path={`${setupRoute}/policy/import`} component={BaseImportRoute} />
+      <Route path={`${setupRoute}/policy/rules/:rule`} component={BaseRuleRoute} />
+      <Route path={`${setupRoute}/:provider/:client`} component={ClientSetupScreenRoute} />
+      <Route path={accountRoute} component={AccountHomeScreen} />
+      <Route path={`${accountRoute}/account`} component={AccountSettingsRoute} />
+      <Route path={`${accountRoute}/account/reauthorize`} component={ReauthorizeScreenRoute} />
+      <Route path={`${accountRoute}/system`} component={SystemScreenRoute} />
+      <Route path={`${accountRoute}/jobs`} component={JobsScreenRoute} />
+      <Route path={`${accountRoute}/jobs/:run`} component={RunScreenRoute} />
+      <Route path={`${accountRoute}/jobs/:run/failures/:seq`} component={RunScreenRoute} />
+      <Route path={`${accountRoute}/policy`} component={PolicyListRoute} />
+      <Route path={`${accountRoute}/policy/new`} component={PolicyAddRoute} />
+      <Route path={`${accountRoute}/policy/pick`} component={PolicyPickRoute} />
+      <Route path={`${accountRoute}/policy/history`} component={PolicyHistoryRoute} />
+      <Route path={`${accountRoute}/policy/import`} component={PolicyImportRoute} />
+      <Route path={`${accountRoute}/policy/base/:rule`} component={PolicyBaseRuleRoute} />
+      <Route path={`${accountRoute}/policy/rules/:rule`} component={PolicyRuleRoute} />
       <Route default component={NotFound} />
     </Router>
   );
@@ -259,9 +268,9 @@ function Entry() {
   const none = answer.status === "ok" && answer.answer.accounts.length === 0;
   useEffect(() => {
     if (target !== undefined) {
-      route(`/${encodeURIComponent(target)}`, true);
+      route(accountPage(target), true);
     } else if (none) {
-      route("/setup", true);
+      route(setupPage(), true);
     }
   }, [target, none, route]);
   return (
@@ -406,13 +415,12 @@ function RunRoute(props: { account: string; run: string; seq?: string }) {
 }
 
 function NotFound(props: { path?: string }) {
-  const segments = (props.path ?? "").split("/").filter((s) => s !== "");
-  const account = segments[0];
+  const account = belowAccount(props.path ?? "")?.account;
   const message = <p>No screen is at this address.</p>;
   return account === undefined ? (
     <main class="body">{message}</main>
   ) : (
-    <Frame account={decodeURIComponent(account)}>{message}</Frame>
+    <Frame account={account}>{message}</Frame>
   );
 }
 

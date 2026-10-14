@@ -4,7 +4,6 @@ package api_test
 
 import (
 	"net/http"
-	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -14,7 +13,6 @@ import (
 
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/marker"
-	"github.com/ppat/mediated-mailbox-mcp/ui/internal/api"
 )
 
 // Every state-changing route of the contract document, read from the document rather than from the
@@ -55,7 +53,7 @@ func TestAStateChangingRequestWithoutItsTokenIsRefused(t *testing.T) {
 	if got := r.stored(); got != before {
 		t.Errorf("a refused request wrote:\nbefore %s\nafter  %s", before, got)
 	}
-	if res := owner.post("/api/setup/gmail/clients", body); res.status == http.StatusForbidden {
+	if res := owner.post("/ui/api/setup/gmail/clients", body); res.status == http.StatusForbidden {
 		t.Errorf("the session's own token was refused:\n%s", res.body)
 	}
 }
@@ -67,12 +65,12 @@ func TestAClientIsCheckedBeforeItIsStored(t *testing.T) {
 	r := newRig(t)
 	b := r.browser()
 	before := r.stored()
-	refused(t, b.post("/api/setup/gmail/clients", map[string]any{"name": household, "client_id": householdID, "client_secret": "wrong", "project_id": nil}),
+	refused(t, b.post("/ui/api/setup/gmail/clients", map[string]any{"name": household, "client_id": householdID, "client_secret": "wrong", "project_id": nil}),
 		http.StatusBadRequest, "client_refused")
-	refused(t, b.post("/api/setup/gmail/clients", map[string]any{"name": household, "client_id": "unknown.apps.example", "client_secret": householdSecret, "project_id": nil}),
+	refused(t, b.post("/ui/api/setup/gmail/clients", map[string]any{"name": household, "client_id": "unknown.apps.example", "client_secret": householdSecret, "project_id": nil}),
 		http.StatusBadRequest, "client_refused")
 	r.consent.SetUnreachable(true)
-	refused(t, b.post("/api/setup/gmail/clients", map[string]any{"name": household, "client_id": householdID, "client_secret": householdSecret, "project_id": nil}),
+	refused(t, b.post("/ui/api/setup/gmail/clients", map[string]any{"name": household, "client_id": householdID, "client_secret": householdSecret, "project_id": nil}),
 		http.StatusBadGateway, "provider_unreachable")
 	r.consent.SetUnreachable(false)
 	if got := r.stored(); got != before {
@@ -106,7 +104,7 @@ func TestAClientsNameReachesOneClient(t *testing.T) {
 	b.addClient(household, householdID, householdSecret)
 	before := r.stored()
 	add := func(name, id, secret string) response {
-		return b.post("/api/setup/gmail/clients", map[string]any{"name": name, "client_id": id, "client_secret": secret, "project_id": nil})
+		return b.post("/ui/api/setup/gmail/clients", map[string]any{"name": name, "client_id": id, "client_secret": secret, "project_id": nil})
 	}
 	refused(t, add(household, spareID, spareSecret), http.StatusConflict, "name_taken")
 	for _, name := range []string{"new", "spare.client", "spare/client", "Spare-client"} {
@@ -127,25 +125,25 @@ func TestAClientIsReplacedAndRemoved(t *testing.T) {
 	b.addClient(household, householdID, householdSecret)
 	b.addClient(spare, spareID, spareSecret)
 	r.consent.AddClient(householdID, "household-secret-2")
-	decode[map[string]any](t, b.post("/api/setup/gmail/clients/"+household, map[string]any{"client_id": householdID, "client_secret": "household-secret-2", "project_id": nil}))
+	decode[map[string]any](t, b.post("/ui/api/setup/gmail/clients/"+household, map[string]any{"client_id": householdID, "client_secret": "household-secret-2", "project_id": nil}))
 	if got, err := r.open(r.sealed("SELECT client_secret FROM oauth_clients WHERE name = $1", household), seal.ClientSecret(household)); err != nil || got != "household-secret-2" {
 		t.Errorf("the replaced secret opened to %q, %v", got, err)
 	}
-	refused(t, b.post("/api/setup/gmail/clients/"+household, map[string]any{"client_id": spareID, "client_secret": spareSecret, "project_id": nil}),
+	refused(t, b.post("/ui/api/setup/gmail/clients/"+household, map[string]any{"client_id": spareID, "client_secret": spareSecret, "project_id": nil}),
 		http.StatusConflict, "client_exists")
-	refused(t, b.post("/api/setup/gmail/clients/absent-client", map[string]any{"client_id": "x", "client_secret": "y", "project_id": nil}),
+	refused(t, b.post("/ui/api/setup/gmail/clients/absent-client", map[string]any{"client_id": "x", "client_secret": "y", "project_id": nil}),
 		http.StatusNotFound, "unknown_client")
 	r.connected(b, "household", household, "jo@example.com")
 	before := r.stored()
-	refused(t, b.post("/api/setup/gmail/clients/"+household+"/remove", nil), http.StatusConflict, "client_in_use")
+	refused(t, b.post("/ui/api/setup/gmail/clients/"+household+"/remove", nil), http.StatusConflict, "client_in_use")
 	if got := r.stored(); got != before {
 		t.Errorf("a refused removal changed:\nbefore %s\nafter  %s", before, got)
 	}
-	decode[map[string]any](t, b.post("/api/setup/gmail/clients/"+spare+"/remove", nil))
+	decode[map[string]any](t, b.post("/ui/api/setup/gmail/clients/"+spare+"/remove", nil))
 	if n := r.count("SELECT 1 FROM oauth_clients WHERE name = $1", spare); n != 0 {
 		t.Errorf("the unused client is still stored")
 	}
-	refused(t, b.post("/api/setup/gmail/clients/"+spare+"/remove", nil), http.StatusNotFound, "unknown_client")
+	refused(t, b.post("/ui/api/setup/gmail/clients/"+spare+"/remove", nil), http.StatusNotFound, "unknown_client")
 }
 
 // The installation endpoint and every installation screen route answer with no account's state. Two
@@ -164,7 +162,7 @@ func TestTheInstallationShowsNoAccountsState(t *testing.T) {
 	r.exec(`INSERT INTO account_state (account_id, mailbox, last_auth_outcome, last_auth_at, lowered_target_rate) VALUES ($1, $2, 'failed', '2001-02-03T04:05:07Z', 0.4242)`,
 		other, marker.Field("othermailbox"))
 	var answers []string
-	for _, path := range []string{"/api/setup", "/api/setup/connect", "/setup", "/setup/connect", "/setup/gmail/new", "/setup/gmail/" + household} {
+	for _, path := range []string{"/ui/api/setup", "/ui/api/setup/connect", "/ui/setup", "/ui/setup/connect", "/ui/setup/gmail/new", "/ui/setup/gmail/" + household} {
 		res := b.get(path)
 		if res.status != http.StatusOK {
 			t.Fatalf("%s answered %d:\n%s", path, res.status, res.body)
@@ -185,23 +183,8 @@ func TestTheInstallationShowsNoAccountsState(t *testing.T) {
 			Accounts []string `json:"accounts"`
 		} `json:"clients"`
 		Accounts []map[string]any `json:"accounts"`
-	}](t, b.get("/api/setup"))
+	}](t, b.get("/ui/api/setup"))
 	if !slices.Equal(got.Providers, []string{"gmail"}) || len(got.Clients) != 1 || !slices.Equal(got.Clients[0].Accounts, []string{other, personal}) || len(got.Accounts) != 2 {
 		t.Errorf("the installation reads %+v", got)
-	}
-}
-
-// The words account setup refuses, read from the bundle the binary embeds, are the pinned top-level
-// words (docs/UI.md section 5), so a file or directory the build adds at the bundle's top level fails
-// here until the list names it. The bundle is built first, as the go-integration workflow does, and a
-// bundle directory holding only its placeholder fails the comparison rather than passing unchecked.
-func TestTheBuiltBundleReservesThePinnedWords(t *testing.T) {
-	got, err := api.Reserved(os.DirFS(filepath.Join("..", "..", "browser", "dist")))
-	if err != nil {
-		t.Fatal(err)
-	}
-	slices.Sort(got)
-	if !slices.Equal(got, topLevelWords) {
-		t.Errorf("the built bundle reserves %v, and the pinned top-level words are %v. A bundle holding only its placeholder is built with bun run build in ui/browser", got, topLevelWords)
 	}
 }

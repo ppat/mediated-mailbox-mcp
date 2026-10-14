@@ -319,11 +319,16 @@ ui:
     parentRefs: []
     # -- Host names it matches.
     hostnames: []
-    # -- Rules, each {matches, filters}. The backend is always the UI's Service.
+    # -- Rules, each {matches, filters}. The backend is always the UI's Service. The UI serves everything under /ui and
+    # answers / with a redirect there, so the default matches those two alone, and the UI can share a host name with
+    # the API server's route, which takes every other path.
     rules:
     - matches:
       - path:
           type: PathPrefix
+          value: /ui
+      - path:
+          type: Exact
           value: /
   # -- Resource requests and limits. No limit is set by default.
   resources:

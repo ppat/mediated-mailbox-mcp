@@ -1,0 +1,19 @@
+control: A policy write the snapshot's validation refuses, or whose identifier no path segment can hold, is refused before it is written
+removes: an identifier holding a - is refused, so a rule named like operator-bank cannot be added
+packages: ./ui/internal/core/rules
+tests: TestCheck/an_identifier_holding_a_hyphen
+scheduled-count: no
+
+diff --git a/ui/internal/core/rules/rules.go b/ui/internal/core/rules/rules.go
+index ff53117..4533ee2 100644
+--- a/ui/internal/core/rules/rules.go
++++ b/ui/internal/core/rules/rules.go
+@@ -36,7 +36,7 @@ type Rule struct {
+ // the word rules or base in its address and never sits where a route word does, so no word is
+ // unreachable (docs/UI.md sections 5 and 8.7, ADR-0137).
+ func Unreachable(id string) bool {
+-	return id == "." || id == ".." || strings.Contains(id, "/")
++	return id == "." || id == ".." || strings.Contains(id, "/") || strings.Contains(id, "-")
+ }
+ 
+ // Kind names what is wrong with one rule of a write.

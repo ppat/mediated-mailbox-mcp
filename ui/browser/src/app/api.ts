@@ -3,6 +3,7 @@
 // the composition root in main.ts binds to the browser's fetch and the tests to recorded fixtures
 // (ADR-0040, ADR-0064).
 import type { components, operations } from "../generated/contract.ts";
+import { accountRead, accountsRead, setupRead } from "./paths.ts";
 
 type Schemas = components["schemas"];
 
@@ -213,61 +214,65 @@ function field(value: object, key: string): string | undefined {
   return typeof v === "string" ? v : undefined;
 }
 
-// The paths of the reads the app makes. The account is a path segment on every scoped read.
+// The paths of the reads the app makes, built under the read API's root (src/app/paths.ts). The
+// account is a path segment on every scoped read.
 export function accountsPath(): string {
-  return "/api/accounts";
+  return accountsRead();
 }
 
 export function systemPath(account: string): string {
-  return `/api/${encodeURIComponent(account)}/system`;
+  return accountRead(account, "system");
 }
 
 export function corpusPath(account: string): string {
-  return `/api/${encodeURIComponent(account)}/corpus`;
+  return accountRead(account, "corpus");
 }
 
 export function attentionPath(account: string): string {
-  return `/api/${encodeURIComponent(account)}/attention`;
+  return accountRead(account, "attention");
 }
 
 export function eventsPath(account: string): string {
-  return `/api/${encodeURIComponent(account)}/events`;
+  return accountRead(account, "events");
 }
 
 export function jobsPath(account: string): string {
-  return `/api/${encodeURIComponent(account)}/jobs`;
+  return accountRead(account, "jobs");
 }
 
 export function runPath(account: string, run: string): string {
-  return `/api/${encodeURIComponent(account)}/jobs/${encodeURIComponent(run)}`;
+  return accountRead(account, `jobs/${encodeURIComponent(run)}`);
 }
 
 // failurePath is the failures dataset's row detail, one failure of a run.
 export function failurePath(account: string, run: string, seq: string): string {
-  return `/api/${encodeURIComponent(account)}/failures/${encodeURIComponent(seq)}?${new URLSearchParams({ run }).toString()}`;
+  return accountRead(
+    account,
+    `failures/${encodeURIComponent(seq)}?${new URLSearchParams({ run }).toString()}`,
+  );
 }
 
 // installationPath is the installation endpoint, which reads no account's state (section 17.4).
 export function installationPath(): string {
-  return "/api/setup";
+  return setupRead();
 }
 
 // connectPath is the session's attempt to connect an account.
 export function connectPath(): string {
-  return "/api/setup/connect";
+  return setupRead("connect");
 }
 
 export function accountPath(account: string): string {
-  return `/api/${encodeURIComponent(account)}/account`;
+  return accountRead(account, "account");
 }
 
 // reauthorizePath is the session's attempt to re-authorize or move an account.
 export function reauthorizePath(account: string): string {
-  return `/api/${encodeURIComponent(account)}/account/reauthorize`;
+  return accountRead(account, "account/reauthorize");
 }
 
 export function clientsPath(provider: string): string {
-  return `/api/setup/${encodeURIComponent(provider)}/clients`;
+  return setupRead(`${encodeURIComponent(provider)}/clients`);
 }
 
 export function clientPath(provider: string, client: string): string {
@@ -277,18 +282,23 @@ export function clientPath(provider: string, client: string): string {
 // rulePath is one rule's row detail in an account's policy, the rules dataset's row named by the
 // rule's scope and identifier (docs/UI.md section 8.7).
 export function rulePath(account: string, scope: "base" | "account", rule: string): string {
-  return `/api/${encodeURIComponent(account)}/rules/${encodeURIComponent(`${scope}:${rule}`)}`;
+  return accountRead(account, `rules/${encodeURIComponent(`${scope}:${rule}`)}`);
 }
 
 // matchPath is what each suffix typed in Add a rule matches in the account.
 export function matchPath(account: string, suffixes: readonly string[]): string {
-  return `/api/${encodeURIComponent(account)}/policy/match?${new URLSearchParams(suffixes.map((s) => ["suffix", s])).toString()}`;
+  return accountRead(
+    account,
+    `policy/match?${new URLSearchParams(suffixes.map((s) => ["suffix", s])).toString()}`,
+  );
 }
 
 // baseMatchPath is what each suffix typed in Add a base rule is, read with no account: its shape, whether
 // it is a public suffix, and the base rules already matching it (docs/UI.md section 8.14).
 export function baseMatchPath(suffixes: readonly string[]): string {
-  return `/api/setup/policy/match?${new URLSearchParams(suffixes.map((s) => ["suffix", s])).toString()}`;
+  return setupRead(
+    `policy/match?${new URLSearchParams(suffixes.map((s) => ["suffix", s])).toString()}`,
+  );
 }
 
 // releasePath is what keeping only keep of a rule's suffixes, or none for a whole lift, would release in
@@ -304,20 +314,20 @@ export function releasePath(
     ["rule", rule],
     ...keep.map((k): [string, string] => ["keep", k]),
   ]);
-  return `/api/${encodeURIComponent(account)}/policy/release?${params.toString()}`;
+  return accountRead(account, `policy/release?${params.toString()}`);
 }
 
 // policyApi is where a scope's policy writes go, an account's policy endpoints, which write either
 // scope, or the installation's base policy endpoints when no account is in view.
 export function policyApi(account: string | undefined): string {
-  return account === undefined ? "/api/setup/policy" : `/api/${encodeURIComponent(account)}/policy`;
+  return account === undefined ? setupRead("policy") : accountRead(account, "policy");
 }
 
 // basePolicyPath is the base policy screen's read, the base rules its search keeps.
 export function basePolicyPath(search: string): string {
   return search === ""
-    ? "/api/setup/policy"
-    : `/api/setup/policy?${new URLSearchParams({ search }).toString()}`;
+    ? setupRead("policy")
+    : setupRead(`policy?${new URLSearchParams({ search }).toString()}`);
 }
 
 // baseHistoryPath is the base policy's history over a range, narrowed to one rule when rule is given.
@@ -326,12 +336,12 @@ export function baseHistoryPath(range: string, rule?: string): string {
   if (rule !== undefined) {
     params.append("rule", rule);
   }
-  return `/api/setup/policy/history?${params.toString().replaceAll("%2C", ",")}`;
+  return setupRead(`policy/history?${params.toString().replaceAll("%2C", ",")}`);
 }
 
 // lensPath is the dataset endpoint with the query the URL grammar builds (src/app/url.ts).
 export function lensPath(account: string, query: string): string {
-  return `/api/${encodeURIComponent(account)}/lens?${query}`;
+  return accountRead(account, `lens?${query}`);
 }
 
 export function readAccounts(

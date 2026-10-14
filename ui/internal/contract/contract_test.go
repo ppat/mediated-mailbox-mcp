@@ -408,16 +408,17 @@ func TestAPathClaimedByBothSourcesIsRefused(t *testing.T) {
 	}
 }
 
-// catchAlls are the two patterns the server registers beside the document's operations. /api/ refuses
-// every path under /api that no operation answers, and / serves the entry document and the bundle.
-// Each is named whole, so no other pattern passes by sharing a prefix with one.
-var catchAlls = []string{"/api/", "/"}
+// catchAlls are the patterns the server registers beside the document's operations. /ui/api/ refuses
+// every path under the read API that no operation answers, /ui/ serves the entry document and the
+// bundle, and GET /{$} answers / with a redirect to /ui/ (ADR-0137). Each is named whole, so no other
+// pattern passes by sharing a prefix with one.
+var catchAlls = []string{"/ui/api/", "/ui/", "GET /{$}"}
 
 // TestTheServerServesExactlyTheDocumentsRoutes builds the server and requires every pattern it
 // registered through the UI listener's recording mux to be an operation of the checked-in document or
-// one of the two catch-alls, and each of those to be registered. The document is read from the file
+// one of the catch-alls, and each of those to be registered. The document is read from the file
 // rather than from the lists the server is built from, so a route registered through the recording mux
-// that the document lacks is caught, under /api or outside it (ADR-0057).
+// that the document lacks is caught, under the read API or outside it (ADR-0057).
 func TestTheServerServesExactlyTheDocumentsRoutes(t *testing.T) {
 	doc, err := openapi3.NewLoader().LoadFromFile(documentPath)
 	if err != nil {

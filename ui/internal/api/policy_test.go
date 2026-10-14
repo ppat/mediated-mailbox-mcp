@@ -62,7 +62,7 @@ func TestTheBundleNeedsNoLooserPolicy(t *testing.T) {
 //
 // drill.html and drill.js are also the page of the policy row's drill, which a person performs
 // (ADR-0064). They copy both files into ui/browser/dist after a build, run the UI from that checkout
-// with no TLS files configured, so it serves plain HTTP, open /drill.html in a browser with its
+// with no TLS files configured, so it serves plain HTTP, open /ui/drill.html in a browser with its
 // developer console open, and record the console's refusal of the inline script and of the fetch
 // verbatim, with the date and the browser. The start validates the whole configuration of docs/UI.md section 18.1,
 // so the database section is given too, database.host, database.name and database.password_file,

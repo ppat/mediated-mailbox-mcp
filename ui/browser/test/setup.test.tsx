@@ -91,11 +91,11 @@ function button(root: Element, label: string): Element | undefined {
 }
 
 test("with no account the entry route goes to the installation, whose first run lists its items", async () => {
-  const root = await open("/", {
+  const root = await open("/ui/", {
     [accountsPath()]: ok("accounts-empty.json"),
     [installationPath()]: ok("setup-first-run.json"),
   });
-  expect(location.pathname).toBe("/setup");
+  expect(location.pathname).toBe("/ui/setup");
   expect(root.querySelector("main h1")?.textContent).toBe("Installation");
   expect(root.querySelector(".topbar button")?.textContent).toBe("Installation");
   expect(text(root, ".checklist li")).toEqual([
@@ -104,14 +104,14 @@ test("with no account the entry route goes to the installation, whose first run 
     "◌ cannot start yet Connect an account",
   ]);
   expect(text(root, ".provider-clients p")).toEqual(["No Gmail client yet"]);
-  expect(root.querySelector('a[href="/setup/connect"]')).toBeNull();
+  expect(root.querySelector('a[href="/ui/setup/connect"]')).toBeNull();
   expect(text(root, "section[aria-labelledby='accounts-title'] p")).toEqual([
     "No account is connected yet.",
   ]);
 });
 
 test("the installation lists each client with its accounts, and a client in use cannot be removed", async () => {
-  const root = await open("/setup", {
+  const root = await open("/ui/setup", {
     [accountsPath()]: ok("accounts.json"),
     [installationPath()]: ok("setup.json"),
   });
@@ -135,16 +135,16 @@ test("the installation lists each client with its accounts, and a client in use 
   expect(
     accounts.map((r) => [...r.querySelectorAll("a")].map((a) => a.getAttribute("href"))),
   ).toEqual([
-    ["/other", "/other/account"],
-    ["/personal", "/personal/account"],
+    ["/ui/accounts/other", "/ui/accounts/other/account"],
+    ["/ui/accounts/personal", "/ui/accounts/personal/account"],
   ]);
-  expect(button(root, "Connect an account")?.getAttribute("href")).toBe("/setup/connect");
+  expect(button(root, "Connect an account")?.getAttribute("href")).toBe("/ui/setup/connect");
 });
 
 test("client setup opens on the first step not done, and Done marks it and opens the next step's page", async () => {
   const guides = new TestGuides();
   const root = await open(
-    "/setup/gmail/new",
+    "/ui/setup/gmail/new",
     {
       [accountsPath()]: ok("accounts-empty.json"),
       [installationPath()]: ok("setup-first-run.json"),
@@ -210,10 +210,10 @@ test("step 7 reads a desktop client's file, and refuses a web application's and 
 });
 
 test("step 7 checks the client with Google before saving it, and says what each answer means", async () => {
-  const root = await open("/setup/gmail/new?step=7", {
+  const root = await open("/ui/setup/gmail/new?step=7", {
     [accountsPath()]: ok("accounts-empty.json"),
     [installationPath()]: ok("setup-first-run.json"),
-    "POST /api/setup/gmail/clients": [
+    "POST /ui/api/setup/gmail/clients": [
       refusedAnswer("error-client-refused.json"),
       ok("client-added.json"),
     ],
@@ -226,7 +226,7 @@ test("step 7 checks the client with Google before saving it, and says what each 
   await click(button(root, "Check with Google and save"));
   expect(server?.posted).toEqual([
     {
-      path: "/api/setup/gmail/clients",
+      path: "/ui/api/setup/gmail/clients",
       body: {
         name: "household-mail",
         client_id: "household-id.apps.example",
@@ -244,7 +244,7 @@ test("step 7 checks the client with Google before saving it, and says what each 
     "Google accepted this client. Saved as household-mail, its secret sealed.",
   );
   expect(button(status ?? root, "Connect your first account")?.getAttribute("href")).toBe(
-    "/setup/connect?client=household-mail",
+    "/ui/setup/connect?client=household-mail",
   );
 });
 
@@ -279,7 +279,7 @@ test("a pasted address names what it holds before anything is sent", () => {
 // test the server's check and the database against (ADR-0128, VERIFICATIONS, the identifier
 // agreement row).
 type IdentifierCase = { identifier: string; taken: string[]; proposal: string };
-type IdentifierTable = { reserved: string[]; cases: IdentifierCase[] };
+type IdentifierTable = { cases: IdentifierCase[] };
 
 const isWords = (v: unknown): v is string[] =>
   Array.isArray(v) && v.every((w) => typeof w === "string");
@@ -300,15 +300,13 @@ function readIdentifiers(): IdentifierTable {
   if (
     typeof table !== "object" ||
     table === null ||
-    !("reserved" in table) ||
-    !isWords(table.reserved) ||
     !("cases" in table) ||
     !Array.isArray(table.cases) ||
     !table.cases.every(isCase)
   ) {
     throw new Error("identifiers.json is not the table of identifier cases");
   }
-  return { reserved: table.reserved, cases: table.cases };
+  return { cases: table.cases };
 }
 const identifiers = readIdentifiers();
 
@@ -316,7 +314,7 @@ test("every proposal of the shared identifier table is the table's, for a mailbo
   expect(identifiers.cases.length).toBeGreaterThan(0);
   const proposals = identifiers.cases.map((c) => ({
     identifier: c.identifier,
-    proposal: proposeIdentifier(`${c.identifier}@example.com`, c.taken, identifiers.reserved),
+    proposal: proposeIdentifier(`${c.identifier}@example.com`, c.taken),
   }));
   expect(proposals).toEqual(
     identifiers.cases.map((c) => ({ identifier: c.identifier, proposal: c.proposal })),
@@ -329,10 +327,10 @@ const connectAnswers = {
 };
 
 test("step 1 starts the attempt, and a refused identifier says why before anything happens at Google", async () => {
-  const root = await open("/setup/connect", {
+  const root = await open("/ui/setup/connect", {
     ...connectAnswers,
     [connectPath()]: [ok("connect-none.json"), ok("connect-attempt.json")],
-    "POST /api/setup/connect": [
+    "POST /ui/api/setup/connect": [
       refusedAnswer("error-identifier-refused.json"),
       ok("connect-started.json"),
     ],
@@ -341,22 +339,22 @@ test("step 1 starts the attempt, and a refused identifier says why before anythi
   await type(root.querySelector('input[type="email"]'), "jo.smith@gmail.com");
   const identifier = root.querySelector(".connect-step input.mono");
   expect(identifier instanceof HTMLInputElement ? identifier.value : undefined).toBe("jo-smith");
-  await type(identifier, "setup");
+  await type(identifier, "Setup");
   await click(button(root, "Continue"));
   expect(root.querySelector(".refusal")?.textContent).toBe(
-    "setup cannot be an account's identifier. An identifier is 1 to 63 lowercase letters, digits and hyphens, starting and ending with a letter or a digit, and is not a word the UI's own paths use.",
+    "Setup cannot be an account's identifier. An identifier is 1 to 63 lowercase letters, digits and hyphens, starting and ending with a letter or a digit.",
   );
   expect(root.querySelector('section[aria-label="Step 2, grant access at Google"]')).toBeNull();
   await click(button(root, "Continue"));
   expect(server?.posted.map((p) => p.body)).toEqual([
     {
-      account: "setup",
+      account: "Setup",
       client: "household-mail",
       mailbox: "jo.smith@gmail.com",
       lowered_target: null,
     },
     {
-      account: "setup",
+      account: "Setup",
       client: "household-mail",
       mailbox: "jo.smith@gmail.com",
       lowered_target: null,
@@ -369,21 +367,23 @@ test("step 1 starts the attempt, and a refused identifier says why before anythi
   );
 });
 
-test("step 1 proposes no word the entry document says account setup refuses", async () => {
-  const root = await open("/setup/connect", {
+// An account's identifier follows accounts in every page address, so a word the UI's paths use is
+// proposed as any other identifier is (docs/UI.md section 8.12).
+test("step 1 proposes a word the UI's paths use as it proposes any identifier", async () => {
+  const root = await open("/ui/setup/connect", {
     ...connectAnswers,
     [connectPath()]: ok("connect-none.json"),
   });
   await type(root.querySelector('input[type="email"]'), "Setup@gmail.com");
   const identifier = root.querySelector(".connect-step input.mono");
-  expect(identifier instanceof HTMLInputElement ? identifier.value : undefined).toBe("setup-2");
+  expect(identifier instanceof HTMLInputElement ? identifier.value : undefined).toBe("setup");
 });
 
 test("a restored attempt finishes from the pasted address, names a refusal's cause, and says what it stored", async () => {
-  const root = await open("/setup/connect", {
+  const root = await open("/ui/setup/connect", {
     ...connectAnswers,
     [connectPath()]: ok("connect-attempt.json"),
-    "POST /api/setup/connect/finish": [
+    "POST /ui/api/setup/connect/finish": [
       refusedAnswer("error-wrong-mailbox.json"),
       ok("connected.json"),
     ],
@@ -398,7 +398,7 @@ test("a restored attempt finishes from the pasted address, names a refusal's cau
   await click(button(root, `Connect ${markedAccount}`));
   expect(server?.posted).toEqual([
     {
-      path: "/api/setup/connect/finish",
+      path: "/ui/api/setup/connect/finish",
       body: { address: "http://127.0.0.1:47823/?state=recorded-attempt&code=4/a-code" },
     },
   ]);
@@ -409,20 +409,22 @@ test("a restored attempt finishes from the pasted address, names a refusal's cau
   expect(root.querySelector("main h1")?.textContent).toBe(
     `Connected ${markedAccount} (${markedMailbox}).`,
   );
-  expect(button(root, `Go to ${markedAccount}`)?.getAttribute("href")).toBe(`/${markedAccount}`);
+  expect(button(root, `Go to ${markedAccount}`)?.getAttribute("href")).toBe(
+    `/ui/accounts/${markedAccount}`,
+  );
   // The base policy's count belongs to no account, and its rules apply from the start.
   expect(text(root, "main p").find((p) => p.startsWith("The base policy's"))).toBe(
     `The base policy's 0 rules apply to ${markedAccount} from the start. Rules made for one account do not. Review ${markedAccount}'s policy.`,
   );
   expect(button(root, `Review ${markedAccount}'s policy.`)?.getAttribute("href")).toBe(
-    `/${markedAccount}/policy`,
+    `/ui/accounts/${markedAccount}/policy`,
   );
 });
 
 test("the paste box's own window and its side window hold nothing about any account", async () => {
   const guides = new TestGuides(undefined, true);
   const root = await open(
-    "/setup/connect",
+    "/ui/setup/connect",
     { ...connectAnswers, [connectPath()]: ok("connect-attempt.json") },
     guides,
   );
@@ -435,7 +437,7 @@ test("the paste box's own window and its side window hold nothing about any acco
   }
   mounted?.unmount();
   mounted = undefined;
-  const side = await open("/setup/connect?guide=paste", {});
+  const side = await open("/ui/setup/connect?guide=paste", {});
   expect(side.querySelector("input.paste")).not.toBeNull();
   expect(everything(side)).not.toContain("mmfieldmarker");
   expect(server?.calls).toEqual([]);
@@ -444,7 +446,7 @@ test("the paste box's own window and its side window hold nothing about any acco
 test("the setup guide's small window shows the step in view and nothing else", async () => {
   const guides = new TestGuides(undefined, true);
   const root = await open(
-    "/setup/gmail/new?step=2",
+    "/ui/setup/gmail/new?step=2",
     {
       [accountsPath()]: ok("accounts-empty.json"),
       [installationPath()]: ok("setup-first-run.json"),
@@ -455,7 +457,7 @@ test("the setup guide's small window shows the step in view and nothing else", a
   const small = guides.windows[0];
   expect(small?.body.querySelector("h2")?.textContent).toBe("2. Enable the Gmail API");
   expect(small?.head.querySelector('link[rel="stylesheet"]')?.getAttribute("href")).toBe(
-    "/main.css",
+    "/ui/main.css",
   );
   expect(small?.body.querySelector(".rail")).toBeNull();
 });
@@ -467,18 +469,18 @@ const settingsAnswers = {
 };
 
 test("account settings show the client, the credential's health, the target and the rows, never the credential", async () => {
-  const root = await open("/personal/account", {
+  const root = await open("/ui/accounts/personal/account", {
     ...settingsAnswers,
     [accountPath("personal")]: ok("account-personal.json"),
-    "POST /api/personal/account/target": ok("target-set.json"),
+    "POST /ui/api/accounts/personal/account/target": ok("target-set.json"),
   });
   expect(root.querySelector("main h1")?.textContent).toBe("personal · Gmail");
   expect(root.textContent).toContain("personal@gmail.com");
   expect(button(root, "household-mail")?.getAttribute("href")).toBe(
-    "/setup/gmail/household-mail?step=7",
+    "/ui/setup/gmail/household-mail?step=7",
   );
   expect(button(root, "Move to another client")?.getAttribute("href")).toBe(
-    "/personal/account/reauthorize",
+    "/ui/accounts/personal/account/reauthorize",
   );
   const health = root.querySelector('section[aria-labelledby="credential-title"] p');
   expect(health?.querySelector(".badge")?.textContent).toBe("accepted");
@@ -489,7 +491,7 @@ test("account settings show the client, the credential's health, the target and 
   await type(root.querySelector('section[aria-labelledby="target-title"] input'), "25");
   await click(button(root, "Save"));
   expect(server?.posted).toEqual([
-    { path: "/api/personal/account/target", body: { lowered_target: 0.25 } },
+    { path: "/ui/api/accounts/personal/account/target", body: { lowered_target: 0.25 } },
   ]);
   expect(text(root, 'dl[aria-label="The account\'s rows"] dt')).toEqual([
     "Identifier",
@@ -506,7 +508,7 @@ test("account settings show the client, the credential's health, the target and 
 });
 
 test("an account with no state row reads not connected, and offers Connect and no target field", async () => {
-  const root = await open("/other/account", {
+  const root = await open("/ui/accounts/other/account", {
     ...settingsAnswers,
     [accountPath("other")]: ok("account-other.json"),
     ...homeAnswers("other"),
@@ -514,7 +516,7 @@ test("an account with no state row reads not connected, and offers Connect and n
   const health = root.querySelector('section[aria-labelledby="credential-title"]');
   expect(health?.querySelector(".badge")?.textContent).toBe("not connected");
   expect(button(health ?? root, "Connect")?.getAttribute("href")).toBe(
-    "/other/account/reauthorize",
+    "/ui/accounts/other/account/reauthorize",
   );
   expect(root.querySelector('section[aria-labelledby="target-title"] input')).toBeNull();
 });
@@ -557,7 +559,7 @@ test("an authentication outcome the wording does not know is shown as itself wit
 });
 
 test("re-authorizing shows the account as a summary and asks for no mailbox it remembers", async () => {
-  const root = await open("/personal/account/reauthorize", {
+  const root = await open("/ui/accounts/personal/account/reauthorize", {
     ...settingsAnswers,
     [installationPath()]: ok("setup.json"),
     [accountPath("personal")]: ok("account-personal.json"),
@@ -579,7 +581,7 @@ test("re-authorizing shows the account as a summary and asks for no mailbox it r
 
 test("the connect page pictures and checks the configured redirect address", async () => {
   server = recorded({ ...connectAnswers, [connectPath()]: ok("connect-attempt.json") });
-  at("/setup/connect");
+  at("/ui/setup/connect");
   const deps = testDeps(server);
   deps.config = { ...deps.config, consentRedirect: "http://[::1]:5000/" };
   mounted = mount(<App deps={deps} />);

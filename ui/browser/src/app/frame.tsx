@@ -12,6 +12,7 @@ import { useDeps } from "./deps.ts";
 import { count, share, utc } from "./format.ts";
 import { bindings, ignoresKeys } from "./keys.ts";
 import { Menu } from "./menu.tsx";
+import { accountPage, belowAccount, setupPage } from "./paths.ts";
 import { keepLastAccount, switchAccount } from "./routes.ts";
 import { applyTheme, keepTheme, storedTheme, themes, type Theme } from "./theme.ts";
 
@@ -40,11 +41,11 @@ const settings = { name: "Account settings", path: "account", key: "a" } as cons
 // existingScreen is the name of the screen an app path under an account opens, when that screen exists,
 // and undefined for one that does not exist yet, which the UI does not link to (docs/UI.md section 8.8).
 export function existingScreen(href: string): string | undefined {
-  const segment =
-    href
-      .split("?")[0]
-      ?.split("/")
-      .filter((s) => s !== "")[1] ?? "";
+  const page = belowAccount(href.split("?")[0] ?? "");
+  if (page === undefined) {
+    return undefined;
+  }
+  const segment = page.below[0] ?? "";
   return [...screens, settings].find((s) => s.path === segment)?.name;
 }
 
@@ -153,7 +154,7 @@ function AccountSelector(props: { account: string | undefined }) {
               role="menuitem"
               href={
                 account === undefined
-                  ? `/${encodeURIComponent(a.account_id)}`
+                  ? accountPage(a.account_id)
                   : switchAccount(path, search, a.account_id)
               }
               aria-current={a.account_id === account ? "true" : undefined}
@@ -172,12 +173,12 @@ function AccountSelector(props: { account: string | undefined }) {
           </li>
         ),
         <li key="connect" role="none">
-          <a role="menuitem" href="/setup/connect" onClick={close}>
+          <a role="menuitem" href={setupPage("connect")} onClick={close}>
             Connect an account
           </a>
         </li>,
         <li key="installation" role="none">
-          <a role="menuitem" href="/setup" onClick={close}>
+          <a role="menuitem" href={setupPage()} onClick={close}>
             Installation
           </a>
         </li>,
@@ -189,11 +190,12 @@ function AccountSelector(props: { account: string | undefined }) {
 // The installation's own navigation, Setup and Base policy (section 6). Base policy is current on every
 // base policy screen, its rules, history and import included.
 const installationScreens = [
-  { name: "Setup", path: "/setup", here: (path: string) => path === "/setup" },
+  { name: "Setup", path: setupPage(), here: (path: string) => path === setupPage() },
   {
     name: "Base policy",
-    path: "/setup/policy",
-    here: (path: string) => path === "/setup/policy" || path.startsWith("/setup/policy/"),
+    path: setupPage("policy"),
+    here: (path: string) =>
+      path === setupPage("policy") || path.startsWith(`${setupPage("policy")}/`),
   },
 ] as const;
 
@@ -266,7 +268,7 @@ function Navigation(props: { account: string }) {
 
 // screenPath is a screen's path under an account.
 export function screenPath(account: string, path: string): string {
-  return [`/${encodeURIComponent(account)}`, path].filter((part) => part !== "").join("/");
+  return accountPage(account, path);
 }
 
 // RunningMark is the Jobs item's mark while any workload runs, read from the system endpoint's

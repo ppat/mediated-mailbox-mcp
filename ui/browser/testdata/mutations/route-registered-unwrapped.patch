@@ -6,14 +6,15 @@ scheduled-count: no
 runner: bun
 
 diff --git a/ui/browser/src/app/router.tsx b/ui/browser/src/app/router.tsx
+index cb34490..4b403db 100644
 --- a/ui/browser/src/app/router.tsx
 +++ b/ui/browser/src/app/router.tsx
-@@ -57,7 +57,7 @@
-       <Route path="/:account/account" component={AccountSettingsRoute} />
-       <Route path="/:account/account/reauthorize" component={ReauthorizeScreenRoute} />
-       <Route path="/:account/system" component={SystemScreenRoute} />
--      <Route path="/:account/jobs" component={JobsScreenRoute} />
-+      <Route path="/:account/jobs" component={JobsRoute} />
-       <Route path="/:account/jobs/:run" component={RunScreenRoute} />
-       <Route path="/:account/jobs/:run/failures/:seq" component={RunScreenRoute} />
-       <Route path="/:account/policy" component={PolicyListRoute} />
+@@ -66,7 +66,7 @@ export function Routes() {
+       <Route path={`${accountRoute}/account`} component={AccountSettingsRoute} />
+       <Route path={`${accountRoute}/account/reauthorize`} component={ReauthorizeScreenRoute} />
+       <Route path={`${accountRoute}/system`} component={SystemScreenRoute} />
+-      <Route path={`${accountRoute}/jobs`} component={JobsScreenRoute} />
++      <Route path={`${accountRoute}/jobs`} component={JobsRoute} />
+       <Route path={`${accountRoute}/jobs/:run`} component={RunScreenRoute} />
+       <Route path={`${accountRoute}/jobs/:run/failures/:seq`} component={RunScreenRoute} />
+       <Route path={`${accountRoute}/policy`} component={PolicyListRoute} />

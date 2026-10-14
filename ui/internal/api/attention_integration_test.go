@@ -36,7 +36,7 @@ func cardsUnder(t *testing.T, thresholds attention.Thresholds, statements ...str
 	seed(t)
 	execute(t, statements...)
 	s, _ := serverWith(t, uiPool(t, "mediated_mailbox_ui"), thresholds)
-	r := get(t, s.Handler(), "/api/personal/attention")
+	r := get(t, s.Handler(), "/ui/api/accounts/personal/attention")
 	if r.status != http.StatusOK {
 		t.Fatalf("the attention endpoint answered %d: %s", r.status, r.body)
 	}
@@ -135,7 +135,7 @@ func TestTheBodyServeRuleFiresFarAboveItsMedian(t *testing.T) {
 	want := []card{{
 		Rule: "body_serves", What: "Body serves", Number: 40, Since: since("2026-09-10T09:16:04Z"),
 		Sentence: "40 bodies were served in 24 hours against a 7-day median of 5. Body-serve volume beyond triage plausibility is the anomaly the design watches for.",
-		Link:     "/personal/audit?level=3&range=24h&action=READ_BODY",
+		Link:     "/ui/accounts/personal/audit?level=3&range=24h&action=READ_BODY",
 	}}
 	if diff := cmp.Diff(want, got, compare.Options); diff != "" {
 		t.Errorf("far above the median (-want +got):\n%s", diff)
@@ -182,7 +182,7 @@ func TestTheSyncGapRuleShowsTheRecovery(t *testing.T) {
 	want := []card{{
 		Rule: "sync_gap", What: "Sync gap", Number: 2, Since: since("2026-09-08T10:16:04Z"),
 		Sentence: "Delta sync recovered from a cursor gap on 2026-09-10 08:16Z, re-enumerating a 6h 30m window and reconciling 1,204 messages. A repeated gap means the cadence or the cursor lifetime needs attention.",
-		Link:     "/personal/jobs?range=7d&pass=gap_recovery",
+		Link:     "/ui/accounts/personal/jobs?range=7d&pass=gap_recovery",
 	}}
 	if diff := cmp.Diff(want, got, compare.Options); diff != "" {
 		t.Errorf("the recoveries of seven days (-want +got):\n%s", diff)
@@ -190,7 +190,7 @@ func TestTheSyncGapRuleShowsTheRecovery(t *testing.T) {
 	nine := starting()
 	nine.GapDays = 9
 	got = only(cardsUnder(t, nine, recoveries), "sync_gap")
-	if len(got) != 1 || got[0].Number != 3 || *got[0].Since != "2026-09-02T10:16:04Z" || got[0].Link != "/personal/jobs?range=2026-09-01,2026-09-10&pass=gap_recovery" {
+	if len(got) != 1 || got[0].Number != 3 || *got[0].Since != "2026-09-02T10:16:04Z" || got[0].Link != "/ui/accounts/personal/jobs?range=2026-09-01,2026-09-10&pass=gap_recovery" {
 		t.Errorf("the recoveries of nine days are %+v", got)
 	}
 	disabled := starting()
@@ -235,7 +235,7 @@ func TestTheMaskingRuleCountsEachSenderAndRule(t *testing.T) {
 	want := []card{{
 		Rule: "masking", What: "Masking", Number: 21, Since: since("2026-09-04T10:16:04Z"),
 		Sentence: "Masking fired 21 times on " + sender + " this week, all under " + rule + ". A sender masked this often under one rule is worth checking for an over-mask.",
-		Link:     "/personal/masking?level=3&range=7d&rule=%3Cscript%3Emmfieldmarker-maskrule%3C%2Fscript%3E&sender=%3Cscript%3Emmfieldmarker-masksender%3C%2Fscript%3E",
+		Link:     "/ui/accounts/personal/masking?level=3&range=7d&rule=%3Cscript%3Emmfieldmarker-maskrule%3C%2Fscript%3E&sender=%3Cscript%3Emmfieldmarker-masksender%3C%2Fscript%3E",
 	}}
 	if diff := cmp.Diff(want, got, compare.Options); diff != "" {
 		t.Errorf("masking (-want +got):\n%s", diff)
@@ -261,7 +261,7 @@ func TestTheBacklogRuleFiresAboveItsShare(t *testing.T) {
 	want := []card{{
 		Rule: "backlog", What: "Scan backlog", Number: 1,
 		Sentence: "1 messages are pending scan (20.0% of the corpus). Every pending message denies its body until scanned, which reads to the agent like a permission problem.",
-		Link:     "/personal/messages?level=3&scan_state=pending",
+		Link:     "/ui/accounts/personal/messages?level=3&scan_state=pending",
 	}}
 	if diff := cmp.Diff(want, only(cardsUnder(t, starting()), "backlog"), compare.Options); diff != "" {
 		t.Errorf("backlog (-want +got):\n%s", diff)

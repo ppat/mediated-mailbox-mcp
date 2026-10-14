@@ -132,7 +132,7 @@ function dialog(): HTMLElement | null {
 // --- The list ------------------------------------------------------------------------------------
 
 test("the policy lists the base rules marked base and then the account's own, each linking to its scope", async () => {
-  const root = await open("/personal/policy", list);
+  const root = await open("/ui/accounts/personal/policy", list);
   expect(location.search).toBe(`?${rulesQuery.replace("dataset=rules&", "")}`);
   expect(root.querySelector("main h1")?.textContent).toBe("Policy");
   const nav = [...root.querySelectorAll('nav[aria-label="Screens"] a')];
@@ -153,7 +153,10 @@ test("the policy lists the base rules marked base and then the account's own, ea
   ]);
   expect(
     [...root.querySelectorAll("tbody td:first-child a")].map((a) => a.getAttribute("href")),
-  ).toEqual(["/personal/policy/base/base.bank", "/personal/policy/operator.lender.example"]);
+  ).toEqual([
+    "/ui/accounts/personal/policy/base/base.bank",
+    "/ui/accounts/personal/policy/rules/operator.lender.example",
+  ]);
   // Every sender a rule matches is restricted as the screen reads it, so the row shows its count of
   // senders alone (docs/UI.md section 8.7).
   expect(root.querySelector("tbody")?.textContent).not.toContain("index updated");
@@ -167,11 +170,11 @@ test("the policy lists the base rules marked base and then the account's own, ea
   expect(
     [...(actions?.querySelectorAll("a") ?? [])].map((a) => [a.textContent, a.getAttribute("href")]),
   ).toEqual([
-    ["Add a rule", "/personal/policy/new"],
-    ["Restrict senders from the index", "/personal/policy/pick"],
-    ["History", "/personal/policy/history"],
-    ["Import", "/personal/policy/import"],
-    ["Export", "/api/personal/policy/export"],
+    ["Add a rule", "/ui/accounts/personal/policy/new"],
+    ["Restrict senders from the index", "/ui/accounts/personal/policy/pick"],
+    ["History", "/ui/accounts/personal/policy/history"],
+    ["Import", "/ui/accounts/personal/policy/import"],
+    ["Export", "/ui/api/accounts/personal/policy/export"],
   ]);
   expect(control(root, "Export")?.hasAttribute("download")).toBe(true);
   // The account holds a rule of its own, so its part of the table has no empty line.
@@ -179,7 +182,7 @@ test("the policy lists the base rules marked base and then the account's own, ea
 });
 
 test("the search answers which rule holds a domain, through the rules dataset's search filter", async () => {
-  const root = await open("/personal/policy", {
+  const root = await open("/ui/accounts/personal/policy", {
     ...list,
     [lensPath("personal", `${figuresQuery}&search=bank`)]: ok("rules-summary-search.json"),
     [lensPath("personal", `${rulesQuery}&search=bank`)]: ok("rules-rows-search.json"),
@@ -192,7 +195,7 @@ test("the search answers which rule holds a domain, through the rules dataset's 
 });
 
 test("with no rule of its own the account's part of the table says the base rules apply to every account", async () => {
-  const root = await open("/personal/policy", {
+  const root = await open("/ui/accounts/personal/policy", {
     ...list,
     [figures]: ok("rules-summary-lifted.json"),
     [rules]: ok("rules-rows-lifted.json"),
@@ -206,7 +209,7 @@ test("with no rule of its own the account's part of the table says the base rule
 // --- A rule --------------------------------------------------------------------------------------
 
 test("a rule shows each suffix's match in the account, the senders it matches and its history", async () => {
-  const root = await open("/personal/policy/operator.lender.example", {
+  const root = await open("/ui/accounts/personal/policy/rules/operator.lender.example", {
     ...list,
     [lender]: ok("rule-lender.json"),
   });
@@ -225,7 +228,7 @@ test("a rule shows each suffix's match in the account, the senders it matches an
   // The edit that removed old.lender.example ends with Restore, which opens Edit domains with it added,
   // since the rule still exists.
   expect(control(history[0] ?? root, "Restore")?.getAttribute("href")).toBe(
-    "/personal/policy/operator.lender.example?suffix=old.lender.example",
+    "/ui/accounts/personal/policy/rules/operator.lender.example?suffix=old.lender.example",
   );
   expect(history[0]?.querySelector('[data-change="removed"]')?.textContent).toBe(
     "−old.lender.example",
@@ -239,7 +242,7 @@ test("a rule shows each suffix's match in the account, the senders it matches an
 });
 
 test("a rule's address with no scope names the account's rule, or the base rule when the account holds none", async () => {
-  await open("/personal/policy/base.bank", {
+  await open("/ui/accounts/personal/policy/rules/base.bank", {
     ...list,
     [rulePath("personal", "account", "base.bank")]: refusedAnswer(
       "error-unknown-rule-row.json",
@@ -252,11 +255,11 @@ test("a rule's address with no scope names the account's rule, or the base rule 
   expect(panel?.querySelector(".provenance .badge")?.textContent).toBe("base");
   expect(
     control(panel ?? document, "Open it on the base policy screen")?.getAttribute("href"),
-  ).toBe("/setup/policy/base.bank");
+  ).toBe("/ui/setup/policy/rules/base.bank");
 });
 
 test("lifting the account's rule states the account's numbers, asks no typing, and offers Put it back", async () => {
-  const root = await open("/personal/policy/operator.lender.example", {
+  const root = await open("/ui/accounts/personal/policy/rules/operator.lender.example", {
     ...list,
     [lender]: ok("rule-lender.json"),
     [figures]: [
@@ -265,8 +268,9 @@ test("lifting the account's rule states the account's numbers, asks no typing, a
       ok("rules-summary-put-back.json"),
     ],
     [rules]: [ok("rules-rows.json"), ok("rules-rows-lifted.json"), ok("rules-rows-put-back.json")],
-    "POST /api/personal/policy/rules/operator.lender.example/lift": ok("rule-lifted.json"),
-    "POST /api/personal/policy/rules": ok("rule-put-back.json"),
+    "POST /ui/api/accounts/personal/policy/rules/operator.lender.example/lift":
+      ok("rule-lifted.json"),
+    "POST /ui/api/accounts/personal/policy/rules": ok("rule-put-back.json"),
   });
   const opener = control(document, "Lift restriction");
   await click(opener);
@@ -288,17 +292,17 @@ test("lifting the account's rule states the account's numbers, asks no typing, a
   await click(lift);
   expect(server?.posted).toEqual([
     {
-      path: "/api/personal/policy/rules/operator.lender.example/lift",
+      path: "/ui/api/accounts/personal/policy/rules/operator.lender.example/lift",
       body: { scope: "account", suffixes_before: ["lender.example"], confirmation: null },
     },
   ]);
-  expect(location.pathname).toBe("/personal/policy");
+  expect(location.pathname).toBe("/ui/accounts/personal/policy");
   expect(text(root, "tbody td:first-child")).toEqual(["base.bank"]);
   const status = root.querySelector('.policy > [role="status"]');
   expect(status?.textContent).toBe("Lifted operator.lender.example. Put it back");
   await click(control(status ?? root, "Put it back"));
   expect(server?.posted[1]).toEqual({
-    path: "/api/personal/policy/rules",
+    path: "/ui/api/accounts/personal/policy/rules",
     body: { scope: "account", rule_id: "operator.lender.example", suffixes: ["lender.example"] },
   });
   expect(status?.textContent).toBe("Put back operator.lender.example.");
@@ -306,12 +310,14 @@ test("lifting the account's rule states the account's numbers, asks no typing, a
 });
 
 test("a base rule's lift reads the base sentences and enables only once its identifier is typed", async () => {
-  await open("/personal/policy/base/base.bank", {
+  await open("/ui/accounts/personal/policy/base/base.bank", {
     ...list,
     [bank]: ok("rule-base-bank.json"),
     [figures]: [ok("rules-summary.json"), ok("rules-summary-base-lifted.json")],
     [rules]: [ok("rules-rows.json"), ok("rules-rows-base-lifted.json")],
-    "POST /api/personal/policy/rules/base.bank/lift": ok("base-lifted-from-account.json"),
+    "POST /ui/api/accounts/personal/policy/rules/base.bank/lift": ok(
+      "base-lifted-from-account.json",
+    ),
   });
   const opener = control(document, "Lift restriction");
   opener?.focus();
@@ -322,8 +328,8 @@ test("a base rule's lift reads the base sentences and enables only once its iden
   );
   expect(d?.textContent).toContain("Every account loses it: other, personal.");
   expect([...(d?.querySelectorAll("p a") ?? [])].map((a) => a.getAttribute("href"))).toEqual([
-    "/other/policy",
-    "/personal/policy",
+    "/ui/accounts/other/policy",
+    "/ui/accounts/personal/policy",
   ]);
   const field = d?.querySelector("input");
   expect(field?.closest("label")?.textContent).toBe("Type base.bank to confirm ");
@@ -346,15 +352,15 @@ test("a base rule's lift reads the base sentences and enables only once its iden
   await click(control(dialog() ?? document, "Lift restriction on base.bank"));
   expect(server?.posted).toEqual([
     {
-      path: "/api/personal/policy/rules/base.bank/lift",
+      path: "/ui/api/accounts/personal/policy/rules/base.bank/lift",
       body: { scope: "base", suffixes_before: ["bank.example"], confirmation: "base.bank" },
     },
   ]);
-  expect(location.pathname).toBe("/personal/policy");
+  expect(location.pathname).toBe("/ui/accounts/personal/policy");
 });
 
 test("removing a suffix from a base rule asks for the rule's identifier typed too", async () => {
-  await open("/personal/policy/base/base.bank", {
+  await open("/ui/accounts/personal/policy/base/base.bank", {
     ...list,
     [bank]: ok("rule-base-bank.json"),
     [releasePath("personal", "base", "base.bank", [])]: ok("release-bank.json"),
@@ -377,7 +383,10 @@ test("removing a suffix from a base rule asks for the rule's identifier typed to
 });
 
 test("Tab stays inside the lift dialog", async () => {
-  await open("/personal/policy/base/base.bank", { ...list, [bank]: ok("rule-base-bank.json") });
+  await open("/ui/accounts/personal/policy/base/base.bank", {
+    ...list,
+    [bank]: ok("rule-base-bank.json"),
+  });
   await click(control(document, "Lift restriction"));
   const d = dialog();
   const focusable = [
@@ -392,12 +401,12 @@ test("Tab stays inside the lift dialog", async () => {
 });
 
 test("Edit domains that only adds saves at once, and one that removes a suffix goes through the lift dialog", async () => {
-  const root = await open("/personal/policy/operator.lender.example", {
+  const root = await open("/ui/accounts/personal/policy/rules/operator.lender.example", {
     ...list,
     [lender]: [ok("rule-lender.json"), ok("rule-lender-two.json"), ok("rule-lender-removed.json")],
     [releasePath("personal", "account", "operator.lender.example", ["lender.example"])]:
       ok("release-lendermail.json"),
-    "POST /api/personal/policy/rules/operator.lender.example": [
+    "POST /ui/api/accounts/personal/policy/rules/operator.lender.example": [
       ok("rule-edited.json"),
       ok("rule-suffix-removed.json"),
       // Put it back sends the first edit's request again from the state the first edit started from.
@@ -411,7 +420,7 @@ test("Edit domains that only adds saves at once, and one that removes a suffix g
   expect(dialog()).toBeNull();
   expect(server?.posted).toEqual([
     {
-      path: "/api/personal/policy/rules/operator.lender.example",
+      path: "/ui/api/accounts/personal/policy/rules/operator.lender.example",
       body: {
         scope: "account",
         suffixes_before: ["lender.example"],
@@ -441,7 +450,7 @@ test("Edit domains that only adds saves at once, and one that removes a suffix g
   );
   await click(control(d ?? document, "Lift restriction on lendermail.example"));
   expect(server?.posted[1]).toEqual({
-    path: "/api/personal/policy/rules/operator.lender.example",
+    path: "/ui/api/accounts/personal/policy/rules/operator.lender.example",
     body: {
       scope: "account",
       suffixes_before: ["lender.example", "lendermail.example"],
@@ -453,7 +462,7 @@ test("Edit domains that only adds saves at once, and one that removes a suffix g
   expect(status?.textContent).toBe("Lifted lendermail.example. Put it back");
   await click(control(status ?? root, "Put it back"));
   expect(server?.posted[2]).toEqual({
-    path: "/api/personal/policy/rules/operator.lender.example",
+    path: "/ui/api/accounts/personal/policy/rules/operator.lender.example",
     body: {
       scope: "account",
       suffixes_before: ["lender.example"],
@@ -464,7 +473,7 @@ test("Edit domains that only adds saves at once, and one that removes a suffix g
 });
 
 test("an edit removing several suffixes states what the set releases together, in one sentence", async () => {
-  await open("/personal/policy/operator.lender.example", {
+  await open("/ui/accounts/personal/policy/rules/operator.lender.example", {
     ...list,
     [lender]: ok("rule-lender-three.json"),
     [releasePath("personal", "account", "operator.lender.example", ["lender.example"])]: ok(
@@ -485,7 +494,7 @@ test("an edit removing several suffixes states what the set releases together, i
 });
 
 test("an edit removing every suffix is not an edit, and offers Lift restriction instead", async () => {
-  await open("/personal/policy/operator.lender.example", {
+  await open("/ui/accounts/personal/policy/rules/operator.lender.example", {
     ...list,
     [lender]: ok("rule-lender.json"),
   });
@@ -503,10 +512,13 @@ test("an edit removing every suffix is not an edit, and offers Lift restriction 
 });
 
 test("a history row's Restore with the rule still held opens Edit domains with the removed suffix added", async () => {
-  await open("/personal/policy/operator.lender.example?suffix=old.lender.example", {
-    ...list,
-    [lender]: ok("rule-lender.json"),
-  });
+  await open(
+    "/ui/accounts/personal/policy/rules/operator.lender.example?suffix=old.lender.example",
+    {
+      ...list,
+      [lender]: ok("rule-lender.json"),
+    },
+  );
   expect(document.querySelector<HTMLTextAreaElement>(".edit-domains textarea")?.value).toBe(
     "lender.example\nold.lender.example",
   );
@@ -516,10 +528,10 @@ test("a history row's Restore with the rule still held opens Edit domains with t
 // --- Add a rule ----------------------------------------------------------------------------------
 
 test("Add a rule opened with a suffix checks it, names what it matches, and adds the rule", async () => {
-  const root = await open("/personal/policy/new?suffix=newsletter.example", {
+  const root = await open("/ui/accounts/personal/policy/new?suffix=newsletter.example", {
     ...list,
     [matchPath("personal", ["newsletter.example"])]: ok("match-newsletter.json"),
-    "POST /api/personal/policy/rules": ok("rule-added.json"),
+    "POST /ui/api/accounts/personal/policy/rules": ok("rule-added.json"),
     [rulePath("personal", "account", "operator.newsletter.example")]: ok("rule-newsletter.json"),
     [figures]: [ok("rules-summary.json"), ok("rules-summary-added.json")],
     [rules]: [ok("rules-rows.json"), ok("rules-rows-added.json")],
@@ -541,7 +553,7 @@ test("Add a rule opened with a suffix checks it, names what it matches, and adds
   await click(control(panel ?? root, "Add rule"));
   expect(server?.posted).toEqual([
     {
-      path: "/api/personal/policy/rules",
+      path: "/ui/api/accounts/personal/policy/rules",
       body: {
         scope: "account",
         rule_id: "operator.newsletter.example",
@@ -549,14 +561,14 @@ test("Add a rule opened with a suffix checks it, names what it matches, and adds
       },
     },
   ]);
-  expect(location.pathname).toBe("/personal/policy/operator.newsletter.example");
+  expect(location.pathname).toBe("/ui/accounts/personal/policy/rules/operator.newsletter.example");
   expect(document.querySelector('aside[role="dialog"] [role="status"]')?.textContent).toBe(
     "Added operator.newsletter.example.",
   );
 });
 
 test("each typed line is checked once typing pauses, and a refused line keeps Add rule disabled", async () => {
-  await open("/personal/policy/new?suffix=newsletter.example", {
+  await open("/ui/accounts/personal/policy/new?suffix=newsletter.example", {
     ...list,
     [matchPath("personal", ["newsletter.example"])]: ok("match-newsletter.json"),
     [matchPath("personal", ["newsletter.example", "bad suffix"])]: ok("match-invalid.json"),
@@ -584,7 +596,7 @@ test("each typed line is checked once typing pauses, and a refused line keeps Ad
 });
 
 test("Add a rule names the rule already matching a suffix, and the base scope says whose counts it shows", async () => {
-  await open("/personal/policy/new?suffix=lender.example", {
+  await open("/ui/accounts/personal/policy/new?suffix=lender.example", {
     ...list,
     [matchPath("personal", ["lender.example"])]: ok("match-lender.json"),
   });
@@ -602,17 +614,27 @@ test("Add a rule names the rule already matching a suffix, and the base scope sa
   );
 });
 
-test("an identifier the screens' addresses use is refused before anything is sent, and a refusal names its cause", async () => {
-  const root = await open("/personal/policy/new?suffix=lender.example", {
+// A rule's identifier follows rules or base in its address, so a word the policy screens' addresses use
+// is an identifier like any other, and only one no path segment can hold is refused (docs/UI.md
+// sections 5 and 8.7).
+test("an identifier no address can hold is refused before anything is sent, and a refusal names its cause", async () => {
+  const root = await open("/ui/accounts/personal/policy/new?suffix=lender.example", {
     ...list,
     [matchPath("personal", ["lender.example"])]: ok("match-lender.json"),
-    "POST /api/personal/policy/rules": refusedAnswer("error-identifier-taken.json", 409),
+    "POST /ui/api/accounts/personal/policy/rules": refusedAnswer(
+      "error-identifier-taken.json",
+      409,
+    ),
   });
   const panel = document.querySelector('aside[role="dialog"]') ?? root;
   const id = panel.querySelector<HTMLInputElement>('label input[type="text"].mono');
-  for (const word of ["new", "pick", "history", "import", "base", ".", "..", "a/b", " x"]) {
+  for (const word of [".", "..", "a/b", " x"]) {
     await type(id, word);
     expect(control(panel, "Add rule")?.hasAttribute("disabled")).toBe(true);
+  }
+  for (const word of ["new", "pick", "history", "import", "base", "rules"]) {
+    await type(id, word);
+    expect(control(panel, "Add rule")?.hasAttribute("disabled")).toBe(false);
   }
   await type(id, "operator.lender.example");
   await click(control(panel, "Add rule"));
@@ -622,33 +644,34 @@ test("an identifier the screens' addresses use is refused before anything is sen
 });
 
 test("a write the policy's checks refuse names each problem", async () => {
-  await open("/personal/policy/new?suffix=lender.example&id=x", {
+  await open("/ui/accounts/personal/policy/new?suffix=lender.example&id=x", {
     ...list,
     [matchPath("personal", ["lender.example"])]: ok("match-lender.json"),
-    "POST /api/personal/policy/rules": refusedAnswer("error-rule-refused.json"),
+    "POST /ui/api/accounts/personal/policy/rules": refusedAnswer("error-rule-refused.json"),
   });
   await click(control(document, "Add rule"));
   expect(text(document.body, ".refusal[role='alert'] li")).toEqual([
-    "rule new: the suffix bad suffix is not shaped like a domain name.",
-    "rule new: its identifier is a word the policy screens' addresses use, exactly . or .., or holds a /.",
+    "rule ..: the suffix bad suffix is not shaped like a domain name.",
+    "rule ..: its identifier is exactly . or .., or holds a /, which no address can hold.",
   ]);
 });
 
 // --- Change where this applies -------------------------------------------------------------------
 
 test("Change where this applies adds under the other scope first, then lifts the old rule with nothing lost", async () => {
-  await open("/personal/policy/operator.lender.example", {
+  await open("/ui/accounts/personal/policy/rules/operator.lender.example", {
     ...list,
     [lender]: [ok("rule-lender.json"), ok("rule-lender-covered.json")],
     [matchPath("personal", ["lender.example"])]: ok("match-lender.json"),
-    "POST /api/personal/policy/rules": ok("rule-moved-add.json"),
-    "POST /api/personal/policy/rules/operator.lender.example/lift": ok("rule-moved-lift.json"),
+    "POST /ui/api/accounts/personal/policy/rules": ok("rule-moved-add.json"),
+    "POST /ui/api/accounts/personal/policy/rules/operator.lender.example/lift":
+      ok("rule-moved-lift.json"),
     [rulePath("personal", "base", "operator.lender.example")]: ok("rule-lender-base.json"),
   });
   await click(control(document, "Change where this applies…"));
   await click(control(document, "Every account"));
   expect(location.pathname + location.search).toBe(
-    "/personal/policy/new?suffix=lender.example&scope=base&id=operator.lender.example",
+    "/ui/accounts/personal/policy/new?suffix=lender.example&scope=base&id=operator.lender.example",
   );
   const panel = document.querySelector('aside[role="dialog"]');
   expect(
@@ -658,7 +681,7 @@ test("Change where this applies adds under the other scope first, then lifts the
   await click(control(panel ?? document, "Add rule"));
   expect(server?.posted).toEqual([
     {
-      path: "/api/personal/policy/rules",
+      path: "/ui/api/accounts/personal/policy/rules",
       body: { scope: "base", rule_id: "operator.lender.example", suffixes: ["lender.example"] },
     },
   ]);
@@ -668,24 +691,27 @@ test("Change where this applies adds under the other scope first, then lifts the
   );
   await click(control(d ?? document, "Lift restriction on operator.lender.example"));
   expect(server?.posted[1]).toEqual({
-    path: "/api/personal/policy/rules/operator.lender.example/lift",
+    path: "/ui/api/accounts/personal/policy/rules/operator.lender.example/lift",
     body: { scope: "account", suffixes_before: ["lender.example"], confirmation: null },
   });
-  expect(location.pathname).toBe("/personal/policy/base/operator.lender.example");
+  expect(location.pathname).toBe("/ui/accounts/personal/policy/base/operator.lender.example");
 });
 
 test("a change of where a rule applies whose add fails never sends the lift", async () => {
   await open(
-    "/personal/policy/new?suffix=lender.example&scope=base&id=operator.lender.example",
+    "/ui/accounts/personal/policy/new?suffix=lender.example&scope=base&id=operator.lender.example",
     {
       ...list,
       [matchPath("personal", ["lender.example"])]: ok("match-lender.json"),
-      "POST /api/personal/policy/rules": refusedAnswer("error-identifier-taken-base.json", 409),
+      "POST /ui/api/accounts/personal/policy/rules": refusedAnswer(
+        "error-identifier-taken-base.json",
+        409,
+      ),
     },
     { opener: "move" },
   );
   await click(control(document, "Add rule"));
-  expect(server?.posted.map((p) => p.path)).toEqual(["/api/personal/policy/rules"]);
+  expect(server?.posted.map((p) => p.path)).toEqual(["/ui/api/accounts/personal/policy/rules"]);
   expect(dialog()).toBeNull();
   expect(document.querySelector(".refusal[role='alert']")?.textContent).toBe(
     "The base policy already has a rule operator.lender.example.",
@@ -704,7 +730,7 @@ const picker: Record<string, Answer | readonly Answer[]> = {
 };
 
 test("the picker selects senders by box and by key, keeps the selection in the address, and refuses a restricted sender", async () => {
-  const root = await open("/personal/policy/pick", picker);
+  const root = await open("/ui/accounts/personal/policy/pick", picker);
   expect(location.search).toBe("?level=3&sort=message_count,desc&page=1");
   const boxes = () => [...root.querySelectorAll<HTMLInputElement>(".select-box input")];
   expect(boxes().map((b) => [b.getAttribute("aria-label"), b.disabled])).toEqual([
@@ -748,7 +774,7 @@ test("the picker selects senders by box and by key, keeps the selection in the a
   // Enter toggles the row under the cursor here, and never leaves the picker.
   await press("j");
   await press("Enter");
-  expect(location.pathname).toBe("/personal/policy/pick");
+  expect(location.pathname).toBe("/ui/accounts/personal/policy/pick");
   expect(new URLSearchParams(location.search).getAll("pick")).toEqual(["newsletter.example"]);
   await click(boxes()[4]);
   expect(new URLSearchParams(location.search).getAll("pick")).toEqual([
@@ -758,11 +784,11 @@ test("the picker selects senders by box and by key, keeps the selection in the a
   // Escape clears the selection before it closes anything.
   await press("Escape");
   expect(location.search).toBe("?level=3&sort=message_count,desc&page=1");
-  expect(location.pathname).toBe("/personal/policy/pick");
+  expect(location.pathname).toBe("/ui/accounts/personal/policy/pick");
 });
 
 test("Ctrl or Cmd with a selects every match across pages, and outside a field only", async () => {
-  const root = await open("/personal/policy/pick", picker);
+  const root = await open("/ui/accounts/personal/policy/pick", picker);
   const search = root.querySelector<HTMLInputElement>('form[role="search"] input');
   await press("a", { ctrlKey: true }, search ?? document);
   expect(location.search).not.toContain("pick=");
@@ -781,7 +807,7 @@ test("Ctrl or Cmd with a selects every match across pages, and outside a field o
 
 test("Restrict as one rule hands the selection to Add a rule, whose Cancel returns to the picker as it was", async () => {
   const root = await open(
-    "/personal/policy/pick?level=3&sort=message_count,desc&page=1&pick=newsletter.example",
+    "/ui/accounts/personal/policy/pick?level=3&sort=message_count,desc&page=1&pick=newsletter.example",
     {
       ...picker,
       ...list,
@@ -791,7 +817,7 @@ test("Restrict as one rule hands the selection to Add a rule, whose Cancel retur
   const pickerAt = location.pathname + location.search;
   await press("r");
   expect(location.pathname + location.search).toBe(
-    "/personal/policy/new?suffix=newsletter.example",
+    "/ui/accounts/personal/policy/new?suffix=newsletter.example",
   );
   expect(document.querySelector('aside[role="dialog"]')?.getAttribute("aria-label")).toBe(
     "Add a rule",
@@ -809,7 +835,7 @@ test("Restrict as one rule hands the selection to Add a rule, whose Cancel retur
 });
 
 test("a search narrows the senders, announces its count, and every match is handed over as the search", async () => {
-  const root = await open("/personal/policy/pick", {
+  const root = await open("/ui/accounts/personal/policy/pick", {
     ...picker,
     ...list,
     [lensPath("personal", "dataset=senders&level=0&sort=message_count,desc&search=newsletter")]: ok(
@@ -829,7 +855,9 @@ test("a search narrows the senders, announces its count, and every match is hand
   );
   await press("a", { ctrlKey: true });
   await click(control(root, "Restrict as one rule"));
-  expect(location.pathname + location.search).toBe("/personal/policy/new?search=newsletter");
+  expect(location.pathname + location.search).toBe(
+    "/ui/accounts/personal/policy/new?search=newsletter",
+  );
   const panel = document.querySelector('aside[role="dialog"]');
   expect(
     [...(panel?.querySelectorAll<HTMLInputElement>(".suffix-line input") ?? [])].map(
@@ -845,7 +873,7 @@ test("a search narrows the senders, announces its count, and every match is hand
 // --- History -------------------------------------------------------------------------------------
 
 test("the history lists the base policy's changes and the account's, a lifted rule's row unlinked and carrying Restore", async () => {
-  const root = await open("/personal/policy/history", {
+  const root = await open("/ui/accounts/personal/policy/history", {
     [accountsPath()]: ok("accounts.json"),
     [systemPath("personal")]: ok("system.json"),
     [lensPath("personal", "dataset=policy_changes&level=0&range=30d&sort=ts,desc")]:
@@ -890,22 +918,22 @@ test("the history lists the base policy's changes and the account's, a lifted ru
     rows.map((tr) => tr.querySelector("td:nth-child(4) a")?.getAttribute("href") ?? null),
   ).toEqual([
     null,
-    "/personal/policy/operator.lender.example",
+    "/ui/accounts/personal/policy/rules/operator.lender.example",
     null,
-    "/personal/policy/base/base.bank",
-    "/personal/policy/operator.lender.example",
+    "/ui/accounts/personal/policy/base/base.bank",
+    "/ui/accounts/personal/policy/rules/operator.lender.example",
   ]);
   expect(rows.map((tr) => control(tr, "Restore")?.getAttribute("href") ?? null)).toEqual([
-    "/personal/policy/new?suffix=old.example&scope=base&id=base.old",
-    "/personal/policy/operator.lender.example?suffix=old.lender.example",
-    "/personal/policy/new?suffix=gone.example&scope=account&id=operator.gone.example",
+    "/ui/accounts/personal/policy/new?suffix=old.example&scope=base&id=base.old",
+    "/ui/accounts/personal/policy/rules/operator.lender.example?suffix=old.lender.example",
+    "/ui/accounts/personal/policy/new?suffix=gone.example&scope=account&id=operator.gone.example",
     null,
     null,
   ]);
 });
 
 test("Restore of a lifted rule opens Add a rule filled with its suffixes, its scope and its identifier", async () => {
-  await open("/personal/policy/new?suffix=old.example&scope=base&id=base.old", {
+  await open("/ui/accounts/personal/policy/new?suffix=old.example&scope=base&id=base.old", {
     ...list,
     [matchPath("personal", ["old.example"])]: ok("match-old.json"),
   });
@@ -943,11 +971,11 @@ async function choose(root: Element, file: string): Promise<void> {
 }
 
 test("an import that lifts asks one dialog naming every lift, and Put back adds them back", async () => {
-  const root = await open("/personal/policy/import", {
+  const root = await open("/ui/accounts/personal/policy/import", {
     ...importing,
-    "POST /api/personal/policy/import/preview": ok("preview-lifting.json"),
-    "POST /api/personal/policy/import": ok("imported.json"),
-    "POST /api/personal/policy/rules": ok("imported-put-back.json"),
+    "POST /ui/api/accounts/personal/policy/import/preview": ok("preview-lifting.json"),
+    "POST /ui/api/accounts/personal/policy/import": ok("imported.json"),
+    "POST /ui/api/accounts/personal/policy/rules": ok("imported-put-back.json"),
     [figures]: [ok("rules-summary.json"), ok("rules-summary-imported.json")],
     [rules]: [ok("rules-rows.json"), ok("rules-rows-imported.json")],
   });
@@ -961,7 +989,9 @@ test("an import that lifts asks one dialog naming every lift, and Put back adds 
   const file =
     "rules:\n  - id: operator.new.example\n    domain_suffix: [new.example]\n    class: restricted\n";
   await choose(root, file);
-  expect(server?.posted).toEqual([{ path: "/api/personal/policy/import/preview", body: { file } }]);
+  expect(server?.posted).toEqual([
+    { path: "/ui/api/accounts/personal/policy/import/preview", body: { file } },
+  ]);
   // The lifted group comes first, with the account's numbers.
   expect(text(root, ".preview h3")).toEqual(["Rules lifted (1)", "Rules added (1)"]);
   expect(root.querySelector(".preview-group.lifts li")?.textContent).toBe(
@@ -979,7 +1009,7 @@ test("an import that lifts asks one dialog naming every lift, and Put back adds 
   expect(d?.querySelector("input")).toBeNull();
   await click(control(d ?? root, "Import and lift 1"));
   expect(server?.posted[1]).toEqual({
-    path: "/api/personal/policy/import",
+    path: "/ui/api/accounts/personal/policy/import",
     body: {
       file,
       computed_against:
@@ -987,27 +1017,27 @@ test("an import that lifts asks one dialog naming every lift, and Put back adds 
       confirmation: "lift 1",
     },
   });
-  expect(location.pathname).toBe("/personal/policy");
+  expect(location.pathname).toBe("/ui/accounts/personal/policy");
   const status = root.querySelector('.policy > [role="status"]');
   expect(status?.textContent).toBe(
     "Imported: 1 rule added, 0 rules edited, 1 restriction lifted. Put back the 1 lifted restriction",
   );
   await click(control(status ?? root, "Put back the 1 lifted restriction"));
   expect(server?.posted[2]).toEqual({
-    path: "/api/personal/policy/rules",
+    path: "/ui/api/accounts/personal/policy/rules",
     body: { scope: "account", rule_id: "operator.lender.example", suffixes: ["lender.example"] },
   });
 });
 
 test("an import that only adds applies at once, a file equal to the stored rules has nothing to import, and a refused file names its problem", async () => {
-  const root = await open("/personal/policy/import", {
+  const root = await open("/ui/accounts/personal/policy/import", {
     ...importing,
-    "POST /api/personal/policy/import/preview": [
+    "POST /ui/api/accounts/personal/policy/import/preview": [
       refusedAnswer("preview-refused.json"),
       ok("preview-equal.json"),
       ok("preview-adding.json"),
     ],
-    "POST /api/personal/policy/import": ok("imported-adding.json"),
+    "POST /ui/api/accounts/personal/policy/import": ok("imported-adding.json"),
   });
   await choose(root, "rules: [not");
   expect(root.querySelector(".refusal[role='alert']")?.textContent).toBe(
@@ -1020,7 +1050,7 @@ test("an import that only adds applies at once, a file equal to the stored rules
   await click(control(root, "Import 1 change"));
   expect(dialog()).toBeNull();
   expect(server?.posted[3]).toEqual({
-    path: "/api/personal/policy/import",
+    path: "/ui/api/accounts/personal/policy/import",
     body: {
       file: "a file that adds",
       computed_against:
@@ -1034,10 +1064,10 @@ test("an import that only adds applies at once, a file equal to the stored rules
 });
 
 test("an import against a policy changed since its preview is refused with the words to preview again", async () => {
-  const root = await open("/personal/policy/import", {
+  const root = await open("/ui/accounts/personal/policy/import", {
     ...importing,
-    "POST /api/personal/policy/import/preview": ok("preview-lifting.json"),
-    "POST /api/personal/policy/import": refusedAnswer("error-stale-preview.json", 409),
+    "POST /ui/api/accounts/personal/policy/import/preview": ok("preview-lifting.json"),
+    "POST /ui/api/accounts/personal/policy/import": refusedAnswer("error-stale-preview.json", 409),
   });
   await choose(root, "a file");
   await click(control(root, "Import, lifting 1 restriction"));
@@ -1045,7 +1075,7 @@ test("an import against a policy changed since its preview is refused with the w
   expect(dialog()?.querySelector(".refusal[role='alert']")?.textContent).toBe(
     "The policy changed since this preview. Preview again.",
   );
-  expect(location.pathname).toBe("/personal/policy/import");
+  expect(location.pathname).toBe("/ui/accounts/personal/policy/import");
 });
 
 // --- Inert rendering -----------------------------------------------------------------------------
@@ -1089,7 +1119,7 @@ async function recording<T>(file: string): Promise<T> {
 // with no rule, its box refused with the reason and no Restrict control (docs/UI.md section 8.7,
 // ADR-0136). The Restrict control's text is the next tests' sender row's.
 test("a sender domain carrying markup arrives as text in the picker's row and its box's label", async () => {
-  const root = await open("/personal/policy/pick", picker);
+  const root = await open("/ui/accounts/personal/policy/pick", picker);
   const mark = marker("senderdomain");
   const row = [...root.querySelectorAll("tbody tr")].find((tr) => tr.textContent?.includes(mark));
   if (row === undefined) {
@@ -1230,7 +1260,9 @@ test("markup in a rule's detail arrives as text in its panel and its lift dialog
     matched: detail.matched.map((m) => ({ ...m, domain: mark })),
     history: detail.history.map((h) => ({ ...h, rule_id: mark, actor: mark })),
   };
-  await openWith("/personal/policy/operator.lender.example", list, { [lender]: marked });
+  await openWith("/ui/accounts/personal/policy/rules/operator.lender.example", list, {
+    [lender]: marked,
+  });
   const panel = document.querySelector('aside[role="dialog"]');
   if (panel === null) {
     throw new Error("no panel");
@@ -1276,8 +1308,8 @@ test("markup in a file's identifiers and suffixes arrives as text in the preview
       },
     ],
   };
-  const root = await openWith("/personal/policy/import", list, {
-    "POST /api/personal/policy/import/preview": marked,
+  const root = await openWith("/ui/accounts/personal/policy/import", list, {
+    "POST /ui/api/accounts/personal/policy/import/preview": marked,
   });
   await choose(root, "a file");
   const section = root.querySelector(".preview");
@@ -1303,9 +1335,9 @@ test("markup in a file's identifiers and suffixes arrives as text in the preview
 });
 
 test("g then o goes to the account's policy", async () => {
-  await open("/personal/policy/pick", { ...picker, ...list });
+  await open("/ui/accounts/personal/policy/pick", { ...picker, ...list });
   await press("g");
   await press("o");
-  expect(location.pathname).toBe("/personal/policy");
+  expect(location.pathname).toBe("/ui/accounts/personal/policy");
   expect(document.querySelector("main h1")?.textContent).toBe("Policy");
 });

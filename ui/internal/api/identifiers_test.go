@@ -14,7 +14,8 @@ import (
 // identifierCase is one case of the shared table of account identifier cases, and the verdict each
 // side must give it (ADR-0128, VERIFICATIONS, the identifier agreement row). Server is whether account setup's check accepts
 // Identifier, and Database whether the database's check on accounts.account_id stores it. The two
-// differ only on a word the UI's own top-level paths use, which the database does not know. Proposal
+// agree on every case, since an account's identifier follows the word accounts in every path the UI
+// serves and no word of the UI's is refused (ADR-0137). Proposal
 // is what the connect page proposes for a mailbox whose local part is Identifier while the accounts
 // in Taken exist, which every side must accept.
 type identifierCase struct {
@@ -25,16 +26,15 @@ type identifierCase struct {
 	Proposal   string   `json:"proposal"`
 }
 
-// identifierTable is the table with the words account setup refuses beside its cases, so the
-// browser's test proposes against the same words the server's check refuses.
+// identifierTable is the table as the browser's test reads it.
 type identifierTable struct {
-	Reserved []string         `json:"reserved"`
-	Cases    []identifierCase `json:"cases"`
+	Cases []identifierCase `json:"cases"`
 }
 
 // The table's cases. They hold the grammar's edges, every kind of character a mailbox's local part
 // may carry, the newlines and non-ASCII letters a regular expression dialect or a case folding could
-// read differently, the top-level words, and the length and suffix edges of the proposal. No case
+// read differently, the product's and the UI's own path words, which are identifiers like any other,
+// and the length and suffix edges of the proposal. No case
 // is an account the integration tests seed, so the database's verdict is its check's alone.
 var identifierCases = func() []identifierCase {
 	a := func(n int) string { return strings.Repeat("a", n) }
@@ -43,9 +43,6 @@ var identifierCases = func() []identifierCase {
 	}
 	refused := func(id, proposal string) identifierCase {
 		return identifierCase{Identifier: id, Taken: []string{}, Proposal: proposal}
-	}
-	word := func(id, proposal string) identifierCase {
-		return identifierCase{Identifier: id, Database: true, Taken: []string{}, Proposal: proposal}
 	}
 	taken := func(c identifierCase, proposal string, held ...string) identifierCase {
 		c.Taken, c.Proposal = held, proposal
@@ -96,15 +93,18 @@ var identifierCases = func() []identifierCase {
 		refused("Kelvin", "kelvin"),
 		refused("ｊｏ", "account"),
 		refused("jо", "j"),
-		word("setup", "setup-2"),
-		word("api", "api-2"),
-		word("fonts", "fonts-2"),
-		refused("Setup", "setup-2"),
+		accepted("setup"),
+		accepted("api"),
+		accepted("fonts"),
+		accepted("ui"),
+		accepted("mcp"),
+		accepted("accounts"),
+		refused("Setup", "setup"),
 		refused("main.js", "main-js"),
 		refused("main.css", "main-css"),
 		taken(accepted("jo"), "jo-3", "jo", "jo-2"),
 		taken(refused("", ""), "account-2", "account"),
-		taken(word("setup", ""), "setup-3", "setup-2"),
+		taken(accepted("setup"), "setup-3", "setup", "setup-2"),
 		taken(accepted(a(63)), a(61)+"-2", a(63)),
 		taken(accepted(a(63)), a(60)+"-10", a(63), a(61)+"-2", a(61)+"-3", a(61)+"-4", a(61)+"-5", a(61)+"-6",
 			a(61)+"-7", a(61)+"-8", a(61)+"-9"),
@@ -113,17 +113,17 @@ var identifierCases = func() []identifierCase {
 }()
 
 // The server's check gives every case of the table its verdict and accepts every proposal, and the
-// table's verdicts differ between the server and the database only on a top-level word (ADR-0128,
-// VERIFICATIONS, the identifier grammar row and the identifier agreement row).
+// table's verdicts are the same for the server and the database (ADR-0128, VERIFICATIONS, the
+// identifier grammar row and the identifier agreement row).
 func TestTheServerCheckKeepsToTheIdentifierTable(t *testing.T) {
 	for _, c := range identifierCases {
-		if got := setup.Identifier(c.Identifier, topLevelWords) == setup.None; got != c.Server {
+		if got := setup.Identifier(c.Identifier) == setup.None; got != c.Server {
 			t.Errorf("%q: the server's check accepts it %v, the table says %v", c.Identifier, got, c.Server)
 		}
-		if want := c.Database && !slices.Contains(topLevelWords, c.Identifier); c.Server != want {
-			t.Errorf("%q: the table's server verdict %v is not its database verdict %v less the top-level words", c.Identifier, c.Server, c.Database)
+		if c.Server != c.Database {
+			t.Errorf("%q: the table's server verdict %v is not its database verdict %v", c.Identifier, c.Server, c.Database)
 		}
-		if got := setup.Identifier(c.Proposal, topLevelWords); got != setup.None || slices.Contains(c.Taken, c.Proposal) {
+		if got := setup.Identifier(c.Proposal); got != setup.None || slices.Contains(c.Taken, c.Proposal) {
 			t.Errorf("%q: the proposal %q is refused with %q or taken", c.Identifier, c.Proposal, got)
 		}
 	}
@@ -133,7 +133,7 @@ func TestTheServerCheckKeepsToTheIdentifierTable(t *testing.T) {
 // proposal reads the cases the server's and the database's tests read (ADR-0128, VERIFICATIONS, the
 // identifier agreement row).
 func TestTheBrowsersIdentifierTableIsTheServers(t *testing.T) {
-	b, err := json.MarshalIndent(identifierTable{Reserved: topLevelWords, Cases: identifierCases}, "", "  ")
+	b, err := json.MarshalIndent(identifierTable{Cases: identifierCases}, "", "  ")
 	if err != nil {
 		t.Fatal(err)
 	}

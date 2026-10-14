@@ -8,5 +8,5 @@ import "net/http"
 // only what the recording mux's Handle records, so a route registered this way would be served
 // unchecked (ADR-0057, ADR-0071).
 func unrecorded(m *recordingMux) {
-	m.mux.Handle("GET /api/unchecked", http.NotFoundHandler()) // want vetcheck "\\(\\*http.ServeMux\\).Handle registers a route the UI's route check never sees"
+	m.mux.Handle("GET /ui/api/unchecked", http.NotFoundHandler()) // want vetcheck "\\(\\*http.ServeMux\\).Handle registers a route the UI's route check never sees"
 }

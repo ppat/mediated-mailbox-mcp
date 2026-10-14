@@ -31,19 +31,12 @@ type Rule struct {
 	Suffixes []string
 }
 
-// Reserved returns the words a scope's screens use in their addresses after the policy path, which no
-// identifier of that scope may be (docs/UI.md sections 8.7 and 8.14).
-func Reserved(scope string) []string {
-	if scope == Base {
-		return []string{"new", "history", "import"}
-	}
-	return []string{"new", "pick", "history", "import", "base"}
-}
-
-// Unreachable reports whether a rule of scope with identifier id could not be reached at its own
-// address, because it is one of the scope's route words, exactly . or .., or holds a /.
-func Unreachable(id, scope string) bool {
-	return slices.Contains(Reserved(scope), id) || id == "." || id == ".." || strings.Contains(id, "/")
+// Unreachable reports whether a rule with identifier id could not be reached at its own address,
+// because no path segment can hold it, exactly . or .., or holding a /. A rule's identifier follows
+// the word rules or base in its address and never sits where a route word does, so no word is
+// unreachable (docs/UI.md sections 5 and 8.7, ADR-0137).
+func Unreachable(id string) bool {
+	return id == "." || id == ".." || strings.Contains(id, "/")
 }
 
 // Kind names what is wrong with one rule of a write.
@@ -69,16 +62,16 @@ type Problem struct {
 
 // Check returns every problem with a scope's rules as a write would leave them, every one of them
 // restricted. It is the snapshot's validation and the check that every identifier is reachable.
-func Check(scope string, rules []Rule) []Problem {
+func Check(rules []Rule) []Problem {
 	classes := make([]string, len(rules))
 	for i := range classes {
 		classes[i] = policy.Restricted
 	}
-	return CheckClasses(scope, rules, classes)
+	return CheckClasses(rules, classes)
 }
 
 // CheckClasses is Check for rules whose classes were given, as a file states each rule's class.
-func CheckClasses(scope string, rules []Rule, classes []string) []Problem {
+func CheckClasses(rules []Rule, classes []string) []Problem {
 	rows := make([]policy.Row, len(rules))
 	for i, r := range rules {
 		rows[i] = policy.Row{ID: r.ID, Class: classes[i], DomainSuffixes: r.Suffixes}
@@ -95,7 +88,7 @@ func CheckClasses(scope string, rules []Rule, classes []string) []Problem {
 		out = append(out, Problem{Rule: p.Row, Kind: kinds[p.Kind], Suffix: p.Suffix})
 	}
 	for i, r := range rules {
-		if Unreachable(r.ID, scope) {
+		if Unreachable(r.ID) {
 			out = append(out, Problem{Rule: i, Kind: ReservedIdentifier})
 		}
 	}

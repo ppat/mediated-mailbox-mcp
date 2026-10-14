@@ -35,7 +35,7 @@
 <div class="page">
 
   <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 20px 4px 20px;">
-    <div class="note" style="font-size: 18px;">ui · Connect an account · /setup/connect</div>
+    <div class="note" style="font-size: 18px;">ui · Connect an account · /ui/setup/connect</div>
     <div class="note" style="font-size: 15px;">dark palette · sample data · consent done, address pasted, ready to connect</div>
   </div>
 
@@ -52,7 +52,7 @@
 
   <div style="display: flex; align-items: center; gap: 8px; margin: 10px 20px 0 20px; font-size: 12px;">
     <a href="#" class="muted" style="text-decoration: none;">Installation</a><span class="faint">›</span><span>Connect an account</span>
-    <span class="mono muted" style="margin-left: auto;">https://mail-ui.lan/setup/connect</span>
+    <span class="mono muted" style="margin-left: auto;">https://mail-ui.lan/ui/setup/connect</span>
   </div>
 
   <div style="display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 20px; padding: 16px 20px 24px 20px; align-items: start;">
@@ -139,7 +139,7 @@
           one attempt per browser session, held by the server across replicas. a reload restores identifier, mailbox and countdown. focus returns to the paste field when this tab is visible again, and Enter connects
         </div>
         <div class="note" style="font-size: 16px; line-height: 1.3; border: 1px dashed #3b3734; border-radius: 4px; padding: 12px 14px;">
-          re-authorize is this page at /personal/account/reauthorize: step 1 is a read-only summary (identifier, provider, the client it connects through, the remembered mailbox), and steps 2 and 3 are the same. success replaces the stored credential.<br><br>
+          re-authorize is this page at /ui/accounts/personal/account/reauthorize: step 1 is a read-only summary (identifier, provider, the client it connects through, the remembered mailbox), and steps 2 and 3 are the same. success replaces the stored credential.<br><br>
           moving: while Gmail has another client, the summary carries "Connect through another client", which opens the list without the account's current client and sets client=. step 3's button then reads "Move personal to acme-mailbox", and success "Moved personal to acme-mailbox." the new client and credential are written together. a failed move leaves the old ones.
         </div>
       </div>

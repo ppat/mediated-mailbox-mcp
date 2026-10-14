@@ -143,78 +143,64 @@ The navigation rules that make this analysis rather than page-hopping:
 
 | Scope | Rule |
 | --- | --- |
-| account | mandatory, the first path segment, never implicit, never `all`, on every route but the installation screens' of [section 8.10](#810-installation), which belong to no account |
+| account | mandatory, the path segment after `/ui/accounts/`, never implicit, never `all`, on every route but the installation screens' of [section 8.10](#810-installation), which belong to no account |
 | time range | `range=` with the grammar below. UTC on the wire and in the display, with the `Z` suffix, local time on hover |
-| search | a filter named `search`, declared in the registry as a filter-only entry of kind text, legal at every level, on three datasets. Its value is the text searched for, taken whole, so a comma or a leading `!` in it is part of the text and not the filter grammar's. On `messages` it is a case-insensitive substring match over the masked subject, filtered after the account's rows, since no index over the subject exists ([ADR-0016](./adr/data/0016-schema.md)), and the search box submits `/{account}/messages?level=3&search=…`. On `senders` it is a case-insensitive substring match over the domain, the sender picker's search of [section 8.7](#87-policy). On `rules` it is a case-insensitive substring match over the rule identifiers and the domain suffixes, the search box above the policy screen's table. Sender and label search on messages are the ordinary `sender` and `label` filters |
+| search | a filter named `search`, declared in the registry as a filter-only entry of kind text, legal at every level, on three datasets. Its value is the text searched for, taken whole, so a comma or a leading `!` in it is part of the text and not the filter grammar's. On `messages` it is a case-insensitive substring match over the masked subject, filtered after the account's rows, since no index over the subject exists ([ADR-0016](./adr/data/0016-schema.md)), and the search box submits `/ui/accounts/{account}/messages?level=3&search=…`. On `senders` it is a case-insensitive substring match over the domain, the sender picker's search of [section 8.7](#87-policy). On `rules` it is a case-insensitive substring match over the rule identifiers and the domain suffixes, the search box above the policy screen's table. Sender and label search on messages are the ordinary `sender` and `label` filters |
 
-**The route table.** The entry route first, then the fixed screens, the object screens, and the
-lens routes, which exist only for the five analysis datasets. The URL is the view state. The
-common parameters `sort=` and `page=` apply to every route that shows rows, and `level=`,
-`group=`, and the dimension filters to every lens route and to `ops` and `failures`, and `range=` to
-every dataset the default-range table gives a range.
+**The route table.** Everything the UI serves sits under `/ui`, its pages, its bundle's files and
+its read API at `/ui/api` ([section 17](#17-the-read-api)), beside the client surface's `/api` and
+`/mcp` ([ADR-0137](./adr/operability/0137-the-top-level-paths-are-the-surfaces-and-the-ui-serves-under-ui.md)).
+The server answers `/` with a redirect to `/ui/` and serves nothing else outside `/ui`. The entry
+route first, then the fixed screens, the object screens, and the lens routes, which exist only for
+the five analysis datasets. The URL is the view state. The common parameters `sort=` and `page=`
+apply to every route that shows rows, and `level=`, `group=`, and the dimension filters to every
+lens route and to `ops` and `failures`, and `range=` to every dataset the default-range table gives
+a range.
 
 | Route | Screen |
 | --- | --- |
-| `/` | redirects to `/{account}` for the account last used in this browser, else the first account by identifier, else to `/setup` when no account exists |
-| `/setup` | Installation ([8.10](#810-installation)) |
-| `/setup/{provider}/new?step=N` and `/setup/{provider}/{client}?step=N` | OAuth client setup ([8.11](#811-oauth-client-setup)), for a new client and for the client named `{client}`, `{provider}` one that authenticates through an OAuth client, `gmail` today, `step` the step in view, and `&guide=side` the compact layout of its side window |
-| `/setup/connect?client=…` | Connect an account ([8.12](#812-connect-an-account-and-re-authorize)), `client=` the client chosen to connect through |
-| `/setup/policy` and `/setup/policy/{rule-id}` | Base policy and one base rule ([8.14](#814-base-policy)) |
-| `/setup/policy/new?suffix=…&id=…` | Add a base rule, the panel over the base policy screen, `id=` the identifier a restore fills in ([8.14](#814-base-policy)) |
-| `/setup/policy/history?…` | The base policy's history, the `policy_changes` dataset's base rows ([8.14](#814-base-policy)) |
-| `/setup/policy/import` | Import the base policy from a file ([8.7](#87-policy), [8.14](#814-base-policy)) |
-| `/{account}` | Home ([8.1](#81-home)) |
-| `/{account}/account` | Account settings ([8.13](#813-account-settings)) |
-| `/{account}/account/reauthorize?client=…` | Re-authorize the account ([8.12](#812-connect-an-account-and-re-authorize)), `client=` another client to move the account to |
-| `/{account}/plans` | Plans ([8.9](#89-plans)) |
-| `/{account}/plans/{plan-id}?section=…` | Plan reviewer ([8.2](#82-plan-reviewer)) |
-| `/{account}/plans/{plan-id}/ops?…` | the plan's operations ladder, the `ops` dataset with `plan` as its parent, shown inside the reviewer's Flows section |
-| `/{account}/plans/{plan-id}/ops/{message-id}` | one operation, the panel over the plan's L3 |
-| `/{account}/plans/{plan-id}/sample?seed=S` | the sample ([8.2](#82-plan-reviewer)) |
-| `/{account}/candidates?status=…` | Review queue ([8.6](#86-review-queue)) |
-| `/{account}/candidates/{domain}` | one candidate |
-| `/{account}/jobs` | Jobs ([8.3](#83-jobs)) |
-| `/{account}/jobs/{run-id}?…` | Run ([8.4](#84-run)), whose ladder is the `failures` dataset with `run` as its parent |
-| `/{account}/jobs/{run-id}/failures/{seq}` | one failure, the panel over the run's L3 |
-| `/{account}/policy` and `/{account}/policy/{rule-id}?suffix=…` | Policy and one rule, the account's own rule of that identifier or else the base rule, `suffix=` opening Edit domains with those suffixes added ([8.7](#87-policy)) |
-| `/{account}/policy/base/{rule-id}?suffix=…` | One base rule seen from the account, for an identifier the account also holds ([8.7](#87-policy)) |
-| `/{account}/policy/new?suffix=…&scope=…&id=…` | Add a rule, the panel over the policy screen, `suffix=` or `search=` carrying the senders picked into it, and `scope=` and `id=` the scope and identifier a restore or a change of scope fills in ([8.7](#87-policy)) |
-| `/{account}/policy/pick?search=…&pick=…` | Restrict senders from the index, the `senders` dataset at L3, `pick=` the selected domains, or `pick=all` for every sender the search matches ([8.7](#87-policy)) |
-| `/{account}/policy/history?…` | Policy history, the `policy_changes` dataset ([8.7](#87-policy)) |
-| `/{account}/policy/import` | Import the account's own rules from a file ([8.7](#87-policy)) |
-| `/{account}/system` | System ([8.8](#88-system)) |
-| `/{account}/{dataset}?group=a&level=N&range=…&{dimension}={value}…` | an analysis lens ([8.5](#85-the-analysis-lenses)), `{dataset}` one of `messages`, `senders`, `masking`, `gate`, `audit` |
-| `/{account}/{dataset}/{row-id}` | one row, the panel over the lens's L3. Not for `senders`, which has no row detail; its rows link out to `messages?sender=` |
+| `/ui/` | redirects to `/ui/accounts/{account}` for the account last used in this browser, else the first account by identifier, else to `/ui/setup` when no account exists |
+| `/ui/setup` | Installation ([8.10](#810-installation)) |
+| `/ui/setup/{provider}/new?step=N` and `/ui/setup/{provider}/{client}?step=N` | OAuth client setup ([8.11](#811-oauth-client-setup)), for a new client and for the client named `{client}`, `{provider}` one that authenticates through an OAuth client, `gmail` today, `step` the step in view, and `&guide=side` the compact layout of its side window |
+| `/ui/setup/connect?client=…` | Connect an account ([8.12](#812-connect-an-account-and-re-authorize)), `client=` the client chosen to connect through |
+| `/ui/setup/policy` and `/ui/setup/policy/rules/{rule-id}` | Base policy and one base rule ([8.14](#814-base-policy)) |
+| `/ui/setup/policy/new?suffix=…&id=…` | Add a base rule, the panel over the base policy screen, `id=` the identifier a restore fills in ([8.14](#814-base-policy)) |
+| `/ui/setup/policy/history?…` | The base policy's history, the `policy_changes` dataset's base rows ([8.14](#814-base-policy)) |
+| `/ui/setup/policy/import` | Import the base policy from a file ([8.7](#87-policy), [8.14](#814-base-policy)) |
+| `/ui/accounts/{account}` | Home ([8.1](#81-home)) |
+| `/ui/accounts/{account}/account` | Account settings ([8.13](#813-account-settings)) |
+| `/ui/accounts/{account}/account/reauthorize?client=…` | Re-authorize the account ([8.12](#812-connect-an-account-and-re-authorize)), `client=` another client to move the account to |
+| `/ui/accounts/{account}/plans` | Plans ([8.9](#89-plans)) |
+| `/ui/accounts/{account}/plans/{plan-id}?section=…` | Plan reviewer ([8.2](#82-plan-reviewer)) |
+| `/ui/accounts/{account}/plans/{plan-id}/ops?…` | the plan's operations ladder, the `ops` dataset with `plan` as its parent, shown inside the reviewer's Flows section |
+| `/ui/accounts/{account}/plans/{plan-id}/ops/{message-id}` | one operation, the panel over the plan's L3 |
+| `/ui/accounts/{account}/plans/{plan-id}/sample?seed=S` | the sample ([8.2](#82-plan-reviewer)) |
+| `/ui/accounts/{account}/candidates?status=…` | Review queue ([8.6](#86-review-queue)) |
+| `/ui/accounts/{account}/candidates/{domain}` | one candidate |
+| `/ui/accounts/{account}/jobs` | Jobs ([8.3](#83-jobs)) |
+| `/ui/accounts/{account}/jobs/{run-id}?…` | Run ([8.4](#84-run)), whose ladder is the `failures` dataset with `run` as its parent |
+| `/ui/accounts/{account}/jobs/{run-id}/failures/{seq}` | one failure, the panel over the run's L3 |
+| `/ui/accounts/{account}/policy` and `/ui/accounts/{account}/policy/rules/{rule-id}?suffix=…` | Policy and one rule, the account's own rule of that identifier or else the base rule, `suffix=` opening Edit domains with those suffixes added ([8.7](#87-policy)) |
+| `/ui/accounts/{account}/policy/base/{rule-id}?suffix=…` | One base rule seen from the account, for an identifier the account also holds ([8.7](#87-policy)) |
+| `/ui/accounts/{account}/policy/new?suffix=…&scope=…&id=…` | Add a rule, the panel over the policy screen, `suffix=` or `search=` carrying the senders picked into it, and `scope=` and `id=` the scope and identifier a restore or a change of scope fills in ([8.7](#87-policy)) |
+| `/ui/accounts/{account}/policy/pick?search=…&pick=…` | Restrict senders from the index, the `senders` dataset at L3, `pick=` the selected domains, or `pick=all` for every sender the search matches ([8.7](#87-policy)) |
+| `/ui/accounts/{account}/policy/history?…` | Policy history, the `policy_changes` dataset ([8.7](#87-policy)) |
+| `/ui/accounts/{account}/policy/import` | Import the account's own rules from a file ([8.7](#87-policy)) |
+| `/ui/accounts/{account}/system` | System ([8.8](#88-system)) |
+| `/ui/accounts/{account}/{dataset}?group=a&level=N&range=…&{dimension}={value}…` | an analysis lens ([8.5](#85-the-analysis-lenses)), `{dataset}` one of `messages`, `senders`, `masking`, `gate`, `audit` |
+| `/ui/accounts/{account}/{dataset}/{row-id}` | one row, the panel over the lens's L3. Not for `senders`, which has no row detail; its rows link out to `messages?sender=` |
 
-The installation routes are matched before every account route, and the fixed and object routes
-before the lens route, so `setup` is never read as an account and `plans`, `candidates`, `jobs`,
-`policy`, `account`, and `system` are never read as dataset names. Account setup refuses an account
-identifier equal to a top-level path segment the UI serves, OAuth client setup a client name equal
-to `new` or not shaped like a project ID, and the policy screens a rule identifier equal to one of
-their own route words, exactly `.` or `..`, or holding a `/`, so no account, client or rule is
-unreachable ([sections 8.12](#812-connect-an-account-and-re-authorize),
-[8.11](#811-oauth-client-setup) and [8.7](#87-policy)). Switching account from an object route
-goes to that object's list under the new account (a plan to the plans list, a candidate to the
-queue, a run to Jobs, a row detail to its lens).
-
-**The route words are closed lists.** Each refusal is checked only when an account or a rule is
-created, so a word the UI starts using later would make an account or rule already stored under that
-word unreachable, and its bookmarks with it. The words the UI's own top-level paths use, `setup`,
-`api`, `main.js`, `main.css` and `fonts`, and each policy scope's route words are therefore closed
-lists that tests pin as literals. They sit at the positions where an account or a rule identifier
-also sits, the first segment, the segment after an account's `policy`, the segment after
-`setup/policy`, and the segment after an account's `policy/base`, where a base rule's identifier
-sits and no word does, so that list is empty. A word added there would need the base scope's refused
-words to hold it as well. The router's test reads the literal word at each position from every route
-whose earlier segments match that position's path, whatever its parameters are named and however its
-slashes are written. A test fails when such a route, a route the server registers, the built
-bundle's top level or a refusal holds a word its list does not hold, and when the router, the bundle
-or a refusal no longer holds one its list holds. So adding a word is a visible change to a pinned
-list, which review checks against the accounts and rules already stored. A route that puts a
-parameter where those paths have a literal word, such as `/{account}/{section}/{word}`, is left to
-review. The browser's tests and the server's tests each hold their own copy of these lists, and no
-test compares the two, so review keeps them equal. The account refusal still reads the bundle's top
-level when the server starts, and the tests pin what it reads.
+The fixed and object routes are matched before the lens route, so `plans`, `candidates`, `jobs`,
+`policy`, `account`, and `system` are never read as dataset names. An identifier the operator
+chooses follows a word naming what it identifies, an account's `accounts`, a rule's `rules` and a
+base rule seen from an account `base`, and never sits where a route word does, so no account or
+rule is unreachable whatever words the UI's routes use. The one identifier beside a word is an
+OAuth client's name, beside `new`, which client setup refuses unless it is shaped like a project
+ID, a shape `new` does not have. The policy screens refuse a rule identifier that is exactly `.`
+or `..` or holds a `/`, which no path segment can hold ([sections 8.11](#811-oauth-client-setup)
+and [8.7](#87-policy)). Switching account from an object route goes to that object's list under
+the new account (a plan to the plans list, a candidate to the queue, a run to Jobs, a row detail
+to its lens).
 
 **Query parameters.** `level` is explicit, 0 to 3 on a lens route. L0 ignores `group`. L1 requires
 exactly one group. L2 requires exactly one group and at least one dimension filter. L3 ignores
@@ -270,7 +256,7 @@ screens.
 
 A run's detail is the Run screen of [section 8.4](#84-run), and a row of the `runs` dataset opens
 it. A panel of the `runs` dataset over the Jobs table was the alternative. That panel would sit at
-`/{account}/jobs/{run-id}`, which is the Run screen's route, and the Run screen holds a ladder of
+`/ui/accounts/{account}/jobs/{run-id}`, which is the Run screen's route, and the Run screen holds a ladder of
 its own over the run's failures, with its own row detail, which a 480 px panel cannot hold.
 
 **Areas**, the way the datasets and the bespoke reads group for the operator:
@@ -288,7 +274,7 @@ its own over the run's failures, with its own row detail, which a 480 px panel c
 
 **Policy is the one exception to per-account rows.** Policy lives in the database, as ADR-0004's
 base policy shared by every account and ADR-0085's per-account overlays, so it is not one
-account's data. `/{account}/policy` shows the base rules, marked "base", and the account's overlay
+account's data. `/ui/accounts/{account}/policy` shows the base rules, marked "base", and the account's overlay
 rules (ADR-0004), and base rules are written from it as well as the account's own
 ([section 8.7](#87-policy)). The base policy alone also has an installation screen, which needs no
 account to exist ([section 8.14](#814-base-policy)). No row of another account's data is shown, so
@@ -423,10 +409,10 @@ cannot read, its rule shows as "none", as an empty list of rule ids that fired d
 empty cell.
 
 The rule id that restricts the sender links to the account's policy searched for it,
-`/{account}/policy?search={rule-id}`, which lists that identifier's rule in each scope that holds
+`/ui/accounts/{account}/policy?search={rule-id}`, which lists that identifier's rule in each scope that holds
 one, among any other rule whose identifier or suffix contains the text (ADR-0110). A
 sender class read `normal` carries the control "Restrict {domain}…", which opens Add a rule at
-`/{account}/policy/new?suffix={domain}` ([section 8.7](#87-policy)), so a restriction starts where
+`/ui/accounts/{account}/policy/new?suffix={domain}` ([section 8.7](#87-policy)), so a restriction starts where
 the need to make one arises. Both follow the rule above, that the UI links only to screens that
 exist.
 
@@ -472,7 +458,7 @@ with placeholders in braces.
 
 ### 8.1 Home
 
-`/{account}`. Under the chrome, the running-work strip full width, then two columns, the left
+`/ui/accounts/{account}`. Under the chrome, the running-work strip full width, then two columns, the left
 twice the width of the right. Left, "Awaiting your decision" then "Worth a look". Right, "System".
 
 **Running now**, a live strip fed by the jobs summary endpoint and the event stream. One cell per
@@ -672,7 +658,7 @@ failed read on one region shows that region's error card and leaves the others a
 
 ### 8.2 Plan reviewer
 
-`/{account}/plans/{plan-id}?section=…`. A header, a left rail, a main area, and a footer. Fed by
+`/ui/accounts/{account}/plans/{plan-id}?section=…`. A header, a left rail, a main area, and a footer. Fed by
 the plan endpoint (header, Summary, Label operations, Validation, History), the `ops` dataset with
 this plan as parent (Flows, Restricted inside, and everything the ladder shows), and the sample
 endpoint (Sample).
@@ -774,7 +760,7 @@ the client's to propose.
 
 ### 8.3 Jobs
 
-`/{account}/jobs`. Live. Three regions, fed by the jobs summary endpoint, the rate block it
+`/ui/accounts/{account}/jobs`. Live. Three regions, fed by the jobs summary endpoint, the rate block it
 carries, and the `runs` dataset, with the event stream patching all three.
 
 **Workload cards**, one row of four, each with the workload name, its workload state as a labeled
@@ -845,7 +831,7 @@ Times judged against now, such as "so far" and "in backoff until", read the live
 
 ### 8.4 Run
 
-`/{account}/jobs/{run-id}`. Any run opens it. Live while the run or its resumer (the later run
+`/ui/accounts/{account}/jobs/{run-id}`. Any run opens it. Live while the run or its resumer (the later run
 whose `resumed_from` names this one) is running. Five regions, fed by the run summary endpoint
 (L0 and the timeline) and the `failures` dataset with this run as parent (everything below). With
 zero failures, L1 and L3 collapse to one line, "no failures".
@@ -882,7 +868,7 @@ provenance (run, page, attempts, first and last error time, sender class with th
 restricts the sender, content flags with the rule ids that fired, the time scanned and the scanner version,
 disposition, and the error summary as recorded). The error summary is provider or scanner text
 and never a body. The panel ends with two links, the message in the corpus lens and its audit
-rows. The panel is the route `/{account}/jobs/{run-id}/failures/{seq}` over the items, read through
+rows. The panel is the route `/ui/accounts/{account}/jobs/{run-id}/failures/{seq}` over the items, read through
 the `failures` row detail. Until the corpus and audit lenses exist the two links are left out, and
 the panel lists the message's newest 50 audit rows the row detail carries, with their count.
 
@@ -928,7 +914,7 @@ and the items again, and those regions redraw with their answers.
 
 ### 8.5 The analysis lenses
 
-Each is `/{account}/{dataset}` with the ladder of [section 4](#4-the-zoom-ladder), fed by the
+Each is `/ui/accounts/{account}/{dataset}` with the ladder of [section 4](#4-the-zoom-ladder), fed by the
 dataset endpoint. The L0 strip shows the lens's named figures from the registry's summary query.
 Aggregates sort by count descending and rows by time descending, 50 per page, and `sort=`
 overrides the rows' order within the registry's sortable columns. The groups of an aggregate keep
@@ -945,7 +931,7 @@ Messages and Senders, each a route.
 
 The corpus lens's label grouping shows unfiled as its own group. A sender row's domain links to
 `messages?sender=` that domain. The Senders tab also offers "Restrict senders…", which carries its
-`search=` to the sender picker at `/{account}/policy/pick` ([section 8.7](#87-policy)). Audit rows
+`search=` to the sender picker at `/ui/accounts/{account}/policy/pick` ([section 8.7](#87-policy)). Audit rows
 without a message fall into the `none` group of the message-derived dimensions and count as
 neither restricted nor flagged. After a change of scanner every subject is masked again, and the
 masking events of the maskings it replaced stay in the table, so the masking lens and home's
@@ -955,7 +941,7 @@ revision equal those its subject was masked under
 
 ### 8.6 Review queue
 
-`/{account}/candidates`. The `candidates` dataset at L3 by default, sorted by score descending,
+`/ui/accounts/{account}/candidates`. The `candidates` dataset at L3 by default, sorted by score descending,
 with a status filter defaulting to pending. The "decided" control sets `status=confirmed,dismissed`
 through the any-of grammar. The L0 strip counts candidates by status. Each row is domain, score,
 the strongest signal in words, message count, first seen, time in queue (from the candidate's
@@ -985,7 +971,7 @@ no identifier. A signal whose identifier is known comes before any whose identif
 strongest signal is an unknown one only when nothing else fired, and a candidate with no recorded
 signal shows "no signal recorded".
 
-`/{account}/candidates/{domain}`. Three regions and the outcomes.
+`/ui/accounts/{account}/candidates/{domain}`. Three regions and the outcomes.
 
 | Region | Content |
 | --- | --- |
@@ -1018,7 +1004,7 @@ unchanged.
 
 ### 8.7 Policy
 
-`/{account}/policy`, the `rules` dataset. Rows sorted by rule id, the base rules marked "base" and
+`/ui/accounts/{account}/policy`, the `rules` dataset. Rows sorted by rule id, the base rules marked "base" and
 the account's overlay rules after them, each with rule id, scope (a badge, `base` or the
 account), domain suffixes, source (operator, or the candidate it came from), created time
 and identity, and the count of senders in the index it matched. Every sender a rule matches is
@@ -1044,9 +1030,10 @@ Every change to policy is made through the UI (ADR-0004), and every change is re
 policy history (ADR-0102). This section designs adding, editing and lifting rules, picking stored
 senders into the policy, and importing and exporting a scope's rules as a file (ADR-0110).
 
-**A rule.** `/{account}/policy/{rule-id}` shows the account's own rule of that identifier, or the
-base rule when the account holds none, and `/{account}/policy/base/{rule-id}` always the base rule,
-so a base rule and an account's rule of one identifier are each reachable. Every link to a rule
+**A rule.** `/ui/accounts/{account}/policy/rules/{rule-id}` shows the account's own rule of that
+identifier, or the base rule when the account holds none, and
+`/ui/accounts/{account}/policy/base/{rule-id}` always the base rule, so a base rule and an
+account's rule of one identifier are each reachable. Every link to a rule
 from a row of the table or the history names its scope this way. A message's rule link searches the
 policy for the identifier instead ([section 7.1](#71-the-message-row)). It shows the rule's
 header (identifier in mono, scope,
@@ -1058,9 +1045,9 @@ Change where this applies…, and set apart from them on the right, Lift restric
 A rule is a panel over the policy screen, as a row detail is over its list
 ([section 4](#4-the-zoom-ladder)), and so is Add a rule. The list behind either panel shows the
 `rules` dataset's default view, since the panel's address carries the panel's own parameters, such
-as `suffix=`, which the list would otherwise read as filters. `/{account}/policy/{rule-id}` reads
-the account's rule of that identifier, and on a refusal as no such row reads the base rule. A base
-rule's panel says "Every account inherits this rule." with a link to it on the base policy screen,
+as `suffix=`, which the list would otherwise read as filters.
+`/ui/accounts/{account}/policy/rules/{rule-id}` reads the account's rule of that identifier, and on
+a refusal as no such row reads the base rule. A base rule's panel says "Every account inherits this rule." with a link to it on the base policy screen,
 and a rule whose identifier the other scope also holds links to that rule. Change where this
 applies… opens its one choice beside it rather than a menu, since a rule has only the other scope
 to move to.
@@ -1075,10 +1062,11 @@ These are the checks the policy snapshot's validation makes when a process loads
 (ADR-0041), and the UI makes them before it writes, so no write the UI makes fails that validation.
 A base edit landing while a process reloads makes that reload read the policy once more, and fails
 it only when another edit lands during the second read too (ADR-0114). One refusal is the
-UI's own. An identifier that is one of this screen's route words, `new`, `pick`, `history`,
-`import` and `base`, or is exactly `.` or `..`, or holds a `/`, is refused so every rule can be
-reached. A rule's history is the rows recorded under its identifier and its scope, so an
-identifier lifted earlier in the same scope may be added again, and its history then reads added,
+UI's own. An identifier that is exactly `.` or `..`, or holds a `/`, is refused, since no path
+segment can hold it, so every rule can be reached. A rule's identifier follows `rules` or `base`
+in its address and never sits where a route word does, so no word is refused
+([section 5](#5-information-architecture-and-the-url)). A rule's history is the rows recorded
+under its identifier and its scope, so an identifier lifted earlier in the same scope may be added again, and its history then reads added,
 lifted, added, for one rule. An identifier the scope holds reads "{account} already has a rule
 {id}.", or "The base policy already has a rule {id}.". A suffix another rule already matches
 is allowed, and says which rule. The scope and the identifier cannot change once a rule is added. A
@@ -1099,7 +1087,7 @@ in view's alone, and nothing is summed across accounts.
 | Lift an overlay rule, or remove a suffix from it | lifts a restriction in the account | the lift dialog |
 | Lift a base rule, or remove a suffix from it | lifts a restriction in every account | the lift dialog and the rule identifier typed |
 
-- **Add a rule** is the panel `/{account}/policy/new`, 480 px over the policy screen like a row
+- **Add a rule** is the panel `/ui/accounts/{account}/policy/new`, 480 px over the policy screen like a row
   detail. Applies to, the rule identifier prefilled `operator.{first suffix}` in either scope and
   editable, so an exported file's identifiers read the same in any scope, the domain suffixes one per
   line, each checked as it is typed and shown with what it matches ("matches {n} senders ·
@@ -1163,8 +1151,8 @@ in view's alone, and nothing is summed across accounts.
   the sooner it is put back the less is exposed. A history row whose action is lifted, or an edit
   that removed suffixes, carries "Restore", which opens Add a rule
   prefilled with the removed suffixes, the row's scope and its identifier
-  (`/{account}/policy/new?suffix=…&scope=…&id=…`), or Edit domains with the suffixes added when the
-  rule still exists.
+  (`/ui/accounts/{account}/policy/new?suffix=…&scope=…&id=…`), or Edit domains with the suffixes
+  added when the rule still exists.
 
   Put it back re-sends the writes that add. A rule lifted whole is added again with its suffixes,
   under its identifier and scope, and a removal of suffixes is undone by an edit adding them back
@@ -1193,7 +1181,7 @@ reaches the messages skipped as restricted through the delisting transition (ADR
 claims only what fetch-time re-evaluation guarantees, that bodies are denied from the next policy
 reload (ADR-0002).
 
-**Restrict senders from the index.** `/{account}/policy/pick?search=…` is the `senders` dataset at
+**Restrict senders from the index.** `/ui/accounts/{account}/policy/pick?search=…` is the `senders` dataset at
 L3 with its `search` filter, the sender row's fields, a selection box at the left, and for a
 restricted sender the rule restricting it. The row cursor and the selection are separate. `x`
 toggles the row under the cursor, and so does `Enter`, which here never opens the row, so a key
@@ -1204,7 +1192,7 @@ in the address as `pick=` with the selected domains, or `pick=all` for every mat
 reload keep it. A restricted sender cannot be selected. A bar at the bottom of the table appears
 on the first selection, reading "{n} senders · {m} messages selected", or "all {n} matching
 senders" when the selection spans pages, and offers Restrict as one rule, on `r` too, which opens
-Add a rule at `/{account}/policy/new?suffix=…` with the selected domains in the address as its
+Add a rule at `/ui/accounts/{account}/policy/new?suffix=…` with the selected domains in the address as its
 suffixes, so the hand-off is a URL like every other view. A selection of every match hands over
 the search instead, as `?search=…`, and the panel lists the domains it matches. The selection makes
 one rule because a rule names one institution (ADR-0004), and a search for an institution's name
@@ -1225,7 +1213,7 @@ leaves the page's other senders picked. The bar is the live region, its text rea
 `Ctrl` or `Cmd` with `a` selected. Add a rule handed every match reads every page of the search
 and fills one line per sender no rule restricts.
 
-**History.** `/{account}/policy/history` is the `policy_changes` dataset, the base policy's
+**History.** `/ui/accounts/{account}/policy/history` is the `policy_changes` dataset, the base policy's
 changes and the account's own, newest first, at L3 by default with the range of
 [section 5](#5-information-architecture-and-the-url), groupable by action, scope and identity. Its L0
 figures are the changes in range, those that added restriction and those that lifted it. A lifted
@@ -1252,8 +1240,8 @@ confirmation of every restriction it lifts.
 
 - **Export** downloads the scope's rules as they are stored, named `policy-{account}.yaml` or
   `policy-base.yaml`. It asks nothing and changes nothing.
-- **Import** is the screen `/{account}/policy/import`, titled "Import {account}'s rules" with "The
-  file replaces {account}'s own rules. The base rules are not touched.", or `/setup/policy/import`,
+- **Import** is the screen `/ui/accounts/{account}/policy/import`, titled "Import {account}'s rules" with "The
+  file replaces {account}'s own rules. The base rules are not touched.", or `/ui/setup/policy/import`,
   titled "Import the base policy" with "The file replaces the base rules, which every account
   inherits." The operator drops the file or chooses it, and the server reads it and checks every
   rule with the checks of a write (What a write may hold, above) before anything is shown. A file is
@@ -1316,7 +1304,7 @@ confirmation of every restriction it lifts.
 
 ### 8.8 System
 
-`/{account}/system`. The account's identifier and provider, then, from the system endpoint's
+`/ui/accounts/{account}/system`. The account's identifier and provider, then, from the system endpoint's
 operational block, the values ADR-0034 exposes to clients, one to one. Backfill pass 1 and pass 2
 flags with progress where a pass runs, sync cursor age and last successful tick, scan backlog
 depth, rate controller state (current of target, cap, backoff wording, last throttle), and the last
@@ -1355,7 +1343,7 @@ failed or slow read shows the region patterns of
 
 ### 8.9 Plans
 
-`/{account}/plans`. The `plans` dataset at L3, one row per plan, sorted by created time newest
+`/ui/accounts/{account}/plans`. The `plans` dataset at L3, one row per plan, sorted by created time newest
 first, 50 per page, with a status filter defaulting to every status. Home shows only plans in
 DRAFT. This screen is where APPLIED, ROLLED_BACK, REJECTED, and APPLY_REFUSED history lives.
 
@@ -1372,7 +1360,7 @@ The L0 strip counts plans by status. A row opens the plan reviewer at its Summar
 
 ### 8.10 Installation
 
-`/setup`, the first of the installation screens, which hold what belongs to no account (ADR-0056).
+`/ui/setup`, the first of the installation screens, which hold what belongs to no account (ADR-0056).
 They are this screen, OAuth client setup ([section 8.11](#811-oauth-client-setup)), connecting an
 account ([section 8.12](#812-connect-an-account-and-re-authorize)) and the base policy
 ([section 8.14](#814-base-policy)). Of what is stored, an installation screen shows only three
@@ -1404,7 +1392,7 @@ other.
 
 ### 8.11 OAuth client setup
 
-`/setup/{provider}/new` sets up a new client, and `/setup/{provider}/{client}` shows the client
+`/ui/setup/{provider}/new` sets up a new client, and `/ui/setup/{provider}/{client}` shows the client
 named `{client}`, for a provider that authenticates through an OAuth client, Gmail today (ADR-0106,
 ADR-0107). Each client is set up the same way, the first or any later one. Everything is done in
 Google Cloud console, with no command-line tool, and the UI carries the instructions for every
@@ -1547,7 +1535,7 @@ read back or shown once saved.
 
 ### 8.12 Connect an account and re-authorize
 
-`/setup/connect`, an installation screen, and `/{account}/account/reauthorize`, an account's
+`/ui/setup/connect`, an installation screen, and `/ui/accounts/{account}/account/reauthorize`, an account's
 screen, are one page of three steps, each enabled once the step above is done. Nothing is stored
 until the third succeeds (ADR-0091). Not live.
 
@@ -1560,12 +1548,12 @@ until the third succeeds (ADR-0091). Not live.
    segment the API server's API root can address (ADR-0087). The proposal lowercases the local part,
    replaces each run of characters outside the grammar with a hyphen, trims hyphens at both ends,
    cuts what is left to 63 characters and trims hyphens again, and takes `account` when nothing is
-   left. When an account already holds the result, or it is a word the UI's own top-level paths
-   use, it adds the first free numeric suffix, `-2`, `-3` and so on, shortening what precedes the
-   suffix so the whole stays within 63 characters. So every proposal is an identifier the server
-   accepts, and the UI never refuses one it proposed. The proposal reads those words from the entry
-   document ([section 18.1](#181-the-configuration-the-ui-declares)), the same words the server's
-   check reads from the bundle when it starts, so the proposal and the refusal cannot differ. Then
+   left. When an account already holds the result, it adds the first free numeric suffix, `-2`,
+   `-3` and so on, shortening what precedes the suffix so the whole stays within 63 characters. So
+   every proposal is an identifier the server accepts, and the UI never refuses one it proposed. No
+   word of the UI's own is refused as an identifier, since an account's identifier follows
+   `accounts` in every path the UI serves
+   ([section 5](#5-information-architecture-and-the-url)). Then
    "Connect through", the client the consent is issued to (ADR-0106). With one client set up, it
    shows as a fact, "Gmail, through {name}", with "Set up another client" beside it. With
    several, it is a list of the clients by provider, each with its name in mono, its project ID
@@ -1573,15 +1561,12 @@ until the third succeeds (ADR-0091). Not live.
    step does not confirm until one is chosen. The list closes with "Set up another client", which
    opens a new client's setup ([section 8.11](#811-oauth-client-setup)). The provider is the chosen
    client's. A collapsed "Lower this account's rate target" holds the field of
-   [section 8.13](#813-account-settings). The identifier is refused when it is outside the grammar,
-   when it equals a word the UI's own top-level paths use, which is the router's `setup`, the read
-   API's `api`, and the name of every file or directory at the top of the built bundle, such as
-   `main.js` and `main.css`, or when an account already holds it. The server checks the identifier
-   as it arrives, neither trimming nor lowercasing it first, so it accepts nothing the database
-   would refuse. A refusal outside the grammar or for a word names the identifier and states the
-   grammar and the words rule, "{identifier} cannot be an account's identifier. An identifier is 1
-   to 63 lowercase letters, digits and hyphens, starting and ending with a letter or a digit, and
-   is not a word the UI's own paths use.", so an operator who edited the proposal knows what to
+   [section 8.13](#813-account-settings). The identifier is refused when it is outside the grammar
+   or when an account already holds it. The server checks the identifier as it arrives, neither
+   trimming nor lowercasing it first, so it accepts nothing the database would refuse. A refusal
+   outside the grammar names the identifier and states the grammar, "{identifier} cannot be an
+   account's identifier. An identifier is 1 to 63 lowercase letters, digits and hyphens, starting
+   and ending with a letter or a digit.", so an operator who edited the proposal knows what to
    type. The page
    says the identifier cannot change once connected, since every record of the account is keyed on
    it, and that the mailbox is remembered. Confirming the step starts the consent attempt, so an
@@ -1696,7 +1681,7 @@ confirmed is remembered from then on (ADR-0080).
 
 ### 8.13 Account settings
 
-`/{account}/account`, reached from the account selector's menu and from the last authentication
+`/ui/accounts/{account}/account`, reached from the account selector's menu and from the last authentication
 rows of Home's System column and the System screen. The refused-credential banner of
 [section 12](#12-empty-loading-partial-and-error-patterns) goes straight to re-authorization
 ([section 8.12](#812-connect-an-account-and-re-authorize)). Fed by the account endpoint
@@ -1733,7 +1718,7 @@ the credential, which the UI cannot read (ADR-0084). A link goes to System for t
 
 ### 8.14 Base policy
 
-`/setup/policy`, an installation screen ([section 8.10](#810-installation)), holds the base policy,
+`/ui/setup/policy`, an installation screen ([section 8.10](#810-installation)), holds the base policy,
 the rules every account inherits (ADR-0004). It needs no account to exist, so the base policy can
 be written before the first account connects, and a rule in place then classifies that account's
 senders from its first backfill. Base rules are also written from each account's policy screen
@@ -1762,7 +1747,7 @@ class is restricted. Each write is recorded in the policy history in the same tr
 from an account's policy screen read and write the base policy in a base-policy transaction, which
 names no account and reaches no account's rows (ADR-0112).
 
-**Add a base rule** is the panel `/setup/policy/new?suffix=…`, 480 px over the list. The rule
+**Add a base rule** is the panel `/ui/setup/policy/new?suffix=…`, 480 px over the list. The rule
 identifier, prefilled `operator.{first suffix}` until the operator edits it, the domain suffixes one
 per line, each checked for its shape as it is typed, and the class. A suffix that is itself a
 public suffix carries "This is a public suffix. It restricts every sender under it." on its line,
@@ -1771,7 +1756,7 @@ shows what this would restrict there." The sentence above the button reads "Rest
 in every account. From each process's next policy reload their bodies are denied." Adding asks no
 confirmation, since it only adds restriction.
 
-**A base rule.** `/setup/policy/{rule-id}` shows the rule's header (identifier in mono, the scope
+**A base rule.** `/ui/setup/policy/rules/{rule-id}` shows the rule's header (identifier in mono, the scope
 `base`, class, source, created time and identity), its domain suffixes, and its history as policy
 change rows. Two actions, Edit domains, and set apart from it on the right, Lift restriction. A
 line under the header reads "Only for one account? Open that account's policy and use Change where
@@ -1793,7 +1778,7 @@ this applies…", since moving a rule to one account's overlay names an account.
 - **Putting a lift back** is [section 8.7](#87-policy)'s, "Lifted {suffix or rule}. Put it back",
   adding back exactly what was lifted with no confirmation.
 
-**History.** `/setup/policy/history` lists the base policy's changes alone, newest first, as policy
+**History.** `/ui/setup/policy/history` lists the base policy's changes alone, newest first, as policy
 change rows with the range of [section 5](#5-information-architecture-and-the-url), a lifted rule's
 row carrying Restore, which opens Add a base rule prefilled with its suffixes and identifier.
 Its ranges are the presets as links in the screen's body, writing `range=`, since the frame's range
@@ -2097,7 +2082,8 @@ back to the next face in the stack.
   as development dependencies instead, with the image's bundle stage installing them.
 - **Served as files.** The policy's `font-src 'self'` blocks a font inlined as a `data:` URI, and
   bun's bundler inlines every font a stylesheet's `url()` reaches. So the build leaves the font URLs
-  external, as root-relative `/fonts/` paths, and copies the files into the bundle.
+  external, as root-relative `/ui/fonts/` paths under the UI's root, and copies the files into the
+  bundle.
 
 ## 15. Security of the UI itself
 
@@ -2130,10 +2116,14 @@ decisions, the two setups, and the policy writes.
   static (ADR-0042), and the one exception is the entry document, which a Go handler renders on
   every page load to place the request token in a `meta` tag. The policy allows it because it is not
   a script. The UI has no authentication of its own, so the session is anonymous and exists solely
-  to bind the request token, whether or not an authenticating proxy sits in front. On the first
-  response the UI issues the cookie `ui_session`, a random id, `HttpOnly`, `Secure`,
-  `SameSite=Strict`, with browser-session lifetime. The token is an HMAC of the session id under a
-  key generated at process start, or the key in the file `token_key_file` names when more than
+  to bind the request token, whether or not an authenticating proxy sits in front. On its first
+  response under the UI's root the UI issues the cookie `ui_session`, a random id, `HttpOnly`,
+  `Secure`, `SameSite=Strict`, with browser-session lifetime, scoped to the path `/ui/`. The
+  consent attempt's cookie is scoped to the read API's `/ui/api/`, so a browser sends neither cookie
+  to the client surface on a shared origin, and the redirect the UI answers `/` with issues no
+  session
+  ([ADR-0137](./adr/operability/0137-the-top-level-paths-are-the-surfaces-and-the-ui-serves-under-ui.md)).
+  The token is an HMAC of the session id under a key generated at process start, or the key in the file `token_key_file` names when more than
   one replica runs, and its lifetime is the session's. Every state-changing request sends it in the
   `X-Request-Token` header, and the server checks it against the cookie, so a request forged from
   another origin fails. The four decision requests are `POST` and carry the status the screen shows
@@ -2205,12 +2195,13 @@ marker text, served under the policy of [section 15](#15-security-of-the-ui-itse
 
 ## 17. The read API
 
-The UI's Go server exposes one read API to its own browser app, under `/api/{account}/…`, and
-nothing else calls it. Every path carries the account, and the account is a path segment passed
-to every data-access function (ADR-0047). A request without it does not route (404). `all` or an
-unknown account is a client error (400). The unscoped endpoints are the installation's, `GET
-/api/accounts`, because the accounts list is what the account selector and the entry redirect are
-built from, and those under `/api/setup/`, which serve the installation screens of
+The UI's Go server exposes one read API to its own browser app, under `/ui/api`, and nothing else
+calls it ([ADR-0137](./adr/operability/0137-the-top-level-paths-are-the-surfaces-and-the-ui-serves-under-ui.md)).
+An account's paths are under `/ui/api/accounts/{account}/…`, and the account is a path segment
+passed to every data-access function (ADR-0047). A request without it does not route (404). `all`
+or an unknown account is a client error (400). The unscoped endpoints are the installation's,
+`GET /ui/api/accounts`, because the accounts list is what the account selector and the entry
+redirect are built from, and those under `/ui/api/setup/`, which serve the installation screens of
 [section 8.10](#810-installation) and read no stored account's state rows. The one write among them
 into an account's rows, finishing a connection, writes the new account's two rows in a transaction
 set to that account. The base policy's writes among them write base rules and their history rows,
@@ -2226,7 +2217,7 @@ client surface of ADR-0030 already carries its contract as OpenAPI.
 
 ### 17.1 The dataset endpoint
 
-`GET /api/{account}/lens?dataset=…&level=N&group=a&range=…&sort=…&page=P&{dimension}={value}…`
+`GET /ui/api/accounts/{account}/lens?dataset=…&level=N&group=a&range=…&sort=…&page=P&{dimension}={value}…`
 
 A nested dataset carries its required parent filter, `plan={id}` for `ops` and `run={id}` for
 `failures`. Level 0 returns the lens's figures. Levels 1 and 2 return aggregates. Level 3 returns
@@ -2238,7 +2229,7 @@ a row page. The level rules and the filter grammar of
 { "account": "personal", "dataset": "masking", "level": 0, "as_of": "2026-09-10T10:16:04Z",
   "filters": { "range": "7d" },
   "figures": [
-    { "key": "events", "wording": "events", "value": 312, "at": null, "unit": null, "link": "/personal/masking?level=3&range=7d" }
+    { "key": "events", "wording": "events", "value": 312, "at": null, "unit": null, "link": "/ui/accounts/personal/masking?level=3&range=7d" }
   ] }
 ```
 
@@ -2369,8 +2360,8 @@ search box reads, a substring match over identifiers and suffixes.
 The account's history is its own rows and the base policy's, as every statement confines it to the
 transaction's account (ADR-0102, ADR-0135). A row carries no account other than the one in the path or none.
 
-`GET /api/{account}/{dataset}/{row-id}` (with the parent filter for a nested dataset, and no other
-parameter) returns one row with its provenance for L4, including the message's audit rows, for the
+`GET /ui/api/accounts/{account}/{dataset}/{row-id}` (with the parent filter for a nested dataset,
+and no other parameter) returns one row with its provenance for L4, including the message's audit rows, for the
 datasets that declare a provenance query. The registry adds one such path for each of those
 datasets. `senders` declares none. `plans`, `candidates` and `runs` declare none, because their row
 paths belong to the bespoke handlers, and the contract generator refuses a path claimed by both
@@ -2436,41 +2427,41 @@ Every failure is one shape, and the origin mirrors
 
 | Endpoint | Returns or carries |
 | --- | --- |
-| `GET /api/accounts` | every account's identifier and provider. Unscoped |
-| `GET /api/{account}/plans/{id}` | the header fields, the proposer, `expires_at` (created time plus the configured maximum plan age), the L0 summary with the share of corpus, the label operations with their touched counts, the validation results (creation and, if run, apply) and refusal reason, the history events assembled with time and identity, the apply and rollback run ids, and while applying the op-log progress, scoped through the plan's account |
-| `GET /api/{account}/plans/{id}/sample?seed=` | the stratified sample, the seed used, and the strata sizes |
-| `POST /api/{account}/plans/{id}/approve` with `{ "expected_status": "DRAFT", "confirmation": "12480" }` | 200 with the updated plan, 409 on a status mismatch, 400 when the confirmation is required and its digits do not match |
-| `POST /api/{account}/plans/{id}/reject` with `{ "expected_status": "DRAFT" }` | as approve |
-| `POST /api/{account}/candidates/{domain}/confirm` with `{ "expected_status": "pending" }` (or `dismissed`) | 200 with the candidate and the pending count, 409 on mismatch |
-| `POST /api/{account}/candidates/{domain}/dismiss` with `{ "expected_status": "pending" }` | as confirm |
-| `GET /api/{account}/jobs` | one block per workload with its derived workload state and the card fields of [section 8.3](#83-jobs), the rate block (current, target, cap, backoff, last throttle, and reserved and used per class), and the cadences from configuration |
-| `GET /api/{account}/jobs/{run}` | the run as the jobs endpoint sends it, the latest run whose `resumed_from` names it, its item failures counted in all and per disposition, the runs that recovered its items with how many each, and every event of its timeline (kind, time, page, detail) in the order recorded. An unknown run is refused with the client's 404, `unknown_run` |
-| `GET /api/{account}/attention` | the "worth a look" cards of [section 8.1](#81-home), in their order, each with its rule id (`backlog`, `masking`, `body_serves`, `sync_gap`, `expiry`), what, number, since (`null` when the rule has none), the sentence, and the link the rule's table names |
-| `GET /api/{account}/system` | two blocks. `operational`, the values of [section 8.8](#88-system) and the finish time of backfill pass 1's latest succeeded run, which tells the partial-index banner a re-opened pass 1 from a first one ([section 12](#12-empty-loading-partial-and-error-patterns)); `decisions`, the counts of plans in DRAFT, candidates pending, and workloads running, which the chrome's counters read. It counts nothing over every message of the account, since the banner reads it again on every backfill run event ([section 9](#9-live-surfaces)) |
-| `GET /api/{account}/corpus` | the corpus figures of Home's System column ([section 8.1](#81-home)) with `as_of`, the time the read transaction began, then the messages, threads, unfiled and restricted messages of the account, the restricted ones the sum of the stored message counts of the senders the account's composed policy restricts, classified in the read's transaction (ADR-0136), the audit rows of the last 24 hours by action as stored, each action present with zero when no row has it, the masking events and the gate's skips of the last 7 days. It counts every message of the account, which is why it is a read apart from the system endpoint, read by Home alone |
-| `GET /api/{account}/events` | the live stream, `text/event-stream` |
-| `GET /api/setup` | the installation endpoint. The providers whose accounts connect through an OAuth client, each OAuth client's name, provider, client identifier and project ID with the accounts connected through it, every account's identifier, provider and the client it connects through, and the count of base rules. Unscoped, and reads nothing of any account's state, so the getting-started list of [section 8.10](#810-installation) reads whether an account exists, never whether one is connected |
-| `POST /api/setup/{provider}/clients` with `{ "name": "…", "client_id": "…", "client_secret": "…", "project_id": "…" }` | checks a new client with the provider and stores it under its name, the secret sealed and the project ID beside it, `null` when neither step 1 nor the file gave one. 200 when stored, the client's 400 `client_refused` when the provider refuses it or the identifier or the secret is empty, the provider's 502 `provider_unreachable` when it does not answer, 400 `name_refused` for a name [section 8.11](#811-oauth-client-setup) refuses, 400 `project_refused` for a project ID not shaped like one, 409 `name_taken` or `client_exists`, the latter naming the client that holds the identifier, and 404 `unknown_provider` for a provider that authenticates through no OAuth client. Unscoped |
-| `POST /api/setup/{provider}/clients/{client}` with `{ "client_id": "…", "client_secret": "…", "project_id": "…" }` | replaces the named client's identifier and secret, or with the stored `client_id` updates its secret alone, which keeps every grant ([section 8.11](#811-oauth-client-setup)). Answers as the add, and the client's 404 `unknown_client`. Unscoped |
-| `POST /api/setup/{provider}/clients/{client}/remove` | removes a client no account connects through. The client's 409 `client_in_use` with the accounts that do, and 404 `unknown_client`. Unscoped |
-| `POST /api/setup/connect` with `{ "account": "…", "client": "…", "mailbox": "…", "lowered_target": null }` | starts a consent attempt for the session through the named client after checking the identifier, replacing any attempt the session held ([section 8.12](#812-connect-an-account-and-re-authorize)), 400 `identifier_refused`, `mailbox_refused` for a mailbox with no local part or no domain, or `target_refused` for a target outside the range of [section 8.13](#813-account-settings), 409 `identifier_taken` or 404 `unknown_client` otherwise. The provider is the client's. 200 with the consent page's address and the attempt's expiry. Unscoped |
-| `GET /api/setup/connect` | the session's attempt, its identifier, mailbox, client, expiry and consent page's address, with its state as the attempt's name, which a reload of the page restores and a tab compares with its own to tell it was replaced, or none. Unscoped |
-| `POST /api/setup/connect/finish` with `{ "address": "…" }` | finishes the session's attempt from the pasted address and writes the account's two rows. 200 with the account, or the client's 400 with one code per cause of [section 8.12](#812-connect-an-account-and-re-authorize)'s refusals, `consent_declined`, `no_code`, `wrong_address`, `wrong_attempt`, `no_attempt`, `attempt_expired`, `code_refused`, `scope_missing`, `scope_refused`, `api_disabled`, `wrong_mailbox`, the client's 409 `identifier_taken` when an account took the identifier after the attempt started, 409 `client_changed` when the attempt's client was replaced or removed after it started, and the provider's 502 `provider_unreachable` when Google does not answer. Unscoped |
-| `GET /api/{account}/account` | the values of [section 8.13](#813-account-settings), the identifier, provider, the client it connects through and the provider's other clients, mailbox, whether a state row exists, the last authentication, the lowered target as a fraction, the current target from the rate state, the backfill flags and when the sync cursor was written. Never the credential |
-| `POST /api/{account}/account/reauthorize`, `GET /api/{account}/account/reauthorize` and `POST /api/{account}/account/reauthorize/finish` | as the connect requests, for the account in the path, checked against its remembered mailbox, and replacing its credential and recording the code exchange's attempt on success. The start request carries `{ "mailbox": "…" }` only when the account remembers none, a mailbox in the request of an account that remembers one is refused with 400 `mailbox_remembered`, and a request naming none for an account that remembers none with 400 `mailbox_required`. It carries `{ "client": "…" }` to move the account to another client of its provider, refused with 400 `client_wrong_provider` for a client of another provider, and success then writes the client and the credential in one transaction |
-| `GET /api/setup/policy?search=…` | the base rules, each with its identifier, suffixes, source and created time and identity, and every account's identifier, which the base policy screen of [section 8.14](#814-base-policy) lists. No count of any account's senders or messages. Unscoped |
-| `GET /api/setup/policy/history?range=…&rule=…` | the base policy's history rows alone, newest first, `rule=` narrowing them to one rule's for its screen ([section 8.14](#814-base-policy)). Unscoped. This endpoint, the one above and the base rule count of `GET /api/setup` read in a base-policy transaction (ADR-0112) |
-| `POST /api/setup/policy/rules`, `POST /api/setup/policy/rules/{rule-id}` and `POST /api/setup/policy/rules/{rule-id}/lift` | add, edit and lift a base rule with its history row, with the bodies and answers of the account's policy writes below, `scope` absent since it is always `base`, and a lift or a suffix removal always needing `confirmation`. Unscoped |
-| `POST /api/{account}/account/target` with `{ "lowered_target": 0.3 }` | stores the lowered target, or clears it with `null`. 400 `target_refused` outside the range of [section 8.13](#813-account-settings), and the client's 409 `not_connected` for an account with no state row, which holds no target until it is connected |
-| `GET /api/{account}/policy/match?suffix=…` | for each suffix, whether it is a valid domain suffix, whether it is itself a public suffix, the senders and messages it matches in the account, and any rule that already matches it, which the add panel reads as each line is typed, with `together`, the senders and messages every suffix matches counted together, a sender two of them match counting once, and the account's count of senders, which a share is taken of |
-| `GET /api/{account}/policy/release?scope=…&rule=…&keep=…` | the senders and messages keeping only the `keep` suffixes of the rule, or none for a whole lift, would release in the account, the senders its policy restricts now and would not after, which the lift dialog of an edit removing several suffixes reads, since a sender two removed suffixes both match is released only by removing both. The client's 404 `unknown_rule` for a rule the account's policy does not hold |
-| `GET /api/setup/policy/match?suffix=…` | for each suffix typed in Add a base rule, whether it is a valid domain suffix, whether it is itself a public suffix, and the base rules already matching it, with no count, since counts are each account's. Unscoped, and read in a base-policy transaction |
-| `POST /api/{account}/policy/rules` with `{ "scope": "account", "rule_id": "…", "suffixes": ["…"] }` | adds a rule, `scope` being `account` or `base`, with its history row. 400 `rule_refused` with each problem, 409 `identifier_taken` |
-| `POST /api/{account}/policy/rules/{rule-id}` with `{ "scope": "account", "suffixes_before": ["…"], "suffixes": ["…"], "confirmation": null }` | edits the rule's suffixes with its history row. The client's 404 `unknown_rule` for a rule the account's policy does not hold, read before the write, so a rule another account holds is never reported as a conflict. 409 when `suffixes_before` differs from what is stored. An edit that removes a suffix of a base rule needs `confirmation`, the rule identifier typed, refused with 400 `confirmation_required` otherwise, and an edit removing every suffix is refused with 400 `rule_refused` |
-| `POST /api/{account}/policy/rules/{rule-id}/lift` with `{ "scope": "account", "suffixes_before": ["…"], "confirmation": null }` | removes the rule with its history row. 404 and 409 as edit, and `confirmation` as edit for a base rule |
-| `GET /api/{account}/policy/export` and `GET /api/setup/policy/export` | the scope's rules in the file form of [section 8.7](#87-policy), as a download. The base one is unscoped and reads in a base-policy transaction |
-| `POST /api/{account}/policy/import/preview` and `POST /api/setup/policy/import/preview` with the file | reads and checks the file and answers the four groups of the preview, the account's numbers for the account's scope, and the scope's stored rules it was computed against. 400 `file_refused` with each problem, its rule and its line. Writes nothing. The base one is unscoped and reads in a base-policy transaction |
-| `POST /api/{account}/policy/import` and `POST /api/setup/policy/import` with `{ "file": "…", "computed_against": "…", "confirmation": null }` | applies the file as one transaction, each change with its history row. 409 `stale_preview` when the scope's rules read in the import's transaction differ from `computed_against`. An import that lifts anything needs `confirmation`, `lift {k}` with {k} the count it lifts, which the dialog sends, typed by the operator for the base scope, refused with 400 `confirmation_required` otherwise. The base one is unscoped and reads and writes in a base-policy transaction |
+| `GET /ui/api/accounts` | every account's identifier and provider. Unscoped |
+| `GET /ui/api/accounts/{account}/plans/{id}` | the header fields, the proposer, `expires_at` (created time plus the configured maximum plan age), the L0 summary with the share of corpus, the label operations with their touched counts, the validation results (creation and, if run, apply) and refusal reason, the history events assembled with time and identity, the apply and rollback run ids, and while applying the op-log progress, scoped through the plan's account |
+| `GET /ui/api/accounts/{account}/plans/{id}/sample?seed=` | the stratified sample, the seed used, and the strata sizes |
+| `POST /ui/api/accounts/{account}/plans/{id}/approve` with `{ "expected_status": "DRAFT", "confirmation": "12480" }` | 200 with the updated plan, 409 on a status mismatch, 400 when the confirmation is required and its digits do not match |
+| `POST /ui/api/accounts/{account}/plans/{id}/reject` with `{ "expected_status": "DRAFT" }` | as approve |
+| `POST /ui/api/accounts/{account}/candidates/{domain}/confirm` with `{ "expected_status": "pending" }` (or `dismissed`) | 200 with the candidate and the pending count, 409 on mismatch |
+| `POST /ui/api/accounts/{account}/candidates/{domain}/dismiss` with `{ "expected_status": "pending" }` | as confirm |
+| `GET /ui/api/accounts/{account}/jobs` | one block per workload with its derived workload state and the card fields of [section 8.3](#83-jobs), the rate block (current, target, cap, backoff, last throttle, and reserved and used per class), and the cadences from configuration |
+| `GET /ui/api/accounts/{account}/jobs/{run}` | the run as the jobs endpoint sends it, the latest run whose `resumed_from` names it, its item failures counted in all and per disposition, the runs that recovered its items with how many each, and every event of its timeline (kind, time, page, detail) in the order recorded. An unknown run is refused with the client's 404, `unknown_run` |
+| `GET /ui/api/accounts/{account}/attention` | the "worth a look" cards of [section 8.1](#81-home), in their order, each with its rule id (`backlog`, `masking`, `body_serves`, `sync_gap`, `expiry`), what, number, since (`null` when the rule has none), the sentence, and the link the rule's table names |
+| `GET /ui/api/accounts/{account}/system` | two blocks. `operational`, the values of [section 8.8](#88-system) and the finish time of backfill pass 1's latest succeeded run, which tells the partial-index banner a re-opened pass 1 from a first one ([section 12](#12-empty-loading-partial-and-error-patterns)); `decisions`, the counts of plans in DRAFT, candidates pending, and workloads running, which the chrome's counters read. It counts nothing over every message of the account, since the banner reads it again on every backfill run event ([section 9](#9-live-surfaces)) |
+| `GET /ui/api/accounts/{account}/corpus` | the corpus figures of Home's System column ([section 8.1](#81-home)) with `as_of`, the time the read transaction began, then the messages, threads, unfiled and restricted messages of the account, the restricted ones the sum of the stored message counts of the senders the account's composed policy restricts, classified in the read's transaction (ADR-0136), the audit rows of the last 24 hours by action as stored, each action present with zero when no row has it, the masking events and the gate's skips of the last 7 days. It counts every message of the account, which is why it is a read apart from the system endpoint, read by Home alone |
+| `GET /ui/api/accounts/{account}/events` | the live stream, `text/event-stream` |
+| `GET /ui/api/setup` | the installation endpoint. The providers whose accounts connect through an OAuth client, each OAuth client's name, provider, client identifier and project ID with the accounts connected through it, every account's identifier, provider and the client it connects through, and the count of base rules. Unscoped, and reads nothing of any account's state, so the getting-started list of [section 8.10](#810-installation) reads whether an account exists, never whether one is connected |
+| `POST /ui/api/setup/{provider}/clients` with `{ "name": "…", "client_id": "…", "client_secret": "…", "project_id": "…" }` | checks a new client with the provider and stores it under its name, the secret sealed and the project ID beside it, `null` when neither step 1 nor the file gave one. 200 when stored, the client's 400 `client_refused` when the provider refuses it or the identifier or the secret is empty, the provider's 502 `provider_unreachable` when it does not answer, 400 `name_refused` for a name [section 8.11](#811-oauth-client-setup) refuses, 400 `project_refused` for a project ID not shaped like one, 409 `name_taken` or `client_exists`, the latter naming the client that holds the identifier, and 404 `unknown_provider` for a provider that authenticates through no OAuth client. Unscoped |
+| `POST /ui/api/setup/{provider}/clients/{client}` with `{ "client_id": "…", "client_secret": "…", "project_id": "…" }` | replaces the named client's identifier and secret, or with the stored `client_id` updates its secret alone, which keeps every grant ([section 8.11](#811-oauth-client-setup)). Answers as the add, and the client's 404 `unknown_client`. Unscoped |
+| `POST /ui/api/setup/{provider}/clients/{client}/remove` | removes a client no account connects through. The client's 409 `client_in_use` with the accounts that do, and 404 `unknown_client`. Unscoped |
+| `POST /ui/api/setup/connect` with `{ "account": "…", "client": "…", "mailbox": "…", "lowered_target": null }` | starts a consent attempt for the session through the named client after checking the identifier, replacing any attempt the session held ([section 8.12](#812-connect-an-account-and-re-authorize)), 400 `identifier_refused`, `mailbox_refused` for a mailbox with no local part or no domain, or `target_refused` for a target outside the range of [section 8.13](#813-account-settings), 409 `identifier_taken` or 404 `unknown_client` otherwise. The provider is the client's. 200 with the consent page's address and the attempt's expiry. Unscoped |
+| `GET /ui/api/setup/connect` | the session's attempt, its identifier, mailbox, client, expiry and consent page's address, with its state as the attempt's name, which a reload of the page restores and a tab compares with its own to tell it was replaced, or none. Unscoped |
+| `POST /ui/api/setup/connect/finish` with `{ "address": "…" }` | finishes the session's attempt from the pasted address and writes the account's two rows. 200 with the account, or the client's 400 with one code per cause of [section 8.12](#812-connect-an-account-and-re-authorize)'s refusals, `consent_declined`, `no_code`, `wrong_address`, `wrong_attempt`, `no_attempt`, `attempt_expired`, `code_refused`, `scope_missing`, `scope_refused`, `api_disabled`, `wrong_mailbox`, the client's 409 `identifier_taken` when an account took the identifier after the attempt started, 409 `client_changed` when the attempt's client was replaced or removed after it started, and the provider's 502 `provider_unreachable` when Google does not answer. Unscoped |
+| `GET /ui/api/accounts/{account}/account` | the values of [section 8.13](#813-account-settings), the identifier, provider, the client it connects through and the provider's other clients, mailbox, whether a state row exists, the last authentication, the lowered target as a fraction, the current target from the rate state, the backfill flags and when the sync cursor was written. Never the credential |
+| `POST /ui/api/accounts/{account}/account/reauthorize`, `GET /ui/api/accounts/{account}/account/reauthorize` and `POST /ui/api/accounts/{account}/account/reauthorize/finish` | as the connect requests, for the account in the path, checked against its remembered mailbox, and replacing its credential and recording the code exchange's attempt on success. The start request carries `{ "mailbox": "…" }` only when the account remembers none, a mailbox in the request of an account that remembers one is refused with 400 `mailbox_remembered`, and a request naming none for an account that remembers none with 400 `mailbox_required`. It carries `{ "client": "…" }` to move the account to another client of its provider, refused with 400 `client_wrong_provider` for a client of another provider, and success then writes the client and the credential in one transaction |
+| `GET /ui/api/setup/policy?search=…` | the base rules, each with its identifier, suffixes, source and created time and identity, and every account's identifier, which the base policy screen of [section 8.14](#814-base-policy) lists. No count of any account's senders or messages. Unscoped |
+| `GET /ui/api/setup/policy/history?range=…&rule=…` | the base policy's history rows alone, newest first, `rule=` narrowing them to one rule's for its screen ([section 8.14](#814-base-policy)). Unscoped. This endpoint, the one above and the base rule count of `GET /ui/api/setup` read in a base-policy transaction (ADR-0112) |
+| `POST /ui/api/setup/policy/rules`, `POST /ui/api/setup/policy/rules/{rule-id}` and `POST /ui/api/setup/policy/rules/{rule-id}/lift` | add, edit and lift a base rule with its history row, with the bodies and answers of the account's policy writes below, `scope` absent since it is always `base`, and a lift or a suffix removal always needing `confirmation`. Unscoped |
+| `POST /ui/api/accounts/{account}/account/target` with `{ "lowered_target": 0.3 }` | stores the lowered target, or clears it with `null`. 400 `target_refused` outside the range of [section 8.13](#813-account-settings), and the client's 409 `not_connected` for an account with no state row, which holds no target until it is connected |
+| `GET /ui/api/accounts/{account}/policy/match?suffix=…` | for each suffix, whether it is a valid domain suffix, whether it is itself a public suffix, the senders and messages it matches in the account, and any rule that already matches it, which the add panel reads as each line is typed, with `together`, the senders and messages every suffix matches counted together, a sender two of them match counting once, and the account's count of senders, which a share is taken of |
+| `GET /ui/api/accounts/{account}/policy/release?scope=…&rule=…&keep=…` | the senders and messages keeping only the `keep` suffixes of the rule, or none for a whole lift, would release in the account, the senders its policy restricts now and would not after, which the lift dialog of an edit removing several suffixes reads, since a sender two removed suffixes both match is released only by removing both. The client's 404 `unknown_rule` for a rule the account's policy does not hold |
+| `GET /ui/api/setup/policy/match?suffix=…` | for each suffix typed in Add a base rule, whether it is a valid domain suffix, whether it is itself a public suffix, and the base rules already matching it, with no count, since counts are each account's. Unscoped, and read in a base-policy transaction |
+| `POST /ui/api/accounts/{account}/policy/rules` with `{ "scope": "account", "rule_id": "…", "suffixes": ["…"] }` | adds a rule, `scope` being `account` or `base`, with its history row. 400 `rule_refused` with each problem, 409 `identifier_taken` |
+| `POST /ui/api/accounts/{account}/policy/rules/{rule-id}` with `{ "scope": "account", "suffixes_before": ["…"], "suffixes": ["…"], "confirmation": null }` | edits the rule's suffixes with its history row. The client's 404 `unknown_rule` for a rule the account's policy does not hold, read before the write, so a rule another account holds is never reported as a conflict. 409 when `suffixes_before` differs from what is stored. An edit that removes a suffix of a base rule needs `confirmation`, the rule identifier typed, refused with 400 `confirmation_required` otherwise, and an edit removing every suffix is refused with 400 `rule_refused` |
+| `POST /ui/api/accounts/{account}/policy/rules/{rule-id}/lift` with `{ "scope": "account", "suffixes_before": ["…"], "confirmation": null }` | removes the rule with its history row. 404 and 409 as edit, and `confirmation` as edit for a base rule |
+| `GET /ui/api/accounts/{account}/policy/export` and `GET /ui/api/setup/policy/export` | the scope's rules in the file form of [section 8.7](#87-policy), as a download. The base one is unscoped and reads in a base-policy transaction |
+| `POST /ui/api/accounts/{account}/policy/import/preview` and `POST /ui/api/setup/policy/import/preview` with the file | reads and checks the file and answers the four groups of the preview, the account's numbers for the account's scope, and the scope's stored rules it was computed against. 400 `file_refused` with each problem, its rule and its line. Writes nothing. The base one is unscoped and reads in a base-policy transaction |
+| `POST /ui/api/accounts/{account}/policy/import` and `POST /ui/api/setup/policy/import` with `{ "file": "…", "computed_against": "…", "confirmation": null }` | applies the file as one transaction, each change with its history row. 409 `stale_preview` when the scope's rules read in the import's transaction differ from `computed_against`. An import that lifts anything needs `confirmation`, `lift {k}` with {k} the count it lifts, which the dialog sends, typed by the operator for the base scope, refused with 400 `confirmation_required` otherwise. The base one is unscoped and reads and writes in a base-policy transaction |
 
 The plans and candidates lists are read through the dataset endpoint's `plans` and `candidates`
 datasets ([section 17.1](#171-the-dataset-endpoint)), and the rules and the policy history through
@@ -2542,6 +2533,7 @@ ui/
     contract/           builds the OpenAPI document from the registry and the handler list
     clientsecret/       opens an OAuth client's sealed secret for a consent's code exchange, the one part
                         of the UI that opens a stored value (ADR-0081)
+    paths/              the UI's root and the addresses under it the server builds (ADR-0137)
     core/               pure-core packages private to the UI
   contract/             the generated OpenAPI document (checked in, regenerated in CI)
   browser/              the TypeScript app, with its manifest, lock file, runner, compiler, lint and format settings
@@ -2572,9 +2564,21 @@ ui/
   ADR-0063 names. The contract document is generated from the registry and the handler list in CI,
   and the browser types and the descriptor table from the document. A stale document, stale types,
   or a stale descriptor table fails the build (ADR-0065).
+- **The root.** The browser writes the UI's root, `/ui`, in one module, `src/app/paths.ts`, and
+  builds every page address and every read API path from it, so no component writes a
+  root-absolute address
+  ([ADR-0137](./adr/operability/0137-the-top-level-paths-are-the-surfaces-and-the-ui-serves-under-ui.md)).
+  The one other place the root is written is the stylesheet, whose font URLs sit under
+  `/ui/fonts/`. The build keeps URLs under the module's root external, and a build test compares
+  the built stylesheet's font URLs with the files the build copies, as `/ui/fonts/` paths, so a
+  stylesheet whose URLs drift from the module's root fails that test. The
+  entry document links `/ui/main.css` and `/ui/main.js`. On the server, one shell package,
+  `ui/internal/paths`, holds the root, the read API's root and the page addresses the server
+  writes into its answers, and a test requires every route the server registers to sit under the
+  root, `/` apart.
 - **Dev loop.** The Go server runs against a local Postgres with the synthetic fixtures, in plain
   HTTP with no TLS files configured (ADR-0127). The browser app runs under bun's dev server
-  proxying `/api` to the Go server, with the same request token and identity rules in force. The
+  proxying `/ui/api` to the Go server, with the same request token and identity rules in force. The
   dev server serves no policy header, so the policy of
   [section 15](#15-security-of-the-ui-itself) is exercised only against the built output the Go
   server serves (ADR-0064).
@@ -2605,15 +2609,10 @@ Four keys are the browser's, `default_theme`, `stream_reconnect_max`, `stream_po
 `consent_redirect`. The Go handler renders each into the entry document on every page load as a
 `meta` tag named `mediated-mailbox.` followed by the key, with the value as its content and a
 duration written in whole milliseconds. The request token rides beside them as
-`mediated-mailbox.request_token`, the placement ADR-0061 gives it, and so do the words the UI's
-own top-level paths use, which account setup refuses as identifiers, as
-`mediated-mailbox.reserved_identifiers`, separated by single spaces, for the connect page's
-proposal to avoid ([section 8.12](#812-connect-an-account-and-re-authorize)). The browser's
-composition root, `main.ts`, is their one reader, and a tag it cannot read takes the record's
-default, apart from `consent_redirect` and the reserved words, which the browser holds no copy of.
-So a page without `consent_redirect` pictures no address and finds no pasted address to be the
-redirect's, and a page without the reserved words proposes without avoiding them, which the
-server then refuses.
+`mediated-mailbox.request_token`, the placement ADR-0061 gives it. The browser's composition root,
+`main.ts`, is their one reader, and a tag it cannot read takes the record's default, apart from
+`consent_redirect`, which the browser holds no copy of. So a page without `consent_redirect`
+pictures no address and finds no pasted address to be the redirect's.
 
 | Key | Value | Required |
 | --- | --- | --- |

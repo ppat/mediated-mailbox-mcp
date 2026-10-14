@@ -6,6 +6,7 @@
 import { useLocation } from "preact-iso";
 import { baseHistoryPath, type ChangeRow, type RowsPage } from "../app/api.ts";
 import { useDeps } from "../app/deps.ts";
+import { setupPage } from "../app/paths.ts";
 import { Region } from "../app/region.tsx";
 import type { View } from "../app/url.ts";
 import { Lens } from "../lens/lens.tsx";
@@ -60,7 +61,7 @@ export function BaseHistoryScreen() {
           <a
             key={p.range}
             class="preset"
-            href={`/setup/policy/history?range=${p.range}`}
+            href={setupPage(`policy/history?range=${p.range}`)}
             aria-current={range === p.range ? "true" : undefined}
           >
             {p.wording}

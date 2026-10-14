@@ -80,12 +80,12 @@ async function deliver(name: string, data: object): Promise<void> {
 }
 
 test("a URL missing parameters is replaced by the runs view's canonical form", async () => {
-  await open("/personal/jobs");
-  expect(location.pathname + location.search).toBe(`/personal/jobs?${canonical}`);
+  await open("/ui/accounts/personal/jobs");
+  expect(location.pathname + location.search).toBe(`/ui/accounts/personal/jobs?${canonical}`);
 });
 
 test("the cards show each workload's state and fields, with the decisions block's counts", async () => {
-  const root = await open(`/personal/jobs?${canonical}`);
+  const root = await open(`/ui/accounts/personal/jobs?${canonical}`);
   expect([...root.querySelectorAll("section.card h2")].map((h) => h.textContent)).toEqual([
     "Backfill running",
     "Delta sync running",
@@ -139,7 +139,7 @@ test("the cards show each workload's state and fields, with the decisions block'
 });
 
 test("the recent runs open without delta-sync ticks, each linking to its run", async () => {
-  const root = await open(`/personal/jobs?${canonical}`);
+  const root = await open(`/ui/accounts/personal/jobs?${canonical}`);
   expect(root.querySelector(".breadcrumb .chip")?.textContent).toBe("pass not tick ×");
   const table = root.querySelector("table.rows");
   expect(table?.querySelector("caption")?.textContent).toBe("Recent runs, 4 in all");
@@ -176,7 +176,7 @@ test("the recent runs open without delta-sync ticks, each linking to its run", a
     ],
     ["r-0912", "backfill · pass2", "2026-09-08 08:16Z", "1h", "failed", "page 14 of 3,368", "5"],
   ]);
-  const failures = table?.querySelector('a[href="/personal/jobs/r-0912"]:not(.mono)');
+  const failures = table?.querySelector('a[href="/ui/accounts/personal/jobs/r-0912"]:not(.mono)');
   expect(failures?.textContent).toBe("5");
   expect([...root.querySelectorAll(".strip .figure")].map((f) => f.textContent)).toEqual([
     "4runs",
@@ -223,7 +223,7 @@ test("an event redraws a card's run and its row, the rate redraws the budget, an
     previous?.(vnode);
   };
   try {
-    const root = await open(`/personal/jobs?${canonical}`);
+    const root = await open(`/ui/accounts/personal/jobs?${canonical}`);
     expect(root.querySelector(".live")?.textContent).toBe("live · connecting");
     const [s, t, x, b] = [screens, tables, texts, bars];
     expect(x).toBeGreaterThan(10);
@@ -282,7 +282,7 @@ test("a pass 2 that has just started shows its bar on its first page event", asy
       ok("runs-summary.json"),
     [lensPath("personal", `${runs}&${canonical}`)]: ok("runs-rows.json"),
   });
-  at(`/personal/jobs?${canonical}`);
+  at(`/ui/accounts/personal/jobs?${canonical}`);
   connections = [];
   mounted = mount(<App deps={testDeps(server, connections)} />);
   await settle();
@@ -303,7 +303,7 @@ test("a pass 2 that has just started shows its bar on its first page event", asy
 });
 
 test("a run event for a run the screen does not show reads the cards and the table again", async () => {
-  await open(`/personal/jobs?${canonical}`);
+  await open(`/ui/accounts/personal/jobs?${canonical}`);
   const reads = () =>
     server?.calls.filter((c) => c === jobsPath("personal") || c.includes("dataset=runs")).length ??
     0;
@@ -333,7 +333,7 @@ test("the runs at level 1 are bars and a table, and a click on a group descends 
     )]: ok("runs-summary-backfill.json"),
     [lensPath("personal", `${runs}&${l2}`)]: ok("runs-backfill-by-state.json"),
   });
-  at(`/personal/jobs?${l1}`);
+  at(`/ui/accounts/personal/jobs?${l1}`);
   connections = [];
   mounted = mount(<App deps={testDeps(server, connections)} />);
   await settle();
@@ -345,11 +345,11 @@ test("the runs at level 1 are bars and a table, and a click on a group descends 
       b.getAttribute("href"),
     ]);
   expect(bars()).toEqual([
-    ["backfill", "2", `/personal/jobs?${l2}`],
+    ["backfill", "2", `/ui/accounts/personal/jobs?${l2}`],
     [
       "sync",
       "2",
-      "/personal/jobs?level=2&group=state&range=7d&sort=started_at,desc&pass=!tick&workload=sync",
+      "/ui/accounts/personal/jobs?level=2&group=state&range=7d&sort=started_at,desc&pass=!tick&workload=sync",
     ],
   ]);
   expect(root.querySelectorAll("figure.bars .bar-restricted").length).toBe(0);
@@ -399,7 +399,7 @@ async function openAdvancing(extra: Record<string, Answer> = {}): Promise<HTMLEl
       ok("runs-rows-later.json"),
     ],
   });
-  at(`/personal/jobs?${canonical}`);
+  at(`/ui/accounts/personal/jobs?${canonical}`);
   connections = [];
   mounted = mount(<App deps={testDeps(server, connections)} />);
   await settle();
@@ -479,7 +479,7 @@ test("a reconnect's re-read puts a new run first, and every row keeps its own ru
 });
 
 test("a shown run's change of state reads the cards again", async () => {
-  await open(`/personal/jobs?${canonical}`);
+  await open(`/ui/accounts/personal/jobs?${canonical}`);
   const reads = () => server?.calls.filter((c) => c === jobsPath("personal")).length ?? 0;
   const before = reads();
   const jobs: Jobs = await recording("jobs.json");
@@ -502,7 +502,7 @@ test("times judged against now read the live clock, not the time the page was re
       ok("runs-summary.json"),
     [lensPath("personal", `${runs}&${canonical}`)]: ok("runs-rows.json"),
   });
-  at(`/personal/jobs?${canonical}`);
+  at(`/ui/accounts/personal/jobs?${canonical}`);
   connections = [];
   // The page is read at 10:16:04Z, and the browser's clock reads an hour later.
   const later = Date.parse("2026-09-10T11:16:04Z");
@@ -541,13 +541,13 @@ test("the row cursor stays on the chosen run when a re-read puts a new run above
   expect(selected()).toEqual(["r-0913"]);
   await press("Enter");
   await settle();
-  expect(location.pathname).toBe("/personal/jobs/r-0913");
+  expect(location.pathname).toBe("/ui/accounts/personal/jobs/r-0913");
 });
 
 test("keyboard focus stays on the chosen run's link when a re-read puts a new run above it", async () => {
   const root = await openAdvancing();
   const link = root.querySelector<HTMLAnchorElement>(
-    'table.rows tbody tr a[href="/personal/jobs/r-0913"].mono',
+    'table.rows tbody tr a[href="/ui/accounts/personal/jobs/r-0913"].mono',
   );
   link?.focus();
   expect(document.activeElement?.textContent).toBe("r-0913");
@@ -570,7 +570,7 @@ test("an account's first rate event reads the jobs endpoint again and brings up 
       ok("runs-summary-other.json"),
     [lensPath("other", `${runs}&${canonical}`)]: ok("runs-rows-other.json"),
   });
-  at(`/other/jobs?${canonical}`);
+  at(`/ui/accounts/other/jobs?${canonical}`);
   connections = [];
   mounted = mount(<App deps={testDeps(server, connections)} />);
   await settle();
@@ -600,7 +600,7 @@ test("the live indicator follows an account switch and shows none of the last ac
       ok("runs-summary-other.json"),
     [lensPath("other", `${runs}&${canonical}`)]: ok("runs-rows-other.json"),
   });
-  at(`/personal/jobs?${canonical}`);
+  at(`/ui/accounts/personal/jobs?${canonical}`);
   connections = [];
   mounted = mount(<App deps={testDeps(server, connections)} />);
   await settle();
@@ -624,10 +624,12 @@ test("the live indicator follows an account switch and shows none of the last ac
   expect(root.querySelector(".live")?.textContent).toBe("live · updated 0s ago");
   await act(() => root.querySelector<HTMLButtonElement>('button[aria-label="Account"]')?.click());
   await act(() =>
-    root.querySelector<HTMLAnchorElement>('[role="menu"] a[href^="/other/jobs"]')?.click(),
+    root
+      .querySelector<HTMLAnchorElement>('[role="menu"] a[href^="/ui/accounts/other/jobs"]')
+      ?.click(),
   );
   await settle();
-  expect(location.pathname).toBe("/other/jobs");
+  expect(location.pathname).toBe("/ui/accounts/other/jobs");
   const other = connections.filter((c) => c.open && c.account === "other");
   expect(other.length).toBeGreaterThan(0);
   // The new account's stream is live and has sent nothing yet, so the indicator shows no update,

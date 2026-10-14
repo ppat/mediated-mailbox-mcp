@@ -16,6 +16,7 @@ import {
 } from "../app/api.ts";
 import { DepsContext, useDeps } from "../app/deps.ts";
 import { InstallationFrame, providerName } from "../app/frame.tsx";
+import { accountPage, setupPage } from "../app/paths.ts";
 import { consoleTab, guideWindow, linkStylesheet, pipSize, sideFeatures } from "../app/guide.ts";
 import { Region } from "../app/region.tsx";
 import {
@@ -41,7 +42,7 @@ export function setupPath(provider: string, client: string, step: number, side =
   if (side) {
     q.set("guide", "side");
   }
-  return `/setup/${encodeURIComponent(provider)}/${encodeURIComponent(client)}?${q.toString()}`;
+  return setupPage(`${encodeURIComponent(provider)}/${encodeURIComponent(client)}?${q.toString()}`);
 }
 
 // ClientSetupRoute is the page, or with guide=side the compact layout of its side window, which holds
@@ -584,7 +585,9 @@ function AnswerView(props: {
   }
   switch (result.kind) {
     case "accepted": {
-      const connect = `/setup/connect?${new URLSearchParams({ client: result.name }).toString()}`;
+      const connect = setupPage(
+        `connect?${new URLSearchParams({ client: result.name }).toString()}`,
+      );
       return (
         <>
           <p>Google accepted this client. Saved as {result.name}, its secret sealed.</p>
@@ -593,7 +596,7 @@ function AnswerView(props: {
               {props.accounts.map((a) => (
                 <li key={a}>
                   <span class="mono">{a}</span>{" "}
-                  <a href={`/${encodeURIComponent(a)}/account/reauthorize`}>Re-authorize {a}</a>
+                  <a href={accountPage(a, "account/reauthorize")}>Re-authorize {a}</a>
                 </li>
               ))}
             </ul>

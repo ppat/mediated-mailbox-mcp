@@ -47,24 +47,24 @@ function press(key: string): Promise<void> {
 }
 
 test("the entry route goes to the first account by identifier", async () => {
-  await open("/");
-  expect(location.pathname).toBe("/other");
+  await open("/ui/");
+  expect(location.pathname).toBe("/ui/accounts/other");
 });
 
 test("the entry route goes to the account last used here", async () => {
-  await open("/personal");
+  await open("/ui/accounts/personal");
   mounted?.unmount();
   const s = serve();
-  at("/");
+  at("/ui/");
   const deps = testDeps(s);
   deps.storage?.setItem("mediated-mailbox.account", "personal");
   mounted = mount(<App deps={deps} />);
   await settle();
-  expect(location.pathname).toBe("/personal");
+  expect(location.pathname).toBe("/ui/accounts/personal");
 });
 
 test("the top bar shows the account with its provider, and its menu lists every account", async () => {
-  const root = await open("/personal");
+  const root = await open("/ui/accounts/personal");
   const selector = root.querySelector<HTMLButtonElement>('button[aria-label="Account"]');
   expect(selector?.textContent).toBe("personal · gmail");
   expect(selector?.getAttribute("aria-expanded")).toBe("false");
@@ -72,11 +72,11 @@ test("the top bar shows the account with its provider, and its menu lists every 
   expect(selector?.getAttribute("aria-expanded")).toBe("true");
   const items = [...root.querySelectorAll('[role="menu"] [role="menuitem"]')];
   expect(items.map((i) => [i.textContent, i.getAttribute("href")])).toEqual([
-    ["othergmail", "/other"],
-    ["personalgmail", "/personal"],
-    ["Account settings", "/personal/account"],
-    ["Connect an account", "/setup/connect"],
-    ["Installation", "/setup"],
+    ["othergmail", "/ui/accounts/other"],
+    ["personalgmail", "/ui/accounts/personal"],
+    ["Account settings", "/ui/accounts/personal/account"],
+    ["Connect an account", "/ui/setup/connect"],
+    ["Installation", "/ui/setup"],
   ]);
   expect(document.activeElement).toBe(items[0] ?? null);
   await act(() => {
@@ -88,33 +88,33 @@ test("the top bar shows the account with its provider, and its menu lists every 
 });
 
 test("the navigation lists only the screens that exist and marks the current one", async () => {
-  const root = await open("/personal");
+  const root = await open("/ui/accounts/personal");
   const links = [...root.querySelectorAll('nav[aria-label="Screens"] a')];
   expect(
     links.map((a) => [a.textContent, a.getAttribute("href"), a.getAttribute("aria-current")]),
   ).toEqual([
-    ["Home", "/personal", "page"],
-    ["Jobs running", "/personal/jobs", null],
-    ["Policy", "/personal/policy", null],
-    ["System", "/personal/system", null],
+    ["Home", "/ui/accounts/personal", "page"],
+    ["Jobs running", "/ui/accounts/personal/jobs", null],
+    ["Policy", "/ui/accounts/personal/policy", null],
+    ["System", "/ui/accounts/personal/system", null],
   ]);
 });
 
 test("Jobs carries a labeled running mark while the decisions block counts a running workload", async () => {
-  const root = await open("/personal");
+  const root = await open("/ui/accounts/personal");
   const mark = root.querySelector('nav[aria-label="Screens"] .running-mark');
   expect(mark?.textContent).toBe(" running");
 });
 
 test("the address line shows the view's whole URL", async () => {
-  const root = await open("/personal?x=1");
+  const root = await open("/ui/accounts/personal?x=1");
   const address = root.querySelector<HTMLInputElement>('input[aria-label="Address of this view"]');
-  expect(address?.value).toBe("https://ui.mediated-mailbox.test/personal?x=1");
+  expect(address?.value).toBe("https://ui.mediated-mailbox.test/ui/accounts/personal?x=1");
   expect(address?.readOnly).toBe(true);
 });
 
 test("the theme override is set on the root element and kept in this browser", async () => {
-  const root = await open("/personal");
+  const root = await open("/ui/accounts/personal");
   await act(() => root.querySelector<HTMLButtonElement>('button[aria-label="Settings"]')?.click());
   const radios = [...root.querySelectorAll<HTMLButtonElement>('[role="menuitemradio"]')];
   expect(radios.map((r) => [r.textContent, r.getAttribute("aria-checked")])).toEqual([
@@ -128,12 +128,12 @@ test("the theme override is set on the root element and kept in this browser", a
 });
 
 test("the partial-index banner names backfill pass 2 and its pending count", async () => {
-  const root = await open("/personal");
+  const root = await open("/ui/accounts/personal");
   const banner = root.querySelector('[role="status"].banner');
   expect(banner?.textContent).toBe(
     "Backfill pass 2 is running with 1 message pending scan, and a pending message denies its body until it is scanned. See Jobs",
   );
-  expect(banner?.querySelector("a")?.getAttribute("href")).toBe("/personal/jobs");
+  expect(banner?.querySelector("a")?.getAttribute("href")).toBe("/ui/accounts/personal/jobs");
 });
 
 test("the banner names pass 1 with its page and share, and both passes in one banner", async () => {
@@ -174,7 +174,7 @@ test("while a re-opened backfill pass 1 runs, the banner says the index is whole
     ...homeAnswers("personal"),
     ...homeAnswers("other"),
   });
-  at("/personal");
+  at("/ui/accounts/personal");
   mounted = mount(<App deps={testDeps(server)} />);
   await settle();
   const banner = mounted.root.querySelector('[role="status"].banner');
@@ -183,7 +183,7 @@ test("while a re-opened backfill pass 1 runs, the banner says the index is whole
       "It last completed at 2026-09-02 10:16Z, so the index holds the whole mailbox and no count here is a count so far. " +
       "The other subjects were masked again from the index when the run started, and a subject it has not fetched yet keeps its earlier masks. See Jobs",
   );
-  expect(banner?.querySelector("a")?.getAttribute("href")).toBe("/personal/jobs");
+  expect(banner?.querySelector("a")?.getAttribute("href")).toBe("/ui/accounts/personal/jobs");
 });
 
 test("a re-opened pass 1 whose run records no progress leaves out the progress clause", async () => {
@@ -218,14 +218,14 @@ test("a first pass 1 fetching stale subjects again names the fetch, and its coun
 });
 
 test("an account the server does not list is named once in the body", async () => {
-  const root = await open("/nobody");
+  const root = await open("/ui/accounts/nobody");
   expect(root.querySelector("main [role=alert]")?.textContent).toBe(
     "This request was refusedNo account nobody is served here.",
   );
 });
 
 test("? shows the keyboard map, Escape closes it, and g then h goes home", async () => {
-  const root = await open("/personal/nothing");
+  const root = await open("/ui/accounts/personal/nothing");
   expect(root.textContent).toContain("No screen is at this address.");
   await press("?");
   const dialog = root.querySelector('[role="dialog"]');
@@ -237,7 +237,7 @@ test("? shows the keyboard map, Escape closes it, and g then h goes home", async
   await press("g");
   await press("h");
   await settle();
-  expect(location.pathname).toBe("/personal");
+  expect(location.pathname).toBe("/ui/accounts/personal");
 });
 
 // recording reads a recorded answer, which the contract types.
@@ -246,7 +246,7 @@ async function recording(file: string) {
 }
 
 test("the banner reads the system block again on each backfill run event and each poll", async () => {
-  await open("/personal");
+  await open("/ui/accounts/personal");
   const systemReads = () => server?.calls.filter((c) => c === systemPath("personal")).length;
   expect(connections.map((c) => [c.account, c.open])).toEqual([["personal", true]]);
   const connection = connections[0];
@@ -289,19 +289,19 @@ test("a failed system read keeps the banner, saying the backfill state is unknow
 });
 
 test("an account the listing does not name gets no banner and opens no stream", async () => {
-  const root = await open("/nobody");
+  const root = await open("/ui/accounts/nobody");
   expect(root.querySelector(".banner")).toBeNull();
   expect(connections).toEqual([]);
   expect(server?.calls).not.toContain(systemPath("nobody"));
 });
 
 test("the account in view is kept as the one last used in this browser", async () => {
-  await open("/personal");
+  await open("/ui/accounts/personal");
   expect(localStorage.getItem("mediated-mailbox.account")).toBe("personal");
 });
 
 test("choosing system clears the override from the root element", async () => {
-  const root = await open("/personal");
+  const root = await open("/ui/accounts/personal");
   const choose = async (index: number) => {
     await act(() =>
       root.querySelector<HTMLButtonElement>('button[aria-label="Settings"]')?.click(),
@@ -318,7 +318,7 @@ test("choosing system clears the override from the root element", async () => {
 });
 
 test("a press outside an open menu closes it", async () => {
-  const root = await open("/personal");
+  const root = await open("/ui/accounts/personal");
   await act(() => root.querySelector<HTMLButtonElement>('button[aria-label="Account"]')?.click());
   expect(root.querySelector('[role="menu"]')).not.toBeNull();
   await act(() => {

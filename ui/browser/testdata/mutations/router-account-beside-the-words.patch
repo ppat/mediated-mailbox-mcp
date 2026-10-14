@@ -1,0 +1,20 @@
+control: Every route the UI registers sits under its root, apart from the redirect at /
+removes: the router matches an account's system screen with the account right after the root, where a route word sits, rather than after accounts
+packages: ./ui/browser/test/routes.test.ts
+tests: every route sits under the UI's root
+scheduled-count: no
+runner: bun
+
+diff --git a/ui/browser/src/app/router.tsx b/ui/browser/src/app/router.tsx
+index cb34490..004a659 100644
+--- a/ui/browser/src/app/router.tsx
++++ b/ui/browser/src/app/router.tsx
+@@ -65,7 +65,7 @@ export function Routes() {
+       <Route path={accountRoute} component={AccountHomeScreen} />
+       <Route path={`${accountRoute}/account`} component={AccountSettingsRoute} />
+       <Route path={`${accountRoute}/account/reauthorize`} component={ReauthorizeScreenRoute} />
+-      <Route path={`${accountRoute}/system`} component={SystemScreenRoute} />
++      <Route path="/ui/:account/system" component={SystemScreenRoute} />
+       <Route path={`${accountRoute}/jobs`} component={JobsScreenRoute} />
+       <Route path={`${accountRoute}/jobs/:run`} component={RunScreenRoute} />
+       <Route path={`${accountRoute}/jobs/:run/failures/:seq`} component={RunScreenRoute} />

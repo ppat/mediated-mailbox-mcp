@@ -1,0 +1,19 @@
+control: Every route the UI registers sits under its root, apart from the redirect at /
+removes: the read API's catch-all for an unrouted path is registered at /api/, the client surface's word, outside the UI's root
+packages: ./ui/internal/api
+tests: TestEveryRouteSitsUnderTheUIsRoot
+scheduled-count: no
+
+diff --git a/ui/internal/api/server.go b/ui/internal/api/server.go
+index 7400f1e..6cc18cb 100644
+--- a/ui/internal/api/server.go
++++ b/ui/internal/api/server.go
+@@ -230,7 +230,7 @@ func New(opts Options) (*Server, error) {
+ 	if len(handlers) > 0 {
+ 		return nil, fmt.Errorf("handlers with no route: %v", slices.Sorted(maps.Keys(handlers)))
+ 	}
+-	mux.Handle(paths.API+"/", named("unrouted", func(w http.ResponseWriter, r *http.Request) {
++	mux.Handle("/api/", named("unrouted", func(w http.ResponseWriter, r *http.Request) {
+ 		writeFailure(w, r, clientFault(http.StatusNotFound, "not_found", "no read API route answers this path"))
+ 	}))
+ 	mux.Handle(paths.Root+"/", a)

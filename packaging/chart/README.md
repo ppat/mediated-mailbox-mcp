@@ -224,6 +224,13 @@ Nothing is exposed outside the cluster until you enable an Ingress or an HTTPRou
 server or the UI or both. Their annotations pass through untouched, so a controller's or
 cert-manager's go there. An HTTPRoute's TLS terminates on its Gateway's listener.
 
+The API server serves `/api` and `/mcp`, and the UI serves everything under `/ui` and answers `/`
+with a redirect to `/ui/`, so the two can share one host name routed by path. The HTTPRoutes'
+default rules route them that way, the UI's matching `/ui` and exactly `/`, and the API server's
+matching every other path. An Ingress takes its paths from `hosts`, so on one host name give the UI
+`/ui` as `Prefix` and `/` as `Exact`, and the API server `/` as `Prefix`. On a host name of its own
+each takes `/`.
+
 **The UI has no login of its own.** Expose it only behind an authenticating proxy, and set
 `ui.config.identity_header` to the header the proxy forwards the operator's identity in.
 
@@ -262,4 +269,5 @@ idempotent or conditional.
 
 `helm test <release>` runs a pod that checks through each Service that the API server and the UI
 report ready, the worker reports healthy, the API server refuses a request without the bearer token,
-and the UI serves its page.
+and the UI serves its root page at `/ui/`. The redirect at `/` is proven by the UI's own test, since
+a pull request's suite runs this test against `main`'s images.

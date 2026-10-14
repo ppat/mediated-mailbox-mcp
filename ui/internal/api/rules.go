@@ -288,7 +288,7 @@ func toRules(stored []registry.StoredRule) []rules.Rule {
 // with the rule at index i, the one the write changes.
 func checked(scope string, after []rules.Rule, i int) error {
 	var mine []rules.Problem
-	for _, p := range rules.Check(scope, after) {
+	for _, p := range rules.Check(after) {
 		if p.Rule == i {
 			mine = append(mine, p)
 		}
@@ -433,7 +433,7 @@ func scopeOfRequest(w http.ResponseWriter, r *http.Request, scope string) (bool,
 	return false, false
 }
 
-// postAccountRule is POST /api/{account}/policy/rules.
+// postAccountRule is POST /ui/api/accounts/{account}/policy/rules.
 func (s *Server) postAccountRule(w http.ResponseWriter, r *http.Request) {
 	var body RuleRequest
 	if !readBody(w, r, &body) {
@@ -463,7 +463,7 @@ type (
 	}
 )
 
-// postBaseRule is POST /api/setup/policy/rules.
+// postBaseRule is POST /ui/api/setup/policy/rules.
 func (s *Server) postBaseRule(w http.ResponseWriter, r *http.Request) {
 	var body baseRuleRequest
 	if !readBody(w, r, &body) {
@@ -484,7 +484,7 @@ func (s *Server) writeAdd(w http.ResponseWriter, r *http.Request, account string
 	writeJSON(w, r, RuleAnswer{Scope: scopeOf(isBase), RuleID: body.RuleID, Suffixes: nonNil(body.Suffixes)})
 }
 
-// postAccountEdit is POST /api/{account}/policy/rules/{rule}.
+// postAccountEdit is POST /ui/api/accounts/{account}/policy/rules/{rule}.
 func (s *Server) postAccountEdit(w http.ResponseWriter, r *http.Request) {
 	var body EditRequest
 	if !readBody(w, r, &body) {
@@ -497,7 +497,7 @@ func (s *Server) postAccountEdit(w http.ResponseWriter, r *http.Request) {
 	s.writeEdit(w, r, r.PathValue("account"), isBase, body)
 }
 
-// postBaseEdit is POST /api/setup/policy/rules/{rule}.
+// postBaseEdit is POST /ui/api/setup/policy/rules/{rule}.
 func (s *Server) postBaseEdit(w http.ResponseWriter, r *http.Request) {
 	var body baseEditRequest
 	if !readBody(w, r, &body) {
@@ -519,7 +519,7 @@ func (s *Server) writeEdit(w http.ResponseWriter, r *http.Request, account strin
 	writeJSON(w, r, RuleAnswer{Scope: scopeOf(isBase), RuleID: id, Suffixes: nonNil(body.Suffixes)})
 }
 
-// postAccountLift is POST /api/{account}/policy/rules/{rule}/lift.
+// postAccountLift is POST /ui/api/accounts/{account}/policy/rules/{rule}/lift.
 func (s *Server) postAccountLift(w http.ResponseWriter, r *http.Request) {
 	var body LiftRequest
 	if !readBody(w, r, &body) {
@@ -532,7 +532,7 @@ func (s *Server) postAccountLift(w http.ResponseWriter, r *http.Request) {
 	s.writeLift(w, r, r.PathValue("account"), isBase, body)
 }
 
-// postBaseLift is POST /api/setup/policy/rules/{rule}/lift.
+// postBaseLift is POST /ui/api/setup/policy/rules/{rule}/lift.
 func (s *Server) postBaseLift(w http.ResponseWriter, r *http.Request) {
 	var body baseLiftRequest
 	if !readBody(w, r, &body) {
@@ -598,7 +598,7 @@ func ruleNameType() schema.Type {
 	return schema.Obj("RuleName", schema.F("scope", schema.Str(rules.Base, rules.Account)), schema.F("rule_id", schema.Str()))
 }
 
-// getMatch is GET /api/{account}/policy/match?suffix=…, which the add panel reads as each line is
+// getMatch is GET /ui/api/accounts/{account}/policy/match?suffix=…, which the add panel reads as each line is
 // typed. A suffix is valid when the policy's checks would take it, and each rule of the account's
 // policy one of whose suffixes covers it is named.
 func (s *Server) getMatch(w http.ResponseWriter, r *http.Request) {
@@ -624,7 +624,7 @@ func (s *Server) getMatch(w http.ResponseWriter, r *http.Request) {
 		for _, suffix := range suffixes {
 			c := senders.Match([]string{suffix})
 			m := SuffixMatch{
-				Suffix: suffix, Valid: len(rules.Check(rules.Account, []rules.Rule{{ID: "x", Suffixes: []string{suffix}}})) == 0,
+				Suffix: suffix, Valid: len(rules.Check([]rules.Rule{{ID: "x", Suffixes: []string{suffix}}})) == 0,
 				PublicSuffix: rules.PublicSuffix(suffix, s.opts.Lookups), Senders: c.Senders, Messages: c.Messages, Rules: []RuleName{},
 			}
 			for i, rule := range stored {
@@ -668,7 +668,7 @@ func baseMatchAnswerType() schema.Type {
 	))))
 }
 
-// getBaseMatch is GET /api/setup/policy/match?suffix=…, read in a base-policy transaction, which names
+// getBaseMatch is GET /ui/api/setup/policy/match?suffix=…, read in a base-policy transaction, which names
 // no account (ADR-0112).
 func (s *Server) getBaseMatch(w http.ResponseWriter, r *http.Request) {
 	suffixes := r.URL.Query()["suffix"]
@@ -684,7 +684,7 @@ func (s *Server) getBaseMatch(w http.ResponseWriter, r *http.Request) {
 		}
 		for _, suffix := range suffixes {
 			m := BaseSuffixMatch{
-				Suffix: suffix, Valid: len(rules.Check(rules.Base, []rules.Rule{{ID: "x", Suffixes: []string{suffix}}})) == 0,
+				Suffix: suffix, Valid: len(rules.Check([]rules.Rule{{ID: "x", Suffixes: []string{suffix}}})) == 0,
 				PublicSuffix: rules.PublicSuffix(suffix, s.opts.Lookups), Rules: []RuleName{},
 			}
 			for i, rule := range stored {
@@ -703,7 +703,7 @@ func (s *Server) getBaseMatch(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, r, out)
 }
 
-// getRelease is GET /api/{account}/policy/release?scope=…&rule=…&keep=…, what an edit keeping only
+// getRelease is GET /ui/api/accounts/{account}/policy/release?scope=…&rule=…&keep=…, what an edit keeping only
 // keep of a rule's suffixes, or a lift keeping none, would release in the account, the senders the
 // account's policy restricts now and would not after (docs/UI.md section 8.7). A rule's detail carries
 // each suffix's release alone, and an edit removing several reads the set's here, since a sender two

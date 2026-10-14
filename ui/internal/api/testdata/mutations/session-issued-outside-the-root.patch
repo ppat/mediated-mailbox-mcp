@@ -1,0 +1,19 @@
+control: Every route the UI registers sits under its root, apart from the redirect at /
+removes: a session is issued to a request outside the UI's root, so the redirect at / replaces the session the browser's open pages hold
+packages: ./ui/internal/api
+tests: TestTheRootRedirectsToTheUIAndNothingElseOutsideItAnswers
+scheduled-count: no
+
+diff --git a/ui/internal/api/session.go b/ui/internal/api/session.go
+index 3aa5ee2..05439c0 100644
+--- a/ui/internal/api/session.go
++++ b/ui/internal/api/session.go
+@@ -95,7 +95,7 @@ func withSession(next http.Handler) http.Handler {
+ 		s := session{}
+ 		if c, err := r.Cookie(sessionCookie); err == nil && validSession(c.Value) {
+ 			s = session{id: c.Value, carried: true}
+-		} else if strings.HasPrefix(r.URL.Path, paths.Root+"/") {
++		} else if strings.HasPrefix(r.URL.Path, "/") {
+ 			s = session{id: rand.Text() + rand.Text()}
+ 			http.SetCookie(w, &http.Cookie{
+ 				Name: sessionCookie, Value: s.id, Path: paths.Root + "/", HttpOnly: true, Secure: true, SameSite: http.SameSiteStrictMode,

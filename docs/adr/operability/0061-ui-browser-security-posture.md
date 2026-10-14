@@ -15,9 +15,10 @@ resting on it has a decision behind it.
 
 ## Decision
 
-- **The UI issues an anonymous session cookie on first response**, a random identifier,
-  `HttpOnly`, `Secure`, `SameSite=Strict`, with browser-session lifetime, whether or not a
-  proxy authenticates in front of the UI.
+- **The UI issues an anonymous session cookie on its first response under the UI's root**
+  ([ADR-0137](./0137-the-top-level-paths-are-the-surfaces-and-the-ui-serves-under-ui.md)), a
+  random identifier, `HttpOnly`, `Secure`, `SameSite=Strict`, with browser-session lifetime,
+  whether or not a proxy authenticates in front of the UI.
 - **The entry document carries a token derived from that session.** The entry document is the
   one page a Go handler renders. The token is an HMAC of the session identifier under a key
   generated at process start, or a configured key when more than one replica runs. Everything

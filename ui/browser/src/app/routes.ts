@@ -1,5 +1,6 @@
 // Pure rules about screen paths, from docs/UI.md sections 5 and 6.
 import type { Account } from "./api.ts";
+import { accountPage, belowAccount } from "./paths.ts";
 
 const lastAccountKey = "mediated-mailbox.account";
 
@@ -36,8 +37,8 @@ export function keepLastAccount(storage: Storage | undefined, account: string): 
 // to its lens, and keeps only the level of its query, so a lens keeps its dataset and level and drops
 // its filters (section 6).
 export function switchAccount(pathname: string, search: string, account: string): string {
-  const screen = pathname.split("/").filter((s) => s !== "")[1];
-  const target = `/${encodeURIComponent(account)}${screen === undefined ? "" : `/${screen}`}`;
+  const screen = belowAccount(pathname)?.below[0];
+  const target = accountPage(account, screen ?? "");
   const level = new URLSearchParams(search).get("level");
   return level === null || screen === undefined
     ? target

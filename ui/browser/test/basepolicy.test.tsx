@@ -22,7 +22,7 @@ afterEach(() => {
 
 const base: Record<string, Answer | readonly Answer[]> = {
   [accountsPath()]: ok("accounts.json"),
-  "/api/setup/policy": ok("base-policy.json"),
+  "/ui/api/setup/policy": ok("base-policy.json"),
 };
 
 async function open(
@@ -70,7 +70,7 @@ function dialog(): HTMLElement | null {
 }
 
 test("the base policy lists its rules and the accounts today, with no account's counts, under the installation's navigation", async () => {
-  const root = await open("/setup/policy", base);
+  const root = await open("/ui/setup/policy", base);
   expect(root.querySelector("main h1")?.textContent).toBe("Base policy");
   expect(root.querySelector(".topbar button")?.textContent).toBe("Installation");
   expect(
@@ -80,15 +80,15 @@ test("the base policy lists its rules and the accounts today, with no account's 
       a.getAttribute("aria-current"),
     ]),
   ).toEqual([
-    ["Setup", "/setup", null],
-    ["Base policy", "/setup/policy", "page"],
+    ["Setup", "/ui/setup", null],
+    ["Base policy", "/ui/setup/policy", "page"],
   ]);
   expect(root.querySelector("main p")?.textContent).toBe(
     "These rules restrict senders in every account, those connected later included. The accounts today: other, personal.",
   );
   expect([...root.querySelectorAll("main p a")].map((a) => a.getAttribute("href"))).toEqual([
-    "/other/policy",
-    "/personal/policy",
+    "/ui/accounts/other/policy",
+    "/ui/accounts/personal/policy",
   ]);
   expect(text(root, ".strip .figure")).toEqual(["1base rules", "2026-09-09 22:16Zlatest change"]);
   expect(
@@ -97,39 +97,41 @@ test("the base policy lists its rules and the accounts today, with no account's 
       a.getAttribute("href"),
     ]),
   ).toEqual([
-    ["Add a base rule", "/setup/policy/new"],
-    ["History", "/setup/policy/history"],
-    ["Import", "/setup/policy/import"],
-    ["Export", "/api/setup/policy/export"],
+    ["Add a base rule", "/ui/setup/policy/new"],
+    ["History", "/ui/setup/policy/history"],
+    ["Import", "/ui/setup/policy/import"],
+    ["Export", "/ui/api/setup/policy/export"],
   ]);
   expect(
     [...root.querySelectorAll("tbody tr")].map((tr) =>
       [...tr.querySelectorAll("td")].map((td) => td.textContent),
     ),
   ).toEqual([["base.bank", "bank.example", "operator", "2026-09-07 10:16Z · operator"]]);
-  expect(root.querySelector("tbody a")?.getAttribute("href")).toBe("/setup/policy/base.bank");
+  expect(root.querySelector("tbody a")?.getAttribute("href")).toBe(
+    "/ui/setup/policy/rules/base.bank",
+  );
   // No count of any account's senders or messages appears.
   expect(root.textContent).not.toMatch(/\d (sender|message)/);
 });
 
 test("the base policy's search narrows the rules through its endpoint", async () => {
-  const root = await open("/setup/policy", {
+  const root = await open("/ui/setup/policy", {
     ...base,
-    "/api/setup/policy?search=bank": ok("base-policy-search.json"),
+    "/ui/api/setup/policy?search=bank": ok("base-policy-search.json"),
   });
   await type(root.querySelector('form[role="search"] input'), "bank");
   await act(() => root.querySelector<HTMLFormElement>('form[role="search"]')?.requestSubmit());
   await settle();
-  expect(location.pathname + location.search).toBe("/setup/policy?search=bank");
+  expect(location.pathname + location.search).toBe("/ui/setup/policy?search=bank");
   expect(text(root, "tbody td:first-child")).toEqual(["base.bank"]);
 });
 
 test("a base rule's lift names every account that loses it, needs its identifier typed, and offers Put it back", async () => {
-  const root = await open("/setup/policy/base.bank", {
+  const root = await open("/ui/setup/policy/rules/base.bank", {
     ...base,
-    "/api/setup/policy": [ok("base-policy.json"), ok("base-policy-lifted.json")],
-    "/api/setup/policy/history?range=all&rule=base.bank": ok("base-history-bank.json"),
-    "POST /api/setup/policy/rules/base.bank/lift": ok("base-lifted.json"),
+    "/ui/api/setup/policy": [ok("base-policy.json"), ok("base-policy-lifted.json")],
+    "/ui/api/setup/policy/history?range=all&rule=base.bank": ok("base-history-bank.json"),
+    "POST /ui/api/setup/policy/rules/base.bank/lift": ok("base-lifted.json"),
   });
   const panel = document.querySelector('aside[role="dialog"]');
   expect(panel?.textContent).toContain(
@@ -150,21 +152,21 @@ test("a base rule's lift names every account that loses it, needs its identifier
   await click(lift());
   expect(server?.posted).toEqual([
     {
-      path: "/api/setup/policy/rules/base.bank/lift",
+      path: "/ui/api/setup/policy/rules/base.bank/lift",
       body: { suffixes_before: ["bank.example"], confirmation: "base.bank" },
     },
   ]);
-  expect(location.pathname).toBe("/setup/policy");
+  expect(location.pathname).toBe("/ui/setup/policy");
   expect(root.querySelector('.policy [role="status"]')?.textContent).toBe(
     "Lifted base.bank. Put it back",
   );
 });
 
 test("with no account connected, a base lift says nothing is released now", async () => {
-  await open("/setup/policy/base.bank", {
+  await open("/ui/setup/policy/rules/base.bank", {
     [accountsPath()]: ok("accounts-empty.json"),
-    "/api/setup/policy": ok("base-policy-no-accounts.json"),
-    "/api/setup/policy/history?range=all&rule=base.bank": ok("base-history-bank.json"),
+    "/ui/api/setup/policy": ok("base-policy-no-accounts.json"),
+    "/ui/api/setup/policy/history?range=all&rule=base.bank": ok("base-history-bank.json"),
   });
   await click(control(document, "Lift restriction"));
   const says = document.getElementById(dialog()?.getAttribute("aria-describedby") ?? "");
@@ -175,13 +177,15 @@ test("Add a base rule checks each suffix's shape as it is typed, and adds to the
   const timers = new ManualTimers();
   server = recorded({
     ...base,
-    "/api/setup/policy": [ok("base-policy.json"), ok("base-policy-added.json")],
-    "/api/setup/policy/history?range=all&rule=base.newsletter": ok("base-history-newsletter.json"),
-    "POST /api/setup/policy/rules": ok("base-added.json"),
+    "/ui/api/setup/policy": [ok("base-policy.json"), ok("base-policy-added.json")],
+    "/ui/api/setup/policy/history?range=all&rule=base.newsletter": ok(
+      "base-history-newsletter.json",
+    ),
+    "POST /ui/api/setup/policy/rules": ok("base-added.json"),
     [baseMatchPath(["bad suffix"])]: ok("base-match-invalid.json"),
     [baseMatchPath(["newsletter.example"])]: ok("base-match-newsletter.json"),
   });
-  at("/setup/policy/new");
+  at("/ui/setup/policy/new");
   mounted = mount(<App deps={testDeps(server, [], undefined, timers)} />);
   await settle();
   const panel = document.querySelector('aside[role="dialog"]');
@@ -212,11 +216,11 @@ test("Add a base rule checks each suffix's shape as it is typed, and adds to the
   await click(control(panel ?? document, "Add rule"));
   expect(server.posted).toEqual([
     {
-      path: "/api/setup/policy/rules",
+      path: "/ui/api/setup/policy/rules",
       body: { rule_id: "base.newsletter", suffixes: ["newsletter.example"] },
     },
   ]);
-  expect(location.pathname).toBe("/setup/policy/base.newsletter");
+  expect(location.pathname).toBe("/ui/setup/policy/rules/base.newsletter");
 });
 
 test("Add a base rule warns of a public suffix and names the base rule already matching a suffix, refusing neither", async () => {
@@ -226,7 +230,7 @@ test("Add a base rule warns of a public suffix and names the base rule already m
     [baseMatchPath(["com"])]: ok("base-match-public.json"),
     [baseMatchPath(["bank.example"])]: ok("base-match-bank.json"),
   });
-  at("/setup/policy/new");
+  at("/ui/setup/policy/new");
   mounted = mount(<App deps={testDeps(server, [], undefined, timers)} />);
   await settle();
   const panel = document.querySelector('aside[role="dialog"]');
@@ -246,11 +250,11 @@ test("Add a base rule warns of a public suffix and names the base rule already m
 });
 
 test("a base import lifting a rule enables only once lift {k} is typed, and sends it", async () => {
-  const root = await open("/setup/policy/import", {
+  const root = await open("/ui/setup/policy/import", {
     ...base,
-    "/api/setup/policy": [ok("base-policy.json"), ok("base-policy-imported.json")],
-    "POST /api/setup/policy/import/preview": ok("base-preview-lifting.json"),
-    "POST /api/setup/policy/import": ok("base-imported.json"),
+    "/ui/api/setup/policy": [ok("base-policy.json"), ok("base-policy-imported.json")],
+    "POST /ui/api/setup/policy/import/preview": ok("base-preview-lifting.json"),
+    "POST /ui/api/setup/policy/import": ok("base-imported.json"),
   });
   expect(root.querySelector("main h1")?.textContent).toBe("Import the base policy");
   expect(root.textContent).toContain(
@@ -285,23 +289,23 @@ test("a base import lifting a rule enables only once lift {k} is typed, and send
   await type(field, "lift 1");
   await click(apply());
   expect(server?.posted[1]).toEqual({
-    path: "/api/setup/policy/import",
+    path: "/ui/api/setup/policy/import",
     body: {
       file,
       computed_against: '[{"id":"base.bank","class":"restricted","suffixes":["bank.example"]}]',
       confirmation: "lift 1",
     },
   });
-  expect(location.pathname).toBe("/setup/policy");
+  expect(location.pathname).toBe("/ui/setup/policy");
   expect(root.querySelector('.policy [role="status"]')?.textContent).toBe(
     "Imported: 1 rule added, 0 rules edited, 1 restriction lifted. Put back the 1 lifted restriction",
   );
 });
 
 test("the base policy's history lists its changes alone, a lifted rule's Restore opening Add a base rule", async () => {
-  const root = await open("/setup/policy/history", {
+  const root = await open("/ui/setup/policy/history", {
     ...base,
-    "/api/setup/policy/history?range=30d": ok("base-history.json"),
+    "/ui/api/setup/policy/history?range=30d": ok("base-history.json"),
   });
   const rows = [...root.querySelectorAll("tbody tr")];
   expect(rows.map((tr) => [...tr.querySelectorAll("td")].map((td) => td.textContent))).toEqual([
@@ -309,26 +313,26 @@ test("the base policy's history lists its changes alone, a lifted rule's Restore
     ["2026-09-07 10:16Z", "operator", "added", "base.bank", "base", "bank.example", ""],
   ]);
   expect(control(rows[0] ?? root, "Restore")?.getAttribute("href")).toBe(
-    "/setup/policy/new?suffix=old.example&id=base.old",
+    "/ui/setup/policy/new?suffix=old.example&id=base.old",
   );
   expect(rows[1]?.querySelector("td:nth-child(4) a")?.getAttribute("href")).toBe(
-    "/setup/policy/base.bank",
+    "/ui/setup/policy/rules/base.bank",
   );
   expect(
     [...root.querySelectorAll(".range a")].map((a) => [
       a.getAttribute("href"),
       a.getAttribute("aria-current"),
     ]),
-  ).toContainEqual(["/setup/policy/history?range=30d", "true"]);
+  ).toContainEqual(["/ui/setup/policy/history?range=30d", "true"]);
 });
 
 test("the installation's base policy item counts the base rules and is optional", async () => {
-  const root = await open("/setup", {
+  const root = await open("/ui/setup", {
     [accountsPath()]: ok("accounts-empty.json"),
     [installationPath()]: ok("setup-base-rules.json"),
   });
   const item = [...root.querySelectorAll(".checklist li")][1];
   expect(item?.textContent).toBe("○ 1 base rule · optional Review the base policy");
-  expect(item?.querySelector("a")?.getAttribute("href")).toBe("/setup/policy");
+  expect(item?.querySelector("a")?.getAttribute("href")).toBe("/ui/setup/policy");
   expect(item?.querySelector(".step-status")?.getAttribute("data-state")).toBe("optional");
 });

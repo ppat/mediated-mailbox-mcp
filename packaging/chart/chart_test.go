@@ -388,6 +388,31 @@ func TestNothingOptionalRendersByDefault(t *testing.T) {
 	}
 }
 
+// TestTheRoutesShareAHostNameByPath renders both HTTPRoutes with their default rules. The UI's matches /ui and / alone,
+// everything the UI serves (ADR-0137), and the API server's matches /, so on one host name a gateway sends /ui and / to
+// the UI, the longer and the exact match winning, and every other path to the API server.
+func TestTheRoutesShareAHostNameByPath(t *testing.T) {
+	got := map[string][]string{}
+	for _, o := range helmchart.Render(t, chartDir, "--set", "api.httpRoute.enabled=true", "--set", "ui.httpRoute.enabled=true") {
+		if dig[string](o, "kind") != "HTTPRoute" {
+			continue
+		}
+		name := dig[string](o, "metadata", "name")
+		for _, r := range list(dig[any](o, "spec", "rules")) {
+			for _, m := range list(dig[any](r, "matches")) {
+				got[name] = append(got[name], dig[string](m, "path", "type")+" "+dig[string](m, "path", "value"))
+			}
+		}
+	}
+	want := map[string][]string{
+		"release-mediated-mailbox-api": {"PathPrefix /"},
+		"release-mediated-mailbox-ui":  {"PathPrefix /ui", "Exact /"},
+	}
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("the HTTPRoutes' default matches (-want +got):\n%s", diff)
+	}
+}
+
 // goSoftMemoryLimits renders the chart with args and returns, for each container by name, the value of its GOMEMLIMIT
 // variable, empty when it has none.
 func goSoftMemoryLimits(t *testing.T, args ...string) map[string]string {

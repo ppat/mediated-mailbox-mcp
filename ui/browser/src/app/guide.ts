@@ -4,6 +4,7 @@
 // anywhere else. Either way the guide and the page are documents of one origin, and they tell each
 // other what changed over one channel, so a step marked done in either window opens the next in both.
 // Nothing here is ambient. The composition root binds each part to the browser, and a test to its own.
+import { stylesheetPath } from "./paths.ts";
 
 // GuideMessage is one thing the page or its guide tells the other. A setup step names its client's
 // marks key and the step now in view. A pasted address goes from the paste guide to the page, and the
@@ -55,12 +56,12 @@ export const pipSize = { width: 340, height: 520 } as const;
 // linkStylesheet links the bundle's stylesheet into a guide window's document once, since the content
 // security policy refuses inline styles (docs/UI.md section 15).
 export function linkStylesheet(doc: Document): void {
-  if (doc.head.querySelector('link[href="/main.css"]') !== null) {
+  if (doc.head.querySelector(`link[href="${stylesheetPath()}"]`) !== null) {
     return;
   }
   const link = doc.createElement("link");
   link.rel = "stylesheet";
-  link.href = "/main.css";
+  link.href = stylesheetPath();
   doc.head.append(link);
 }
 

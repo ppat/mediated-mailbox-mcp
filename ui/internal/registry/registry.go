@@ -23,17 +23,18 @@ import (
 	senderclassification "github.com/ppat/mediated-mailbox-mcp/db/senders/classification"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/lens"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/schema"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/paths"
 )
 
 // LensPath is the dataset endpoint's route, the registry's one path in the contract (docs/UI.md
 // section 17.1). A bespoke handler claiming it is refused by the contract generator.
-const LensPath = "/api/{account}/lens"
+const LensPath = paths.Accounts + "/{account}/lens"
 
 // RowPath is the row-detail endpoint's route for a dataset that declares a provenance query, one per
 // such dataset (docs/UI.md section 17.1). The registry claims it, and the contract generator refuses a
 // bespoke handler claiming it too.
 func RowPath(dataset string) string {
-	return "/api/{account}/" + dataset + "/{row}"
+	return paths.Accounts + "/{account}/" + dataset + "/{row}"
 }
 
 // Paths are the routes the registry claims, the dataset endpoint's and one row-detail route per dataset
@@ -243,8 +244,7 @@ func Pages(count int64) int64 {
 
 // link is a screen URL under the account, with its query.
 func link(account, screen string, query url.Values) string {
-	u := url.URL{Path: "/" + account + "/" + screen, RawQuery: query.Encode()}
-	return u.String()
+	return paths.Page(account, screen, query)
 }
 
 // statusFilter splits a request's status filter into the any-of and exclusion arrays the statements

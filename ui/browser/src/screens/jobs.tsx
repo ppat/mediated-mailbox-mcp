@@ -22,6 +22,7 @@ import { useDeps } from "../app/deps.ts";
 import { age, count, duration, rate, utc } from "../app/format.ts";
 import { numberIn, refetchOf } from "../app/frame.tsx";
 import { LiveProgress, LiveText, type Measure, type Stream } from "../app/live.tsx";
+import { accountPage } from "../app/paths.ts";
 import { Region } from "../app/region.tsx";
 import { useCanonicalView } from "../app/router.tsx";
 import { apiQuery, type View } from "../app/url.ts";
@@ -33,7 +34,7 @@ import type { ProgressState } from "../lens/progress.tsx";
 
 // runHref is a run's screen.
 export function runHref(account: string, run: string): string {
-  return `/${encodeURIComponent(account)}/jobs/${encodeURIComponent(run)}`;
+  return accountPage(account, `jobs/${encodeURIComponent(run)}`);
 }
 
 // planTitle is a plan's title, the first line of its description cut at 80 characters (section 8.1).

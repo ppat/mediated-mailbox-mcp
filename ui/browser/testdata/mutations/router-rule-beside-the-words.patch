@@ -1,0 +1,20 @@
+control: Every route the UI registers sits under its root, apart from the redirect at /
+removes: the router matches an account's rule with its identifier right after policy, where the policy screens' route words sit, rather than after rules
+packages: ./ui/browser/test/routes.test.ts
+tests: every route sits under the UI's root
+scheduled-count: no
+runner: bun
+
+diff --git a/ui/browser/src/app/router.tsx b/ui/browser/src/app/router.tsx
+index cb34490..ed0e829 100644
+--- a/ui/browser/src/app/router.tsx
++++ b/ui/browser/src/app/router.tsx
+@@ -75,7 +75,7 @@ export function Routes() {
+       <Route path={`${accountRoute}/policy/history`} component={PolicyHistoryRoute} />
+       <Route path={`${accountRoute}/policy/import`} component={PolicyImportRoute} />
+       <Route path={`${accountRoute}/policy/base/:rule`} component={PolicyBaseRuleRoute} />
+-      <Route path={`${accountRoute}/policy/rules/:rule`} component={PolicyRuleRoute} />
++      <Route path={`${accountRoute}/policy/:rule`} component={PolicyRuleRoute} />
+       <Route default component={NotFound} />
+     </Router>
+   );

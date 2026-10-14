@@ -111,8 +111,7 @@ export const problemKind = {
   no_suffix: "it has no domain suffix",
   invalid_suffix: "a suffix is not shaped like a domain name",
   other_class: "its class is not restricted, the one class",
-  reserved_identifier:
-    "its identifier is a word the policy screens' addresses use, exactly . or .., or holds a /",
+  reserved_identifier: "its identifier is exactly . or .., or holds a /, which no address can hold",
   not_the_form: "the file is not the policy file's form",
   too_large: "the file is over 1 MB",
 } as const satisfies Record<Schemas["Problem"]["kind"], string>;

@@ -20,6 +20,7 @@ import {
 import { useDeps, type Deps } from "../app/deps.ts";
 import { counted } from "../app/format.ts";
 import { outcomeKey, type Outcome, type PutBack, type Scope } from "../app/outcomes.ts";
+import { accountPage, setupPage } from "../app/paths.ts";
 import { problemKind } from "../app/wording.ts";
 
 // --- Addresses -----------------------------------------------------------------------------------
@@ -31,7 +32,7 @@ function segment(value: string): string {
 // policyHome is a scope's policy screen, the account's, or the base policy's installation screen when
 // no account is in view.
 export function policyHome(account: string | undefined): string {
-  return account === undefined ? "/setup/policy" : `/${segment(account)}/policy`;
+  return account === undefined ? setupPage("policy") : accountPage(account, "policy");
 }
 
 // ruleScreen is one rule's address. From an account, a base rule is always at /policy/base/{id}, so a
@@ -45,8 +46,8 @@ export function ruleScreen(
 ): string {
   const path =
     account === undefined
-      ? `/setup/policy/${segment(rule)}`
-      : `${policyHome(account)}/${scope === "base" ? "base/" : ""}${segment(rule)}`;
+      ? setupPage(`policy/rules/${segment(rule)}`)
+      : `${policyHome(account)}/${scope === "base" ? "base" : "rules"}/${segment(rule)}`;
   return added.length === 0
     ? path
     : `${path}?${new URLSearchParams(added.map((s) => ["suffix", s])).toString()}`;
@@ -101,25 +102,19 @@ export function openerOf(state: unknown): Opener | undefined {
 
 // --- Checks --------------------------------------------------------------------------------------
 
-// The words each scope's screens use in their addresses after the policy path, which no identifier
-// of that scope may be (docs/UI.md sections 5, 8.7 and 8.14).
-const routeWords: Record<Scope, readonly string[]> = {
-  account: ["new", "pick", "history", "import", "base"],
-  base: ["new", "history", "import"],
-};
-
-// identifierProblem is why an identifier cannot be a rule's in a scope, the checks of a write the UI
-// makes before it sends one, or undefined when it can. Whether the scope already holds it is the
-// server's to say.
-export function identifierProblem(id: string, scope: Scope): string | undefined {
+// identifierProblem is why an identifier cannot be a rule's, the checks of a write the UI makes before
+// it sends one, or undefined when it can. A rule's identifier follows rules or base in its address, so
+// any word may be one, and only an identifier no path segment can hold is refused (docs/UI.md sections
+// 5 and 8.7). Whether the scope already holds it is the server's to say.
+export function identifierProblem(id: string): string | undefined {
   if (id.trim() === "") {
     return "A rule needs an identifier.";
   }
   if (id !== id.trim()) {
     return "An identifier carries no space before or after it.";
   }
-  if (routeWords[scope].includes(id) || id === "." || id === ".." || id.includes("/")) {
-    return `${id} cannot be an identifier, since the policy screens' addresses use it. It may not be ., .. or hold a /.`;
+  if (id === "." || id === ".." || id.includes("/")) {
+    return `${id} cannot be an identifier, since no address can hold it. It may not be . or .. or hold a /.`;
   }
   return undefined;
 }

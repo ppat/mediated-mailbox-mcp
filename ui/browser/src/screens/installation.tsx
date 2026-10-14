@@ -4,6 +4,7 @@
 // (ADR-0056). Of the base policy it reads only the count of base rules, which belongs to no account.
 import { useState } from "preact/hooks";
 import {
+  clientPath,
   installationPath,
   send,
   type Client,
@@ -14,6 +15,7 @@ import {
 import { useDeps } from "../app/deps.ts";
 import { count } from "../app/format.ts";
 import { providerName } from "../app/frame.tsx";
+import { accountPage, setupPage } from "../app/paths.ts";
 import { consoleTab } from "../app/guide.ts";
 import { Region } from "../app/region.tsx";
 import { clientsConsole } from "./steps.ts";
@@ -87,9 +89,9 @@ function GettingStarted(props: { answer: Installation }) {
       <ol class="checklist">
         <li>
           <Status state={ready ? "done" : "current"} />{" "}
-          <a href="/setup/gmail/new">Set up a Gmail OAuth client</a>
+          <a href={setupPage("gmail/new")}>Set up a Gmail OAuth client</a>
           {ready ? null : (
-            <a class="primary" href="/setup/gmail/new">
+            <a class="primary" href={setupPage("gmail/new")}>
               Start
             </a>
           )}
@@ -98,14 +100,14 @@ function GettingStarted(props: { answer: Installation }) {
           <span class="step-status" data-state="optional">
             <span aria-hidden="true">○</span> {baseRulesStatus(props.answer.base_rules)}
           </span>{" "}
-          <a href="/setup/policy">Review the base policy</a>
+          <a href={setupPage("policy")}>Review the base policy</a>
         </li>
         <li>
           <Status state={ready ? "current" : "blocked"} />{" "}
           {ready ? (
             <>
-              <a href="/setup/connect">Connect an account</a>
-              <a class="primary" href="/setup/connect">
+              <a href={setupPage("connect")}>Connect an account</a>
+              <a class="primary" href={setupPage("connect")}>
                 Connect
               </a>
             </>
@@ -169,7 +171,7 @@ function Clients(props: { answer: Installation }) {
                 </tbody>
               </table>
             )}
-            <a href={`/setup/${encodeURIComponent(provider)}/new`}>
+            <a href={setupPage(`${encodeURIComponent(provider)}/new`)}>
               Add a {providerName(provider)} client
             </a>
           </div>
@@ -194,7 +196,7 @@ function ClientRow(props: { client: Client }) {
   const remove = async () => {
     const result = await send<RemovedClient>(
       post,
-      `/api/setup/${encodeURIComponent(client.provider)}/clients/${encodeURIComponent(client.name)}/remove`,
+      `${clientPath(client.provider, client.name)}/remove`,
       {},
     );
     setConfirming(false);
@@ -230,7 +232,9 @@ function ClientRow(props: { client: Client }) {
           </a>
         )}
         <a
-          href={`/setup/${encodeURIComponent(client.provider)}/${encodeURIComponent(client.name)}`}
+          href={setupPage(
+            `${encodeURIComponent(client.provider)}/${encodeURIComponent(client.name)}`,
+          )}
         >
           Replace
         </a>
@@ -290,12 +294,12 @@ function Accounts(props: { answer: Installation; starting: boolean }) {
             {answer.accounts.map((a) => (
               <tr key={a.account_id}>
                 <td class="mono">
-                  <a href={`/${encodeURIComponent(a.account_id)}`}>{a.account_id}</a>
+                  <a href={accountPage(a.account_id)}>{a.account_id}</a>
                 </td>
                 <td>{a.provider}</td>
                 <td class="mono">{a.oauth_client ?? ""}</td>
                 <td>
-                  <a href={`/${encodeURIComponent(a.account_id)}/account`}>settings</a>
+                  <a href={accountPage(a.account_id, "account")}>settings</a>
                 </td>
               </tr>
             ))}
@@ -303,7 +307,7 @@ function Accounts(props: { answer: Installation; starting: boolean }) {
         </table>
       )}
       {props.starting ? null : ready ? (
-        <a class="primary" href="/setup/connect">
+        <a class="primary" href={setupPage("connect")}>
           Connect an account
         </a>
       ) : (

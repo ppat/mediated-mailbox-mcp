@@ -6,7 +6,7 @@
     {
       "at": null,
       "key": "senders",
-      "link": "/personal/policy/pick",
+      "link": "/ui/accounts/personal/policy/pick",
       "unit": null,
       "value": 5,
       "wording": "senders"
@@ -14,7 +14,7 @@
     {
       "at": null,
       "key": "messages",
-      "link": "/personal/policy/pick",
+      "link": "/ui/accounts/personal/policy/pick",
       "unit": null,
       "value": 11,
       "wording": "messages"

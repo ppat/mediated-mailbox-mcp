@@ -25,52 +25,52 @@ import (
 // the ones the browser's URL grammar builds.
 func fixtures() map[string]string {
 	return map[string]string{
-		"accounts.json":                               "/api/accounts",
-		"system-other.json":                           "/api/other/system",
-		"system.json":                                 "/api/personal/system",
-		"corpus.json":                                 "/api/personal/corpus",
-		"corpus-other.json":                           "/api/other/corpus",
-		"jobs.json":                                   "/api/personal/jobs",
-		"plans-summary.json":                          "/api/personal/lens?dataset=plans&level=0&range=all&sort=created_at,desc",
-		"plans-rows.json":                             "/api/personal/lens?dataset=plans&level=3&range=all&sort=created_at,desc&page=1",
-		"plans-summary-rejected.json":                 "/api/personal/lens?dataset=plans&level=0&range=all&sort=created_at,desc&status=REJECTED",
-		"plans-rows-empty.json":                       "/api/personal/lens?dataset=plans&level=3&range=all&sort=created_at,desc&page=1&status=REJECTED",
-		"candidates-summary-pending.json":             "/api/personal/lens?dataset=candidates&level=0&range=all&sort=score,desc&status=pending",
-		"candidates-rows-pending.json":                "/api/personal/lens?dataset=candidates&level=3&range=all&sort=score,desc&page=1&status=pending",
-		"candidates-summary-all.json":                 "/api/personal/lens?dataset=candidates&level=0&range=all&sort=score,desc",
-		"candidates-rows-all.json":                    "/api/personal/lens?dataset=candidates&level=3&range=all&sort=score,desc&page=1",
-		"candidates-rows-pending-oldest.json":         "/api/personal/lens?dataset=candidates&level=3&range=all&sort=created_at,asc&page=1&status=pending",
-		"attention.json":                              "/api/personal/attention",
-		"attention-other.json":                        "/api/other/attention",
-		"candidates-rows-pending-other.json":          "/api/other/lens?dataset=candidates&level=3&range=all&sort=score,desc&page=1&status=pending",
-		"candidates-rows-pending-oldest-other.json":   "/api/other/lens?dataset=candidates&level=3&range=all&sort=created_at,asc&page=1&status=pending",
-		"runs-summary.json":                           "/api/personal/lens?dataset=runs&level=0&range=7d&sort=started_at,desc&pass=!tick",
-		"runs-rows.json":                              "/api/personal/lens?dataset=runs&level=3&range=7d&sort=started_at,desc&page=1&pass=!tick",
-		"runs-by-workload.json":                       "/api/personal/lens?dataset=runs&level=1&group=workload&range=7d&sort=started_at,desc&pass=!tick",
-		"runs-backfill-by-state.json":                 "/api/personal/lens?dataset=runs&level=2&group=state&range=7d&sort=started_at,desc&pass=!tick&workload=backfill",
-		"runs-summary-backfill.json":                  "/api/personal/lens?dataset=runs&level=0&range=7d&sort=started_at,desc&pass=!tick&workload=backfill",
-		"run-r-0912.json":                             "/api/personal/jobs/r-0912",
-		"run-r-0913.json":                             "/api/personal/jobs/r-0913",
-		"failures-by-error-class.json":                "/api/personal/lens?dataset=failures&run=r-0912&level=1&group=error_class&sort=last_at,desc",
-		"failures-by-disposition.json":                "/api/personal/lens?dataset=failures&run=r-0912&level=1&group=disposition&sort=last_at,desc",
-		"failures-rows.json":                          "/api/personal/lens?dataset=failures&run=r-0912&level=3&sort=last_at,desc&page=1",
-		"failures-provider-error-by-sender.json":      "/api/personal/lens?dataset=failures&run=r-0912&level=2&group=sender&sort=last_at,desc&error_class=provider_error",
-		"failures-provider-error-by-disposition.json": "/api/personal/lens?dataset=failures&run=r-0912&level=1&group=disposition&sort=last_at,desc&error_class=provider_error",
-		"failures-provider-error-rows.json":           "/api/personal/lens?dataset=failures&run=r-0912&level=3&sort=last_at,desc&page=1&error_class=provider_error",
-		"failure-5.json":                              "/api/personal/failures/5?run=r-0912",
-		"failure-1.json":                              "/api/personal/failures/1?run=r-0912",
-		"failure-4.json":                              "/api/personal/failures/4?run=r-0912",
-		"error-unknown-dataset.json":                  "/api/personal/lens?dataset=messages",
-		"error-unknown-account.json":                  "/api/nobody/system",
-		"jobs-other.json":                             "/api/other/jobs",
-		"runs-summary-other.json":                     "/api/other/lens?dataset=runs&level=0&range=7d&sort=started_at,desc&pass=!tick",
-		"runs-rows-other.json":                        "/api/other/lens?dataset=runs&level=3&range=7d&sort=started_at,desc&page=1&pass=!tick",
-		"runs-summary-custom.json":                    "/api/personal/lens?dataset=runs&level=0&range=2026-09-01,2026-09-10&sort=started_at,desc&pass=!tick",
-		"runs-rows-custom.json":                       "/api/personal/lens?dataset=runs&level=3&range=2026-09-01,2026-09-10&sort=started_at,desc&page=1&pass=!tick",
-		"error-unknown-run-other.json":                "/api/other/jobs/r-0912",
-		"error-unknown-account-run.json":              "/api/nobody/jobs/r-0912",
-		"error-unknown-sort-summary.json":             "/api/personal/lens?dataset=plans&level=0&range=all&sort=bogus,desc",
-		"error-unknown-sort-rows.json":                "/api/personal/lens?dataset=plans&level=3&range=all&sort=bogus,desc&page=1",
+		"accounts.json":                               "/ui/api/accounts",
+		"system-other.json":                           "/ui/api/accounts/other/system",
+		"system.json":                                 "/ui/api/accounts/personal/system",
+		"corpus.json":                                 "/ui/api/accounts/personal/corpus",
+		"corpus-other.json":                           "/ui/api/accounts/other/corpus",
+		"jobs.json":                                   "/ui/api/accounts/personal/jobs",
+		"plans-summary.json":                          "/ui/api/accounts/personal/lens?dataset=plans&level=0&range=all&sort=created_at,desc",
+		"plans-rows.json":                             "/ui/api/accounts/personal/lens?dataset=plans&level=3&range=all&sort=created_at,desc&page=1",
+		"plans-summary-rejected.json":                 "/ui/api/accounts/personal/lens?dataset=plans&level=0&range=all&sort=created_at,desc&status=REJECTED",
+		"plans-rows-empty.json":                       "/ui/api/accounts/personal/lens?dataset=plans&level=3&range=all&sort=created_at,desc&page=1&status=REJECTED",
+		"candidates-summary-pending.json":             "/ui/api/accounts/personal/lens?dataset=candidates&level=0&range=all&sort=score,desc&status=pending",
+		"candidates-rows-pending.json":                "/ui/api/accounts/personal/lens?dataset=candidates&level=3&range=all&sort=score,desc&page=1&status=pending",
+		"candidates-summary-all.json":                 "/ui/api/accounts/personal/lens?dataset=candidates&level=0&range=all&sort=score,desc",
+		"candidates-rows-all.json":                    "/ui/api/accounts/personal/lens?dataset=candidates&level=3&range=all&sort=score,desc&page=1",
+		"candidates-rows-pending-oldest.json":         "/ui/api/accounts/personal/lens?dataset=candidates&level=3&range=all&sort=created_at,asc&page=1&status=pending",
+		"attention.json":                              "/ui/api/accounts/personal/attention",
+		"attention-other.json":                        "/ui/api/accounts/other/attention",
+		"candidates-rows-pending-other.json":          "/ui/api/accounts/other/lens?dataset=candidates&level=3&range=all&sort=score,desc&page=1&status=pending",
+		"candidates-rows-pending-oldest-other.json":   "/ui/api/accounts/other/lens?dataset=candidates&level=3&range=all&sort=created_at,asc&page=1&status=pending",
+		"runs-summary.json":                           "/ui/api/accounts/personal/lens?dataset=runs&level=0&range=7d&sort=started_at,desc&pass=!tick",
+		"runs-rows.json":                              "/ui/api/accounts/personal/lens?dataset=runs&level=3&range=7d&sort=started_at,desc&page=1&pass=!tick",
+		"runs-by-workload.json":                       "/ui/api/accounts/personal/lens?dataset=runs&level=1&group=workload&range=7d&sort=started_at,desc&pass=!tick",
+		"runs-backfill-by-state.json":                 "/ui/api/accounts/personal/lens?dataset=runs&level=2&group=state&range=7d&sort=started_at,desc&pass=!tick&workload=backfill",
+		"runs-summary-backfill.json":                  "/ui/api/accounts/personal/lens?dataset=runs&level=0&range=7d&sort=started_at,desc&pass=!tick&workload=backfill",
+		"run-r-0912.json":                             "/ui/api/accounts/personal/jobs/r-0912",
+		"run-r-0913.json":                             "/ui/api/accounts/personal/jobs/r-0913",
+		"failures-by-error-class.json":                "/ui/api/accounts/personal/lens?dataset=failures&run=r-0912&level=1&group=error_class&sort=last_at,desc",
+		"failures-by-disposition.json":                "/ui/api/accounts/personal/lens?dataset=failures&run=r-0912&level=1&group=disposition&sort=last_at,desc",
+		"failures-rows.json":                          "/ui/api/accounts/personal/lens?dataset=failures&run=r-0912&level=3&sort=last_at,desc&page=1",
+		"failures-provider-error-by-sender.json":      "/ui/api/accounts/personal/lens?dataset=failures&run=r-0912&level=2&group=sender&sort=last_at,desc&error_class=provider_error",
+		"failures-provider-error-by-disposition.json": "/ui/api/accounts/personal/lens?dataset=failures&run=r-0912&level=1&group=disposition&sort=last_at,desc&error_class=provider_error",
+		"failures-provider-error-rows.json":           "/ui/api/accounts/personal/lens?dataset=failures&run=r-0912&level=3&sort=last_at,desc&page=1&error_class=provider_error",
+		"failure-5.json":                              "/ui/api/accounts/personal/failures/5?run=r-0912",
+		"failure-1.json":                              "/ui/api/accounts/personal/failures/1?run=r-0912",
+		"failure-4.json":                              "/ui/api/accounts/personal/failures/4?run=r-0912",
+		"error-unknown-dataset.json":                  "/ui/api/accounts/personal/lens?dataset=messages",
+		"error-unknown-account.json":                  "/ui/api/accounts/nobody/system",
+		"jobs-other.json":                             "/ui/api/accounts/other/jobs",
+		"runs-summary-other.json":                     "/ui/api/accounts/other/lens?dataset=runs&level=0&range=7d&sort=started_at,desc&pass=!tick",
+		"runs-rows-other.json":                        "/ui/api/accounts/other/lens?dataset=runs&level=3&range=7d&sort=started_at,desc&page=1&pass=!tick",
+		"runs-summary-custom.json":                    "/ui/api/accounts/personal/lens?dataset=runs&level=0&range=2026-09-01,2026-09-10&sort=started_at,desc&pass=!tick",
+		"runs-rows-custom.json":                       "/ui/api/accounts/personal/lens?dataset=runs&level=3&range=2026-09-01,2026-09-10&sort=started_at,desc&page=1&pass=!tick",
+		"error-unknown-run-other.json":                "/ui/api/accounts/other/jobs/r-0912",
+		"error-unknown-account-run.json":              "/ui/api/accounts/nobody/jobs/r-0912",
+		"error-unknown-sort-summary.json":             "/ui/api/accounts/personal/lens?dataset=plans&level=0&range=all&sort=bogus,desc",
+		"error-unknown-sort-rows.json":                "/ui/api/accounts/personal/lens?dataset=plans&level=3&range=all&sort=bogus,desc&page=1",
 	}
 }
 
@@ -88,7 +88,7 @@ func TestTheRecordedFixturesMatchTheServer(t *testing.T) {
 	// answer is recorded once more from a server whose clock reads a minute earlier (docs/UI.md
 	// section 8.1).
 	earlier, _ := serverAt(t, uiPool(t, "mediated_mailbox_ui"), starting(), now.Add(-time.Minute))
-	record(t, earlier, doc, map[string]string{"corpus-earlier.json": "/api/personal/corpus"})
+	record(t, earlier, doc, map[string]string{"corpus-earlier.json": "/ui/api/accounts/personal/corpus"})
 	// The live screens' tests read some paths again after the recorded state has moved on, so those
 	// paths are recorded a second time after it moves (docs/UI.md sections 8.3 and 9).
 	advance(t)
@@ -96,26 +96,26 @@ func TestTheRecordedFixturesMatchTheServer(t *testing.T) {
 	// The jobs screen's bar for pass 2 must appear on a new run's first page event, so the jobs
 	// answer is recorded once more after a pass 2 run starts that records no page yet.
 	startPass2(t)
-	record(t, s, doc, map[string]string{"jobs-pass2-started.json": "/api/personal/jobs"})
+	record(t, s, doc, map[string]string{"jobs-pass2-started.json": "/ui/api/accounts/personal/jobs"})
 	// The rate budget must appear on an account's first spend, so the other account's jobs answer is
 	// recorded once more after it spends for the first time.
 	firstSpend(t)
-	record(t, s, doc, map[string]string{"jobs-other-spent.json": "/api/other/jobs"})
+	record(t, s, doc, map[string]string{"jobs-other-spent.json": "/ui/api/accounts/other/jobs"})
 	// Home's states for an account with nothing indexed, nothing awaiting a decision and nothing worth a
 	// look are recorded once the other account's recorded state is removed (docs/UI.md section 8.1).
 	emptyOther(t)
 	record(t, s, doc, map[string]string{
-		"system-other-empty.json":                         "/api/other/system",
-		"jobs-other-empty.json":                           "/api/other/jobs",
-		"attention-other-empty.json":                      "/api/other/attention",
-		"candidates-rows-pending-other-empty.json":        "/api/other/lens?dataset=candidates&level=3&range=all&sort=score,desc&page=1&status=pending",
-		"candidates-rows-pending-oldest-other-empty.json": "/api/other/lens?dataset=candidates&level=3&range=all&sort=created_at,asc&page=1&status=pending",
+		"system-other-empty.json":                         "/ui/api/accounts/other/system",
+		"jobs-other-empty.json":                           "/ui/api/accounts/other/jobs",
+		"attention-other-empty.json":                      "/ui/api/accounts/other/attention",
+		"candidates-rows-pending-other-empty.json":        "/ui/api/accounts/other/lens?dataset=candidates&level=3&range=all&sort=score,desc&page=1&status=pending",
+		"candidates-rows-pending-oldest-other-empty.json": "/ui/api/accounts/other/lens?dataset=candidates&level=3&range=all&sort=created_at,asc&page=1&status=pending",
 	})
 	// The banner of a pass 1 a change of scanner re-opened, and Home's backfill cell for it, are
 	// recorded once the personal account's pass 1, which succeeded, runs again (docs/UI.md sections 8.1
 	// and 12).
 	reopenPass1(t)
-	record(t, s, doc, map[string]string{"system-reopened.json": "/api/personal/system", "jobs-reopened.json": "/api/personal/jobs"})
+	record(t, s, doc, map[string]string{"system-reopened.json": "/ui/api/accounts/personal/system", "jobs-reopened.json": "/ui/api/accounts/personal/jobs"})
 }
 
 // reopenPass1 moves the personal account on as a backfill run that finds the first pass due again
@@ -228,11 +228,11 @@ func startPass2(t *testing.T) {
 // the browser's tests also read before the move.
 func laterFixtures() map[string]string {
 	return map[string]string{
-		"jobs-later.json":         "/api/personal/jobs",
-		"corpus-later.json":       "/api/personal/corpus",
-		"attention-later.json":    "/api/personal/attention",
-		"runs-summary-later.json": "/api/personal/lens?dataset=runs&level=0&range=7d&sort=started_at,desc&pass=!tick",
-		"runs-rows-later.json":    "/api/personal/lens?dataset=runs&level=3&range=7d&sort=started_at,desc&page=1&pass=!tick",
+		"jobs-later.json":         "/ui/api/accounts/personal/jobs",
+		"corpus-later.json":       "/ui/api/accounts/personal/corpus",
+		"attention-later.json":    "/ui/api/accounts/personal/attention",
+		"runs-summary-later.json": "/ui/api/accounts/personal/lens?dataset=runs&level=0&range=7d&sort=started_at,desc&pass=!tick",
+		"runs-rows-later.json":    "/ui/api/accounts/personal/lens?dataset=runs&level=3&range=7d&sort=started_at,desc&page=1&pass=!tick",
 	}
 }
 
@@ -288,14 +288,14 @@ func record(t *testing.T, s *api.Server, doc *openapi3.T, paths map[string]strin
 	t.Helper()
 	for name, p := range paths {
 		r := get(t, s.Handler(), p)
-		route := strings.SplitN(strings.TrimPrefix(p, "/api/"), "?", 2)[0]
-		pattern := "/api/accounts"
+		route := strings.SplitN(strings.TrimPrefix(p, "/ui/api/"), "?", 2)[0]
+		pattern := "/ui/api/accounts"
 		if route != "accounts" {
-			pattern = "/api/{account}/" + strings.SplitN(route, "/", 2)[1]
+			pattern = "/ui/api/accounts/{account}/" + strings.SplitN(route, "/", 3)[2]
 		}
 		// A run's summary and a failure's row detail carry their identity in the path.
-		if parts := strings.Split(route, "/"); len(parts) == 3 {
-			pattern = map[string]string{"jobs": "/api/{account}/jobs/{run}", "failures": "/api/{account}/failures/{row}"}[parts[1]]
+		if parts := strings.Split(route, "/"); len(parts) == 4 {
+			pattern = map[string]string{"jobs": "/ui/api/accounts/{account}/jobs/{run}", "failures": "/ui/api/accounts/{account}/failures/{row}"}[parts[2]]
 		}
 		op := doc.Paths.Value(pattern).Get
 		status := r.status

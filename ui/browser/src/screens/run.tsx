@@ -20,6 +20,7 @@ import {
 import { useDeps, type Deps } from "../app/deps.ts";
 import { count, utc } from "../app/format.ts";
 import { Live, LiveText, type Stream } from "../app/live.tsx";
+import { accountPage } from "../app/paths.ts";
 import { Region } from "../app/region.tsx";
 import { apiQuery, href, serialize, withPage, type Parent, type View } from "../app/url.ts";
 import {
@@ -59,7 +60,7 @@ export function dispositionView(view: View): View {
 
 // failureHref is one failure's panel over the items, keeping the view.
 export function failureHref(account: string, run: string, seq: number, view: View): string {
-  return `/${encodeURIComponent(account)}/${runScreen(run)}/failures/${seq}?${serialize(view)}`;
+  return `${accountPage(account, `${runScreen(run)}/failures/${seq}`)}?${serialize(view)}`;
 }
 
 // runReads are the reads a run event of the run or its resumer reads again.
@@ -374,7 +375,7 @@ export function FailurePanel(props: { account: string; run: string; seq: string;
   const { account, run, seq, view } = props;
   const { failures } = useDeps();
   const path = failurePath(account, run, seq);
-  const back = `/${encodeURIComponent(account)}/${runScreen(run)}?${serialize(view)}`;
+  const back = `${accountPage(account, runScreen(run))}?${serialize(view)}`;
   return (
     <DetailPanel title={`Failure ${seq} of run ${run}`} back={back}>
       <Region

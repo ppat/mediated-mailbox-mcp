@@ -20,8 +20,10 @@ other value the system holds.
 - It is the `account` label on most metric series, the API server's paths
   `/api/accounts/{account_id}/…` and every MCP call's `account_id`
   ([ADR-0087](../operability/0087-client-surface-derives-method-and-hints-from-each-operations-effect.md)),
-  the first segment of the UI's URLs and so of every bookmark, the `app.account` setting every
-  statement reads, and the candidate rule identifier `candidate.{account}.{domain}`.
+  the segment after `accounts` in the UI's URLs and so in every bookmark
+  ([ADR-0137](../operability/0137-the-top-level-paths-are-the-surfaces-and-the-ui-serves-under-ui.md)),
+  the `app.account` setting every statement reads, and the candidate rule identifier
+  `candidate.{account}.{domain}`.
 - The first identifier becomes permanent at production point 1, since every record of the account
   is keyed on it and nothing rewrites stored accounts
   ([ADR-0048](./0048-forward-only-migrations.md)).
@@ -41,9 +43,10 @@ proposal into anything.
   grammar of one DNS label. A leading digit is allowed.
 - **Three sides hold it alike.** The database's check on `accounts.account_id`
   ([ADR-0016](./0016-schema.md)), the UI's server check at account setup, and the connect page's
-  proposal accept the same set of identifiers on the grammar.
-  - The UI's server alone also refuses the words its own top-level paths use, which the database
-    does not know, so every account's screens can be reached.
+  proposal accept the same set of identifiers, the grammar's. An account's identifier follows the
+  word `accounts` in every path the UI serves
+  ([ADR-0137](../operability/0137-the-top-level-paths-are-the-surfaces-and-the-ui-serves-under-ui.md)),
+  so no word of the UI's bounds it and every account's screens can be reached.
   - Every identifier the UI proposes is one its server accepts, so the UI never refuses an
     identifier it proposed. How the proposal keeps to that is
     [docs/UI.md section 8.12](../../UI.md#812-connect-an-account-and-re-authorize)'s.
@@ -75,9 +78,10 @@ proposal into anything.
   ([ADR-0087](../operability/0087-client-surface-derives-method-and-hints-from-each-operations-effect.md)).
 - **Assumed of the account setting and the metrics.** `app.account` and the `account` label take any
   string, so the grammar narrows nothing they rely on.
-- **Assumed of the UI's top-level words.** They are a closed list that tests pin
-  ([docs/UI.md section 5](../../UI.md#5-information-architecture-and-the-url)), so a word the UI
-  starts using later is a reviewed change, checked against the accounts already stored.
+- **Assumed of the UI's paths.** An account's identifier sits only after `accounts`, never where a
+  word of the UI's sits
+  ([ADR-0137](../operability/0137-the-top-level-paths-are-the-surfaces-and-the-ui-serves-under-ui.md)),
+  so a word the UI starts using later cannot make an account already stored unreachable.
 - **An account stored outside the grammar** stops the migration that adds the database's check,
   and nothing rewrites it, since an account is system-of-record data
   ([ADR-0048](./0048-forward-only-migrations.md)). That fails closed before production point 1.

@@ -6,15 +6,19 @@ scheduled-count: no
 integration: yes
 
 diff --git a/ui/internal/api/server.go b/ui/internal/api/server.go
-index a294fb54..9e8b5394 100644
+index 7400f1e..8c2847b 100644
 --- a/ui/internal/api/server.go
 +++ b/ui/internal/api/server.go
-@@ -207,11 +207,11 @@ func New(opts Options) (*Server, error) {
- 	mux.Handle("/api/", named("unrouted", func(w http.ResponseWriter, r *http.Request) {
+@@ -233,7 +233,7 @@ func New(opts Options) (*Server, error) {
+ 	mux.Handle(paths.API+"/", named("unrouted", func(w http.ResponseWriter, r *http.Request) {
  		writeFailure(w, r, clientFault(http.StatusNotFound, "not_found", "no read API route answers this path"))
  	}))
--	mux.Handle("/", a)
-+	mux.Handle("/", withPolicy(a))
+-	mux.Handle(paths.Root+"/", a)
++	mux.Handle(paths.Root+"/", withPolicy(a))
+ 	// The one route outside the root. Everything else outside it is the mux's own 404 (ADR-0137).
+ 	mux.Handle("GET /{$}", named("root", func(w http.ResponseWriter, r *http.Request) {
+ 		http.Redirect(w, r, paths.Root+"/", http.StatusFound)
+@@ -241,7 +241,7 @@ func New(opts Options) (*Server, error) {
  	s.uiMux = mux
  	// Every request is given its session, and every request whose method is not GET or HEAD is refused
  	// before it is routed unless it carries the session's request token (ADR-0061).

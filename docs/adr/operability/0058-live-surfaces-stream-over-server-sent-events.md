@@ -15,9 +15,9 @@ UI's own choice and touches no other component.
 ## Decision
 
 - **The UI's Go server streams changes to live surfaces over server-sent events.** One stream per
-  account at `/api/{account}/events`. The server polls the recorded state every 2 seconds and
-  emits one event per changed object carrying that object's whole current state, never a delta,
-  so a missed event costs nothing. For the same reason a repeated event costs nothing, so a run
+  account at `/ui/api/accounts/{account}/events`. The server polls the recorded state every 2
+  seconds and emits one event per changed object carrying that object's whole current state, never
+  a delta, so a missed event costs nothing. For the same reason a repeated event costs nothing, so a run
   that leaves the poll's window and is read again later is sent again, which lets a stream
   remember only what its latest poll read. The objects are job runs, the rate state, and plans
   while applying. The event shape is stated in
