@@ -1,0 +1,19 @@
+control: Each component's handler is served on the application server at the patterns its root gives and nowhere else
+removes: only a component's first pattern is mounted, so the API server would answer its API root and never its MCP root
+packages: ./process/host
+tests: TestEachHandlerIsServedWhereItIsMounted
+scheduled-count: no
+
+diff --git a/process/host/host.go b/process/host/host.go
+index 7e940118..4d2c8def 100644
+--- a/process/host/host.go
++++ b/process/host/host.go
+@@ -474,7 +474,7 @@ func (h *Host) Serve(ctx context.Context, l Listeners, s Serving) error {
+ 			if c.parts.Handler == nil {
+ 				continue
+ 			}
+-			for _, pattern := range c.mount {
++			for _, pattern := range c.mount[:1] {
+ 				mux.Handle(pattern, c.parts.Handler)
+ 			}
+ 		}

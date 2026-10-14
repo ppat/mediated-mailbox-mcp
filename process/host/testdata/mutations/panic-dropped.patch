@@ -1,0 +1,20 @@
+control: A background task's panic or failure is its own and stops the process in order, and every task is joined before the pools close
+removes: a task's panic is recovered and dropped, so the process serves on without the task
+packages: ./process/host
+tests: TestATaskPanicIsItsFailure
+scheduled-count: no
+
+diff --git a/process/host/host.go b/process/host/host.go
+index e4eb2a02..6ef5d0e5 100644
+--- a/process/host/host.go
++++ b/process/host/host.go
+@@ -541,7 +541,8 @@ func tasks(components []component) int {
+ func recovered(ctx context.Context, t Task) (err error) {
+ 	defer func() {
+ 		if r := recover(); r != nil {
+-			err = fmt.Errorf("%w: %v\n%s", ErrPanicked, r, debug.Stack())
++			_, _ = r, debug.Stack
++			err = nil
+ 		}
+ 	}()
+ 	return t.Run(ctx)

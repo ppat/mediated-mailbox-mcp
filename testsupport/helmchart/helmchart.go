@@ -132,10 +132,15 @@ func SchemaKeys(t *testing.T, chartDir string, path ...string) []string {
 	return keys
 }
 
-// YAMLKeys returns the YAML names of a struct type's fields, sorted.
+// YAMLKeys returns the YAML names of a struct type's fields, the fields of a section it embeds inline
+// among them, at the same level, as the configuration library reads them, sorted.
 func YAMLKeys(typ reflect.Type) []string {
 	keys := make([]string, 0, typ.NumField())
 	for f := range typ.Fields() {
+		if f.Anonymous && f.Tag.Get("yaml") == ",inline" {
+			keys = append(keys, YAMLKeys(f.Type)...)
+			continue
+		}
 		name, _, _ := strings.Cut(f.Tag.Get("yaml"), ",")
 		keys = append(keys, name)
 	}

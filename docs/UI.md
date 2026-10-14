@@ -2512,9 +2512,14 @@ and is read again later is sent again, which costs nothing, since every event is
 every object the stream ever sent was the alternative, and it grows by every run of the account for
 as long as the stream is open.
 
-The UI's server closes a connection that sits idle between requests for two minutes. It sets no
-timeout on writing a response, since that would cut an open stream, which is one response that
-never ends.
+The host that runs the UI's process serves it under the connection limits of
+[ADR-0130](./adr/operability/0130-the-api-server-bounds-what-one-request-can-make-it-hold.md), so
+a request's headers have 10 seconds to arrive and the whole request 30, and a connection that sits
+idle between requests is closed after two minutes. Neither limit bounds an answer, and no timeout
+bounds writing a response, since that would cut an open stream, which is one response that never
+ends. When the process stops, every open stream ends as draining begins, so the requests in flight
+drain before the server closes
+([ADR-0138](./adr/engineering/0138-one-host-runs-each-process-and-each-component-provides-its-parts.md)).
 
 ## 18. Repository and build layout
 
@@ -2523,8 +2528,9 @@ half is Go and the browser half is TypeScript. How much of it is built is tracke
 
 ```text
 ui/
-  main.go               embeds browser/dist and hands it, with the arguments and the environment, to app
-  app/                  the composition root, the entry package that builds the server and serves it
+  main.go               hands the arguments, the environment and the logger to app
+  app/                  the composition root, the entry package exporting the UI's section and assembly,
+                        whose Run hands the UI to the host (ADR-0138)
   Dockerfile            the bundle stage, then the Go stage, then a minimal base
   internal/
     registry/           the dataset registry entries, each pointing at the data-access accessors it reads
@@ -2537,6 +2543,7 @@ ui/
     core/               pure-core packages private to the UI
   contract/             the generated OpenAPI document (checked in, regenerated in CI)
   browser/              the TypeScript app, with its manifest, lock file, runner, compiler, lint and format settings
+    bundle.go           the Go package browser, which embeds dist beside it and hands it to any root
     codegen/            the type generation step's own package (ADR-0065)
     scripts/            the build and the dataset descriptor table's generator
     rules/              the ast-grep rules (ADR-0072)
@@ -2549,7 +2556,7 @@ ui/
                         setup, connect and account settings
       fonts/            the vendored font files with their licence (section 14.3)
     test/               the browser tests, the DOM shim's preload, the fixture modules
-    dist/               the bundle, embedded into the Go binary, not checked in except its placeholder
+    dist/               the bundle, embedded by bundle.go, not checked in except its placeholder
   design/               the mockup sources and their notes
 ```
 
@@ -2642,9 +2649,10 @@ result, as `mediated_mailbox_ui_read_duration_seconds` by `dataset` and `level`,
 `mediated_mailbox_ui_stream_subscribers`, and the decision outcomes' series where the decisions are
 built. They also carry the statement, pool, Go runtime and process series every deployable
 registers ([ADR-0125](./adr/engineering/0125-performance-is-measured-once-at-each-place-time-goes.md)).
-The health and readiness probes and the metrics endpoint serve on their own plain-HTTP
-listener, `probe_listen`, apart from the UI's own listener, and the UI reports ready only while
-the database answers its role. No log line and no metric label ever carries message-derived text. This is the UI's share of [O2](../USE_CASES.md#o2--observable).
+Every series the UI registers carries `component` with the value `ui`. The host serves the health
+and readiness probes and the metrics endpoint on their own plain-HTTP listener, `probe_listen`,
+apart from the UI's own listener, as plain text without the content security policy, which is for
+the UI's own responses, and the UI reports ready only while the database answers its role. No log line and no metric label ever carries message-derived text. This is the UI's share of [O2](../USE_CASES.md#o2--observable).
 
 ## 19. Building it
 

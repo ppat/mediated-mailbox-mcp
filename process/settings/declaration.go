@@ -25,10 +25,11 @@ type node struct {
 	elem   *node   // a keyed type's element
 }
 
-// field is one field of a section, named by its YAML tag.
+// field is one field of a section, named by its YAML tag. index is its path through the struct, one
+// step for a field the section declares itself and more for one an inline section declares.
 type field struct {
 	name     string
-	index    int
+	index    []int
 	required bool
 	node     *node
 }
@@ -79,6 +80,12 @@ func declareType(t reflect.Type, path string, inValue bool) (*node, error) {
 		for i := range t.NumField() {
 			f := t.Field(i)
 			name := f.Tag.Get("yaml")
+			if f.Anonymous && name == inlineTag {
+				if err := declareInline(n, f, i, path, inValue); err != nil {
+					return nil, err
+				}
+				continue
+			}
 			at := join(path, name)
 			switch {
 			case !f.IsExported():
@@ -104,7 +111,7 @@ func declareType(t reflect.Type, path string, inValue bool) (*node, error) {
 			if required && (inValue || child.kind != valueKind) {
 				return nil, fmt.Errorf("%s is required, and only a value outside a list can be", at)
 			}
-			n.fields = append(n.fields, field{name: name, index: i, required: required, node: child})
+			n.fields = append(n.fields, field{name: name, index: []int{i}, required: required, node: child})
 		}
 		return n, nil
 	case reflect.Map:
@@ -132,6 +139,54 @@ func declareType(t reflect.Type, path string, inValue bool) (*node, error) {
 		reflect.Chan, reflect.Func, reflect.Interface, reflect.Pointer, reflect.UnsafePointer:
 	}
 	return nil, fmt.Errorf("%s: type %s cannot be configured", describe(path, t), t)
+}
+
+// inlineTag is the one yaml tag that is not a name. An embedded struct carrying it adds its fields to
+// the section that embeds it, at the same path, as the YAML decoder reads it, so a type composed from
+// sections declares each value once and keeps its names (ADR-0078).
+const inlineTag = ",inline"
+
+// declareInline adds the fields of f, an embedded struct tagged inline at index i of n's type, to n.
+// The embedded type is a section, so its fields are named, checked and refused as n's own are, and a
+// name it shares with another field of n is declared twice.
+func declareInline(n *node, f reflect.StructField, i int, path string, inValue bool) error {
+	switch {
+	case !f.IsExported():
+		return fmt.Errorf("%s: field %s is unexported, so no layer can set it", describe(path, n.typ), f.Name)
+	case f.Type.Kind() != reflect.Struct:
+		return fmt.Errorf("%s: field %s is inline and of type %s, and only a struct can be inline", describe(path, n.typ), f.Name, f.Type)
+	case f.Tag.Get("settings") != "":
+		return fmt.Errorf("%s: field %s is inline and has a settings tag, and only a value can be required", describe(path, n.typ), f.Name)
+	}
+	inner, err := declareType(f.Type, path, inValue)
+	if err != nil {
+		return err
+	}
+	for _, g := range inner.fields {
+		if _, ok := n.field(g.name); ok {
+			return fmt.Errorf("%s is declared twice", join(path, g.name))
+		}
+		g.index = append([]int{i}, g.index...)
+		n.fields = append(n.fields, g)
+	}
+	return nil
+}
+
+// yamlField returns the type of the field of struct type t that name names, a field of an inline
+// section included.
+func yamlField(t reflect.Type, name string) (reflect.Type, bool) {
+	for i := range t.NumField() {
+		f := t.Field(i)
+		switch tag := f.Tag.Get("yaml"); {
+		case tag == name:
+			return f.Type, true
+		case f.Anonymous && tag == inlineTag && f.Type.Kind() == reflect.Struct:
+			if inner, ok := yamlField(f.Type, name); ok {
+				return inner, true
+			}
+		}
+	}
+	return nil, false
 }
 
 func describe(path string, t reflect.Type) string {

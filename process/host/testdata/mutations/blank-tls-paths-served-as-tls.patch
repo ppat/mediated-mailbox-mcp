@@ -1,0 +1,19 @@
+control: A process serves its application server over TLS when its configuration names a key pair and over plain HTTP when it names neither, with the key pair read from its mounted files, and refuses to start with one of the two or with a pair that does not load
+removes: a TLS path of spaces counts as set when the process chooses its transport, so a process given two blank paths tries TLS and never serves
+packages: ./process/host
+tests: TestTheApplicationServerGivenNoKeyPairIsPlain/both_blank TestTheProcessSectionsAreValidated
+scheduled-count: no
+
+diff --git a/process/host/host.go b/process/host/host.go
+index f5afd783..a21af58f 100644
+--- a/process/host/host.go
++++ b/process/host/host.go
+@@ -74,7 +74,7 @@ func DefaultServing() Serving {
+ // ServesTLS reports whether s names a key pair. ValidateServing has refused one that names only one of
+ // its two files, so the certificate alone decides.
+ func (s Serving) ServesTLS() bool {
+-	return strings.TrimSpace(s.TLSCert) != ""
++	return s.TLSCert != ""
+ }
+ 
+ // ValidateProcess refuses an empty probe_listen and a log_level that names no level.

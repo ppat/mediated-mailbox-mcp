@@ -19,6 +19,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal"
 	"github.com/ppat/mediated-mailbox-mcp/process/dbmetrics"
+	"github.com/ppat/mediated-mailbox-mcp/process/host"
 	"github.com/ppat/mediated-mailbox-mcp/process/settings"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile"
@@ -30,12 +31,14 @@ import (
 func TestTheConfigurationTypeIsPinned(t *testing.T) {
 	const pkg = "github.com/ppat/mediated-mailbox-mcp/worker/app"
 	mustnotcompile.RequireFields(t, pkg, "Configuration",
-		"ProbeListen string",
-		"ReloadInterval time.Duration",
+		"Process host.Process",
+		"Section Section",
 		"Database Database",
 		"Credential core.Config",
 		"Scanner scan.Config",
-		"LogLevel string",
+	)
+	mustnotcompile.RequireFields(t, pkg, "Section",
+		"ReloadInterval time.Duration",
 		"Backfill Backfill",
 		"Sync Sync",
 	)
@@ -66,41 +69,34 @@ func TestTheConfigurationTypeIsPinned(t *testing.T) {
 
 func discard() *slog.Logger { return slog.New(slog.DiscardHandler) }
 
-// The worker's defaults are the port, each job kind's own runtime role with a pool of four, the TLS
+// The worker's defaults are the process's, its probe listener and the info level, the port, each job
+// kind's own runtime role with a pool of four, the TLS
 // mode that fails closed, a reload every minute, ADR-0018's five-minute sync interval, a first window
 // of seven days, two hundred decisions a tick, two accounts backfilled at once and four ticking at
 // once. The host, the database name and each role's password file are required (ADR-0103, ADR-0104,
 // ADR-0105, ADR-0118, ADR-0119).
 func TestTheDefaults(t *testing.T) {
 	want := Configuration{
-		ProbeListen:    ":8080",
-		ReloadInterval: time.Minute,
+		Process: host.Process{ProbeListen: ":8080", LogLevel: "info"},
+		Section: Section{
+			ReloadInterval: time.Minute,
+			Backfill:       Backfill{Concurrency: 2},
+			Sync:           Sync{SyncInterval: 5 * time.Minute, FirstWindow: 7 * 24 * time.Hour, DecisionsPerTick: 200, Concurrency: 4},
+		},
 		Database: Database{
 			Port: 5432, SSLMode: "verify-full",
 			Backfill: Role{User: "mediated_mailbox_backfill", PoolSize: 4},
 			Sync:     Role{User: "mediated_mailbox_sync", PoolSize: 4},
 		},
-		Scanner:  scan.DefaultConfig(),
-		LogLevel: "info",
-		Backfill: Backfill{Concurrency: 2},
-		Sync:     Sync{SyncInterval: 5 * time.Minute, FirstWindow: 7 * 24 * time.Hour, DecisionsPerTick: 200, Concurrency: 4},
+		Scanner: scan.DefaultConfig(),
 	}
 	if diff := cmp.Diff(want, defaults(), compare.Options); diff != "" {
 		t.Errorf("defaults (-want +got):\n%s", diff)
 	}
-	err := Run(t.Context(), nil, nil, io.Discard, discard(), new(slog.LevelVar))
+	err := Run(t.Context(), nil, nil, io.Discard, io.Discard, discard(), new(slog.LevelVar))
 	wantErr := "loading the configuration: database.host is required, and neither the file, MEDIATED_MAILBOX_DATABASE__HOST nor --database.host sets it"
 	if err == nil || err.Error() != wantErr {
 		t.Errorf("Run returned %v, want %q", err, wantErr)
-	}
-}
-
-// A password variable refuses the start before any configuration is read.
-func TestAPasswordVariableRefusesTheStart(t *testing.T) {
-	err := Run(t.Context(), nil, []string{"PGPASSWORD="}, io.Discard, discard(), new(slog.LevelVar))
-	want := "the environment sets PGPASSWORD, and the database password comes only from the mounted password file"
-	if err == nil || err.Error() != want {
-		t.Errorf("Run returned %v, want %q", err, want)
 	}
 }
 
@@ -119,7 +115,7 @@ func TestAnEmptyHostRefusesTheStart(t *testing.T) {
 	err := Run(t.Context(), append([]string{
 		"--database.host=", "--database.name=mailbox",
 		"--database.backfill.password_file=/absent", "--database.sync.password_file=/absent",
-	}, absentKeys...), nil, io.Discard, discard(), new(slog.LevelVar))
+	}, absentKeys...), nil, io.Discard, io.Discard, discard(), new(slog.LevelVar))
 	want := "validating the configuration: database.host is empty"
 	if err == nil || err.Error() != want {
 		t.Errorf("Run returned %v, want %q", err, want)
@@ -143,7 +139,7 @@ func TestATickThatCannotRunRefusesTheStart(t *testing.T) {
 		{"--database.sync.user=", "validating the configuration: database.sync.user is empty"},
 	} {
 		t.Run(c.arg, func(t *testing.T) {
-			err := Run(t.Context(), append(slices.Clone(database), append(slices.Clone(absentKeys), c.arg)...), nil, io.Discard, discard(), new(slog.LevelVar))
+			err := Run(t.Context(), append(slices.Clone(database), append(slices.Clone(absentKeys), c.arg)...), nil, io.Discard, io.Discard, discard(), new(slog.LevelVar))
 			if err == nil || err.Error() != c.want {
 				t.Errorf("Run returned %v, want %q", err, c.want)
 			}
@@ -153,7 +149,7 @@ func TestATickThatCannotRunRefusesTheStart(t *testing.T) {
 	for _, kind := range []string{"backfill", "sync"} {
 		t.Run(kind+" password file", func(t *testing.T) {
 			args := slices.DeleteFunc(slices.Clone(database), func(a string) bool { return strings.HasPrefix(a, "--database."+kind+".password_file=") })
-			err := Run(t.Context(), append(append(args, absentKeys...), "--database."+kind+".password_file="), nil, io.Discard, discard(), new(slog.LevelVar))
+			err := Run(t.Context(), append(append(args, absentKeys...), "--database."+kind+".password_file="), nil, io.Discard, io.Discard, discard(), new(slog.LevelVar))
 			want := "validating the configuration: database." + kind + ".password_file is empty"
 			if err == nil || err.Error() != want {
 				t.Errorf("Run returned %v, want %q", err, want)
@@ -181,7 +177,7 @@ func TestTheEffectiveConfigurationIsLogged(t *testing.T) {
 	err := Run(t.Context(), append([]string{
 		"--database.host=db.example", "--database.backfill.password_file=" + passwordFile, "--database.sync.password_file=" + passwordFile,
 		"--sync.sync_interval=2m",
-	}, absentKeys...), []string{"MEDIATED_MAILBOX_DATABASE__NAME=mailbox"}, io.Discard, logger, new(slog.LevelVar))
+	}, absentKeys...), []string{"MEDIATED_MAILBOX_DATABASE__NAME=mailbox"}, io.Discard, io.Discard, logger, new(slog.LevelVar))
 	if err == nil || !strings.HasPrefix(err.Error(), "loading the keyring: ") {
 		t.Fatalf("Run returned %v, want the keyring's refusal", err)
 	}
@@ -228,7 +224,7 @@ func TestTheEffectiveConfigurationIsLogged(t *testing.T) {
 
 // The start validates the credential section before it reads a key file.
 func TestAnEmptyListOfPrivateKeysRefusesTheStart(t *testing.T) {
-	err := Run(t.Context(), append(slices.Clone(database), "--credential.public_key_file=/absent/public", "--credential.private_key_files=[]"), nil, io.Discard, discard(), new(slog.LevelVar))
+	err := Run(t.Context(), append(slices.Clone(database), "--credential.public_key_file=/absent/public", "--credential.private_key_files=[]"), nil, io.Discard, io.Discard, discard(), new(slog.LevelVar))
 	want := "validating the configuration: credential.private_key_files names no file"
 	if err == nil || err.Error() != want {
 		t.Errorf("Run returned %v, want %q", err, want)
@@ -240,7 +236,7 @@ func TestAnEmptyListOfPrivateKeysRefusesTheStart(t *testing.T) {
 // ADR-0080).
 func TestAnAccountArgumentRefusesTheStart(t *testing.T) {
 	for _, arg := range []string{"one@example.com", "database.port=5433"} {
-		err := Run(t.Context(), append(slices.Clone(database), arg), nil, io.Discard, discard(), new(slog.LevelVar))
+		err := Run(t.Context(), append(slices.Clone(database), arg), nil, io.Discard, io.Discard, discard(), new(slog.LevelVar))
 		want := fmt.Sprintf("loading the configuration: argument %q: it is not a flag, and flags are written --path=VALUE", arg)
 		if err == nil || err.Error() != want {
 			t.Errorf("Run returned %v, want %q", err, want)
@@ -263,7 +259,7 @@ func TestACredentialInTheConfigurationRefusesTheStart(t *testing.T) {
 		{"a credential flag", []string{"--credential.refresh_token=a-token"}, nil},
 	} {
 		t.Run(c.name, func(t *testing.T) {
-			err := Run(t.Context(), append(slices.Clone(database), append(slices.Clone(absentKeys), c.args...)...), c.environ, io.Discard, discard(), new(slog.LevelVar))
+			err := Run(t.Context(), append(slices.Clone(database), append(slices.Clone(absentKeys), c.args...)...), c.environ, io.Discard, io.Discard, discard(), new(slog.LevelVar))
 			if err == nil || !strings.HasPrefix(err.Error(), "loading the configuration: ") {
 				t.Errorf("Run returned %v, want the configuration library's refusal", err)
 			}
@@ -304,7 +300,7 @@ func TestThePublicKeyMustMatchAPrivateKey(t *testing.T) {
 	_, otherPublic := keyFiles(t, dir, "other")
 	start := func(public string, privates ...string) error {
 		args := append(slices.Clone(database), "--credential.public_key_file="+public, "--credential.private_key_files=["+strings.Join(privates, ", ")+"]")
-		return Run(t.Context(), args, nil, io.Discard, discard(), new(slog.LevelVar))
+		return Run(t.Context(), args, nil, io.Discard, io.Discard, discard(), new(slog.LevelVar))
 	}
 	pastTheKeyring := "configuring the database connection of mediated_mailbox_backfill: reading the password file: "
 	for _, c := range []struct {
@@ -342,7 +338,7 @@ func TestAnInvalidScannerSectionRefusesTheStart(t *testing.T) {
 		{"--scanner.link_words=[]", "no link word or no link parameter is configured"},
 	} {
 		t.Run(c.arg, func(t *testing.T) {
-			err := Run(t.Context(), append(slices.Clone(database), append(slices.Clone(absentKeys), c.arg)...), nil, io.Discard, discard(), new(slog.LevelVar))
+			err := Run(t.Context(), append(slices.Clone(database), append(slices.Clone(absentKeys), c.arg)...), nil, io.Discard, io.Discard, discard(), new(slog.LevelVar))
 			if err == nil || !strings.HasPrefix(err.Error(), "validating the configuration: scanner: ") || !strings.Contains(err.Error(), c.want) {
 				t.Errorf("Run returned %v, want the scanner's refusal containing %q", err, c.want)
 			}
@@ -442,7 +438,7 @@ func TestBothJobKindsScanWithTheOneScanner(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	b, d := kinds(Pools{}, nil, scanner, loaded.Config, nil, discard(), prometheus.NewRegistry(), nil)
+	b, d := kinds(Pools{}, nil, scanner, loaded.Config.Section, nil, discard(), prometheus.NewRegistry(), nil)
 	for name, got := range map[string]interface {
 		Version() int
 		Revision() string
@@ -451,57 +447,6 @@ func TestBothJobKindsScanWithTheOneScanner(t *testing.T) {
 			t.Errorf("%s scans with version %d revision %s, want the worker's version %d revision %s",
 				name, got.Version(), got.Revision(), scanner.Version(), scanner.Revision())
 		}
-	}
-}
-
-// The start writes the effective configuration with each value's source before the level applies,
-// then sets the level of the logger it was handed from log_level. So whatever the level, a refused
-// value's source is written, log_level's own included, and once the level is set no record below it
-// is written. A level that names none is refused (ADR-0078, ADR-0122).
-func TestTheConfiguredLevelGovernsTheLog(t *testing.T) {
-	refused := func(name string) string {
-		return `validating the configuration: log_level "` + name + `" is not one of debug, info, warn and error`
-	}
-	logLevelFrom := func(source, value string) string {
-		return `"msg":"configuration","path":"log_level","source":"` + source + `","value":"` + value + `"`
-	}
-	cases := []struct {
-		name    string
-		args    []string
-		environ []string
-		wantErr string
-		// wantLine is a record the start must write, whatever the level.
-		wantLine string
-		// wantInfo is whether an info record is written once the start has returned.
-		wantInfo bool
-	}{
-		{name: "no level", wantErr: "loading the keyring: ", wantLine: logLevelFrom("default", "info"), wantInfo: true},
-		{name: "info", args: []string{"--log_level=info"}, wantErr: "loading the keyring: ", wantLine: logLevelFrom("flag --log_level", "info"), wantInfo: true},
-		{name: "warn", args: []string{"--log_level=warn"}, wantErr: "loading the keyring: ", wantLine: logLevelFrom("flag --log_level", "warn")},
-		{name: "error, from the environment", environ: []string{"MEDIATED_MAILBOX_LOG_LEVEL=error"}, wantErr: "loading the keyring: ", wantLine: logLevelFrom("environment variable MEDIATED_MAILBOX_LOG_LEVEL", "error")},
-		{name: "a name in upper case", args: []string{"--log_level=INFO"}, wantErr: refused("INFO"), wantLine: logLevelFrom("flag --log_level", "INFO"), wantInfo: true},
-		{name: "an offset", args: []string{"--log_level=info+2"}, wantErr: refused("info+2"), wantLine: logLevelFrom("flag --log_level", "info+2"), wantInfo: true},
-		{name: "warning", environ: []string{"MEDIATED_MAILBOX_LOG_LEVEL=warning"}, wantErr: refused("warning"), wantLine: logLevelFrom("environment variable MEDIATED_MAILBOX_LOG_LEVEL", "warning"), wantInfo: true},
-		{name: "a refused value at warn", args: []string{"--log_level=warn", "--scanner.window=0"}, wantErr: "validating the configuration: scanner: ", wantLine: `"msg":"configuration","path":"scanner.window","source":"flag --scanner.window","value":0`},
-	}
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			var out bytes.Buffer
-			level := new(slog.LevelVar)
-			logger := slog.New(slog.NewJSONHandler(&out, &slog.HandlerOptions{Level: level}))
-			err := Run(t.Context(), append(append(slices.Clone(database), absentKeys...), c.args...), c.environ, io.Discard, logger, level)
-			if err == nil || !strings.HasPrefix(err.Error(), c.wantErr) {
-				t.Fatalf("Run returned %v, want %q", err, c.wantErr)
-			}
-			if !strings.Contains(out.String(), c.wantLine) {
-				t.Errorf("the start did not write %s:\n%s", c.wantLine, out.String())
-			}
-			out.Reset()
-			logger.Info("after the start")
-			if written := out.Len() != 0; written != c.wantInfo {
-				t.Errorf("an info record after the start was written: %v, want %v", written, c.wantInfo)
-			}
-		})
 	}
 }
 
@@ -525,12 +470,15 @@ func TestEachJobKindIsHandedThePoolOfItsOwnRole(t *testing.T) {
 	}
 	d := loaded.Config.Database
 	registry := prometheus.NewRegistry()
-	pools, err := openPools(t.Context(), d, registry)
+	h, err := host.New(discard())
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(pools.Backfill.Close)
-	t.Cleanup(pools.Sync.Close)
+	t.Cleanup(h.Close)
+	pools, err := openPools(t.Context(), d, h.OpenPool, registry)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if got := pools.Backfill.Config().ConnConfig.User; got != d.Backfill.User || got != "mediated_mailbox_backfill" {
 		t.Errorf("backfill's pool connects as %q, want backfill's role %q", got, d.Backfill.User)
 	}
@@ -542,7 +490,7 @@ func TestEachJobKindIsHandedThePoolOfItsOwnRole(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	b, s := kinds(pools, nil, scanner, loaded.Config, nil, discard(), prometheus.NewRegistry(), nil)
+	b, s := kinds(pools, nil, scanner, loaded.Config.Section, nil, discard(), prometheus.NewRegistry(), nil)
 	if b.Pool != pools.Backfill {
 		t.Error("backfill is handed a pool other than the one of its own role")
 	}

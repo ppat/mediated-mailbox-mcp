@@ -1,0 +1,18 @@
+control: A goroutine a component starts through the host's starter is the host's, recovered as the component's failure, waited for before the pools close, and refused once the host waits
+removes: the host closes the pools without waiting for the goroutines its starters started
+packages: ./process/host
+tests: TestAStartedGoroutineIsTheHosts
+scheduled-count: no
+
+diff --git a/process/host/host.go b/process/host/host.go
+index 7063aa61..94e5ed58 100644
+--- a/process/host/host.go
++++ b/process/host/host.go
+@@ -438,7 +438,6 @@ func (h *Host) joinStarted() {
+ 	h.startedMu.Lock()
+ 	h.joining = true
+ 	h.startedMu.Unlock()
+-	h.started.Wait()
+ }
+ 
+ // startedFailures returns the failures of the goroutines Starter started. It is read once they have

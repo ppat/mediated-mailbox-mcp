@@ -6,7 +6,7 @@ scheduled-count: no
 integration: yes
 
 diff --git a/ui/internal/api/server.go b/ui/internal/api/server.go
-index 7400f1e..8c2847b 100644
+index de037ed5..979a3b9f 100644
 --- a/ui/internal/api/server.go
 +++ b/ui/internal/api/server.go
 @@ -233,7 +233,7 @@ func New(opts Options) (*Server, error) {
@@ -24,6 +24,6 @@ index 7400f1e..8c2847b 100644
  	// before it is routed unless it carries the session's request token (ADR-0061).
 -	s.handler = observe(opts.Logger, withPolicy(withSession(withToken(k, mux))))
 +	s.handler = observe(opts.Logger, withSession(withToken(k, mux)))
+ 	return s, nil
+ }
  
- 	probes := &recordingMux{mux: http.NewServeMux()}
- 	probes.Handle("GET /healthz", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

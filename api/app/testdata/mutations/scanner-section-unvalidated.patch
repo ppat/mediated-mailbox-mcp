@@ -5,15 +5,15 @@ tests: TestNoConfigurationValueWeakensTheGate/a_scanner_section_with_nothing_to_
 scheduled-count: no
 
 diff --git a/api/app/app.go b/api/app/app.go
-index ed8233b5..b8ee4aaf 100644
+index 914799b7..64c10fec 100644
 --- a/api/app/app.go
 +++ b/api/app/app.go
-@@ -204,7 +204,7 @@ func Run(ctx context.Context, args, environ []string, stderr io.Writer, logger *
- 	writeBanner(stderr, fmt.Sprintf("mediated-mailbox-api %s\n  client surface  %s on %s\n  probes          http on %s\n",
- 		version.Number, scheme(servesTLS(c)), c.Listen, c.ProbeListen), logger)
- 	scanner, err := scan.New(c.Scanner, loaded.Revisions[scannerSection])
+@@ -189,7 +189,7 @@ func Run(ctx context.Context, args, environ []string, stdout, stderr io.Writer,
+ func fromConfiguration(ctx context.Context, provided host.Provided[Configuration]) (host.Parts, error) {
+ 	c := provided.Loaded.Config
+ 	scanner, err := scan.New(c.Scanner, provided.Loaded.Revisions[scannerSection])
 -	if err != nil {
 +	if err != nil && false {
- 		return fmt.Errorf("validating the configuration: scanner: %w", err)
+ 		return host.Parts{}, fmt.Errorf("validating the configuration: scanner: %w", err)
  	}
  	keys, err := open.Load(c.Credential.PublicKeyFile, c.Credential.PrivateKeyFiles...)

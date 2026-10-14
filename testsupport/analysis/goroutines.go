@@ -16,6 +16,10 @@ import (
 // rule covers every package under worker/ outside worker/internal/schedule, the package that holds the
 // scheduler and schedule.Go, and exempts test files.
 //
+// It holds the API server's and the UI's code, every package under api/ and ui/, to the rule ADR-0138
+// sets, that a component starts a goroutine only through the starter the host hands its assembly,
+// which recovers a panic on it as the component's failure and waits for it before the pools close.
+//
 // It refuses a go statement, and any use of a function that runs a function it is given on a
 // goroutine of its own, a call, a method value and a method expression alike. They are the ones in
 // goroutineStarters, from the standard library and from golang.org/x/sync, which this module requires.
@@ -29,13 +33,15 @@ import (
 // running code it is given, since the list names such functions only for golang.org/x/sync.
 var Goroutines = &analysis.Analyzer{
 	Name: "goroutines",
-	Doc:  "reports a goroutine started in the worker's code outside its scheduler",
+	Doc:  "reports a goroutine started in the worker's code outside its scheduler, or in the API server's or the UI's code",
 	Run:  runGoroutines,
 }
 
 const (
 	workerPath    = modulePath + "/worker"
 	schedulerPath = workerPath + "/internal/schedule"
+	apiPath       = modulePath + "/api"
+	uiPath        = modulePath + "/ui"
 )
 
 // goroutineStarters are the functions, by their full names, that run a function given to them on a
@@ -54,9 +60,22 @@ var goroutineStarters = map[string]bool{
 
 const goroutinesMessage = "starts a goroutine outside schedule.Go, so a panic in it would stop the worker rather than fail the run that raised it. Start it through schedule.Go (ADR-0119)"
 
+const componentGoroutinesMessage = "starts a goroutine outside the host's starter, so the host neither recovers a panic in it nor waits for it before the pools close. Start it through the starter the host hands the assembly (ADR-0138)"
+
+// within reports whether path is the package at dir or one under it.
+func within(path, dir string) bool {
+	return path == dir || strings.HasPrefix(path, dir+"/")
+}
+
 func runGoroutines(pass *analysis.Pass) (any, error) {
 	path := pass.Pkg.Path()
-	if path != workerPath && !strings.HasPrefix(path, workerPath+"/") || path == schedulerPath || strings.HasPrefix(path, schedulerPath+"/") {
+	var message string
+	switch {
+	case within(path, workerPath) && !within(path, schedulerPath):
+		message = goroutinesMessage
+	case within(path, apiPath), within(path, uiPath):
+		message = componentGoroutinesMessage
+	default:
 		return nil, nil
 	}
 	for _, file := range pass.Files {
@@ -68,10 +87,10 @@ func runGoroutines(pass *analysis.Pass) (any, error) {
 		ast.Inspect(file, func(n ast.Node) bool {
 			switch n := n.(type) {
 			case *ast.GoStmt:
-				pass.Reportf(n.Pos(), goroutinesMessage)
+				pass.Reportf(n.Pos(), "%s", message)
 			case *ast.Ident:
 				if fn, ok := pass.TypesInfo.Uses[n].(*types.Func); ok && goroutineStarters[fn.FullName()] {
-					pass.Reportf(n.Pos(), goroutinesMessage)
+					pass.Reportf(n.Pos(), "%s", message)
 				}
 			}
 			return true

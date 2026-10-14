@@ -5,15 +5,15 @@ tests: TestABooleanInsideAValueIsTrueOrFalse/in_a_section_in_a_list TestABoolean
 scheduled-count: no
 
 diff --git a/process/settings/settings.go b/process/settings/settings.go
-index 0e4fc65..83c6367 100644
+index 6bcf5a72..e5784443 100644
 --- a/process/settings/settings.go
 +++ b/process/settings/settings.go
-@@ -419,7 +419,7 @@ func checkBooleans(n *yaml.Node, t reflect.Type) error {
+@@ -429,7 +429,7 @@ func checkBooleans(n *yaml.Node, t reflect.Type) error {
+ 		}
  	case reflect.Struct:
  		for i := 0; i+1 < len(n.Content); i += 2 {
- 			for j := range t.NumField() {
--				if t.Field(j).Tag.Get("yaml") == n.Content[i].Value {
-+				if false {
- 					if err := checkBooleans(n.Content[i+1], t.Field(j).Type); err != nil {
- 						return err
- 					}
+-			if ft, ok := yamlField(t, n.Content[i].Value); ok {
++			if ft, ok := yamlField(t, n.Content[i].Value); false && ok {
+ 				if err := checkBooleans(n.Content[i+1], ft); err != nil {
+ 					return err
+ 				}

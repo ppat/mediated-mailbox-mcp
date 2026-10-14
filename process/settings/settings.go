@@ -195,7 +195,7 @@ func Load[T any](defaults T, args, environ []string) (Loaded[T], error) {
 	slices.SortFunc(loaded.Values, func(a, b Value) int { return strings.Compare(a.Path, b.Path) })
 	loaded.Revisions = map[string]string{}
 	for _, f := range root.fields {
-		text, err := yaml.Marshal(result.Field(f.index).Interface())
+		text, err := yaml.Marshal(result.FieldByIndex(f.index).Interface())
 		if err != nil {
 			return Loaded[T]{}, fmt.Errorf("%s: %w", f.name, err)
 		}
@@ -211,7 +211,7 @@ func collectDefaults(n *node, v reflect.Value, path []string, out *[]assignment)
 	switch n.kind {
 	case sectionKind:
 		for _, f := range n.fields {
-			fv := v.Field(f.index)
+			fv := v.FieldByIndex(f.index)
 			at := append(slices.Clone(path), f.name)
 			if f.required {
 				if !fv.IsZero() {
@@ -273,7 +273,7 @@ func collectFile(n *node, doc *yaml.Node, v reflect.Value, path []string, name s
 			if !ok {
 				continue
 			}
-			if err := collectFile(f.node, doc.Content[i+1], v.Field(f.index), append(slices.Clone(path), key), name, out); err != nil {
+			if err := collectFile(f.node, doc.Content[i+1], v.FieldByIndex(f.index), append(slices.Clone(path), key), name, out); err != nil {
 				return err
 			}
 		}
@@ -429,11 +429,9 @@ func checkBooleans(n *yaml.Node, t reflect.Type) error {
 		}
 	case reflect.Struct:
 		for i := 0; i+1 < len(n.Content); i += 2 {
-			for j := range t.NumField() {
-				if t.Field(j).Tag.Get("yaml") == n.Content[i].Value {
-					if err := checkBooleans(n.Content[i+1], t.Field(j).Type); err != nil {
-						return err
-					}
+			if ft, ok := yamlField(t, n.Content[i].Value); ok {
+				if err := checkBooleans(n.Content[i+1], ft); err != nil {
+					return err
 				}
 			}
 		}
@@ -465,7 +463,7 @@ func set(v reflect.Value, n *node, path []string, value reflect.Value) {
 	switch n.kind {
 	case sectionKind:
 		f, _ := n.field(path[0])
-		set(v.Field(f.index), f.node, path[1:], value)
+		set(v.FieldByIndex(f.index), f.node, path[1:], value)
 	case keyedKind:
 		if v.IsNil() {
 			v.Set(reflect.MakeMap(n.typ))
@@ -487,7 +485,7 @@ func get(v reflect.Value, n *node, path []string) reflect.Value {
 		switch n.kind {
 		case sectionKind:
 			f, _ := n.field(segment)
-			v, n = v.Field(f.index), f.node
+			v, n = v.FieldByIndex(f.index), f.node
 		case keyedKind:
 			v, n = v.MapIndex(reflect.ValueOf(segment).Convert(n.typ.Key())), n.elem
 		case valueKind:
@@ -507,7 +505,7 @@ func checkRequired(n *node, v reflect.Value, path []string, sources map[string]S
 					return fmt.Errorf("%s is required, and neither the file, %s nor --%s sets it", strings.Join(at, "."), environmentName(at), strings.Join(at, "."))
 				}
 			}
-			if err := checkRequired(f.node, v.Field(f.index), at, sources); err != nil {
+			if err := checkRequired(f.node, v.FieldByIndex(f.index), at, sources); err != nil {
 				return err
 			}
 		}

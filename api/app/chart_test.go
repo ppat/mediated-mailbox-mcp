@@ -1,6 +1,7 @@
 package app
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -13,6 +14,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	credentialcore "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/core"
 	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core"
+	"github.com/ppat/mediated-mailbox-mcp/process/host"
 	"github.com/ppat/mediated-mailbox-mcp/process/settings"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/helmchart"
@@ -36,7 +38,7 @@ func TestTheChartRendersAFileTheAPIServerStartsWith(t *testing.T) {
 	if err != nil {
 		t.Fatalf("the API server refuses the chart's file: %v", err)
 	}
-	if err := validate(loaded.Config); err != nil {
+	if err := errors.Join(host.ValidateProcess(loaded.Config.Process), host.ValidateServing(loaded.Config.Serving), validate(loaded.Config)); err != nil {
 		t.Fatalf("the API server's validation refuses the chart's file: %v", err)
 	}
 	if _, err := scan.New(loaded.Config.Scanner, loaded.Revisions[scannerSection]); err != nil {
@@ -44,12 +46,9 @@ func TestTheChartRendersAFileTheAPIServerStartsWith(t *testing.T) {
 	}
 	mounted := "/etc/mediated-mailbox/secrets/"
 	want := Configuration{
-		Listen:                ":8443",
-		ProbeListen:           ":8080",
-		TLSCert:               mounted + "tls/tls.crt",
-		TLSKey:                mounted + "tls/tls.key",
-		TokenFile:             mounted + "bearer-token",
-		AccountReloadInterval: 2 * time.Minute,
+		Process: host.Process{ProbeListen: ":8080", LogLevel: "debug"},
+		Serving: host.Serving{Listen: ":8443", TLSCert: mounted + "tls/tls.crt", TLSKey: mounted + "tls/tls.key"},
+		Section: Section{TokenFile: mounted + "bearer-token", AccountReloadInterval: 2 * time.Minute, ProviderTimeout: 45 * time.Second},
 		Database: dbconnectcore.Config{
 			Host: "db.example", Port: 6432, Name: "mediated_mailbox", User: "mailbox_api", SSLMode: "verify-ca",
 			SSLRootCert: mounted + "ca/ca.crt", PasswordFile: mounted + "database/password", PoolSize: 9,
@@ -66,8 +65,6 @@ func TestTheChartRendersAFileTheAPIServerStartsWith(t *testing.T) {
 			Weights:   scan.Weights{Entropy: 1, Mix: 0.5, Length: 1, Proximity: 1, Position: 1},
 			Threshold: 0.7, SubjectThreshold: 0.65,
 		},
-		ProviderTimeout: 45 * time.Second,
-		LogLevel:        "debug",
 	}
 	if diff := cmp.Diff(want, loaded.Config, compare.Options); diff != "" {
 		t.Errorf("the API server's configuration from the chart's file (-want +got):\n%s", diff)

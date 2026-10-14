@@ -31,6 +31,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/policyload"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/session"
+	"github.com/ppat/mediated-mailbox-mcp/process/host"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/postgres"
 )
 
@@ -201,7 +202,7 @@ func served(t *testing.T, pool *pgxpool.Pool, ring *open.Keyring, metrics *prome
 	if err != nil {
 		t.Fatal(err)
 	}
-	s, err := newServing(t.Context(), pool, ring, metrics, log)
+	s, err := newServing(starter(t), pool, ring, metrics, log)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -305,12 +306,20 @@ func TestTheAPIServerReloadsOnItsInterval(t *testing.T) {
 	if err := os.WriteFile(token, []byte("s3cret"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	c := Configuration{TokenFile: token, AccountReloadInterval: 20 * time.Millisecond}
+	p, err := parts(s, Section{TokenFile: token, AccountReloadInterval: 20 * time.Millisecond}, slog.New(slog.DiscardHandler))
+	if err != nil {
+		t.Fatal(err)
+	}
+	h, err := host.New(slog.New(slog.DiscardHandler))
+	if err != nil {
+		t.Fatal(err)
+	}
+	h.Add("api", Mount, p)
 	ctx, cancel := context.WithCancel(t.Context())
 	done := make(chan error, 1)
 	surfaceListener, probeListener := loopback(t), loopback(t)
 	go func() {
-		done <- serve(ctx, c, surfaceListener, probeListener, s, metrics, slog.New(slog.DiscardHandler))
+		done <- h.Serve(ctx, host.Listeners{App: surfaceListener, Probes: probeListener}, host.Serving{})
 	}()
 	defer func() {
 		cancel()
@@ -517,7 +526,17 @@ func TestAFailedPolicyLoadStillFollowsTheSnapshot(t *testing.T) {
 	}
 }
 
-// The read operations the composition root builds read the serving state it holds and the real clock.
+// bearerToken writes a bearer token to a file standing in for the mounted token and returns its path.
+func bearerToken(t *testing.T) string {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "token")
+	if err := os.WriteFile(path, []byte("s3cret"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	return path
+}
+
+// The read operations the API server's assembly builds read the serving state it holds and the real clock.
 // The accounts listing lists the snapshot's accounts, a message is decided under the policy loaded
 // for its account, so a sender the policy lists reads restricted and an unlisted one normal. The
 // system status reads a backoff ending in an hour as running, one that ended an hour ago as over, and
@@ -542,24 +561,15 @@ func TestTheReadOperationsReadTheServingState(t *testing.T) {
 	must(t, conn, `INSERT INTO rate_state (account_id, current_rate, target_rate, hard_cap, backoff_until)
 		VALUES ($1, 5, 8, 10, now() + interval '1 hour'), ($2, 5, 8, 10, now() - interval '1 hour')`, account, accounts[1])
 	must(t, conn, "UPDATE account_state SET sync_cursor_at = now() - interval '1 hour' WHERE account_id = $1", account)
-	pool := apiServer(t)
-	metrics := prometheus.NewRegistry()
-	s, err := newServing(t.Context(), pool, ring, metrics, slog.New(slog.DiscardHandler))
+	a, err := assemble(t.Context(), Needs{
+		Section: Section{TokenFile: bearerToken(t), AccountReloadInterval: time.Hour, ProviderTimeout: time.Second},
+		Pool:    apiServer(t), Keys: ring, Scanner: scanner(t), Registerer: prometheus.NewRegistry(), Logger: slog.New(slog.DiscardHandler),
+		Start: starter(t),
+	}, session.Connector{}, time.Second)
 	if err != nil {
 		t.Fatal(err)
 	}
-	bodies, _, err := newBodies(s, session.Connector{}, scanner(t), time.Second, time.Second, metrics)
-	if err != nil {
-		t.Fatal(err)
-	}
-	reg, err := service.NewRegistry(nil, service.Operations(sources(pool, s, bodies))...)
-	if err != nil {
-		t.Fatal(err)
-	}
-	s.registry = reg
-	if err := s.reload(t.Context()); err != nil {
-		t.Fatal(err)
-	}
+	reg := a.served.registry
 
 	out, err := reg.Call(t.Context(), "list_accounts", json.RawMessage(`{}`))
 	if err != nil {

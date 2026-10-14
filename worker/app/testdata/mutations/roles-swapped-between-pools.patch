@@ -5,20 +5,20 @@ tests: TestEachJobKindIsHandedThePoolOfItsOwnRole
 scheduled-count: no
 
 diff --git a/worker/app/app.go b/worker/app/app.go
-index 7d0b967..ea90ef7 100644
+index 809f079e..ebdbdb75 100644
 --- a/worker/app/app.go
 +++ b/worker/app/app.go
-@@ -251,11 +251,11 @@ func Run(ctx context.Context, args, environ []string, logger *slog.Logger, level
- // openPools returns each job kind's pool, connecting as that kind's own role, measured on registry
- // labelled with the job kind. A pool opens no connection until its first use (ADR-0118, ADR-0125).
- func openPools(ctx context.Context, d Database, registry prometheus.Registerer) (Pools, error) {
--	backfillPool, err := connect(ctx, d, d.Backfill, labelled(registry, backfill.Kind))
-+	backfillPool, err := connect(ctx, d, d.Sync, labelled(registry, backfill.Kind))
+@@ -246,11 +246,11 @@ type opener func(ctx context.Context, c dbconnectcore.Config, reg prometheus.Reg
+ // password file, opening at most its pool size of connections, measured on registry labelled with the
+ // job kind. A pool opens no connection until its first use (ADR-0118, ADR-0125).
+ func openPools(ctx context.Context, d Database, open opener, registry prometheus.Registerer) (Pools, error) {
+-	backfillPool, err := open(ctx, d.connection(d.Backfill), labelled(registry, backfill.Kind))
++	backfillPool, err := open(ctx, d.connection(d.Sync), labelled(registry, backfill.Kind))
  	if err != nil {
  		return Pools{}, err
  	}
--	syncPool, err := connect(ctx, d, d.Sync, labelled(registry, deltasync.Kind))
-+	syncPool, err := connect(ctx, d, d.Backfill, labelled(registry, deltasync.Kind))
+-	syncPool, err := open(ctx, d.connection(d.Sync), labelled(registry, deltasync.Kind))
++	syncPool, err := open(ctx, d.connection(d.Backfill), labelled(registry, deltasync.Kind))
  	if err != nil {
- 		backfillPool.Close()
  		return Pools{}, err
+ 	}

@@ -6,15 +6,15 @@ scheduled-count: no
 integration: yes
 
 diff --git a/process/probes/probes.go b/process/probes/probes.go
-index 2ebd84f..d36e3a0 100644
+index 42170765..1d0c9bfa 100644
 --- a/process/probes/probes.go
 +++ b/process/probes/probes.go
-@@ -25,7 +25,7 @@ import (
- // when the shutdown stopped it.
- func Serve(ln net.Listener, registry *prometheus.Registry, logger *slog.Logger) func() error {
+@@ -18,7 +18,7 @@ import (
+ // a line saying why, which the readiness probe answers with 503.
+ func Handler(gatherer prometheus.Gatherer, ready func(*http.Request) (bool, string), logger *slog.Logger) http.Handler {
  	mux := http.NewServeMux()
 -	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
 +	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
- 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
- 		// A failed write means the prober went away, which leaves the operator nothing to act on.
- 		if _, err := fmt.Fprintln(w, "ok"); err != nil {
+ 		answer(w, r, logger, http.StatusOK, "ok")
+ 	})
+ 	mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, r *http.Request) {

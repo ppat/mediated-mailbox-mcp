@@ -4,9 +4,7 @@ import (
 	"bytes"
 	"io"
 	"log/slog"
-	"os"
 	"testing"
-	"testing/fstest"
 
 	"github.com/ppat/mediated-mailbox-mcp/process/version"
 	"github.com/ppat/mediated-mailbox-mcp/ui/app"
@@ -16,27 +14,13 @@ import (
 // a flag the configuration would refuse beside it stops nothing, and no configuration is logged
 // (ADR-0078).
 func TestVersionPrintsTheReleaseVersionAndReadsNoConfiguration(t *testing.T) {
-	read, write, err := os.Pipe()
+	var stdout, logs bytes.Buffer
+	err := app.Run(t.Context(), []string{"--version", "--no.such=1"}, nil, &stdout, io.Discard, slog.New(slog.NewJSONHandler(&logs, nil)), new(slog.LevelVar))
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("Run returned %v, want nil", err)
 	}
-	stdout := os.Stdout
-	os.Stdout = write
-	var logs bytes.Buffer
-	runErr := app.Run(t.Context(), []string{"--version", "--no.such=1"}, nil, io.Discard, slog.New(slog.NewJSONHandler(&logs, nil)), new(slog.LevelVar), fstest.MapFS{})
-	os.Stdout = stdout
-	if err := write.Close(); err != nil {
-		t.Fatal(err)
-	}
-	out, err := io.ReadAll(read)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if runErr != nil {
-		t.Fatalf("Run returned %v, want nil", runErr)
-	}
-	if want := version.Number + "\n"; string(out) != want {
-		t.Errorf("Run printed %q, want %q", out, want)
+	if want := version.Number + "\n"; stdout.String() != want {
+		t.Errorf("Run printed %q, want %q", stdout.String(), want)
 	}
 	if logs.Len() != 0 {
 		t.Errorf("Run logged %s, want nothing", logs.String())

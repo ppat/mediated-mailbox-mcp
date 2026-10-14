@@ -4,17 +4,16 @@ packages: ./api/app
 tests: TestAConfigurationTheAPIServerCannotServeWithIsRefused
 scheduled-count: no
 
-
 diff --git a/api/app/app.go b/api/app/app.go
-index b19c6f2b..197d28ea 100644
+index 843a78ed..d28bd1b2 100644
 --- a/api/app/app.go
 +++ b/api/app/app.go
-@@ -142,7 +142,7 @@ func validate(c Configuration) error {
- 		}
- 		return fmt.Errorf("%s is set and %s is not, and the API server serves TLS with both or plain HTTP with neither", set, missing)
- 	}
--	if strings.TrimSpace(c.TokenFile) == "" {
-+	if c.TokenFile == "" {
+@@ -133,7 +133,7 @@ func defaults() Configuration {
+ // ValidateSection refuses an API server section the API server cannot serve with. The token file is
+ // named, the reload interval is positive, and the provider timeout positive and at most five minutes.
+ func ValidateSection(s Section) error {
+-	if strings.TrimSpace(s.TokenFile) == "" {
++	if s.TokenFile == "" {
  		return errors.New("token_file is empty")
  	}
- 	if c.AccountReloadInterval <= 0 {
+ 	if s.AccountReloadInterval <= 0 {

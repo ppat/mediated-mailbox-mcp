@@ -1,0 +1,21 @@
+control: A boolean is true or false in every layer, wherever it sits in a value
+removes: a boolean an inline section declares is not checked in the file, so it takes the other words YAML reads as booleans
+packages: ./process/settings
+tests: TestAnInlineSectionsValuesSitBesideTheSectionsOwn/a_YAML_word_for_true_in_an_inline_section,_in_the_file
+scheduled-count: no
+
+diff --git a/process/settings/declaration.go b/process/settings/declaration.go
+index 6c7a7aaa..990a9c4a 100644
+--- a/process/settings/declaration.go
++++ b/process/settings/declaration.go
+@@ -180,10 +180,6 @@ func yamlField(t reflect.Type, name string) (reflect.Type, bool) {
+ 		switch tag := f.Tag.Get("yaml"); {
+ 		case tag == name:
+ 			return f.Type, true
+-		case f.Anonymous && tag == inlineTag && f.Type.Kind() == reflect.Struct:
+-			if inner, ok := yamlField(f.Type, name); ok {
+-				return inner, true
+-			}
+ 		}
+ 	}
+ 	return nil, false

@@ -1,0 +1,20 @@
+control: The worker answers ready once each job kind's pool answers and each job kind's reload has succeeded
+removes: a job kind's reload check passes before any reload has run
+packages: ./worker/app
+tests: TestTheProbesServeTheRunsSeries
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/app/app.go b/worker/app/app.go
+index 809f079e..44a55e5f 100644
+--- a/worker/app/app.go
++++ b/worker/app/app.go
+@@ -325,7 +325,7 @@ type reload struct {
+ // reloaded returns nil once a run of the reload has succeeded, so the job kind has read its accounts
+ // and ensured their jobs at least once.
+ func (r *reload) reloaded(context.Context) error {
+-	if !r.done.Load() {
++	if false && !r.done.Load() {
+ 		return errors.New("no reload has succeeded yet")
+ 	}
+ 	return nil

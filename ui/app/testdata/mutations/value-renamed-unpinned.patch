@@ -5,15 +5,15 @@ tests: TestTheEffectiveConfigurationIsLogged
 scheduled-count: no
 
 diff --git a/ui/app/app.go b/ui/app/app.go
-index 5c4df3c4..aa253e33 100644
+index e09d0a7c..e46278e7 100644
 --- a/ui/app/app.go
 +++ b/ui/app/app.go
-@@ -52,7 +52,7 @@ type Configuration struct {
- 	TLSKey             string               `yaml:"tls_key"`
- 	SyncInterval       time.Duration        `yaml:"sync_interval"`
- 	HeuristicsInterval time.Duration        `yaml:"heuristics_interval"`
--	StreamInterval     time.Duration        `yaml:"stream_interval"`
-+	StreamInterval     time.Duration        `yaml:"poll_interval"`
- 	DefaultTheme       string               `yaml:"default_theme"`
- 	StreamReconnectMax time.Duration        `yaml:"stream_reconnect_max"`
- 	StreamPollInterval time.Duration        `yaml:"stream_poll_interval"`
+@@ -60,7 +60,7 @@ type Configuration struct {
+ type Section struct {
+ 	SyncInterval       time.Duration `yaml:"sync_interval"`
+ 	HeuristicsInterval time.Duration `yaml:"heuristics_interval"`
+-	StreamInterval     time.Duration `yaml:"stream_interval"`
++	StreamInterval     time.Duration `yaml:"poll_interval"`
+ 	DefaultTheme       string        `yaml:"default_theme"`
+ 	StreamReconnectMax time.Duration `yaml:"stream_reconnect_max"`
+ 	StreamPollInterval time.Duration `yaml:"stream_poll_interval"`

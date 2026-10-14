@@ -1,0 +1,22 @@
+control: A process serves its application server over TLS when its configuration names a key pair and over plain HTTP when it names neither, with the key pair read from its mounted files, and refuses to start with one of the two or with a pair that does not load
+removes: the key pair is read once, when the server is built, so a rotated pair never serves
+packages: ./process/host
+tests: TestTheApplicationServerServesTLSWhenGivenAKeyPair
+scheduled-count: no
+
+diff --git a/process/host/host.go b/process/host/host.go
+index 7e940118..77c06855 100644
+--- a/process/host/host.go
++++ b/process/host/host.go
+@@ -606,10 +606,10 @@ func stopped(err error) error {
+ // tlsConfig reads the key pair from its mounted files on each handshake, so a renewed certificate
+ // serves without a restart (ADR-0127).
+ func tlsConfig(certFile, keyFile string) *tls.Config {
++	pair, err := tls.LoadX509KeyPair(certFile, keyFile)
+ 	return &tls.Config{
+ 		MinVersion: tls.VersionTLS12,
+ 		GetCertificate: func(*tls.ClientHelloInfo) (*tls.Certificate, error) {
+-			pair, err := tls.LoadX509KeyPair(certFile, keyFile)
+ 			if err != nil {
+ 				return nil, fmt.Errorf("loading the TLS key pair: %w", err)
+ 			}

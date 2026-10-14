@@ -1,0 +1,19 @@
+control: Every series a component registers carries its name as the component label, and the runtime series carry none
+removes: a component's registerer is the bare registry, so its series carry no component and two components' series collide
+packages: ./process/host
+tests: TestTheOperationsEndpoints
+scheduled-count: no
+
+diff --git a/process/host/host.go b/process/host/host.go
+index 7e940118..9518f1bf 100644
+--- a/process/host/host.go
++++ b/process/host/host.go
+@@ -352,7 +352,7 @@ func (h *Host) Gatherer() prometheus.Gatherer { return h.registry }
+ // name, so the series one library registers for several components in one process stay apart, and a
+ // series has the same labels however the components are packaged (ADR-0076, ADR-0125).
+ func (h *Host) Registerer(name string) prometheus.Registerer {
+-	return prometheus.WrapRegistererWith(prometheus.Labels{componentLabel: name}, h.registry)
++	return h.registry
+ }
+ 
+ // componentLabel names the component on every series a component registers.

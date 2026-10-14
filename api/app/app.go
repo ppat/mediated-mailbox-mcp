@@ -1,41 +1,37 @@
-// Package app is the API server's entry package and composition root. It constructs the object graph by
-// hand in ordinary code, and api/main.go calls it. It sits outside internal, so a composition root
-// other than the API server's own can compose it. Every other package of this deployable sits under
-// internal, apart from importtarget, which exists only under the banproof tag.
+// Package app is the API server's entry package. It exports the API server's section of the
+// configuration and its assembly, which takes what the API server needs as values, starts nothing and
+// returns what it provides, and its composition root, Run, which hands the host the API server and
+// the configuration it reads (ADR-0040, ADR-0138). api/main.go calls Run. It sits outside internal, so
+// a composition root other than the API server's own can compose it. Every other package of this
+// deployable sits under internal, apart from importtarget, which exists only under the banproof tag.
 //
-// The API server listens twice. The client surface, the API root under /api/ and the MCP root at
-// /mcp, is served over TLS when the configuration names a certificate and a key, and over plain HTTP
-// when it names neither, and every request to it passes the bearer check before it reaches either
-// root (ADR-0127, ADR-0030, ADR-0087). The API server is ready once its accounts and their policy have
-// loaded, both listeners are up, and the bearer token and, when it serves TLS, the key pair have
-// loaded. The probes and the metrics endpoint
-// are served over plain HTTP on a listener of their own, because a platform's healthcheck and
-// scraper carry no bearer token (ADR-0051). They are operational endpoints outside the operation
-// registry, and the client surface's listener never serves them.
+// The API server's handler is the client surface, the API root under /api/ and the MCP root at /mcp,
+// and every request to it passes the bearer check before it reaches either root (ADR-0030,
+// ADR-0087). The host serves it over TLS when the configuration names a certificate and a key, and
+// over plain HTTP when it names neither (ADR-0127), and serves the probes and the metrics endpoint
+// over plain HTTP on a listener of their own, because a platform's healthcheck and scraper carry no
+// bearer token (ADR-0051). The API server is ready once its accounts and their policy have loaded and
+// while its bearer token file holds a token.
 //
-// It reads its configuration through the configuration library (ADR-0078), and its database
-// connection is built from the configuration's database section, with the password in the mounted
-// file the section names. It refuses to start while PGPASSWORD or PGSSLPASSWORD is set, so no
-// password arrives by the environment (ADR-0078, ADR-0079). The accounts it serves live in the
-// database and never in its configuration (ADR-0080). They reach the registry, the policy loader and
-// the rate-state collector as an account snapshot, loaded at start and reloaded on the interval the
-// configuration sets (ADR-0090). The registry refuses every call naming an account the snapshot in
-// force does not list. The TLS key pair and the bearer token are mounted files, read again on each
-// handshake and each request, so a rotated file takes effect without a restart (ADR-0079, ADR-0080).
-// The API server also refuses to start while MCPGODEBUG is set, because the MCP SDK reads it to switch
-// its behaviour (ADR-0086).
+// Its database connection is built from the configuration's database section, with the password in
+// the mounted file the section names (ADR-0078, ADR-0079). The accounts it serves live in the database
+// and never in its configuration (ADR-0080). They reach the registry, the policy loader and the
+// rate-state collector as an account snapshot, loaded at its assembly and reloaded on the interval the
+// configuration sets by a task the host runs (ADR-0090). The registry refuses every call naming an
+// account the snapshot in force does not list. The bearer token is a mounted file, read again on each
+// request, so a rotated file takes effect without a restart (ADR-0079, ADR-0080). The API server
+// refuses to start while MCPGODEBUG is set, because the MCP SDK reads it to switch its behaviour
+// (ADR-0086).
 package app
 
 import (
 	"context"
 	"crypto/subtle"
-	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"log/slog"
-	"net"
 	"net/http"
 	"os"
 	"strings"
@@ -45,13 +41,11 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"golang.org/x/net/idna"
 	"golang.org/x/net/publicsuffix"
 
 	"github.com/ppat/mediated-mailbox-mcp/api/internal/api"
 	"github.com/ppat/mediated-mailbox-mcp/api/internal/mcp"
-	"github.com/ppat/mediated-mailbox-mcp/api/internal/readiness"
 	"github.com/ppat/mediated-mailbox-mcp/api/internal/reload"
 	"github.com/ppat/mediated-mailbox-mcp/api/internal/service"
 	"github.com/ppat/mediated-mailbox-mcp/content/markdown"
@@ -67,10 +61,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/session"
 	"github.com/ppat/mediated-mailbox-mcp/process/dbconnect"
 	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core"
-	"github.com/ppat/mediated-mailbox-mcp/process/dbmetrics"
-	"github.com/ppat/mediated-mailbox-mcp/process/logging"
-	"github.com/ppat/mediated-mailbox-mcp/process/runtimemetrics"
-	"github.com/ppat/mediated-mailbox-mcp/process/settings"
+	"github.com/ppat/mediated-mailbox-mcp/process/host"
 	"github.com/ppat/mediated-mailbox-mcp/process/version"
 	"github.com/ppat/mediated-mailbox-mcp/provider/gmail"
 	ratecore "github.com/ppat/mediated-mailbox-mcp/ratelimit/core"
@@ -81,33 +72,30 @@ import (
 const gmailProvider = "gmail"
 
 // Configuration is the API server's root configuration type, loaded by the configuration library
-// (ADR-0078). Its fields are pinned by the test beside this file, so a new value is a visible
-// change. No account and no provider credential is configuration. Both come from the database
-// (ADR-0080).
+// (ADR-0078). It composes the process's sections, the API server's own section and the sections it
+// shares with the other deployables, the process's and its own inline, so every key sits at the top of
+// the tree. Its fields are pinned by the test beside this file, so a new value is a visible change. No
+// account and no provider credential is configuration. Both come from the database (ADR-0080).
 type Configuration struct {
-	// Listen is the address the client surface listens on.
-	Listen string `yaml:"listen"`
-	// ProbeListen is the address the probes and the metrics endpoint listen on, over plain HTTP.
-	ProbeListen string `yaml:"probe_listen"`
-	// TLSCert and TLSKey name the mounted files holding the client surface's certificate chain and
-	// private key. Both set, the surface is served over TLS, and neither set, over plain HTTP
-	// (ADR-0127).
-	TLSCert string `yaml:"tls_cert"`
-	TLSKey  string `yaml:"tls_key"`
-	// TokenFile names the mounted file holding the bearer token clients present.
-	TokenFile string `yaml:"token_file" settings:"required"`
-	// AccountReloadInterval is how often the account snapshot is reloaded (ADR-0090).
-	AccountReloadInterval time.Duration         `yaml:"account_reload_interval"`
-	Database              dbconnectcore.Config  `yaml:"database"`
-	Credential            credentialcore.Config `yaml:"credential"`
+	host.Process `yaml:",inline"`
+	host.Serving `yaml:",inline"`
+	Section      `yaml:",inline"`
+	Database     dbconnectcore.Config  `yaml:"database"`
+	Credential   credentialcore.Config `yaml:"credential"`
 	// Scanner is the scanner's section, the same section backfill reads, whose pattern tier the
 	// serve-time pattern check runs (ADR-0002, ADR-0005). No value in it switches the check off.
 	Scanner scan.Config `yaml:"scanner"`
+}
+
+// Section is the API server's own section of the configuration, the values only it reads.
+type Section struct {
+	// TokenFile names the mounted file holding the bearer token clients present.
+	TokenFile string `yaml:"token_file" settings:"required"`
+	// AccountReloadInterval is how often the account snapshot is reloaded (ADR-0090).
+	AccountReloadInterval time.Duration `yaml:"account_reload_interval"`
 	// ProviderTimeout bounds each provider call a body request makes, after which the call is the
 	// provider's failure (ADR-0101).
 	ProviderTimeout time.Duration `yaml:"provider_timeout"`
-	// LogLevel is the lowest level the deployable logs at, debug, info, warn or error (ADR-0122).
-	LogLevel string `yaml:"log_level"`
 }
 
 // maxProviderTimeout is the longest provider timeout the configuration accepts.
@@ -119,72 +107,49 @@ const maxProviderTimeout = 5 * time.Minute
 // response byte gives up on the call (ADR-0130).
 const leaseWait = 45 * time.Second
 
-// connectionLimits bound what one connection to the API server's HTTP servers can hold. A request's
-// headers have 10 seconds to arrive and the whole request 30, and an idle keep-alive connection is
-// closed after two minutes. Nothing bounds writing the answer, since a request may wait for its
-// leases and its provider calls (ADR-0130).
-var connectionLimits = limits{header: 10 * time.Second, read: 30 * time.Second, idle: 2 * time.Minute}
-
-// limits are the timeouts an HTTP server of the API server runs with.
-type limits struct{ header, read, idle time.Duration }
-
-// newServer returns an HTTP server of the API server for h, bounded by l, logging through logger.
-func newServer(h http.Handler, l limits, logger *slog.Logger) *http.Server {
-	return &http.Server{
-		Handler:           h,
-		ReadHeaderTimeout: l.header,
-		ReadTimeout:       l.read,
-		IdleTimeout:       l.idle,
-		ErrorLog:          logging.ServerErrorLog(logger),
-	}
-}
-
-// servers returns the client surface's server for surface, with the TLS configuration c names, and
-// the probes' server for probes, both bounded by the connection limits.
-func servers(c Configuration, surface, probes http.Handler, logger *slog.Logger) (surfaceServer, probeServer *http.Server) {
-	surfaceServer = newServer(surface, connectionLimits, logger)
-	surfaceServer.TLSConfig = tlsConfig(c)
-	return surfaceServer, newServer(probes, connectionLimits, logger)
-}
-
 // scannerSection is the scanner's section of the configuration, whose revision the serve-time
 // pattern check runs under (ADR-0078).
 const scannerSection = "scanner"
 
+// DefaultSection is the API server's own section's defaults. The token file has no default, since a
+// default path assumes the environment.
+func DefaultSection() Section {
+	return Section{AccountReloadInterval: time.Minute, ProviderTimeout: 30 * time.Second}
+}
+
 // defaults are the API server's defaults. The user is the API server's own runtime role (ADR-0118), and
-// the TLS mode is the one that fails closed, and the pool size is the driver's own default. The TLS,
-// token and key files have no default, since a default path assumes the environment.
+// the TLS mode is the one that fails closed, and the pool size is the driver's own default. The key
+// files have no default, since a default path assumes the environment.
 func defaults() Configuration {
 	return Configuration{
-		Listen:                ":8443",
-		ProbeListen:           ":8080",
-		AccountReloadInterval: time.Minute,
-		Database:              dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_api", SSLMode: "verify-full", PoolSize: dbconnect.DefaultPoolSize()},
-		Scanner:               scan.DefaultConfig(),
-		ProviderTimeout:       30 * time.Second,
-		LogLevel:              logging.DefaultLevel,
+		Process:  host.DefaultProcess(),
+		Serving:  host.DefaultServing(),
+		Section:  DefaultSection(),
+		Database: dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_api", SSLMode: "verify-full", PoolSize: dbconnect.DefaultPoolSize()},
+		Scanner:  scan.DefaultConfig(),
 	}
 }
 
-// validate refuses a configuration the API server cannot serve with. The TLS files are both set or
-// both unset, a blank path counting as unset (ADR-0127). The reload interval is positive, and the
-// provider timeout positive and at most five minutes.
-func validate(c Configuration) error {
-	if cert, key := strings.TrimSpace(c.TLSCert) != "", strings.TrimSpace(c.TLSKey) != ""; cert != key {
-		set, missing := "tls_cert", "tls_key"
-		if key {
-			set, missing = "tls_key", "tls_cert"
-		}
-		return fmt.Errorf("%s is set and %s is not, and the API server serves TLS with both or plain HTTP with neither", set, missing)
-	}
-	if strings.TrimSpace(c.TokenFile) == "" {
+// ValidateSection refuses an API server section the API server cannot serve with. The token file is
+// named, the reload interval is positive, and the provider timeout positive and at most five minutes.
+func ValidateSection(s Section) error {
+	if strings.TrimSpace(s.TokenFile) == "" {
 		return errors.New("token_file is empty")
 	}
-	if c.AccountReloadInterval <= 0 {
-		return fmt.Errorf("account_reload_interval %s is not positive", c.AccountReloadInterval)
+	if s.AccountReloadInterval <= 0 {
+		return fmt.Errorf("account_reload_interval %s is not positive", s.AccountReloadInterval)
 	}
-	if c.ProviderTimeout <= 0 || c.ProviderTimeout > maxProviderTimeout {
-		return fmt.Errorf("provider_timeout %s is not positive and at most %s", c.ProviderTimeout, maxProviderTimeout)
+	if s.ProviderTimeout <= 0 || s.ProviderTimeout > maxProviderTimeout {
+		return fmt.Errorf("provider_timeout %s is not positive and at most %s", s.ProviderTimeout, maxProviderTimeout)
+	}
+	return nil
+}
+
+// validate refuses a configuration the API server cannot serve with, past the process's sections,
+// which the host validates.
+func validate(c Configuration) error {
+	if err := ValidateSection(c.Section); err != nil {
+		return err
 	}
 	if err := dbconnectcore.Validate(c.Database); err != nil {
 		return err
@@ -192,103 +157,152 @@ func validate(c Configuration) error {
 	return credentialcore.Validate(c.Credential)
 }
 
-// Run loads the configuration and the keyring, connects to the database, loads the accounts and
-// their policy, and serves until ctx ends. It logs the effective configuration first, each value
-// with the layer that set it (ADR-0078). The keyring is loaded before any connection is made, so a
-// public key matching none of the private keys refuses the start (ADR-0088).
+// Mount is where the API server's handler is served on a process's application server, the API root
+// and the MCP root (ADR-0030, ADR-0087).
+var Mount = []string{"/api/", "/mcp"}
+
+// Run is the API server's process. The host loads the configuration, and the API server is assembled
+// from it, the keyring loaded before any connection is made, so a public key matching none of the
+// private keys refuses the start (ADR-0088), and its accounts and their policy loaded before it serves
+// (ADR-0138).
 //
-// logger is the logger main.go built over level, at info until Run sets level from log_level once
-// the effective configuration is written, so every logger derived from logger follows it (ADR-0122).
-//
-// stderr is where the start banner goes, standard error in main.go, so standard output carries only
-// the logger's JSON records (ADR-0122).
-func Run(ctx context.Context, args, environ []string, stderr io.Writer, logger *slog.Logger, level *slog.LevelVar) error {
-	if err := refuseEnvironment(environ); err != nil {
-		return err
-	}
-	loaded, err := settings.Load(defaults(), args, environ)
-	var help *settings.HelpRequested
-	if errors.As(err, &help) {
-		fmt.Print(help.Text)
-		return nil
-	}
-	if errors.As(err, new(*settings.VersionRequested)) {
-		fmt.Println(version.Number)
-		return nil
-	}
+// logger is the logger main.go built over level, at info until the host sets level from log_level
+// once the effective configuration is written, so every logger derived from logger follows it
+// (ADR-0122). stdout answers --help and --version, and stderr is where the start banner goes,
+// standard error in main.go, so standard output carries only the logger's JSON records otherwise.
+func Run(ctx context.Context, args, environ []string, stdout, stderr io.Writer, logger *slog.Logger, level *slog.LevelVar) error {
+	return host.Run(ctx, args, environ, stdout, stderr, logger, level, host.Spec[Configuration]{
+		Name:     "mediated-mailbox-api",
+		Defaults: defaults(),
+		Process:  func(c Configuration) host.Process { return c.Process },
+		Serving:  func(c Configuration) host.Serving { return c.Serving },
+		Validate: validate,
+		Components: []host.Component[Configuration]{{
+			Name: "api", Mount: Mount, RefuseEnvironment: RefuseEnvironment, Assemble: fromConfiguration,
+		}},
+	})
+}
+
+// fromConfiguration builds what the API server needs from the configuration, the scanner from its
+// section under the section's revision, the keyring and the pool connecting as the API server's role,
+// and assembles the API server from them.
+func fromConfiguration(ctx context.Context, provided host.Provided[Configuration]) (host.Parts, error) {
+	c := provided.Loaded.Config
+	scanner, err := scan.New(c.Scanner, provided.Loaded.Revisions[scannerSection])
 	if err != nil {
-		return fmt.Errorf("loading the configuration: %w", err)
-	}
-	// The effective configuration is written before the level applies, so a refused value's source,
-	// log_level's included, reaches the log whatever level the configuration sets (ADR-0078, ADR-0122).
-	for _, v := range loaded.Values {
-		logger.Info("configuration", "path", v.Path, "source", v.Source.String(), "value", v.Value)
-	}
-	lv, err := logging.ParseLevel(loaded.Config.LogLevel)
-	if err != nil {
-		return fmt.Errorf("validating the configuration: %w", err)
-	}
-	level.Set(lv)
-	c := loaded.Config
-	if err := validate(c); err != nil {
-		return fmt.Errorf("validating the configuration: %w", err)
-	}
-	writeBanner(stderr, fmt.Sprintf("mediated-mailbox-api %s\n  client surface  %s on %s\n  probes          http on %s\n",
-		version.Number, scheme(servesTLS(c)), c.Listen, c.ProbeListen), logger)
-	scanner, err := scan.New(c.Scanner, loaded.Revisions[scannerSection])
-	if err != nil {
-		return fmt.Errorf("validating the configuration: scanner: %w", err)
+		return host.Parts{}, fmt.Errorf("validating the configuration: scanner: %w", err)
 	}
 	keys, err := open.Load(c.Credential.PublicKeyFile, c.Credential.PrivateKeyFiles...)
 	if err != nil {
-		return fmt.Errorf("loading the keyring: %w", err)
+		return host.Parts{}, fmt.Errorf("loading the keyring: %w", err)
 	}
-	metrics := prometheus.NewRegistry()
-	if err := runtimemetrics.Register(metrics); err != nil {
-		return err
-	}
-	poolConfig, err := dbconnect.PoolConfig(c.Database)
+	pool, err := provided.OpenPool(ctx, c.Database, provided.Registerer)
 	if err != nil {
-		return fmt.Errorf("configuring the database connection: %w", err)
+		return host.Parts{}, err
 	}
-	pool, err := dbmetrics.OpenPool(ctx, poolConfig, metrics)
+	return Assemble(ctx, Needs{
+		Section: c.Section, Pool: pool, Keys: keys, Scanner: scanner, Client: http.DefaultClient,
+		Registerer: provided.Registerer, Logger: provided.Logger, Start: provided.Start,
+	})
+}
+
+// Needs are what the API server is assembled from.
+type Needs struct {
+	Section Section
+	// Pool connects as the API server's runtime role (ADR-0118).
+	Pool *pgxpool.Pool
+	// Keys open the accounts' sealed credentials (ADR-0081).
+	Keys *open.Keyring
+	// Scanner runs the serve-time pattern check (ADR-0005).
+	Scanner scan.Scanner
+	// Client is the HTTP client the provider adapters and their token sources call through.
+	Client *http.Client
+	// Registerer is where every series of the API server is registered (ADR-0076).
+	Registerer prometheus.Registerer
+	Logger     *slog.Logger
+	// Start starts the goroutine a body request's policy load runs on, the host's in a process
+	// (ADR-0138).
+	Start host.Starter
+}
+
+// Assemble builds the API server from n, loads its accounts and their policy, and returns its parts,
+// the client surface behind the bearer check, the readiness check of the bearer token and the task
+// that reloads the accounts on their interval. It starts no goroutine of its own. Its policy loads run
+// on goroutines n.Start starts, under a context that outlives the requests, so they end when the
+// process stops and never because a client stopped waiting (ADR-0138). A load that fails, or a bearer
+// token file that cannot be read or holds no token, fails the assembly, so a process that cannot
+// serve a client never starts (ADR-0090, ADR-0127).
+func Assemble(ctx context.Context, n Needs) (host.Parts, error) {
+	connect, err := gmailConnector(n.Registerer, n.Client)
 	if err != nil {
-		return fmt.Errorf("configuring the database connection: %w", err)
+		return host.Parts{}, err
 	}
-	defer pool.Close()
-	served, err := newServing(ctx, pool, keys, metrics, logger)
+	a, err := assemble(ctx, n, connect, leaseWait)
 	if err != nil {
-		return err
+		return host.Parts{}, err
 	}
-	connect, err := gmailConnector(metrics)
+	return a.parts, nil
+}
+
+// assembled is the API server built, its serving state, the opener of its body requests' provider
+// sessions and its parts.
+type assembled struct {
+	served    *serving
+	providers *providers
+	parts     host.Parts
+}
+
+// assemble is Assemble with the connector its accounts' provider sessions connect through and the
+// bound on a body request's lease waits, which the tests and the live agent's exercise harness give
+// over the provider fake, so each of them builds the API server as Assemble does.
+func assemble(ctx context.Context, n Needs, connect session.Connector, wait time.Duration) (*assembled, error) {
+	served, err := newServing(n.Start, n.Pool, n.Keys, n.Registerer, n.Logger)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	bodies, _, err := newBodies(served, connect, scanner, c.ProviderTimeout, leaseWait, metrics)
+	bodies, opener, err := newBodies(served, connect, n.Scanner, n.Section.ProviderTimeout, wait, n.Registerer)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	ops, err := timed(service.Operations(sources(pool, served, bodies)), metrics)
+	ops, err := timed(service.Operations(sources(n.Pool, served, bodies)), n.Registerer)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	registry, err := service.NewRegistry(nil, ops...)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	served.registry = registry
 	if err := served.reload(ctx); err != nil {
-		return err
+		return nil, err
 	}
-	surfaceListener, err := net.Listen("tcp", c.Listen)
+	p, err := parts(served, n.Section, n.Logger)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	probeListener, err := net.Listen("tcp", c.ProbeListen)
+	return &assembled{served: served, providers: opener, parts: p}, nil
+}
+
+// parts returns the API server's parts over served, whose registry is built and whose first reload
+// has run.
+func parts(served *serving, s Section, logger *slog.Logger) (host.Parts, error) {
+	handler, err := surface(served.registry, s.TokenFile, logger)
 	if err != nil {
-		return errors.Join(err, surfaceListener.Close())
+		return host.Parts{}, err
 	}
-	return serve(ctx, c, surfaceListener, probeListener, served, metrics, logger)
+	if err := tokenReadable(s.TokenFile); err != nil {
+		return host.Parts{}, err
+	}
+	return host.Parts{
+		Handler: handler,
+		Ready: []host.Check{{Name: "bearer token", Check: func(context.Context) error {
+			return tokenReadable(s.TokenFile)
+		}}},
+		Tasks: []host.Task{{Name: "account reload", Run: func(ctx context.Context) error {
+			served.reloadEvery(ctx, s.AccountReloadInterval)
+			return nil
+		}}},
+	}, nil
 }
 
 // operationDurationName is the series timing each operation of the client surface (ADR-0125).
@@ -320,41 +334,6 @@ func timed(ops []service.Operation, metrics prometheus.Registerer) ([]service.Op
 	return out, nil
 }
 
-// serve reloads the account snapshot on its interval and serves the registry on the two listeners
-// until ctx ends. It takes the listeners already open, so a caller that must know the addresses
-// holds them from before the start, and it closes both on every path.
-func serve(ctx context.Context, c Configuration, surfaceListener, probeListener net.Listener, served *serving, metrics *prometheus.Registry, logger *slog.Logger) error {
-	registry := served.registry
-	var ready readiness.State
-
-	surfaceHandler, err := surface(registry, c.TokenFile, logger)
-	if err != nil {
-		return errors.Join(err, surfaceListener.Close(), probeListener.Close())
-	}
-	surfaceServer, probeServer := servers(c, surfaceHandler, probes(&ready, metrics, logger), logger)
-	reloading, stopReloading := context.WithCancel(ctx)
-	defer stopReloading()
-	// One slot for each server and one for the readiness check, so no send blocks.
-	errs := make(chan error, 3)
-	go func() { errs <- serveSurface(surfaceServer, surfaceListener) }()
-	go func() { errs <- serveProbes(probeServer, probeListener) }()
-	go served.reloadEvery(reloading, c.AccountReloadInterval)
-	if err := markReadyWhenServable(&ready, c); err != nil {
-		errs <- err
-	}
-	logger.Info("serving", "surface", c.Listen, "probes", c.ProbeListen, "tls", servesTLS(c))
-
-	select {
-	case err = <-errs:
-	case <-ctx.Done():
-	}
-	ready.MarkNotReady()
-	stopReloading()
-	shutdown, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	return errors.Join(err, surfaceServer.Shutdown(shutdown), probeServer.Shutdown(shutdown))
-}
-
 // sources are what the operations read from, the pool, the accounts and policy the serving state
 // holds in force, the clock, and what the body operation needs beyond them.
 func sources(pool *pgxpool.Pool, served *serving, bodies service.Bodies) service.Sources {
@@ -384,7 +363,7 @@ func lookups() classify.Lookups {
 type serving struct {
 	loader  *accountload.Loader
 	pool    *pgxpool.Pool
-	metrics *prometheus.Registry
+	metrics prometheus.Registerer
 	logger  *slog.Logger
 	// policies is the policy loader, built at the first reload that serves an account. Calls read it
 	// while a reload may be building it.
@@ -398,11 +377,11 @@ type serving struct {
 
 // newServing returns the serving state, serving no account until its first reload, and registers on
 // metrics F3's collector of each served account's rate-state series, which the API server carries
-// because it runs continuously (ADR-0077). Its policy loads run under ctx, so they end when the
-// API server stops and never because a client stopped waiting.
-func newServing(ctx context.Context, pool *pgxpool.Pool, keys *open.Keyring, metrics *prometheus.Registry, logger *slog.Logger) (*serving, error) {
+// because it runs continuously (ADR-0077). Its policy loads run on goroutines start starts, so they
+// end when the API server stops and never because a client stopped waiting.
+func newServing(start host.Starter, pool *pgxpool.Pool, keys *open.Keyring, metrics prometheus.Registerer, logger *slog.Logger) (*serving, error) {
 	s := &serving{loader: accountload.New(pool, keys, logger, []string{gmailProvider}), pool: pool, metrics: metrics, logger: logger}
-	s.fresh = reload.New(ctx, s.reloadPolicy)
+	s.fresh = reload.New(reload.Starter(start), s.reloadPolicy)
 	s.snapshot.Store(&accountload.Snapshot{})
 	if err := metrics.Register(lease.NewCollector(pool, s.rateAccounts)); err != nil {
 		return nil, err
@@ -541,59 +520,30 @@ func idsOf(snapshot *accountload.Snapshot) []string {
 	return ids
 }
 
-// refuseEnvironment returns an error while MCPGODEBUG, PGPASSWORD or PGSSLPASSWORD is set, even to
-// an empty value. The MCP SDK reads MCPGODEBUG to switch behaviour this root relies on, sessions in
-// a stateless server among them. pgx reads the two passwords on every parse, and either would win
-// over the mounted password file.
-func refuseEnvironment(environ []string) error {
+// RefuseEnvironment returns an error while MCPGODEBUG is set, even to an empty value. The MCP SDK
+// reads it when the process starts, to switch behaviour the API server relies on, sessions in a
+// stateless server among them, so whatever shares the API server's process runs under it too
+// (ADR-0086).
+func RefuseEnvironment(environ []string) error {
 	for _, entry := range environ {
 		if name, _, _ := strings.Cut(entry, "="); name == "MCPGODEBUG" {
 			return errors.New("MCPGODEBUG is set, and the API server runs the MCP SDK only as it ships (ADR-0086)")
 		}
 	}
-	return dbconnect.RefusePasswordVariables(environ)
+	return nil
 }
 
-// markReadyWhenServable marks the API server ready once the bearer token and, when it serves TLS, the
-// key pair load, so a pod whose mounts cannot serve a client never reports ready. They are read
-// again on each request and each handshake.
-func markReadyWhenServable(ready *readiness.State, c Configuration) error {
-	if servesTLS(c) {
-		if _, err := tls.LoadX509KeyPair(c.TLSCert, c.TLSKey); err != nil {
-			return fmt.Errorf("loading the TLS key pair: %w", err)
-		}
-	}
-	token, err := os.ReadFile(c.TokenFile)
+// tokenReadable refuses a bearer token file that cannot be read or holds no token, which admits no
+// client. The token is read again on each request.
+func tokenReadable(tokenFile string) error {
+	token, err := os.ReadFile(tokenFile) //nolint:gosec // the operator names the mounted file the token is read from
 	if err != nil {
 		return fmt.Errorf("reading the bearer token: %w", err)
 	}
 	if strings.TrimSpace(string(token)) == "" {
 		return errors.New("the bearer token file holds no token")
 	}
-	ready.MarkReady()
 	return nil
-}
-
-// serveSurface serves the client surface on ln until it is shut down, over TLS unless srv has no TLS
-// configuration, which a configuration naming no key pair leaves it without (ADR-0127).
-func serveSurface(srv *http.Server, ln net.Listener) error {
-	if srv.TLSConfig == nil {
-		return stopped(srv.Serve(ln))
-	}
-	return stopped(srv.ServeTLS(ln, "", ""))
-}
-
-// serveProbes serves the probes and the metrics endpoint on ln until it is shut down.
-func serveProbes(srv *http.Server, ln net.Listener) error {
-	return stopped(srv.Serve(ln))
-}
-
-// stopped returns nil for a server that stopped because it was shut down.
-func stopped(err error) error {
-	if errors.Is(err, http.ErrServerClosed) {
-		return nil
-	}
-	return err
 }
 
 // surface returns the client surface, the API root and the MCP root generated from registry, behind
@@ -678,77 +628,6 @@ func bearer(tokenFile string, logger *slog.Logger, next http.Handler) http.Handl
 	})
 }
 
-// servesTLS reports whether the configuration names a key pair. validate has refused one that names
-// only one of its two files, so the certificate alone decides.
-func servesTLS(c Configuration) bool {
-	return strings.TrimSpace(c.TLSCert) != ""
-}
-
-// tlsConfig returns the client surface's TLS configuration, which reads the key pair from its
-// mounted files on each handshake, or none when the configuration names no key pair.
-func tlsConfig(c Configuration) *tls.Config {
-	if !servesTLS(c) {
-		return nil
-	}
-	certFile, keyFile := c.TLSCert, c.TLSKey
-	return &tls.Config{
-		MinVersion: tls.VersionTLS12,
-		GetCertificate: func(*tls.ClientHelloInfo) (*tls.Certificate, error) {
-			pair, err := tls.LoadX509KeyPair(certFile, keyFile)
-			if err != nil {
-				return nil, fmt.Errorf("loading the TLS key pair: %w", err)
-			}
-			return &pair, nil
-		},
-	}
-}
-
-// probes returns the operational endpoints. /healthz answers 200 while the process serves, /readyz
-// answers 200 only while ready reports ready and 503 otherwise, and /metrics serves the process's
-// registry.
-func probes(ready *readiness.State, metrics *prometheus.Registry, logger *slog.Logger) http.Handler {
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
-		answer(w, r, logger, http.StatusOK, "ok")
-	})
-	mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, r *http.Request) {
-		if !ready.Ready() {
-			answer(w, r, logger, http.StatusServiceUnavailable, "not ready")
-			return
-		}
-		answer(w, r, logger, http.StatusOK, "ready")
-	})
-	mux.Handle("GET /metrics", promhttp.HandlerFor(metrics, promhttp.HandlerOpts{}))
-	return mux
-}
-
-// answer writes a plain-text probe answer. A failed write means the prober went away, which leaves
-// the operator nothing to act on, so it is detail.
-func answer(w http.ResponseWriter, r *http.Request, logger *slog.Logger, status int, text string) {
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	w.WriteHeader(status)
-	if _, err := fmt.Fprintln(w, text); err != nil {
-		logger.DebugContext(r.Context(), "writing a probe answer failed", "error", err)
-	}
-}
-
-// writeBanner writes the start banner, a few lines for a person reading the process's output that
-// name the deployable, its release version and where it serves. It is no log record, and a failed
-// write stops nothing (ADR-0122).
-func writeBanner(stderr io.Writer, text string, logger *slog.Logger) {
-	if _, err := io.WriteString(stderr, text); err != nil {
-		logger.Warn("writing the start banner failed", "error", err)
-	}
-}
-
-// scheme names the protocol a listener serves.
-func scheme(tls bool) string {
-	if tls {
-		return "https"
-	}
-	return "http"
-}
-
 // The series counting body requests, served and denied, a denial told apart by the stage that
 // decided it and its reason (ADR-0036, ADR-0002).
 const (
@@ -815,22 +694,24 @@ func newBodies(served *serving, connect session.Connector, scanner scan.Scanner,
 	}, p, nil
 }
 
-// gmailSource builds the Gmail token source of an account from its credentials, the OAuth client the
-// account connects through and its refresh token (ADR-0106).
-func gmailSource(c session.Credentials) *gmail.TokenSource {
-	return gmail.NewTokenSource(http.DefaultClient, gmail.NewCredentials(c.ClientID, c.ClientSecret, c.Credential))
+// gmailSource returns what builds the Gmail token source of an account from its credentials, the OAuth
+// client the account connects through and its refresh token, calling through client (ADR-0106).
+func gmailSource(client *http.Client) func(session.Credentials) *gmail.TokenSource {
+	return func(c session.Credentials) *gmail.TokenSource {
+		return gmail.NewTokenSource(client, gmail.NewCredentials(c.ClientID, c.ClientSecret, c.Credential))
+	}
 }
 
 // gmailConnector returns the connector that builds a Gmail token source for an account and a Gmail
-// adapter over it, counting its requests on series registry serves, which every adapter it builds
-// shares.
-func gmailConnector(registry prometheus.Registerer) (session.Connector, error) {
+// adapter over it, both calling through client, counting its requests on series registry serves,
+// which every adapter it builds shares.
+func gmailConnector(registry prometheus.Registerer, client *http.Client) (session.Connector, error) {
 	metrics, err := gmail.NewMetrics(registry)
 	if err != nil {
 		return session.Connector{}, err
 	}
-	return session.Connect(gmailSource, func(account string, source *gmail.TokenSource) (mail.Port[context.Context], error) {
-		return gmail.New(gmail.Config{Account: account, Client: http.DefaultClient, Tokens: source, Metrics: metrics})
+	return session.Connect(gmailSource(client), func(account string, source *gmail.TokenSource) (mail.Port[context.Context], error) {
+		return gmail.New(gmail.Config{Account: account, Client: client, Tokens: source, Metrics: metrics})
 	}), nil
 }
 

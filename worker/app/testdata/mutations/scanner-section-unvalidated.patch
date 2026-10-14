@@ -5,18 +5,18 @@ tests: TestAnInvalidScannerSectionRefusesTheStart
 scheduled-count: no
 
 diff --git a/worker/app/app.go b/worker/app/app.go
-index 2857e76b..0a350f6e 100644
+index 0d0bf2b1..7e5f9e55 100644
 --- a/worker/app/app.go
 +++ b/worker/app/app.go
-@@ -226,10 +226,7 @@ func Run(ctx context.Context, args, environ []string, stderr io.Writer, logger *
- 		return fmt.Errorf("validating the configuration: %w", err)
- 	}
- 	writeBanner(stderr, fmt.Sprintf("mediated-mailbox-worker %s\n  probes  http on %s\n", version.Number, c.ProbeListen), logger)
--	scanner, err := buildScanner(loaded)
+@@ -220,10 +220,7 @@ func Run(ctx context.Context, args, environ []string, stdout, stderr io.Writer,
+ // under the section's revision, the keyring and a pool per job kind connecting as that kind's role, and
+ // assembles the worker from them.
+ func fromConfiguration(ctx context.Context, provided host.Provided[Configuration]) (host.Parts, error) {
+-	scanner, err := buildScanner(provided.Loaded)
 -	if err != nil {
--		return fmt.Errorf("validating the configuration: %w", err)
+-		return host.Parts{}, fmt.Errorf("validating the configuration: %w", err)
 -	}
-+	scanner, _ := buildScanner(loaded)
++	scanner, _ := buildScanner(provided.Loaded)
+ 	c := provided.Loaded.Config
  	keys, err := open.Load(c.Credential.PublicKeyFile, c.Credential.PrivateKeyFiles...)
  	if err != nil {
- 		return fmt.Errorf("loading the keyring: %w", err)

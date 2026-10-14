@@ -1,0 +1,21 @@
+control: A goroutine a component starts through the host's starter is the host's, recovered as the component's failure, waited for before the pools close, and refused once the host waits
+removes: a started goroutine's panic is recovered and dropped, so the process serves on as if nothing failed
+packages: ./process/host
+tests: TestAStartedGoroutineIsTheHosts
+scheduled-count: no
+
+diff --git a/process/host/host.go b/process/host/host.go
+index 7063aa61..84a41613 100644
+--- a/process/host/host.go
++++ b/process/host/host.go
+@@ -415,9 +415,7 @@ func (h *Host) Starter(component string) Starter {
+ 				run(ctx)
+ 				return nil
+ 			}})
+-			if err != nil {
+-				h.startedFailed(fmt.Errorf("%s goroutine %s: %w", component, name, err))
+-			}
++			_ = err
+ 		}()
+ 		return true
+ 	}

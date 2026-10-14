@@ -1,0 +1,19 @@
+control: The goroutines analyser refuses a goroutine started in the API server's or the UI's code
+removes: the UI's code is not checked
+packages: ./testsupport/analysis
+tests: TestGoroutines
+scheduled-count: no
+
+diff --git a/testsupport/analysis/goroutines.go b/testsupport/analysis/goroutines.go
+index a19e71a3..7bf0ebc3 100644
+--- a/testsupport/analysis/goroutines.go
++++ b/testsupport/analysis/goroutines.go
+@@ -73,7 +73,7 @@ func runGoroutines(pass *analysis.Pass) (any, error) {
+ 	switch {
+ 	case within(path, workerPath) && !within(path, schedulerPath):
+ 		message = goroutinesMessage
+-	case within(path, apiPath), within(path, uiPath):
++	case within(path, apiPath):
+ 		message = componentGoroutinesMessage
+ 	default:
+ 		return nil, nil

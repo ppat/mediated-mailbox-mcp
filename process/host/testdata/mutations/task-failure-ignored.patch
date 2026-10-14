@@ -1,0 +1,19 @@
+control: A background task's panic or failure is its own and stops the process in order, and every task is joined before the pools close
+removes: a task's failure is logged and the process goes on serving without it
+packages: ./process/host
+tests: TestATaskPanicIsItsFailure TestATaskFailureStopsTheProcess
+scheduled-count: no
+
+diff --git a/process/host/host.go b/process/host/host.go
+index 7e940118..f8509788 100644
+--- a/process/host/host.go
++++ b/process/host/host.go
+@@ -504,7 +504,7 @@ func (h *Host) Serve(ctx context.Context, l Listeners, s Serving) error {
+ 			go func() {
+ 				defer running.Done()
+ 				if err := recovered(h.run, t); err != nil {
+-					failed <- fmt.Errorf("%s task %s: %w", c.name, t.Name, err)
++					h.logger.Error("a task failed", "error", err)
+ 				}
+ 			}()
+ 		}

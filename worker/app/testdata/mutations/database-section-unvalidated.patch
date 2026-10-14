@@ -5,9 +5,10 @@ tests: TestAnEmptyHostRefusesTheStart
 scheduled-count: no
 
 diff --git a/worker/app/app.go b/worker/app/app.go
+index 809f079e..4b393895 100644
 --- a/worker/app/app.go
 +++ b/worker/app/app.go
-@@ -160,9 +160,6 @@ func validate(c Configuration) error {
+@@ -166,9 +166,6 @@ func validate(c Configuration) error {
  		case kind.role.PoolSize <= 0:
  			return fmt.Errorf("database.%s.pool_size %d is not positive", kind.name, kind.role.PoolSize)
  		}
@@ -15,5 +16,5 @@ diff --git a/worker/app/app.go b/worker/app/app.go
 -			return err
 -		}
  	}
- 	switch {
- 	case c.ReloadInterval <= 0:
+ 	if err := ValidateSection(c.Section); err != nil {
+ 		return err

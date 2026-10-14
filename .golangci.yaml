@@ -367,17 +367,40 @@ linters:
           - "github.com/prometheus/client_golang/prometheus$"
           - "github.com/prometheus/client_golang/prometheus/collectors$"
 
-        # The probe and metrics listener, every file, a package of the process family. client_golang is admitted for
-        # the registry it serves (ADR-0051, ADR-0076).
+        # The operations endpoints, every file, a package of the process family. client_golang is admitted for the
+        # registry they serve (ADR-0051, ADR-0076).
         probes:
           list-mode: strict
           files:
           - "${base-path}/process/probes/**.go"
           allow:
           - "$gostd"
-          - "github.com/ppat/mediated-mailbox-mcp/process/logging$"
           - "github.com/prometheus/client_golang/prometheus$"
           - "github.com/prometheus/client_golang/prometheus/promhttp$"
+
+        # The host, every file, a package of the process family. It runs one process over the components a
+        # composition root hands it, through the family's other packages, and opens the pools a composition root asks
+        # for, so it admits the driver's pool and the registry it builds, and nothing of any component (ADR-0138). Its
+        # tests compare through the shared options value (ADR-0070).
+        host:
+          list-mode: strict
+          files:
+          - "${base-path}/process/host/**.go"
+          allow:
+          - "$gostd"
+          - "github.com/google/go-cmp/cmp$"
+          - "github.com/jackc/pgx/v5/pgxpool$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/dbmetrics$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/host$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/logging$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/probes$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/runtimemetrics$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/settings$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/version$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
+          - "github.com/prometheus/client_golang/prometheus$"
 
         # The logger, every file, a package of the process family. It builds a logger over the standard library
         # alone and its tests compare through the shared options value (ADR-0122, ADR-0070).
@@ -689,9 +712,8 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/api/"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect$"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core$"
-          - "github.com/ppat/mediated-mailbox-mcp/process/dbmetrics$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/host$"
           - "github.com/ppat/mediated-mailbox-mcp/process/logging$"
-          - "github.com/ppat/mediated-mailbox-mcp/process/runtimemetrics$"
           - "github.com/ppat/mediated-mailbox-mcp/process/settings$"
           - "github.com/ppat/mediated-mailbox-mcp/process/version$"
           - "github.com/ppat/mediated-mailbox-mcp/provider/"
@@ -780,12 +802,11 @@ linters:
           # The composition root's configuration (ADR-0078) and its database section, in ui/app.
           - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect$"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core$"
-          - "github.com/ppat/mediated-mailbox-mcp/process/dbmetrics$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/host$"
           - "github.com/ppat/mediated-mailbox-mcp/process/logging$"
           # The provider fake, which the setups' tests run over. The list for non-test code refuses it.
           - "github.com/ppat/mediated-mailbox-mcp/provider/fake$"
           # Gmail's consent, which the composition root hands the server.
-          - "github.com/ppat/mediated-mailbox-mcp/process/runtimemetrics$"
           - "github.com/ppat/mediated-mailbox-mcp/process/settings$"
           - "github.com/ppat/mediated-mailbox-mcp/process/version$"
           - "github.com/ppat/mediated-mailbox-mcp/provider/gmail/consent$"
@@ -868,7 +889,8 @@ linters:
         # deployable (ADR-0054). Its tests may also use test tooling, which the list for non-test code refuses. It names
         # no data-access subsection and admits no shared library that runs statements, so this list needs no role in
         # db/check (ADR-0118, ADR-0066). It admits the driver only so the composition root can open each job kind's pool
-        # under that job kind's role. A statement the worker's own code runs on a pool is left to review.
+        # under that job kind's role through the host. A statement the worker's own code runs on a pool is left to
+        # review.
         worker:
           list-mode: strict
           files:
@@ -889,11 +911,9 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal$"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect$"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/host$"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbmetrics$"
           - "github.com/ppat/mediated-mailbox-mcp/process/logging$"
-          # The probe and metrics listener the composition root serves (ADR-0051).
-          - "github.com/ppat/mediated-mailbox-mcp/process/probes$"
-          - "github.com/ppat/mediated-mailbox-mcp/process/runtimemetrics$"
           - "github.com/ppat/mediated-mailbox-mcp/process/settings$"
           - "github.com/ppat/mediated-mailbox-mcp/process/version$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
@@ -1141,6 +1161,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/api/"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect$"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/host$"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbmetrics$"
           - "github.com/ppat/mediated-mailbox-mcp/process/logging$"
           - "github.com/ppat/mediated-mailbox-mcp/process/probes$"
@@ -1203,6 +1224,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/api/"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect$"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/host$"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbmetrics$"
           - "github.com/ppat/mediated-mailbox-mcp/process/logging$"
           - "github.com/ppat/mediated-mailbox-mcp/process/probes$"
@@ -1252,6 +1274,7 @@ linters:
           - "!${base-path}/packaging/**"
           - "!${base-path}/process/dbconnect/**"
           - "!${base-path}/process/dbmetrics/**"
+          - "!${base-path}/process/host/**"
           - "!${base-path}/process/logging/**"
           - "!${base-path}/process/probes/**"
           - "!${base-path}/process/runtimemetrics/**"

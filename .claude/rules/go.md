@@ -21,21 +21,24 @@ layout](../../CLAUDE.md#code-layout-and-conventions), and what tests the work ne
   keeps its own `core`, such as `process/dbconnect/core`, never one pooled for the family. So does a
   library's package whose pure rules are its own, such as `provider/gmail/core`. A
   deployable's composition root is its entry package `<deployable>/app`, which its `main.go` calls,
-  and everything else it holds sits under `internal/`, apart from the entry and an `importtarget`
-  package holding a violation file (CLAUDE.md, Inside a component).
+  and everything else it holds sits under `internal/`, apart from the entry, the UI's browser bundle
+  package `ui/browser` and an `importtarget` package holding a violation file (CLAUDE.md, Inside a
+  component). The entry hands its component to the host, `process/host`, which runs the process
+  (ADR-0138).
 - **The environment is read only by a deployable's `main.go`**, which hands it through the entry
-  package to the configuration library in `process/settings/`. The `go vet` environment analyser
+  package and the host to the configuration library in `process/settings/`. The `go vet` environment analyser
   refuses, anywhere else outside test files and `testsupport`, every standard-library function that
   returns an environment variable's value by a name its caller gives, or the environment as a whole,
   such as `os.Getenv`. Functions that read fixed platform variables for their own purpose, such as
   `os.UserHomeDir`, stay allowed (ADR-0078, CLAUDE.md, Static analysis and formatting).
 - **A shell logs through the logger it is handed.** A deployable's `main.go` builds the logger and
   its level variable through `process/logging`, makes the logger the process default for code the
-  project does not own, and hands both to the entry with standard error, where the entry writes its
-  start banner, and the entry sets the level from `log_level` and passes the logger to every shell
-  that logs. A `forbidigo` ban refuses, in every Go file, reading a
-  default logger through `slog`'s or `log`'s package-level functions and the built-in `print` and
-  `println` (ADR-0122, CLAUDE.md, Inside a component).
+  project does not own, and hands both to the entry with standard output and standard error, which
+  hands them to the host. The host writes the start banner, sets the level from `log_level` and
+  passes each component's assembly the logger, which passes it to every shell that logs. A
+  `forbidigo` ban refuses, in every Go file, reading a default logger through `slog`'s or `log`'s
+  package-level functions and the built-in `print` and `println` (ADR-0122, CLAUDE.md, Inside a
+  component).
 - **A generated data-access function runs only inside the transaction helper.** The `go vet`
   txhelper analyser enforces it, by the rules and the three exempt statements CLAUDE.md states under
   Static analysis and formatting (ADR-0047). The base policy's statements run only in the helper's
@@ -46,14 +49,17 @@ layout](../../CLAUDE.md#code-layout-and-conventions), and what tests the work ne
   parameters, outside the recording mux's own `Handle`. Registration through reflection, by an
   imported package on the default mux, or through an interface method one of whose parameter types
   is a type parameter is left to review (ADR-0071, CLAUDE.md, Static analysis and formatting).
-- **The worker's job code starts a goroutine only through `schedule.Go`.** The `go vet` goroutines
-  analyser refuses, in a non-test file under `worker/` outside `worker/internal/schedule`, a `go`
-  statement and any use of a function that starts a goroutine running what it is given, the
-  standard library's and those of `golang.org/x/sync`, because a panic is recovered only on the
-  goroutine that raised it, and one on any other goroutine would stop every job. Such a function
-  reached through an interface value or reflection, a dependency that calls what it was given on a
-  goroutine of its own, and any other module's goroutine starter are left to review (ADR-0119,
-  CLAUDE.md, Static analysis and formatting).
+- **The worker's job code starts a goroutine only through `schedule.Go`, and the API server's and
+  the UI's code only through the host's starter.** The `go vet` goroutines analyser refuses, in a
+  non-test file under `worker/` outside `worker/internal/schedule`, a `go` statement and any use of
+  a function that starts a goroutine running what it is given, the standard library's and those of
+  `golang.org/x/sync`, because a panic is recovered only on the goroutine that raised it, and one on
+  any other goroutine would stop every job. It refuses the same in a non-test file under `api/` or
+  `ui/`, whose code starts a goroutine only through the host's starter, which recovers its panic and
+  waits for it before the pools close (ADR-0138). Such a function reached through an interface value
+  or reflection, a dependency that calls what it was given on a goroutine of its own, and any other
+  module's goroutine starter are left to review (ADR-0119, CLAUDE.md, Static analysis and
+  formatting).
 - **No code of this project imports `unsafe`**, a `go:linkname`'s included, **or takes an unsafe
   pointer from `reflect`**. The `go vet` unsafeimport analyser refuses an import of `unsafe` and any
   use of `reflect.NewAt`, `reflect.SliceAt`, `(reflect.Value).UnsafePointer` and

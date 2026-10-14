@@ -133,5 +133,5 @@ admits code naming subsections, and by each list of a job kind of the worker
 ([ADR-0118](../docs/adr/data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)). The
 worker's own list names no subsection and admits no shared library that runs statements, so it has
 no entry, and a shared library has none either, since it connects as no role of its own. The
-worker's list admits the driver only so its composition root can open each job kind's pool, and a
-statement the worker's own code runs on a pool is left to review.
+worker's list admits the driver only so its composition root can open each job kind's pool through
+the host, and a statement the worker's own code runs on a pool is left to review.

@@ -63,12 +63,14 @@ func TestRawSQL(t *testing.T) {
 }
 
 // The cases under testdata/src/github.com/ppat/mediated-mailbox-mcp stand for a job kind's code in the
-// worker with its test file, the worker's entry, its scheduler, and a directory whose name only starts
-// with worker.
+// worker with its test file, the worker's entry, its scheduler, a directory whose name only starts
+// with worker, the API server's code with its test file, the UI's code, and a directory whose name
+// only starts with api.
 func TestGoroutines(t *testing.T) {
 	const m = "github.com/ppat/mediated-mailbox-mcp"
 	analysistest.Run(t, analysistest.TestData(), analysis.Goroutines,
-		m+"/worker/internal/job", m+"/worker", m+"/worker/internal/schedule", m+"/workerx/lookalike")
+		m+"/worker/internal/job", m+"/worker", m+"/worker/internal/schedule", m+"/workerx/lookalike",
+		m+"/api/internal/loads", m+"/ui/internal/streams", m+"/apix/lookalike")
 }
 
 // The cases under testdata/src/github.com/ppat/mediated-mailbox-mcp stand for project code importing

@@ -5,14 +5,14 @@ tests: TestASectionsRevisionFollowsItsEffectiveValue/a_flag_changes_the_server T
 scheduled-count: no
 
 diff --git a/process/settings/settings.go b/process/settings/settings.go
-index 4299ed0..d97f3a3 100644
+index 6bcf5a72..3ba0aac9 100644
 --- a/process/settings/settings.go
 +++ b/process/settings/settings.go
-@@ -184,7 +184,7 @@ func Load[T any](defaults T, args, environ []string) (Loaded[T], error) {
+@@ -195,7 +195,7 @@ func Load[T any](defaults T, args, environ []string) (Loaded[T], error) {
  	slices.SortFunc(loaded.Values, func(a, b Value) int { return strings.Compare(a.Path, b.Path) })
  	loaded.Revisions = map[string]string{}
  	for _, f := range root.fields {
--		text, err := yaml.Marshal(result.Field(f.index).Interface())
+-		text, err := yaml.Marshal(result.FieldByIndex(f.index).Interface())
 +		text, err := yaml.Marshal(result.Interface())
  		if err != nil {
  			return Loaded[T]{}, fmt.Errorf("%s: %w", f.name, err)

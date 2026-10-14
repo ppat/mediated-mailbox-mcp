@@ -1,0 +1,20 @@
+control: The worker answers ready once each job kind's pool answers and each job kind's reload has succeeded
+removes: no job kind's pool is checked, so a worker whose pools cannot answer stays ready
+packages: ./worker/app
+tests: TestEachJobKindsDatabaseCheckFollowsItsPool
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/app/app.go b/worker/app/app.go
+index 809f079e..2b1bfe92 100644
+--- a/worker/app/app.go
++++ b/worker/app/app.go
+@@ -304,7 +304,7 @@ func Assemble(ctx context.Context, n Needs) (host.Parts, error) {
+ 		parts.Ready = append(parts.Ready, host.Check{Name: r.key.Kind + " reload", Check: r.reloaded})
+ 	}
+ 	for kind, pool := range map[string]*pgxpool.Pool{backfill.Kind: n.Pools.Backfill, deltasync.Kind: n.Pools.Sync} {
+-		parts.Ready = append(parts.Ready, host.Check{Name: kind + " database", Check: pool.Ping})
++		_, _ = kind, pool
+ 	}
+ 	return parts, nil
+ }

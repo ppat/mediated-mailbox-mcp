@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -786,6 +787,38 @@ type (
 	defaultKey struct {
 		Values map[string]int `yaml:"values"`
 	}
+	// inlineTwice declares the name before the inline section that declares it again, so the inline
+	// section's own check refuses it.
+	inlineTwice struct {
+		Listen string `yaml:"listen"`
+		Common `yaml:",inline"`
+	}
+	inlineMap struct {
+		Labels `yaml:",inline"`
+	}
+	inlineUnexported struct {
+		hidden `yaml:",inline"`
+	}
+	inlineRequired struct {
+		Common `yaml:",inline" settings:"required"`
+	}
+	inlineTwiceInList struct {
+		Items []struct {
+			Workers int `yaml:"workers"`
+			Extra   `yaml:",inline"`
+		} `yaml:"items"`
+	}
+	inlineInvalid struct {
+		Invalid `yaml:",inline"`
+	}
+	// Labels, hidden and Invalid exist only to be inlined and refused.
+	Labels map[string]string
+	hidden struct {
+		Value int `yaml:"value"`
+	}
+	Invalid struct {
+		Value int `yaml:"Value"`
+	}
 )
 
 // A declaration the layers cannot name or set is refused before any layer is read.
@@ -811,6 +844,12 @@ func TestADeclarationThatCannotBeConfiguredIsRefused(t *testing.T) {
 		{"the file's own name", loadOf(fileName{}), "the root configuration type declares config_file, whose environment name is the file's"},
 		{"a required value with a default", loadOf(requiredWithDefault{Value: 1}), "value is required and has a default"},
 		{"a default key outside the alphabet", loadOf(defaultKey{Values: map[string]int{"pt-BR": 1}}), `the default of values: the key "pt-BR" is not runs of lower-case letters and digits joined by single underscores`},
+		{"a name an inline section also declares", loadOf(inlineTwice{}), "listen is declared twice"},
+		{"a name an inline section in a list also declares", loadOf(inlineTwiceInList{}), "items.workers is declared twice"},
+		{"an inline field that is not a struct", loadOf(inlineMap{}), "settings_test.inlineMap: field Labels is inline and of type settings_test.Labels, and only a struct can be inline"},
+		{"an unexported inline field", loadOf(inlineUnexported{}), "settings_test.inlineUnexported: field hidden is unexported, so no layer can set it"},
+		{"a required inline field", loadOf(inlineRequired{}), "settings_test.inlineRequired: field Common is inline and has a settings tag, and only a value can be required"},
+		{"an inline section whose own field cannot be named", loadOf(inlineInvalid{}), `settings_test.Invalid: field Value has the yaml tag "Value", and a name is lower-case letters and digits in words joined by single underscores, with no options`},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -968,4 +1007,107 @@ func TestHelpQuotesAnEmptyOrMultiLineStringDefault(t *testing.T) {
 			t.Errorf("help lacks %q:\n%s", want, help.Text)
 		}
 	}
+}
+
+type (
+	// composed is a root built from sections, two of them inline, as a composition root builds its
+	// configuration from the process's section and a component's.
+	composed struct {
+		Common `yaml:",inline"`
+		Own    ownSection `yaml:"own"`
+		Extra  `yaml:",inline"`
+	}
+	// Common and Extra are inline sections.
+	Common struct {
+		Listen string `yaml:"listen" settings:"required"`
+		Debug  bool   `yaml:"debug"`
+	}
+	Extra struct {
+		Workers int     `yaml:"workers"`
+		Scanner scanner `yaml:"scanner"`
+	}
+	ownSection struct {
+		Value int `yaml:"value"`
+	}
+)
+
+func composedDefaults() composed {
+	return composed{Own: ownSection{Value: 1}, Extra: Extra{Workers: 2, Scanner: scanner{Threshold: 0.5}}}
+}
+
+// An inline section's values sit at the paths of the section that embeds it, set by every layer and
+// refused as that section's own values are, and each is a top-level section with its own revision.
+func TestAnInlineSectionsValuesSitBesideTheSectionsOwn(t *testing.T) {
+	path := writeFile(t, "listen: a\nworkers: 3\n")
+	loaded, err := settings.Load(composedDefaults(), []string{"--config-file=" + path, "--debug=true"}, []string{"MEDIATED_MAILBOX_SCANNER__THRESHOLD=0.7"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := composed{Common: Common{Listen: "a", Debug: true}, Own: ownSection{Value: 1}, Extra: Extra{Workers: 3, Scanner: scanner{Threshold: 0.7}}}
+	if diff := cmp.Diff(want, loaded.Config, compare.Options); diff != "" {
+		t.Errorf("configuration (-want +got):\n%s", diff)
+	}
+	sources := map[string]string{}
+	for _, v := range loaded.Values {
+		sources[v.Path] = v.Source.String()
+	}
+	wantSources := map[string]string{
+		"listen": "file " + path + " line 1", "debug": "flag --debug", "own.value": "default",
+		"workers": "file " + path + " line 2", "scanner.threshold": "environment variable MEDIATED_MAILBOX_SCANNER__THRESHOLD",
+		"scanner.link_words": "default",
+	}
+	if diff := cmp.Diff(wantSources, sources, compare.Options); diff != "" {
+		t.Errorf("sources (-want +got):\n%s", diff)
+	}
+	var names []string
+	for name := range loaded.Revisions {
+		names = append(names, name)
+	}
+	slices.Sort(names)
+	if diff := cmp.Diff([]string{"debug", "listen", "own", "scanner", "workers"}, names, compare.Options); diff != "" {
+		t.Errorf("revisions (-want +got):\n%s", diff)
+	}
+	base, err := settings.Load(composedDefaults(), []string{"--listen=a"}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	changed, err := settings.Load(composedDefaults(), []string{"--listen=a", "--scanner.threshold=0.6"}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if base.Revisions["scanner"] == changed.Revisions["scanner"] || base.Revisions["workers"] != changed.Revisions["workers"] {
+		t.Errorf("revisions %v then %v, want only the scanner's changed", base.Revisions, changed.Revisions)
+	}
+	t.Run("a required value of an inline section no layer sets", func(t *testing.T) {
+		_, err := settings.Load(composedDefaults(), nil, nil)
+		want := "listen is required, and neither the file, MEDIATED_MAILBOX_LISTEN nor --listen sets it"
+		if err == nil || err.Error() != want {
+			t.Errorf("Load returned %v, want %q", err, want)
+		}
+	})
+	t.Run("an unknown key beside an inline section's", func(t *testing.T) {
+		if _, err := settings.Load(composedDefaults(), []string{"--listen=a", "--worker=3"}, nil); err == nil {
+			t.Error("Load accepted --worker, which no section declares")
+		}
+	})
+	t.Run("a YAML word for true in an inline section, in the file", func(t *testing.T) {
+		path := writeFile(t, "listen: a\ndebug: yes\n")
+		_, err := settings.Load(composedDefaults(), []string{"--config-file=" + path}, nil)
+		want := "config file " + path + `: line 2: "yes" is not a boolean, and a boolean is true or false`
+		if err == nil || err.Error() != want {
+			t.Errorf("Load returned %v, want %q", err, want)
+		}
+	})
+	t.Run("help lists an inline section's values", func(t *testing.T) {
+		_, err := settings.Load(composedDefaults(), []string{"--help"}, nil)
+		var help *settings.HelpRequested
+		if !errors.As(err, &help) {
+			t.Fatalf("Load returned %v, want the help", err)
+		}
+		for _, value := range []string{"\nlisten\n", "\ndebug\n", "\nworkers\n", "\nscanner.threshold\n", "\nown.value\n"} {
+			if !strings.Contains(help.Text, value) {
+				t.Errorf("help names no %q:\n%s", value, help.Text)
+			}
+		}
+	})
 }

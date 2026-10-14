@@ -1,0 +1,21 @@
+control: Each component's handler is served on the application server at the patterns its root gives and nowhere else
+removes: each handler is mounted at a pattern made from its component's name rather than at the patterns its root gives
+packages: ./process/host
+tests: TestEachHandlerIsServedWhereItIsMounted
+scheduled-count: no
+
+diff --git a/process/host/host.go b/process/host/host.go
+index 7e940118..4a43dd05 100644
+--- a/process/host/host.go
++++ b/process/host/host.go
+@@ -474,9 +474,7 @@ func (h *Host) Serve(ctx context.Context, l Listeners, s Serving) error {
+ 			if c.parts.Handler == nil {
+ 				continue
+ 			}
+-			for _, pattern := range c.mount {
+-				mux.Handle(pattern, c.parts.Handler)
+-			}
++			mux.Handle("/"+c.name+"/", c.parts.Handler)
+ 		}
+ 		app = newServer(mux, h.logger)
+ 		app.TLSConfig = tlsConf

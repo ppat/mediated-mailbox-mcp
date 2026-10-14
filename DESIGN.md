@@ -484,10 +484,15 @@ top-level documents, a decision record, or a ticket from here without guessing.
 - **Process** (the family `process/`) — what every deployable needs to run as a process under the
   environment contract: its configuration layered from defaults, a file, the environment and flags,
   its database connection and what it measures of that connection, what it measures of its
-  runtime, its probe and metrics endpoint, and its logs (contract in ADR-0051,
+  runtime, its operations endpoints, its logs, and the **host** that runs it (contract in ADR-0051,
   via the [decision-record index](./docs/adr/README.md)). Its case is
   [process/README.md](./process/README.md)'s. Distinct from a *process* in the operating system's
   sense, a running instance of a deployable, which this family's code runs inside rather than names.
+- **Host** (the package `process/host`) — what runs one process over the components a composition
+  root hands it, doing what every process does whatever it hosts, from its configuration and its
+  operations endpoints to its background tasks and its ordered stop. A component provides its
+  parts to the host and never starts them itself (rules in ADR-0138, via the
+  [decision-record index](./docs/adr/README.md)).
 - **Message content** (the family `content/`) — the code that reads a message's content in memory
   and stores none of it, which is today the conversion of a body's HTML to Markdown (rules in
   ADR-0009 and ADR-0036, via the [decision-record index](./docs/adr/README.md)). Its case is

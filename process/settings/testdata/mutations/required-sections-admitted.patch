@@ -5,10 +5,10 @@ tests: TestADeclarationThatCannotBeConfiguredIsRefused/a_required_section TestAD
 scheduled-count: no
 
 diff --git a/process/settings/declaration.go b/process/settings/declaration.go
-index 43acc05..ff46774 100644
+index 6c7a7aaa..eb824681 100644
 --- a/process/settings/declaration.go
 +++ b/process/settings/declaration.go
-@@ -99,7 +99,7 @@ func declareType(t reflect.Type, path string, inValue bool) (*node, error) {
+@@ -108,7 +108,7 @@ func declareType(t reflect.Type, path string, inValue bool) (*node, error) {
  			if err != nil {
  				return nil, err
  			}
@@ -16,4 +16,4 @@ index 43acc05..ff46774 100644
 +			if required && false {
  				return nil, fmt.Errorf("%s is required, and only a value outside a list can be", at)
  			}
- 			n.fields = append(n.fields, field{name: name, index: i, required: required, node: child})
+ 			n.fields = append(n.fields, field{name: name, index: []int{i}, required: required, node: child})

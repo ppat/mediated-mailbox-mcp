@@ -5,9 +5,10 @@ tests: TestATickThatCannotRunRefusesTheStart TestATickThatCannotRunRefusesTheSta
 scheduled-count: no
 
 diff --git a/worker/app/app.go b/worker/app/app.go
+index 809f079e..3eb67d9b 100644
 --- a/worker/app/app.go
 +++ b/worker/app/app.go
-@@ -157,7 +157,7 @@ func validate(c Configuration) error {
+@@ -163,7 +163,7 @@ func validate(c Configuration) error {
  			return fmt.Errorf("database.%s.user is empty", kind.name)
  		case kind.role.PasswordFile == "":
  			return fmt.Errorf("database.%s.password_file is empty", kind.name)
@@ -16,9 +17,9 @@ diff --git a/worker/app/app.go b/worker/app/app.go
  			return fmt.Errorf("database.%s.pool_size %d is not positive", kind.name, kind.role.PoolSize)
  		}
  		if err := dbconnectcore.Validate(c.Database.connection(kind.role)); err != nil {
-@@ -165,9 +165,9 @@ func validate(c Configuration) error {
- 		}
- 	}
+@@ -180,9 +180,9 @@ func validate(c Configuration) error {
+ // bound is positive.
+ func ValidateSection(c Section) error {
  	switch {
 -	case c.ReloadInterval <= 0:
 +	case false && c.ReloadInterval <= 0:
@@ -28,7 +29,7 @@ diff --git a/worker/app/app.go b/worker/app/app.go
  		return fmt.Errorf("backfill.concurrency %d is not positive", c.Backfill.Concurrency)
  	case c.Sync.SyncInterval <= 0:
  		return fmt.Errorf("sync.sync_interval %s is not positive", c.Sync.SyncInterval)
-@@ -175,7 +175,7 @@ func validate(c Configuration) error {
+@@ -190,7 +190,7 @@ func ValidateSection(c Section) error {
  		return fmt.Errorf("sync.first_window %s is not positive", c.Sync.FirstWindow)
  	case c.Sync.DecisionsPerTick <= 0:
  		return fmt.Errorf("sync.decisions_per_tick %d is not positive", c.Sync.DecisionsPerTick)
@@ -36,4 +37,4 @@ diff --git a/worker/app/app.go b/worker/app/app.go
 +	case false && c.Sync.Concurrency <= 0:
  		return fmt.Errorf("sync.concurrency %d is not positive", c.Sync.Concurrency)
  	}
- 	return credentialcore.Validate(c.Credential)
+ 	return nil

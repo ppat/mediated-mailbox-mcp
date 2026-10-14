@@ -1,0 +1,19 @@
+control: A process serves its application server over TLS when its configuration names a key pair and over plain HTTP when it names neither, with the key pair read from its mounted files, and refuses to start with one of the two or with a pair that does not load
+removes: a configuration naming one TLS file without the other is accepted
+packages: ./process/host
+tests: TestTheProcessSectionsAreValidated/a_certificate_without_its_key TestTheProcessSectionsAreValidated/a_key_without_its_certificate TestTheProcessSectionsAreValidated/a_certificate_with_a_blank_key TestTheProcessSectionsAreValidated/a_key_with_a_blank_certificate
+scheduled-count: no
+
+diff --git a/process/host/host.go b/process/host/host.go
+index 7e940118..69700a39 100644
+--- a/process/host/host.go
++++ b/process/host/host.go
+@@ -92,7 +92,7 @@ func ValidateServing(s Serving) error {
+ 	if strings.TrimSpace(s.Listen) == "" {
+ 		return errors.New("listen is empty")
+ 	}
+-	if cert, key := strings.TrimSpace(s.TLSCert) != "", strings.TrimSpace(s.TLSKey) != ""; cert != key {
++	if cert, key := strings.TrimSpace(s.TLSCert) != "", strings.TrimSpace(s.TLSKey) != ""; false && cert != key {
+ 		set, missing := "tls_cert", "tls_key"
+ 		if key {
+ 			set, missing = "tls_key", "tls_cert"

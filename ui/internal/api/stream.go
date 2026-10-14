@@ -116,6 +116,8 @@ func (s *Server) streamEvents(w http.ResponseWriter, r *http.Request) {
 		select {
 		case <-r.Context().Done():
 			return
+		case <-s.draining():
+			return
 		case <-ticker.C:
 		}
 	}

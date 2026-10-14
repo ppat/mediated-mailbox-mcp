@@ -71,12 +71,24 @@ func waiting(t *testing.T, c *reload.Coalesced) <-chan error {
 // settle gives the callers started just before time to reach Load.
 func settle() { time.Sleep(50 * time.Millisecond) }
 
+// starter returns a starter that runs each goroutine under the test's context and waits for every one
+// when the test ends, as the host's does under the process's.
+func starter(t *testing.T) reload.Starter {
+	t.Helper()
+	var running sync.WaitGroup
+	t.Cleanup(running.Wait)
+	return func(_ string, run func(context.Context)) bool {
+		running.Go(func() { run(t.Context()) })
+		return true
+	}
+}
+
 // A load already running when a caller asks never answers it, since it may have read the source
 // before the change the caller must see. The caller is answered by the next load, which starts once
 // the running one ends (ADR-0099).
 func TestALoadRunningWhenACallerAsksDoesNotCount(t *testing.T) {
 	g := newGated()
-	c := reload.New(t.Context(), g.load)
+	c := reload.New(starter(t), g.load)
 	first := waiting(t, c)
 	if n := within(t, g.started); n != 1 {
 		t.Fatalf("the first load is number %d", n)
@@ -107,7 +119,7 @@ func TestALoadRunningWhenACallerAsksDoesNotCount(t *testing.T) {
 // each.
 func TestCallersWaitingTogetherShareOneLoad(t *testing.T) {
 	g := newGated()
-	c := reload.New(t.Context(), g.load)
+	c := reload.New(starter(t), g.load)
 	first := waiting(t, c)
 	within(t, g.started)
 	var answers []<-chan error
@@ -133,10 +145,10 @@ func TestCallersWaitingTogetherShareOneLoad(t *testing.T) {
 }
 
 // A caller that stops waiting returns its own context's error and leaves the load running for the
-// others, under the context Coalesced was built with, which the load watches.
+// others, under the context the starter gives it, which the load watches.
 func TestACallerThatStopsWaitingLeavesTheLoadRunning(t *testing.T) {
 	g := newGated()
-	c := reload.New(t.Context(), g.load)
+	c := reload.New(starter(t), g.load)
 	ctx, cancel := context.WithCancel(t.Context())
 	gone := make(chan error, 1)
 	go func() { gone <- c.Load(ctx) }()
@@ -158,7 +170,7 @@ func TestACallerThatStopsWaitingLeavesTheLoadRunning(t *testing.T) {
 // Loads never overlap, whatever the callers do.
 func TestLoadsRunOneAtATime(t *testing.T) {
 	var running, most atomic.Int64
-	c := reload.New(t.Context(), func(context.Context) error {
+	c := reload.New(starter(t), func(context.Context) error {
 		n := running.Add(1)
 		for {
 			m := most.Load()
@@ -181,5 +193,88 @@ func TestLoadsRunOneAtATime(t *testing.T) {
 	wg.Wait()
 	if m := most.Load(); m != 1 {
 		t.Errorf("%d loads ran at once", m)
+	}
+}
+
+// Every load runs on a goroutine the starter started, so in a process it is the host's to recover and
+// to wait for before the pools close (ADR-0138).
+func TestEveryLoadRunsThroughTheStarter(t *testing.T) {
+	var inside, outside atomic.Int64
+	var running sync.WaitGroup
+	t.Cleanup(running.Wait)
+	start := func(_ string, run func(context.Context)) bool {
+		running.Go(func() {
+			inside.Add(1)
+			defer inside.Add(-1)
+			run(t.Context())
+		})
+		return true
+	}
+	c := reload.New(start, func(context.Context) error {
+		if inside.Load() == 0 {
+			outside.Add(1)
+		}
+		return nil
+	})
+	for range 5 {
+		if err := c.Load(t.Context()); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if n := outside.Load(); n != 0 {
+		t.Errorf("%d loads ran on a goroutine the starter did not start", n)
+	}
+}
+
+// A starter that starts nothing, as the host's does once the process stops, fails the caller at once
+// rather than leaving it waiting for a load that will never run.
+func TestARefusedStartFailsItsCallers(t *testing.T) {
+	var loads atomic.Int64
+	c := reload.New(func(string, func(context.Context)) bool { return false }, func(context.Context) error {
+		loads.Add(1)
+		return nil
+	})
+	for range 2 {
+		if err := within(t, waiting(t, c)); !errors.Is(err, reload.ErrNotStarted) {
+			t.Errorf("a caller got %v, want ErrNotStarted", err)
+		}
+	}
+	if n := loads.Load(); n != 0 {
+		t.Errorf("%d loads ran, though the starter started none", n)
+	}
+}
+
+// A load that panics answers its callers and every caller waiting for the next load with ErrPanicked,
+// and the panic reaches the starter's owner, which recovers it as the component's failure.
+func TestAPanickedLoadFailsItsCallers(t *testing.T) {
+	g := newGated()
+	panicked := make(chan any, 1)
+	var running sync.WaitGroup
+	t.Cleanup(running.Wait)
+	start := func(_ string, run func(context.Context)) bool {
+		running.Go(func() {
+			defer func() { panicked <- recover() }()
+			run(t.Context())
+		})
+		return true
+	}
+	c := reload.New(start, func(ctx context.Context) error {
+		if err := g.load(ctx); err != nil {
+			panic(err)
+		}
+		return nil
+	})
+	first := waiting(t, c)
+	within(t, g.started)
+	second := waiting(t, c)
+	settle()
+	g.let(t, errors.New("the load broke"))
+	for name, answer := range map[string]<-chan error{"the load's caller": first, "the waiting caller": second} {
+		if err := within(t, answer); !errors.Is(err, reload.ErrPanicked) {
+			t.Errorf("%s got %v, want ErrPanicked", name, err)
+		}
+	}
+	if p := within(t, panicked); p == nil {
+		t.Error("the starter's owner never saw the panic")
 	}
 }

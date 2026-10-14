@@ -1,0 +1,19 @@
+control: A process's servers close an idle connection and cut off a request that has not arrived within their limits, and bound no answer
+removes: the operations server is built apart from the shared constructor, with only a header limit
+packages: ./process/host
+tests: TestTheServersCloseIdleAndSlowConnectionsAndNeverCutAnAnswer
+scheduled-count: no
+
+diff --git a/process/host/host.go b/process/host/host.go
+index 7e940118..dee05c95 100644
+--- a/process/host/host.go
++++ b/process/host/host.go
+@@ -466,7 +466,7 @@ func (h *Host) Serve(ctx context.Context, l Listeners, s Serving) error {
+ 		}
+ 		return true, ""
+ 	}
+-	probeServer := newServer(probes.Handler(h.registry, ready, h.logger), h.logger)
++	probeServer := &http.Server{Handler: probes.Handler(h.registry, ready, h.logger), ReadHeaderTimeout: connectionLimits.Header}
+ 	var app *http.Server
+ 	if l.App != nil {
+ 		mux := http.NewServeMux()

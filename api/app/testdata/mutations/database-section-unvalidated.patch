@@ -6,12 +6,12 @@ scheduled-count: no
 
 
 diff --git a/api/app/app.go b/api/app/app.go
-index 8f9657ee..b510043c 100644
+index 843a78ed..472519d1 100644
 --- a/api/app/app.go
 +++ b/api/app/app.go
-@@ -155,9 +155,7 @@ func validate(c Configuration) error {
- 	if c.ProviderTimeout <= 0 || c.ProviderTimeout > maxProviderTimeout {
- 		return fmt.Errorf("provider_timeout %s is not positive and at most %s", c.ProviderTimeout, maxProviderTimeout)
+@@ -151,9 +151,7 @@ func validate(c Configuration) error {
+ 	if err := ValidateSection(c.Section); err != nil {
+ 		return err
  	}
 -	if err := dbconnectcore.Validate(c.Database); err != nil {
 -		return err

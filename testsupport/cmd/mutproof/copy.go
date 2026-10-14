@@ -37,9 +37,9 @@ func workingTreeFiles(root string) ([]string, error) {
 }
 
 // builtBundle is the directory, relative to the repository root, the browser bundle is built into
-// (ui/browser/scripts/build.ts) and ui/main.go embeds. git ignores what the build writes there, and
-// the UI's tests read it, so a copy without it holds only the checked-in placeholder, against which
-// those tests skip, check less or fail. The copies carry the checkout's bundle as it stands, built
+// (ui/browser/scripts/build.ts) and ui/browser/bundle.go embeds. git ignores what the build writes
+// there, and the UI's tests read it, so a copy without it holds only the checked-in placeholder,
+// against which those tests skip, check less or fail. The copies carry the checkout's bundle as it stands, built
 // or not, fresh or stale, as go test run in the checkout reads it.
 const builtBundle = "ui/browser/dist"
 

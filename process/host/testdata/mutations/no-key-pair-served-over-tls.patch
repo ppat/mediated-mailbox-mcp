@@ -1,0 +1,20 @@
+control: A process serves its application server over TLS when its configuration names a key pair and over plain HTTP when it names neither, with the key pair read from its mounted files, and refuses to start with one of the two or with a pair that does not load
+removes: the application server is served over TLS even when the configuration names no key pair, so a process given neither file never serves
+packages: ./process/host
+tests: TestTheApplicationServerGivenNoKeyPairIsPlain/neither_file TestTheApplicationServerGivenNoKeyPairIsPlain/both_blank
+scheduled-count: no
+
+diff --git a/process/host/host.go b/process/host/host.go
+index 7e940118..b9b7c023 100644
+--- a/process/host/host.go
++++ b/process/host/host.go
+@@ -491,8 +491,7 @@ func (h *Host) Serve(ctx context.Context, l Listeners, s Serving) error {
+ 	if app != nil {
+ 		go func() {
+ 			if tlsConf == nil {
+-				failed <- stopped(app.Serve(l.App))
+-				return
++				tlsConf = &tls.Config{MinVersion: tls.VersionTLS12}
+ 			}
+ 			failed <- stopped(app.ServeTLS(l.App, "", ""))
+ 		}()

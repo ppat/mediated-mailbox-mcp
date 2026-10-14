@@ -1,0 +1,21 @@
+control: A process refuses the environment the database driver and every component it hosts refuse, before its configuration is read
+removes: the refusals a component hands the host are never run, so the API server starts under MCPGODEBUG
+packages: ./process/host ./api/app
+tests: TestTheEnvironmentIsRefusedBeforeTheConfigurationIsRead/COMPONENTDEBUG= TestMCPGODEBUGStopsTheStart
+scheduled-count: no
+
+diff --git a/process/host/host.go b/process/host/host.go
+index 7e940118..30f030d6 100644
+--- a/process/host/host.go
++++ b/process/host/host.go
+@@ -181,9 +181,7 @@ func Run[T any](ctx context.Context, args, environ []string, stdout, stderr io.W
+ 		if c.RefuseEnvironment == nil {
+ 			continue
+ 		}
+-		if err := c.RefuseEnvironment(environ); err != nil {
+-			return err
+-		}
++		_ = c.RefuseEnvironment
+ 	}
+ 	loaded, err := settings.Load(spec.Defaults, args, environ)
+ 	var help *settings.HelpRequested

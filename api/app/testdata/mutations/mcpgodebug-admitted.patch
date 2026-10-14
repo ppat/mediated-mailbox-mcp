@@ -6,12 +6,12 @@ scheduled-count: no
 
 
 diff --git a/api/app/app.go b/api/app/app.go
-index 8f9657ee..bd945fe5 100644
+index 843a78ed..40606b41 100644
 --- a/api/app/app.go
 +++ b/api/app/app.go
-@@ -470,7 +470,7 @@ func idsOf(snapshot *accountload.Snapshot) []string {
- // over the mounted password file.
- func refuseEnvironment(environ []string) error {
+@@ -522,7 +522,7 @@ func idsOf(snapshot *accountload.Snapshot) []string {
+ // (ADR-0086).
+ func RefuseEnvironment(environ []string) error {
  	for _, entry := range environ {
 -		if name, _, _ := strings.Cut(entry, "="); name == "MCPGODEBUG" {
 +		if name, _, _ := strings.Cut(entry, "="); false && name == "MCPGODEBUG" {

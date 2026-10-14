@@ -8,13 +8,10 @@ import (
 	"strings"
 )
 
-// Config is the UI's values apart from its database section (docs/UI.md section 18.1). The intervals
-// are in nanoseconds, a time.Duration's own unit, because a pure core imports no time package.
+// Config is the UI's own section of its configuration (docs/UI.md section 18.1). The process's
+// sections and the database section are validated where they are declared. The intervals are in
+// nanoseconds, a time.Duration's own unit, because a pure core imports no time package.
 type Config struct {
-	Listen             string
-	ProbeListen        string
-	TLSCert            string
-	TLSKey             string
 	SyncInterval       int64
 	HeuristicsInterval int64
 	StreamInterval     int64
@@ -32,22 +29,11 @@ type Config struct {
 	ConsentRedirect string
 }
 
-// Validate refuses an empty listen or probe_listen, one of the two TLS files set without the other, a
-// blank path counting as unset, an interval that is not positive, a default theme other than system,
-// dark or light, a negative worth-a-look threshold, and a consent redirect that is not a loopback
-// address with an explicit port. Both TLS files set, the UI serves TLS, and neither set, plain HTTP
-// (ADR-0127).
+// Validate refuses an interval that is not positive, a default theme other than system, dark or light,
+// a negative worth-a-look threshold, and a consent redirect that is not a loopback address with an
+// explicit port.
 func Validate(c Config) error {
-	cert, key := strings.TrimSpace(c.TLSCert) != "", strings.TrimSpace(c.TLSKey) != ""
 	switch {
-	case strings.TrimSpace(c.Listen) == "":
-		return refusal("listen is empty")
-	case strings.TrimSpace(c.ProbeListen) == "":
-		return refusal("probe_listen is empty")
-	case cert && !key:
-		return refusal("tls_cert is set and tls_key is not, and the UI serves TLS with both or plain HTTP with neither")
-	case key && !cert:
-		return refusal("tls_key is set and tls_cert is not, and the UI serves TLS with both or plain HTTP with neither")
 	case c.SyncInterval <= 0:
 		return refusal("sync_interval is not positive")
 	case c.HeuristicsInterval <= 0:
@@ -72,12 +58,6 @@ func Validate(c Config) error {
 		return refusal("consent_redirect is not an http address on a loopback IP literal with an explicit port")
 	}
 	return nil
-}
-
-// ServesTLS reports whether a configuration Validate admitted names a key pair, which then serves
-// TLS. Validate has refused one naming only one of the two files, so the certificate alone decides.
-func ServesTLS(c Config) bool {
-	return strings.TrimSpace(c.TLSCert) != ""
 }
 
 // LoopbackRedirect reports whether s can be a consent's redirect address, where nothing listens. It

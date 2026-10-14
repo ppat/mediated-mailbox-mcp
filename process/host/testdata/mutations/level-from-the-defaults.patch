@@ -1,0 +1,19 @@
+control: Each deployable logs at the level its configuration sets
+removes: the host sets the level from the default log_level, so the level the configuration names never applies
+packages: ./process/host
+tests: TestTheConfiguredLevelGovernsTheLog/warn TestTheConfiguredLevelGovernsTheLog/error,_from_the_environment TestTheConfiguredLevelGovernsTheLog/a_refused_value_at_error
+scheduled-count: no
+
+diff --git a/process/host/host.go b/process/host/host.go
+index f5afd783..417b7a28 100644
+--- a/process/host/host.go
++++ b/process/host/host.go
+@@ -210,7 +210,7 @@ func Run[T any](ctx context.Context, args, environ []string, stdout, stderr io.W
+ 		logger.Info("configuration", "path", v.Path, "source", v.Source.String(), "value", v.Value)
+ 	}
+ 	process := spec.Process(loaded.Config)
+-	lv, err := processLevel(process)
++	lv, err := processLevel(spec.Process(spec.Defaults))
+ 	if err != nil {
+ 		return fmt.Errorf("validating the configuration: %w", err)
+ 	}

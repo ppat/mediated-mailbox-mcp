@@ -1,0 +1,19 @@
+control: A process serves its application server over TLS when its configuration names a key pair and over plain HTTP when it names neither, with the key pair read from its mounted files, and refuses to start with one of the two or with a pair that does not load
+removes: the application server is built without its TLS configuration, so a process given both TLS files never answers a handshake
+packages: ./process/host
+tests: TestTheApplicationServerServesTLSWhenGivenAKeyPair
+scheduled-count: no
+
+diff --git a/process/host/host.go b/process/host/host.go
+index 7e940118..fb430e92 100644
+--- a/process/host/host.go
++++ b/process/host/host.go
+@@ -479,7 +479,7 @@ func (h *Host) Serve(ctx context.Context, l Listeners, s Serving) error {
+ 			}
+ 		}
+ 		app = newServer(mux, h.logger)
+-		app.TLSConfig = tlsConf
++		app.TLSConfig = nil
+ 		// A request's context ends once the tasks are told to stop, after the drain, so a request still
+ 		// running then is told to stop rather than outliving the pools.
+ 		app.BaseContext = func(net.Listener) context.Context { return h.run }

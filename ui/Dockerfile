@@ -26,6 +26,7 @@ COPY ratelimit ratelimit
 COPY ui/main.go ui/main.go
 COPY ui/app ui/app
 COPY ui/internal ui/internal
+COPY ui/browser/bundle.go ui/browser/bundle.go
 COPY --from=bundle /src/ui/browser/dist ui/browser/dist
 # The embed pattern also compiles over the placeholder alone, which is how Go tooling works on a fresh clone.
 # An image built that way would serve no UI, so the build stops here unless the bundle stage wrote files.

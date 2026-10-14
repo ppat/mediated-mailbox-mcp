@@ -6,6 +6,10 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
+	"io"
+	"log/slog"
+	"maps"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -19,6 +23,10 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/google/go-cmp/cmp"
 	"github.com/jackc/pgx/v5"
+	"github.com/prometheus/client_golang/prometheus"
+
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/api"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/registry"
 
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/marker"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/postgres"
@@ -63,8 +71,8 @@ func errorOf(t *testing.T, r response) (origin, code string) {
 
 // TestEveryResponseCarriesThePolicy requires the policy header, exact in name and value, on every
 // kind of response the UI serves, the entry document on every screen route, the bundle, the read
-// API's answers and its errors, a path no route answers, and the probes (VERIFICATIONS, the policy
-// row, ADR-0064's first Go assertion).
+// API's answers and its errors, and a path no route answers (VERIFICATIONS, the policy row, ADR-0064's
+// first Go assertion).
 func TestEveryResponseCarriesThePolicy(t *testing.T) {
 	s, _ := server(t)
 	paths := []string{
@@ -79,12 +87,6 @@ func TestEveryResponseCarriesThePolicy(t *testing.T) {
 		r := get(t, s.Handler(), p)
 		if got := r.header.Values("Content-Security-Policy"); !slices.Equal(got, []string{policy}) {
 			t.Errorf("%s answered %d with the policy %q, want exactly %q", p, r.status, got, policy)
-		}
-	}
-	for _, p := range []string{"/healthz", "/readyz", "/metrics"} {
-		r := get(t, s.Probes(), p)
-		if got := r.header.Values("Content-Security-Policy"); !slices.Equal(got, []string{policy}) {
-			t.Errorf("the probe %s answered %d with the policy %q, want exactly %q", p, r.status, got, policy)
 		}
 	}
 }
@@ -291,36 +293,109 @@ func TestADatabaseFailureReportsTheDatabaseOrigin(t *testing.T) {
 	}
 }
 
-// TestReadinessFollowsTheDatabase requires /readyz to answer 200 while the database answers and 503
-// once it does not, and /healthz 200 throughout.
+// TestReadinessFollowsTheDatabase requires the UI's readiness check to pass while the database answers
+// as the UI's role and to fail once it does not.
 func TestReadinessFollowsTheDatabase(t *testing.T) {
 	seed(t)
 	pool := uiPool(t, "mediated_mailbox_ui")
 	s, _ := serverAs(t, pool)
-	if r := get(t, s.Probes(), "/readyz"); r.status != http.StatusOK {
-		t.Fatalf("ready answered %d with the database up", r.status)
+	if err := s.Ready(t.Context()); err != nil {
+		t.Fatalf("not ready with the database up: %v", err)
 	}
 	pool.Close()
-	if r := get(t, s.Probes(), "/readyz"); r.status != http.StatusServiceUnavailable {
-		t.Fatalf("ready answered %d with the pool closed, want 503", r.status)
+	if err := s.Ready(t.Context()); err == nil {
+		t.Fatal("ready with the pool closed")
 	}
-	if r := get(t, s.Probes(), "/healthz"); r.status != http.StatusOK {
-		t.Fatalf("health answered %d", r.status)
+}
+
+// sample returns the value of the series name with exactly the labels given on reg, and whether reg
+// holds it.
+func sample(t *testing.T, reg *prometheus.Registry, name string, labels map[string]string) (float64, bool) {
+	t.Helper()
+	families, err := reg.Gather()
+	if err != nil {
+		t.Fatal(err)
 	}
+	for _, f := range families {
+		if f.GetName() != name {
+			continue
+		}
+		for _, m := range f.GetMetric() {
+			got := map[string]string{}
+			for _, l := range m.GetLabel() {
+				got[l.GetName()] = l.GetValue()
+			}
+			if !maps.Equal(got, labels) {
+				continue
+			}
+			switch {
+			case m.GetHistogram() != nil:
+				return float64(m.GetHistogram().GetSampleCount()), true
+			case m.GetGauge() != nil:
+				return m.GetGauge().GetValue(), true
+			}
+		}
+	}
+	return 0, false
 }
 
 // TestTheMetricsCarryReadsAndSubscribers requires the read latency by dataset and level after a read.
 func TestTheMetricsCarryReadsAndSubscribers(t *testing.T) {
-	s, _ := server(t)
+	s, reg := server(t)
 	get(t, s.Handler(), "/ui/api/accounts/personal/lens?dataset=candidates&level=0")
-	r := get(t, s.Probes(), "/metrics")
-	for _, want := range []string{
-		`mediated_mailbox_ui_read_duration_seconds_count{dataset="candidates",level="0"} 1`,
-		"mediated_mailbox_ui_stream_subscribers 0",
-	} {
-		if !strings.Contains(string(r.body), want) {
-			t.Errorf("the metrics lack %s:\n%s", want, r.body)
+	if n, ok := sample(t, reg, "mediated_mailbox_ui_read_duration_seconds", map[string]string{"dataset": "candidates", "level": "0"}); !ok || n != 1 {
+		t.Errorf("the read duration's count for candidates at level 0 is %v (served %v), want 1", n, ok)
+	}
+	if n, ok := sample(t, reg, "mediated_mailbox_ui_stream_subscribers", map[string]string{}); !ok || n != 0 {
+		t.Errorf("the subscriber gauge reads %v (served %v), want 0", n, ok)
+	}
+}
+
+// TestTheStreamEndsWhenTheProcessDrains requires an open event stream to end once the server's
+// draining context ends, so the process can drain its other requests rather than wait out an answer
+// that never ends, and a stream opened before then to stay open until it does (ADR-0058, ADR-0138).
+func TestTheStreamEndsWhenTheProcessDrains(t *testing.T) {
+	seed(t)
+	draining, drain := context.WithCancel(t.Context())
+	defer drain()
+	s, err := api.New(api.Options{
+		Bundle: os.DirFS(filepath.Join("..", "..", "browser", "dist")), Database: uiPool(t, "mediated_mailbox_ui"),
+		Datasets: registry.Datasets(lookups), Lookups: lookups, Logger: slog.New(slog.NewJSONHandler(io.Discard, nil)),
+		Metrics: prometheus.NewRegistry(), Draining: draining, Clock: func() time.Time { return now },
+		Cadences: api.Cadences{Sync: 5 * time.Minute, Heuristics: 24 * time.Hour}, StreamInterval: 50 * time.Millisecond,
+		Attention: starting(), TokenKey: tokenKey,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ts := httptest.NewServer(s.Handler())
+	t.Cleanup(ts.Close)
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, ts.URL+"/ui/api/accounts/personal/events", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp, err := http.DefaultClient.Do(req) //nolint:bodyclose // the goroutine reading the stream closes it
+	if err != nil {
+		t.Fatal(err)
+	}
+	ended := make(chan error, 1)
+	go func() {
+		_, err := io.Copy(io.Discard, resp.Body)
+		ended <- errors.Join(err, resp.Body.Close())
+	}()
+	select {
+	case err := <-ended:
+		t.Fatalf("the stream ended before the process drained: %v", err)
+	case <-time.After(300 * time.Millisecond):
+	}
+	drain()
+	select {
+	case err := <-ended:
+		if err != nil {
+			t.Errorf("the stream ended with %v, want a clean end", err)
 		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("the stream was still open five seconds after the process drained")
 	}
 }
 
@@ -440,7 +515,7 @@ func TestTheStreamForgetsRunsItNoLongerReads(t *testing.T) {
 // data must match the contract's schema for its name, and a run's event must be the same whole state
 // the jobs endpoint sends for that run.
 func TestTheStreamSendsEachChangedObject(t *testing.T) {
-	s, _ := server(t)
+	s, reg := server(t)
 	doc, err := openapi3.NewLoader().LoadFromFile(filepath.Join("..", "..", "contract", "openapi.json"))
 	if err != nil {
 		t.Fatal(err)
@@ -553,8 +628,7 @@ func TestTheStreamSendsEachChangedObject(t *testing.T) {
 	if d := cmp.Diff(jobs.Backfill.Pass2.Run, running); d != "" {
 		t.Fatalf("the stream's run is not the whole state the jobs endpoint sends (-jobs +stream):\n%s", d)
 	}
-	gauge := get(t, s.Probes(), "/metrics")
-	if !strings.Contains(string(gauge.body), "mediated_mailbox_ui_stream_subscribers 1") {
+	if n, _ := sample(t, reg, "mediated_mailbox_ui_stream_subscribers", map[string]string{}); n != 1 {
 		t.Errorf("the subscriber gauge does not read 1 while one stream is open")
 	}
 

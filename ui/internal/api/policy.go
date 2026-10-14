@@ -3,7 +3,7 @@ package api
 import "net/http"
 
 // Policy is the content security policy on every response the UI serves, the entry document, the
-// bundle, the read API, its errors and the probes (ADR-0062). It is a constant, so no request and no
+// bundle, the read API and its errors (ADR-0062). It is a constant, so no request and no
 // configuration can loosen it. The policy allows the entry document's token because a meta tag is not
 // a script (ADR-0061).
 const Policy = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; " +

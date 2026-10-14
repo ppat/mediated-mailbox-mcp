@@ -64,7 +64,7 @@ rather than followed as lists.
 | A reading that moves something | Each series kept has a reading that sends the reader to a setting or to a piece of code | The SRE book's removal test, and the operator's request that nothing be overkill |
 | Closed label sets | No label takes a value from a message, an SQL text, a path or any other unbounded set | [ADR-0009](../redaction/0009-scanner-verdicts-carry-no-content.md), [ADR-0076](./0076-metrics-emitted-through-client-golang.md) |
 | Nothing assumed of the platform | No measurement depends on a tracing backend, container metrics or a server-side extension | [ADR-0051](./0051-environment-contract.md) |
-| Shell code only | Capture sits in shells and composition roots, and the API server's service layer takes no metrics import | [ADR-0040](./0040-pure-core-decisions-as-values.md), [ADR-0071](./0071-static-enforcement-toolchain.md) |
+| Shell code only | Capture sits in shells, entry packages and the host, and the API server's service layer takes no metrics import | [ADR-0040](./0040-pure-core-decisions-as-values.md), [ADR-0071](./0071-static-enforcement-toolchain.md) |
 
 The reading requirement ordered the candidates, because a series no reading acts on is the
 overkill the operator ruled out. Closed labels and the platform gate any series whatever its
@@ -73,9 +73,12 @@ reading.
 ## Decision
 
 Eleven measurements are kept, each at the one place its time is spent. Every series is a counter, a
-gauge or a classic histogram on the process's registry. The worker's carry `job_kind` through the
-registerer each job kind is handed, apart from the Go runtime's and the process's, which belong to
-the process rather than to a job kind. The bucket boundaries are reasoned from the latencies the
+gauge or a classic histogram on the process's registry. Every series a component registers carries
+`component`, through the registerer the host hands the component
+([ADR-0138](./0138-one-host-runs-each-process-and-each-component-provides-its-parts.md)), and the
+worker's carry `job_kind` too, through the registerer each job kind is handed, apart from the Go
+runtime's and the process's, which belong to the process rather than to a component or a job
+kind. The bucket boundaries are reasoned from the latencies the
 Context names, since no production run exists yet.
 
 ### The client surface
@@ -90,8 +93,8 @@ labelled by `operation`, the name of each operation the registry holds, with buc
   are fast spends its time in the process.
 - **Evidence.** RED's duration and the SRE book's latency signal. The UI's dataset reads already
   carry one, and the API server carried none.
-- **Capture.** The API server's composition root wraps each operation's handler before the registry
-  is built, so every call through either root is observed and the service layer is unchanged. It
+- **Capture.** The API server's assembly, in its entry package, wraps each operation's handler
+  before the registry is built, so every call through either root is observed and the service layer is unchanged. It
   observes the handler's run, after the registry's account check.
 - **What it includes.** The registry refuses a call whose arguments are not one object, repeat a
   key, or name no account the API server serves before the handler runs, and that refusal is not
@@ -171,9 +174,9 @@ histogram labelled by `step`, `convert` or `scan`, with buckets at 0.0005, 0.001
   unmeasured.
 - **Capture.** In the worker, each conversion and each scan of the second pass and of delta sync's
   tick, the one series defined once for both job kinds. In the API server, the conversion the body
-  operation is handed, wrapped in the composition root. The API server's serve-time pattern check
-  runs inside the release decision's pure core over a scanner value, so observing it would need a
-  hook in the service layer, and it is not observed. K1's body latency bounds it.
+  operation is handed, wrapped in the API server's assembly. The API server's serve-time pattern
+  check runs inside the release decision's pure core over a scanner value, so observing it would
+  need a hook in the service layer, and it is not observed. K1's body latency bounds it.
 - **No body-derived label**, as everywhere ([ADR-0009](../redaction/0009-scanner-verdicts-carry-no-content.md)).
 
 ### Throughput of the index's passes
@@ -233,7 +236,7 @@ by `statement`, with buckets at 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1 and 5 seco
   hook, and [sqlc-pgx-monitoring](https://github.com/amirsalarsafaei/sqlc-pgx-monitoring), a
   published tracer built for latency per sqlc name.
 - **Capture.** A `pgx.QueryTracer` on the connection configuration of every pool
-  `process/dbmetrics` opens, which each composition root calls to open its pools. The label is the name in the `-- name:` comment the generated SQL
+  `process/dbmetrics` opens, which the host calls to open every pool a composition root asks for. The label is the name in the `-- name:` comment the generated SQL
   starts with. `db/tx`'s own statements carry such comments too. A statement with none is labelled
   `begin`, `commit` or `rollback` by its first keyword, and `unnamed` otherwise, so the set is
   closed. Every statement name in the data-access library is unique, which `db/check` holds, so a
@@ -304,8 +307,7 @@ without forking it. The tracer, the collector and the function opening a pool wi
 - **Evidence.** The Go GC guide and Uber's GC tuning, which tracked GC CPU and the live heap.
   client_golang [reverted](https://raw.githubusercontent.com/prometheus/client_golang/main/CHANGELOG.md)
   exposing every runtime metric by default, so the additions are named one by one.
-- **Capture.** Each composition root has `process/runtimemetrics` register it once on the
-  process's registry, with the four additions named in that one place. The default set carries `go_goroutines`, `go_threads` and the effective GOGC, memory limit and GOMAXPROCS, which
+- **Capture.** The host has `process/runtimemetrics` register it once on the process's registry, with the four additions named in that one place. The default set carries `go_goroutines`, `go_threads` and the effective GOGC, memory limit and GOMAXPROCS, which
   the rest are read against.
 
 **K11. The process collector**, its resident memory, CPU seconds, open and maximum file
@@ -379,11 +381,11 @@ The candidates left out, each with the case for it and why it lost.
   see. `pgxpool.Stat` keeps its acquire counters. A pgx major that moved any of these fails the
   build or the tracer's tests.
 - **What it adds to other code.** Each Gmail request constructor names its endpoint. The
-  scheduler's run duration series carries the job and observes fewer outcomes. Each composition
-  root opens its pools through `process/dbmetrics` and registers the runtime and process
-  collectors through `process/runtimemetrics`, so the assembly is written once and the composition
-  stays in each root ([ADR-0050](./0050-shared-code-pure-or-narrow.md)). The worker opens its pools
-  with its registry in hand.
+  scheduler's run duration series carries the job and observes fewer outcomes. The host opens every
+  pool through `process/dbmetrics` and registers the runtime and process collectors through
+  `process/runtimemetrics`, so the assembly is written once and the composition stays in each root
+  ([ADR-0050](./0050-shared-code-pure-or-narrow.md)). The worker opens its pools with each job
+  kind's registerer in hand.
 - **A panic in a collector** runs on the scrape's goroutine, which the worker's scheduler does not
   own and [ADR-0119](../operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md)
   leaves to review. The tracer runs on the goroutine that runs the statement, so in the worker a

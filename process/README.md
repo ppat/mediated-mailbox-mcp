@@ -10,8 +10,8 @@ Its concept is the [process](../DESIGN.md#glossary), what every deployable needs
 process under the environment contract
 ([ADR-0051](../docs/adr/engineering/0051-environment-contract.md)), which is its configuration
 layered from defaults, a file, the environment and flags, its database connection and what it
-measures of that connection, what it measures of its runtime, its probe and metrics endpoint, its
-logs, and the release version it reports. The decision it hides is
+measures of that connection, what it measures of its runtime, its operations endpoints, its logs,
+the release version it reports, and the host that runs it over the components it hosts. The decision it hides is
 how a process meets that contract, which changes only when the contract or the platform under it
 does, and never with what the process runs.
 
@@ -21,7 +21,8 @@ does, and never with what the process runs.
 | `dbconnect/` | A deployable's database section of its configuration, in `dbconnect/core`, and the connection built from it |
 | `dbmetrics/` | The opening of a deployable's measured pool, the latency of every statement a connection runs, by the statement's name, and the statistics of each connection pool |
 | `runtimemetrics/` | The registration of the Go runtime's and the process's series, once per process |
-| `probes/` | The health probe and the metrics endpoint of a process that runs work rather than serving requests |
+| `probes/` | The operations endpoints of every process, the health and readiness probes and the metrics endpoint |
+| `host/` | The host, which runs one process over the components a composition root hands it ([ADR-0138](../docs/adr/engineering/0138-one-host-runs-each-process-and-each-component-provides-its-parts.md)) |
 | `logging/` | The logger every deployable writes its JSON records to standard output through, and the reading of its `log_level` |
 | `version/` | The release version every binary reports through `--version` and every deployable's start banner shows |
 
@@ -34,8 +35,9 @@ under the list over files outside every component, which admits only the standar
 is the execution context family's and the scanner's section is `core/scan`'s, while this family
 holds only the layering mechanism and the database section, whose whole concern is running as a
 process. Nothing here reads an account, a policy or a message, and nothing here runs a statement.
-The API server's and the UI's probes stay with them, because each answers `/readyz` from state only
-that deployable holds.
+Readiness is a component's, because each component answers it from state only it holds, so a
+component hands the host its readiness checks and the host serves `/readyz` over them. No component
+is imported here, and the host knows a component only by the parts it is handed.
 
 ## The configuration library, `settings`
 
@@ -44,8 +46,10 @@ Every deployable takes its configuration the same way
 Defaults, one optional YAML file, environment variables under `MEDIATED_MAILBOX_` and command-line
 flags layer per value in that order, each value named once by its YAML key path, and every mistake
 in any layer is refused at start. This package is that mechanism, and nothing else. Each concern's
-configuration type, its defaults and its validation stay with the concern, and a deployable's
-composition root hands the package its arguments, its environment and the root type.
+configuration type, its defaults and its validation stay with the concern, and the host hands the
+package the arguments, the environment and the root type a composition root hands it. A root type is
+composed from sections, a section embedded inline sitting beside the embedding section's own values,
+so a root keeps the process's keys and its component's at the top of its tree.
 
 The case for one package over per-deployable glue is the refusals. Configuration that is misspelled,
 duplicated, case-changed, of the wrong type or aimed at a key that does not exist has to stop the
@@ -55,8 +59,7 @@ and one copy that forgot to refuse unknown keys or to match environment names ex
 open. Written once, with a test per refusal and a mutation patch for each refusal the package's own
 code carries, they hold in every deployable.
 
-The composition root passes the package its arguments and its environment, and the package reads
-the one file they name. It returns the decoded configuration, each value's source and a revision
+The package is passed the arguments and the environment, and reads the one file they name. It returns the decoded configuration, each value's source and a revision
 per concern, or an error naming the file and line, the environment variable or the flag at fault.
 It holds no package-level state, and it holds no secret, since a value concerning a secret names a
 mounted file.
@@ -86,16 +89,16 @@ chose, such as its socket directory for an empty host. Each of these fails silen
 with a test and a mutation patch for each rule, they hold in every deployable that connects.
 
 The package connects as no role of its own and runs no statement. It returns the connection's
-configuration, and the deployable opens the pool.
+configuration, and the host opens the pool.
 
 ## The database measurements, `dbmetrics`
 
 Every deployable that connects measures its statements and its pools the same way
 ([ADR-0125](../docs/adr/engineering/0125-performance-is-measured-once-at-each-place-time-goes.md)).
 This package holds a pgx query tracer, a collector over a pool, which reads the pool's statistics
-when it is scraped, and the function that opens a pool from its configuration with both, which each
-composition root calls to open its pools. Both register on the registerer the composition root
-passes in, which in the worker adds the job kind.
+when it is scraped, and the function that opens a pool from its configuration with both, which the
+host calls to open every pool a composition root asks for. Both register on the registerer they
+are handed, which carries the component's name and, in the worker, the job kind.
 
 | Series | Kind and labels | Value |
 | --- | --- | --- |
@@ -124,24 +127,45 @@ Every deployable registers the Go collector's default set with four runtime metr
 the live heap, the garbage collector's and the process's CPU time and the scheduling latency, and
 the process collector, once on its process's registry
 ([ADR-0125](../docs/adr/engineering/0125-performance-is-measured-once-at-each-place-time-goes.md)).
-Each composition root calls this package to do it. In the worker the registry it is given is the
-process's own, not a job kind's, so these series carry no job kind.
+The host calls this package to do it, on the process's own registry, not a component's or a job
+kind's, so these series carry neither a component nor a job kind.
 
 The case for one package over per-deployable glue is the set of runtime metrics. It is named by one
 expression, and a copy in each root whose expression drifted would serve a different set from one
 deployable with every gate green. Written once, with the test that pins which runtime metrics are
 added and which are left out, the set is the same in every deployable.
 
-## The probe and metrics listener, `probes`
+## The operations endpoints, `probes`
 
-The worker serves a health probe and its metrics endpoint on a listener of its own while it runs
-([ADR-0051](../docs/adr/engineering/0051-environment-contract.md),
-[ADR-0119](../docs/adr/operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md)).
-`/healthz` answers 200 while the process runs, and `/metrics` serves the registry the composition
-root passes in, so every series a process registers reaches its scrape, between units of work as
-during them. The probe the platform reads is the contract a copy could quietly break, a path renamed
-or a registry other than the process's own served. Written once, the endpoints are the same in every process that runs work. The listener is
-stopped by the function it returns, which shuts it down within five seconds.
+Every process serves its health and readiness probes and its metrics endpoint on a listener of its
+own while it runs ([ADR-0051](../docs/adr/engineering/0051-environment-contract.md)). `/healthz`
+answers 200 while the process runs, `/readyz` answers 200 only while the readiness it is handed
+holds and 503 with a line saying why otherwise, and `/metrics` serves the registry it is handed, so
+every series a process registers reaches its scrape, between units of work as during them. Every
+answer is plain text for a platform's healthcheck and scraper. The endpoints the platform reads are
+the contract a copy could quietly break, a path renamed or a registry other than the process's own
+served. Written once, the endpoints are the same in every process. The host serves them.
+
+## The host, `host`
+
+The host runs one process over the components a composition root hands it
+([ADR-0138](../docs/adr/engineering/0138-one-host-runs-each-process-and-each-component-provides-its-parts.md)).
+It refuses the environment, loads the configuration and logs it, sets the level, writes the start
+banner, builds the one registry and the runtime series, opens every pool a root asks for, assembles
+each component with a logger and a registerer carrying its name, serves the application server and
+the operations endpoints under one set of connection limits, starts and recovers each component's
+background tasks and every goroutine a component asks its starter for while it runs, and stops in
+order, joining every task and goroutine before the pools close. Its sections of the configuration
+are `host.Process`, every process's, and `host.Serving`, a process's whose components serve
+requests. `New`, `Add` and `Serve` are its lifecycle without the configuration, which a test or a
+harness that composes a component itself serves through.
+
+The case for one package over the same work written in each root is that each copy drifts on its
+own. A copy can answer its probes its own way or answer no readiness, load the key pair twice,
+start a goroutine it neither recovers nor joins, and a harness composing a component by hand can run
+it without the limits its root serves it under. Written once, with a test per responsibility and a
+mutation patch for each rule it carries, a probe, a limit, a stop order or a refusal holds in every
+process, a process hosting several components among them.
 
 ## The logs, `logging`
 
@@ -149,7 +173,7 @@ Every deployable writes its logs as JSON to standard output at the level its `lo
 ([ADR-0122](../docs/adr/engineering/0122-logs-through-slog-at-a-configured-level-handed-to-shells.md)).
 This package builds that logger over a level variable, reads the level's name, and makes the error
 log a shell gives an `http.Server` from the logger it was handed. A deployable's `main.go` builds
-the logger, and its entry package sets the level once the configuration has loaded.
+the logger, and the host sets the level once the configuration has loaded.
 
 The case for one package over per-deployable glue is that the format and the level names are the
 contract. A copy that wrote text rather than JSON, wrote to standard error, or accepted `warning`

@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prometheus/client_golang/prometheus"
@@ -22,8 +23,8 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/open"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal"
 	"github.com/ppat/mediated-mailbox-mcp/process/dbmetrics"
-	"github.com/ppat/mediated-mailbox-mcp/process/probes"
-	"github.com/ppat/mediated-mailbox-mcp/process/runtimemetrics"
+	"github.com/ppat/mediated-mailbox-mcp/process/host"
+	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/postgres"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/deltasync"
@@ -140,7 +141,8 @@ func probe(t *testing.T, address, path string) (int, string) {
 	return res.StatusCode, string(body)
 }
 
-// scrape builds the worker through assemble, as its composition root builds it, over the account
+// scrape builds the worker through Assemble and serves it through the host, as its composition root
+// does, over the account
 // personal connected through the household client with both of its backfill passes ended, and runs it
 // until every line of want is served on its metrics endpoint or twenty seconds have passed. It then
 // stops the worker, fails the test for each line of want the last scrape did not serve, and checks the
@@ -154,32 +156,36 @@ func scrape(t *testing.T, want []string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ctx, cancel := context.WithCancel(t.Context())
-	defer cancel()
-	registry := prometheus.NewRegistry()
-	if err := runtimemetrics.Register(registry); err != nil {
+	h, err := host.New(slog.New(slog.DiscardHandler))
+	if err != nil {
 		t.Fatal(err)
 	}
+	registry := h.Registerer("worker")
 	pools := Pools{
 		Backfill: measuredPool(t, "mediated_mailbox_backfill", labelled(registry, backfill.Kind)),
 		Sync:     measuredPool(t, "mediated_mailbox_sync", labelled(registry, deltasync.Kind)),
 	}
-	w, err := assemble(ctx, registry, pools, ring, scanner, defaults(), unreachable(t), slog.New(slog.DiscardHandler))
+	parts, err := Assemble(h.Context(), Needs{
+		Section: defaults().Section, Pools: pools, Keys: ring, Scanner: scanner, Client: unreachable(t),
+		Registerer: registry, Logger: slog.New(slog.DiscardHandler),
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
+	for _, check := range parts.Ready {
+		if strings.HasSuffix(check.Name, " reload") && check.Check(t.Context()) == nil {
+			t.Errorf("the check %s passed before the worker ran", check.Name)
+		}
+	}
+	h.Add("worker", nil, parts)
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
 	}
-	stop := probes.Serve(ln, w.registry, slog.New(slog.DiscardHandler))
-	defer func() {
-		if err := stop(); err != nil {
-			t.Error(err)
-		}
-	}()
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
 	done := make(chan error, 1)
-	go func() { done <- w.run(ctx) }()
+	go func() { done <- h.Serve(ctx, host.Listeners{Probes: ln}, host.Serving{}) }()
 	var body string
 	missing := func() []string {
 		var out []string
@@ -203,15 +209,27 @@ func scrape(t *testing.T, want []string) {
 		time.Sleep(50 * time.Millisecond)
 	}
 
-	cancel()
-	if err := <-done; err != nil {
-		t.Error(err)
-	}
 	for _, line := range missing() {
 		t.Errorf("/metrics does not serve %s:\n%s", line, body)
 	}
+	// Each job kind's first reload has run by the time its series are served, so the worker is ready:
+	// both pools answer as their roles and both reloads succeeded.
+	for deadline := time.Now().Add(5 * time.Second); ; time.Sleep(50 * time.Millisecond) {
+		code, body := probe(t, ln.Addr().String(), "/readyz")
+		if code == http.StatusOK {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Errorf("/readyz answered %d %q, want 200 once each job kind has reloaded", code, body)
+			break
+		}
+	}
 	if code, body := probe(t, ln.Addr().String(), "/healthz"); code != http.StatusOK || body != "ok\n" {
 		t.Errorf("/healthz answered %d %q, want 200 ok", code, body)
+	}
+	cancel()
+	if err := <-done; err != nil {
+		t.Error(err)
 	}
 }
 
@@ -220,7 +238,7 @@ func scrape(t *testing.T, want []string) {
 // series, labelled with backfill's job kind, so the alarm reaches the platform from a running worker
 // (ADR-0041, ADR-0051, ADR-0077, ADR-0117).
 func TestTheProbesServeTheRunsSeries(t *testing.T) {
-	scrape(t, []string{`mediated_mailbox_policyload_reload_failed{job_kind="backfill"} 0`})
+	scrape(t, []string{`mediated_mailbox_policyload_reload_failed{component="worker",job_kind="backfill"} 0`})
 }
 
 // D4's parts of VERIFICATIONS' rows for replacing a key and stopping a series, how the series reach
@@ -231,12 +249,12 @@ func TestTheProbesServeTheRunsSeries(t *testing.T) {
 // ADR-0092, ADR-0077, ADR-0024, ADR-0117).
 func TestTheProbesServeEverySeriesBetweenTicks(t *testing.T) {
 	scrape(t, []string{
-		`mediated_mailbox_credential_on_old_key{account="personal",job_kind="sync"} 0`,
-		`mediated_mailbox_client_secret_on_old_key{client="household",job_kind="sync"} 0`,
-		`mediated_mailbox_sync_cursor_gaps_total{account="personal",job_kind="sync"} 0`,
-		`mediated_mailbox_unclassified_senders_total{account="personal",job_kind="sync"} 0`,
-		`mediated_mailbox_policyload_reload_failed{job_kind="sync"} 0`,
-		`mediated_mailbox_ratelimit_granted_total{account="personal",class="sync",job_kind="sync"} 1`,
+		`mediated_mailbox_credential_on_old_key{account="personal",component="worker",job_kind="sync"} 0`,
+		`mediated_mailbox_client_secret_on_old_key{client="household",component="worker",job_kind="sync"} 0`,
+		`mediated_mailbox_sync_cursor_gaps_total{account="personal",component="worker",job_kind="sync"} 0`,
+		`mediated_mailbox_unclassified_senders_total{account="personal",component="worker",job_kind="sync"} 0`,
+		`mediated_mailbox_policyload_reload_failed{component="worker",job_kind="sync"} 0`,
+		`mediated_mailbox_ratelimit_granted_total{account="personal",class="sync",component="worker",job_kind="sync"} 1`,
 	})
 }
 
@@ -251,13 +269,57 @@ func TestTheProbesServeThePerformanceSeries(t *testing.T) {
 		"go_cpu_classes_total_cpu_seconds_total",
 		"go_sched_latencies_seconds_count",
 		"process_start_time_seconds",
-		`mediated_mailbox_db_pool_max_connections{job_kind="backfill"} 4`,
-		`mediated_mailbox_db_pool_max_connections{job_kind="sync"} 4`,
-		`mediated_mailbox_db_pool_acquires_total{job_kind="sync"}`,
-		`mediated_mailbox_db_statement_duration_seconds_count{job_kind="sync",statement="Accounts"}`,
-		`mediated_mailbox_db_statement_duration_seconds_count{job_kind="backfill",statement="SetTransactionAccount"}`,
-		`mediated_mailbox_policyload_reload_duration_seconds_count{job_kind="sync"}`,
-		`mediated_mailbox_job_run_duration_seconds_count{job="reload",job_kind="sync"} 1`,
-		`mediated_mailbox_ratelimit_lease_wait_seconds_count{class="sync",job_kind="sync"} 1`,
+		`mediated_mailbox_db_pool_max_connections{component="worker",job_kind="backfill"} 4`,
+		`mediated_mailbox_db_pool_max_connections{component="worker",job_kind="sync"} 4`,
+		`mediated_mailbox_db_pool_acquires_total{component="worker",job_kind="sync"}`,
+		`mediated_mailbox_db_statement_duration_seconds_count{component="worker",job_kind="sync",statement="Accounts"}`,
+		`mediated_mailbox_db_statement_duration_seconds_count{component="worker",job_kind="backfill",statement="SetTransactionAccount"}`,
+		`mediated_mailbox_policyload_reload_duration_seconds_count{component="worker",job_kind="sync"}`,
+		`mediated_mailbox_job_run_duration_seconds_count{component="worker",job="reload",job_kind="sync"} 1`,
+		`mediated_mailbox_ratelimit_lease_wait_seconds_count{class="sync",component="worker",job_kind="sync"} 1`,
 	})
+}
+
+// Each job kind's database check answers whether its own pool reaches the database as its role, so
+// the worker stops reporting ready when either job kind's pool cannot answer, and a pool that answers
+// leaves its own check passing (ADR-0138).
+func TestEachJobKindsDatabaseCheckFollowsItsPool(t *testing.T) {
+	scanner, err := scan.New(scan.DefaultConfig(), "a-revision")
+	if err != nil {
+		t.Fatal(err)
+	}
+	registry := prometheus.NewRegistry()
+	pools := Pools{
+		Backfill: measuredPool(t, "mediated_mailbox_backfill", labelled(registry, backfill.Kind)),
+		Sync:     measuredPool(t, "mediated_mailbox_sync", labelled(registry, deltasync.Kind)),
+	}
+	parts, err := Assemble(t.Context(), Needs{
+		Section: defaults().Section, Pools: pools, Keys: connected(t), Scanner: scanner, Client: unreachable(t),
+		Registerer: registry, Logger: slog.New(slog.DiscardHandler),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	checks := map[string]func(context.Context) error{}
+	for _, c := range parts.Ready {
+		checks[c.Name] = c.Check
+	}
+	for _, name := range []string{"backfill database", "sync database"} {
+		if checks[name] == nil {
+			t.Fatalf("the worker hands the host no check named %q", name)
+		}
+	}
+	answers := func() map[string]bool {
+		return map[string]bool{
+			"backfill": checks["backfill database"](t.Context()) == nil,
+			"sync":     checks["sync database"](t.Context()) == nil,
+		}
+	}
+	if diff := cmp.Diff(map[string]bool{"backfill": true, "sync": true}, answers(), compare.Options); diff != "" {
+		t.Fatalf("each job kind's database check with both pools open (-want +got):\n%s", diff)
+	}
+	pools.Backfill.Close()
+	if diff := cmp.Diff(map[string]bool{"backfill": false, "sync": true}, answers(), compare.Options); diff != "" {
+		t.Errorf("each job kind's database check with backfill's pool closed (-want +got):\n%s", diff)
+	}
 }

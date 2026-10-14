@@ -435,18 +435,6 @@ func TestTheServerServesExactlyTheDocumentsRoutes(t *testing.T) {
 	}
 }
 
-// probeRoutes are the probes listener's three routes (ADR-0051), the only ones it may serve.
-var probeRoutes = []string{"GET /healthz", "GET /metrics", "GET /readyz"}
-
-// TestTheProbesListenerServesOnlyTheProbes requires every pattern the server registered through the
-// probes listener's recording mux to be one of the three probe routes, and each of those to be
-// registered, so a route added to the probes listener is caught as a route added to the UI's is.
-func TestTheProbesListenerServesOnlyTheProbes(t *testing.T) {
-	if got := sorted(newServer(t).ProbesServed()); !slices.Equal(got, probeRoutes) {
-		t.Fatalf("the probes listener registers %v, and its routes are %v", got, probeRoutes)
-	}
-}
-
 // newServer builds the server. It touches no database while it is built, so it is given none.
 func newServer(t *testing.T) *api.Server {
 	t.Helper()

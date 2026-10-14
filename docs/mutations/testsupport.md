@@ -395,9 +395,19 @@ The demonstrations of the controls whose patches sit in `testsupport/`. [MUTATIO
 - **Break (5):** each draw's own mix is left out of the log, so a verbose run no longer prints which kinds each draw reaches
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/property`:** `TestTheReachReportCountsEveryKindACaseReachesOverEveryDraw`
 
+## The goroutines analyser refuses a goroutine started in the API server's or the UI's code
+
+- **Date · evidence:** 2026-10-14 · [pull request #384](https://github.com/ppat/mediated-mailbox-mcp/pull/384), at RAPID_SEED=1
+- **Break (1):** a package whose path only starts with the API server's is reported as the API server's
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestGoroutines`
+- **Break (2):** nothing in the API server's or the UI's code is checked
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestGoroutines`
+- **Break (3):** the UI's code is not checked
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestGoroutines`
+
 ## The goroutines analyser refuses a goroutine started in the worker's code outside its scheduler
 
-- **Date · evidence:** 2026-10-10 · [pull request #328](https://github.com/ppat/mediated-mailbox-mcp/pull/328), at RAPID_SEED=1, and every break again on 2026-10-13 at RAPID_SEED=1, after the rename of the API server and the migrator moved the code, tests or patches the row rests on · [pull request #376](https://github.com/ppat/mediated-mailbox-mcp/pull/376), in run [38440944897](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/38440944897) of the `mutation-demonstrations` workflow
+- **Date · evidence:** 2026-10-10 · [pull request #328](https://github.com/ppat/mediated-mailbox-mcp/pull/328), at RAPID_SEED=1, and every break again on 2026-10-13 at RAPID_SEED=1, after the rename of the API server and the migrator moved the code, tests or patches the row rests on · [pull request #376](https://github.com/ppat/mediated-mailbox-mcp/pull/376), in run [38440944897](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/38440944897) of the `mutation-demonstrations` workflow, and every break again on 2026-10-14 at RAPID_SEED=1, after the host and the component seams changed the code, tests or patches the row rests on · [pull request #384](https://github.com/ppat/mediated-mailbox-mcp/pull/384)
 - **Break (1):** a starter is reported only where it is called, so a method value or a method expression of one escapes
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestGoroutines`
 - **Break (2):** a package whose path only starts with the worker's is reported as the worker's

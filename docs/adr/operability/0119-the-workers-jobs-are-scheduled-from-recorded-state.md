@@ -67,8 +67,11 @@ job's loop reports nothing on the key once the job is ensured again, so the new 
 own. A job's own timer asks on its interval's phase, as a ticker ticks, and each ask carries the
 latest time on the ticker's phase at or before the ask. Delta sync measures its interval from that
 time for its last tick, so a tick at the end of a backoff keeps the phase. Nothing wakes the worker
-from outside it. It serves the health probe and the metrics endpoint and nothing else
-([ADR-0051](../engineering/0051-environment-contract.md)).
+from outside it. It serves the health and readiness probes and the metrics endpoint and nothing
+else, through the host that runs its process
+([ADR-0051](../engineering/0051-environment-contract.md),
+[ADR-0138](../engineering/0138-one-host-runs-each-process-and-each-component-provides-its-parts.md)).
+The scheduler runs as the worker's one background task, which the host starts and joins.
 
 **Units of work take the active snapshots.** Each job kind's unit of work takes its kind's active
 account snapshot and policy snapshot at its entry

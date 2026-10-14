@@ -1,0 +1,19 @@
+control: The API server's coalesced policy load runs on the host's goroutines, and a load that cannot run fails its callers
+removes: the load starts on a goroutine of its own rather than through the starter, so the host neither recovers it nor waits for it
+packages: ./api/internal/reload
+tests: TestEveryLoadRunsThroughTheStarter
+scheduled-count: no
+
+diff --git a/api/internal/reload/reload.go b/api/internal/reload/reload.go
+index 4d4747c8..a231c7cf 100644
+--- a/api/internal/reload/reload.go
++++ b/api/internal/reload/reload.go
+@@ -63,7 +63,7 @@ func (c *Coalesced) Load(ctx context.Context) error {
+ 		r = &round{done: make(chan struct{})}
+ 		c.next = r
+ 		if !c.running {
+-			if c.start(loadName, c.run) {
++			if go1 := func() bool { go c.run(context.Background()); return true }; go1() {
+ 				c.running = true
+ 			} else {
+ 				c.next = nil
