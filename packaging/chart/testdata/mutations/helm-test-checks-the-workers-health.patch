@@ -1,0 +1,18 @@
+control: Every process the chart runs is probed for health and readiness on its operations endpoints
+removes: the Helm test asks the worker's /healthz rather than its /readyz, so it passes while the worker is not ready
+packages: ./packaging/chart
+tests: TestEveryProcessIsProbedForHealthAndReadiness
+scheduled-count: no
+
+diff --git a/packaging/chart/templates/tests/smoke.yaml b/packaging/chart/templates/tests/smoke.yaml
+index 24cf3b8e..fc1ca4a5 100644
+--- a/packaging/chart/templates/tests/smoke.yaml
++++ b/packaging/chart/templates/tests/smoke.yaml
+@@ -48,6 +48,6 @@ spec:
+       }
+       check 200 http://{{ $api }}:{{ $metrics }}/readyz
+       check 401 {{ if .Values.secrets.apiTls.existingSecret }}https{{ else }}http{{ end }}://{{ $api }}:{{ .Values.api.service.port }}/mcp
+       check 200 http://{{ $ui }}:{{ $metrics }}/readyz
+       check 200 {{ if .Values.secrets.uiTls.existingSecret }}https{{ else }}http{{ end }}://{{ $ui }}:{{ .Values.ui.service.port }}/ui/
+-      check 200 http://{{ $worker }}:{{ $metrics }}/readyz
++      check 200 http://{{ $worker }}:{{ $metrics }}/healthz

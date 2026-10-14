@@ -174,6 +174,62 @@ func TestTheWorkerRunsAsOnePodNeverTwo(t *testing.T) {
 	}
 }
 
+// TestEveryProcessIsProbedForHealthAndReadiness checks that each process's Deployment probes its health at /healthz
+// and its readiness at /readyz on its metrics port, the operations endpoints every process serves (ADR-0138), so a
+// rollout completes only once the process reports ready, the worker once its job kinds can run. It also checks that
+// the Helm test asks each process's Service for /readyz. The paths and the port are written out here, not derived
+// from the chart.
+func TestEveryProcessIsProbedForHealthAndReadiness(t *testing.T) {
+	probe := func(path string) map[string]any {
+		return map[string]any{"httpGet": map[string]any{"path": path, "port": "metrics"}}
+	}
+	var script string
+	probed := map[string]bool{}
+	for _, o := range helmchart.Render(t, chartDir) {
+		name := dig[string](o, "metadata", "name")
+		switch o["kind"] {
+		case "Deployment":
+			for _, c := range list(dig[any](o, "spec", "template", "spec", "containers")) {
+				probed[name] = true
+				if diff := cmp.Diff(probe("/healthz"), dig[map[string]any](c, "livenessProbe")); diff != "" {
+					t.Errorf("%s: livenessProbe (-want +got):\n%s", name, diff)
+				}
+				if diff := cmp.Diff(probe("/readyz"), dig[map[string]any](c, "readinessProbe")); diff != "" {
+					t.Errorf("%s: readinessProbe (-want +got):\n%s", name, diff)
+				}
+				var port int
+				for _, p := range list(dig[any](c, "ports")) {
+					if dig[string](p, "name") == "metrics" {
+						port = dig[int](p, "containerPort")
+					}
+				}
+				if port != 8080 {
+					t.Errorf("%s: the metrics port is %d, want 8080", name, port)
+				}
+			}
+		case "Pod":
+			if cmd := list(dig[any](o, "spec", "containers")); len(cmd) == 1 {
+				if args := list(dig[any](cmd[0], "command")); len(args) > 0 {
+					script = dig[string](args[len(args)-1])
+				}
+			}
+		}
+	}
+	want := map[string]bool{
+		"release-mediated-mailbox-api":    true,
+		"release-mediated-mailbox-ui":     true,
+		"release-mediated-mailbox-worker": true,
+	}
+	if diff := cmp.Diff(want, probed); diff != "" {
+		t.Errorf("the Deployments checked (-want +got):\n%s", diff)
+	}
+	for name := range want {
+		if line := "check 200 http://" + name + ":8080/readyz\n"; !strings.Contains(script, line) {
+			t.Errorf("the Helm test does not run %q:\n%s", strings.TrimSpace(line), script)
+		}
+	}
+}
+
 // checksums renders the chart from dir and returns each Deployment's configuration checksum by name.
 func checksums(t *testing.T, dir string, args ...string) map[string]string {
 	t.Helper()

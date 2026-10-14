@@ -1,0 +1,23 @@
+control: Every process the chart runs is probed for health and readiness on its operations endpoints
+removes: the worker's readiness probe asks /healthz, so the worker reads as ready whenever it is alive
+packages: ./packaging/chart
+tests: TestEveryProcessIsProbedForHealthAndReadiness
+scheduled-count: no
+
+diff --git a/packaging/chart/templates/worker/deployment.yaml b/packaging/chart/templates/worker/deployment.yaml
+index e5eb5797..9147220c 100644
+--- a/packaging/chart/templates/worker/deployment.yaml
++++ b/packaging/chart/templates/worker/deployment.yaml
+@@ -66,11 +66,11 @@ spec:
+           httpGet:
+             path: /healthz
+             port: metrics
+         readinessProbe:
+           httpGet:
+-            path: /readyz
++            path: /healthz
+             port: metrics
+         securityContext:
+           {{- include "mm.securityContext" (list $ $v) | nindent 10 }}
+         {{- with $v.resources }}
+         resources:
