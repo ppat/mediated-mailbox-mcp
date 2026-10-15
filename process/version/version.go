@@ -9,4 +9,4 @@
 package version
 
 // Number is the release version, with no leading v.
-const Number = "0.0.1" // x-release-please-version
+const Number = "0.1.0" // x-release-please-version
