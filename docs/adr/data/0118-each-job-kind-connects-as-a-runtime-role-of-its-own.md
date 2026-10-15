@@ -25,7 +25,8 @@ already name job kinds, so keeping them needs no rename.
 
 The grant check of [ADR-0066](./0066-data-access-generated-from-sql.md) plans every statement of a
 subsection under the role of each component whose import list admits it, and which role each list
-connects as is held in one place in `db/check`.
+connects as, and which role each list's execution context runs under, is held in one place in
+`db/check`.
 
 ## Decision
 
@@ -37,6 +38,17 @@ connects as is held in one place in `db/check`.
   kind added to the worker brings a role of its own.
 - **Each job kind's code runs under its own role, through its own connection pool**, and each job
   kind's import list maps to its role in the grant check, as each deployable's does.
+- **A process's execution context runs its statements under one role the process already connects
+  as**, the API server's own in the API server and delta sync's in the worker, whose role holds the
+  credential write-back and the re-seal
+  ([ADR-0090](../operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md),
+  [ADR-0092](../operability/0092-key-replacement-by-keyring-and-re-seal.md)). Those are the
+  statements of the account snapshot, of the policy loader and of the read of each account's lowered
+  target. The roles that hold a grant on a sealed credential or an OAuth client are exactly the roles
+  a process's execution context runs under, the API server's and delta sync's. A job kind of the
+  worker reaches those statements only through the context, so no job kind's role but delta sync's
+  holds such a grant, and the grant check plans the context's statements under the role of the pool
+  each composition root builds the context over.
 - **Each role's grants hold three lines.** Its writes are exactly what its own statements write. It
   holds no grant on a sealed credential or an OAuth client secret unless its code opens them. It
   holds no grant on a column a record forbids it to act on
@@ -73,21 +85,26 @@ connects as is held in one place in `db/check`.
   credential to provision.
 - A shared library, such as the rate limiter, runs its statements under the role of each deployable
   or job kind that uses it, so each of those roles holds the grants the library's statements need.
+  The execution context's statements are the exception, run under the one role its pool connects as.
 - [ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md) states the UI's grant.
-- A role whose code calls a provider reads its accounts, their sealed credentials and the
-  installation's OAuth clients, and updates the credential column of an account's state row when it
-  writes back a rotation ([ADR-0082](../operability/0082-rotation-writeback-to-the-database.md)).
-  Delta sync's role also updates each OAuth client's sealed secret, because delta sync re-seals it
-  when a key is replaced ([ADR-0092](../operability/0092-key-replacement-by-keyring-and-re-seal.md)).
-  The heuristics run's role holds no grant on a sealed credential.
+- A role an execution context's statements run under reads its accounts, their sealed credentials
+  and the installation's OAuth clients, and updates the credential column of an account's state row
+  when it writes back a rotation
+  ([ADR-0082](../operability/0082-rotation-writeback-to-the-database.md)). Those are the API
+  server's role and delta sync's. Delta sync's role also updates each OAuth client's sealed secret,
+  because delta sync re-seals it when a key is replaced
+  ([ADR-0092](../operability/0092-key-replacement-by-keyring-and-re-seal.md)). The roles of
+  backfill, of reorg apply and rollback and of the heuristics run hold no grant on a sealed
+  credential or an OAuth client.
 - A role whose statements touch the operation log also reads the plan columns its statements join
   the log to, since every statement reaches the log through its plan
   ([ADR-0135](./0135-every-statement-reads-its-account-from-the-transaction.md)). Those columns are
   part of what its statements need.
 - The bug bound inside the worker holds only while each job kind's code receives its own pool. The
   composition root wires that, since the grant check sees which statements a list admits, not which
-  pool reaches the code. A test of the composition root holds the pools it opens and the pool it
-  hands each job kind, and review holds that its run passes the pools it opened on to the job kinds.
+  pool reaches the code. A test of the composition root holds the pools it opens, the pool it hands
+  each job kind and the pool it builds the execution context over, and review holds that its run
+  passes the pools it opened on to the job kinds and the context.
 - Assumptions about other components. The roles are created once per cluster before the chain runs,
   and the chain's grant statements name them ([ADR-0048](./0048-forward-only-migrations.md)). The
   grant check shows a role's grants are enough for the statements its list admits

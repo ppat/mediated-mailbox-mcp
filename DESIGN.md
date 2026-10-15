@@ -298,7 +298,7 @@ the second account exists. Until then it is enforced structure awaiting its test
 read across accounts by design, the accounts table, which holds each account's identifier,
 provider and the OAuth client it connects through, and nothing an account carries (ADR-0091, via
 the [decision-record index](./docs/adr/README.md)). The OAuth clients belong to no account, so the
-roles that call a provider read them whatever the account (ADR-0016).
+roles the account snapshot's statements run under read them whatever the account (ADR-0016).
 
 ### An accepted risk that is not measured is an unmeasured risk
 
@@ -478,9 +478,11 @@ top-level documents, a decision record, or a ticket from here without guessing.
   [decision-record index](./docs/adr/README.md)).
 - **Execution context** (the family `executioncontext/`) — what a job or a request executes with:
   the account snapshot with its opened credentials, the account session over it, the policy
-  snapshot, and the sealed credentials they are opened from. It holds no rate state, which the rate
-  limiter keeps apart, so it is narrower than the **Account context**, everything held for one
-  account. Its case is [executioncontext/README.md](./executioncontext/README.md)'s.
+  snapshot, and the sealed credentials they are opened from. A process holds one, which every
+  component of the process that calls a provider shares and the UI never receives (rules in ADR-0090
+  and ADR-0118, via the [decision-record index](./docs/adr/README.md)). It holds no rate state, which
+  the rate limiter keeps apart, so it is narrower than the **Account context**, everything held for
+  one account. Its case is [executioncontext/README.md](./executioncontext/README.md)'s.
 - **Process** (the family `process/`) — what every deployable needs to run as a process under the
   environment contract: its configuration layered from defaults, a file, the environment and flags,
   its database connection and what it measures of that connection, what it measures of its
@@ -614,7 +616,7 @@ top-level documents, a decision record, or a ticket from here without guessing.
   [decision-record index](./docs/adr/README.md)).
 - **Account snapshot** — the immutable copy of its accounts, each paired with the OAuth client it
   connects through where its provider has one, and their opened credentials that a process
-  calling a provider works from, each job kind of the worker from its own (rule in ADR-0090, via the
+  calling a provider works from, one for every component of the process (rule in ADR-0090, via the
   [decision-record index](./docs/adr/README.md)).
 - **Account session** — what a process calling a provider holds for an account while it calls the
   account's provider, which is the credentials its token source was built from, their adoption

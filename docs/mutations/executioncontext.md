@@ -20,7 +20,7 @@ The demonstrations of the controls whose patches sit in `executioncontext/`. [MU
 
 ## A held source serves its account until its credential or its client changes
 
-- **Date · evidence:** 2026-10-10 · [pull request #328](https://github.com/ppat/mediated-mailbox-mcp/pull/328)
+- **Date · evidence:** 2026-10-10 · [pull request #328](https://github.com/ppat/mediated-mailbox-mcp/pull/328), and every break again on 2026-10-14 and 2026-10-15 at RAPID_SEED=1, after one execution context per process changed the code, tests or patches the row rests on · [pull request #394](https://github.com/ppat/mediated-mailbox-mcp/pull/394)
 - **Break (1):** a held source is kept whatever client the account now connects through, so an account moved to another client is served through the old one
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/executioncontext/session`:** `TestAHeldSourceServesItsAccountUntilItsCredentialOrClientChanges`
 - **Break (2):** a held source is kept only while the snapshot holds the credential it was built from, so a source that rotated its refresh token is built again at the next unit
@@ -41,6 +41,18 @@ The demonstrations of the controls whose patches sit in `executioncontext/`. [MU
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/open`:** `TestAKeyringRefusesAPublicKeyMatchingNoPrivateKey`, `TestEverySealerNamesTheCurrentKey`, `TestReSealingMovesAValueToTheCurrentKey`
 - **Break (2):** the check that the public key matches one of the private keys is removed
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/open`:** `TestAKeyringRefusesAPublicKeyMatchingNoPrivateKey`
+
+## A process's execution context reloads its accounts and their policy together, keeps in force what a failed read could not read, and loads at once, retrying its first load until it succeeds
+
+- **Date · evidence:** 2026-10-15 · [pull request #394](https://github.com/ppat/mediated-mailbox-mcp/pull/394), at RAPID_SEED=1
+- **Break (1):** a first load that fails is tried again only at the next interval, so a process started before its database answers serves nothing for a whole interval
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/executioncontext/assembly`:** `TestRunRetriesItsFirstLoadUntilItSucceeds`
+- **Break (2):** a reload whose policy load fails keeps the accounts of the reload before it in force and tells no component, so an account no longer listed stays served
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/executioncontext/assembly`:** `TestAFailedReloadKeepsWhatItCouldNotRead`
+- **Break (3):** a reload whose read of the accounts fails leaves nothing in force, as if no load had ever succeeded
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/executioncontext/assembly`:** `TestAFailedReloadKeepsWhatItCouldNotRead`
+- **Break (4):** the reload task waits its interval before its first load, so a process serves no account for a whole interval after it starts
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/executioncontext/assembly`:** `TestRunLoadsAtOnce`, `TestRunRetriesItsFirstLoadUntilItSucceeds`
 
 ## A read of the policy tables the loader cannot trust never replaces the active policy
 
@@ -146,7 +158,7 @@ The demonstrations of the controls whose patches sit in `executioncontext/`. [MU
 
 ## An account is loaded with the OAuth client it names, and an account that names none with none
 
-- **Date · evidence:** 2026-10-02 · [pull request #255](https://github.com/ppat/mediated-mailbox-mcp/pull/255), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and break 5 again on 2026-10-10, after the worker merged backfill and delta sync into one deployable, which moved the tests it rests on · [pull request #328](https://github.com/ppat/mediated-mailbox-mcp/pull/328), and every break again on 2026-10-13 at RAPID_SEED=1, after the rename of the API server and the migrator moved the code, tests or patches the row rests on · [pull request #376](https://github.com/ppat/mediated-mailbox-mcp/pull/376), in run [38440944897](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/38440944897) of the `mutation-demonstrations` workflow
+- **Date · evidence:** 2026-10-02 · [pull request #255](https://github.com/ppat/mediated-mailbox-mcp/pull/255), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and break 5 again on 2026-10-10, after the worker merged backfill and delta sync into one deployable, which moved the tests it rests on · [pull request #328](https://github.com/ppat/mediated-mailbox-mcp/pull/328), and every break again on 2026-10-13 at RAPID_SEED=1, after the rename of the API server and the migrator moved the code, tests or patches the row rests on · [pull request #376](https://github.com/ppat/mediated-mailbox-mcp/pull/376), in run [38440944897](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/38440944897) of the `mutation-demonstrations` workflow, and break 5 again on 2026-10-14 and 2026-10-15 at RAPID_SEED=1, after one execution context per process changed the code, tests or patches the row rests on · [pull request #394](https://github.com/ppat/mediated-mailbox-mcp/pull/394)
 - **Break (1):** an account that names no client is handed any client that opened, another provider's included
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/executioncontext/accountload`:** `TestAnAccountOfAClientProviderWithoutItsClientIsNotConnected`, `TestAnOAuthClientIsLoadedOnlyForAProviderThatHasOne`, `TestEachAccountIsLoadedWithTheClientItNamesAndNoOther`
 - **Break (2):** an account that names no client is handed the client named after its provider
@@ -207,6 +219,14 @@ The demonstrations of the controls whose patches sit in `executioncontext/`. [MU
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/open`:** `TestEverySealerNamesTheCurrentKey`, `TestReSealingMovesAValueToTheCurrentKey`
 - **Break (2):** the key identifier is hashed from the public key without the domain string
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal`:** `TestAKeyIdentifierIsDerivedFromTheKey`
+
+## Holders seen through one holder share its sources, each opening sessions with its own ports
+
+- **Date · evidence:** 2026-10-15 · [pull request #394](https://github.com/ppat/mediated-mailbox-mcp/pull/394), at RAPID_SEED=1
+- **Break (1):** a holder seen through another keeps sources of its own, so two callers of one account build two sources and the provider issues a token to each
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/executioncontext/session`:** `TestHoldersThroughOneHolderShareItsSources`
+- **Break (2):** every holder seen through one holder opens its sessions with the connectors of the first seen through it, so a later component's units call through the first component's ports
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/executioncontext/session`:** `TestHoldersThroughOneHolderShareItsSources`
 
 ## Opening takes a private key type only
 

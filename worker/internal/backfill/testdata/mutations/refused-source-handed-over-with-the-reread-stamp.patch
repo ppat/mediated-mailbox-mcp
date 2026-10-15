@@ -6,14 +6,14 @@ scheduled-count: no
 integration: yes
 
 diff --git a/executioncontext/session/session.go b/executioncontext/session/session.go
-index f4fb328a..3ac2036a 100644
+index bd3fc28..c82ae23 100644
 --- a/executioncontext/session/session.go
 +++ b/executioncontext/session/session.go
-@@ -239,7 +239,7 @@ func Call[T any](ctx context.Context, s *Session, call func(context.Context, mai
+@@ -260,7 +260,7 @@ func Call[T any](ctx context.Context, s *Session, call func(context.Context, mai
  		return out, errors.Join(err, cerr)
  	}
- 	s.h.keep(s.account, creds, conn)
--	s.built, s.adoption, s.conn, s.port = creds, reread.Adoption(), conn, port
+ 	s.h.keep(s.account, creds, source)
+-	s.built, s.adoption, s.source, s.port = creds, reread.Adoption(), source, port
 +	s.adoption, s.port = reread.Adoption(), port
  	return call(ctx, port)
  }

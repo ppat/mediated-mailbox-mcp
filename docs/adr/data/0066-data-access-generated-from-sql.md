@@ -115,8 +115,9 @@ throughput and latency, because the corpus assumption puts them out of reach of 
   of a subsection under the role of each component whose list admits it, planning each one with
   `EXPLAIN (GENERIC_PLAN)` so nothing executes, so a list admitting a statement the role's grants do
   not allow fails naming the list, the statement and the role. Which role each component connects as
-  is [ADR-0118](./0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)'s, and the check
-  reads that mapping from one place in `db/check`, failing a deployable's list that names
+  is [ADR-0118](./0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)'s, as is the role an
+  execution context's statements run under, and the check reads both mappings from one place in
+  `db/check`, failing a deployable's list that names
   subsections without a role and a role whose deployable's list reaches no subsection, directly or
   through a shared library. Inside the worker, each job kind has a list and a role of its own, and
   the mapping holds per job kind as it holds per deployable. A shared library connects as no role

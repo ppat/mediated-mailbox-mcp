@@ -190,6 +190,12 @@ func (b *logBuffer) String() string {
 // behind it, as the composition root builds them.
 func served(t *testing.T, pool *pgxpool.Pool, ring *open.Keyring, metrics *prometheus.Registry, log *slog.Logger) (*serving, service.Registry) {
 	t.Helper()
+	return servedEvery(t, pool, ring, metrics, log, time.Hour)
+}
+
+// servedEvery is served with the execution context reloading on interval when its task runs.
+func servedEvery(t *testing.T, pool *pgxpool.Pool, ring *open.Keyring, metrics *prometheus.Registry, log *slog.Logger, interval time.Duration) (*serving, service.Registry) {
+	t.Helper()
 	reg, err := service.NewRegistry(nil, service.Operation{
 		Name: "echo", Description: "Returns its arguments.", Effect: service.Read,
 		Path:   "/api/accounts/{account_id}/echo",
@@ -202,11 +208,13 @@ func served(t *testing.T, pool *pgxpool.Pool, ring *open.Keyring, metrics *prome
 	if err != nil {
 		t.Fatal(err)
 	}
-	s, err := newServing(starter(t), pool, ring, metrics, log)
+	ec := mustContext(t, pool, ring, scanner(t), Section{AccountReloadInterval: interval}, metrics, log)
+	s, err := newServing(starter(t), pool, ec, metrics, log)
 	if err != nil {
 		t.Fatal(err)
 	}
 	s.registry = reg
+	ec.OnReload(s.serve)
 	return s, reg
 }
 
@@ -290,15 +298,16 @@ func TestTheAPIServerServesTheAccountsEachReloadLists(t *testing.T) {
 	}
 }
 
-// A serving API server reloads on its interval without a restart, and a failed reload on the schedule
-// is logged and keeps what it served.
+// A process serving the API server reloads its execution context on the API server's interval without
+// a restart, in the task its root hands the host, and a failed reload on the schedule is logged and
+// keeps what it served.
 func TestTheAPIServerReloadsOnItsInterval(t *testing.T) {
 	conn := superuser(t)
 	reset(t, conn)
 	ring, public := keys(t)
 	var log logBuffer
 	metrics := prometheus.NewRegistry()
-	s, reg := served(t, apiServer(t), ring, metrics, slog.New(slog.NewJSONHandler(&log, nil)))
+	s, reg := servedEvery(t, apiServer(t), ring, metrics, slog.New(slog.NewJSONHandler(&log, nil)), 20*time.Millisecond)
 	if err := s.reload(t.Context()); err != nil {
 		t.Fatal(err)
 	}
@@ -314,6 +323,7 @@ func TestTheAPIServerReloadsOnItsInterval(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	p.Tasks = append(p.Tasks, ContextTask(s.context))
 	h.Add("api", Mount, p)
 	ctx, cancel := context.WithCancel(t.Context())
 	done := make(chan error, 1)
@@ -338,7 +348,7 @@ func TestTheAPIServerReloadsOnItsInterval(t *testing.T) {
 	}
 	revoke(t, conn, "SELECT ON accounts")
 	deadline = time.Now().Add(5 * time.Second)
-	for !strings.Contains(log.String(), "the accounts were not reloaded, so the ones served stay") {
+	for !strings.Contains(log.String(), "the execution context was not reloaded in full, so what it held stays in force") {
 		if time.Now().After(deadline) {
 			t.Fatalf("a failed scheduled reload was not logged:\n%s", log.String())
 		}
@@ -561,10 +571,11 @@ func TestTheReadOperationsReadTheServingState(t *testing.T) {
 	must(t, conn, `INSERT INTO rate_state (account_id, current_rate, target_rate, hard_cap, backoff_until)
 		VALUES ($1, 5, 8, 10, now() + interval '1 hour'), ($2, 5, 8, 10, now() - interval '1 hour')`, account, accounts[1])
 	must(t, conn, "UPDATE account_state SET sync_cursor_at = now() - interval '1 hour' WHERE account_id = $1", account)
+	section := Section{TokenFile: bearerToken(t), AccountReloadInterval: time.Hour, ProviderTimeout: time.Second}
+	pool, metrics, logger := apiServer(t), prometheus.NewRegistry(), slog.New(slog.DiscardHandler)
 	a, err := assemble(t.Context(), Needs{
-		Section: Section{TokenFile: bearerToken(t), AccountReloadInterval: time.Hour, ProviderTimeout: time.Second},
-		Pool:    apiServer(t), Keys: ring, Scanner: scanner(t), Registerer: prometheus.NewRegistry(), Logger: slog.New(slog.DiscardHandler),
-		Start: starter(t),
+		Section: section, Pool: pool, Context: mustContext(t, pool, ring, scanner(t), section, metrics, logger),
+		Registerer: metrics, Logger: logger, Start: starter(t),
 	}, session.Connector{}, time.Second)
 	if err != nil {
 		t.Fatal(err)

@@ -36,7 +36,7 @@ The demonstrations of the controls whose patches sit in `packaging/chart/`. [MUT
 
 ## Every process the chart runs is probed for health and readiness on its operations endpoints
 
-- **Date · evidence:** 2026-10-14 · [pull request #390](https://github.com/ppat/mediated-mailbox-mcp/pull/390), at RAPID_SEED=1
+- **Date · evidence:** 2026-10-14 · [pull request #390](https://github.com/ppat/mediated-mailbox-mcp/pull/390), at RAPID_SEED=1, and every break again on 2026-10-14 and 2026-10-15 at RAPID_SEED=1, after one execution context per process changed the code, tests or patches the row rests on · [pull request #394](https://github.com/ppat/mediated-mailbox-mcp/pull/394)
 - **Break (1):** the worker's Deployment carries no readiness probe, so its rollout completes as soon as the pod starts
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/packaging/chart`:** `TestEveryProcessIsProbedForHealthAndReadiness`
 - **Break (2):** the worker's readiness probe asks /healthz, so the worker reads as ready whenever it is alive

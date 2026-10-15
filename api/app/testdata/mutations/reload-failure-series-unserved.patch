@@ -5,16 +5,16 @@ tests: TestAFailedPolicyLoadStillFollowsTheSnapshot
 scheduled-count: no
 integration: yes
 
-diff --git a/api/app/app.go b/api/app/app.go
-index 164cc08c..ec456aef 100644
---- a/api/app/app.go
-+++ b/api/app/app.go
-@@ -420,7 +420,7 @@ func (s *serving) loadPolicy(ctx context.Context, accounts []string) error {
+diff --git a/executioncontext/assembly/assembly.go b/executioncontext/assembly/assembly.go
+index d74efe4..cb63c67 100644
+--- a/executioncontext/assembly/assembly.go
++++ b/executioncontext/assembly/assembly.go
+@@ -221,7 +221,7 @@ func (c *Context) loadPolicy(ctx context.Context, accounts []string) error {
  	}
- 	policies := s.policies.Load()
+ 	policies := c.policies.Load()
  	if policies == nil {
--		built, err := policyload.New(s.pool, accounts, s.metrics, lookups())
-+		built, err := policyload.New(s.pool, accounts, prometheus.NewRegistry(), lookups())
+-		built, err := policyload.New(c.n.Pool, accounts, c.n.Registerer, c.n.Lookups)
++		built, err := policyload.New(c.n.Pool, accounts, prometheus.NewRegistry(), c.n.Lookups)
  		if err != nil {
  			return err
  		}

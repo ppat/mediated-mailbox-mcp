@@ -6,14 +6,15 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/deltasync.go
+index 5a7ea58..2b0bddc 100644
 --- a/worker/internal/deltasync/deltasync.go
 +++ b/worker/internal/deltasync/deltasync.go
-@@ -198,7 +198,7 @@
- 		return fmt.Errorf("loading the accounts: %w", err)
+@@ -203,7 +203,7 @@ func (d *DeltaSync) reload(ctx context.Context, _ schedule.Ask) error {
  	}
- 	d.loader.Reseal(ctx)
--	d.keyScan.Set(d.loader.ResealClients(ctx, reseal.Writer(d.config.Pool)))
-+	d.loader.ResealClients(ctx, reseal.Writer(d.config.Pool))
- 	snapshot := d.loader.Snapshot()
+ 	loader := d.config.Context.Loader()
+ 	loader.Reseal(ctx)
+-	d.keyScan.Set(loader.ResealClients(ctx, reseal.Writer(d.config.Pool)))
++	loader.ResealClients(ctx, reseal.Writer(d.config.Pool))
+ 	snapshot := latest.Snapshot()
  	listed := d.sessions.Accounts(snapshot)
- 	policyErr := d.loadPolicy(ctx, ids(snapshot))
+ 	if policyErr != nil {

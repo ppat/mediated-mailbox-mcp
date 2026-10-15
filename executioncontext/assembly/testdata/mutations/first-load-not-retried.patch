@@ -1,0 +1,20 @@
+control: A process's execution context reloads its accounts and their policy together, keeps in force what a failed read could not read, and loads at once, retrying its first load until it succeeds
+removes: a first load that fails is tried again only at the next interval, so a process started before its database answers serves nothing for a whole interval
+packages: ./executioncontext/assembly
+tests: TestRunRetriesItsFirstLoadUntilItSucceeds
+scheduled-count: no
+integration: yes
+
+diff --git a/executioncontext/assembly/assembly.go b/executioncontext/assembly/assembly.go
+index eed60e6..b501c7f 100644
+--- a/executioncontext/assembly/assembly.go
++++ b/executioncontext/assembly/assembly.go
+@@ -232,7 +232,7 @@ func (c *Context) Run(ctx context.Context) error {
+ 		}
+ 		wait = c.n.ReloadInterval
+ 		if !c.Latest().Loaded() {
+-			wait = min(firstRetry, c.n.ReloadInterval)
++			wait = c.n.ReloadInterval
+ 		}
+ 		timer.Reset(wait)
+ 	}

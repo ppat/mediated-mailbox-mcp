@@ -6,18 +6,19 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/deltasync.go
+index 5a7ea58..296b090 100644
 --- a/worker/internal/deltasync/deltasync.go
 +++ b/worker/internal/deltasync/deltasync.go
-@@ -197,8 +197,10 @@
- 	if err := d.loader.Load(ctx); err != nil {
- 		return fmt.Errorf("loading the accounts: %w", err)
+@@ -202,8 +202,10 @@ func (d *DeltaSync) reload(ctx context.Context, _ schedule.Ask) error {
+ 		return policyErr
  	}
--	d.loader.Reseal(ctx)
--	d.keyScan.Set(d.loader.ResealClients(ctx, reseal.Writer(d.config.Pool)))
-+	if len(d.loader.Snapshot().Accounts()) > 0 {
-+		d.loader.Reseal(ctx)
-+		d.keyScan.Set(d.loader.ResealClients(ctx, reseal.Writer(d.config.Pool)))
+ 	loader := d.config.Context.Loader()
+-	loader.Reseal(ctx)
+-	d.keyScan.Set(loader.ResealClients(ctx, reseal.Writer(d.config.Pool)))
++	if len(latest.Snapshot().Accounts()) > 0 {
++		loader.Reseal(ctx)
++		d.keyScan.Set(loader.ResealClients(ctx, reseal.Writer(d.config.Pool)))
 +	}
- 	snapshot := d.loader.Snapshot()
+ 	snapshot := latest.Snapshot()
  	listed := d.sessions.Accounts(snapshot)
- 	policyErr := d.loadPolicy(ctx, ids(snapshot))
+ 	if policyErr != nil {

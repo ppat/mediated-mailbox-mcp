@@ -6,23 +6,26 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/deltasync.go
+index 5f92dbb..975f987 100644
 --- a/worker/internal/deltasync/deltasync.go
 +++ b/worker/internal/deltasync/deltasync.go
-@@ -197,8 +197,6 @@
- 	if err := d.loader.Load(ctx); err != nil {
- 		return fmt.Errorf("loading the accounts: %w", err)
+@@ -205,9 +205,6 @@ func (d *DeltaSync) reload(ctx context.Context, _ schedule.Ask) error {
+ 	if policyErr != nil && !errors.Is(policyErr, assembly.ErrPolicyNotLoaded) {
+ 		return policyErr
  	}
--	d.loader.Reseal(ctx)
--	d.keyScan.Set(d.loader.ResealClients(ctx, reseal.Writer(d.config.Pool)))
- 	snapshot := d.loader.Snapshot()
+-	loader := d.config.Context.Loader()
+-	loader.Reseal(ctx)
+-	d.keyScan.Set(loader.ResealClients(ctx, reseal.Writer(d.config.Pool)))
+ 	snapshot := latest.Snapshot()
  	listed := d.sessions.Accounts(snapshot)
- 	policyErr := d.loadPolicy(ctx, ids(snapshot))
-@@ -272,6 +270,8 @@
- // which the tick takes at its entry and keeps (ADR-0090, ADR-0041), under a rate limiter at the target
- // the account's state row sets (ADR-0024).
+ 	if policyErr != nil {
+@@ -297,6 +294,9 @@ func at(ms mail.UnixMilli) time.Time {
+ // snapshot in force, which the tick takes at its entry and keeps (ADR-0090, ADR-0041), under a rate
+ // limiter at the target the account's state row set when the context last reloaded (ADR-0024).
  func (d *DeltaSync) tick(ctx context.Context, account string, logger *slog.Logger) error {
-+	d.loader.Reseal(ctx)
-+	d.keyScan.Set(d.loader.ResealClients(ctx, reseal.Writer(d.config.Pool)))
- 	snapshot, policy := d.loader.Snapshot(), d.policies.Snapshot()
- 	limiter, err := newLimiter(ctx, d.config.Pool, []string{account}, d.leases)
++	loader := d.config.Context.Loader()
++	loader.Reseal(ctx)
++	d.keyScan.Set(loader.ResealClients(ctx, reseal.Writer(d.config.Pool)))
+ 	snapshot, policy := d.config.Context.Snapshot(), d.config.Context.PolicySnapshot()
+ 	limiter, err := d.config.Context.Limiter(d.config.Pool, account, gmail.Profile{}.BudgetPerSecond(), d.leases)
  	if err != nil {

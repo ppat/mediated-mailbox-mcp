@@ -116,24 +116,32 @@ comparison inside the run.
   waits is the provider's failure, which the rate controller counts as a server error
   ([ADR-0101](./0101-every-failure-names-its-origin-and-a-body-denial-is-a-result.md)).
 
-**Loaders.** Each job kind that holds credentials has its own account loader and policy loader,
-under its own role and on its own pool, reloaded about every minute, and writes back the credentials
-it rotated itself, as each deployable does
+**Loaders.** The worker holds one execution context, built over delta sync's pool and so under
+delta sync's role, with one account loader and one policy loader, which it reloads about every
+minute in a task of the process, and which writes back each credential the worker rotated through
+one source per account, as each deployable does
 ([ADR-0082](./0082-rotation-writeback-to-the-database.md),
-[ADR-0089](./0089-sealed-values-written-by-compare-and-set.md)). Two job kinds that both rotate a
-credential reconcile through the stored bytes by compare-and-set. Each job kind's loader adds and
-drops its own jobs, from a reload that is itself a job of the kind, so the reload is asked, backed
-off and watched as every job is. A reload whose policy load fails adds no job and still drops the
-jobs of the accounts it no longer lists, because an account whose rules were never read would be
-decided as if every sender were restricted. The heuristics run holds no credential loader. It reads the list of account
-identifiers under its own role if the heuristics unit decides it reads `accounts`, which is not
-decided here and is tracked in [ROADMAP.md's open decisions](../../../ROADMAP.md#open-decisions)
-([ADR-0091](../data/0091-accounts-listed-apart-from-their-state.md)). The loader design changes no
-grant.
+[ADR-0089](./0089-sealed-values-written-by-compare-and-set.md),
+[ADR-0090](./0090-accounts-reach-deployables-as-reloaded-snapshots.md),
+[ADR-0118](../data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)). Each job kind
+that holds credentials adds and drops its own jobs from what the context's latest reload left in
+force, in a reload that is itself a job of the kind, asked on the reload interval and woken by each
+reload of the context, so the reload is asked, backed off and watched as every job is. A job kind's
+reload asked before the context's first load answers that it is not due, which is neither a success
+nor a failure, so a normal start logs no error and the worker is ready only once the context's first
+load has woken each job kind's reload. One asked while the context's latest read of the accounts
+failed fails. One whose latest policy load failed adds no job and still drops the jobs of the accounts it no longer lists,
+because an account whose rules were never read would be decided as if every sender were restricted.
+The heuristics run holds no credential loader. It reads the list of account identifiers under its
+own role if the heuristics unit decides it reads `accounts`, which is not decided here and is
+tracked in [ROADMAP.md's open decisions](../../../ROADMAP.md#open-decisions)
+([ADR-0091](../data/0091-accounts-listed-apart-from-their-state.md)). Backfill's role holds no
+grant on a sealed credential, since backfill reaches the account snapshot only through the context.
 
 **Observability.** Series per job kind and a time of last success per job, on the registry the
 worker builds ([ADR-0076](../engineering/0076-metrics-emitted-through-client-golang.md)). The shared
-library series carry the job kind, and the scheduler gives each job its identity as a constructor
+library series a job kind registers carry the job kind, the execution context's policy reload series
+being the process's own, and the scheduler gives each job its identity as a constructor
 parameter, never through ambient context. Logs carry the job kind and the account. An alert fires
 when the worker stops, and one fires for each job of every job kind whose last success grows too
 old, which for delta sync is how [G4](../../../USE_CASES.md#g4--the-index-tracks-the-live-mailbox)'s "a chronically

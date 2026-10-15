@@ -1,0 +1,20 @@
+control: An account of a provider that authenticates through an OAuth client is connected only through its own client
+removes: the worker's execution context names no provider as authenticating through a client, so its loader connects a Gmail account that names none
+packages: ./worker/app
+tests: TestAGmailAccountNamingNoClientIsNotConnected
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/app/app.go b/worker/app/app.go
+index 4b0d8cb..536dd42 100644
+--- a/worker/app/app.go
++++ b/worker/app/app.go
+@@ -263,7 +263,7 @@ func fromConfiguration(ctx context.Context, provided host.Provided[Configuration
+ // role, reloading on the reload interval (ADR-0090, ADR-0118).
+ func newContext(pools Pools, keys *open.Keyring, scanner scan.Scanner, s Section, reg prometheus.Registerer, logger *slog.Logger) (*assembly.Context, error) {
+ 	return assembly.New(assembly.Needs{
+-		Pool: pools.Sync, Keys: keys, ThroughClient: []string{gmailProvider}, Scanner: scanner,
++		Pool: pools.Sync, Keys: keys, ThroughClient: nil, Scanner: scanner,
+ 		Lookups:        classify.Lookups{ToUnicode: idna.Lookup.ToUnicode, ToASCII: idna.Lookup.ToASCII, Registrable: publicsuffix.EffectiveTLDPlusOne},
+ 		ReloadInterval: s.ReloadInterval, Registerer: reg, Logger: logger,
+ 	})

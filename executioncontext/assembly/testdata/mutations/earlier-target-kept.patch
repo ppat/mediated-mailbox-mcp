@@ -1,0 +1,23 @@
+control: Each account spends under the lowered target its state row sets, and a target outside its range stops the run
+removes: a reload keeps the lowered target an earlier reload read for each account it already knew, so a target the operator changes while the process runs never applies
+packages: ./executioncontext/assembly
+tests: TestALoweredTargetChangedBetweenReloadsAppliesFromTheNext
+scheduled-count: no
+integration: yes
+
+diff --git a/executioncontext/assembly/assembly.go b/executioncontext/assembly/assembly.go
+index eed60e6..3394601 100644
+--- a/executioncontext/assembly/assembly.go
++++ b/executioncontext/assembly/assembly.go
+@@ -193,6 +193,11 @@ func (c *Context) reload(ctx context.Context) error {
+ 	}
+ 	snapshot := c.loader.Snapshot()
+ 	targets := c.readTargets(ctx, snapshot)
++	for account, t := range previous.targets {
++		if _, ok := targets[account]; ok {
++			targets[account] = t
++		}
++	}
+ 	var err error
+ 	if policyErr := c.loadPolicy(ctx, idsOf(snapshot)); policyErr != nil {
+ 		err = fmt.Errorf("%w: %w", ErrPolicyNotLoaded, policyErr)

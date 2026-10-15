@@ -6,10 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/db/migrations/00003_grants.sql b/db/migrations/00003_grants.sql
-index 7312c97c..b8a5ed17 100644
+index 1c11b3a..b19c3ae 100644
 --- a/db/migrations/00003_grants.sql
 +++ b/db/migrations/00003_grants.sql
-@@ -550,7 +550,7 @@ TO mediated_mailbox_api, mediated_mailbox_backfill, mediated_mailbox_sync, m
+@@ -540,7 +540,7 @@ TO mediated_mailbox_api, mediated_mailbox_backfill, mediated_mailbox_sync, media
  -- exactly those columns. Who created a rule and when stay out of their reach. The statement reads the
  -- base rules and the rules of the transaction's account alone (ADR-0135).
  GRANT SELECT (account_id, rule_id, class, domain_suffix) ON policy_rules
@@ -17,4 +17,4 @@ index 7312c97c..b8a5ed17 100644
 +TO mediated_mailbox_backfill, mediated_mailbox_sync;
  
  -- The account snapshot's statements in db/accounts, db/accountstate/credential and db/oauthclients run
- -- under the role of each deployable or job kind that calls a provider, whose list admits accountload
+ -- under the role of each process's execution context (ADR-0118, ADR-0090), the API server's and delta

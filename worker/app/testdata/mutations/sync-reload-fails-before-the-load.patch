@@ -1,0 +1,20 @@
+control: A worker start logs no error before its execution context loads, and is ready only once the context's first load has woken each job kind's reload
+removes: delta sync's reload asked before the execution context loads fails rather than answering not due, so a normal start logs an error
+packages: ./worker/app
+tests: TestAStartLogsNoErrorAndIsReadyOnlyOnceTheContextLoads
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/deltasync.go
+index 5f92dbb..841952b 100644
+--- a/worker/internal/deltasync/deltasync.go
++++ b/worker/internal/deltasync/deltasync.go
+@@ -199,7 +199,7 @@ func (d *DeltaSync) Reload() (schedule.Key, schedule.Job) {
+ func (d *DeltaSync) reload(ctx context.Context, _ schedule.Ask) error {
+ 	latest := d.config.Context.Latest()
+ 	if !latest.Loaded() {
+-		return schedule.ErrNotDue
++		return latest.Err()
+ 	}
+ 	policyErr := latest.Err()
+ 	if policyErr != nil && !errors.Is(policyErr, assembly.ErrPolicyNotLoaded) {

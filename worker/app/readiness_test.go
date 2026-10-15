@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"net"
 	"strings"
@@ -12,14 +13,15 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
+	"github.com/ppat/mediated-mailbox-mcp/executioncontext/assembly"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/open"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal"
 )
 
-// A job kind whose reloads fail never reports itself reloaded, so a worker that cannot read its
-// accounts never reports ready. Its pools point at an address nothing listens on, so every reload
-// fails at its first statement, and the check is read once each job kind's reload has run and failed
-// (ADR-0138).
+// A job kind whose reloads find no accounts loaded never reports itself reloaded, so a worker that
+// cannot read its accounts never reports ready. Its pools point at an address nothing listens on, so
+// every reload of the execution context fails at its first statement, and the check is read once the
+// context has tried and failed and each job kind's reload has run (ADR-0138, ADR-0119).
 func TestAReloadThatFailsLeavesItsJobKindNotReady(t *testing.T) {
 	ln, err := (&net.ListenConfig{}).Listen(t.Context(), "tcp", "127.0.0.1:0")
 	if err != nil {
@@ -60,24 +62,29 @@ func TestAReloadThatFailsLeavesItsJobKindNotReady(t *testing.T) {
 	registry := prometheus.NewRegistry()
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
+	pools := Pools{Backfill: pool(), Sync: pool()}
+	ec := mustContext(t, pools, ring, scanner, defaults().Section, registry, slog.New(slog.DiscardHandler))
 	parts, err := Assemble(ctx, Needs{
-		Section: defaults().Section, Pools: Pools{Backfill: pool(), Sync: pool()}, Keys: ring, Scanner: scanner,
+		Section: defaults().Section, Pools: pools, Context: ec,
 		Registerer: registry, Logger: slog.New(slog.DiscardHandler),
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	done := make(chan error, 1)
+	done := make(chan error, 2)
 	go func() { done <- parts.Tasks[0].Run(ctx) }()
+	go func() { done <- ec.Run(ctx) }()
 	defer func() {
 		cancel()
-		if err := <-done; err != nil {
-			t.Error(err)
+		for range 2 {
+			if err := <-done; err != nil {
+				t.Error(err)
+			}
 		}
 	}()
-	// Each job kind's first reload has run once the scheduler has counted a failed run of the kind, since
-	// the reload is the only job either kind runs while no account is listed.
-	failedReloads := func() int {
+	// Each job kind's first reload has run once the scheduler has counted a finished run of the kind,
+	// since the reload is the only job either kind runs while no account is listed.
+	finishedReloads := func() int {
 		families, err := registry.Gather()
 		if err != nil {
 			t.Fatal(err)
@@ -92,21 +99,21 @@ func TestAReloadThatFailsLeavesItsJobKindNotReady(t *testing.T) {
 				for _, l := range m.GetLabel() {
 					labels[l.GetName()] = l.GetValue()
 				}
-				if labels["outcome"] == "failed" && m.GetCounter().GetValue() > 0 {
+				if m.GetCounter().GetValue() > 0 {
 					n++
 				}
 			}
 		}
 		return n
 	}
-	for deadline := time.Now().Add(10 * time.Second); failedReloads() < 2; time.Sleep(20 * time.Millisecond) {
+	for deadline := time.Now().Add(10 * time.Second); finishedReloads() < 2 || errors.Is(ec.Latest().Err(), assembly.ErrNotLoaded); time.Sleep(20 * time.Millisecond) {
 		if time.Now().After(deadline) {
-			t.Fatal("neither job kind's reload ran and failed within ten seconds")
+			t.Fatal("the execution context's load and each job kind's reload did not run within ten seconds")
 		}
 	}
 	for _, c := range parts.Ready {
 		if strings.HasSuffix(c.Name, " reload") && c.Check(t.Context()) == nil {
-			t.Errorf("the check %s passed after its job kind's reload failed", c.Name)
+			t.Errorf("the check %s passed while the execution context had loaded no accounts", c.Name)
 		}
 	}
 }

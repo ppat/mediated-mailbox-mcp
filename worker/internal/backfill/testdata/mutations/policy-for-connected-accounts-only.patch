@@ -5,15 +5,24 @@ tests: TestARunTakesItsAccountsFromTheDatabase
 scheduled-count: no
 integration: yes
 
-diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
---- a/worker/internal/backfill/backfill.go
-+++ b/worker/internal/backfill/backfill.go
-@@ -189,7 +189,7 @@
+diff --git a/executioncontext/assembly/assembly.go b/executioncontext/assembly/assembly.go
+index d74efe4..78c70a2 100644
+--- a/executioncontext/assembly/assembly.go
++++ b/executioncontext/assembly/assembly.go
+@@ -169,7 +169,15 @@ func (c *Context) Reload(ctx context.Context) error {
+ 	snapshot := c.loader.Snapshot()
+ 	targets := c.readTargets(ctx, snapshot)
+ 	var err error
+-	if policyErr := c.loadPolicy(ctx, idsOf(snapshot)); policyErr != nil {
++	if policyErr := c.loadPolicy(ctx, func() []string {
++		var connected []string
++		for _, a := range snapshot.Accounts() {
++			if a.Connected() {
++				connected = append(connected, a.ID())
++			}
++		}
++		return connected
++	}()); policyErr != nil {
+ 		err = fmt.Errorf("%w: %w", ErrPolicyNotLoaded, policyErr)
  	}
- 	snapshot := b.loader.Snapshot()
- 	listed := b.sessions.Accounts(snapshot)
--	policyErr := b.loadPolicy(ctx, ids(snapshot))
-+	policyErr := b.loadPolicy(ctx, listed)
- 	if policyErr != nil {
- 		b.logger.Error("the policy was not reloaded, so no account newly listed is backfilled until it is", "error", policyErr)
- 	}
+ 	c.latest.Store(&Reloaded{snapshot: snapshot, targets: targets, loaded: true, err: err})

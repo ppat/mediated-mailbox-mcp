@@ -6,14 +6,15 @@ scheduled-count: no
 integration: yes
 
 diff --git a/executioncontext/session/session.go b/executioncontext/session/session.go
+index bd3fc28..48ec4ab 100644
 --- a/executioncontext/session/session.go
 +++ b/executioncontext/session/session.go
-@@ -175,7 +175,7 @@
- 	h.mu.Lock()
- 	defer h.mu.Unlock()
- 	kept, ok := h.held[account]
+@@ -196,7 +196,7 @@ func (h *Holder) source(account string, connector Connector, creds Credentials)
+ 	h.sources.mu.Lock()
+ 	defer h.sources.mu.Unlock()
+ 	kept, ok := h.sources.held[account]
 -	sameClient := kept.built.ClientID == creds.ClientID && bytes.Equal(kept.built.ClientSecret, creds.ClientSecret)
 +	sameClient := true
- 	if ok && sameClient && (bytes.Equal(kept.built.Credential, creds.Credential) || bytes.Equal(kept.conn.source.Credential(), creds.Credential)) {
- 		return kept.conn
+ 	if ok && sameClient && (bytes.Equal(kept.built.Credential, creds.Credential) || bytes.Equal(kept.source.Credential(), creds.Credential)) {
+ 		return kept.source
  	}

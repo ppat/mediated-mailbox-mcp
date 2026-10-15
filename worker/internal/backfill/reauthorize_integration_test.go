@@ -21,7 +21,6 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/provider/fake"
 	"github.com/ppat/mediated-mailbox-mcp/provider/gmail"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
-	"github.com/ppat/mediated-mailbox-mcp/worker/internal/schedule"
 )
 
 // provider plays Google for one account over the provider fake. It honours one refresh token, and
@@ -165,7 +164,7 @@ func TestAFailedReadOfTheRefusedCredentialIsReported(t *testing.T) {
 	p, run, _ := refusedRun(t)
 	conn := superuser(t)
 	p.honoured, p.at = "nothing-honoured", mail.OpEnumerateAll
-	p.operator = func() { revoke(t, conn, "SELECT (credential) ON account_state") }
+	p.operator = func() { revokeFrom(t, conn, contextRole, "SELECT (credential) ON account_state") }
 
 	err := run(t)
 
@@ -205,7 +204,7 @@ func operatorReplaced(t *testing.T) (func(t *testing.T, rotations map[string]str
 // afterReload reloads b, failing the test when the reload fails, and returns it.
 func afterReload(t *testing.T, b *Backfill) *Backfill {
 	t.Helper()
-	if err := b.reload(t.Context(), schedule.Ask{}); err != nil {
+	if err := b.reloadWithContext(t.Context()); err != nil {
 		t.Fatal(err)
 	}
 	return b
@@ -215,7 +214,7 @@ func afterReload(t *testing.T, b *Backfill) *Backfill {
 // a pass opens one.
 func unitOf(t *testing.T, b *Backfill) *unit {
 	t.Helper()
-	u := &unit{sessions: b.sessions, loader: b.loader, account: "personal"}
+	u := &unit{sessions: b.sessions, context: b.context, account: "personal"}
 	if err := u.open(); err != nil {
 		t.Fatal(err)
 	}

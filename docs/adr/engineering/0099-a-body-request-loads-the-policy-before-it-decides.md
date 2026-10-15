@@ -37,9 +37,13 @@ alarm.
 - **A failed load decides nothing differently.** The request is decided against the active valid
   policy, and the loader raises the reload-failure alarm, as ADR-0041 states. Before any load has
   succeeded there is no policy, and every sender is restricted.
-- **The API server's scheduled account reload also loads the policy, every time.** The metadata
-  reads and the reload-failure alarm stay current without a body request, and a failed load is
-  retried at the next reload.
+- **The scheduled reload of the process's execution context also loads the policy, every time.**
+  The metadata reads and the reload-failure alarm stay current without a body request, and a failed
+  load is retried at the next reload. The body request's load and the scheduled reload's run on the
+  one policy loader of the process
+  ([ADR-0090](../operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md)), so the
+  gate in the API server and the scan gate in the worker decide under the same policy wherever they
+  share a process.
 
 The accepted cost is about one small read of the policy tables per body request, fewer under a
 burst, since concurrent requests share one.
@@ -71,5 +75,6 @@ burst, since concurrent requests share one.
   requests. A load that never finishes holds them until each one's own deadline.
 - Releasing gated calendar content follows the same answer.
 - Assumptions about other components. The policy loader reloads every served account in one load
-  and takes its reloads in turn. A load the API server starts is cancelled only when the API
+  and takes its reloads in turn, read and swap together, so a load a body request started is never
+  overtaken by an older one the scheduled reload ran beside it. A load the API server starts is cancelled only when the API
   server stops, so a client that abandons its request never cancels a load another request waits on.

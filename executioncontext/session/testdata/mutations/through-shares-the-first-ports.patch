@@ -1,0 +1,35 @@
+control: Holders seen through one holder share its sources, each opening sessions with its own ports
+removes: every holder seen through one holder opens its sessions with the connectors of the first seen through it, so a later component's units call through the first component's ports
+packages: ./executioncontext/session
+tests: TestHoldersThroughOneHolderShareItsSources
+scheduled-count: no
+integration: yes
+
+diff --git a/executioncontext/session/session.go b/executioncontext/session/session.go
+index 8b8ab08..a9b5156 100644
+--- a/executioncontext/session/session.go
++++ b/executioncontext/session/session.go
+@@ -109,8 +109,9 @@ type held struct {
+ 
+ // sources are the sources a holder keeps, which every holder Through returns shares.
+ type sources struct {
+-	mu   sync.Mutex
+-	held map[string]held
++	mu         sync.Mutex
++	held       map[string]held
++	connectors map[string]Connector
+ }
+ 
+ // Holder opens the sessions of the accounts a process serves. It is safe for concurrent units of
+@@ -132,7 +133,10 @@ func New(c Config) *Holder {
+ // its own role sees the process's holder through a holder of its own (ADR-0089, ADR-0117).
+ func (h *Holder) Through(connectors map[string]Connector, db tx.Beginner) *Holder {
+ 	c := h.config
+-	c.Connectors, c.DB = connectors, db
++	if h.sources.connectors == nil {
++		h.sources.connectors = connectors
++	}
++	c.Connectors, c.DB = h.sources.connectors, db
+ 	return &Holder{config: c, sources: h.sources}
+ }
+ 

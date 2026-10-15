@@ -6,12 +6,13 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/app/app.go b/worker/app/app.go
+index df55791..5d3f743 100644
 --- a/worker/app/app.go
 +++ b/worker/app/app.go
-@@ -330,7 +330,7 @@
+@@ -420,7 +420,7 @@ func kinds(pools Pools, ec *assembly.Context, c Section, client *http.Client, lo
  		Concurrency: c.Backfill.Concurrency, ReloadInterval: c.ReloadInterval,
  	}, deltasync.Config{
- 		Pool: pools.Sync, Keys: keys, Scanner: scanner, Client: client,
+ 		Pool: pools.Sync, Context: ec, Client: client,
 -		Registry: labelled(registry, deltasync.Kind), Logger: logger.With("job_kind", deltasync.Kind), Jobs: s,
 +		Registry: labelled(prometheus.NewRegistry(), deltasync.Kind), Logger: logger.With("job_kind", deltasync.Kind), Jobs: s,
  		Concurrency: c.Sync.Concurrency, ReloadInterval: c.ReloadInterval,

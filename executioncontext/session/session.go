@@ -3,9 +3,10 @@
 // opened, holds a token source and the port built over it, reads a refused credential again and makes
 // the call once more over a replaced one, and at the end of a unit of work hands the source's
 // credential over with its adoption stamp and records the latest authentication attempt (ADR-0089,
-// ADR-0090, ADR-0097, ADR-0106). It imports no provider adapter and no rate limiter. Each composition
-// root passes a connector per provider it links, and leases inside each call it makes. Its case is
-// argued in executioncontext/README.md.
+// ADR-0090, ADR-0097, ADR-0106). It imports no provider adapter and no rate limiter. Each component
+// that opens sessions passes a connector per provider it links, and leases inside each call it makes.
+// A process's execution context keeps one holder's sources, which every component sees through a
+// holder of its own. Its case is argued in executioncontext/README.md.
 package session
 
 import (
@@ -55,25 +56,28 @@ type Source interface {
 	LastAttempt() mail.AuthAttempt
 }
 
-// connection is a source a connector built and the function that builds a port over it.
-type connection struct {
-	source Source
-	port   func(account string) (mail.Port[context.Context], error)
-}
-
 // Connector builds an account's source and the port over it for one provider. A composition root
 // builds one per provider it links, through Connect.
 type Connector struct {
-	connect func(Credentials) connection
+	source func(Credentials) Source
+	port   func(account string, source Source) (mail.Port[context.Context], error)
 }
 
-// Connect returns the connector that builds a source with source and a port over it with port. The
-// port is only ever built over a source the same connector built.
+// Connect returns the connector that builds a source with source and a port over it with port. Its
+// port is built only over a source of the type its source builds, which every connector of one
+// provider builds, so a holder seen through several connectors serves each account from one source
+// with each connector's own port.
 func Connect[S Source](source func(Credentials) S, port func(account string, source S) (mail.Port[context.Context], error)) Connector {
-	return Connector{connect: func(c Credentials) connection {
-		s := source(c)
-		return connection{source: s, port: func(account string) (mail.Port[context.Context], error) { return port(account, s) }}
-	}}
+	return Connector{
+		source: func(c Credentials) Source { return source(c) },
+		port: func(account string, s Source) (mail.Port[context.Context], error) {
+			typed, ok := s.(S)
+			if !ok {
+				return nil, fmt.Errorf("the account's source is a %T, over which this connector builds no port", s)
+			}
+			return port(account, typed)
+		},
+	}
 }
 
 // Config is what a holder is built from.
@@ -81,12 +85,14 @@ type Config struct {
 	// Loader is the account loader its caller owns, so when snapshots reload stays the caller's
 	// (ADR-0090). A refused credential is read again through it, and a credential handed over to it.
 	Loader *accountload.Loader
-	// DB is where the latest authentication attempt is recorded, under the caller's role.
+	// DB is where the latest authentication attempt is recorded, under the role of the caller that
+	// opens the session.
 	DB tx.Beginner
 	// Logger logs each account a listing skips.
 	Logger *slog.Logger
 	// Connectors are the connectors of the providers the caller links, keyed on the provider's name
-	// as accounts name it.
+	// as accounts name it. A source is built by the connector of the session that first needs it,
+	// and every session builds its port with its own holder's connector.
 	Connectors map[string]Connector
 	// Hold keeps an account's source across units of work while the stored credential is the one it
 	// was built from or the one it rotated to, so an access token the provider issued serves the units
@@ -97,21 +103,37 @@ type Config struct {
 // held is an account's source the holder keeps across units of work, and the credentials it was
 // built from.
 type held struct {
-	built Credentials
-	conn  connection
+	built  Credentials
+	source Source
+}
+
+// sources are the sources a holder keeps, which every holder Through returns shares.
+type sources struct {
+	mu   sync.Mutex
+	held map[string]held
 }
 
 // Holder opens the sessions of the accounts a process serves. It is safe for concurrent units of
 // work, for one account as for several.
 type Holder struct {
-	config Config
-	mu     sync.Mutex
-	held   map[string]held
+	config  Config
+	sources *sources
 }
 
 // New returns a holder built from c.
 func New(c Config) *Holder {
-	return &Holder{config: c, held: map[string]held{}}
+	return &Holder{config: c, sources: &sources{held: map[string]held{}}}
+}
+
+// Through returns a holder that shares h's loader and the sources h keeps, so an account's units of
+// work hold one source and hand one rotated credential over however many callers open them, and
+// opens its sessions with connectors' ports, recording each session's latest authentication attempt
+// through db. Each caller in a process that keeps its own series of provider calls and records under
+// its own role sees the process's holder through a holder of its own (ADR-0089, ADR-0117).
+func (h *Holder) Through(connectors map[string]Connector, db tx.Beginner) *Holder {
+	c := h.config
+	c.Connectors, c.DB = connectors, db
+	return &Holder{config: c, sources: h.sources}
 }
 
 // credentials returns the credentials the account's source is built from, the client the account
@@ -158,41 +180,41 @@ func (h *Holder) Open(snapshot *accountload.Snapshot, account string) (*Session,
 		return nil, ErrNotConnected
 	}
 	creds := credentials(a)
-	conn := h.source(account, connector, creds)
-	port, err := conn.port(account)
+	source := h.source(account, connector, creds)
+	port, err := connector.port(account, source)
 	if err != nil {
 		return nil, err
 	}
-	return &Session{h: h, account: account, connector: connector, built: creds, adoption: a.Adoption(), conn: conn, port: port}, nil
+	return &Session{h: h, account: account, connector: connector, built: creds, adoption: a.Adoption(), source: source, port: port}, nil
 }
 
 // source returns the account's source for creds, the one it holds when Hold is set and creds are the
 // ones it was built from or carry the credential it now holds, and a new one otherwise.
-func (h *Holder) source(account string, connector Connector, creds Credentials) connection {
+func (h *Holder) source(account string, connector Connector, creds Credentials) Source {
 	if !h.config.Hold {
-		return connector.connect(creds)
+		return connector.source(creds)
 	}
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	kept, ok := h.held[account]
+	h.sources.mu.Lock()
+	defer h.sources.mu.Unlock()
+	kept, ok := h.sources.held[account]
 	sameClient := kept.built.ClientID == creds.ClientID && bytes.Equal(kept.built.ClientSecret, creds.ClientSecret)
-	if ok && sameClient && (bytes.Equal(kept.built.Credential, creds.Credential) || bytes.Equal(kept.conn.source.Credential(), creds.Credential)) {
-		return kept.conn
+	if ok && sameClient && (bytes.Equal(kept.built.Credential, creds.Credential) || bytes.Equal(kept.source.Credential(), creds.Credential)) {
+		return kept.source
 	}
-	conn := connector.connect(creds)
-	h.held[account] = held{built: creds, conn: conn}
-	return conn
+	source := connector.source(creds)
+	h.sources.held[account] = held{built: creds, source: source}
+	return source
 }
 
-// keep holds conn, built from creds, as the account's source for the units of work after this one,
-// when Hold is set.
-func (h *Holder) keep(account string, creds Credentials, conn connection) {
+// keep holds source, built from creds, as the account's source for the units of work after this
+// one, when Hold is set.
+func (h *Holder) keep(account string, creds Credentials, source Source) {
 	if !h.config.Hold {
 		return
 	}
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	h.held[account] = held{built: creds, conn: conn}
+	h.sources.mu.Lock()
+	defer h.sources.mu.Unlock()
+	h.sources.held[account] = held{built: creds, source: source}
 }
 
 // Session is one unit of work's calls to an account's provider. Its calls are made one at a time.
@@ -206,7 +228,7 @@ type Session struct {
 	// the session opened or a re-read's once the session went on with the re-read credential, which
 	// the hand-over names so a credential someone else replaced since is never put back (ADR-0089).
 	adoption uint64
-	conn     connection
+	source   Source
 	port     mail.Port[context.Context]
 }
 
@@ -228,18 +250,18 @@ func Call[T any](ctx context.Context, s *Session, call func(context.Context, mai
 		return out, errors.Join(err, fmt.Errorf("reading the refused credential again: %w", rerr))
 	}
 	refused := s.built
-	refused.Credential = s.conn.source.Credential()
+	refused.Credential = s.source.Credential()
 	creds := credentials(reread)
 	if !reread.Connected() || same(creds, refused) {
 		return out, err
 	}
-	conn := s.connector.connect(creds)
-	port, cerr := conn.port(s.account)
+	source := s.connector.source(creds)
+	port, cerr := s.connector.port(s.account, source)
 	if cerr != nil {
 		return out, errors.Join(err, cerr)
 	}
-	s.h.keep(s.account, creds, conn)
-	s.built, s.adoption, s.conn, s.port = creds, reread.Adoption(), conn, port
+	s.h.keep(s.account, creds, source)
+	s.built, s.adoption, s.source, s.port = creds, reread.Adoption(), source, port
 	return call(ctx, port)
 }
 
@@ -250,8 +272,8 @@ func Call[T any](ctx context.Context, s *Session, call func(context.Context, mai
 // It returns the hand-over's error and the recording's apart, for the caller to return or log. A
 // session may end several units of work, one after each.
 func (s *Session) End(ctx context.Context) (handOver, record error) {
-	_, handOver = s.h.config.Loader.HandOver(ctx, s.account, s.adoption, s.conn.source.Credential())
-	return handOver, recordAttempt(ctx, s.h.config.DB, s.account, s.conn.source.LastAttempt())
+	_, handOver = s.h.config.Loader.HandOver(ctx, s.account, s.adoption, s.source.Credential())
+	return handOver, recordAttempt(ctx, s.h.config.DB, s.account, s.source.LastAttempt())
 }
 
 // recordAttempt records the latest authentication attempt the account's source reported on the

@@ -10,21 +10,26 @@ import (
 
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/core/scangate"
+	"github.com/ppat/mediated-mailbox-mcp/executioncontext/assembly"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/policyload"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 )
 
 // D4's row for the gate and the scanner delta sync shares with backfill. A tick decides under
 // thresholds written out here, which backfill's own test holds backfill to as well, and scans with
-// the scanner the job kind is built with, which the worker builds once from its one scanner section
-// for both job kinds, so a job kind that differs from the other fails its own test (ADR-0120,
+// the scanner of the execution context the job kind is built with, which the worker builds once from
+// its one scanner section for both job kinds, so a job kind that differs from the other fails its own test (ADR-0120,
 // ADR-0121, ADR-0104).
 func TestATickDecidesUnderBackfillsThresholdsAndScanner(t *testing.T) {
 	scanner, err := scan.New(scan.DefaultConfig(), "the-worker's-revision")
 	if err != nil {
 		t.Fatal(err)
 	}
-	d, err := build(Config{Scanner: scanner, Registry: prometheus.NewRegistry(), Logger: slog.New(slog.DiscardHandler)}, nil)
+	ec, err := assembly.New(assembly.Needs{Scanner: scanner, Registerer: prometheus.NewRegistry(), Logger: slog.New(slog.DiscardHandler)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	d, err := build(Config{Context: ec, Registry: prometheus.NewRegistry(), Logger: slog.New(slog.DiscardHandler)}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

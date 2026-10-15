@@ -44,7 +44,7 @@ func TestAReloadWithNoAccountReSealsAClientSecretOnAnOldKey(t *testing.T) {
 	j := newJobs()
 	d := kind(t, syncPool(t), ring, reg, slog.New(slog.DiscardHandler), fakes(gmailSource(http.DefaultClient), nil), j)
 
-	if err := d.reload(t.Context(), schedule.Ask{}); err != nil {
+	if err := d.reloadWithContext(t.Context()); err != nil {
 		t.Fatal(err)
 	}
 
@@ -72,7 +72,7 @@ func TestNoAccountIsAddedWhileThePolicyReloadFails(t *testing.T) {
 	client(t, conn, public)
 	j := newJobs()
 	d := kind(t, syncPool(t), ring, prometheus.NewRegistry(), slog.New(slog.DiscardHandler), fakes(gmailSource(http.DefaultClient), nil), j)
-	if err := d.reload(t.Context(), schedule.Ask{}); err != nil {
+	if err := d.reloadWithContext(t.Context()); err != nil {
 		t.Fatal(err)
 	}
 
@@ -80,7 +80,7 @@ func TestNoAccountIsAddedWhileThePolicyReloadFails(t *testing.T) {
 	account(t, conn, "work", gmailProvider, sealed(t, public, "work-token", seal.AccountCredential("work")), false)
 	must(t, conn, "UPDATE accounts SET oauth_client = 'household' WHERE account_id = 'work'")
 	must(t, conn, "UPDATE account_state SET credential = NULL WHERE account_id = 'personal'")
-	if err := d.reload(t.Context(), schedule.Ask{}); err == nil {
+	if err := d.reloadWithContext(t.Context()); err == nil {
 		t.Error("a reload whose policy load failed reported no error")
 	}
 	if diff := cmp.Diff([]string{"personal"}, j.ensured, compare.Options); diff != "" {
@@ -91,7 +91,7 @@ func TestNoAccountIsAddedWhileThePolicyReloadFails(t *testing.T) {
 	}
 
 	must(t, conn, "GRANT SELECT ON policy_rules TO "+role)
-	if err := d.reload(t.Context(), schedule.Ask{}); err != nil {
+	if err := d.reloadWithContext(t.Context()); err != nil {
 		t.Fatal(err)
 	}
 	if diff := cmp.Diff([]string{"personal", "work"}, j.ensured, compare.Options); diff != "" {
@@ -151,13 +151,26 @@ func TestADroppedAccountsTickIsCancelled(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	pool := syncPool(t)
+	ec := executionContext(t, pool, ring, scanner, slog.New(slog.DiscardHandler), 50*time.Millisecond)
 	d, err := build(Config{
-		Pool: syncPool(t), Keys: ring, Scanner: scanner, Registry: prometheus.NewRegistry(), Logger: slog.New(slog.DiscardHandler),
+		Pool: pool, Context: ec, Registry: prometheus.NewRegistry(), Logger: slog.New(slog.DiscardHandler),
 		Jobs: s, Concurrency: 1, ReloadInterval: 50 * time.Millisecond, SyncInterval: time.Hour, FirstWindow: time.Hour, DecisionsPerTick: 10,
 	}, map[string]session.Connector{gmailProvider: connect})
 	if err != nil {
 		t.Fatal(err)
 	}
+	key, _ := d.Reload()
+	ec.OnReload(func(context.Context) { s.Wake(key) })
+	ctx, cancel := context.WithCancel(t.Context())
+	done := make(chan error, 1)
+	go func() { done <- ec.Run(ctx) }()
+	defer func() {
+		cancel()
+		if err := <-done; err != nil {
+			t.Error(err)
+		}
+	}()
 	if err := s.Ensure(d.Reload()); err != nil {
 		t.Fatal(err)
 	}
@@ -193,7 +206,7 @@ func TestADroppedAccountsTickIsCancelled(t *testing.T) {
 }
 
 // Every series delta sync's job kind emits, its own and the shared libraries' it registers, the
-// provider adapter's, the rate limiter's and the policy loader's among them, carries the job kind,
+// provider adapter's and the rate limiter's among them, carries the job kind,
 // because the kind registers each on the registerer it is given, which labels them (ADR-0117,
 // ADR-0076).
 func TestEverySeriesTheKindEmitsCarriesItsJobKind(t *testing.T) {
@@ -210,7 +223,7 @@ func TestEverySeriesTheKindEmitsCarriesItsJobKind(t *testing.T) {
 	}
 	j := newJobs()
 	d, err := New(Config{
-		Pool: syncPool(t), Keys: ring, Scanner: scanner, Client: unreachable(t), Logger: slog.New(slog.DiscardHandler), Jobs: j,
+		Pool: syncPool(t), Context: executionContext(t, syncPool(t), ring, scanner, slog.New(slog.DiscardHandler), time.Minute), Client: unreachable(t), Logger: slog.New(slog.DiscardHandler), Jobs: j,
 		Registry:    prometheus.WrapRegistererWith(prometheus.Labels{"job_kind": Kind}, registry),
 		Concurrency: 1, ReloadInterval: time.Minute, SyncInterval: time.Hour, FirstWindow: time.Hour, DecisionsPerTick: 10,
 	})
@@ -249,7 +262,7 @@ func TestEverySeriesTheKindEmitsCarriesItsJobKind(t *testing.T) {
 	}
 	for _, name := range []string{
 		"mediated_mailbox_provider_request_cost_total", "mediated_mailbox_provider_hard_cap",
-		"mediated_mailbox_ratelimit_granted_total", "mediated_mailbox_policyload_reload_failed",
+		"mediated_mailbox_ratelimit_granted_total",
 		"mediated_mailbox_credential_on_old_key", "mediated_mailbox_client_secret_on_old_key",
 		"mediated_mailbox_sync_cursor_gaps_total", "mediated_mailbox_unclassified_senders_total",
 	} {
@@ -363,7 +376,7 @@ func TestAJobAskedBeforeItsIntervalDoesNotTick(t *testing.T) {
 	j := newJobs()
 	d := kind(t, syncPool(t), ring, prometheus.NewRegistry(), slog.New(slog.DiscardHandler),
 		fakes(gmailSource(http.DefaultClient), map[string]*fake.Fake{"personal": mailbox(t, "personal")}), j)
-	if err := d.reload(t.Context(), schedule.Ask{}); err != nil {
+	if err := d.reloadWithContext(t.Context()); err != nil {
 		t.Fatal(err)
 	}
 	job := j.held[schedule.Key{Kind: Kind, ID: "personal"}]
@@ -400,7 +413,7 @@ func TestATickAtTheEndOfABackoffKeepsThePhase(t *testing.T) {
 	j := newJobs()
 	d := kind(t, syncPool(t), ring, prometheus.NewRegistry(), slog.New(slog.DiscardHandler),
 		fakes(gmailSource(http.DefaultClient), map[string]*fake.Fake{"personal": mailbox(t, "personal")}), j)
-	if err := d.reload(t.Context(), schedule.Ask{}); err != nil {
+	if err := d.reloadWithContext(t.Context()); err != nil {
 		t.Fatal(err)
 	}
 	job := j.held[schedule.Key{Kind: Kind, ID: "personal"}]

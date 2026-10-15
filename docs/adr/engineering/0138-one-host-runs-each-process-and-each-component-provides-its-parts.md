@@ -54,8 +54,8 @@ un-braiding asks that it be ignorant of what else shares its process.
   each root.
 - **Each component exports from its entry package its section and its assembly.** The section is
   the component's own keys with their defaults and their pure validation. The assembly takes what
-  the component needs as values, its pools, its keys, its scanner, a registerer, a logger, a client
-  and a clock, registers its series, starts nothing of its own and returns its parts, a handler,
+  the component needs as values, its pools, the process's execution context, a registerer, a logger,
+  a client and a clock, registers its series, starts nothing of its own and returns its parts, a handler,
   readiness checks and background tasks. An assembly may read what it needs to be built, and fails
   when that cannot be read, so a process that cannot serve never starts. It starts no goroutine of
   its own and registers no route on a mux it is handed. Its handler is a value the host mounts. A goroutine a
@@ -72,10 +72,17 @@ un-braiding asks that it be ignorant of what else shares its process.
 
   | Component | Mounted at | Readiness | Tasks | Refuses |
   | --- | --- | --- | --- | --- |
-  | The API server | `/api/` and `/mcp` | Its bearer token file holds a token, after its first reload of the accounts and their policy, which its assembly runs | The reload of its account snapshot on its interval | `MCPGODEBUG` |
+  | The API server | `/api/` and `/mcp` | Its bearer token file holds a token, after the execution context's first reload of the accounts and their policy, which its assembly runs | None of its own | `MCPGODEBUG` |
   | The UI | `/` | The database answers a ping as the UI's role | None | Nothing of its own |
   | The worker | Nothing | Each job kind's pool answers a ping, and each job kind's reload has succeeded once | The scheduler, which recovers a panic in each run as that run's failure ([ADR-0119](../operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md)) | Nothing of its own |
 
+- **A process's execution context is its composition root's.** The root builds it once, over a pool
+  under a role the process already connects as, with the keyring and the scanner, hands it to every
+  component of the process that calls a provider, and hands the host its reload as a task of the
+  process, which reloads on the interval the root's configuration sets
+  ([ADR-0090](../operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md),
+  [ADR-0118](../data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)). The UI never
+  receives it.
 - **The UI's event stream ends when draining begins**, through the draining context the host hands
   the UI's assembly, so a stopping process drains its other requests rather than waiting out an
   answer that never ends. A request's own context ends once the tasks are told to stop, after the
@@ -117,6 +124,8 @@ un-braiding asks that it be ignorant of what else shares its process.
   Within one registry a series name keeps one set of label names, so a root that hosts the worker
   beside a component that registers the same shared library's series must give both the same set,
   which a process hosting one component meets by construction.
+- A root that hosts several components builds one execution context and hands the host its reload
+  once, which only the root ensures, since neither the host nor the context can tell a second.
 - No goroutine of a component's code loses a panic or outlives the pools. The API server and the
   UI start one only through the host's starter, which the `go vet` goroutines analyser holds their
   code to, as it holds the worker's job code to the scheduler's helper

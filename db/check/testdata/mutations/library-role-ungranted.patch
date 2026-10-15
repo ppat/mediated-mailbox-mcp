@@ -6,7 +6,7 @@ scheduled-count: no
 integration: yes
 
 diff --git a/db/migrations/00003_grants.sql b/db/migrations/00003_grants.sql
-index fbdc919a..51b91d91 100644
+index 1c11b3a..1c97c58 100644
 --- a/db/migrations/00003_grants.sql
 +++ b/db/migrations/00003_grants.sql
 @@ -529,9 +529,9 @@ UPDATE (
@@ -19,5 +19,5 @@ index fbdc919a..51b91d91 100644
 -TO mediated_mailbox_api, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
 +TO mediated_mailbox_api, mediated_mailbox_sync, mediated_mailbox_organize;
  
- -- The policy loader's statement, in db/policyrules, runs under the role of each deployable or job kind that loads
- -- policy (ADR-0118), the API server, backfill and delta sync. It reads the account, the identifier, the
+ -- The policy loader's statement, in db/policyrules, runs under the role of each process's execution context
+ -- (ADR-0118), the API server's and delta sync's. Backfill's role keeps the read, which its job kind

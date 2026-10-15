@@ -242,9 +242,12 @@ GRANT INSERT (
 GRANT USAGE ON SEQUENCE job_run_failures_seq_seq TO mediated_mailbox_backfill;
 -- Each pass reads its completion flag through the account's progress and sets it when it ends. The
 -- run-start step that returns stale verdicts to pending marks the second pass to start over, and the
--- second pass run that starts clears the mark (ADR-0096). Backfill reads the lowered target it spends
--- under, and records the authentication attempt its adapter reports at the end of each unit of work,
--- only over an older one (ADR-0097).
+-- second pass run that starts clears the mark (ADR-0096). Backfill records the authentication attempt
+-- its adapter reports at the end of each unit of work, only over an older one (ADR-0097). It holds
+-- the read of the lowered target because db/accountstate, whose progress reads its list admits, also
+-- holds the statement that reads the target, which the grant check plans under backfill's role. The
+-- worker's execution context runs that statement for every job kind, under delta sync's role
+-- (ADR-0118).
 GRANT SELECT (
     account_id,
     backfill_pass1_complete,
@@ -532,8 +535,9 @@ TO mediated_mailbox_api, mediated_mailbox_backfill, mediated_mailbox_sync, media
 GRANT SELECT, INSERT (account_id, class, tokens, issued_at), UPDATE (issued_at), DELETE ON rate_grants
 TO mediated_mailbox_api, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
 
--- The policy loader's statement, in db/policyrules, runs under the role of each deployable or job kind that loads
--- policy (ADR-0118), the API server, backfill and delta sync. It reads the account, the identifier, the
+-- The policy loader's statement, in db/policyrules, runs under the role of each process's execution context
+-- (ADR-0118), the API server's and delta sync's. Backfill's role keeps the read, which its job kind
+-- reaches only through the worker's context. It reads the account, the identifier, the
 -- class and the domain suffixes of the base rules and the account's own, so the roles get SELECT on
 -- exactly those columns. Who created a rule and when stay out of their reach. The statement reads the
 -- base rules and the rules of the transaction's account alone (ADR-0135).
@@ -541,15 +545,16 @@ GRANT SELECT (account_id, rule_id, class, domain_suffix) ON policy_rules
 TO mediated_mailbox_api, mediated_mailbox_backfill, mediated_mailbox_sync;
 
 -- The account snapshot's statements in db/accounts, db/accountstate/credential and db/oauthclients run
--- under the role of each deployable or job kind that calls a provider, whose list admits accountload
--- (ADR-0118, ADR-0090), the API server, backfill and delta sync. The grants also name
--- mediated_mailbox_organize, the role of reorg apply and rollback (ADR-0118), a job kind that calls a
--- provider. Each lists the accounts with the client each names, reads an account's sealed credential,
--- writes a rotated credential back by compare-and-set on the bytes it last knew (ADR-0082, ADR-0089),
--- and reads every OAuth client.
+-- under the role of each process's execution context (ADR-0118, ADR-0090), the API server's and delta
+-- sync's, which are exactly the roles that hold a grant on a sealed credential or an OAuth client.
+-- Each lists the accounts with the client each names, reads an account's sealed credential, writes a
+-- rotated credential back by compare-and-set on the bytes it last knew (ADR-0082, ADR-0089), and
+-- reads every OAuth client. A job kind of the worker reaches them only through the worker's context,
+-- so backfill's role and mediated_mailbox_organize, the role of reorg apply and rollback, keep the
+-- listing and hold no grant on a sealed credential or an OAuth client.
 GRANT SELECT (account_id, provider, oauth_client) ON accounts
 TO mediated_mailbox_api, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
 GRANT SELECT (account_id, credential), UPDATE (credential) ON account_state
-TO mediated_mailbox_api, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
+TO mediated_mailbox_api, mediated_mailbox_sync;
 GRANT SELECT (name, provider, client_id, client_secret) ON oauth_clients
-TO mediated_mailbox_api, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
+TO mediated_mailbox_api, mediated_mailbox_sync;

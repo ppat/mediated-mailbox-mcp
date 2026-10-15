@@ -5,13 +5,14 @@ tests: TestEachJobKindsConstructorTakesOnlyWhatItNeeds
 scheduled-count: no
 
 diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
+index b3ae520..6840919 100644
 --- a/worker/internal/backfill/backfill.go
 +++ b/worker/internal/backfill/backfill.go
-@@ -85,6 +85,7 @@
- type Config struct {
- 	// Pool is backfill's own pool, which connects as backfill's runtime role (ADR-0118).
+@@ -86,6 +86,7 @@ type Config struct {
+ 	// Pool is backfill's own pool, which connects as backfill's runtime role, and which its own
+ 	// statements, its leases and its recording of authentication attempts run under (ADR-0118).
  	Pool *pgxpool.Pool
 +	Sync *pgxpool.Pool
- 	// Keys open the stored credentials and client secrets.
- 	Keys *open.Keyring
- 	// Scanner masks subjects and scans bodies, built once from the worker's scanner section.
+ 	// Context is the worker's execution context, whose scanner masks subjects and scans bodies
+ 	// (ADR-0090, ADR-0120).
+ 	Context *assembly.Context

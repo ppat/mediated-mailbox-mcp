@@ -1,6 +1,8 @@
-// Package backfill is backfill's job kind in the worker (ADR-0117, ADR-0119). It holds backfill's own
-// account loader, policy loader and account sessions, on backfill's own connection pool under its own
-// runtime role (ADR-0118), and adds and drops one job per account its reload lists. Each job runs the
+// Package backfill is backfill's job kind in the worker (ADR-0117, ADR-0119). It runs its own
+// statements on backfill's own connection pool under its own runtime role (ADR-0118), and works from
+// the worker's one execution context, its account snapshot, its sessions' sources and its policy,
+// through account sessions of its own that call Gmail through backfill's own adapter series. Its
+// reload adds and drops one job per account the context's latest reload lists. Each job runs the
 // run-start step once in the process, then whichever pass has not ended, a page at a time, and is
 // otherwise a reconciler that finds nothing to do (ADR-0133, ADR-0120, ADR-0121).
 //
@@ -23,8 +25,6 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prometheus/client_golang/prometheus"
-	"golang.org/x/net/idna"
-	"golang.org/x/net/publicsuffix"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
@@ -34,9 +34,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/db/accountstate/completion"
 	runrecord "github.com/ppat/mediated-mailbox-mcp/db/jobruns/record"
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
-	"github.com/ppat/mediated-mailbox-mcp/executioncontext/accountload"
-	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/open"
-	"github.com/ppat/mediated-mailbox-mcp/executioncontext/policyload"
+	"github.com/ppat/mediated-mailbox-mcp/executioncontext/assembly"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/session"
 	"github.com/ppat/mediated-mailbox-mcp/provider/gmail"
 	ratecore "github.com/ppat/mediated-mailbox-mcp/ratelimit/core"
@@ -85,12 +83,12 @@ type Jobs interface {
 
 // Config is what backfill's job kind is built from, and nothing more.
 type Config struct {
-	// Pool is backfill's own pool, which connects as backfill's runtime role (ADR-0118).
+	// Pool is backfill's own pool, which connects as backfill's runtime role, and which its own
+	// statements, its leases and its recording of authentication attempts run under (ADR-0118).
 	Pool *pgxpool.Pool
-	// Keys open the stored credentials and client secrets.
-	Keys *open.Keyring
-	// Scanner masks subjects and scans bodies, built once from the worker's scanner section.
-	Scanner scan.Scanner
+	// Context is the worker's execution context, whose scanner masks subjects and scans bodies
+	// (ADR-0090, ADR-0120).
+	Context *assembly.Context
 	// Client is the HTTP client the Gmail adapter and its token source call through.
 	Client *http.Client
 	// Registry is the worker's registry, labelled with backfill's job kind.
@@ -114,11 +112,8 @@ type Backfill struct {
 	jobs     Jobs
 	limit    *schedule.Limit
 	interval time.Duration
-	loader   *accountload.Loader
+	context  *assembly.Context
 	sessions *session.Holder
-	// policies is built at the first reload that lists an account, since a policy loader reads at
-	// least one, and never replaced. Every account job is ensured after it is built.
-	policies *policyload.Loader
 	store    pass1.Store
 	second   pass2.Store
 	first    *pass1.Metrics
@@ -126,7 +121,6 @@ type Backfill struct {
 	leases   *lease.Metrics
 	// processing times each body's conversion and scan in the second pass (ADR-0125).
 	processing *series.Processing
-	lookups    classify.Lookups
 	// port builds an account's Gmail adapter in a kind New built, over the series New registered, so
 	// a test reaches the adapter series the kind serves.
 	port func(account string, tokens gmail.Tokens) (mail.Port[context.Context], error)
@@ -135,7 +129,8 @@ type Backfill struct {
 }
 
 // New returns backfill's job kind with its series registered on c.Registry. Its account sessions
-// build each Gmail source and adapter over c.Client.
+// build each Gmail source and adapter over c.Client, the source shared with every job kind of the
+// worker through the execution context.
 func New(c Config) (*Backfill, error) {
 	connect, port, err := gmailConnector(c.Registry, c.Client)
 	if err != nil {
@@ -171,37 +166,43 @@ func build(c Config, connectors map[string]session.Connector) (*Backfill, error)
 	if err != nil {
 		return nil, err
 	}
-	loader := accountload.New(c.Pool, c.Keys, c.Logger, []string{gmailProvider})
 	return &Backfill{
-		pool: c.Pool, scanner: c.Scanner, registry: c.Registry, logger: c.Logger, jobs: c.Jobs,
-		limit: schedule.NewLimit(c.Concurrency), interval: c.ReloadInterval, loader: loader,
-		sessions: session.New(session.Config{Loader: loader, DB: c.Pool, Logger: c.Logger, Connectors: connectors, Hold: true}),
+		pool: c.Pool, scanner: c.Context.Scanner(), registry: c.Registry, logger: c.Logger, jobs: c.Jobs,
+		limit: schedule.NewLimit(c.Concurrency), interval: c.ReloadInterval, context: c.Context,
+		sessions: c.Context.Sessions(connectors, c.Pool),
 		store:    pass1.NewPostgres(c.Pool), second: pass2.NewPostgres(c.Pool),
 		first: first, backlog: backlog, leases: leases, processing: processing,
-		lookups: classify.Lookups{ToUnicode: idna.Lookup.ToUnicode, ToASCII: idna.Lookup.ToASCII, Registrable: publicsuffix.EffectiveTLDPlusOne},
 	}, nil
 }
 
-// Reload returns the job kind's reload, the job keyed by the kind alone that reloads the account
-// snapshot and the policy and adds and drops the account jobs (ADR-0090, ADR-0119).
+// Reload returns the job kind's reload, the job keyed by the kind alone that adds and drops the
+// account jobs from what the execution context's latest reload left in force, asked on the reload
+// interval and woken by each reload of the context (ADR-0090, ADR-0119).
 func (b *Backfill) Reload() (schedule.Key, schedule.Job) {
 	return schedule.Key{Kind: Kind}, schedule.Job{
 		Run: b.reload, Interval: b.interval, Backoff: backoff, Late: lateReloads * b.interval, Logger: b.logger,
 	}
 }
 
-// reload reloads the account snapshot and the policy of every account it lists, then ensures a job
-// for each account it lists that the kind can serve and removes the job of each it no longer serves. A
-// snapshot whose read fails keeps the previous one and changes no job. A policy whose reload fails
-// adds no job, because an account whose rules were never read would be decided as if every sender were
-// restricted, and still drops the jobs of the accounts no longer listed (ADR-0090, ADR-0041).
+// reload ensures a job for each account the execution context's latest reload lists that the kind can
+// serve and removes the job of each it no longer serves. While no load of the accounts has
+// succeeded it changes no job and answers not due, neither a success nor a failure, so a start logs no
+// error before the context's first load wakes it. When the latest read of the accounts failed it
+// changes no job and fails. When the latest reload's
+// policy load failed it adds no job, because an account whose rules were never read would be decided
+// as if every sender were restricted, still drops the jobs of the accounts no longer listed, and
+// fails (ADR-0090, ADR-0041).
 func (b *Backfill) reload(ctx context.Context, _ schedule.Ask) error {
-	if err := b.loader.Load(ctx); err != nil {
-		return fmt.Errorf("loading the accounts: %w", err)
+	latest := b.context.Latest()
+	if !latest.Loaded() {
+		return schedule.ErrNotDue
 	}
-	snapshot := b.loader.Snapshot()
+	policyErr := latest.Err()
+	if policyErr != nil && !errors.Is(policyErr, assembly.ErrPolicyNotLoaded) {
+		return policyErr
+	}
+	snapshot := latest.Snapshot()
 	listed := b.sessions.Accounts(snapshot)
-	policyErr := b.loadPolicy(ctx, ids(snapshot))
 	if policyErr != nil {
 		b.logger.Error("the policy was not reloaded, so no account newly listed is backfilled until it is", "error", policyErr)
 	}
@@ -235,25 +236,6 @@ func (b *Backfill) reload(ctx context.Context, _ schedule.Ask) error {
 	return nil
 }
 
-// loadPolicy reloads the policy of accounts through the kind's own policy loader, building it at the
-// first reload that lists an account (ADR-0041, ADR-0119). A reload that fails keeps the snapshot it
-// had.
-func (b *Backfill) loadPolicy(ctx context.Context, accounts []string) error {
-	if len(accounts) == 0 {
-		return nil
-	}
-	if b.policies == nil {
-		built, err := policyload.New(b.pool, accounts, b.registry, b.lookups)
-		if err != nil {
-			return err
-		}
-		b.policies = built
-	} else if err := b.policies.SetAccounts(accounts); err != nil {
-		return err
-	}
-	return b.policies.Reload(ctx)
-}
-
 // job returns the account's job. Its runs are asked on the reload interval and hold the kind's limit.
 // It makes the run-start step at its first run that reaches it, once for the job's life, so an account
 // listed again gets it again (ADR-0121).
@@ -271,7 +253,7 @@ func (b *Backfill) job(account string) schedule.Job {
 // policyFor returns the account's policy in the active policy snapshot, which each page takes at its
 // entry (ADR-0041, ADR-0119).
 func (b *Backfill) policyFor(account string) func() classify.Policy {
-	return func() classify.Policy { return b.policies.Snapshot().For(account) }
+	return func() classify.Policy { return b.context.Policy(account) }
 }
 
 // run asks the account's due decision and does the work it names. The run-start step returns the
@@ -291,11 +273,11 @@ func (b *Backfill) run(ctx context.Context, ask schedule.Ask, account string, st
 	if !work.Any() {
 		return nil
 	}
-	limiter, err := newLimiter(ctx, b.pool, []string{account}, b.leases)
+	limiter, err := b.context.Limiter(b.pool, account, gmail.Profile{}.BudgetPerSecond(), b.leases)
 	if err != nil {
 		return err
 	}
-	u := &unit{sessions: b.sessions, loader: b.loader, account: account}
+	u := &unit{sessions: b.sessions, context: b.context, account: account}
 	first := pass1.Deps{
 		Store: b.store, Fetch: u.fetch(limiter), Metadata: u.metadata(limiter), PerCall: perCall(gmail.Profile{}),
 		Policy: b.policyFor(account), Scanner: b.scanner, RunID: runID, Now: time.Now,
@@ -395,14 +377,14 @@ var errNotListed = errors.New("the account is no longer served, so its run stops
 // unit is the account's session for the unit of work in progress, opened at each unit's entry.
 type unit struct {
 	sessions *session.Holder
-	loader   *accountload.Loader
+	context  *assembly.Context
 	account  string
 	current  *session.Session
 }
 
 // open opens the account's session for the next unit of work over the active account snapshot.
 func (u *unit) open() error {
-	s, err := u.sessions.Open(u.loader.Snapshot(), u.account)
+	s, err := u.sessions.Open(u.context.Snapshot(), u.account)
 	if errors.Is(err, session.ErrNotConnected) {
 		return errNotListed
 	}
@@ -620,53 +602,6 @@ func secondPassAccount(ctx context.Context, deps pass2.Deps, account string, met
 		}
 		logger.Info("page made durable", "run", p.Run(), "pass", 2, "page", at.Checkpoint.Page, "scanned", at.Counters.Scanned)
 	}
-}
-
-// newLimiter returns the rate limiter for the Gmail accounts, each at the target its state row sets
-// (ADR-0024).
-func newLimiter(ctx context.Context, pool *pgxpool.Pool, accounts []string, metrics *lease.Metrics) (*lease.Limiter, error) {
-	targets, err := loweredTargets(ctx, pool, accounts)
-	if err != nil {
-		return nil, err
-	}
-	limiter, err := lease.NewWithTargets(pool, gmail.Profile{}.BudgetPerSecond(), targets, metrics)
-	if err != nil {
-		return nil, fmt.Errorf("building the rate limiter: %w", err)
-	}
-	return limiter, nil
-}
-
-// loweredTargets returns the lower target each account's state row sets, a fraction of its
-// provider's declared ceiling, leaving out the accounts that set none (ADR-0024).
-func loweredTargets(ctx context.Context, db tx.Beginner, accounts []string) (map[string]float64, error) {
-	targets := map[string]float64{}
-	for _, account := range accounts {
-		err := tx.Run(ctx, db, account, func(t pgx.Tx) error {
-			target, err := accountstate.New(t).LoweredTarget(ctx)
-			if err != nil {
-				return err
-			}
-			if target.Valid {
-				targets[account] = float64(target.Float32)
-			}
-			return nil
-		})
-		if err != nil {
-			return nil, fmt.Errorf("reading the lowered target of account %s: %w", account, err)
-		}
-	}
-	return targets, nil
-}
-
-// ids returns the identifiers of every account snapshot lists, the ones the kind serves and the ones
-// it skips alike, whose policy the reload loads, so an account that becomes servable has its rules
-// read already (ADR-0090, ADR-0041).
-func ids(snapshot *accountload.Snapshot) []string {
-	var out []string
-	for _, a := range snapshot.Accounts() {
-		out = append(out, a.ID())
-	}
-	return out
 }
 
 // runID returns a new run's identifier, sixteen random hexadecimal digits.

@@ -7,17 +7,17 @@ integration: yes
 
 
 diff --git a/api/app/app.go b/api/app/app.go
-index 8f9657ee..92f2e27f 100644
+index 7ad0edd..48913bb 100644
 --- a/api/app/app.go
 +++ b/api/app/app.go
-@@ -352,7 +352,9 @@ func (s *serving) reload(ctx context.Context) error {
- 	ids := idsOf(next)
- 	failed := s.loadPolicy(ctx, ids)
- 	s.snapshot.Store(next)
+@@ -415,7 +415,9 @@ func (s *serving) reload(ctx context.Context) error {
+ // serve serves the accounts of the snapshot the execution context's latest reload left in force.
+ func (s *serving) serve(context.Context) {
+ 	ids := idsOf(s.context.Snapshot())
 -	s.registry.Serve(ids)
 +	if len(ids) > 0 {
 +		s.registry.Serve(ids)
 +	}
  	s.logger.Info("accounts served", "accounts", len(ids))
- 	return failed
  }
+ 

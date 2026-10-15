@@ -5,15 +5,16 @@ tests: TestEachJobKindsConstructorTakesOnlyWhatItNeeds
 scheduled-count: no
 
 diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/deltasync.go
+index 5a7ea58..ec39a78 100644
 --- a/worker/internal/deltasync/deltasync.go
 +++ b/worker/internal/deltasync/deltasync.go
-@@ -77,7 +77,8 @@
- // Config is what delta sync's job kind is built from, and nothing more.
- type Config struct {
- 	// Pool is delta sync's own pool, which connects as delta sync's runtime role (ADR-0118).
+@@ -78,7 +78,8 @@ type Config struct {
+ 	// Pool is delta sync's own pool, which connects as delta sync's runtime role, and which its own
+ 	// statements, its leases, its recording of authentication attempts and its re-seal of the OAuth
+ 	// clients' secrets run under (ADR-0118, ADR-0092).
 -	Pool *pgxpool.Pool
 +	Pool     *pgxpool.Pool
 +	Backfill *pgxpool.Pool
- 	// Keys open the stored credentials and client secrets, and seal again what was sealed to a key
- 	// other than the current one (ADR-0092).
- 	Keys *open.Keyring
+ 	// Context is the worker's execution context, whose loader delta sync re-seals through and whose
+ 	// scanner masks subjects and scans bodies (ADR-0090, ADR-0092, ADR-0120).
+ 	Context *assembly.Context

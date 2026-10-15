@@ -15,10 +15,10 @@
 //
 // Its database connection is built from the configuration's database section, with the password in
 // the mounted file the section names (ADR-0078, ADR-0079). The accounts it serves live in the database
-// and never in its configuration (ADR-0080). They reach the registry, the policy loader and the
-// rate-state collector as an account snapshot, loaded at its assembly and reloaded on the interval the
-// configuration sets by a task the host runs (ADR-0090). The registry refuses every call naming an
-// account the snapshot in force does not list. The bearer token is a mounted file, read again on each
+// and never in its configuration (ADR-0080). They reach the registry, the policy and the rate-state
+// collector through the process's execution context, whose account snapshot its assembly loads and
+// whose reload, on the interval the configuration sets, is a task the host runs (ADR-0090). The
+// registry refuses every call naming an account the snapshot in force does not list. The bearer token is a mounted file, read again on each
 // request, so a rotated file takes effect without a restart (ADR-0079, ADR-0080). The API server
 // refuses to start while MCPGODEBUG is set, because the MCP SDK reads it to switch its behaviour
 // (ADR-0086).
@@ -35,10 +35,8 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"sync/atomic"
 	"time"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/net/idna"
@@ -52,12 +50,10 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
-	"github.com/ppat/mediated-mailbox-mcp/db/accountstate"
-	"github.com/ppat/mediated-mailbox-mcp/db/tx"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/accountload"
+	"github.com/ppat/mediated-mailbox-mcp/executioncontext/assembly"
 	credentialcore "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/core"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/open"
-	"github.com/ppat/mediated-mailbox-mcp/executioncontext/policyload"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/session"
 	"github.com/ppat/mediated-mailbox-mcp/process/dbconnect"
 	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core"
@@ -91,7 +87,8 @@ type Configuration struct {
 type Section struct {
 	// TokenFile names the mounted file holding the bearer token clients present.
 	TokenFile string `yaml:"token_file" settings:"required"`
-	// AccountReloadInterval is how often the account snapshot is reloaded (ADR-0090).
+	// AccountReloadInterval is how often the execution context the API server's root builds reloads
+	// its account snapshot and their policy (ADR-0090).
 	AccountReloadInterval time.Duration `yaml:"account_reload_interval"`
 	// ProviderTimeout bounds each provider call a body request makes, after which the call is the
 	// provider's failure (ADR-0101).
@@ -164,7 +161,8 @@ var Mount = []string{"/api/", "/mcp"}
 // Run is the API server's process. The host loads the configuration, and the API server is assembled
 // from it, the keyring loaded before any connection is made, so a public key matching none of the
 // private keys refuses the start (ADR-0088), and its accounts and their policy loaded before it serves
-// (ADR-0138).
+// (ADR-0138). The process's execution context, built once over the API server's pool, reloads in a
+// task of the process (ADR-0090).
 //
 // logger is the logger main.go built over level, at info until the host sets level from log_level
 // once the effective configuration is written, so every logger derived from logger follows it
@@ -184,8 +182,9 @@ func Run(ctx context.Context, args, environ []string, stdout, stderr io.Writer, 
 }
 
 // fromConfiguration builds what the API server needs from the configuration, the scanner from its
-// section under the section's revision, the keyring and the pool connecting as the API server's role,
-// and assembles the API server from them.
+// section under the section's revision, the keyring, the pool connecting as the API server's role and
+// the process's execution context over that pool, and assembles the API server from them. The
+// context's reload is the process's task.
 func fromConfiguration(ctx context.Context, provided host.Provided[Configuration]) (host.Parts, error) {
 	c := provided.Loaded.Config
 	scanner, err := scan.New(c.Scanner, provided.Loaded.Revisions[scannerSection])
@@ -200,21 +199,46 @@ func fromConfiguration(ctx context.Context, provided host.Provided[Configuration
 	if err != nil {
 		return host.Parts{}, err
 	}
-	return Assemble(ctx, Needs{
-		Section: c.Section, Pool: pool, Keys: keys, Scanner: scanner, Client: http.DefaultClient,
+	ec, err := newContext(pool, keys, scanner, c.Section, provided.Registerer, provided.Logger)
+	if err != nil {
+		return host.Parts{}, err
+	}
+	parts, err := Assemble(ctx, Needs{
+		Section: c.Section, Pool: pool, Context: ec, Client: http.DefaultClient,
 		Registerer: provided.Registerer, Logger: provided.Logger, Start: provided.Start,
 	})
+	if err != nil {
+		return host.Parts{}, err
+	}
+	parts.Tasks = append(parts.Tasks, ContextTask(ec))
+	return parts, nil
+}
+
+// newContext returns the execution context of a process that hosts the API server alone, over the
+// API server's pool and so under its role, reloading on its account reload interval (ADR-0090,
+// ADR-0118).
+func newContext(pool *pgxpool.Pool, keys *open.Keyring, scanner scan.Scanner, s Section, reg prometheus.Registerer, logger *slog.Logger) (*assembly.Context, error) {
+	return assembly.New(assembly.Needs{
+		Pool: pool, Keys: keys, ThroughClient: []string{gmailProvider}, Scanner: scanner, Lookups: lookups(),
+		ReloadInterval: s.AccountReloadInterval, Registerer: reg, Logger: logger,
+	})
+}
+
+// ContextTask is the task that reloads the process's execution context on its interval, which the
+// root that builds the context hands the host once.
+func ContextTask(ec *assembly.Context) host.Task {
+	return host.Task{Name: "execution context reload", Run: ec.Run}
 }
 
 // Needs are what the API server is assembled from.
 type Needs struct {
 	Section Section
-	// Pool connects as the API server's runtime role (ADR-0118).
+	// Pool connects as the API server's runtime role, which its own statements, its leases and its
+	// recording of authentication attempts run under (ADR-0118).
 	Pool *pgxpool.Pool
-	// Keys open the accounts' sealed credentials (ADR-0081).
-	Keys *open.Keyring
-	// Scanner runs the serve-time pattern check (ADR-0005).
-	Scanner scan.Scanner
+	// Context is the process's execution context, its accounts, their sessions' sources, their policy
+	// and the scanner the serve-time pattern check runs (ADR-0005, ADR-0090).
+	Context *assembly.Context
 	// Client is the HTTP client the provider adapters and their token sources call through.
 	Client *http.Client
 	// Registerer is where every series of the API server is registered (ADR-0076).
@@ -225,9 +249,10 @@ type Needs struct {
 	Start host.Starter
 }
 
-// Assemble builds the API server from n, loads its accounts and their policy, and returns its parts,
-// the client surface behind the bearer check, the readiness check of the bearer token and the task
-// that reloads the accounts on their interval. It starts no goroutine of its own. Its policy loads run
+// Assemble builds the API server from n, has the execution context load its accounts and their
+// policy, and returns its parts, the client surface behind the bearer check and the readiness check
+// of the bearer token. It serves the accounts of every reload of the context. It starts no goroutine
+// of its own. Its policy loads run
 // on goroutines n.Start starts, under a context that outlives the requests, so they end when the
 // process stops and never because a client stopped waiting (ADR-0138). A load that fails, or a bearer
 // token file that cannot be read or holds no token, fails the assembly, so a process that cannot
@@ -256,11 +281,11 @@ type assembled struct {
 // bound on a body request's lease waits, which the tests and the live agent's exercise harness give
 // over the provider fake, so each of them builds the API server as Assemble does.
 func assemble(ctx context.Context, n Needs, connect session.Connector, wait time.Duration) (*assembled, error) {
-	served, err := newServing(n.Start, n.Pool, n.Keys, n.Registerer, n.Logger)
+	served, err := newServing(n.Start, n.Pool, n.Context, n.Registerer, n.Logger)
 	if err != nil {
 		return nil, err
 	}
-	bodies, opener, err := newBodies(served, connect, n.Scanner, n.Section.ProviderTimeout, wait, n.Registerer)
+	bodies, opener, err := newBodies(served, connect, n.Context.Scanner(), n.Section.ProviderTimeout, wait, n.Registerer)
 	if err != nil {
 		return nil, err
 	}
@@ -273,6 +298,7 @@ func assemble(ctx context.Context, n Needs, connect session.Connector, wait time
 		return nil, err
 	}
 	served.registry = registry
+	n.Context.OnReload(served.serve)
 	if err := served.reload(ctx); err != nil {
 		return nil, err
 	}
@@ -297,10 +323,6 @@ func parts(served *serving, s Section, logger *slog.Logger) (host.Parts, error) 
 		Handler: handler,
 		Ready: []host.Check{{Name: "bearer token", Check: func(context.Context) error {
 			return tokenReadable(s.TokenFile)
-		}}},
-		Tasks: []host.Task{{Name: "account reload", Run: func(ctx context.Context) error {
-			served.reloadEvery(ctx, s.AccountReloadInterval)
-			return nil
 		}}},
 	}, nil
 }
@@ -356,95 +378,48 @@ func lookups() classify.Lookups {
 	}
 }
 
-// serving is the set of accounts the API server serves and their policy. Each reload takes a new
-// account snapshot, serves its accounts and loads their policy, and an account whose rules no load
-// has read restricts every sender (ADR-0090, ADR-0041). A body request has the policy loaded again
-// before it decides, through the same coalesced load the reloads use (ADR-0099).
+// serving is the set of accounts the API server serves and their policy, which the process's
+// execution context holds. Each reload of the context serves its snapshot's accounts, and an account
+// whose rules no load has read restricts every sender (ADR-0090, ADR-0041). A body request has the
+// policy loaded again before it decides, through the coalesced load (ADR-0099).
 type serving struct {
-	loader  *accountload.Loader
+	context *assembly.Context
 	pool    *pgxpool.Pool
-	metrics prometheus.Registerer
 	logger  *slog.Logger
-	// policies is the policy loader, built at the first reload that serves an account. Calls read it
-	// while a reload may be building it.
-	policies atomic.Pointer[policyload.Loader]
 	// fresh runs the policy loads, each started after every caller it answers asked (ADR-0099).
 	fresh    *reload.Coalesced
 	registry service.Registry
-	// snapshot is the account snapshot the registry serves.
-	snapshot atomic.Pointer[accountload.Snapshot]
 }
 
-// newServing returns the serving state, serving no account until its first reload, and registers on
-// metrics F3's collector of each served account's rate-state series, which the API server carries
-// because it runs continuously (ADR-0077). Its policy loads run on goroutines start starts, so they
-// end when the API server stops and never because a client stopped waiting.
-func newServing(start host.Starter, pool *pgxpool.Pool, keys *open.Keyring, metrics prometheus.Registerer, logger *slog.Logger) (*serving, error) {
-	s := &serving{loader: accountload.New(pool, keys, logger, []string{gmailProvider}), pool: pool, metrics: metrics, logger: logger}
-	s.fresh = reload.New(reload.Starter(start), s.reloadPolicy)
-	s.snapshot.Store(&accountload.Snapshot{})
+// newServing returns the serving state over the execution context ec, and registers on metrics F3's
+// collector of each served account's rate-state series, read through pool, which the API server
+// carries because it runs continuously (ADR-0077). Its policy loads run on goroutines start starts,
+// so they end when the API server stops and never because a client stopped waiting.
+func newServing(start host.Starter, pool *pgxpool.Pool, ec *assembly.Context, metrics prometheus.Registerer, logger *slog.Logger) (*serving, error) {
+	s := &serving{context: ec, pool: pool, logger: logger}
+	s.fresh = reload.New(reload.Starter(start), ec.ReloadPolicy)
 	if err := metrics.Register(lease.NewCollector(pool, s.rateAccounts)); err != nil {
 		return nil, err
 	}
 	return s, nil
 }
 
-// reload loads the account snapshot and the policy of its accounts, and serves them. A snapshot read
-// that fails keeps the accounts served and their policy, and returns the error, which the start
-// treats as fatal and a scheduled reload logs. A read listing no account serves none, and an account a
-// read no longer lists is dropped (ADR-0090).
-//
-// The policy is loaded on every reload, so a policy edit reaches the metadata reads and the
-// reload-failure alarm clears without a body request (ADR-0099). A policy load that fails is
-// returned, and the snapshot's accounts are served all the same, so an account the snapshot drops is
-// dropped. The policy loader keeps its active snapshot, so an account it read before keeps that
-// policy, and an account it never read gets the policy that restricts every sender (ADR-0041). The
-// next reload loads the policy again.
+// reload has the execution context reload its account snapshot and the policy of its accounts, which
+// serves them. A snapshot read that fails keeps the accounts served and their policy, and returns the
+// error, which the start treats as fatal. A read listing no account serves none, and an account a
+// read no longer lists is dropped (ADR-0090). A policy load that fails is returned, and the snapshot's
+// accounts are served all the same, so an account the snapshot drops is dropped. The policy loader
+// keeps its active snapshot, so an account it read before keeps that policy, and an account it never
+// read gets the policy that restricts every sender (ADR-0041). The next reload loads the policy again.
 func (s *serving) reload(ctx context.Context) error {
-	if err := s.loader.Load(ctx); err != nil {
-		return fmt.Errorf("loading the accounts: %w", err)
-	}
-	next := s.loader.Snapshot()
-	ids := idsOf(next)
-	failed := s.loadPolicy(ctx, ids)
-	s.snapshot.Store(next)
+	return s.context.Reload(ctx)
+}
+
+// serve serves the accounts of the snapshot the execution context's latest reload left in force.
+func (s *serving) serve(context.Context) {
+	ids := idsOf(s.context.Snapshot())
 	s.registry.Serve(ids)
 	s.logger.Info("accounts served", "accounts", len(ids))
-	return failed
-}
-
-// loadPolicy sets the accounts the shared policy loader reads to accounts and has it load, through
-// the coalesced load. With no account there is no policy to load.
-func (s *serving) loadPolicy(ctx context.Context, accounts []string) error {
-	if len(accounts) == 0 {
-		s.logger.Info("no account is served, so no policy is loaded")
-		return nil
-	}
-	policies := s.policies.Load()
-	if policies == nil {
-		built, err := policyload.New(s.pool, accounts, s.metrics, lookups())
-		if err != nil {
-			return err
-		}
-		s.policies.Store(built)
-	} else if err := policies.SetAccounts(accounts); err != nil {
-		return err
-	}
-	if err := s.fresh.Load(ctx); err != nil {
-		return fmt.Errorf("loading the policy: %w", err)
-	}
-	s.logger.Info("policy loaded", "accounts", len(accounts))
-	return nil
-}
-
-// reloadPolicy is one policy load, of the accounts the policy loader was last set to read. Before the
-// first reload that serves an account there is no loader and nothing to load.
-func (s *serving) reloadPolicy(ctx context.Context) error {
-	policies := s.policies.Load()
-	if policies == nil {
-		return nil
-	}
-	return policies.Reload(ctx)
 }
 
 // currentPolicy has the policy loaded by a load that starts after the call, and returns the account's
@@ -461,27 +436,10 @@ func (s *serving) currentPolicy(ctx context.Context, account string) classify.Po
 	return s.policy(account)
 }
 
-// reloadEvery reloads on every tick of interval until ctx ends. A failed reload is logged and keeps
-// what was served.
-func (s *serving) reloadEvery(ctx context.Context, interval time.Duration) {
-	ticker := time.NewTicker(interval)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-			if err := s.reload(ctx); err != nil && ctx.Err() == nil {
-				s.logger.Error("the accounts were not reloaded, so the ones served stay", "error", err)
-			}
-		}
-	}
-}
-
 // accounts returns the accounts served with their providers, for the accounts listing.
 func (s *serving) accounts() []service.Account {
 	var out []service.Account
-	for _, a := range s.snapshot.Load().Accounts() {
+	for _, a := range s.context.Snapshot().Accounts() {
 		out = append(out, service.Account{ID: a.ID(), Provider: a.Provider()})
 	}
 	return out
@@ -490,11 +448,7 @@ func (s *serving) accounts() []service.Account {
 // policy returns the policy an account's messages are decided against. With no policy loaded it is
 // the policy that restricts every sender.
 func (s *serving) policy(account string) classify.Policy {
-	policies := s.policies.Load()
-	if policies == nil {
-		return classify.Policy{}
-	}
-	return policies.Snapshot().For(account)
+	return s.context.Policy(account)
 }
 
 // rateAccounts returns the accounts the rate-state collector reports on, every served account whose
@@ -502,7 +456,7 @@ func (s *serving) policy(account string) classify.Policy {
 // ADR-0077).
 func (s *serving) rateAccounts(context.Context) ([]lease.Account, error) {
 	var out []lease.Account
-	for _, a := range s.snapshot.Load().Accounts() {
+	for _, a := range s.context.Snapshot().Accounts() {
 		if a.Provider() != gmailProvider {
 			continue
 		}
@@ -670,10 +624,10 @@ func newBodies(served *serving, connect session.Connector, scanner scan.Scanner,
 		}
 	}
 	converted := processing.WithLabelValues("convert")
-	p := &providers{served: served, leases: leases, timeout: timeout, wait: wait, sessions: session.New(session.Config{
-		Loader: served.loader, DB: served.pool, Logger: served.logger,
-		Connectors: map[string]session.Connector{gmailProvider: connect}, Hold: true,
-	})}
+	p := &providers{
+		served: served, leases: leases, timeout: timeout, wait: wait,
+		sessions: served.context.Sessions(map[string]session.Connector{gmailProvider: connect}, served.pool),
+	}
 	return service.Bodies{
 		Policy: served.currentPolicy,
 		Open:   p.open,
@@ -715,9 +669,10 @@ func gmailConnector(registry prometheus.Registerer, client *http.Client) (sessio
 	}), nil
 }
 
-// providers opens each body request's session with its account's provider. Its account sessions keep
-// one token source per account across requests, so an access token the provider issued serves the
-// requests after it rather than each request refreshing its own. An account the snapshot in force
+// providers opens each body request's session with its account's provider. Its account sessions are
+// the execution context's, which keeps one token source per account in the process across requests,
+// so an access token the provider issued serves the requests after it rather than each request
+// refreshing its own. An account the snapshot in force
 // does not list, that is not connected, or whose provider is not Gmail is not connected, and its
 // credential is the one the snapshot opened from its state row and nothing else (ADR-0080, ADR-0106).
 type providers struct {
@@ -734,11 +689,11 @@ type providers struct {
 // whose waits for its leases end p.wait after the request arrived. It is called only once the gate
 // has released a message (ADR-0002).
 func (p *providers) open(ctx context.Context, account string, arrived time.Time) (service.Provider, error) {
-	opened, err := p.sessions.Open(p.served.loader.Snapshot(), account)
+	opened, err := p.sessions.Open(p.served.context.Snapshot(), account)
 	if err != nil {
 		return nil, err
 	}
-	limiter, err := newLimiter(ctx, p.served.pool, account, p.leases)
+	limiter, err := p.served.context.Limiter(p.served.pool, account, gmail.Profile{}.BudgetPerSecond(), p.leases)
 	if err != nil {
 		return nil, err
 	}
@@ -850,29 +805,4 @@ func leased[T any](ctx context.Context, limiter *lease.Limiter, port mail.Port[c
 		return zero, errors.Join(err, fmt.Errorf("telling the rate limiter how the call went: %w", told))
 	}
 	return out, err
-}
-
-// newLimiter returns the rate limiter a body request spends from for a Gmail account, at the lower
-// target the account's state row sets, if it sets one (ADR-0024). It is built for each request, so a
-// target changed while the API server runs applies from the next request.
-func newLimiter(ctx context.Context, db tx.Beginner, account string, metrics *lease.Metrics) (*lease.Limiter, error) {
-	targets := map[string]float64{}
-	err := tx.Run(ctx, db, account, func(t pgx.Tx) error {
-		target, err := accountstate.New(t).LoweredTarget(ctx)
-		if err != nil {
-			return err
-		}
-		if target.Valid {
-			targets[account] = float64(target.Float32)
-		}
-		return nil
-	})
-	if err != nil {
-		return nil, fmt.Errorf("reading the lowered target of account %s: %w", account, err)
-	}
-	limiter, err := lease.NewWithTargets(db, gmail.Profile{}.BudgetPerSecond(), targets, metrics)
-	if err != nil {
-		return nil, fmt.Errorf("building the rate limiter: %w", err)
-	}
-	return limiter, nil
 }

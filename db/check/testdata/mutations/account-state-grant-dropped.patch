@@ -6,14 +6,14 @@ scheduled-count: no
 integration: yes
 
 diff --git a/db/migrations/00003_grants.sql b/db/migrations/00003_grants.sql
-index eba1d5bc..e3022daf 100644
+index 5a8ad6f..a213257 100644
 --- a/db/migrations/00003_grants.sql
 +++ b/db/migrations/00003_grants.sql
-@@ -542,6 +542,6 @@ TO mediated_mailbox_api, mediated_mailbox_backfill, mediated_mailbox_sync;
+@@ -555,6 +555,6 @@ TO mediated_mailbox_api, mediated_mailbox_backfill, mediated_mailbox_sync;
  GRANT SELECT (account_id, provider, oauth_client) ON accounts
  TO mediated_mailbox_api, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
  GRANT SELECT (account_id, credential), UPDATE (credential) ON account_state
--TO mediated_mailbox_api, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
-+TO mediated_mailbox_api, mediated_mailbox_backfill, mediated_mailbox_organize;
+-TO mediated_mailbox_api, mediated_mailbox_sync;
++TO mediated_mailbox_api;
  GRANT SELECT (name, provider, client_id, client_secret) ON oauth_clients
- TO mediated_mailbox_api, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
+ TO mediated_mailbox_api, mediated_mailbox_sync;

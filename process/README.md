@@ -37,7 +37,10 @@ holds only the layering mechanism and the database section, whose whole concern 
 process. Nothing here reads an account, a policy or a message, and nothing here runs a statement.
 Readiness is a component's, because each component answers it from state only it holds, so a
 component hands the host its readiness checks and the host serves `/readyz` over them. No component
-is imported here, and the host knows a component only by the parts it is handed.
+is imported here, and the host knows a component only by the parts it is handed. The execution
+context a process's components share is the execution context family's, which the composition root
+builds once and whose reload it hands the host as a task, so the host holds no account, no policy
+and no credential.
 
 ## The configuration library, `settings`
 

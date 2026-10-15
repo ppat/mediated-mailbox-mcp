@@ -33,12 +33,12 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/db/accountstate"
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/accountload"
+	"github.com/ppat/mediated-mailbox-mcp/executioncontext/assembly"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/open"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/session"
 	"github.com/ppat/mediated-mailbox-mcp/provider/fake"
 	"github.com/ppat/mediated-mailbox-mcp/provider/gmail"
-	ratecore "github.com/ppat/mediated-mailbox-mcp/ratelimit/core"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/marker"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/postgres"
@@ -70,6 +70,51 @@ func backfillPool(t *testing.T) *pgxpool.Pool {
 	return p
 }
 
+// contextRole is the role the worker's execution context connects as, delta sync's, which holds the
+// grants on the sealed credentials backfill's role does not (ADR-0118).
+const contextRole = "mediated_mailbox_sync"
+
+// contextPool returns a pool connecting as contextRole.
+func contextPool(t *testing.T) *pgxpool.Pool {
+	t.Helper()
+	cfg, err := pgxpool.ParseConfig(postgres.URL(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg.ConnConfig.RuntimeParams["options"] = "-c role=" + contextRole
+	p, err := pgxpool.NewWithConfig(t.Context(), cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(p.Close)
+	return p
+}
+
+// executionContext returns an execution context over contextPool opening with ring, scanning with s
+// and reloading every interval, as the worker's composition root builds it.
+func executionContext(t *testing.T, ring *open.Keyring, s scan.Scanner, logger *slog.Logger, interval time.Duration) *assembly.Context {
+	t.Helper()
+	ec, err := assembly.New(assembly.Needs{
+		Pool: contextPool(t), Keys: ring, ThroughClient: []string{gmailProvider}, Scanner: s,
+		Lookups:        classify.Lookups{ToUnicode: idna.Lookup.ToUnicode, ToASCII: idna.Lookup.ToASCII, Registrable: publicsuffix.EffectiveTLDPlusOne},
+		ReloadInterval: interval, Registerer: prometheus.NewRegistry(), Logger: logger,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return ec
+}
+
+// reloadWithContext reloads the execution context, as its task does, then runs the kind's reload, as the wake
+// each reload of the context gives it does, and returns the kind's reload's error alone, so a test
+// reads what the kind made of the context's reload.
+func (b *Backfill) reloadWithContext(ctx context.Context) error {
+	if err := b.context.Reload(ctx); err != nil {
+		b.logger.Debug("the execution context's reload failed", "error", err)
+	}
+	return b.reload(ctx, schedule.Ask{})
+}
+
 // superuser returns a connection that holds every privilege, to write what the UI's setups
 // would write and to break what the tests break.
 func superuser(t *testing.T) *pgx.Conn {
@@ -96,6 +141,12 @@ func must(t *testing.T, conn *pgx.Conn, sql string, args ...any) {
 // revoke revokes a grant of backfill's role for the rest of the test, and grants it again when the
 // test ends, so the tests after it see the role as the migration chain made it.
 func revoke(t *testing.T, conn *pgx.Conn, privilege string) {
+	t.Helper()
+	revokeFrom(t, conn, role, privilege)
+}
+
+// revokeFrom is revoke for the grant of role, such as the execution context's.
+func revokeFrom(t *testing.T, conn *pgx.Conn, role, privilege string) {
 	t.Helper()
 	must(t, conn, "REVOKE "+privilege+" FROM "+role)
 	url := postgres.URL(t)
@@ -251,7 +302,7 @@ func kind(t *testing.T, pool *pgxpool.Pool, ring *open.Keyring, logger *slog.Log
 		t.Fatal(err)
 	}
 	b, err := build(Config{
-		Pool: pool, Keys: ring, Scanner: s, Registry: prometheus.NewRegistry(), Logger: logger, Jobs: j,
+		Pool: pool, Context: executionContext(t, ring, s, logger, time.Minute), Registry: prometheus.NewRegistry(), Logger: logger, Jobs: j,
 		Concurrency: 1, ReloadInterval: time.Minute,
 	}, map[string]session.Connector{gmailProvider: connect})
 	if err != nil {
@@ -265,7 +316,7 @@ func kind(t *testing.T, pool *pgxpool.Pool, ring *open.Keyring, logger *slog.Log
 // returns the runs' failures joined, each naming its account.
 func runAll(t *testing.T, b *Backfill, j *jobs) error {
 	t.Helper()
-	if err := b.reload(t.Context(), schedule.Ask{}); err != nil {
+	if err := b.reloadWithContext(t.Context()); err != nil {
 		t.Fatal(err)
 	}
 	var failures []error
@@ -323,7 +374,7 @@ func TestARunTakesItsAccountsFromTheDatabase(t *testing.T) {
 		t.Errorf("warnings (-want +got):\n%s", diff)
 	}
 	for _, id := range []string{"no-credential", "no-state", "personal", "work"} {
-		if b.policies == nil || b.policies.Snapshot().For(id).Composed().RestrictsAll() {
+		if !b.context.PolicySnapshot().Loaded() || b.context.PolicySnapshot().For(id).Composed().RestrictsAll() {
 			t.Errorf("the reload read no rules of listed account %s, so it would restrict every sender once the account is served", id)
 		}
 	}
@@ -345,7 +396,7 @@ func TestAnAccountWithoutAClientIsSkipped(t *testing.T) {
 	var log logBuffer
 	j := newJobs()
 
-	if err := kind(t, backfillPool(t), ring, log.logger(), quiet, j).reload(t.Context(), schedule.Ask{}); err != nil {
+	if err := kind(t, backfillPool(t), ring, log.logger(), quiet, j).reloadWithContext(t.Context()); err != nil {
 		t.Fatal(err)
 	}
 
@@ -371,14 +422,14 @@ func TestAFailedSnapshotReadKeepsThePreviousSnapshot(t *testing.T) {
 	client(t, conn, public)
 	j := newJobs()
 	b := kind(t, backfillPool(t), ring, slog.New(slog.DiscardHandler), quiet, j)
-	if err := b.reload(t.Context(), schedule.Ask{}); err != nil {
+	if err := b.reloadWithContext(t.Context()); err != nil {
 		t.Fatal(err)
 	}
 	account(t, conn, "work", gmailProvider, sealed(t, public, "work-token", seal.AccountCredential("work")), false)
 	must(t, conn, "UPDATE account_state SET credential = NULL WHERE account_id = 'personal'")
-	revoke(t, conn, "SELECT ON accounts")
+	revokeFrom(t, conn, contextRole, "SELECT ON accounts")
 
-	err := b.reload(t.Context(), schedule.Ask{})
+	err := b.reloadWithContext(t.Context())
 
 	if !errors.Is(err, accountload.ErrUntrustedRead) {
 		t.Fatalf("the reload returned %v, want a failed snapshot read", err)
@@ -389,7 +440,7 @@ func TestAFailedSnapshotReadKeepsThePreviousSnapshot(t *testing.T) {
 	if len(j.removed) != 0 {
 		t.Errorf("the failed reload dropped the jobs of %v, want none", j.removed)
 	}
-	if a, ok := b.loader.Snapshot().Account("personal"); !ok || string(a.Credential()) != "personal-token" {
+	if a, ok := b.context.Snapshot().Account("personal"); !ok || string(a.Credential()) != "personal-token" {
 		t.Errorf("after the failed read the snapshot holds personal %v, want the previous snapshot's credential", ok)
 	}
 }
@@ -476,37 +527,31 @@ func counter(ends *int, first mail.AuthAttempt) func(session.Credentials) counti
 	}
 }
 
-// opened opens the account's session over loader's snapshot, building its source with source, and
-// recording through backfill's role.
-func opened[S session.Source](t *testing.T, loader *accountload.Loader, account string, source func(session.Credentials) S) *session.Session {
+// opened opens the account's session over the snapshot ec holds, building its source with source,
+// and recording through backfill's role.
+func opened[S session.Source](t *testing.T, ec *assembly.Context, account string, source func(session.Credentials) S) *session.Session {
 	t.Helper()
-	h := session.New(session.Config{
-		Loader: loader, DB: backfillPool(t), Logger: slog.New(slog.DiscardHandler),
-		Connectors: map[string]session.Connector{gmailProvider: connector(source)},
-	})
-	s, err := h.Open(loader.Snapshot(), account)
+	h := ec.Sessions(map[string]session.Connector{gmailProvider: connector(source)}, backfillPool(t))
+	s, err := h.Open(ec.Snapshot(), account)
 	if err != nil {
 		t.Fatal(err)
 	}
 	return s
 }
 
-// unitOver returns the unit of work of an account the kind serves, over loader's snapshot, whose
+// unitOver returns the unit of work of an account the kind serves, over the snapshot ec holds, whose
 // sessions build their sources with source and are held across units as the kind holds them.
-func unitOver[S session.Source](t *testing.T, loader *accountload.Loader, account string, source func(session.Credentials) S) *unit {
+func unitOver[S session.Source](t *testing.T, ec *assembly.Context, account string, source func(session.Credentials) S) *unit {
 	t.Helper()
 	return &unit{
-		sessions: session.New(session.Config{
-			Loader: loader, DB: backfillPool(t), Logger: slog.New(slog.DiscardHandler),
-			Connectors: map[string]session.Connector{gmailProvider: connector(source)}, Hold: true,
-		}),
-		loader: loader, account: account,
+		sessions: ec.Sessions(map[string]session.Connector{gmailProvider: connector(source)}, backfillPool(t)),
+		context:  ec, account: account,
 	}
 }
 
 // connectedUnit connects the account, whose row the test wrote, with its own token through the
 // household client, which it writes or seals again, and returns the account's unit of work over a
-// loader that has loaded it, its sessions' sources built with source.
+// execution context that has loaded it, its sessions' sources built with source.
 func connectedUnit[S session.Source](t *testing.T, conn *pgx.Conn, account string, source func(session.Credentials) S) *unit {
 	t.Helper()
 	ring, public := keys(t)
@@ -525,14 +570,18 @@ func idleUnit(t *testing.T, conn *pgx.Conn, account string) *unit {
 	return connectedUnit(t, conn, account, gmailSource(http.DefaultClient))
 }
 
-// loaded returns a loader that has loaded the snapshot.
-func loaded(t *testing.T, ring *open.Keyring, log *slog.Logger) *accountload.Loader {
+// loaded returns an execution context that has loaded the snapshot.
+func loaded(t *testing.T, ring *open.Keyring, log *slog.Logger) *assembly.Context {
 	t.Helper()
-	l := accountload.New(backfillPool(t), ring, log, []string{gmailProvider})
-	if err := l.Load(t.Context()); err != nil {
+	s, err := scan.New(scan.DefaultConfig(), "a-revision")
+	if err != nil {
 		t.Fatal(err)
 	}
-	return l
+	ec := executionContext(t, ring, s, log, time.Minute)
+	if err := ec.Reload(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	return ec
 }
 
 // The credentials each served account's token source is built from are the Gmail client the account
@@ -651,7 +700,7 @@ func TestAFailedWriteBackEndsTheRunInError(t *testing.T) {
 	client(t, conn, public)
 	var log logBuffer
 	loader := loaded(t, ring, log.logger())
-	revoke(t, conn, "UPDATE (credential) ON account_state")
+	revokeFrom(t, conn, contextRole, "UPDATE (credential) ON account_state")
 	personal := unitOver(t, loader, "personal", rotating(map[string]string{"first-token": "second-token"}, nil))
 	work := unitOver(t, loader, "work", rotating(nil, nil))
 	for _, u := range []*unit{personal, work} {
@@ -855,50 +904,6 @@ func counterValue(t *testing.T, registry prometheus.Gatherer, name, account stri
 	return 0
 }
 
-// The limiter a run builds spends each account under the lower target its state row sets, and every
-// other account under the default target (ADR-0024).
-func TestTheLimiterSpendsUnderTheStoredTarget(t *testing.T) {
-	conn := superuser(t)
-	reset(t, conn)
-	account(t, conn, "lowered", gmailProvider, nil, false)
-	account(t, conn, "default", gmailProvider, nil, false)
-	must(t, conn, "UPDATE account_state SET lowered_target_rate = 0.2 WHERE account_id = 'lowered'")
-	pool := backfillPool(t)
-	limiter, err := newLimiter(t.Context(), pool, []string{"default", "lowered"}, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, a := range []string{"default", "lowered"} {
-		if _, err := limiter.Acquire(t.Context(), a, ratecore.Batch, 1); err != nil {
-			t.Fatal(err)
-		}
-	}
-	got := map[string]float64{}
-	for _, a := range []string{"default", "lowered"} {
-		var target float64
-		if err := conn.QueryRow(t.Context(), "SELECT target_rate FROM rate_state WHERE account_id = $1", a).Scan(&target); err != nil {
-			t.Fatal(err)
-		}
-		got[a] = target
-	}
-	if diff := cmp.Diff(map[string]float64{"default": 50, "lowered": 20}, got, compare.Options); diff != "" {
-		t.Errorf("the targets the limiter spends under, in Gmail's units a second (-want +got):\n%s", diff)
-	}
-}
-
-// A stored target above half the ceiling refuses the limiter, naming the account, so no run spends
-// above the target an operator may only lower (ADR-0024).
-func TestAStoredTargetAboveHalfTheCeilingStopsTheRun(t *testing.T) {
-	conn := superuser(t)
-	reset(t, conn)
-	account(t, conn, "raised", gmailProvider, nil, false)
-	must(t, conn, "UPDATE account_state SET lowered_target_rate = 0.6 WHERE account_id = 'raised'")
-	_, err := newLimiter(t.Context(), backfillPool(t), []string{"raised"}, nil)
-	if !errors.Is(err, ratecore.ErrTargetOutOfRange) || !strings.Contains(err.Error(), `"raised"`) {
-		t.Errorf("newLimiter returned %v, want the target refused for the account", err)
-	}
-}
-
 // A page that fails is still a unit of work, so the account's unit is ended after it too, and a
 // rotation made before the failure reaches the database (ADR-0082).
 func TestAFailedPageIsStillHandedOver(t *testing.T) {
@@ -1013,8 +1018,8 @@ func TestARunRecordsEachAccountsAttemptWhenItsUnitEnds(t *testing.T) {
 }
 
 // connectedAccounts writes each account connected with its own token through the household client,
-// and returns a loader that has loaded them.
-func connectedAccounts(t *testing.T, ids ...string) *accountload.Loader {
+// and returns an execution context that has loaded them.
+func connectedAccounts(t *testing.T, ids ...string) *assembly.Context {
 	t.Helper()
 	conn := superuser(t)
 	reset(t, conn)
@@ -1178,7 +1183,7 @@ func TestEachJobStartsFromItsRecordedLatestSuccess(t *testing.T) {
 
 	j := newJobs()
 	b := kind(t, backfillPool(t), ring, slog.New(slog.DiscardHandler), quiet, j)
-	if err := b.reload(t.Context(), schedule.Ask{}); err != nil {
+	if err := b.reloadWithContext(t.Context()); err != nil {
 		t.Fatal(err)
 	}
 	got := map[string]time.Time{}

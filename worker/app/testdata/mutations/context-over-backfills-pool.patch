@@ -1,0 +1,19 @@
+control: Each job kind connects as its own role, through a pool of its own
+removes: the worker builds its execution context over backfill's pool, so the account snapshot's statements run under a role that holds no grant on a sealed credential
+packages: ./worker/app
+tests: TestEachJobKindIsHandedThePoolOfItsOwnRole
+scheduled-count: no
+
+diff --git a/worker/app/app.go b/worker/app/app.go
+index 4b0d8cb..6505fa0 100644
+--- a/worker/app/app.go
++++ b/worker/app/app.go
+@@ -263,7 +263,7 @@ func fromConfiguration(ctx context.Context, provided host.Provided[Configuration
+ // role, reloading on the reload interval (ADR-0090, ADR-0118).
+ func newContext(pools Pools, keys *open.Keyring, scanner scan.Scanner, s Section, reg prometheus.Registerer, logger *slog.Logger) (*assembly.Context, error) {
+ 	return assembly.New(assembly.Needs{
+-		Pool: pools.Sync, Keys: keys, ThroughClient: []string{gmailProvider}, Scanner: scanner,
++		Pool: pools.Backfill, Keys: keys, ThroughClient: []string{gmailProvider}, Scanner: scanner,
+ 		Lookups:        classify.Lookups{ToUnicode: idna.Lookup.ToUnicode, ToASCII: idna.Lookup.ToASCII, Registrable: publicsuffix.EffectiveTLDPlusOne},
+ 		ReloadInterval: s.ReloadInterval, Registerer: reg, Logger: logger,
+ 	})

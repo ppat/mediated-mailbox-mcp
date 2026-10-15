@@ -26,9 +26,9 @@ func TestMain(m *testing.M) {
 	postgres.Main(m)
 }
 
-// role is backfill's role, a job kind whose sessions hold their sources across units of work, so
-// its grants apply as they do in production (ADR-0118).
-const role = "mediated_mailbox_backfill"
+// role is delta sync's role, which the worker's execution context, whose holder keeps the sources
+// across units of work, connects as, so its grants apply as they do in production (ADR-0118).
+const role = "mediated_mailbox_sync"
 
 func pool(t *testing.T) *pgxpool.Pool {
 	t.Helper()
@@ -202,5 +202,89 @@ func TestAHeldSourceServesItsAccountUntilItsCredentialOrClientChanges(t *testing
 	}
 	if !slices.Equal(p.served, []string{"household-id", "household-id", "employer-id"}) {
 		t.Errorf("the provider served the units as %v", p.served)
+	}
+}
+
+// named is a port that records, under its name, each call it serves, so a test tells which holder's
+// port a unit called through.
+type named struct {
+	port
+	name  string
+	calls *[]string
+}
+
+func (n named) CurrentCursor(ctx context.Context) (mail.Cursor, error) {
+	*n.calls = append(*n.calls, n.name)
+	return n.port.CurrentCursor(ctx)
+}
+
+// Holders seen through one holder share its sources, so the units of two callers of one account use
+// one source and the provider issues one access token, while each unit calls through the port of its
+// own holder's connector, which keeps each caller's series of provider calls its own (ADR-0089,
+// ADR-0117).
+func TestHoldersThroughOneHolderShareItsSources(t *testing.T) {
+	ctx := t.Context()
+	conn, err := pgx.Connect(ctx, postgres.URL(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := conn.Close(context.Background()); err != nil {
+			t.Error(err)
+		}
+	})
+	key, err := seal.KEM().GenerateKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+	seed, err := key.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	private, err := open.ParsePrivateKey(seed)
+	if err != nil {
+		t.Fatal(err)
+	}
+	keys, err := open.NewKeyring(private.PublicKey(), private)
+	if err != nil {
+		t.Fatal(err)
+	}
+	secret, err := private.PublicKey().Seal([]byte("family-secret"), seal.ClientSecret("family"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	credential, err := private.PublicKey().Seal([]byte("shared-token"), seal.AccountCredential("shared"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	must(t, conn, "INSERT INTO oauth_clients (name, provider, client_id, client_secret) VALUES ('family', 'gmail', 'family-id', $1)", secret)
+	must(t, conn, "INSERT INTO accounts (account_id, provider, oauth_client) VALUES ('shared', 'gmail', 'family')")
+	must(t, conn, "INSERT INTO account_state (account_id, credential) VALUES ('shared', $1)", credential)
+
+	db := pool(t)
+	loader := accountload.New(db, keys, slog.New(slog.DiscardHandler), []string{"gmail"})
+	if err := loader.Load(ctx); err != nil {
+		t.Fatal(err)
+	}
+	p := &provider{}
+	var calls []string
+	through := func(name string) map[string]session.Connector {
+		return map[string]session.Connector{"gmail": session.Connect(func(c session.Credentials) *source {
+			return &source{p: p, client: c.ClientID, credential: c.Credential}
+		}, func(_ string, s *source) (mail.Port[context.Context], error) {
+			return named{port: port{s: s}, name: name, calls: &calls}, nil
+		})}
+	}
+	h := session.New(session.Config{Loader: loader, Logger: slog.New(slog.DiscardHandler), Hold: true})
+	backfill, sync := h.Through(through("backfill"), db), h.Through(through("sync"), db)
+
+	unit(t, backfill, loader, "shared")
+	unit(t, sync, loader, "shared")
+
+	if diff := cmp.Diff([]string{"family-id"}, p.issued, compare.Options); diff != "" {
+		t.Errorf("the access tokens issued to the two callers, one for the source they share (-want +got):\n%s", diff)
+	}
+	if diff := cmp.Diff([]string{"backfill", "sync"}, calls, compare.Options); diff != "" {
+		t.Errorf("the ports the units called through (-want +got):\n%s", diff)
 	}
 }

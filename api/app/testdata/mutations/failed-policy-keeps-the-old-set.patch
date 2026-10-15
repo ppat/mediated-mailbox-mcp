@@ -5,23 +5,16 @@ tests: TestAFailedPolicyLoadStillFollowsTheSnapshot
 scheduled-count: no
 integration: yes
 
-diff --git a/api/app/app.go b/api/app/app.go
-index 8f9657ee..e021db4a 100644
---- a/api/app/app.go
-+++ b/api/app/app.go
-@@ -350,11 +350,13 @@ func (s *serving) reload(ctx context.Context) error {
+diff --git a/executioncontext/assembly/assembly.go b/executioncontext/assembly/assembly.go
+index d74efe4..f717588 100644
+--- a/executioncontext/assembly/assembly.go
++++ b/executioncontext/assembly/assembly.go
+@@ -170,7 +170,7 @@ func (c *Context) Reload(ctx context.Context) error {
+ 	targets := c.readTargets(ctx, snapshot)
+ 	var err error
+ 	if policyErr := c.loadPolicy(ctx, idsOf(snapshot)); policyErr != nil {
+-		err = fmt.Errorf("%w: %w", ErrPolicyNotLoaded, policyErr)
++		return fmt.Errorf("%w: %w", ErrPolicyNotLoaded, policyErr)
  	}
- 	next := s.loader.Snapshot()
- 	ids := idsOf(next)
--	failed := s.loadPolicy(ctx, ids)
-+	if failed := s.loadPolicy(ctx, ids); failed != nil {
-+		return failed
-+	}
- 	s.snapshot.Store(next)
- 	s.registry.Serve(ids)
- 	s.logger.Info("accounts served", "accounts", len(ids))
--	return failed
-+	return nil
- }
- 
- // loadPolicy sets the accounts the shared policy loader reads to accounts and has it load, through
+ 	c.latest.Store(&Reloaded{snapshot: snapshot, targets: targets, loaded: true, err: err})
+ 	c.observersMu.Lock()

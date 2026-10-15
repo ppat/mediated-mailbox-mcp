@@ -23,6 +23,7 @@ of the concept, the steps every provider-calling root repeated around the snapsh
 | `session/` | The account session every provider-calling composition root holds its accounts' provider connections through |
 | `policyload/` | The policy snapshot's loading, and the reload-failure alarm |
 | `credential/` | The sealing and opening of a credential, the loading of its keys, and the configuration section naming the key files in `credential/core` |
+| `assembly/` | A process's one execution context, built once over the other packages, and its one reload |
 
 Each package is admitted to each component by its own entry in that component's import list, and
 each has a list of its own in `.golangci.yaml`, so joining this family never widens what any
@@ -37,18 +38,63 @@ connector per provider. The failure to watch is the session growing policy, scan
 code, or the policy loader growing behaviour unrelated to holding a snapshot. Either shows first as
 an entry its import list does not hold.
 
-The family connects to the database as no role of its own. Its statements run under the role of
-each deployable, or inside the worker each job kind, that imports the package running them
-([ADR-0118](../docs/adr/data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md),
+The family connects to the database as no role of its own. The statements of the account snapshot,
+the policy loader and `assembly` run under the role of the pool a composition root builds the
+process's execution context over, the API server's own in the API server and delta sync's in the
+worker, and the account session's recording runs under the role of each component that opens a
+session ([ADR-0118](../docs/adr/data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md),
 [ADR-0066](../docs/adr/data/0066-data-access-generated-from-sql.md)), which `db/check` tests. When a
-process reloads is its caller's. Each loader loads when asked and swaps only on a read it can trust.
+process reloads is `assembly`'s. Each loader loads when asked and swaps only on a read it can trust.
+
+## One execution context per process, `assembly`
+
+A process holds one execution context, which every component of it that calls a provider shares,
+and the UI never receives
+([ADR-0090](../docs/adr/operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md),
+[ADR-0081](../docs/adr/operability/0081-credentials-sealed-to-a-public-key.md),
+[ADR-0084](../docs/adr/mutation/0084-ui-writes-decisions-and-account-setup.md)). `assembly` builds it
+from what the composition root hands it, a pool under a role the process already connects as, the
+keyring, the scanner, the classifier's lookups, the providers that authenticate through an OAuth
+client, a registerer and a logger, and starts nothing. It holds these once in the process.
+
+- One account loader and its account snapshot, and one policy loader and its policy snapshot,
+  reloaded together in one reload, which also reads each connected account's lowered rate target.
+- The sources of the account sessions, so an account has one token source and one rotation
+  write-back in the process. Each component sees them through a session holder of its own, with its
+  own connectors, so its provider calls are counted on its own series, and its own database handle,
+  so its authentication attempts are recorded under its own role
+  ([ADR-0117](../docs/adr/operability/0117-one-background-worker-runs-every-job-kind.md)).
+- The scanner, so every verdict, mask and serve-time check in the process carries one revision
+  ([ADR-0120](../docs/adr/redaction/0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md)).
+
+Its reload is a task the root hands the host, on the schedule
+[ADR-0090](../docs/adr/operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md) states,
+with its interval from the root's configuration, `account_reload_interval` in the API server and
+`reload_interval` in the worker. Each reload its caller did not cancel is timed on one series per
+process
+([ADR-0125](../docs/adr/engineering/0125-performance-is-measured-once-at-each-place-time-goes.md)).
+A reload whose read of the accounts fails changes nothing. One whose policy load fails puts the
+accounts it read in force all the same and reports the policy's failure, and the policy loader keeps
+the policy it had
+([ADR-0041](../docs/adr/engineering/0041-policy-as-immutable-snapshots.md)). Each component follows
+the reloads it is told of, the API server serving the accounts of each and the worker waking each job
+kind's reload, which adds and drops the kind's jobs. A body request has the policy loaded before it
+decides, through the API server's coalesced load of the context's policy loader
+([ADR-0099](../docs/adr/engineering/0099-a-body-request-loads-the-policy-before-it-decides.md)).
+
+A unit of work's rate limiter is built by the component, on its own pool, so its leases run under
+its own role and are counted on its own series, at the lowered target the context's latest reload
+read for the account. An account whose target could not be read, or lies outside the range
+[ADR-0024](../docs/adr/operability/0024-conservative-target-aimd.md) allows, gets no limiter, so its
+work stops while every other account's goes on. The limiter's code and its leases stay
+`ratelimit/`'s.
 
 ## The account snapshot, `accountload`
 
-The API server, backfill, delta sync and the reorg job kind each hold their accounts, each paired
-with the OAuth client it connects through where its provider has one
+Each process that calls a provider holds its accounts, each paired with the OAuth client it connects
+through where its provider has one
 ([ADR-0106](../docs/adr/provider/0106-accounts-of-a-provider-connect-through-any-of-its-oauth-clients.md)),
-and the opened credentials as one account snapshot
+and the opened credentials as one account snapshot, in its one execution context
 ([ADR-0090](../docs/adr/operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md)).
 Each writes a rotated credential back by compare-and-set on the bytes it last knew
 ([ADR-0089](../docs/adr/operability/0089-sealed-values-written-by-compare-and-set.md)), and delta
@@ -98,15 +144,14 @@ The listing comes from `db/accounts` and each account's credential from `db/acco
 ([ADR-0091](../docs/adr/data/0091-accounts-listed-apart-from-their-state.md)). The re-seal of an
 OAuth client's secret writes through a compare-and-set its caller supplies, because only delta
 sync's role may write a client secret ([ADR-0016](../docs/adr/data/0016-schema.md)), and a
-statement this package ran would be planned under the role of every deployable and job kind that
-imports it.
+statement this package ran would be planned under the role of every execution context.
 Delta sync supplies the write from `db/oauthclients/secret`, which only its list admits. A unit of
 work takes the snapshot once.
 
 ## The account session, `session`
 
 The API server, backfill and delta sync each call a provider for an account in units of work, a
-body request, a page of a pass, a tick. Each pairs the account with the credentials the snapshot
+body request, a page of a pass, a tick, through the sessions of their process's execution context. Each pairs the account with the credentials the snapshot
 opened, holds a token source over them, reads a refused credential again from the account's row
 and makes the call once more over a source built from a replaced one, and at the end of a unit
 hands the source's credential over with the adoption stamp of the credential it was built from
@@ -121,13 +166,16 @@ credential while it uses it.
 It is one mechanism with two parameters, so it never branches on which caller holds it.
 
 - **How long a held source lives.** For one unit of work, or across units while the stored
-  credential is the one the source was built from or the one it rotated to. The API server holds
-  across requests, so an access token the provider issued serves the requests after it. Backfill
-  holds across the pages of its runs by the same rule, and delta sync across its ticks. No record
-  gives delta sync a reason for a source of its own per tick, which would cost a token refresh on
-  every tick, so it holds as backfill does.
-- **Which units run concurrently.** Only the API server runs concurrent units for one account, so
-  the holder takes a lock around what it holds, which costs the batch callers nothing.
+  credential is the one the source was built from or the one it rotated to. The execution context
+  holds across units, so an access token the provider issued serves the units after it, the API
+  server's requests, backfill's pages and delta sync's ticks alike. No record gives delta sync a
+  reason for a source of its own per tick, which would cost a token refresh on every tick.
+- **Which units run concurrently.** The API server runs concurrent units for one account, and in the
+  worker backfill's and delta sync's do, so the holder takes a lock around what it holds.
+
+Every holder a component sees through the execution context's holder, by `Through`, shares its
+sources and its loader, and opens its sessions with the component's own connectors and records
+through the component's own database handle.
 
 The rules a copy could get wrong without anyone noticing are these.
 
@@ -146,13 +194,13 @@ The rules a copy could get wrong without anyone noticing are these.
 - **Only a recorded attempt is recorded.** A source that made no attempt records nothing, and the
   statement keeps a later attempt another deployable recorded.
 
-What each caller supplies keeps its own decisions its own. It passes the account loader it owns, so
-when snapshots reload stays the caller's
-([ADR-0090](../docs/adr/operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md)), a
-database handle the attempt is recorded through, and one connector per provider it links. A
-connector is built in the composition root from the adapter's constructors over plain values, the
-client's identifier and secret and the credential, so which adapters a deployable links stays its
-root's decision and no adapter learns what an account is. The session picks the connector by the
+What each caller supplies keeps its own decisions its own. The execution context passes the account
+loader, so when snapshots reload stays the context's
+([ADR-0090](../docs/adr/operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md)), and
+each component a database handle the attempt is recorded through and one connector per provider it
+links. A connector is built in the composition root from the adapter's constructors over plain
+values, the client's identifier and secret and the credential, so which adapters a deployable links
+stays its root's decision and no adapter learns what an account is. The session picks the connector by the
 account's provider, and an account whose provider has no connector is skipped and logged in one
 place. Each call the caller makes through the session leases inside itself, so the session never
 sees the rate limiter.
@@ -161,16 +209,17 @@ Its import list, `session` in `.golangci.yaml`, admits `accountload`, `core/mail
 `db/accountstate/authentication`, the database driver's root package and its `pgtype` package, which
 the recording's statement takes, and the standard library. The recording runs under the role of each
 deployable or job kind whose list admits the package. No adapter, no rate limiter, no policy and no scanner
-belong in it. The limiter at each account's lowered target stays in each composition root, since it
-belongs to the rate budget rather than to the account's credential.
+belong in it. The limiter at each account's lowered target is built by each component through
+`assembly`, since it belongs to the rate budget rather than to the account's credential.
 
 ## The policy loader, `policyload`
 
-Backfill, the API server, delta sync, the reorg job kind and the heuristics job kind each hold the
-active policy as one immutable snapshot and replace it only with an update that validates
+Each process's execution context holds the active policy as one immutable snapshot, which the API
+server, backfill and delta sync decide under, and the reorg job kind and the heuristics job kind are
+to decide under, and replaces it only with an update that validates
 ([ADR-0041](../docs/adr/engineering/0041-policy-as-immutable-snapshots.md)). The validation, the
 composition of the base policy with an account's overlay and the atomic swap are pure and sit in
-`core/policy`. What is left is impure and the same in every one of them. It reads the base rows and
+`core/policy`. What is left is impure and the same in every process. It reads the base rows and
 each account's overlay rows from the policy tables, hands them to the pure half, and raises the
 reload-failure alarm when a reload fails, whether the read or the validation. The reload that swaps
 a snapshot in also prepares each account's policy for the sender classifier through
@@ -193,7 +242,7 @@ the series is defined once, in this package.
 
 | Series | Kind | Emitted by | Read by |
 | --- | --- | --- | --- |
-| `mediated_mailbox_policyload_reload_failed` | Gauge, 1 while the latest reload failed and 0 once one succeeds | Each loading process, on the registry it passes in, which in the worker also labels it with `job_kind`, the job kind whose loader it is ([ADR-0117](../docs/adr/operability/0117-one-background-worker-runs-every-job-kind.md)) | `MediatedMailboxPolicyReloadFailed` in `packaging/chart/rules/alerting-rules.yaml`, whose promtool tests sit in `policyload/testdata/` |
+| `mediated_mailbox_policyload_reload_failed` | Gauge, 1 while the latest reload failed and 0 once one succeeds | Each process, once, from its execution context's loader, on the registerer its root passes in, which labels it with `component` ([ADR-0138](../docs/adr/engineering/0138-one-host-runs-each-process-and-each-component-provides-its-parts.md)) | `MediatedMailboxPolicyReloadFailed` in `packaging/chart/rules/alerting-rules.yaml`, whose promtool tests sit in `policyload/testdata/` |
 
 The package also times one load per reload, every one its caller did not cancel, succeeded or
 failed, as `mediated_mailbox_policyload_reload_duration_seconds`, a histogram on the same registry
@@ -221,8 +270,9 @@ one that ran out of time is a failed read like any other.
 An account's provider credential is stored in the database sealed to a public key
 ([ADR-0080](../docs/adr/data/0080-accounts-and-credentials-live-in-the-database.md),
 [ADR-0081](../docs/adr/operability/0081-credentials-sealed-to-a-public-key.md)). The UI seals a
-credential when an account is connected or re-authorized. Backfill, the API server, delta sync and
-the reorg job kind open it with the private key, and seal a rotated one before writing it back
+credential when an account is connected or re-authorized. The execution context of each process
+that calls a provider, the API server and the worker, opens it with the private key, and seals a
+rotated one before writing it back
 ([ADR-0082](../docs/adr/operability/0082-rotation-writeback-to-the-database.md)). The UI's
 `ui/internal/clientsecret` opens an OAuth client's secret with the same keys, for a consent's code
 exchange, and nothing else. These packages are that sealing and opening, the loading of each key

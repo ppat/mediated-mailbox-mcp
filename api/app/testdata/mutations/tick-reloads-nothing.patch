@@ -6,16 +6,16 @@ scheduled-count: no
 integration: yes
 
 
-diff --git a/api/app/app.go b/api/app/app.go
-index 8f9657ee..65f967ff 100644
---- a/api/app/app.go
-+++ b/api/app/app.go
-@@ -415,7 +415,7 @@ func (s *serving) reloadEvery(ctx context.Context, interval time.Duration) {
- 		case <-ctx.Done():
- 			return
- 		case <-ticker.C:
--			if err := s.reload(ctx); err != nil && ctx.Err() == nil {
-+			if err := error(nil); err != nil && ctx.Err() == nil {
- 				s.logger.Error("the accounts were not reloaded, so the ones served stay", "error", err)
- 			}
+diff --git a/executioncontext/assembly/assembly.go b/executioncontext/assembly/assembly.go
+index d74efe4..5866aa1 100644
+--- a/executioncontext/assembly/assembly.go
++++ b/executioncontext/assembly/assembly.go
+@@ -202,7 +202,7 @@ func (c *Context) Run(ctx context.Context) error {
+ 			return nil
+ 		case <-timer.C:
  		}
+-		if err := c.Reload(ctx); err != nil && ctx.Err() == nil {
++		if err := error(nil); err != nil && ctx.Err() == nil {
+ 			c.n.Logger.Error("the execution context was not reloaded in full, so what it held stays in force", "error", err)
+ 		}
+ 		wait = c.n.ReloadInterval
