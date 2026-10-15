@@ -23,7 +23,6 @@ import (
 var unsafeImporters = []string{
 	"github.com/JohannesKaufmann/html-to-markdown/v2/collapse",
 	"github.com/cespare/xxhash/v2",
-	"github.com/jackc/puddle/v2",
 	"golang.org/x/sys/unix",
 	"google.golang.org/protobuf/internal/impl",
 	"google.golang.org/protobuf/internal/protolazy",

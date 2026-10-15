@@ -1,19 +1,23 @@
 control: Each deployable logs at the level its configuration sets
 removes: the host sets the level from the default log_level, so the level the configuration names never applies
-packages: ./process/host
-tests: TestTheConfiguredLevelGovernsTheLog/warn TestTheConfiguredLevelGovernsTheLog/error,_from_the_environment TestTheConfiguredLevelGovernsTheLog/a_refused_value_at_error
+packages: ./process/host ./migrator/app
+tests: TestTheConfiguredLevelGovernsTheLog/until_stopped/warn TestTheConfiguredLevelGovernsTheLog/until_stopped/error,_from_the_environment TestTheConfiguredLevelGovernsTheLog/until_stopped/a_refused_value_at_error TestTheConfiguredLevelGovernsTheLog/once/warn TestTheConfiguredLevelGovernsTheLog/once/error,_from_the_environment TestTheConfiguredLevelGovernsTheLog/once/a_refused_value_at_error TestTheStartLogsItsConfigurationThenSetsItsLevelAndWritesItsBanner
 scheduled-count: no
 
 diff --git a/process/host/host.go b/process/host/host.go
-index f5afd783..417b7a28 100644
+index 8c310a7a..d6aca3af 100644
 --- a/process/host/host.go
 +++ b/process/host/host.go
-@@ -210,7 +210,7 @@ func Run[T any](ctx context.Context, args, environ []string, stdout, stderr io.W
+@@ -349,11 +349,11 @@ func start[T any](args, environ []string, stdout, stderr io.Writer, logger *slog
+ 	// The effective configuration is written before the level applies, so a refused value's source,
+ 	// log_level's included, reaches the log whatever level the configuration sets (ADR-0078, ADR-0122).
+ 	for _, v := range loaded.Values {
  		logger.Info("configuration", "path", v.Path, "source", v.Source.String(), "value", v.Value)
  	}
- 	process := spec.Process(loaded.Config)
--	lv, err := processLevel(process)
-+	lv, err := processLevel(spec.Process(spec.Defaults))
+-	lv, err := logging.ParseLevel(root.process(loaded.Config).LogLevel)
++	lv, err := logging.ParseLevel(root.process(root.defaults).LogLevel)
  	if err != nil {
- 		return fmt.Errorf("validating the configuration: %w", err)
+ 		return loaded, false, fmt.Errorf("validating the configuration: %w", err)
  	}
+ 	level.Set(lv)
+ 	if root.validate != nil {

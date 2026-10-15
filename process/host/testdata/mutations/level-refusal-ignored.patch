@@ -1,20 +1,26 @@
 control: An unknown log level is refused, and each of the four names reads as its own level
 removes: the host does not refuse a log level that names none, so the process starts at info
 packages: ./process/host
-tests: TestTheConfiguredLevelGovernsTheLog/a_name_in_upper_case TestTheConfiguredLevelGovernsTheLog/an_offset TestTheConfiguredLevelGovernsTheLog/warning
+tests: TestTheConfiguredLevelGovernsTheLog/until_stopped/a_name_in_upper_case TestTheConfiguredLevelGovernsTheLog/until_stopped/an_offset TestTheConfiguredLevelGovernsTheLog/until_stopped/warning TestTheConfiguredLevelGovernsTheLog/once/a_name_in_upper_case TestTheConfiguredLevelGovernsTheLog/once/an_offset TestTheConfiguredLevelGovernsTheLog/once/warning
 scheduled-count: no
 
 diff --git a/process/host/host.go b/process/host/host.go
-index f5afd783..cd6fb646 100644
+index 8c310a7a..b46851cc 100644
 --- a/process/host/host.go
 +++ b/process/host/host.go
-@@ -89,7 +89,8 @@ func processLevel(p Process) (slog.Level, error) {
- 	if strings.TrimSpace(p.ProbeListen) == "" {
- 		return 0, errors.New("probe_listen is empty")
+@@ -349,14 +349,11 @@ func start[T any](args, environ []string, stdout, stderr io.Writer, logger *slog
+ 	// The effective configuration is written before the level applies, so a refused value's source,
+ 	// log_level's included, reaches the log whatever level the configuration sets (ADR-0078, ADR-0122).
+ 	for _, v := range loaded.Values {
+ 		logger.Info("configuration", "path", v.Path, "source", v.Source.String(), "value", v.Value)
  	}
--	return logging.ParseLevel(p.LogLevel)
-+	lv, _ := logging.ParseLevel(p.LogLevel)
-+	return lv, nil
- }
- 
- // ValidateServing refuses an empty listen, and one of the two TLS files set without the other, a blank
+-	lv, err := logging.ParseLevel(root.process(loaded.Config).LogLevel)
+-	if err != nil {
+-		return loaded, false, fmt.Errorf("validating the configuration: %w", err)
+-	}
++	lv, _ := logging.ParseLevel(root.process(loaded.Config).LogLevel)
+ 	level.Set(lv)
+ 	if root.validate != nil {
+ 		if err := root.validate(loaded.Config); err != nil {
+ 			return loaded, false, fmt.Errorf("validating the configuration: %w", err)
+ 		}

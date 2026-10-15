@@ -5,12 +5,15 @@ tests: TestEachGoContainerGetsOnlyItsOwnSoftMemoryLimit
 scheduled-count: no
 
 diff --git a/packaging/chart/templates/migration/job.yaml b/packaging/chart/templates/migration/job.yaml
+index 982bfc6a..04bf455c 100644
 --- a/packaging/chart/templates/migration/job.yaml
 +++ b/packaging/chart/templates/migration/job.yaml
-@@ -55,10 +55,6 @@ spec:
-         env:
-         - name: GOOSE_DBSTRING
-           value: {{ printf "postgres://%s@%s:%v/%s?%s" (urlquery $v.database.user) (required "database.host is required" $d.host) $d.port (urlquery (required "database.name is required" $d.name)) (join "&" $query) | quote }}
+@@ -55,14 +55,10 @@ spec:
+           value: {{ $c.log_level | quote }}
+         {{- range $key, $value := $c.database }}
+         - name: {{ printf "MEDIATED_MAILBOX_DATABASE__%s" (upper $key) }}
+           value: {{ $value | toString | quote }}
+         {{- end }}
 -        {{- with $v.goSoftMemoryLimit }}
 -        - name: GOMEMLIMIT
 -          value: {{ . | quote }}
@@ -18,3 +21,5 @@ diff --git a/packaging/chart/templates/migration/job.yaml b/packaging/chart/temp
          securityContext:
            {{- include "mm.securityContext" (list $ $v) | nindent 10 }}
          {{- with $v.resources }}
+         resources:
+           {{- toYaml . | nindent 10 }}

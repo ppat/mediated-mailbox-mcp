@@ -37,7 +37,7 @@ func TestTheChartRendersAFileTheWorkerStartsWith(t *testing.T) {
 	if err != nil {
 		t.Fatalf("the worker refuses the chart's file: %v", err)
 	}
-	if err := errors.Join(host.ValidateProcess(loaded.Config.Process), validate(loaded.Config)); err != nil {
+	if err := errors.Join(host.ValidateProcess(loaded.Config.Process), host.ValidateOperations(loaded.Config.Operations), validate(loaded.Config)); err != nil {
 		t.Fatalf("the worker's validation refuses the chart's file: %v", err)
 	}
 	if _, err := buildScanner(loaded); err != nil {
@@ -45,7 +45,8 @@ func TestTheChartRendersAFileTheWorkerStartsWith(t *testing.T) {
 	}
 	mounted := "/etc/mediated-mailbox/secrets/"
 	want := Configuration{
-		Process: host.Process{ProbeListen: ":8080", LogLevel: "error"},
+		Process:    host.Process{LogLevel: "error"},
+		Operations: host.Operations{ProbeListen: ":8080"},
 		Section: Section{
 			ReloadInterval: 90 * time.Second,
 			Backfill:       Backfill{Concurrency: 5},

@@ -1,9 +1,11 @@
 // Command pgrun runs a command against one PostgreSQL container started for it.
 //
 // It starts the container with the ordinary docker command (ADR-0068), creates the roles with
-// db/bootstrap as the superuser, applies the migration chain from empty with goose as the migration
-// role into a template database with nothing run in it before the chain, runs the command with the connection details exported, and removes the container. Each
-// integration test package then creates its own database from the template (testsupport/postgres).
+// db/bootstrap as the superuser, applies the migration chain the migrator's binary embeds from empty
+// as the migration role, through the code the migrator applies it with (ADR-0139), into a template
+// database with nothing run in it before the chain, runs the command with the connection details
+// exported, and removes the container. Each integration test package then creates its own database
+// from the template (testsupport/postgres).
 //
 // A run where the command succeeds but no test package created a database fails, because that is
 // what running the integration job without the integration tag looks like.
@@ -28,7 +30,6 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"syscall"
@@ -36,6 +37,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
+	"github.com/ppat/mediated-mailbox-mcp/db/migrations"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/postgres"
 )
 
@@ -67,7 +69,7 @@ func run(host string, port int, command []string) (int, error) {
 	if _, err := os.Stat("go.mod"); err != nil {
 		return 1, errors.New("run from the repository root, where go.mod is")
 	}
-	for _, tool := range []string{"docker", "goose", command[0]} {
+	for _, tool := range []string{"docker", command[0]} {
 		if _, err := exec.LookPath(tool); err != nil {
 			return 1, fmt.Errorf("%s is not on PATH: %w", tool, err)
 		}
@@ -191,7 +193,7 @@ func prepareTemplate(ctx context.Context, admin, migrate, password string) error
 	if _, err := conn.Exec(ctx, "CREATE TABLE "+postgres.RegistryTable+" (package_dir text NOT NULL, database text PRIMARY KEY, created_at timestamptz NOT NULL DEFAULT clock_timestamp())"); err != nil {
 		return err
 	}
-	if err := postgres.ApplyChain(ctx, admin, migrate, template, filepath.Join("db", "migrations")); err != nil {
+	if err := postgres.ApplyChain(ctx, admin, migrate, template, migrations.Chain()); err != nil {
 		return err
 	}
 	_, err = conn.Exec(ctx, "ALTER DATABASE "+template+" WITH IS_TEMPLATE true ALLOW_CONNECTIONS false")

@@ -1,0 +1,24 @@
+control: The chart sets the migration Job a configuration the migrator starts with
+removes: the schema admits a key in the migrator's own block that the migrator does not read
+packages: ./migrator/app
+tests: TestTheChartAdmitsEveryMigratorKeyItDoesNotRender
+scheduled-count: no
+
+diff --git a/packaging/chart/values.schema.json b/packaging/chart/values.schema.json
+index 8dd79de5..41a0b8b8 100644
+--- a/packaging/chart/values.schema.json
++++ b/packaging/chart/values.schema.json
+@@ -1199,10 +1199,13 @@
+                 "debug",
+                 "info",
+                 "warn",
+                 "error"
+               ]
++            },
++            "timeout": {
++              "type": "string"
+             }
+           },
+           "additionalProperties": false,
+           "description": "The migrator's own configuration keys. Keys the chart renders itself are refused here."
+         },

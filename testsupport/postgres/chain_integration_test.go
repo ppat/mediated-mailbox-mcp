@@ -5,16 +5,18 @@ package postgres_test
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	neturl "net/url"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/stdlib"
 
+	"github.com/ppat/mediated-mailbox-mcp/db/migrate"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/postgres"
 )
 
@@ -67,12 +69,12 @@ func TestTheChainFailsFromEmptyOnAMigrationOnlyTheCurrentShapeAccepts(t *testing
 		}
 	})
 	// The superuser connection acting as the migration role, whose password pgrun does not export.
-	migrate, err := neturl.Parse(admin)
+	migrator, err := neturl.Parse(admin)
 	if err != nil {
 		t.Fatal(err)
 	}
 	// A space encoded as a plus sign reaches the server as a plus sign.
-	migrate.RawQuery += "&options=" + strings.ReplaceAll(neturl.QueryEscape("-c role="+postgres.MigrationRole), "+", "%20")
+	migrator.RawQuery += "&options=" + strings.ReplaceAll(neturl.QueryEscape("-c role="+postgres.MigrationRole), "+", "%20")
 	suffix := fmt.Sprint(os.Getpid())
 	database := func(name string) string {
 		t.Cleanup(func() {
@@ -80,7 +82,7 @@ func TestTheChainFailsFromEmptyOnAMigrationOnlyTheCurrentShapeAccepts(t *testing
 				t.Error(err)
 			}
 		})
-		u := *migrate
+		u := *migrator
 		u.Path = "/" + name
 		return u.String()
 	}
@@ -102,17 +104,24 @@ func TestTheChainFailsFromEmptyOnAMigrationOnlyTheCurrentShapeAccepts(t *testing
 		if err != nil {
 			t.Fatal(err)
 		}
-		goose := exec.CommandContext(ctx, "goose", "-dir", chain, "postgres", url, "up")
-		goose.Env = append(os.Environ(), "GOOSE_DRIVER=", "GOOSE_DBSTRING=", "GOOSE_MIGRATION_DIR=")
-		if out, err := goose.CombinedOutput(); err != nil {
-			t.Fatalf("the drifted migration failed against the current shape: %v\n%s", err, out)
+		config, err := pgx.ParseConfig(url)
+		if err != nil {
+			t.Fatal(err)
+		}
+		db := stdlib.OpenDB(*config)
+		err = migrate.Apply(ctx, db, os.DirFS(chain), slog.New(slog.NewTextHandler(os.Stderr, nil)))
+		if closeErr := db.Close(); err == nil {
+			err = closeErr
+		}
+		if err != nil {
+			t.Fatalf("the drifted migration failed against the current shape: %v", err)
 		}
 	})
 
 	t.Run("from empty", func(t *testing.T) {
 		name := "chain_empty_" + suffix
 		url := database(name)
-		if err := postgres.ApplyChain(ctx, admin, migrate.String(), name, chain); err == nil {
+		if err := postgres.ApplyChain(ctx, admin, migrator.String(), name, os.DirFS(chain)); err == nil {
 			t.Fatal("the chain applied from empty with a migration that needs a table no migration creates")
 		}
 		empty, err := pgx.Connect(ctx, url)
@@ -154,18 +163,18 @@ func TestTheChainAppliesWithNoSuperuserStep(t *testing.T) {
 			t.Error(err)
 		}
 	})
-	migrate, err := neturl.Parse(admin)
+	migrator, err := neturl.Parse(admin)
 	if err != nil {
 		t.Fatal(err)
 	}
 	// The superuser connection acting as the migration role, whose password pgrun does not export. A
 	// space encoded as a plus sign reaches the server as a plus sign.
-	migrate.RawQuery += "&options=" + strings.ReplaceAll(neturl.QueryEscape("-c role="+postgres.MigrationRole), "+", "%20")
-	if err := postgres.ApplyChain(ctx, admin, migrate.String(), name, filepath.Join("..", "..", "db", "migrations")); err != nil {
+	migrator.RawQuery += "&options=" + strings.ReplaceAll(neturl.QueryEscape("-c role="+postgres.MigrationRole), "+", "%20")
+	if err := postgres.ApplyChain(ctx, admin, migrator.String(), name, os.DirFS(filepath.Join("..", "..", "db", "migrations"))); err != nil {
 		t.Fatalf("the chain did not apply from empty as the migration role: %v", err)
 	}
 
-	database := *migrate
+	database := *migrator
 	database.Path = "/" + name
 	applied, err := pgx.Connect(ctx, database.String())
 	if err != nil {

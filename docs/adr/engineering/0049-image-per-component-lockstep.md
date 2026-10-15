@@ -22,9 +22,10 @@ extend to the artifact layer or quietly stop at the process boundary.
   components, the gate, the classifier, the scanner, the scan gate and the rate limiter, are not
   deployables and ride inside deployables as code. The migration step of
   [ADR-0048](../data/0048-forward-only-migrations.md) is not a deployable either. It has an
-  image of its own, the migrator, which carries the migration runner and the migration chain and
-  none of this project's Go code. Each image bakes only its deployable's own code plus the shared
-  libraries it imports. One deployable's image cannot contain another's code, so "nothing beyond
+  image of its own, the migrator, whose one binary is built from the migrator's own code and the
+  libraries it imports and carries the migration runner and the migration chain
+  ([ADR-0139](../data/0139-the-migration-runner-is-goose-linked-into-the-migrator.md)). Each image
+  bakes only its deployable's own code plus the shared libraries it imports. One deployable's image cannot contain another's code, so "nothing beyond
   what it needs" reads all the way down to image contents. Exactness is a property of the binary
   and the final stage. Go links only the packages a binary imports, and the final stage copies
   only that binary, so which source a build stage copies is mechanism and never widens what the

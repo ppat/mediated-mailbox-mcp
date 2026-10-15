@@ -25,9 +25,9 @@ layout](../../CLAUDE.md#code-layout-and-conventions), and what tests the work ne
   package `ui/browser` and an `importtarget` package holding a violation file (CLAUDE.md, Inside a
   component). The entry hands its component to the host, `process/host`, which runs the process
   (ADR-0138).
-- **The environment is read only by a deployable's `main.go`**, which hands it through the entry
-  package and the host to the configuration library in `process/settings/`. The `go vet` environment analyser
-  refuses, anywhere else outside test files and `testsupport`, every standard-library function that
+- **The environment is read only by a deployable's or the migrator's `main.go`**, which hands it
+  through the entry package and the host to the configuration library in `process/settings/`. The
+  `go vet` environment analyser refuses, anywhere else outside test files and `testsupport`, every standard-library function that
   returns an environment variable's value by a name its caller gives, or the environment as a whole,
   such as `os.Getenv`. Functions that read fixed platform variables for their own purpose, such as
   `os.UserHomeDir`, stay allowed (ADR-0078, CLAUDE.md, Static analysis and formatting).

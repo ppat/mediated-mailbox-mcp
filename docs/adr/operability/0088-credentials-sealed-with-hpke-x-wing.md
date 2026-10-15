@@ -92,7 +92,8 @@ released recently and none is deprecated.
   no Dockerfile, so it has no image of its own
   ([ADR-0054](../engineering/0054-one-repository-flat-layout-naming-convention.md)). Carrying it in
   an existing image would give that image a second, unrelated job. The UI must never carry key
-  material, and the migrator holds none of this project's Go code by design. A signed
+  material, and the migrator's image holds the migrator's binary alone
+  ([ADR-0049](../engineering/0049-image-per-component-lockstep.md)). A signed
   release binary is a published artifact, so the system still comes up from published artifacts
   alone ([O6](../../../USE_CASES.md#o6--deployable)). The platforms the binaries are built for are
   the release workflow's ([CLAUDE.md](../../../CLAUDE.md#ci-workflows)).

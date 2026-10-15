@@ -1,0 +1,16 @@
+---
+# Values for TestTheChartSetsAConfigurationTheMigratorStartsWith: every value the chart sets in the migration Job's
+# environment, the optional ones included, on top of the chart's required values.
+database:
+  port: 6432
+  sslmode: verify-ca
+secrets:
+  databaseCaCertificate:
+    existingSecret: database-ca
+sharedConfig:
+  log_level: warn
+migration:
+  database:
+    user: mailbox_migrator
+  config:
+    log_level: debug

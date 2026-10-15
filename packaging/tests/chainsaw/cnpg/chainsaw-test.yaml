@@ -1,8 +1,9 @@
 ---
 # The chart installed against a PostgreSQL cluster CloudNativePG creates, the README's worked example, then upgraded
-# by a configuration change. CloudNativePG's generated Secrets give the CA certificate and the migration role's password
-# file, and the server is checked with verify-full. To the chart a CloudNativePG database is a user-supplied PostgreSQL
-# like any other, a host, password files and a CA certificate, so this one database stands for every server a user
+# by a configuration change. CloudNativePG's generated Secrets give the CA certificate and the migration role's
+# password, every process, the migration step included, addresses the server by its Service's fully qualified name,
+# and the server is checked with verify-full. To the chart a CloudNativePG database is a user-supplied PostgreSQL like
+# any other, a host, password files and a CA certificate, so this one database stands for every server a user
 # supplies. The steps assert that the release installs with every deployable ready and its Helm test passing, that the
 # upgrade completes as the release's second revision with the Helm test passing again, that the change reaches the
 # worker's rendered file, and that the bearer token and the UI's request token key the chart generated at install are

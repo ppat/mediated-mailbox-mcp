@@ -21,7 +21,7 @@ does, and never with what the process runs.
 | `dbconnect/` | A deployable's database section of its configuration, in `dbconnect/core`, and the connection built from it |
 | `dbmetrics/` | The opening of a deployable's measured pool, the latency of every statement a connection runs, by the statement's name, and the statistics of each connection pool |
 | `runtimemetrics/` | The registration of the Go runtime's and the process's series, once per process |
-| `probes/` | The operations endpoints of every process, the health and readiness probes and the metrics endpoint |
+| `probes/` | The operations endpoints of every process that runs until it is told to stop, the health and readiness probes and the metrics endpoint |
 | `host/` | The host, which runs one process over the components a composition root hands it ([ADR-0138](../docs/adr/engineering/0138-one-host-runs-each-process-and-each-component-provides-its-parts.md)) |
 | `logging/` | The logger every deployable writes its JSON records to standard output through, and the reading of its `log_level` |
 | `version/` | The release version every binary reports through `--version` and every deployable's start banner shows |
@@ -44,7 +44,7 @@ and no credential.
 
 ## The configuration library, `settings`
 
-Every deployable takes its configuration the same way
+Every deployable, and the migrator, takes its configuration the same way
 ([ADR-0078](../docs/adr/engineering/0078-configuration-layers-through-an-owned-library.md)).
 Defaults, one optional YAML file, environment variables under `MEDIATED_MAILBOX_` and command-line
 flags layer per value in that order, each value named once by its YAML key path, and every mistake
@@ -69,8 +69,8 @@ mounted file.
 
 ## The database connection, `dbconnect`
 
-Every deployable that connects to the database takes its connection settings as one `database`
-section of its configuration, and connects the same way
+Every process that connects to the database, every deployable and the migrator, takes its
+connection settings as one `database` section of its configuration, and connects the same way
 ([ADR-0078](../docs/adr/engineering/0078-configuration-layers-through-an-owned-library.md)). This
 package is that section and that connection. The section's type and its validation are pure and sit
 in `dbconnect/core`. The shell renders every connection setting into the connection string, caps the
@@ -78,8 +78,10 @@ pool at the section's pool size, reads the password from the mounted password fi
 ([ADR-0079](../docs/adr/operability/0079-secrets-arrive-as-mounted-files.md)) and refuses a start
 while `PGPASSWORD` or `PGSSLPASSWORD` is set. Each deployable supplies its own defaults, the user
 being its own runtime role, and the API server and the UI take the pool size the shell gives as the
-driver's own default. The worker names the server once and gives each job kind a user of its own,
-its job kind's runtime role, with a password file and a pool size of its own
+driver's own default, as does the migrator, whose user is the migration role
+([ADR-0139](../docs/adr/data/0139-the-migration-runner-is-goose-linked-into-the-migrator.md)). The
+worker names the server once and gives each job kind a user of its own, its job kind's runtime
+role, with a password file and a pool size of its own
 ([ADR-0118](../docs/adr/data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)).
 
 The case for one package over per-deployable glue is the database driver's fallbacks. pgx reads its
@@ -140,14 +142,15 @@ added and which are left out, the set is the same in every deployable.
 
 ## The operations endpoints, `probes`
 
-Every process serves its health and readiness probes and its metrics endpoint on a listener of its
-own while it runs ([ADR-0051](../docs/adr/engineering/0051-environment-contract.md)). `/healthz`
-answers 200 while the process runs, `/readyz` answers 200 only while the readiness it is handed
-holds and 503 with a line saying why otherwise, and `/metrics` serves the registry it is handed, so
-every series a process registers reaches its scrape, between units of work as during them. Every
-answer is plain text for a platform's healthcheck and scraper. The endpoints the platform reads are
-the contract a copy could quietly break, a path renamed or a registry other than the process's own
-served. Written once, the endpoints are the same in every process. The host serves them.
+Every process that runs until it is told to stop serves its health and readiness probes and its
+metrics endpoint on a listener of its own while it runs
+([ADR-0051](../docs/adr/engineering/0051-environment-contract.md)). `/healthz` answers 200 while
+the process runs, `/readyz` answers 200 only while the readiness it is handed holds and 503 with a
+line saying why otherwise, and `/metrics` serves the registry it is handed, so every series a
+process registers reaches its scrape, between units of work as during them. Every answer is plain
+text for a platform's healthcheck and scraper. The endpoints the platform reads are the contract a
+copy could quietly break, a path renamed or a registry other than the process's own served. Written
+once, the endpoints are the same in every process that serves them. The host serves them.
 
 ## The host, `host`
 
@@ -159,9 +162,12 @@ each component with a logger and a registerer carrying its name, serves the appl
 the operations endpoints under one set of connection limits, starts and recovers each component's
 background tasks and every goroutine a component asks its starter for while it runs, and stops in
 order, joining every task and goroutine before the pools close. Its sections of the configuration
-are `host.Process`, every process's, and `host.Serving`, a process's whose components serve
-requests. `New`, `Add` and `Serve` are its lifecycle without the configuration, which a test or a
-harness that composes a component itself serves through.
+are `host.Process`, every process's, `host.Operations`, a process's that runs until it is told to
+stop, and `host.Serving`, a process's whose components serve requests. `New`, `Add` and `Serve`
+are its lifecycle without the configuration, which a test or a harness that composes a component
+itself serves through. `RunOnce` runs a process that does one piece of work and exits, as the
+migrator does, with the same start, registry and pools, and no servers or tasks, since nothing
+probes, scrapes or calls a process that exits on its own ([ADR-0139](../docs/adr/data/0139-the-migration-runner-is-goose-linked-into-the-migrator.md)).
 
 The case for one package over the same work written in each root is that each copy drifts on its
 own. A copy can answer its probes its own way or answer no readiness, load the key pair twice,
@@ -172,11 +178,12 @@ process, a process hosting several components among them.
 
 ## The logs, `logging`
 
-Every deployable writes its logs as JSON to standard output at the level its `log_level` sets
+Every deployable, and the migrator, writes its logs as JSON to standard output at the level its
+`log_level` sets
 ([ADR-0122](../docs/adr/engineering/0122-logs-through-slog-at-a-configured-level-handed-to-shells.md)).
 This package builds that logger over a level variable, reads the level's name, and makes the error
-log a shell gives an `http.Server` from the logger it was handed. A deployable's `main.go` builds
-the logger, and the host sets the level once the configuration has loaded.
+log a shell gives an `http.Server` from the logger it was handed. A deployable's `main.go`, and the
+migrator's, builds the logger, and the host sets the level once the configuration has loaded.
 
 The case for one package over per-deployable glue is that the format and the level names are the
 contract. A copy that wrote text rather than JSON, wrote to standard error, or accepted `warning`

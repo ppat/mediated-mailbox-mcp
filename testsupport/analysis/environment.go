@@ -12,9 +12,9 @@ import (
 // Environment reports a read of the environment outside a deployable's main.go, the rule ADR-0078
 // sets so that every setting passes through the configuration library's layers and refusals. It
 // covers the deployables and the shared libraries by covering every package of this module outside
-// testsupport, the test tooling. It exempts test files, and a deployable's main.go, the file main.go
-// of a package main one directory below the module's root, which hands the environment to the
-// deployable's composition root, its entry package, and so to the library.
+// testsupport, the test tooling. It exempts test files, and a deployable's or the migrator's main.go,
+// the file main.go of a package main one directory below the module's root, which hands the
+// environment to its composition root, its entry package, and so to the library.
 //
 // The refused functions are every standard-library function that returns an environment
 // variable's value by a name its caller gives, or returns the environment as a whole. Those are

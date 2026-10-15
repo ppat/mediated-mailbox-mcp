@@ -38,7 +38,7 @@ func TestTheChartRendersAFileTheAPIServerStartsWith(t *testing.T) {
 	if err != nil {
 		t.Fatalf("the API server refuses the chart's file: %v", err)
 	}
-	if err := errors.Join(host.ValidateProcess(loaded.Config.Process), host.ValidateServing(loaded.Config.Serving), validate(loaded.Config)); err != nil {
+	if err := errors.Join(host.ValidateProcess(loaded.Config.Process), host.ValidateOperations(loaded.Config.Operations), host.ValidateServing(loaded.Config.Serving), validate(loaded.Config)); err != nil {
 		t.Fatalf("the API server's validation refuses the chart's file: %v", err)
 	}
 	if _, err := scan.New(loaded.Config.Scanner, loaded.Revisions[scannerSection]); err != nil {
@@ -46,9 +46,10 @@ func TestTheChartRendersAFileTheAPIServerStartsWith(t *testing.T) {
 	}
 	mounted := "/etc/mediated-mailbox/secrets/"
 	want := Configuration{
-		Process: host.Process{ProbeListen: ":8080", LogLevel: "debug"},
-		Serving: host.Serving{Listen: ":8443", TLSCert: mounted + "tls/tls.crt", TLSKey: mounted + "tls/tls.key"},
-		Section: Section{TokenFile: mounted + "bearer-token", AccountReloadInterval: 2 * time.Minute, ProviderTimeout: 45 * time.Second},
+		Process:    host.Process{LogLevel: "debug"},
+		Operations: host.Operations{ProbeListen: ":8080"},
+		Serving:    host.Serving{Listen: ":8443", TLSCert: mounted + "tls/tls.crt", TLSKey: mounted + "tls/tls.key"},
+		Section:    Section{TokenFile: mounted + "bearer-token", AccountReloadInterval: 2 * time.Minute, ProviderTimeout: 45 * time.Second},
 		Database: dbconnectcore.Config{
 			Host: "db.example", Port: 6432, Name: "mediated_mailbox", User: "mailbox_api", SSLMode: "verify-ca",
 			SSLRootCert: mounted + "ca/ca.crt", PasswordFile: mounted + "database/password", PoolSize: 9,

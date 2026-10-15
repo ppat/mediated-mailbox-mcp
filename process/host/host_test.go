@@ -27,8 +27,10 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prometheus/client_golang/prometheus"
 
+	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core"
 	"github.com/ppat/mediated-mailbox-mcp/process/host"
 	"github.com/ppat/mediated-mailbox-mcp/process/version"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
@@ -37,9 +39,10 @@ import (
 // config is a root configuration type composed as a composition root composes one, the process's
 // sections inline beside a component's own.
 type config struct {
-	host.Process `yaml:",inline"`
-	host.Serving `yaml:",inline"`
-	Own          own `yaml:"own"`
+	host.Process    `yaml:",inline"`
+	host.Operations `yaml:",inline"`
+	host.Serving    `yaml:",inline"`
+	Own             own `yaml:"own"`
 }
 
 type own struct {
@@ -47,23 +50,19 @@ type own struct {
 }
 
 func defaults() config {
-	return config{Process: host.DefaultProcess(), Serving: host.DefaultServing(), Own: own{Value: 1}}
+	return config{Process: host.DefaultProcess(), Operations: host.DefaultOperations(), Serving: host.DefaultServing(), Own: own{Value: 1}}
 }
 
 // spec returns a spec over config with one component, comp, whose assembly returns parts and records
 // that it ran.
 func spec(assembled *atomic.Bool, parts host.Parts, refuse func([]string) error) host.Spec[config] {
 	return host.Spec[config]{
-		Name:     "mediated-mailbox-test",
-		Defaults: defaults(),
-		Process:  func(c config) host.Process { return c.Process },
-		Serving:  func(c config) host.Serving { return c.Serving },
-		Validate: func(c config) error {
-			if c.Own.Value < 0 {
-				return errors.New("own.value is negative")
-			}
-			return nil
-		},
+		Name:       "mediated-mailbox-test",
+		Defaults:   defaults(),
+		Process:    func(c config) host.Process { return c.Process },
+		Operations: func(c config) host.Operations { return c.Operations },
+		Serving:    func(c config) host.Serving { return c.Serving },
+		Validate:   validateOwn,
 		Components: []host.Component[config]{{
 			Name: "comp", Mount: []string{"/"}, RefuseEnvironment: refuse,
 			Assemble: func(context.Context, host.Provided[config]) (host.Parts, error) {
@@ -72,6 +71,65 @@ func spec(assembled *atomic.Bool, parts host.Parts, refuse func([]string) error)
 			},
 		}},
 	}
+}
+
+func validateOwn(c config) error {
+	if c.Own.Value < 0 {
+		return errors.New("own.value is negative")
+	}
+	return nil
+}
+
+// onceConfig is a root configuration type of a process that runs once, the process's section inline
+// beside its own.
+type onceConfig struct {
+	host.Process `yaml:",inline"`
+	Own          own `yaml:"own"`
+}
+
+// once returns a spec over onceConfig whose work records that it ran and returns workErr.
+func once(worked *atomic.Bool, refuse func([]string) error, work func(context.Context, host.Provided[onceConfig]) error) host.Once[onceConfig] {
+	return host.Once[onceConfig]{
+		Name:     "mediated-mailbox-test",
+		Defaults: onceConfig{Process: host.DefaultProcess(), Own: own{Value: 1}},
+		Process:  func(c onceConfig) host.Process { return c.Process },
+		Validate: func(c onceConfig) error {
+			return validateOwn(config{Own: c.Own})
+		},
+		Component:         "comp",
+		RefuseEnvironment: refuse,
+		Work: func(ctx context.Context, p host.Provided[onceConfig]) error {
+			worked.Store(true)
+			if work == nil {
+				return nil
+			}
+			return work(ctx, p)
+		},
+	}
+}
+
+// starts are the two ways a composition root runs its process, each started the same way. Each runs
+// the process with args and environ and reports whether it went on to its work, assembling its
+// components or doing its one piece of work.
+var starts = []struct {
+	name string
+	run  func(t *testing.T, refuse func([]string) error, args, environ []string, stdout, stderr io.Writer, logger *slog.Logger, level *slog.LevelVar) (bool, error)
+}{
+	{"until stopped", func(t *testing.T, refuse func([]string) error, args, environ []string, stdout, stderr io.Writer, logger *slog.Logger, level *slog.LevelVar) (bool, error) {
+		var assembled atomic.Bool
+		err := run(t, spec(&assembled, host.Parts{}, refuse), args, environ, stdout, stderr, logger, level)
+		return assembled.Load(), err
+	}},
+	{"once", func(t *testing.T, refuse func([]string) error, args, environ []string, stdout, stderr io.Writer, logger *slog.Logger, level *slog.LevelVar) (bool, error) {
+		var worked atomic.Bool
+		err := host.RunOnce(t.Context(), args, environ, stdout, stderr, logger, level, once(&worked, refuse, func(context.Context, host.Provided[onceConfig]) error {
+			return errors.New("the work ran")
+		}))
+		if err != nil && err.Error() == "the work ran" {
+			err = nil
+		}
+		return worked.Load(), err
+	}},
 }
 
 func discard() *slog.Logger { return slog.New(slog.DiscardHandler) }
@@ -94,8 +152,8 @@ func run(t *testing.T, s host.Spec[config], args, environ []string, stdout, stde
 
 // The process refuses to start while PGPASSWORD or PGSSLPASSWORD is set, even to an empty value, or
 // while a component refuses the environment, before it reads its configuration, so it logs no value
-// and assembles nothing (ADR-0078, ADR-0086). The configuration file named does not exist, so a refusal
-// made after the read would report the missing file instead.
+// and goes on to no work, whichever way it runs (ADR-0078, ADR-0086). The configuration file named does
+// not exist, so a refusal made after the read would report the missing file instead.
 func TestTheEnvironmentIsRefusedBeforeTheConfigurationIsRead(t *testing.T) {
 	refuse := func(environ []string) error {
 		for _, e := range environ {
@@ -111,47 +169,51 @@ func TestTheEnvironmentIsRefusedBeforeTheConfigurationIsRead(t *testing.T) {
 		{"PGSSLPASSWORD=", "the environment sets PGSSLPASSWORD, and the database password comes only from the mounted password file"},
 		{"COMPONENTDEBUG=", "COMPONENTDEBUG is set"},
 	} {
-		t.Run(c.environ, func(t *testing.T) {
-			var out bytes.Buffer
-			var assembled atomic.Bool
-			err := run(t, spec(&assembled, host.Parts{}, refuse), []string{"--config-file=/absent/config.yaml"}, []string{c.environ},
-				io.Discard, io.Discard, slog.New(slog.NewTextHandler(&out, nil)), new(slog.LevelVar))
-			if err == nil || err.Error() != c.want {
-				t.Errorf("Run returned %v, want %q", err, c.want)
-			}
-			if out.Len() != 0 || assembled.Load() {
-				t.Errorf("the start logged %q or assembled %v before refusing the environment", out.String(), assembled.Load())
-			}
-		})
+		for _, start := range starts {
+			t.Run(start.name+"/"+c.environ, func(t *testing.T) {
+				var out bytes.Buffer
+				worked, err := start.run(t, refuse, []string{"--config-file=/absent/config.yaml"}, []string{c.environ},
+					io.Discard, io.Discard, slog.New(slog.NewTextHandler(&out, nil)), new(slog.LevelVar))
+				if err == nil || err.Error() != c.want {
+					t.Errorf("the start returned %v, want %q", err, c.want)
+				}
+				if out.Len() != 0 || worked {
+					t.Errorf("the start logged %q or went on to its work %v before refusing the environment", out.String(), worked)
+				}
+			})
+		}
 	}
 }
 
 // --help and --version are answered on the standard output the process is handed, and read no layer,
-// so a refused value beside them refuses nothing and nothing is assembled (ADR-0078).
+// so a refused value beside them refuses nothing and the process goes on to no work, whichever way it
+// runs (ADR-0078).
 func TestHelpAndVersionAreAnsweredOnStandardOutput(t *testing.T) {
-	for _, arg := range []string{"--help", "--version"} {
-		t.Run(arg, func(t *testing.T) {
-			var stdout, stderr bytes.Buffer
-			var assembled atomic.Bool
-			err := run(t, spec(&assembled, host.Parts{}, nil), []string{arg, "--own.value=not-a-number"}, nil, &stdout, &stderr, discard(), new(slog.LevelVar))
-			if err != nil {
-				t.Fatal(err)
-			}
-			want := version.Number + "\n"
-			if arg == "--help" {
-				want = "probe_listen"
-			}
-			if !strings.Contains(stdout.String(), want) || stderr.Len() != 0 || assembled.Load() {
-				t.Errorf("standard output %q, standard error %q, assembled %v, want %q on standard output alone", stdout.String(), stderr.String(), assembled.Load(), want)
-			}
-		})
+	for _, start := range starts {
+		for _, arg := range []string{"--help", "--version"} {
+			t.Run(start.name+"/"+arg, func(t *testing.T) {
+				var stdout, stderr bytes.Buffer
+				worked, err := start.run(t, nil, []string{arg, "--own.value=not-a-number"}, nil, &stdout, &stderr, discard(), new(slog.LevelVar))
+				if err != nil {
+					t.Fatal(err)
+				}
+				want := version.Number + "\n"
+				if arg == "--help" {
+					want = "log_level"
+				}
+				if !strings.Contains(stdout.String(), want) || stderr.Len() != 0 || worked {
+					t.Errorf("standard output %q, standard error %q, went on to its work %v, want %q on standard output alone", stdout.String(), stderr.String(), worked, want)
+				}
+			})
+		}
 	}
 }
 
 // The process writes the effective configuration with each value's source before the level applies,
 // then sets the level of the logger it was handed from log_level. So whatever the level, a refused
 // value's source is written, log_level's own included, and once the level is set no record below it is
-// written. A level that names none is refused (ADR-0078, ADR-0122).
+// written. A level that names none is refused. Both ways a process runs start the same way (ADR-0078,
+// ADR-0122).
 func TestTheConfiguredLevelGovernsTheLog(t *testing.T) {
 	refused := func(name string) string {
 		return `validating the configuration: log_level "` + name + `" is not one of debug, info, warn and error`
@@ -176,28 +238,29 @@ func TestTheConfiguredLevelGovernsTheLog(t *testing.T) {
 		{name: "warning", environ: []string{"MEDIATED_MAILBOX_LOG_LEVEL=warning"}, wantErr: refused("warning"), wantLine: logLevelFrom("environment variable MEDIATED_MAILBOX_LOG_LEVEL", "warning"), wantInfo: true},
 		{name: "a refused value at error", args: []string{"--log_level=error"}, wantErr: ownRefused, wantLine: `"msg":"configuration","path":"own.value","source":"flag --own.value","value":-1`},
 	}
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			var out bytes.Buffer
-			level := new(slog.LevelVar)
-			logger := slog.New(slog.NewJSONHandler(&out, &slog.HandlerOptions{Level: level}))
-			var assembled atomic.Bool
-			err := run(t, spec(&assembled, host.Parts{}, nil), append([]string{"--own.value=-1"}, c.args...), c.environ, io.Discard, io.Discard, logger, level)
-			if err == nil || err.Error() != c.wantErr {
-				t.Fatalf("Run returned %v, want %q", err, c.wantErr)
-			}
-			if !strings.Contains(out.String(), c.wantLine) {
-				t.Errorf("the start did not write %s:\n%s", c.wantLine, out.String())
-			}
-			out.Reset()
-			logger.Info("after the start")
-			if written := out.Len() != 0; written != c.wantInfo {
-				t.Errorf("an info record after the start was written: %v, want %v", written, c.wantInfo)
-			}
-			if assembled.Load() {
-				t.Error("a configuration the process refused was assembled")
-			}
-		})
+	for _, start := range starts {
+		for _, c := range cases {
+			t.Run(start.name+"/"+c.name, func(t *testing.T) {
+				var out bytes.Buffer
+				level := new(slog.LevelVar)
+				logger := slog.New(slog.NewJSONHandler(&out, &slog.HandlerOptions{Level: level}))
+				worked, err := start.run(t, nil, append([]string{"--own.value=-1"}, c.args...), c.environ, io.Discard, io.Discard, logger, level)
+				if err == nil || err.Error() != c.wantErr {
+					t.Fatalf("the start returned %v, want %q", err, c.wantErr)
+				}
+				if !strings.Contains(out.String(), c.wantLine) {
+					t.Errorf("the start did not write %s:\n%s", c.wantLine, out.String())
+				}
+				out.Reset()
+				logger.Info("after the start")
+				if written := out.Len() != 0; written != c.wantInfo {
+					t.Errorf("an info record after the start was written: %v, want %v", written, c.wantInfo)
+				}
+				if worked {
+					t.Error("a process whose configuration was refused went on to its work")
+				}
+			})
+		}
 	}
 }
 
@@ -236,8 +299,8 @@ func TestTheProcessSectionsAreValidated(t *testing.T) {
 }
 
 // The start banner goes to the standard error the process is handed and names the process, its
-// release version and where it serves, and standard output carries only the logger's records
-// (ADR-0122).
+// release version and where it serves, and standard output carries only the logger's records. A
+// process that runs once serves nowhere, so its banner names it and its version alone (ADR-0122).
 func TestTheStartBannerGoesToStandardError(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	var assembled atomic.Bool
@@ -249,6 +312,14 @@ func TestTheStartBannerGoesToStandardError(t *testing.T) {
 	want := "mediated-mailbox-test " + version.Number + "\n  serves  https on 127.0.0.1:0\n  probes  http on 127.0.0.1:0\n"
 	if stderr.String() != want {
 		t.Errorf("standard error %q, want %q", stderr.String(), want)
+	}
+	stderr.Reset()
+	var worked atomic.Bool
+	if err := host.RunOnce(t.Context(), nil, nil, &stdout, &stderr, logger, new(slog.LevelVar), once(&worked, nil, nil)); err != nil {
+		t.Fatal(err)
+	}
+	if want := "mediated-mailbox-test " + version.Number + "\n"; stderr.String() != want || !worked.Load() {
+		t.Errorf("a process that runs once wrote standard error %q and did its work %v, want %q and true", stderr.String(), worked.Load(), want)
 	}
 	for line := range strings.Lines(stdout.String()) {
 		if !strings.HasPrefix(line, "{") {
@@ -800,5 +871,46 @@ func TestEachHandlerIsServedWhereItIsMounted(t *testing.T) {
 	want := map[string]string{"/one/x": "200 one", "/single": "200 one", "/two/y": "200 two", "/elsewhere": "404 404 page not found", "/healthz": "404 404 page not found"}
 	if diff := cmp.Diff(want, got, compare.Options); diff != "" {
 		t.Errorf("answers (-want +got):\n%s", diff)
+	}
+}
+
+// A process that runs once does its work with what the host provides a component, a logger and a
+// registerer carrying the component's name and the pools the work opens, returns the work's error, and
+// has closed every pool by the time it returns. It holds no operations section, so it has no probe
+// address to serve on (ADR-0138, ADR-0139).
+func TestAProcessThatRunsOnceDoesItsWorkAndClosesItsPools(t *testing.T) {
+	password := filepath.Join(t.TempDir(), "password")
+	if err := os.WriteFile(password, []byte("secret\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	var pool *pgxpool.Pool
+	var logs bytes.Buffer
+	var worked atomic.Bool
+	err := host.RunOnce(t.Context(), nil, nil, io.Discard, io.Discard, slog.New(slog.NewJSONHandler(&logs, nil)), new(slog.LevelVar),
+		once(&worked, nil, func(ctx context.Context, p host.Provided[onceConfig]) error {
+			var err error
+			pool, err = p.OpenPool(ctx, dbconnectcore.Config{Host: "127.0.0.1", Port: 1, Name: "none", User: "nobody", SSLMode: "disable", PasswordFile: password, PoolSize: 1}, p.Registerer)
+			if err != nil {
+				return err
+			}
+			p.Logger.Info("working")
+			return errors.New("the work's own error")
+		}))
+	if err == nil || err.Error() != "the work's own error" {
+		t.Fatalf("RunOnce returned %v, want the work's own error", err)
+	}
+	if pool == nil {
+		t.Fatal("the work opened no pool")
+	}
+	if _, err := pool.Acquire(t.Context()); err == nil || !strings.Contains(err.Error(), "closed pool") {
+		t.Errorf("acquiring from the work's pool after RunOnce returned %v, want the pool closed", err)
+	}
+	if !strings.Contains(logs.String(), `"msg":"working","component":"comp"`) {
+		t.Errorf("the work's logger does not carry the component:\n%s", logs.String())
+	}
+	worked.Store(false)
+	err = host.RunOnce(t.Context(), []string{"--probe_listen=127.0.0.1:0"}, nil, io.Discard, io.Discard, discard(), new(slog.LevelVar), once(&worked, nil, nil))
+	if err == nil || !strings.HasPrefix(err.Error(), "loading the configuration: ") || worked.Load() {
+		t.Errorf("RunOnce given a probe address returned %v having worked %v, want the flag refused", err, worked.Load())
 	}
 }

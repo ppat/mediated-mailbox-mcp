@@ -1,46 +1,54 @@
 control: A process refuses the environment the database driver and every component it hosts refuse, before its configuration is read
 removes: the refusals run after the configuration is read, so a start whose environment sets a refused variable reads its configuration first and reports its file's error instead
 packages: ./process/host
-tests: TestTheEnvironmentIsRefusedBeforeTheConfigurationIsRead/PGPASSWORD=s3cret TestTheEnvironmentIsRefusedBeforeTheConfigurationIsRead/PGPASSWORD= TestTheEnvironmentIsRefusedBeforeTheConfigurationIsRead/PGSSLPASSWORD= TestTheEnvironmentIsRefusedBeforeTheConfigurationIsRead/COMPONENTDEBUG=
+tests: TestTheEnvironmentIsRefusedBeforeTheConfigurationIsRead/until_stopped/PGPASSWORD=s3cret TestTheEnvironmentIsRefusedBeforeTheConfigurationIsRead/until_stopped/PGPASSWORD= TestTheEnvironmentIsRefusedBeforeTheConfigurationIsRead/until_stopped/PGSSLPASSWORD= TestTheEnvironmentIsRefusedBeforeTheConfigurationIsRead/until_stopped/COMPONENTDEBUG= TestTheEnvironmentIsRefusedBeforeTheConfigurationIsRead/once/PGPASSWORD=s3cret TestTheEnvironmentIsRefusedBeforeTheConfigurationIsRead/once/PGPASSWORD= TestTheEnvironmentIsRefusedBeforeTheConfigurationIsRead/once/PGSSLPASSWORD= TestTheEnvironmentIsRefusedBeforeTheConfigurationIsRead/once/COMPONENTDEBUG=
 scheduled-count: no
 
 diff --git a/process/host/host.go b/process/host/host.go
-index 7e940118..9fd9862e 100644
+index 8c310a7a..2f51b9a4 100644
 --- a/process/host/host.go
 +++ b/process/host/host.go
-@@ -174,17 +174,6 @@ type Spec[T any] struct {
- // from log_level, validates the process's sections and the root's, writes the start banner to stderr,
- // assembles each component in order and serves (ADR-0051, ADR-0078, ADR-0122).
- func Run[T any](ctx context.Context, args, environ []string, stdout, stderr io.Writer, logger *slog.Logger, level *slog.LevelVar, spec Spec[T]) error {
+@@ -320,21 +320,10 @@ type starting[T any] struct {
+ // on stdout, logs the effective configuration, each value with the layer that set it, then sets level
+ // from log_level, validates the process's section and the root's, and writes the start banner to
+ // stderr. started reports whether the process goes on to its work: it is false with a nil error once
+ // --help or --version is answered.
+ func start[T any](args, environ []string, stdout, stderr io.Writer, logger *slog.Logger, level *slog.LevelVar, root starting[T]) (loaded settings.Loaded[T], started bool, err error) {
 -	if err := dbconnect.RefusePasswordVariables(environ); err != nil {
--		return err
+-		return loaded, false, err
 -	}
--	for _, c := range spec.Components {
--		if c.RefuseEnvironment == nil {
+-	for _, refuse := range root.refusals {
+-		if refuse == nil {
 -			continue
 -		}
--		if err := c.RefuseEnvironment(environ); err != nil {
--			return err
+-		if err := refuse(environ); err != nil {
+-			return loaded, false, err
 -		}
 -	}
- 	loaded, err := settings.Load(spec.Defaults, args, environ)
+ 	loaded, err = settings.Load(root.defaults, args, environ)
  	var help *settings.HelpRequested
  	if errors.As(err, &help) {
-@@ -198,6 +187,17 @@ func Run[T any](ctx context.Context, args, environ []string, stdout, stderr io.W
+ 		_, err := io.WriteString(stdout, help.Text)
+ 		return loaded, false, err
+@@ -344,10 +333,21 @@ func start[T any](args, environ []string, stdout, stderr io.Writer, logger *slog
+ 		return loaded, false, err
+ 	}
  	if err != nil {
- 		return fmt.Errorf("loading the configuration: %w", err)
+ 		return loaded, false, fmt.Errorf("loading the configuration: %w", err)
  	}
 +	if err := dbconnect.RefusePasswordVariables(environ); err != nil {
-+		return err
++		return loaded, false, err
 +	}
-+	for _, c := range spec.Components {
-+		if c.RefuseEnvironment == nil {
++	for _, refuse := range root.refusals {
++		if refuse == nil {
 +			continue
 +		}
-+		if err := c.RefuseEnvironment(environ); err != nil {
-+			return err
++		if err := refuse(environ); err != nil {
++			return loaded, false, err
 +		}
 +	}
  	// The effective configuration is written before the level applies, so a refused value's source,
  	// log_level's included, reaches the log whatever level the configuration sets (ADR-0078, ADR-0122).
  	for _, v := range loaded.Values {
+ 		logger.Info("configuration", "path", v.Path, "source", v.Source.String(), "value", v.Value)
+ 	}
