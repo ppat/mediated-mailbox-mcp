@@ -124,7 +124,7 @@ moves it. Records themselves link freely and deep, into
 | 0047 | [The schema is the single authority, read through per-query result types — no entity model](./data/0047-schema-first-data-access.md) | Accepted |
 | 0048 | [Migrations are hand-written SQL, forward-only, run under their own role](./data/0048-forward-only-migrations.md) | Accepted |
 | 0066 | [Data access is generated from hand-written SQL, and the dataset endpoint is enumerated rather than composed](./data/0066-data-access-generated-from-sql.md) | Accepted |
-| 0067 | [The migration runner is goose, invoked as a command](./data/0067-migration-runner-goose.md) | Accepted |
+| 0067 | [The migration runner is goose, invoked as a command](./data/0067-migration-runner-goose.md) | **Superseded** |
 | 0075 | [Each deployable connects to the database as a runtime role of its own](./data/0075-one-runtime-role-per-deployable.md) | **Superseded** |
 | 0080 | [Accounts and their provider credentials are created and repaired through the UI and live in the database](./data/0080-accounts-and-credentials-live-in-the-database.md) | Accepted |
 | 0091 | [The accounts table holds only what every listing needs, and each account's state lives apart](./data/0091-accounts-listed-apart-from-their-state.md) | Accepted |
@@ -136,6 +136,7 @@ moves it. Records themselves link freely and deep, into
 | 0129 | [The chart runs the migration step as one Helm hook Job before install and every upgrade, holding the migration role's credential alone](./data/0129-the-chart-runs-the-migration-step-as-a-pre-install-and-pre-upgrade-hook-job.md) | Accepted |
 | 0133 | [Backfill is full-history and two-pass: metadata first, gated scanning second](./data/0133-backfill-is-full-history-and-two-pass.md) | Accepted |
 | 0135 | [Every statement reads its account from the transaction, and no table carries a row-level security policy](./data/0135-every-statement-reads-its-account-from-the-transaction.md) | Accepted |
+| 0139 | [The migration runner is goose, linked into the migrator, which configures and connects like every process](./data/0139-the-migration-runner-is-goose-linked-into-the-migrator.md) | Accepted |
 
 ## Mutation — `mutation/`
 

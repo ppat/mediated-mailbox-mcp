@@ -1,21 +1,25 @@
 control: A process refuses the environment the database driver and every component it hosts refuse, before its configuration is read
 removes: the refusals a component hands the host are never run, so the API server starts under MCPGODEBUG
 packages: ./process/host ./api/app
-tests: TestTheEnvironmentIsRefusedBeforeTheConfigurationIsRead/COMPONENTDEBUG= TestMCPGODEBUGStopsTheStart
+tests: TestTheEnvironmentIsRefusedBeforeTheConfigurationIsRead/until_stopped/COMPONENTDEBUG= TestTheEnvironmentIsRefusedBeforeTheConfigurationIsRead/once/COMPONENTDEBUG= TestMCPGODEBUGStopsTheStart
 scheduled-count: no
 
 diff --git a/process/host/host.go b/process/host/host.go
-index 7e940118..30f030d6 100644
+index 8c310a7a..7387c7cb 100644
 --- a/process/host/host.go
 +++ b/process/host/host.go
-@@ -181,9 +181,7 @@ func Run[T any](ctx context.Context, args, environ []string, stdout, stderr io.W
- 		if c.RefuseEnvironment == nil {
+@@ -327,13 +327,11 @@ func start[T any](args, environ []string, stdout, stderr io.Writer, logger *slog
+ 	}
+ 	for _, refuse := range root.refusals {
+ 		if refuse == nil {
  			continue
  		}
--		if err := c.RefuseEnvironment(environ); err != nil {
--			return err
+-		if err := refuse(environ); err != nil {
+-			return loaded, false, err
 -		}
-+		_ = c.RefuseEnvironment
++		_ = refuse
  	}
- 	loaded, err := settings.Load(spec.Defaults, args, environ)
+ 	loaded, err = settings.Load(root.defaults, args, environ)
  	var help *settings.HelpRequested
+ 	if errors.As(err, &help) {
+ 		_, err := io.WriteString(stdout, help.Text)

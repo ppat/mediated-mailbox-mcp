@@ -5,15 +5,15 @@ tests: TestEveryPodReadsOnlyTheSecretsItsProcessUses
 scheduled-count: no
 
 diff --git a/packaging/chart/templates/migration/job.yaml b/packaging/chart/templates/migration/job.yaml
-index 12b9922a..8d7d4c70 100644
+index 982bfc6a..d5527a7e 100644
 --- a/packaging/chart/templates/migration/job.yaml
 +++ b/packaging/chart/templates/migration/job.yaml
-@@ -73,10 +73,11 @@ spec:
+@@ -79,10 +79,11 @@ spec:
            - secret:
                name: {{ required "secrets.databasePasswords.migration.existingSecret is required" .Values.secrets.databasePasswords.migration.existingSecret }}
                items:
-               - key: {{ .Values.secrets.databasePasswords.migration.secretKeys.passwordFile }}
-                 path: database/pgpass
+               - key: {{ .Values.secrets.databasePasswords.migration.secretKeys.password }}
+                 path: database/password
 +          {{- include "mm.credentialSealingKeyPairSource" . | nindent 10 }}
            {{- include "mm.databaseCaCertificateSource" . | nindent 10 }}
        {{- with $v.nodeSelector }}

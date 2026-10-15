@@ -6,15 +6,22 @@ scheduled-count: no
 integration: yes
 
 diff --git a/testsupport/postgres/chain.go b/testsupport/postgres/chain.go
-index c3471cbf..d684d00f 100644
+index bf1546e3..9dfbc182 100644
 --- a/testsupport/postgres/chain.go
 +++ b/testsupport/postgres/chain.go
-@@ -136,7 +136,7 @@ func up(ctx context.Context, dir, url string) ([]byte, error) {
- 	goose.Env = append(os.Environ(), "GOOSE_DRIVER=", "GOOSE_DBSTRING=", "GOOSE_MIGRATION_DIR=")
- 	out, err := goose.CombinedOutput()
+@@ -135,11 +135,14 @@ func up(ctx context.Context, chain fs.FS, url string) (err error) {
  	if err != nil {
--		return out, fmt.Errorf("goose up: %w", err)
-+		fmt.Fprintf(os.Stderr, "goose up: %v\n", err)
+ 		return err
  	}
- 	return out, nil
+ 	db := stdlib.OpenDB(*config)
+ 	defer func() { err = errors.Join(err, db.Close()) }()
+-	return migrate.Apply(ctx, db, chain, slog.New(slog.NewTextHandler(os.Stderr, nil)))
++	if err := migrate.Apply(ctx, db, chain, slog.New(slog.NewTextHandler(os.Stderr, nil))); err != nil {
++		slog.New(slog.NewTextHandler(os.Stderr, nil)).Error("applying the chain", "error", err)
++	}
++	return nil
  }
+ 
+ // ExecFile runs a SQL file through the simple protocol, which accepts several statements at once.
+ func ExecFile(ctx context.Context, conn *pgx.Conn, path string) error {
+ 	sql, err := os.ReadFile(path)

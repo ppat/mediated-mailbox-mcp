@@ -13,7 +13,7 @@ would not read.
 
 | Object | Runs | Reads |
 | --- | --- | --- |
-| Job `<release>-mediated-mailbox-migration` | The migration chain, as a Helm hook before install and before every upgrade ([ADR-0129](https://github.com/ppat/mediated-mailbox-mcp/blob/main/docs/adr/data/0129-the-chart-runs-the-migration-step-as-a-pre-install-and-pre-upgrade-hook-job.md)) | The migration role's password file, the CA certificate |
+| Job `<release>-mediated-mailbox-migration` | The migration chain, as a Helm hook before install and before every upgrade ([ADR-0129](https://github.com/ppat/mediated-mailbox-mcp/blob/main/docs/adr/data/0129-the-chart-runs-the-migration-step-as-a-pre-install-and-pre-upgrade-hook-job.md)) | The migration role's password, the CA certificate |
 | Deployment `<release>-mediated-mailbox-api` | The client surface agents call, over MCP and HTTP | Its role's password, the key pair, the bearer token, the CA certificate, its TLS pair |
 | Deployment `<release>-mediated-mailbox-worker` | Every background job kind, as exactly one pod | Each job kind's role password, the key pair, the CA certificate |
 | Deployment `<release>-mediated-mailbox-ui` | The operator's UI | Its role's password, the key pair, the request token's key, the CA certificate, its TLS pair |
@@ -69,7 +69,7 @@ reads only the keys it names, and mounts each one only into the pods whose proce
 | `databasePasswords.api` | The API server role's password alone, `secretKeys.password: password` | the API server | yes |
 | `databasePasswords.ui` | The UI role's password alone, `secretKeys.password: password` | the UI | yes |
 | `databasePasswords.worker.backfill`, `databasePasswords.worker.sync` | Each job kind's role password alone, `secretKeys.password: password` | the worker | yes |
-| `databasePasswords.migration` | The migration role's password as a libpq password file, `host:port:database:user:password`, `secretKeys.passwordFile: pgpass`. Its host, port, database and user match `database.host`, `database.port`, `database.name` and `migration.database.user`, or are `*` | the migration Job | yes |
+| `databasePasswords.migration` | The migration role's password alone, `secretKeys.password: password` | the migration Job | yes |
 | `credentialSealingKeyPair` | The key pair stored credentials are sealed to: the public key, `secretKeys.publicKey: credential.pub`, and every private key of the keyring, `secretKeys.privateKeys: [credential.key]` | the API server, the worker and the UI | yes |
 | `databaseCaCertificate` | The CA certificate the database server's certificate is checked against, `secretKeys.certificate: ca.crt` | every process and the migration Job | no |
 | `apiBearerToken` | The bearer token clients present to the API server, `secretKeys.bearerToken: api-bearer-token` | the API server | no, the chart generates one when empty |
@@ -78,9 +78,9 @@ reads only the keys it names, and mounts each one only into the pods whose proce
 
 ## With a CloudNativePG cluster
 
-CloudNativePG creates the database owned by the migration role and writes that role's password, as a
-libpq password file under `pgpass`, into the Secret `<cluster>-app`, and the server's CA certificate
-into `<cluster>-ca`. The chart mounts only `ca.crt` from that Secret, so its CA private key stays out
+CloudNativePG creates the database owned by the migration role and writes that role's password,
+under `password`, into the Secret `<cluster>-app`, and the server's CA certificate into
+`<cluster>-ca`. The chart mounts only `ca.crt` from that Secret, so its CA private key stays out
 of every pod.
 
 ```yaml
@@ -159,8 +159,6 @@ secrets:
         existingSecret: sync-db
     migration:
       existingSecret: mailbox-db-app
-      secretKeys:
-        passwordFile: pgpass
   databaseCaCertificate:
     existingSecret: mailbox-db-ca
   credentialSealingKeyPair:
@@ -171,9 +169,11 @@ secrets:
 helm install mailbox oci://ghcr.io/ppat/mediated-mailbox --version <version> --values values.yaml
 ```
 
-`database.host` is the cluster's read-write Service, `<cluster>-rw`, which the server's certificate
-names and the `pgpass` file's host field holds, so the default `sslmode: verify-full` checks the
-server. The chainsaw suite in `packaging/tests/chainsaw/cnpg` installs exactly this.
+`database.host` is the cluster's read-write Service, `<cluster>-rw`. The server's certificate names
+it and its fully qualified forms, such as `mailbox-db-rw.<namespace>.svc.cluster.local`, so either
+form works for every process, the migration included, and the default `sslmode: verify-full` checks
+the server. The chainsaw suite in `packaging/tests/chainsaw/cnpg` installs exactly this, with the
+fully qualified name.
 
 ## With any other PostgreSQL
 
@@ -188,7 +188,7 @@ server, which is why the chainsaw suite tests with CloudNativePG alone.
 | Value | Holds |
 | --- | --- |
 | `sharedConfig.log_level`, `sharedConfig.sync_interval`, `sharedConfig.scanner` | Configuration several processes read, given once and rendered into each |
-| `api.config`, `ui.config`, `worker.config`, `worker.jobKinds.<kind>.config` | Each process's own configuration keys, named as the process reads them |
+| `api.config`, `ui.config`, `worker.config`, `worker.jobKinds.<kind>.config`, `migration.config` | Each process's own configuration keys, named as the process reads them |
 | `secrets.apiTls`, `secrets.uiTls` | A Secret holding a certificate chain and its key, such as a `kubernetes.io/tls` Secret. Named, the process serves TLS, and empty, plain HTTP ([ADR-0127](https://github.com/ppat/mediated-mailbox-mcp/blob/main/docs/adr/operability/0127-tls-when-given-a-key-pair-plain-http-otherwise.md)) |
 | `secrets.apiBearerToken`, `secrets.uiRequestTokenKey` | Your own Secrets holding the bearer token and the request token key, as [The Secrets the chart reads](#the-secrets-the-chart-reads) lists |
 | `api.ingress`, `api.httpRoute`, `ui.ingress`, `ui.httpRoute` | Exposure outside the cluster, off by default |

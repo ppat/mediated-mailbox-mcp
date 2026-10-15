@@ -29,7 +29,8 @@ import (
 // process's sections in theirs.
 func TestTheConfigurationTypeIsPinned(t *testing.T) {
 	mustnotcompile.RequireFields(t, "github.com/ppat/mediated-mailbox-mcp/ui/app", "Configuration",
-		"Process host.Process", "Serving host.Serving", "Section Section", "Database core.Config", "Credential core.Config")
+		"Process host.Process",
+		"Operations host.Operations", "Serving host.Serving", "Section Section", "Database core.Config", "Credential core.Config")
 	mustnotcompile.RequireFields(t, "github.com/ppat/mediated-mailbox-mcp/ui/app", "Section",
 		"SyncInterval time.Duration", "HeuristicsInterval time.Duration", "StreamInterval time.Duration",
 		"DefaultTheme string", "StreamReconnectMax time.Duration", "StreamPollInterval time.Duration",
@@ -45,9 +46,10 @@ func discard() *slog.Logger { return slog.New(slog.DiscardHandler) }
 // (docs/UI.md section 18.1).
 func TestTheDefaults(t *testing.T) {
 	want := Configuration{
-		Process:  host.Process{ProbeListen: ":8080", LogLevel: "info"},
-		Serving:  host.Serving{Listen: ":8443"},
-		Database: dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_ui", SSLMode: "verify-full", PoolSize: max(4, runtime.NumCPU())},
+		Process:    host.Process{LogLevel: "info"},
+		Operations: host.Operations{ProbeListen: ":8080"},
+		Serving:    host.Serving{Listen: ":8443"},
+		Database:   dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_ui", SSLMode: "verify-full", PoolSize: max(4, runtime.NumCPU())},
 		Section: Section{
 			SyncInterval:       5 * time.Minute,
 			HeuristicsInterval: 24 * time.Hour,

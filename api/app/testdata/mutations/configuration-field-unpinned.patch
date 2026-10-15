@@ -5,14 +5,18 @@ tests: TestTheConfigurationTypeIsPinned
 scheduled-count: no
 
 diff --git a/api/app/app.go b/api/app/app.go
-index 843a78ed..f2bb9c48 100644
+index a52205ab..fb03fe29 100644
 --- a/api/app/app.go
 +++ b/api/app/app.go
-@@ -82,6 +82,7 @@ type Configuration struct {
- 	Section      `yaml:",inline"`
- 	Database     dbconnectcore.Config  `yaml:"database"`
- 	Credential   credentialcore.Config `yaml:"credential"`
-+	Accounts     []string              `yaml:"accounts"`
+@@ -77,10 +77,11 @@ type Configuration struct {
+ 	host.Operations `yaml:",inline"`
+ 	host.Serving    `yaml:",inline"`
+ 	Section         `yaml:",inline"`
+ 	Database        dbconnectcore.Config  `yaml:"database"`
+ 	Credential      credentialcore.Config `yaml:"credential"`
++	Accounts        []string              `yaml:"accounts"`
  	// Scanner is the scanner's section, the same section backfill reads, whose pattern tier the
  	// serve-time pattern check runs (ADR-0002, ADR-0005). No value in it switches the check off.
  	Scanner scan.Config `yaml:"scanner"`
+ }
+ 

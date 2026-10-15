@@ -1,0 +1,36 @@
+control: Two runs of the migration chain at once apply each migration once
+removes: each run takes an advisory lock of its own key, so two runs never wait for each other
+packages: ./db/migrate
+tests: TestTwoRunsAtOnceApplyAMigrationOnce
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrate/migrate.go b/db/migrate/migrate.go
+index 723382e1..64513024 100644
+--- a/db/migrate/migrate.go
++++ b/db/migrate/migrate.go
+@@ -7,10 +7,11 @@ import (
+ 	"context"
+ 	"database/sql"
+ 	"fmt"
+ 	"io/fs"
+ 	"log/slog"
++	"time"
+ 
+ 	"github.com/pressly/goose/v3"
+ 	"github.com/pressly/goose/v3/lock"
+ )
+ 
+@@ -18,11 +19,11 @@ import (
+ // transaction, connected through db as the role that owns the schema. It first takes goose's
+ // PostgreSQL advisory lock on a connection of its own, so a second run at the same time waits, then
+ // finds the migrations already applied and applies nothing. goose logs each migration it applies
+ // through logger.
+ func Apply(ctx context.Context, db *sql.DB, chain fs.FS, logger *slog.Logger) error {
+-	locker, err := lock.NewPostgresSessionLocker()
++	locker, err := lock.NewPostgresSessionLocker(lock.WithLockID(time.Now().UnixNano()))
+ 	if err != nil {
+ 		return fmt.Errorf("building the migration lock: %w", err)
+ 	}
+ 	provider, err := goose.NewProvider(goose.DialectPostgres, db, chain,
+ 		goose.WithSessionLocker(locker),

@@ -1,8 +1,9 @@
-// Package probes is the operations endpoints of every process, the health probe, the readiness
-// probe and the metrics endpoint, served on a listener of their own (ADR-0051). /healthz answers 200
-// while the process runs, /readyz answers 200 only while the readiness it is handed holds, and
-// /metrics serves the process's one registry, between units of work as during them. Every answer is
-// plain text, for a platform's healthcheck and scraper, which carry no credential and read no page.
+// Package probes is the operations endpoints of every process that runs until it is told to stop,
+// the health probe, the readiness probe and the metrics endpoint, served on a listener of their own
+// (ADR-0051). /healthz answers 200 while the process runs, /readyz answers 200 only while the
+// readiness it is handed holds, and /metrics serves the process's one registry, between units of work
+// as during them. Every answer is plain text, for a platform's healthcheck and scraper, which carry no
+// credential and read no page.
 package probes
 
 import (

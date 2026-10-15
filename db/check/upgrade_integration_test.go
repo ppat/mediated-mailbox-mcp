@@ -76,12 +76,12 @@ func TestTheIdentifierGrammarStopsOverAStoredAccountOutsideIt(t *testing.T) {
 	)
 	before := rowsOf(t, conn, "accounts")
 
-	out, err := u.Up(ctx)
+	err := u.Up(ctx)
 	if err == nil {
-		t.Fatalf("the grammar's migration applied over an account outside the grammar\n%s", out)
+		t.Fatal("the grammar's migration applied over an account outside the grammar")
 	}
-	if !strings.Contains(out, "accounts_account_id_grammar") {
-		t.Errorf("the migration stopped, but not on the grammar's check\n%s", out)
+	if !strings.Contains(err.Error(), "accounts_account_id_grammar") {
+		t.Errorf("the migration stopped, but not on the grammar's check: %v", err)
 	}
 	if diff := cmp.Diff(before, rowsOf(t, conn, "accounts"), compare.Options); diff != "" {
 		t.Errorf("the stopped migration changed the stored accounts (-before +after):\n%s", diff)
@@ -92,8 +92,8 @@ func TestTheIdentifierGrammarStopsOverAStoredAccountOutsideIt(t *testing.T) {
 	}
 
 	store(t, conn, "DELETE FROM accounts WHERE account_id = 'Jo.Smith'")
-	if out, err := u.Up(ctx); err != nil {
-		t.Fatalf("the grammar's migration over accounts inside the grammar: %v\n%s", err, out)
+	if err := u.Up(ctx); err != nil {
+		t.Fatalf("the grammar's migration over accounts inside the grammar: %v", err)
 	}
 	if diff := cmp.Diff([]string{before[slices.IndexFunc(before, func(r string) bool { return strings.HasPrefix(r, "(personal,") })]}, rowsOf(t, conn, "accounts"), compare.Options); diff != "" {
 		t.Errorf("the migrated account (-before +after):\n%s", diff)
@@ -127,8 +127,8 @@ func TestTheRunAndAuditIndexesLeaveStoredRowsUnchanged(t *testing.T) {
 	)
 	runs, audit := rowsOf(t, conn, "job_runs"), rowsOf(t, conn, "audit_log")
 
-	if out, err := u.Up(ctx); err != nil {
-		t.Fatalf("the indexes' migration over stored runs and audit rows: %v\n%s", err, out)
+	if err := u.Up(ctx); err != nil {
+		t.Fatalf("the indexes' migration over stored runs and audit rows: %v", err)
 	}
 	if diff := cmp.Diff(runs, rowsOf(t, conn, "job_runs"), compare.Options); diff != "" {
 		t.Errorf("the migration changed the stored runs (-before +after):\n%s", diff)

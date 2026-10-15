@@ -70,5 +70,6 @@ component's first row creates its file and its line below.
 | [mutations/worker.md](./mutations/worker.md) | `worker/` |
 | [mutations/ui.md](./mutations/ui.md) | `ui/` |
 | [mutations/cli.md](./mutations/cli.md) | `cli/` |
+| [mutations/migrator.md](./mutations/migrator.md) | `migrator/` |
 | [mutations/packaging-chart.md](./mutations/packaging-chart.md) | `packaging/chart/` and `packaging/tests/chainsaw/` |
 | [mutations/cross-component.md](./mutations/cross-component.md) | More than one component's directory |

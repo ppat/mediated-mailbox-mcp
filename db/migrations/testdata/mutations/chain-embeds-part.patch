@@ -1,0 +1,23 @@
+control: The chain the binary embeds is every SQL file of the chain's directory and nothing else
+removes: only the baseline's three files are embedded, so the migrations after it never reach the binary
+packages: ./db/migrations
+tests: TestTheEmbeddedChainIsTheDirectory
+scheduled-count: no
+
+diff --git a/db/migrations/migrations.go b/db/migrations/migrations.go
+index 82795689..32eda2c1 100644
+--- a/db/migrations/migrations.go
++++ b/db/migrations/migrations.go
+@@ -6,11 +6,11 @@ package migrations
+ import (
+ 	"embed"
+ 	"io/fs"
+ )
+ 
+-//go:embed *.sql
++//go:embed 0000[123]_*.sql
+ var chain embed.FS
+ 
+ // Chain is the migration chain this build carries, each file at the top of the returned file system.
+ func Chain() fs.FS {
+ 	return chain
