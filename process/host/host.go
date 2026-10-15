@@ -3,13 +3,17 @@
 // process cannot run under, loads one configuration tree, sets the log level, builds the one
 // metrics registry and the pools, serves the application server and the operations endpoints,
 // starts and joins every background task and every goroutine a component asks its starter for, and
-// stops in order. A component knows none of it. Its assembly takes what it needs as values, starts
+// stops in order. A process that runs once and exits gets the same start, registry and pools, and no
+// servers or tasks. A component knows none of it. Its assembly takes what it needs as values, starts
 // nothing of its own, and returns what it provides, a handler, readiness checks and tasks, so a
-// component is assembled the same way whatever else shares its process. process/README.md argues why this is a package of the process family.
+// component is assembled the same way whatever else shares its process. process/README.md argues why
+// this is a package of the process family.
 //
-// Run is the whole process for a composition root. New, Add and Serve are its lifecycle without the
-// configuration, which a test or a harness that composes a component itself uses, so what it runs is
-// what the composition root runs.
+// Run is the whole process for a composition root whose process runs until it is told to stop, and
+// RunOnce for one whose process does one piece of work and exits, as the migrator does. Both start the
+// process the same way. New, Add and Serve are Run's lifecycle without the configuration, which a test
+// or a harness that composes a component itself uses, so what it runs is what the composition root
+// runs.
 package host
 
 import (
@@ -43,10 +47,17 @@ import (
 // Process is the section of the configuration every process holds, read at the top level of the
 // tree, where a root embeds it inline (ADR-0078).
 type Process struct {
-	// ProbeListen is the address the operations endpoints listen on, over plain HTTP (ADR-0051).
-	ProbeListen string `yaml:"probe_listen"`
 	// LogLevel is the lowest level the process logs at, debug, info, warn or error (ADR-0122).
 	LogLevel string `yaml:"log_level"`
+}
+
+// Operations is the section of the configuration a process holds when it runs until it is told to
+// stop, so the host serves its operations endpoints, read at the top level of the tree beside Process.
+// A process that runs once serves none, since nothing probes or scrapes a process that exits on its
+// own.
+type Operations struct {
+	// ProbeListen is the address the operations endpoints listen on, over plain HTTP (ADR-0051).
+	ProbeListen string `yaml:"probe_listen"`
 }
 
 // Serving is the section of the configuration a process holds when a component it hosts serves
@@ -62,7 +73,12 @@ type Serving struct {
 
 // DefaultProcess is the process section's defaults.
 func DefaultProcess() Process {
-	return Process{ProbeListen: ":8080", LogLevel: logging.DefaultLevel}
+	return Process{LogLevel: logging.DefaultLevel}
+}
+
+// DefaultOperations is the operations section's defaults.
+func DefaultOperations() Operations {
+	return Operations{ProbeListen: ":8080"}
 }
 
 // DefaultServing is the serving section's defaults. The key pair has no default, since a default path
@@ -77,19 +93,18 @@ func (s Serving) ServesTLS() bool {
 	return strings.TrimSpace(s.TLSCert) != ""
 }
 
-// ValidateProcess refuses an empty probe_listen and a log_level that names no level.
+// ValidateProcess refuses a log_level that names no level.
 func ValidateProcess(p Process) error {
-	_, err := processLevel(p)
+	_, err := logging.ParseLevel(p.LogLevel)
 	return err
 }
 
-// processLevel refuses an empty probe_listen and a log_level that names no level, and returns the
-// level the section names. Run sets the level from it, so the process's section is validated once.
-func processLevel(p Process) (slog.Level, error) {
-	if strings.TrimSpace(p.ProbeListen) == "" {
-		return 0, errors.New("probe_listen is empty")
+// ValidateOperations refuses an empty probe_listen.
+func ValidateOperations(o Operations) error {
+	if strings.TrimSpace(o.ProbeListen) == "" {
+		return errors.New("probe_listen is empty")
 	}
-	return logging.ParseLevel(p.LogLevel)
+	return nil
 }
 
 // ValidateServing refuses an empty listen, and one of the two TLS files set without the other, a blank
@@ -173,65 +188,43 @@ type Spec[T any] struct {
 	// Name is the published name the start banner names.
 	Name     string
 	Defaults T
-	// Process returns T's process section, and Serving its serving section, nil when no component
-	// serves requests.
-	Process func(T) Process
-	Serving func(T) Serving
+	// Process returns T's process section, Operations its operations section, and Serving its serving
+	// section, nil when no component serves requests.
+	Process    func(T) Process
+	Operations func(T) Operations
+	Serving    func(T) Serving
 	// Validate refuses a configuration the root's own sections cannot run with. The host validates
 	// the process's sections first.
 	Validate   func(T) error
 	Components []Component[T]
 }
 
-// Run runs the process the spec describes until ctx ends. It refuses the environment the database
-// driver and every component refuse before the configuration is read, answers --help and --version on
-// stdout, logs the effective configuration, each value with the layer that set it, then sets level
-// from log_level, validates the process's sections and the root's, writes the start banner to stderr,
-// assembles each component in order and serves (ADR-0051, ADR-0078, ADR-0122).
+// Run runs the process the spec describes until ctx ends. It starts the process as every process
+// starts, then assembles each component in order and serves (ADR-0051, ADR-0078, ADR-0122).
 func Run[T any](ctx context.Context, args, environ []string, stdout, stderr io.Writer, logger *slog.Logger, level *slog.LevelVar, spec Spec[T]) error {
-	if err := dbconnect.RefusePasswordVariables(environ); err != nil {
-		return err
-	}
+	refusals := make([]func([]string) error, 0, len(spec.Components))
 	for _, c := range spec.Components {
-		if c.RefuseEnvironment == nil {
-			continue
-		}
-		if err := c.RefuseEnvironment(environ); err != nil {
-			return err
-		}
+		refusals = append(refusals, c.RefuseEnvironment)
 	}
-	loaded, err := settings.Load(spec.Defaults, args, environ)
-	var help *settings.HelpRequested
-	if errors.As(err, &help) {
-		_, err := io.WriteString(stdout, help.Text)
+	loaded, started, err := start(args, environ, stdout, stderr, logger, level, starting[T]{
+		name: spec.Name, defaults: spec.Defaults, refusals: refusals, process: spec.Process,
+		validate: func(c T) error { return validate(spec, c) },
+		banner: func(c T) []string {
+			var lines []string
+			if spec.Serving != nil {
+				s := spec.Serving(c)
+				lines = append(lines, fmt.Sprintf("serves  %s on %s", scheme(s.ServesTLS()), s.Listen))
+			}
+			return append(lines, "probes  http on "+spec.Operations(c).ProbeListen)
+		},
+	})
+	if !started {
 		return err
 	}
-	if errors.As(err, new(*settings.VersionRequested)) {
-		_, err := fmt.Fprintln(stdout, version.Number)
-		return err
-	}
-	if err != nil {
-		return fmt.Errorf("loading the configuration: %w", err)
-	}
-	// The effective configuration is written before the level applies, so a refused value's source,
-	// log_level's included, reaches the log whatever level the configuration sets (ADR-0078, ADR-0122).
-	for _, v := range loaded.Values {
-		logger.Info("configuration", "path", v.Path, "source", v.Source.String(), "value", v.Value)
-	}
-	process := spec.Process(loaded.Config)
-	lv, err := processLevel(process)
-	if err != nil {
-		return fmt.Errorf("validating the configuration: %w", err)
-	}
-	level.Set(lv)
 	var serving Serving
 	if spec.Serving != nil {
 		serving = spec.Serving(loaded.Config)
 	}
-	if err := validate(spec, loaded.Config, serving); err != nil {
-		return fmt.Errorf("validating the configuration: %w", err)
-	}
-	writeBanner(stderr, banner(spec.Name, process, serving, spec.Serving != nil), logger)
 
 	h, err := New(logger)
 	if err != nil {
@@ -254,16 +247,132 @@ func Run[T any](ctx context.Context, args, environ []string, stdout, stderr io.W
 			return err
 		}
 	}
-	if listeners.Probes, err = lc.Listen(ctx, "tcp", process.ProbeListen); err != nil {
+	if listeners.Probes, err = lc.Listen(ctx, "tcp", spec.Operations(loaded.Config).ProbeListen); err != nil {
 		h.Close()
 		return errors.Join(err, listeners.close())
 	}
 	return h.Serve(ctx, listeners, serving)
 }
 
-func validate[T any](spec Spec[T], c T, serving Serving) error {
+// Once is what a composition root hands RunOnce, its configuration's root type T and the one piece of
+// work its process does.
+type Once[T any] struct {
+	// Name is the published name the start banner names.
+	Name     string
+	Defaults T
+	// Process returns T's process section.
+	Process func(T) Process
+	// Validate refuses a configuration the root's own sections cannot run with. The host validates
+	// the process's section first.
+	Validate func(T) error
+	// Component is the directory of the component whose work the process does, which its logger and
+	// its registerer carry, as a component's do in Run.
+	Component string
+	// RefuseEnvironment refuses an environment the work cannot run under, before the configuration is
+	// read. Nil refuses nothing.
+	RefuseEnvironment func(environ []string) error
+	// Work does the process's one piece of work with what the host provides it, and returns once it is
+	// done.
+	Work func(ctx context.Context, provided Provided[T]) error
+}
+
+// RunOnce runs a process that does one piece of work and exits. It starts the process as every
+// process starts, then does the work under ctx with what the host provides a component, and returns
+// the work's error once every goroutine the work started has returned and the pools are closed. It
+// serves no operations endpoints and no application server and runs no task, since nothing probes,
+// scrapes or calls a process that exits on its own (ADR-0138, ADR-0139).
+func RunOnce[T any](ctx context.Context, args, environ []string, stdout, stderr io.Writer, logger *slog.Logger, level *slog.LevelVar, spec Once[T]) error {
+	loaded, started, err := start(args, environ, stdout, stderr, logger, level, starting[T]{
+		name: spec.Name, defaults: spec.Defaults, refusals: []func([]string) error{spec.RefuseEnvironment},
+		process: spec.Process, validate: spec.Validate,
+		banner: func(T) []string { return nil },
+	})
+	if !started {
+		return err
+	}
+	h, err := New(logger)
+	if err != nil {
+		return err
+	}
+	err = spec.Work(ctx, Provided[T]{
+		Loaded: loaded, Logger: h.Logger(spec.Component), Registerer: h.Registerer(spec.Component),
+		Draining: ctx, OpenPool: h.OpenPool, Start: h.Starter(spec.Component),
+	})
+	h.Close()
+	return errors.Join(err, h.startedFailures())
+}
+
+// starting is what start needs of a root, whichever way its process runs.
+type starting[T any] struct {
+	name     string
+	defaults T
+	refusals []func(environ []string) error
+	process  func(T) Process
+	// validate refuses a configuration the root's other sections cannot run with, after the process's
+	// section is validated.
+	validate func(T) error
+	// banner returns the banner's lines below the one naming the process and its release version.
+	banner func(T) []string
+}
+
+// start is what every process does before its work, however it runs. It refuses the environment the
+// database driver and the root refuse before the configuration is read, answers --help and --version
+// on stdout, logs the effective configuration, each value with the layer that set it, then sets level
+// from log_level, validates the process's section and the root's, and writes the start banner to
+// stderr. started reports whether the process goes on to its work: it is false with a nil error once
+// --help or --version is answered.
+func start[T any](args, environ []string, stdout, stderr io.Writer, logger *slog.Logger, level *slog.LevelVar, root starting[T]) (loaded settings.Loaded[T], started bool, err error) {
+	if err := dbconnect.RefusePasswordVariables(environ); err != nil {
+		return loaded, false, err
+	}
+	for _, refuse := range root.refusals {
+		if refuse == nil {
+			continue
+		}
+		if err := refuse(environ); err != nil {
+			return loaded, false, err
+		}
+	}
+	loaded, err = settings.Load(root.defaults, args, environ)
+	var help *settings.HelpRequested
+	if errors.As(err, &help) {
+		_, err := io.WriteString(stdout, help.Text)
+		return loaded, false, err
+	}
+	if errors.As(err, new(*settings.VersionRequested)) {
+		_, err := fmt.Fprintln(stdout, version.Number)
+		return loaded, false, err
+	}
+	if err != nil {
+		return loaded, false, fmt.Errorf("loading the configuration: %w", err)
+	}
+	// The effective configuration is written before the level applies, so a refused value's source,
+	// log_level's included, reaches the log whatever level the configuration sets (ADR-0078, ADR-0122).
+	for _, v := range loaded.Values {
+		logger.Info("configuration", "path", v.Path, "source", v.Source.String(), "value", v.Value)
+	}
+	lv, err := logging.ParseLevel(root.process(loaded.Config).LogLevel)
+	if err != nil {
+		return loaded, false, fmt.Errorf("validating the configuration: %w", err)
+	}
+	level.Set(lv)
+	if root.validate != nil {
+		if err := root.validate(loaded.Config); err != nil {
+			return loaded, false, fmt.Errorf("validating the configuration: %w", err)
+		}
+	}
+	writeBanner(stderr, banner(root.name, root.banner(loaded.Config)), logger)
+	return loaded, true, nil
+}
+
+// validate refuses a configuration Run's process cannot run with, its operations section, its serving
+// section when a component serves requests, then the root's own sections.
+func validate[T any](spec Spec[T], c T) error {
+	if err := ValidateOperations(spec.Operations(c)); err != nil {
+		return err
+	}
 	if spec.Serving != nil {
-		if err := ValidateServing(serving); err != nil {
+		if err := ValidateServing(spec.Serving(c)); err != nil {
 			return err
 		}
 	}
@@ -290,13 +399,13 @@ func assemble[T any](h *Host, spec Spec[T], loaded settings.Loaded[T]) error {
 }
 
 // banner is the start banner, a few lines for a person reading the process's output that name the
-// process, its release version and where it serves.
-func banner(name string, p Process, s Serving, serves bool) string {
+// process and its release version, and below them its lines, such as where it serves.
+func banner(name string, lines []string) string {
 	text := fmt.Sprintf("%s %s\n", name, version.Number)
-	if serves {
-		text += fmt.Sprintf("  serves  %s on %s\n", scheme(s.ServesTLS()), s.Listen)
+	for _, l := range lines {
+		text += "  " + l + "\n"
 	}
-	return text + fmt.Sprintf("  probes  http on %s\n", p.ProbeListen)
+	return text
 }
 
 func scheme(tls bool) string {

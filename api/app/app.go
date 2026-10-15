@@ -73,11 +73,12 @@ const gmailProvider = "gmail"
 // the tree. Its fields are pinned by the test beside this file, so a new value is a visible change. No
 // account and no provider credential is configuration. Both come from the database (ADR-0080).
 type Configuration struct {
-	host.Process `yaml:",inline"`
-	host.Serving `yaml:",inline"`
-	Section      `yaml:",inline"`
-	Database     dbconnectcore.Config  `yaml:"database"`
-	Credential   credentialcore.Config `yaml:"credential"`
+	host.Process    `yaml:",inline"`
+	host.Operations `yaml:",inline"`
+	host.Serving    `yaml:",inline"`
+	Section         `yaml:",inline"`
+	Database        dbconnectcore.Config  `yaml:"database"`
+	Credential      credentialcore.Config `yaml:"credential"`
 	// Scanner is the scanner's section, the same section backfill reads, whose pattern tier the
 	// serve-time pattern check runs (ADR-0002, ADR-0005). No value in it switches the check off.
 	Scanner scan.Config `yaml:"scanner"`
@@ -119,11 +120,12 @@ func DefaultSection() Section {
 // files have no default, since a default path assumes the environment.
 func defaults() Configuration {
 	return Configuration{
-		Process:  host.DefaultProcess(),
-		Serving:  host.DefaultServing(),
-		Section:  DefaultSection(),
-		Database: dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_api", SSLMode: "verify-full", PoolSize: dbconnect.DefaultPoolSize()},
-		Scanner:  scan.DefaultConfig(),
+		Process:    host.DefaultProcess(),
+		Operations: host.DefaultOperations(),
+		Serving:    host.DefaultServing(),
+		Section:    DefaultSection(),
+		Database:   dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_api", SSLMode: "verify-full", PoolSize: dbconnect.DefaultPoolSize()},
+		Scanner:    scan.DefaultConfig(),
 	}
 }
 
@@ -170,11 +172,12 @@ var Mount = []string{"/api/", "/mcp"}
 // standard error in main.go, so standard output carries only the logger's JSON records otherwise.
 func Run(ctx context.Context, args, environ []string, stdout, stderr io.Writer, logger *slog.Logger, level *slog.LevelVar) error {
 	return host.Run(ctx, args, environ, stdout, stderr, logger, level, host.Spec[Configuration]{
-		Name:     "mediated-mailbox-api",
-		Defaults: defaults(),
-		Process:  func(c Configuration) host.Process { return c.Process },
-		Serving:  func(c Configuration) host.Serving { return c.Serving },
-		Validate: validate,
+		Name:       "mediated-mailbox-api",
+		Defaults:   defaults(),
+		Process:    func(c Configuration) host.Process { return c.Process },
+		Operations: func(c Configuration) host.Operations { return c.Operations },
+		Serving:    func(c Configuration) host.Serving { return c.Serving },
+		Validate:   validate,
 		Components: []host.Component[Configuration]{{
 			Name: "api", Mount: Mount, RefuseEnvironment: RefuseEnvironment, Assemble: fromConfiguration,
 		}},

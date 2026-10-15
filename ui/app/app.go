@@ -44,10 +44,11 @@ import (
 // other deployables. Its fields are pinned by the test beside this file, so a new value is a visible
 // change. Only the values the UI reads are declared.
 type Configuration struct {
-	host.Process `yaml:",inline"`
-	host.Serving `yaml:",inline"`
-	Section      `yaml:",inline"`
-	Database     dbconnectcore.Config `yaml:"database"`
+	host.Process    `yaml:",inline"`
+	host.Operations `yaml:",inline"`
+	host.Serving    `yaml:",inline"`
+	Section         `yaml:",inline"`
+	Database        dbconnectcore.Config `yaml:"database"`
 	// Credential is the credential section the API server and the worker hold, under the same keys. Its
 	// public key is the one the UI seals credentials and client secrets to. Its private keys are the
 	// keyring the deployables that call a provider open credentials with, which only the UI's
@@ -114,10 +115,11 @@ func DefaultSection() Section {
 // the one that fails closed, and the pool size is the driver's own default.
 func defaults() Configuration {
 	return Configuration{
-		Process:  host.DefaultProcess(),
-		Serving:  host.DefaultServing(),
-		Section:  DefaultSection(),
-		Database: dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_ui", SSLMode: "verify-full", PoolSize: dbconnect.DefaultPoolSize()},
+		Process:    host.DefaultProcess(),
+		Operations: host.DefaultOperations(),
+		Serving:    host.DefaultServing(),
+		Section:    DefaultSection(),
+		Database:   dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_ui", SSLMode: "verify-full", PoolSize: dbconnect.DefaultPoolSize()},
 	}
 }
 
@@ -153,6 +155,7 @@ func Run(ctx context.Context, args, environ []string, stdout, stderr io.Writer, 
 		Name:       "mediated-mailbox-ui",
 		Defaults:   defaults(),
 		Process:    func(c Configuration) host.Process { return c.Process },
+		Operations: func(c Configuration) host.Operations { return c.Operations },
 		Serving:    func(c Configuration) host.Serving { return c.Serving },
 		Validate:   validate,
 		Components: []host.Component[Configuration]{{Name: "ui", Mount: Mount, Assemble: fromConfiguration}},

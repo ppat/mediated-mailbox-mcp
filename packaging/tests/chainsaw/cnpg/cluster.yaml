@@ -1,6 +1,6 @@
 ---
-# The database, owned by the migration role, which CloudNativePG creates with a generated password it writes, with a
-# libpq password file under the key pgpass, into the Secret mailbox-db-app. Every runtime role the migration chain
+# The database, owned by the migration role, which CloudNativePG creates with a generated password it writes under the
+# key password into the Secret mailbox-db-app. Every runtime role the migration chain
 # grants to exists before the chain runs. The roles of job kinds the chart does not yet run hold no password.
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster

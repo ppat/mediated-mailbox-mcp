@@ -5,15 +5,19 @@ tests: TestTheEffectiveConfigurationIsLogged
 scheduled-count: no
 
 diff --git a/process/host/host.go b/process/host/host.go
-index f5afd783..4dc285b4 100644
+index 8c310a7a..6996b797 100644
 --- a/process/host/host.go
 +++ b/process/host/host.go
-@@ -207,7 +207,7 @@ func Run[T any](ctx context.Context, args, environ []string, stdout, stderr io.W
+@@ -347,11 +347,11 @@ func start[T any](args, environ []string, stdout, stderr io.Writer, logger *slog
+ 		return loaded, false, fmt.Errorf("loading the configuration: %w", err)
+ 	}
  	// The effective configuration is written before the level applies, so a refused value's source,
  	// log_level's included, reaches the log whatever level the configuration sets (ADR-0078, ADR-0122).
  	for _, v := range loaded.Values {
 -		logger.Info("configuration", "path", v.Path, "source", v.Source.String(), "value", v.Value)
 +		logger.Info("configuration", "path", v.Path, "value", v.Value)
  	}
- 	process := spec.Process(loaded.Config)
- 	lv, err := processLevel(process)
+ 	lv, err := logging.ParseLevel(root.process(loaded.Config).LogLevel)
+ 	if err != nil {
+ 		return loaded, false, fmt.Errorf("validating the configuration: %w", err)
+ 	}

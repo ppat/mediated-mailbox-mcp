@@ -73,7 +73,7 @@ throughput and latency, because the corpus assumption puts them out of reach of 
   result types from them, emitting code against `pgx`'s native interface.** The generator reads the
   migration directory of [ADR-0048](./0048-forward-only-migrations.md) directly as its schema
   input, so one artifact feeds both the database and the code. It understands the file layout of
-  every migration runner [ADR-0067](./0067-migration-runner-goose.md) keeps in play.
+  every migration runner [ADR-0139](./0139-the-migration-runner-is-goose-linked-into-the-migrator.md) keeps in play.
 - **`pgx` v5 is the driver, used natively through its pool, at v5.9.2 or newer.** The minimum is
   stated because releases before it carry memory-safety and injection advisories, and it is the
   only third-party dependency this decision adds inside the trust anchor

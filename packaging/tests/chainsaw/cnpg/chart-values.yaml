@@ -1,7 +1,8 @@
 ---
-# The chart's values for a database CloudNativePG created, as the chart's README gives them.
+# The chart's values for a database CloudNativePG created, as the chart's README gives them, with the host's fully
+# qualified name.
 database:
-  host: mailbox-db-rw
+  host: mailbox-db-rw.${NAMESPACE}.svc.cluster.local
   name: mediated_mailbox
 secrets:
   databasePasswords:
@@ -16,8 +17,6 @@ secrets:
         existingSecret: sync-db
     migration:
       existingSecret: mailbox-db-app
-      secretKeys:
-        passwordFile: pgpass
   databaseCaCertificate:
     existingSecret: mailbox-db-ca
   credentialSealingKeyPair:

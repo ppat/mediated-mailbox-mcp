@@ -110,7 +110,7 @@ func secretFiles(spec map[string]any) []string {
 // TestEveryPodReadsOnlyTheSecretsItsProcessUses renders the chart with every optional secret input set and lists,
 // for each pod, every secret key it can read by any means. Each process gets exactly the keys it reads (ADR-0079):
 // the key pair reaches the API server, the worker and the UI and nothing else (ADR-0081), the migration role's
-// password file reaches only the migration step (ADR-0129), each runtime role's password only its own process, and
+// password reaches only the migration step (ADR-0129), each runtime role's password only its own process, and
 // the Helm test reads no secret at all. The expected lists are written out here, not derived from the chart.
 func TestEveryPodReadsOnlyTheSecretsItsProcessUses(t *testing.T) {
 	keyPair := []string{
@@ -132,7 +132,7 @@ func TestEveryPodReadsOnlyTheSecretsItsProcessUses(t *testing.T) {
 		"Deployment/release-mediated-mailbox-worker": append([]string{
 			"backfill-db/password -> database/backfill/password", ca, "sync-db/password -> database/sync/password",
 		}, keyPair...),
-		"Job/release-mediated-mailbox-migration": {ca, "migrator-db/pgpass -> database/pgpass"},
+		"Job/release-mediated-mailbox-migration": {ca, "migrator-db/password -> database/password"},
 		"Pod/release-mediated-mailbox-test":      nil,
 	}
 	got := map[string][]string{}
@@ -175,9 +175,9 @@ func TestTheWorkerRunsAsOnePodNeverTwo(t *testing.T) {
 }
 
 // TestEveryProcessIsProbedForHealthAndReadiness checks that each process's Deployment probes its health at /healthz
-// and its readiness at /readyz on its metrics port, the operations endpoints every process serves (ADR-0138), so a
-// rollout completes only once the process reports ready, the worker once its job kinds can run. It also checks that
-// the Helm test asks each process's Service for /readyz. The paths and the port are written out here, not derived
+// and its readiness at /readyz on its metrics port, the operations endpoints every process that runs until it is told
+// to stop serves (ADR-0138), so a rollout completes only once the process reports ready, the worker once its job kinds
+// can run. It also checks that the Helm test asks each process's Service for /readyz. The paths and the port are written out here, not derived
 // from the chart.
 func TestEveryProcessIsProbedForHealthAndReadiness(t *testing.T) {
 	probe := func(path string) map[string]any {
@@ -344,8 +344,9 @@ func TestEveryPodPullsWithTheGlobalImagePullSecrets(t *testing.T) {
 
 // TestTheMigrationStepIsAHookThatReadsNothingTheChartRenders checks the migration Job of ADR-0129: a pre-install and
 // pre-upgrade hook that runs one pod at a time, replaces a pod only once it has failed, mounts nothing from a
-// ConfigMap, runs under no ServiceAccount the chart creates, and carries its connection string with no password, the
-// password coming from the mounted password file.
+// ConfigMap, runs under no ServiceAccount the chart creates, and sets its configuration in its own spec with no
+// password, the password coming from the mounted password file. That the migrator reads that configuration is
+// migrator/app's test.
 func TestTheMigrationStepIsAHookThatReadsNothingTheChartRenders(t *testing.T) {
 	var job helmchart.Object
 	for _, o := range helmchart.Render(t, chartDir, "--set", "secrets.databaseCaCertificate.existingSecret=database-ca") {
@@ -383,11 +384,24 @@ func TestTheMigrationStepIsAHookThatReadsNothingTheChartRenders(t *testing.T) {
 			t.Errorf("the Job mounts a ConfigMap, which does not exist yet at pre-install")
 		}
 	}
-	env := list(dig[any](list(spec["containers"])[0], "env"))
-	want := []any{map[string]any{
-		"name":  "GOOSE_DBSTRING",
-		"value": "postgres://mediated_mailbox_migrator@db.example:5432/mediated_mailbox?sslmode=verify-full&passfile=/etc/mediated-mailbox/secrets/database/pgpass&sslrootcert=/etc/mediated-mailbox/secrets/ca/ca.crt",
-	}}
+	env := map[string]any{}
+	for _, e := range list(dig[any](list(spec["containers"])[0], "env")) {
+		if dig[any](e, "valueFrom") != nil {
+			t.Errorf("the Job takes %s from outside its spec", dig[string](e, "name"))
+		}
+		env[dig[string](e, "name")] = dig[any](e, "value")
+	}
+	//nolint:gosec // A mounted file's path, not a credential.
+	want := map[string]any{
+		"MEDIATED_MAILBOX_LOG_LEVEL":               "info",
+		"MEDIATED_MAILBOX_DATABASE__HOST":          "db.example",
+		"MEDIATED_MAILBOX_DATABASE__PORT":          "5432",
+		"MEDIATED_MAILBOX_DATABASE__NAME":          "mediated_mailbox",
+		"MEDIATED_MAILBOX_DATABASE__USER":          "mediated_mailbox_migrator",
+		"MEDIATED_MAILBOX_DATABASE__SSLMODE":       "verify-full",
+		"MEDIATED_MAILBOX_DATABASE__SSLROOTCERT":   "/etc/mediated-mailbox/secrets/ca/ca.crt",
+		"MEDIATED_MAILBOX_DATABASE__PASSWORD_FILE": "/etc/mediated-mailbox/secrets/database/password",
+	}
 	if diff := cmp.Diff(want, env); diff != "" {
 		t.Errorf("the Job's environment (-want +got):\n%s", diff)
 	}
@@ -603,6 +617,7 @@ func TestTheSchemaRefusesWhatHelmOrTheProcessesWouldChange(t *testing.T) {
 		{"the scanner in the API server's own block", "api:\n  config:\n    scanner: {window: 3}\n", "additional properties 'scanner' not allowed"},
 		{"the listen address in the UI's own block", "ui:\n  config:\n    listen: \":1\"\n", "additional properties 'listen' not allowed"},
 		{"the database in the worker's own block", "worker:\n  config:\n    database: {host: other}\n", "additional properties 'database' not allowed"},
+		{"the database in the migrator's own block", "migration:\n  config:\n    database: {host: other}\n", "additional properties 'database' not allowed"},
 		{"the sync interval in delta sync's own section", "worker:\n  jobKinds:\n    sync:\n      config:\n        sync_interval: 1m\n", "additional properties 'sync_interval' not allowed"},
 		{"a password file in a role's block", "api:\n  database:\n    password_file: /x\n", "additional properties 'password_file' not allowed"},
 		{"a job kind the worker does not run", "worker:\n  jobKinds:\n    organize:\n      database: {user: x}\n", "additional properties 'organize' not allowed"},

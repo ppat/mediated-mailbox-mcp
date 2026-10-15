@@ -40,6 +40,13 @@ so no key is written twice.
 {{- toYaml $db }}
 {{- end }}
 
+{{/* The migration step's configuration, its log level and its database section, which the Job sets through the
+environment layer rather than a file, since no ConfigMap of the release exists at pre-install (ADR-0129). */}}
+{{- define "mm.config.migration" -}}
+{{- $v := .Values.migration }}
+{{- toYaml (dict "log_level" (default .Values.sharedConfig.log_level (index $v.config "log_level")) "database" (include "mm.config.database" (list . $v.database) | fromYaml)) }}
+{{- end }}
+
 {{- define "mm.config.api" -}}
 {{- $v := .Values.api }}
 {{- $c := deepCopy $v.config }}

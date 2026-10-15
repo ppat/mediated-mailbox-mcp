@@ -37,5 +37,7 @@ and Images. These are the tripwires:
   whose grants stay within ADR-0118's three lines.** Nothing automated refuses a grant beyond them,
   so review each migration that grants a privilege against the three lines. A statement reaching the
   operation log reads its plan's account through its join, so its role reads those plan columns too.
-- **goose runs as a command** and is built with its exclusion tags in `migrator/Dockerfile`, never
-  linked into the project's binaries or run through `go tool` (ADR-0067).
+- **goose is linked as a library into `db/migrate` alone**, the one package whose own import list
+  admits it. It applies the chain `db/migrations` embeds under goose's advisory lock, for the
+  migrator and for the integration runs alike, and `db/migrations` holds the SQL files and the one
+  Go file that embeds them (ADR-0139).

@@ -5,15 +5,19 @@ tests: TestTheDefaults
 scheduled-count: no
 
 diff --git a/worker/app/app.go b/worker/app/app.go
-index 809f079e..9d36c45f 100644
+index 67b1583d..db5aa083 100644
 --- a/worker/app/app.go
 +++ b/worker/app/app.go
-@@ -131,7 +131,7 @@ func defaults() Configuration {
- 		Process: host.DefaultProcess(),
- 		Section: DefaultSection(),
+@@ -140,11 +140,11 @@ func defaults() Configuration {
+ 	return Configuration{
+ 		Process:    host.DefaultProcess(),
+ 		Operations: host.DefaultOperations(),
+ 		Section:    DefaultSection(),
  		Database: Database{
 -			Port: 5432, SSLMode: "verify-full",
 +			Port: 5432, SSLMode: "prefer",
  			Backfill: Role{User: "mediated_mailbox_backfill", PoolSize: 4},
  			Sync:     Role{User: "mediated_mailbox_sync", PoolSize: 4},
  		},
+ 		Scanner: scan.DefaultConfig(),
+ 	}

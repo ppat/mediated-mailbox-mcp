@@ -20,6 +20,7 @@ on:
     - db/**
     - executioncontext/**
     - api/**
+    - migrator/**
     - process/**
     - provider/**
     - ratelimit/**

@@ -62,6 +62,8 @@ on:
     - worker/main.go
     - worker/app/**
     - worker/internal/**
+    - migrator/main.go
+    - migrator/app/**
     - '!**/*_test.go'
     - '!**/*_violation.go'
     - '!**/*_violation.ts'

@@ -32,6 +32,7 @@ func TestTheConfigurationTypeIsPinned(t *testing.T) {
 	const pkg = "github.com/ppat/mediated-mailbox-mcp/worker/app"
 	mustnotcompile.RequireFields(t, pkg, "Configuration",
 		"Process host.Process",
+		"Operations host.Operations",
 		"Section Section",
 		"Database Database",
 		"Credential core.Config",
@@ -77,7 +78,8 @@ func discard() *slog.Logger { return slog.New(slog.DiscardHandler) }
 // ADR-0105, ADR-0118, ADR-0119).
 func TestTheDefaults(t *testing.T) {
 	want := Configuration{
-		Process: host.Process{ProbeListen: ":8080", LogLevel: "info"},
+		Process:    host.Process{LogLevel: "info"},
+		Operations: host.Operations{ProbeListen: ":8080"},
 		Section: Section{
 			ReloadInterval: time.Minute,
 			Backfill:       Backfill{Concurrency: 2},
