@@ -1,0 +1,20 @@
+control: The worker serves the health probe and its execution context's reload-failure series on its metrics endpoint
+removes: the worker's execution context's policy loader registers its reload-failure series on a registry of its own, off the metrics endpoint
+packages: ./worker/app
+tests: TestTheProbesServeTheRunsSeries TestTheProbesServeEverySeriesBetweenTicks
+scheduled-count: no
+integration: yes
+
+diff --git a/executioncontext/assembly/assembly.go b/executioncontext/assembly/assembly.go
+index d74efe4..cb63c67 100644
+--- a/executioncontext/assembly/assembly.go
++++ b/executioncontext/assembly/assembly.go
+@@ -221,7 +221,7 @@ func (c *Context) loadPolicy(ctx context.Context, accounts []string) error {
+ 	}
+ 	policies := c.policies.Load()
+ 	if policies == nil {
+-		built, err := policyload.New(c.n.Pool, accounts, c.n.Registerer, c.n.Lookups)
++		built, err := policyload.New(c.n.Pool, accounts, prometheus.NewRegistry(), c.n.Lookups)
+ 		if err != nil {
+ 			return err
+ 		}

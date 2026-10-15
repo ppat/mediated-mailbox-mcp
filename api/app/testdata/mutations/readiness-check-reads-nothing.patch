@@ -5,15 +5,15 @@ tests: TestReadyOnlyWhileTheBearerTokenLoads
 scheduled-count: no
 
 diff --git a/api/app/app.go b/api/app/app.go
-index 843a78ed..4b8b0038 100644
+index 7ad0edd..a4f246b 100644
 --- a/api/app/app.go
 +++ b/api/app/app.go
-@@ -292,7 +292,7 @@ func parts(served *serving, s Section, logger *slog.Logger) (host.Parts, error)
+@@ -319,7 +319,7 @@ func parts(served *serving, s Section, logger *slog.Logger) (host.Parts, error)
  	return host.Parts{
  		Handler: handler,
  		Ready: []host.Check{{Name: "bearer token", Check: func(context.Context) error {
 -			return tokenReadable(s.TokenFile)
 +			return nil
  		}}},
- 		Tasks: []host.Task{{Name: "account reload", Run: func(ctx context.Context) error {
- 			served.reloadEvery(ctx, s.AccountReloadInterval)
+ 	}, nil
+ }

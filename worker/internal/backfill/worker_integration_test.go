@@ -72,13 +72,25 @@ func worker(t *testing.T, ring *open.Keyring, registry prometheus.Registerer, co
 	if err != nil {
 		t.Fatal(err)
 	}
+	ec := executionContext(t, ring, scanner, slog.New(slog.DiscardHandler), 50*time.Millisecond)
 	b, err := build(Config{
-		Pool: backfillPool(t), Keys: ring, Scanner: scanner, Registry: registry, Logger: slog.New(slog.DiscardHandler),
+		Pool: backfillPool(t), Context: ec, Registry: registry, Logger: slog.New(slog.DiscardHandler),
 		Jobs: s, Concurrency: 1, ReloadInterval: 50 * time.Millisecond,
 	}, map[string]session.Connector{gmailProvider: connect})
 	if err != nil {
 		t.Fatal(err)
 	}
+	key, _ := b.Reload()
+	ec.OnReload(func(context.Context) { s.Wake(key) })
+	ctx, cancel := context.WithCancel(t.Context())
+	done := make(chan error, 1)
+	go func() { done <- ec.Run(ctx) }()
+	t.Cleanup(func() {
+		cancel()
+		if err := <-done; err != nil {
+			t.Error(err)
+		}
+	})
 	return b, s
 }
 
@@ -247,15 +259,15 @@ func TestNoAccountIsAddedWhileThePolicyReloadFails(t *testing.T) {
 	client(t, conn, public)
 	j := newJobs()
 	b := kind(t, backfillPool(t), ring, slog.New(slog.DiscardHandler), quiet, j)
-	if err := b.reload(t.Context(), schedule.Ask{}); err != nil {
+	if err := b.reloadWithContext(t.Context()); err != nil {
 		t.Fatal(err)
 	}
 
-	revoke(t, conn, "SELECT ON policy_rules")
+	revokeFrom(t, conn, contextRole, "SELECT ON policy_rules")
 	account(t, conn, "work", gmailProvider, sealed(t, public, "work-token", seal.AccountCredential("work")), false)
 	must(t, conn, "UPDATE accounts SET oauth_client = 'household' WHERE account_id = 'work'")
 	must(t, conn, "UPDATE account_state SET credential = NULL WHERE account_id = 'personal'")
-	if err := b.reload(t.Context(), schedule.Ask{}); err == nil {
+	if err := b.reloadWithContext(t.Context()); err == nil {
 		t.Error("a reload whose policy load failed reported no error")
 	}
 	if diff := cmp.Diff([]string{"personal"}, j.ensured, compare.Options); diff != "" {
@@ -265,8 +277,8 @@ func TestNoAccountIsAddedWhileThePolicyReloadFails(t *testing.T) {
 		t.Errorf("the jobs dropped while the policy load fails (-want +got):\n%s", diff)
 	}
 
-	must(t, conn, "GRANT SELECT ON policy_rules TO "+role)
-	if err := b.reload(t.Context(), schedule.Ask{}); err != nil {
+	must(t, conn, "GRANT SELECT ON policy_rules TO "+contextRole)
+	if err := b.reloadWithContext(t.Context()); err != nil {
 		t.Fatal(err)
 	}
 	if diff := cmp.Diff([]string{"personal", "work"}, j.ensured, compare.Options); diff != "" {
@@ -313,8 +325,8 @@ func TestAPanicInARunIsRecordedAsTheRunsFailure(t *testing.T) {
 }
 
 // Every series backfill's job kind emits, its own and the shared libraries' it registers, the provider
-// adapter's, the rate limiter's and the policy loader's among them, carries the job kind, because the
-// kind registers each on the registerer it is given, which labels them (ADR-0117, ADR-0076).
+// adapter's and the rate limiter's among them, carries the job kind, because the kind registers each
+// on the registerer it is given, which labels them (ADR-0117, ADR-0076).
 func TestEverySeriesTheKindEmitsCarriesItsJobKind(t *testing.T) {
 	conn := superuser(t)
 	reset(t, conn)
@@ -328,7 +340,7 @@ func TestEverySeriesTheKindEmitsCarriesItsJobKind(t *testing.T) {
 	}
 	j := newJobs()
 	b, err := New(Config{
-		Pool: backfillPool(t), Keys: ring, Scanner: scanner, Client: unreachable(), Logger: slog.New(slog.DiscardHandler), Jobs: j,
+		Pool: backfillPool(t), Context: executionContext(t, ring, scanner, slog.New(slog.DiscardHandler), time.Minute), Client: unreachable(), Logger: slog.New(slog.DiscardHandler), Jobs: j,
 		Registry:    prometheus.WrapRegistererWith(prometheus.Labels{"job_kind": Kind}, registry),
 		Concurrency: 1, ReloadInterval: time.Minute,
 	})
@@ -367,7 +379,7 @@ func TestEverySeriesTheKindEmitsCarriesItsJobKind(t *testing.T) {
 	}
 	for _, name := range []string{
 		"mediated_mailbox_provider_request_cost_total", "mediated_mailbox_provider_hard_cap",
-		"mediated_mailbox_ratelimit_granted_total", "mediated_mailbox_policyload_reload_failed",
+		"mediated_mailbox_ratelimit_granted_total",
 		"mediated_mailbox_unclassified_senders_total",
 	} {
 		if !slices.Contains(emitted, name) {
@@ -447,7 +459,7 @@ func skippedAfterAnEdit(t *testing.T) map[string]bool {
 	var b *Backfill
 	port := &editing{Fake: f, edit: func() {
 		must(t, conn, "INSERT INTO policy_rules (rule_id, class, domain_suffix, source, created_by) VALUES ('rule.shop', 'restricted', '{shop.example}', 'operator', 'operator')")
-		if err := b.policies.Reload(t.Context()); err != nil {
+		if err := b.context.ReloadPolicy(t.Context()); err != nil {
 			t.Fatal(err)
 		}
 	}}
@@ -610,7 +622,7 @@ func TestTheKindsSeriesOfAnAccountGoWhenItsWorkEnds(t *testing.T) {
 	reg := prometheus.NewRegistry()
 	j := newJobs()
 	b, err := build(Config{
-		Pool: backfillPool(t), Keys: ring, Scanner: scanner, Registry: reg, Logger: slog.New(slog.DiscardHandler), Jobs: j,
+		Pool: backfillPool(t), Context: executionContext(t, ring, scanner, slog.New(slog.DiscardHandler), time.Minute), Registry: reg, Logger: slog.New(slog.DiscardHandler), Jobs: j,
 		Concurrency: 1, ReloadInterval: time.Minute,
 	}, map[string]session.Connector{gmailProvider: held(shopMail(3)...)})
 	if err != nil {
@@ -630,7 +642,7 @@ func TestTheKindsSeriesOfAnAccountGoWhenItsWorkEnds(t *testing.T) {
 	}
 
 	must(t, conn, "UPDATE account_state SET credential = NULL WHERE account_id = 'personal'")
-	if err := b.reload(t.Context(), schedule.Ask{}); err != nil {
+	if err := b.reloadWithContext(t.Context()); err != nil {
 		t.Fatal(err)
 	}
 	if got := accountsIn(t, reg, "mediated_mailbox_unclassified_senders_total"); len(got) != 0 {
@@ -658,7 +670,7 @@ func TestTheBacklogSeriesOfADroppedAccountGoesWithItsJob(t *testing.T) {
 			return bodyPanicking{Fake: f}, err
 		})
 	b, err := build(Config{
-		Pool: backfillPool(t), Keys: ring, Scanner: scanner, Registry: reg, Logger: slog.New(slog.DiscardHandler), Jobs: j,
+		Pool: backfillPool(t), Context: executionContext(t, ring, scanner, slog.New(slog.DiscardHandler), time.Minute), Registry: reg, Logger: slog.New(slog.DiscardHandler), Jobs: j,
 		Concurrency: 1, ReloadInterval: time.Minute,
 	}, map[string]session.Connector{gmailProvider: connect})
 	if err != nil {
@@ -672,7 +684,7 @@ func TestTheBacklogSeriesOfADroppedAccountGoesWithItsJob(t *testing.T) {
 	}
 
 	must(t, conn, "UPDATE account_state SET credential = NULL WHERE account_id = 'personal'")
-	if err := b.reload(t.Context(), schedule.Ask{}); err != nil {
+	if err := b.reloadWithContext(t.Context()); err != nil {
 		t.Fatal(err)
 	}
 	if got := accountsIn(t, reg, "mediated_mailbox_scan_backlog"); len(got) != 0 {

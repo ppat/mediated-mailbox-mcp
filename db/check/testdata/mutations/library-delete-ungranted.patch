@@ -6,10 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/db/migrations/00003_grants.sql b/db/migrations/00003_grants.sql
-index eba1d5bc..c5ea8852 100644
+index 1c11b3a..1da302a 100644
 --- a/db/migrations/00003_grants.sql
 +++ b/db/migrations/00003_grants.sql
-@@ -522,7 +522,7 @@ UPDATE (
+@@ -530,7 +530,7 @@ UPDATE (
      updated_at
  ) ON rate_state
  TO mediated_mailbox_api, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
@@ -17,4 +17,4 @@ index eba1d5bc..c5ea8852 100644
 +GRANT SELECT, INSERT (account_id, class, tokens, issued_at), UPDATE (issued_at) ON rate_grants
  TO mediated_mailbox_api, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
  
- -- The policy loader's statement, in db/policyrules, runs under the role of each deployable or job kind that loads
+ -- The policy loader's statement, in db/policyrules, runs under the role of each process's execution context

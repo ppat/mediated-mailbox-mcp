@@ -1,20 +1,19 @@
 control: The serving API server reloads its account snapshot on the interval its configuration sets
-removes: the API server's reload task waits for the stop and reloads nothing
+removes: the execution context's reload task waits for the stop and reloads nothing
 packages: ./api/app
 tests: TestTheAPIServerReloadsOnItsInterval
 scheduled-count: no
 integration: yes
 
-diff --git a/api/app/app.go b/api/app/app.go
-index 843a78ed..248d7e33 100644
---- a/api/app/app.go
-+++ b/api/app/app.go
-@@ -295,7 +295,7 @@ func parts(served *serving, s Section, logger *slog.Logger) (host.Parts, error)
- 			return tokenReadable(s.TokenFile)
- 		}}},
- 		Tasks: []host.Task{{Name: "account reload", Run: func(ctx context.Context) error {
--			served.reloadEvery(ctx, s.AccountReloadInterval)
-+			<-ctx.Done()
- 			return nil
- 		}}},
- 	}, nil
+diff --git a/executioncontext/assembly/assembly.go b/executioncontext/assembly/assembly.go
+index d74efe4..a34a8d8 100644
+--- a/executioncontext/assembly/assembly.go
++++ b/executioncontext/assembly/assembly.go
+@@ -194,6 +194,7 @@ func (c *Context) Run(ctx context.Context) error {
+ 	if c.Latest().Loaded() {
+ 		wait = c.n.ReloadInterval
+ 	}
++	<-ctx.Done()
+ 	timer := time.NewTimer(wait)
+ 	defer timer.Stop()
+ 	for {

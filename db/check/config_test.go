@@ -17,13 +17,13 @@ import (
 // componentRoles names the database role code runs statements as, keyed by the import list governing
 // that code. A deployable runs as a role of its own, and inside the worker each job kind does, so a
 // deployable's list and each job kind's list map to their role, the worker's job kinds' lists to the
-// roles named for their job kinds, and the worker's own list, which names no subsection and admits no
-// shared library that runs statements, to none (ADR-0118). That list admits the driver only so the
-// worker's composition root can open each job kind's pool, and a statement the worker's own code runs
-// on a pool is left to review. A shared library connects as no role of its own,
-// so its list has no entry here. Its statements run under the role of each list with a role that
-// admits it, and the grant check plans them under each of those roles (ADR-0066). The lists admitting
-// the rate limiter and the account snapshot are those of the code that calls a provider, the
+// roles named for their job kinds, and the worker's own list to delta sync's role, since the worker's
+// composition root builds the worker's execution context over delta sync's pool and its own code
+// names no subsection (ADR-0118). A statement the worker's own code runs on a pool is left to review.
+// A shared library connects as no role of its own, so its list has no entry here. Its statements run
+// under the role of each list with a role that admits it, and the grant check plans them under each of
+// those roles (ADR-0066), apart from the execution context's, which executionContext maps. The lists
+// admitting the rate limiter and the account snapshot are those of the code that calls a provider, the
 // API server's and the two job kinds', and the UI's names the subsections its read API reads.
 //
 // The API server's code is also governed by narrower lists, and the one over every package but its two
@@ -38,8 +38,30 @@ var componentRoles = map[string]string{
 	"api-mcp-root":      "mediated_mailbox_api",
 	"ui":                "mediated_mailbox_ui",
 	"ui-clientsecret":   "mediated_mailbox_ui",
+	"worker":            "mediated_mailbox_sync",
 	"worker-backfill":   "mediated_mailbox_backfill",
 	"worker-sync":       "mediated_mailbox_sync",
+}
+
+// contextMapping names where a process's execution context runs its statements. Its lists are the
+// libraries whose statements run on the pool the composition root builds the context over, and its
+// roles name, per list with a role whose code reaches them, the role of that pool, where it differs
+// from the list's own.
+type contextMapping struct {
+	lists []string
+	roles map[string]string
+}
+
+// executionContext maps the execution context's statements, the account snapshot's, the policy
+// loader's and the context's own read of each account's lowered target, to the role of the pool each
+// composition root builds the context over. The API server builds it over its own pool, so its lists
+// keep their role. The worker builds it over delta sync's pool, so backfill's code reaches those
+// statements under delta sync's role, and backfill's role holds no grant on a sealed credential
+// (ADR-0090, ADR-0118). The account session's attempt recording runs on each caller's own pool, so its
+// list is not one of them.
+var executionContext = contextMapping{
+	lists: []string{"accountload", "assembly", "policyload"},
+	roles: map[string]string{"worker-backfill": "mediated_mailbox_sync"},
 }
 
 // testRoles is componentRoles for the test library's import lists. The entry named leftover names no
@@ -243,9 +265,9 @@ type plan struct {
 
 // plans returns every list's subsections under every role that runs them. A list with a role runs its
 // subsections under that role. A list without one is a library's, and runs them under the role of
-// each list with a role that reaches it. A list with neither is skipped, because roleProblems refuses
-// it.
-func plans(lists importLists, roles map[string]string) []plan {
+// each list with a role that reaches it, or for one of the execution context's lists under the role
+// ec maps that list to. A list with neither is skipped, because roleProblems refuses it.
+func plans(lists importLists, roles map[string]string, ec contextMapping) []plan {
 	var out []plan
 	for _, list := range slices.Sorted(maps.Keys(lists.named)) {
 		if role, ok := roles[list]; ok {
@@ -253,7 +275,11 @@ func plans(lists importLists, roles map[string]string) []plan {
 			continue
 		}
 		for _, via := range reaching(lists, roles, list) {
-			out = append(out, plan{list: list, via: via, role: roles[via], subs: lists.named[list]})
+			role := roles[via]
+			if mapped, ok := ec.roles[via]; ok && slices.Contains(ec.lists, list) {
+				role = mapped
+			}
+			out = append(out, plan{list: list, via: via, role: role, subs: lists.named[list]})
 		}
 	}
 	return out
@@ -300,7 +326,7 @@ func roleProblems(lists importLists, roles map[string]string) []string {
 		}
 	}
 	for _, name := range slices.Sorted(maps.Keys(lists.named)) {
-		if !slices.ContainsFunc(plans(lists, roles), func(p plan) bool { return p.list == name }) {
+		if !slices.ContainsFunc(plans(lists, roles, contextMapping{}), func(p plan) bool { return p.list == name }) {
 			out = append(out, fmt.Sprintf("list %q names data-access subsections but has no role", name))
 		}
 	}

@@ -87,13 +87,13 @@ func TestEachJobKindsConstructorTakesOnlyWhatItNeeds(t *testing.T) {
 	const work = "github.com/ppat/mediated-mailbox-mcp/worker/internal/"
 	mustnotcompile.RequireParams(t, work+"backfill", "New", "Config")
 	mustnotcompile.RequireFields(t, work+"backfill", "Config",
-		"Pool *pgxpool.Pool", "Keys *open.Keyring", "Scanner scan.Scanner", "Client *http.Client",
+		"Pool *pgxpool.Pool", "Context *assembly.Context", "Client *http.Client",
 		"Registry prometheus.Registerer", "Logger *slog.Logger", "Jobs Jobs", "Concurrency int", "ReloadInterval time.Duration")
 	mustnotcompile.RequireMethods(t, work+"backfill", "Jobs",
 		"Ensure func(key schedule.Key, job schedule.Job) error", "Remove func(key schedule.Key)")
 	mustnotcompile.RequireParams(t, work+"deltasync", "New", "Config")
 	mustnotcompile.RequireFields(t, work+"deltasync", "Config",
-		"Pool *pgxpool.Pool", "Keys *open.Keyring", "Scanner scan.Scanner", "Client *http.Client",
+		"Pool *pgxpool.Pool", "Context *assembly.Context", "Client *http.Client",
 		"Registry prometheus.Registerer", "Logger *slog.Logger", "Jobs Jobs", "Concurrency int", "ReloadInterval time.Duration",
 		"SyncInterval time.Duration", "FirstWindow time.Duration", "DecisionsPerTick int")
 	mustnotcompile.RequireMethods(t, work+"deltasync", "Jobs",

@@ -1,9 +1,11 @@
-// Package deltasync is delta sync's job kind in the worker (ADR-0117, ADR-0119). It holds delta sync's
-// own account loader, policy loader and account sessions, on delta sync's own connection pool under
-// its own runtime role (ADR-0118), and adds and drops one job per account its reload lists. Each job
-// ticks its account on the sync interval's phase (ADR-0103). The reload also re-seals what the account
-// load opened with a key that is not the current one, the OAuth clients' secrets included, and sets
-// the key-scan series, whether or not any account is listed (ADR-0092).
+// Package deltasync is delta sync's job kind in the worker (ADR-0117, ADR-0119). It runs its own
+// statements on delta sync's own connection pool under its own runtime role (ADR-0118), and works
+// from the worker's one execution context, which the worker builds over delta sync's pool, through
+// account sessions of its own that call Gmail through delta sync's own adapter series. Its reload adds
+// and drops one job per account the context's latest reload lists. Each job ticks its account on the
+// sync interval's phase (ADR-0103). The reload also re-seals what the context's account load opened
+// with a key that is not the current one, the OAuth clients' secrets included, and sets the key-scan
+// series, whether or not any account is listed (ADR-0092).
 //
 // The worker's composition root builds it with New and ensures its reload job on the scheduler. A
 // tick is tick.Run, and its due decision is worker/internal/core/deltasync/due.
@@ -14,7 +16,6 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"slices"
@@ -24,18 +25,13 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prometheus/client_golang/prometheus"
-	"golang.org/x/net/idna"
-	"golang.org/x/net/publicsuffix"
 
-	"github.com/ppat/mediated-mailbox-mcp/core/classify"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
-	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/core/scangate"
-	"github.com/ppat/mediated-mailbox-mcp/db/accountstate"
 	runrecord "github.com/ppat/mediated-mailbox-mcp/db/jobruns/record"
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/accountload"
-	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/open"
+	"github.com/ppat/mediated-mailbox-mcp/executioncontext/assembly"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/policyload"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/session"
 	"github.com/ppat/mediated-mailbox-mcp/provider/gmail"
@@ -79,13 +75,13 @@ type Jobs interface {
 
 // Config is what delta sync's job kind is built from, and nothing more.
 type Config struct {
-	// Pool is delta sync's own pool, which connects as delta sync's runtime role (ADR-0118).
+	// Pool is delta sync's own pool, which connects as delta sync's runtime role, and which its own
+	// statements, its leases, its recording of authentication attempts and its re-seal of the OAuth
+	// clients' secrets run under (ADR-0118, ADR-0092).
 	Pool *pgxpool.Pool
-	// Keys open the stored credentials and client secrets, and seal again what was sealed to a key
-	// other than the current one (ADR-0092).
-	Keys *open.Keyring
-	// Scanner masks subjects and scans bodies, built once from the worker's scanner section.
-	Scanner scan.Scanner
+	// Context is the worker's execution context, whose loader delta sync re-seals through and whose
+	// scanner masks subjects and scans bodies (ADR-0090, ADR-0092, ADR-0120).
+	Context *assembly.Context
 	// Client is the HTTP client the Gmail adapter and its token source call through.
 	Client *http.Client
 	// Registry is the worker's registry, labelled with delta sync's job kind.
@@ -111,20 +107,15 @@ type Config struct {
 type DeltaSync struct {
 	config Config
 	limit  *schedule.Limit
-	loader *accountload.Loader
 	// sessions hold each account's token source across ticks while the stored credential is the one
-	// it was built from or the one it rotated to, as backfill's do, so an access token serves the
-	// ticks after the one it was issued in.
+	// it was built from or the one it rotated to, one source per account shared with backfill through
+	// the execution context, so an access token serves the units after the one it was issued in.
 	sessions *session.Holder
-	// policies is built at the first reload that lists an account, since a policy loader reads at
-	// least one, and never replaced. Every account job is ensured after it is built.
-	policies *policyload.Loader
 	ticks    *tick.Metrics
 	keyScan  *reseal.Metrics
 	leases   *lease.Metrics
 	// processing times each body's conversion and scan in a tick (ADR-0125).
 	processing *series.Processing
-	lookups    classify.Lookups
 	// port builds an account's Gmail adapter in a kind New built, over the series New registered, so
 	// a test reaches the adapter series the kind serves.
 	port func(account string, tokens gmail.Tokens) (mail.Port[context.Context], error)
@@ -132,9 +123,9 @@ type DeltaSync struct {
 	served []string
 }
 
-// New returns delta sync's job kind with its series registered on c.Registry. Each tick's account
-// session builds a Gmail source and adapter over c.Client, fresh for the tick, so delta sync holds no
-// source across ticks.
+// New returns delta sync's job kind with its series registered on c.Registry. Its account sessions
+// build each Gmail adapter over c.Client, and a Gmail source over it when the execution context holds
+// none for the account.
 func New(c Config) (*DeltaSync, error) {
 	metrics, err := gmail.NewMetrics(c.Registry)
 	if err != nil {
@@ -180,40 +171,45 @@ func build(c Config, connectors map[string]session.Connector) (*DeltaSync, error
 	if err != nil {
 		return nil, err
 	}
-	loader := accountload.New(c.Pool, c.Keys, c.Logger, []string{gmailProvider})
 	return &DeltaSync{
-		config: c, limit: schedule.NewLimit(c.Concurrency), loader: loader,
-		sessions: session.New(session.Config{Loader: loader, DB: c.Pool, Logger: c.Logger, Connectors: connectors, Hold: true}),
+		config: c, limit: schedule.NewLimit(c.Concurrency),
+		sessions: c.Context.Sessions(connectors, c.Pool),
 		ticks:    ticks, keyScan: keyScan, leases: leases, processing: processing,
-		lookups: classify.Lookups{ToUnicode: idna.Lookup.ToUnicode, ToASCII: idna.Lookup.ToASCII, Registrable: publicsuffix.EffectiveTLDPlusOne},
 	}, nil
 }
 
-// Reload returns the job kind's reload, the job keyed by the kind alone that reloads the account
-// snapshot and the policy, re-seals, and adds and drops the account jobs (ADR-0090, ADR-0092,
-// ADR-0119).
+// Reload returns the job kind's reload, the job keyed by the kind alone that re-seals and adds and
+// drops the account jobs from what the execution context's latest reload left in force, asked on the
+// reload interval and woken by each reload of the context (ADR-0090, ADR-0092, ADR-0119).
 func (d *DeltaSync) Reload() (schedule.Key, schedule.Job) {
 	return schedule.Key{Kind: Kind}, schedule.Job{
 		Run: d.reload, Interval: d.config.ReloadInterval, Backoff: backoff, Late: lateReloads * d.config.ReloadInterval, Logger: d.config.Logger,
 	}
 }
 
-// reload reloads the account snapshot, re-seals what it opened with a key that is not the current one
-// and sets the key-scan series from what it found, reloads the policy of every account it lists,
-// then ensures a job for each account it lists that the kind can serve and removes the job of each it
-// no longer serves, with that account's series. A snapshot whose read fails keeps the previous one and
-// changes no job. A policy whose reload fails adds no job, because an account whose rules were never
-// read would be decided as if every sender were restricted, and still drops the jobs of the accounts no
-// longer listed (ADR-0090, ADR-0092, ADR-0041).
+// reload re-seals what the execution context's account load opened with a key that is not the
+// current one and sets the key-scan series from what it found, then ensures a job for each account the
+// context's latest reload lists that the kind can serve and removes the job of each it no longer
+// serves, with that account's series. While no load of the accounts has succeeded it changes nothing
+// and answers not due, neither a success nor a failure, so a start logs no error before the context's
+// first load wakes it. When the latest read of the accounts failed it changes nothing and fails. When the latest reload's policy load failed it adds
+// no job, because an account whose rules were never read would be decided as if every sender were
+// restricted, still drops the jobs of the accounts no longer listed, and fails (ADR-0090, ADR-0092,
+// ADR-0041).
 func (d *DeltaSync) reload(ctx context.Context, _ schedule.Ask) error {
-	if err := d.loader.Load(ctx); err != nil {
-		return fmt.Errorf("loading the accounts: %w", err)
+	latest := d.config.Context.Latest()
+	if !latest.Loaded() {
+		return schedule.ErrNotDue
 	}
-	d.loader.Reseal(ctx)
-	d.keyScan.Set(d.loader.ResealClients(ctx, reseal.Writer(d.config.Pool)))
-	snapshot := d.loader.Snapshot()
+	policyErr := latest.Err()
+	if policyErr != nil && !errors.Is(policyErr, assembly.ErrPolicyNotLoaded) {
+		return policyErr
+	}
+	loader := d.config.Context.Loader()
+	loader.Reseal(ctx)
+	d.keyScan.Set(loader.ResealClients(ctx, reseal.Writer(d.config.Pool)))
+	snapshot := latest.Snapshot()
 	listed := d.sessions.Accounts(snapshot)
-	policyErr := d.loadPolicy(ctx, ids(snapshot))
 	if policyErr != nil {
 		d.config.Logger.Error("the policy was not reloaded, so no account newly listed is synced until it is", "error", policyErr)
 	}
@@ -243,25 +239,6 @@ func (d *DeltaSync) reload(ctx context.Context, _ schedule.Ask) error {
 		d.served = append(d.served, account)
 	}
 	return nil
-}
-
-// loadPolicy reloads the policy of accounts through the kind's own policy loader, building it at the
-// first reload that lists an account, so a tick decides against the policy as it stands, which the
-// delisting comparison needs (ADR-0037, ADR-0041). A reload that fails keeps the snapshot it had.
-func (d *DeltaSync) loadPolicy(ctx context.Context, accounts []string) error {
-	if len(accounts) == 0 {
-		return nil
-	}
-	if d.policies == nil {
-		built, err := policyload.New(d.config.Pool, accounts, d.config.Registry, d.lookups)
-		if err != nil {
-			return err
-		}
-		d.policies = built
-	} else if err := d.policies.SetAccounts(accounts); err != nil {
-		return err
-	}
-	return d.policies.Reload(ctx)
 }
 
 // job returns the account's job, asked on the sync interval's phase and holding the kind's limit. Its
@@ -316,12 +293,12 @@ func at(ms mail.UnixMilli) time.Time {
 	return time.UnixMilli(int64(ms))
 }
 
-// tick runs one tick over the account with the kind's active account snapshot and policy snapshot,
-// which the tick takes at its entry and keeps (ADR-0090, ADR-0041), under a rate limiter at the target
-// the account's state row sets (ADR-0024).
+// tick runs one tick over the account with the execution context's account snapshot and policy
+// snapshot in force, which the tick takes at its entry and keeps (ADR-0090, ADR-0041), under a rate
+// limiter at the target the account's state row set when the context last reloaded (ADR-0024).
 func (d *DeltaSync) tick(ctx context.Context, account string, logger *slog.Logger) error {
-	snapshot, policy := d.loader.Snapshot(), d.policies.Snapshot()
-	limiter, err := newLimiter(ctx, d.config.Pool, []string{account}, d.leases)
+	snapshot, policy := d.config.Context.Snapshot(), d.config.Context.PolicySnapshot()
+	limiter, err := d.config.Context.Limiter(d.config.Pool, account, gmail.Profile{}.BudgetPerSecond(), d.leases)
 	if err != nil {
 		return err
 	}
@@ -362,7 +339,7 @@ func (d *DeltaSync) tickDeps(account string, provider tick.Provider, policy poli
 		Provider:    provider,
 		Policy:      policy.For(account),
 		Gate:        scangate.DefaultConfig(),
-		Scanner:     d.config.Scanner,
+		Scanner:     d.config.Context.Scanner(),
 		Processing:  d.processing,
 		FirstWindow: d.config.FirstWindow,
 		Decisions:   d.config.DecisionsPerTick,
@@ -422,43 +399,6 @@ func (r *reauthorizing) ListThreads(ctx context.Context, q mail.Query, page mail
 // GetMessageBody implements tick.Provider.
 func (r *reauthorizing) GetMessageBody(ctx context.Context, id string) (mail.MessageBody, error) {
 	return leased(ctx, r, func(ctx context.Context, l tick.Leased) (mail.MessageBody, error) { return l.GetMessageBody(ctx, id) })
-}
-
-// newLimiter returns the rate limiter for the Gmail accounts, each at the target its state row sets
-// (ADR-0024).
-func newLimiter(ctx context.Context, pool *pgxpool.Pool, accounts []string, metrics *lease.Metrics) (*lease.Limiter, error) {
-	targets := map[string]float64{}
-	for _, account := range accounts {
-		err := tx.Run(ctx, pool, account, func(t pgx.Tx) error {
-			target, err := accountstate.New(t).LoweredTarget(ctx)
-			if err != nil {
-				return err
-			}
-			if target.Valid {
-				targets[account] = float64(target.Float32)
-			}
-			return nil
-		})
-		if err != nil {
-			return nil, fmt.Errorf("reading the lowered target of account %s: %w", account, err)
-		}
-	}
-	limiter, err := lease.NewWithTargets(pool, gmail.Profile{}.BudgetPerSecond(), targets, metrics)
-	if err != nil {
-		return nil, fmt.Errorf("building the rate limiter: %w", err)
-	}
-	return limiter, nil
-}
-
-// ids returns the identifiers of every account snapshot lists, the ones the kind serves and the ones
-// it skips alike, whose policy the reload loads, so an account that becomes servable has its rules
-// read already (ADR-0090, ADR-0041).
-func ids(snapshot *accountload.Snapshot) []string {
-	var out []string
-	for _, a := range snapshot.Accounts() {
-		out = append(out, a.ID())
-	}
-	return out
 }
 
 // runID returns a new run's identifier, sixteen random hexadecimal digits.

@@ -98,9 +98,13 @@ roles with each one.
   neither. The worker's test counts a dependency holding assembly or a `.syso` object with those
   that import `unsafe`. A model runtime that needs cgo runs outside the worker, as
   [ADR-0042](../engineering/0042-implementation-stack.md) already allows for an embedding service.
-- **Observability per job kind inside the worker.** Every shared metric series stays attributable
-  to the job kind that produced it, the library series for request cost, leases, throttles and the
-  policy reload included. Logs carry the job kind and the account. Liveness is reported per job,
+- **Observability per job kind inside the worker.** Every shared metric series a job kind produces
+  stays attributable to it, the library series for request cost, leases and throttles included, so
+  each job kind calls its provider through adapters of its own and spends through limiters of its
+  own over the account sessions the worker's one execution context holds. The policy reload is the
+  execution context's, one per process, and its series is the worker's
+  ([ADR-0090](./0090-accounts-reach-deployables-as-reloaded-snapshots.md)). Logs carry the job kind
+  and the account. Liveness is reported per job,
   and the worker reports ready once each job kind's pool answers as its role and each job kind's
   reload has succeeded
   ([ADR-0138](../engineering/0138-one-host-runs-each-process-and-each-component-provides-its-parts.md)).
@@ -179,8 +183,9 @@ roles with each one.
   without raising what any one yields
   ([ADR-0028](./0028-trust-anchor-hardening.md)).
 - **What the scanner and the thresholds must agree on is read once.** Backfill's and delta sync's
-  scanner section comes from one configuration load, and their gate thresholds are one value in
-  one process, so both agree by construction rather than by two processes being given the same.
+  scanner section comes from one configuration load, both scan with the execution context's one
+  scanner built from it, and their gate thresholds are one value in one process, so both agree by
+  construction rather than by two processes being given the same.
 - **Cross-job coordination of the rate budget stays.** The API server still spends from each
   account's budget, so leases stay in the database
   ([ADR-0025](./0025-priority-classes-and-leases.md)).
@@ -202,10 +207,13 @@ roles with each one.
   reads recorded state and is idempotent or conditional, so the in-process exclusion is one layer of
   several. It delivers
   the credentials of every role the worker's job kinds run as, and the private key's file to the
-  worker. A job kind's code receives only its own pool, which the composition root wires, since the
-  grant check sees which statements a list admits and not which pool reaches the code
-  ([ADR-0066](../data/0066-data-access-generated-from-sql.md)). A test of the composition root holds
-  the pools it opens and the pool it hands each job kind, and review holds that its run passes the
-  pools it opened on to the job kinds.
+  worker. A job kind's code receives only its own pool and the worker's one execution context, built
+  over delta sync's pool, which the composition root wires, since the grant check sees which
+  statements a list admits and not which pool reaches the code
+  ([ADR-0066](../data/0066-data-access-generated-from-sql.md),
+  [ADR-0118](../data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)). A test of the
+  composition root holds the pools it opens, the pool it hands each job kind and the pool it builds
+  the context over, and review holds that its run passes the pools it opened on to the job kinds and
+  the context.
 - The rules above that are enforced or checked are controls. Their injections are catalogued in
   [docs/VERIFICATIONS.md](../../VERIFICATIONS.md).

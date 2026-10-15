@@ -196,10 +196,11 @@ func newHarness(t *testing.T) *harness {
 		t.Fatal(err)
 	}
 	h.fake = f
+	section := Section{TokenFile: bearerToken(t), AccountReloadInterval: time.Hour, ProviderTimeout: providerTimeout}
+	logger := slog.New(slog.NewJSONHandler(h.log, nil))
 	a, err := assemble(t.Context(), Needs{
-		Section: Section{TokenFile: bearerToken(t), AccountReloadInterval: time.Hour, ProviderTimeout: providerTimeout},
-		Pool:    h.pool, Keys: ring, Scanner: scanner(t), Registerer: h.metrics, Logger: slog.New(slog.NewJSONHandler(h.log, nil)),
-		Start: starter(t),
+		Section: section, Pool: h.pool, Context: mustContext(t, h.pool, ring, scanner(t), section, h.metrics, logger),
+		Registerer: h.metrics, Logger: logger, Start: starter(t),
 	}, session.Connect(h.source, h.connect), leaseWaitLimit)
 	if err != nil {
 		t.Fatal(err)

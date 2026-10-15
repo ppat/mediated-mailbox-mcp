@@ -210,14 +210,14 @@ outcome, `not_due` and `cancelled` included.
 - **Question.** How long does a tick, a reload or a backfill run take, and is any creeping toward
   its interval?
 - **Reading.** A tick's tail approaching `sync_interval` means freshness will slip, so raise the
-  sync concurrency or find the slow stage. A reload's duration growing tracks the snapshot's and
-  the policy's cost.
+  sync concurrency or find the slow stage. A job kind's reload adds and drops its jobs from what the
+  execution context last loaded, so its duration tracks the number of accounts it serves.
 - **Evidence.** The pipeline guidance on historical runtimes. Labelled by the job kind alone and
   observing every outcome, the series mixed a reload's duration with a tick's and drew instant
   `not_due` runs into the distribution, so it could not answer its own question. No alerting rule
   reads it.
-- **This also measures the worker's account and policy reloads**, which is why no separate timer
-  of the snapshot load exists.
+- **The account and policy load is K12's**, since each process loads them once, in its execution
+  context's reload, a task of the process that no job runs.
 
 ### The database
 
@@ -320,13 +320,28 @@ descriptors and start time.
   metrics cannot be assumed.
 - **Capture.** `process/runtimemetrics` registers it with K10, once on the process's registry.
 
+### The execution context
+
+**K12. Execution context reload duration.**
+`mediated_mailbox_executioncontext_reload_duration_seconds`, a histogram with no label of its own,
+with buckets at 0.01, 0.05, 0.1, 0.5, 1, 5, 10 and 30 seconds.
+
+- **Question.** How long does a process take to reload its accounts, open their credentials, read
+  their lowered targets and load their policy, and is it creeping toward its reload interval?
+- **Reading.** Growth with the accounts listed is the snapshot's statements or the credentials'
+  opening, which K8 names, and the share of it K2 shows is the policy's.
+- **Evidence.** The pipeline guidance on per-stage cost. The reload runs in a task of the process,
+  outside every job and every request, so no other series times it.
+- **Capture.** `(*assembly.Context).Reload`, on the registerer the composition root hands the
+  execution context, once per process, every reload its caller did not cancel, succeeded or failed.
+
 ### Where each is registered
 
 | Process | Registers |
 | --- | --- |
-| The API server | K1, K2, K3, K4, K5's conversion step, K8 and K9 for its pool, K10 and K11 |
+| The API server | K1, K2 and K12 from its execution context, K3, K4, K5's conversion step, K8 and K9 for its pool, K10 and K11 |
 | The UI | K8 and K9 for its pool, K10 and K11, beside the dataset read latency it already emits |
-| The worker | K10 and K11 once. Per job kind, through the registerer that adds `job_kind`, K2, K3, K4, K5, K6, and K8 and K9 for the kind's pool. K7 on the scheduler's series |
+| The worker | K10 and K11 once, and K2 and K12 once from its execution context. Per job kind, through the registerer that adds `job_kind`, K3, K4, K5, K6, and K8 and K9 for the kind's pool. K7 on the scheduler's series |
 
 ## Alternatives considered
 

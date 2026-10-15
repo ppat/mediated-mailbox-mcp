@@ -1,0 +1,20 @@
+control: Each reload of the worker's execution context wakes every job kind's reload
+removes: a reload of the execution context wakes no job kind, so an account it newly lists waits for the job kinds' next ask
+packages: ./worker/app
+tests: TestEachContextReloadWakesTheJobKinds
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/app/app.go b/worker/app/app.go
+index df55791..021d6ff 100644
+--- a/worker/app/app.go
++++ b/worker/app/app.go
+@@ -401,7 +401,7 @@ func assemble(ctx context.Context, n Needs) (*worker, error) {
+ 	}
+ 	n.Context.OnReload(func(context.Context) {
+ 		for _, r := range w.reloads {
+-			s.Wake(r.key)
++			_ = r
+ 		}
+ 	})
+ 	return w, nil

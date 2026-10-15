@@ -426,9 +426,10 @@ func TestTheScannerSectionBuildsTheSharedScanner(t *testing.T) {
 	}
 }
 
-// Both job kinds are handed the one scanner the worker built from its scanner section, so delta sync
-// records backfill's scanner version and revision and neither reopens the other's work, by
-// construction rather than by two processes being given the same section (ADR-0117, ADR-0120).
+// Both job kinds are handed the one execution context, whose one scanner the worker built from its
+// scanner section, so delta sync records backfill's scanner version and revision and neither reopens
+// the other's work, by construction rather than by two processes being given the same section
+// (ADR-0117, ADR-0120).
 func TestBothJobKindsScanWithTheOneScanner(t *testing.T) {
 	loaded, err := settings.Load(defaults(), slices.Concat(database, absentKeys), nil)
 	if err != nil {
@@ -438,11 +439,15 @@ func TestBothJobKindsScanWithTheOneScanner(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	b, d := kinds(Pools{}, nil, scanner, loaded.Config.Section, nil, discard(), prometheus.NewRegistry(), nil)
+	ec := mustContext(t, Pools{}, nil, scanner, loaded.Config.Section, prometheus.NewRegistry(), discard())
+	b, d := kinds(Pools{}, ec, loaded.Config.Section, nil, discard(), prometheus.NewRegistry(), nil)
+	if b.Context != ec || d.Context != ec {
+		t.Error("a job kind is handed an execution context other than the worker's one")
+	}
 	for name, got := range map[string]interface {
 		Version() int
 		Revision() string
-	}{"backfill": b.Scanner, "delta sync": d.Scanner} {
+	}{"backfill": b.Context.Scanner(), "delta sync": d.Context.Scanner()} {
 		if got.Version() != scanner.Version() || got.Revision() != scanner.Revision() {
 			t.Errorf("%s scans with version %d revision %s, want the worker's version %d revision %s",
 				name, got.Version(), got.Revision(), scanner.Version(), scanner.Revision())
@@ -490,7 +495,11 @@ func TestEachJobKindIsHandedThePoolOfItsOwnRole(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	b, s := kinds(pools, nil, scanner, loaded.Config.Section, nil, discard(), prometheus.NewRegistry(), nil)
+	ec := mustContext(t, pools, nil, scanner, loaded.Config.Section, prometheus.NewRegistry(), discard())
+	if ec.Pool() != pools.Sync {
+		t.Error("the execution context is built over a pool other than delta sync's, whose role holds its grants")
+	}
+	b, s := kinds(pools, ec, loaded.Config.Section, nil, discard(), prometheus.NewRegistry(), nil)
 	if b.Pool != pools.Backfill {
 		t.Error("backfill is handed a pool other than the one of its own role")
 	}

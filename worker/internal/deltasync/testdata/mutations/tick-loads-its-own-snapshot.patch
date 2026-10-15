@@ -6,13 +6,14 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/deltasync.go
+index 5a7ea58..2b53a7f 100644
 --- a/worker/internal/deltasync/deltasync.go
 +++ b/worker/internal/deltasync/deltasync.go
-@@ -272,6 +272,7 @@
- // which the tick takes at its entry and keeps (ADR-0090, ADR-0041), under a rate limiter at the target
- // the account's state row sets (ADR-0024).
+@@ -293,6 +293,7 @@ func at(ms mail.UnixMilli) time.Time {
+ // snapshot in force, which the tick takes at its entry and keeps (ADR-0090, ADR-0041), under a rate
+ // limiter at the target the account's state row set when the context last reloaded (ADR-0024).
  func (d *DeltaSync) tick(ctx context.Context, account string, logger *slog.Logger) error {
-+	_ = d.loader.Load(ctx)
- 	snapshot, policy := d.loader.Snapshot(), d.policies.Snapshot()
- 	limiter, err := newLimiter(ctx, d.config.Pool, []string{account}, d.leases)
++	_ = d.config.Context.Loader().Load(ctx)
+ 	snapshot, policy := d.config.Context.Snapshot(), d.config.Context.PolicySnapshot()
+ 	limiter, err := d.config.Context.Limiter(d.config.Pool, account, gmail.Profile{}.BudgetPerSecond(), d.leases)
  	if err != nil {

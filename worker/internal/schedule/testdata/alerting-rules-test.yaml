@@ -82,7 +82,7 @@ tests:
         severity: warning
       exp_annotations:
         summary: >-
-          The sync job that reloads the accounts and the policy has had no success for longer than its bound, not
+          The sync job that adds and drops the account jobs has had no success for longer than its bound, not
           counting the time it waited for a slot, so it is failing, stuck or no longer asked to run.
   - eval_time: 16m
     alertname: MediatedMailboxJobLate
@@ -92,7 +92,7 @@ tests:
         severity: warning
       exp_annotations:
         summary: >-
-          The sync job that reloads the accounts and the policy has had no success for longer than its bound, not
+          The sync job that adds and drops the account jobs has had no success for longer than its bound, not
           counting the time it waited for a slot, so it is failing, stuck or no longer asked to run.
     - exp_labels:
         job_kind: sync

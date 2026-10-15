@@ -6,10 +6,11 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
+index b3ae520..c71914c 100644
 --- a/worker/internal/backfill/backfill.go
 +++ b/worker/internal/backfill/backfill.go
-@@ -192,6 +192,7 @@
- 	policyErr := b.loadPolicy(ctx, ids(snapshot))
+@@ -200,6 +200,7 @@ func (b *Backfill) reload(ctx context.Context, _ schedule.Ask) error {
+ 	listed := b.sessions.Accounts(snapshot)
  	if policyErr != nil {
  		b.logger.Error("the policy was not reloaded, so no account newly listed is backfilled until it is", "error", policyErr)
 +		return policyErr

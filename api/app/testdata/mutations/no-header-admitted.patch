@@ -1,7 +1,7 @@
 control: Every request to the client surface passes the bearer check before either root
 removes: a request carrying no Authorization header is admitted
 packages: ./api/app
-tests: TestEveryRequestPassesTheBearerCheckFirst/the_API_root_without_a_token TestEveryRequestPassesTheBearerCheckFirst/the_MCP_root_without_a_token TestEveryRequestPassesTheBearerCheckFirst/a_path_outside_both_roots,_unauthenticated
+tests: TestEveryRequestPassesTheBearerCheckFirst/the_API_root_without_a_token TestEveryRequestPassesTheBearerCheckFirst/the_MCP_root_without_a_token TestEveryRequestPassesTheBearerCheckFirst/a_path_outside_both_roots_reaching_the_surface's_handler,_unauthenticated
 scheduled-count: no
 
 

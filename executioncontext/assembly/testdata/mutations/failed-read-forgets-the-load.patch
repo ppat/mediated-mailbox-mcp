@@ -1,0 +1,21 @@
+control: A process's execution context reloads its accounts and their policy together, keeps in force what a failed read could not read, and loads at once, retrying its first load until it succeeds
+removes: a reload whose read of the accounts fails leaves nothing in force, as if no load had ever succeeded
+packages: ./executioncontext/assembly
+tests: TestAFailedReloadKeepsWhatItCouldNotRead
+scheduled-count: no
+integration: yes
+
+diff --git a/executioncontext/assembly/assembly.go b/executioncontext/assembly/assembly.go
+index eed60e6..efa10e1 100644
+--- a/executioncontext/assembly/assembly.go
++++ b/executioncontext/assembly/assembly.go
+@@ -188,7 +188,8 @@ func (c *Context) reload(ctx context.Context) error {
+ 	previous := c.latest.Load()
+ 	if err := c.loader.Load(ctx); err != nil {
+ 		err = fmt.Errorf("loading the accounts: %w", err)
+-		c.latest.Store(&Reloaded{snapshot: previous.snapshot, targets: previous.targets, loaded: previous.loaded, err: err})
++		_ = previous
++		c.latest.Store(&Reloaded{snapshot: &accountload.Snapshot{}, err: err})
+ 		return err
+ 	}
+ 	snapshot := c.loader.Snapshot()

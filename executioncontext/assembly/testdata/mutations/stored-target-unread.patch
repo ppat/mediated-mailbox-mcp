@@ -1,0 +1,20 @@
+control: Each account spends under the lowered target its state row sets, and a target outside its range stops the run
+removes: a unit's limiter is built without the target the account's state row set
+packages: ./executioncontext/assembly
+tests: TestTheLimiterSpendsUnderTheStoredTarget TestAStoredTargetAboveHalfTheCeilingStopsTheAccountsWork
+scheduled-count: no
+integration: yes
+
+diff --git a/executioncontext/assembly/assembly.go b/executioncontext/assembly/assembly.go
+index d74efe4..dac3a54 100644
+--- a/executioncontext/assembly/assembly.go
++++ b/executioncontext/assembly/assembly.go
+@@ -277,7 +277,7 @@ func (c *Context) Limiter(db tx.Beginner, account string, ceiling float64, metri
+ 	}
+ 	targets := map[string]float64{}
+ 	if t.lowered {
+-		targets[account] = t.fraction
++		_ = t.fraction
+ 	}
+ 	limiter, err := lease.NewWithTargets(db, ceiling, targets, metrics)
+ 	if err != nil {

@@ -24,10 +24,14 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prometheus/client_golang/prometheus"
+	"golang.org/x/net/idna"
+	"golang.org/x/net/publicsuffix"
 
+	"github.com/ppat/mediated-mailbox-mcp/core/classify"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/accountload"
+	"github.com/ppat/mediated-mailbox-mcp/executioncontext/assembly"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/open"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/session"
@@ -61,6 +65,32 @@ func syncPool(t *testing.T) *pgxpool.Pool {
 	}
 	t.Cleanup(p.Close)
 	return p
+}
+
+// executionContext returns an execution context over pool, which connects as delta sync's role as the
+// worker's does, opening with ring, scanning with s and reloading every interval, as the worker's
+// composition root builds it.
+func executionContext(t *testing.T, pool *pgxpool.Pool, ring *open.Keyring, s scan.Scanner, logger *slog.Logger, interval time.Duration) *assembly.Context {
+	t.Helper()
+	ec, err := assembly.New(assembly.Needs{
+		Pool: pool, Keys: ring, ThroughClient: []string{gmailProvider}, Scanner: s,
+		Lookups:        classify.Lookups{ToUnicode: idna.Lookup.ToUnicode, ToASCII: idna.Lookup.ToASCII, Registrable: publicsuffix.EffectiveTLDPlusOne},
+		ReloadInterval: interval, Registerer: prometheus.NewRegistry(), Logger: logger,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return ec
+}
+
+// reloadWithContext reloads the execution context, as its task does, then runs the kind's reload, as the wake
+// each reload of the context gives it does, and returns the kind's reload's error alone, so a test
+// reads what the kind made of the context's reload.
+func (d *DeltaSync) reloadWithContext(ctx context.Context) error {
+	if err := d.config.Context.Reload(ctx); err != nil {
+		d.config.Logger.Debug("the execution context's reload failed", "error", err)
+	}
+	return d.reload(ctx, schedule.Ask{})
 }
 
 // superuser returns a connection that holds every privilege, to write what the UI's setups
@@ -282,7 +312,7 @@ func kind(t *testing.T, pool *pgxpool.Pool, ring *open.Keyring, registry prometh
 		t.Fatal(err)
 	}
 	c := Config{
-		Pool: pool, Keys: ring, Scanner: s, Registry: registry, Logger: log, Jobs: j, Concurrency: 1,
+		Pool: pool, Context: executionContext(t, pool, ring, s, log, time.Minute), Registry: registry, Logger: log, Jobs: j, Concurrency: 1,
 		ReloadInterval: time.Minute, SyncInterval: 5 * time.Minute, FirstWindow: 7 * 24 * time.Hour, DecisionsPerTick: 200,
 	}
 	for _, f := range configure {
@@ -299,7 +329,7 @@ func kind(t *testing.T, pool *pgxpool.Pool, ring *open.Keyring, registry prometh
 // joined.
 func cycle(t *testing.T, d *DeltaSync, j *jobs) error {
 	t.Helper()
-	err := d.reload(t.Context(), schedule.Ask{})
+	err := d.reloadWithContext(t.Context())
 	return errors.Join(err, j.tick(t))
 }
 
@@ -551,7 +581,7 @@ func TestAReloadReSealsWhatItOpensWithAnOldKey(t *testing.T) {
 	revoke(t, conn, "UPDATE (credential) ON account_state")
 	revoke(t, conn, "UPDATE (client_secret) ON oauth_clients")
 
-	if err := d.reload(t.Context(), schedule.Ask{}); err != nil {
+	if err := d.reloadWithContext(t.Context()); err != nil {
 		t.Fatal(err)
 	}
 
@@ -565,7 +595,7 @@ func TestAReloadReSealsWhatItOpensWithAnOldKey(t *testing.T) {
 	must(t, conn, "GRANT UPDATE (credential) ON account_state TO "+role)
 	must(t, conn, "GRANT UPDATE (client_secret) ON oauth_clients TO "+role)
 
-	if err := d.reload(t.Context(), schedule.Ask{}); err != nil {
+	if err := d.reloadWithContext(t.Context()); err != nil {
 		t.Fatal(err)
 	}
 
@@ -957,7 +987,7 @@ func TestADroppedAccountsTickSeriesGoWithItsJob(t *testing.T) {
 	}
 
 	must(t, conn, "UPDATE account_state SET credential = NULL WHERE account_id = 'personal'")
-	if err := d.reload(t.Context(), schedule.Ask{}); err != nil {
+	if err := d.reloadWithContext(t.Context()); err != nil {
 		t.Fatal(err)
 	}
 	for _, name := range names {
@@ -993,7 +1023,7 @@ func TestEachTickJobStartsFromItsRecordedLatestSuccess(t *testing.T) {
 	j := newJobs()
 	d := kind(t, syncPool(t), ring, prometheus.NewRegistry(), slog.New(slog.DiscardHandler),
 		fakes(gmailSource(http.DefaultClient), map[string]*fake.Fake{}), j)
-	if err := d.reload(t.Context(), schedule.Ask{}); err != nil {
+	if err := d.reloadWithContext(t.Context()); err != nil {
 		t.Fatal(err)
 	}
 	got := map[string]time.Time{}

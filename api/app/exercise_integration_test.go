@@ -100,14 +100,17 @@ func TestServeTheExerciseCorpusToALiveAgent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	section := Section{TokenFile: tokenPath, AccountReloadInterval: time.Minute, ProviderTimeout: 30 * time.Second}
+	pool := apiServer(t)
+	ec := mustContext(t, pool, ring, scanner(t), section, h.Registerer("api"), h.Logger("api"))
 	a, err := assemble(h.Context(), Needs{
-		Section: Section{TokenFile: tokenPath, AccountReloadInterval: time.Minute, ProviderTimeout: 30 * time.Second},
-		Pool:    apiServer(t), Keys: ring, Scanner: scanner(t), Registerer: h.Registerer("api"), Logger: h.Logger("api"),
+		Section: section, Pool: pool, Context: ec, Registerer: h.Registerer("api"), Logger: h.Logger("api"),
 		Start: h.Starter("api"),
 	}, session.Connect(gmailSource(http.DefaultClient), connector), leaseWait)
 	if err != nil {
 		t.Fatal(err)
 	}
+	a.parts.Tasks = append(a.parts.Tasks, ContextTask(ec))
 	f = seedExercise(t, conn, account, a.served.policy(account))
 	h.Add("api", Mount, a.parts)
 	ln, err := net.Listen("tcp", address)

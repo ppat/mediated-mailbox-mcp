@@ -1,23 +1,24 @@
 control: Delta sync decides under backfill's gate thresholds and records backfill's scanner version and revision
-removes: the worker hands delta sync a scanner built from a section of its own, so its verdicts and masks record another revision than backfill's
+removes: the worker hands delta sync an execution context of its own, whose scanner is built from a section of its own, so its verdicts and masks record another revision than backfill's
 packages: ./worker/app
 tests: TestBothJobKindsScanWithTheOneScanner
 scheduled-count: no
 
 diff --git a/worker/app/app.go b/worker/app/app.go
-index 7a6141d8..003e1222 100644
+index 4b0d8cb..511af62 100644
 --- a/worker/app/app.go
 +++ b/worker/app/app.go
-@@ -329,7 +329,12 @@ func kinds(pools Pools, keys *open.Keyring, scanner scan.Scanner, c Configuratio
+@@ -422,7 +422,13 @@ func kinds(pools Pools, ec *assembly.Context, c Section, client *http.Client, lo
  		Registry: labelled(registry, backfill.Kind), Logger: logger.With("job_kind", backfill.Kind), Jobs: s,
  		Concurrency: c.Backfill.Concurrency, ReloadInterval: c.ReloadInterval,
  	}, deltasync.Config{
--		Pool: pools.Sync, Keys: keys, Scanner: scanner, Client: client,
-+		Pool: pools.Sync, Keys: keys, Scanner: func() scan.Scanner {
+-		Pool: pools.Sync, Context: ec, Client: client,
++		Pool: pools.Sync, Context: func() *assembly.Context {
 +			own := scan.DefaultConfig()
 +			own.Window++
 +			s, _ := scan.New(own, "its-own")
-+			return s
++			other, _ := assembly.New(assembly.Needs{Scanner: s, Registerer: prometheus.NewRegistry(), Logger: logger})
++			return other
 +		}(), Client: client,
  		Registry: labelled(registry, deltasync.Kind), Logger: logger.With("job_kind", deltasync.Kind), Jobs: s,
  		Concurrency: c.Sync.Concurrency, ReloadInterval: c.ReloadInterval,

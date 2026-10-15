@@ -6,16 +6,16 @@ scheduled-count: no
 integration: yes
 
 diff --git a/executioncontext/session/session.go b/executioncontext/session/session.go
-index f4fb328a..38bc4c36 100644
+index bd3fc28..8cfd8e3 100644
 --- a/executioncontext/session/session.go
 +++ b/executioncontext/session/session.go
-@@ -158,6 +158,9 @@ func (h *Holder) Open(snapshot *accountload.Snapshot, account string) (*Session,
+@@ -179,6 +179,9 @@ func (h *Holder) Open(snapshot *accountload.Snapshot, account string) (*Session,
  		return nil, ErrNotConnected
  	}
  	creds := credentials(a)
 +	if first, fok := snapshot.Accounts()[0].Client(); fok {
 +		creds.ClientID, creds.ClientSecret = first.ID(), first.Secret()
 +	}
- 	conn := h.source(account, connector, creds)
- 	port, err := conn.port(account)
+ 	source := h.source(account, connector, creds)
+ 	port, err := connector.port(account, source)
  	if err != nil {

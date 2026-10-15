@@ -242,7 +242,10 @@ configuration change, either of which restarts the worker
   ([ADR-0132](./0132-a-body-refused-for-good-is-recorded-as-refused-not-left-pending.md)).
 - Assumptions about other components. Every job kind that masks or scans runs the same scanner
   version and the same scanner section, which one configuration load in the worker gives by
-  construction ([ADR-0117](../operability/0117-one-background-worker-runs-every-job-kind.md)). Ingest
+  construction ([ADR-0117](../operability/0117-one-background-worker-runs-every-job-kind.md)). Every
+  verdict, mask and serve-time check in a process carries one scanner revision by construction,
+  since the process's one execution context holds the one scanner every component in it scans with
+  ([ADR-0090](../operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md)). Ingest
   stores a subject in no form other than the provider's, so an unmasked stored subject is the
   subject as fetched, and a subject does not change at the provider after it is stored. A provider
   fetching messages by identifier reports a message it no longer has as gone by leaving it out of

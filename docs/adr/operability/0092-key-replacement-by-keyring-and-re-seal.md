@@ -77,6 +77,9 @@ account's credential and each stored client secret each time it loads its accoun
 - Delta sync's role writes the client secrets as well as the credential
   ([ADR-0118](../data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)). The shared library
   [`executioncontext/accountload/`](../../../executioncontext/README.md#the-account-snapshot-accountload)
-  carries the re-seal.
+  carries the re-seal. Delta sync re-seals through the loader of the worker's one execution
+  context, which the worker builds over delta sync's pool, so the re-seal of a credential runs under
+  delta sync's role, and the re-seal of a client's secret through a write of delta sync's own, in
+  each of delta sync's reloads, whether or not the context lists an account.
 - Assumptions about other components. Delta sync ticks every account on its sync interval. The
   platform can mount two private key files at once and restarts a deployable when told to.

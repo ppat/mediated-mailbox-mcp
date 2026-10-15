@@ -160,6 +160,6 @@ groups:
       severity: warning
     annotations:
       summary: >-
-        The {{ $labels.job_kind }} job{{ with $labels.account }} for account {{ . }}{{ else }} that reloads the
-        accounts and the policy{{ end }} has had no success for longer than its bound, not counting the time it waited
+        The {{ $labels.job_kind }} job{{ with $labels.account }} for account {{ . }}{{ else }} that adds and
+        drops the account jobs{{ end }} has had no success for longer than its bound, not counting the time it waited
         for a slot, so it is failing, stuck or no longer asked to run.

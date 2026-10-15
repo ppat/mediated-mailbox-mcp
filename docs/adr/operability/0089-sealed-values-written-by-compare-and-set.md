@@ -67,6 +67,11 @@ rule holds per account.
   - The loader discards the hand-over only when that account's stamp has changed since.
   - The process's own earlier write-back leaves the stamp as it is, so two units that overlap and
     each see a rotation both land, the later by compare-and-set against the earlier's bytes.
+- A process holds one loader for every component it hosts, in its one execution context, and one
+  token source per account, so a rotation of an account's credential is held by one source and
+  written back by one loader, whichever component's unit of work received it. Two processes, the API
+  server and the worker, reconcile by the compare-and-set above
+  ([ADR-0090](./0090-accounts-reach-deployables-as-reloaded-snapshots.md)).
 - A provider that rotates refresh tokens and revokes a grant when an old one is reused cannot be
   repaired by a compare-and-set after the fact. Such a provider needs the advisory lock above, and
   the kill window it leaves open is recorded against it then.

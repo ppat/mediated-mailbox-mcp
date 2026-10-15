@@ -1,0 +1,20 @@
+control: Holders seen through one holder share its sources, each opening sessions with its own ports
+removes: a holder seen through another keeps sources of its own, so two callers of one account build two sources and the provider issues a token to each
+packages: ./executioncontext/session
+tests: TestHoldersThroughOneHolderShareItsSources
+scheduled-count: no
+integration: yes
+
+diff --git a/executioncontext/session/session.go b/executioncontext/session/session.go
+index bd3fc28..6637578 100644
+--- a/executioncontext/session/session.go
++++ b/executioncontext/session/session.go
+@@ -132,7 +132,7 @@ func New(c Config) *Holder {
+ func (h *Holder) Through(connectors map[string]Connector, db tx.Beginner) *Holder {
+ 	c := h.config
+ 	c.Connectors, c.DB = connectors, db
+-	return &Holder{config: c, sources: h.sources}
++	return &Holder{config: c, sources: &sources{held: map[string]held{}}}
+ }
+ 
+ // credentials returns the credentials the account's source is built from, the client the account

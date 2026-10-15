@@ -272,25 +272,33 @@ func TestOnlyTheUIWritesThePolicy(t *testing.T) {
 	}
 }
 
-// providerRoles are the roles of the code that calls a provider, the API server and the worker's job
-// kinds backfill, delta sync, and reorg apply and rollback, which read every OAuth client and their
-// own account's state (ADR-0016, ADR-0118, ADR-0091).
+// providerRoles are the roles the account snapshot's statements run under, which read every OAuth
+// client and their own account's credential. They are exactly the roles a composition root builds an
+// execution context over, the API server's own and delta sync's in the worker (ADR-0016, ADR-0090,
+// ADR-0118, ADR-0091).
 var providerRoles = []string{
-	"mediated_mailbox_backfill",
 	"mediated_mailbox_api",
-	"mediated_mailbox_organize",
 	"mediated_mailbox_sync",
+}
+
+// contextJobKindRoles are the roles of the worker's job kinds that call a provider through the
+// worker's execution context, backfill's and reorg apply and rollback's, which so hold no grant on a
+// sealed credential or an OAuth client (ADR-0118).
+var contextJobKindRoles = []string{
+	"mediated_mailbox_backfill",
+	"mediated_mailbox_organize",
 }
 
 // syncRole is delta sync's role, the one runtime role that writes a client's secret (ADR-0092).
 const syncRole = "mediated_mailbox_sync"
 
 // TestTheProviderCallingRolesReadTheirAccountsState holds the account snapshot's grants on
-// account_state, under the roles as the migration chain grants them. Each of the four roles that call a
-// provider reads its transaction's account's credential, and an update of it in the library's form
-// changes that account's row alone. The UI's role reads its transaction's account's progress and last
-// authentication, the columns its statement in db/accountstate reads, and never a credential. No
-// other role reads the table (ADR-0084, ADR-0091).
+// account_state, under the roles as the migration chain grants them. Each role the account snapshot's
+// statements run under reads its transaction's account's credential, and an update of it in the
+// library's form changes that account's row alone. Backfill's role neither reads nor writes a
+// credential. The UI's role reads its transaction's account's progress and last authentication, the
+// columns its statement in db/accountstate reads, and never a credential. No other role reads the table
+// (ADR-0084, ADR-0091, ADR-0118).
 func TestTheProviderCallingRolesReadTheirAccountsState(t *testing.T) {
 	ctx := t.Context()
 	tx := seeded(t)
@@ -339,6 +347,18 @@ func TestTheProviderCallingRolesReadTheirAccountsState(t *testing.T) {
 			t.Errorf("got %v, want the grant to refuse it", err)
 		}
 	})
+	for _, role := range contextJobKindRoles {
+		t.Run(role+"/reads a credential", func(t *testing.T) {
+			if _, err := as(ctx, tx, role, accountA, "SELECT credential FROM account_state"); !refusedByGrant(err) {
+				t.Errorf("got %v, want the grant to refuse it", err)
+			}
+		})
+		t.Run(role+"/updates a credential", func(t *testing.T) {
+			if _, err := as(ctx, tx, role, accountA, "UPDATE account_state SET credential = 'x' WHERE account_id = current_setting('app.account')"); !refusedByGrant(err) {
+				t.Errorf("got %v, want the grant to refuse it", err)
+			}
+		})
+	}
 	t.Run("mediated_mailbox_propose/reads account state", func(t *testing.T) {
 		if _, err := as(ctx, tx, "mediated_mailbox_propose", accountA, "SELECT account_id FROM account_state"); !refusedByGrant(err) {
 			t.Errorf("got %v, want the grant to refuse it", err)
@@ -347,8 +367,8 @@ func TestTheProviderCallingRolesReadTheirAccountsState(t *testing.T) {
 }
 
 // TestOnlyTheProviderCallingRolesReadTheOAuthClients holds oauth_clients' grants, the only barrier
-// around a table that belongs to no account (ADR-0016). The four roles that call a provider read every
-// row, each client's name included (ADR-0106). The UI's role reads each client's name, provider,
+// around a table that belongs to no account (ADR-0016). Each role the account snapshot's statements run
+// under reads every row, each client's name included (ADR-0106). The UI's role reads each client's name, provider,
 // identifier, project ID and sealed secret, which the one part of the UI that opens a client's secret
 // opens for a consent's code exchange (ADR-0081), and writes what its client setup writes, adding a
 // client, replacing its identifier, secret and project ID, and removing it (ADR-0084). Delta sync's
@@ -380,14 +400,16 @@ func TestOnlyTheProviderCallingRolesReadTheOAuthClients(t *testing.T) {
 			t.Errorf("read %d clients with error %v, want both and no error", n, err)
 		}
 	})
-	t.Run("mediated_mailbox_propose/reads a client", func(t *testing.T) {
-		// Each column is read on its own, so a grant of any one of them is caught.
-		for _, column := range []string{"name", "provider", "client_id", "client_secret", "project_id"} {
-			if _, err := as(ctx, tx, "mediated_mailbox_propose", accountA, "SELECT "+column+" FROM oauth_clients"); !refusedByGrant(err) {
-				t.Errorf("reading %s: got %v, want the grant to refuse it", column, err)
+	for _, role := range append([]string{"mediated_mailbox_propose"}, contextJobKindRoles...) {
+		t.Run(role+"/reads a client", func(t *testing.T) {
+			// Each column is read on its own, so a grant of any one of them is caught.
+			for _, column := range []string{"name", "provider", "client_id", "client_secret", "project_id"} {
+				if _, err := as(ctx, tx, role, accountA, "SELECT "+column+" FROM oauth_clients"); !refusedByGrant(err) {
+					t.Errorf("reading %s: got %v, want the grant to refuse it", column, err)
+				}
 			}
-		}
-	})
+		})
+	}
 	for _, role := range runtimeRoles {
 		t.Run(role+"/writes a client", func(t *testing.T) {
 			_, err := as(ctx, tx, role, accountA, "UPDATE oauth_clients SET client_secret = 'resealed' WHERE name = 'household'")

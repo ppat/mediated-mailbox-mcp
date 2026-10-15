@@ -1,18 +1,18 @@
 control: Only the roles that call a provider read oauth_clients and their own account's state, and the UI reads its account's progress and never a credential
-removes: the four roles that call a provider write every client's secret with no statement that uses the grant
+removes: the roles the account snapshot's statements run under write every client's secret with no statement that uses the grant
 packages: ./db/check
-tests: TestOnlyTheProviderCallingRolesReadTheOAuthClients TestOnlyTheProviderCallingRolesReadTheOAuthClients/mediated_mailbox_backfill/writes_a_client
+tests: TestOnlyTheProviderCallingRolesReadTheOAuthClients TestOnlyTheProviderCallingRolesReadTheOAuthClients/mediated_mailbox_api/writes_a_client
 scheduled-count: no
 integration: yes
 
 diff --git a/db/migrations/00003_grants.sql b/db/migrations/00003_grants.sql
-index eba1d5bc..97c77588 100644
+index 5a8ad6f..443423d 100644
 --- a/db/migrations/00003_grants.sql
 +++ b/db/migrations/00003_grants.sql
-@@ -543,5 +543,5 @@ GRANT SELECT (account_id, provider, oauth_client) ON accounts
+@@ -556,5 +556,5 @@ GRANT SELECT (account_id, provider, oauth_client) ON accounts
  TO mediated_mailbox_api, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
  GRANT SELECT (account_id, credential), UPDATE (credential) ON account_state
- TO mediated_mailbox_api, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
+ TO mediated_mailbox_api, mediated_mailbox_sync;
 -GRANT SELECT (name, provider, client_id, client_secret) ON oauth_clients
 +GRANT SELECT (name, provider, client_id, client_secret), UPDATE (client_secret) ON oauth_clients
- TO mediated_mailbox_api, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
+ TO mediated_mailbox_api, mediated_mailbox_sync;

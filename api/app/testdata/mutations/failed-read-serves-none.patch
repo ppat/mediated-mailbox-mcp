@@ -7,14 +7,19 @@ integration: yes
 
 
 diff --git a/api/app/app.go b/api/app/app.go
-index 8f9657ee..561e3394 100644
+index 7ad0edd..6dc06bd 100644
 --- a/api/app/app.go
 +++ b/api/app/app.go
-@@ -346,6 +346,7 @@ func newServing(ctx context.Context, pool *pgxpool.Pool, keys *open.Keyring, met
- // next reload loads the policy again.
+@@ -409,7 +409,11 @@ func newServing(start host.Starter, pool *pgxpool.Pool, ec *assembly.Context, me
+ // keeps its active snapshot, so an account it read before keeps that policy, and an account it never
+ // read gets the policy that restricts every sender (ADR-0041). The next reload loads the policy again.
  func (s *serving) reload(ctx context.Context) error {
- 	if err := s.loader.Load(ctx); err != nil {
+-	return s.context.Reload(ctx)
++	err := s.context.Reload(ctx)
++	if err != nil && !errors.Is(err, assembly.ErrPolicyNotLoaded) {
 +		s.registry.Serve(nil)
- 		return fmt.Errorf("loading the accounts: %w", err)
- 	}
- 	next := s.loader.Snapshot()
++	}
++	return err
+ }
+ 
+ // serve serves the accounts of the snapshot the execution context's latest reload left in force.

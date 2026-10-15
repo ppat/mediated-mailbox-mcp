@@ -122,7 +122,11 @@ being unique in the library.
 - The integration tests that hold each runtime role to its grants, every account-keyed table to the
   transaction's account in the statements' form, and the log tables to their foreign keys.
 - The grant check, which plans each statement under the role of every deployable or job kind whose
-  list admits its subsection, directly or through the lists of one or more shared libraries.
+  list admits its subsection, directly or through the lists of one or more shared libraries, and
+  the statements of the execution context's packages, the account snapshot's, the policy loader's
+  and `executioncontext/assembly`'s, under the role of the pool each composition root builds the
+  context over, delta sync's for the worker's job kinds
+  ([ADR-0118](../docs/adr/data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)).
 
 A list admits a library when one of its entries admits a package of the library that runs the
 library's statements, one that imports one of the library's subsections or, through the library's

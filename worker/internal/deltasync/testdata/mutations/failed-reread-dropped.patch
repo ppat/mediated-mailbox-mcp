@@ -6,10 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/executioncontext/session/session.go b/executioncontext/session/session.go
-index f4fb328a..ada3f4c2 100644
+index bd3fc28..5a72fe6 100644
 --- a/executioncontext/session/session.go
 +++ b/executioncontext/session/session.go
-@@ -225,7 +225,7 @@ func Call[T any](ctx context.Context, s *Session, call func(context.Context, mai
+@@ -246,7 +246,7 @@ func Call[T any](ctx context.Context, s *Session, call func(context.Context, mai
  	}
  	reread, rerr := s.h.config.Loader.Reread(ctx, s.account)
  	if rerr != nil {
@@ -17,4 +17,4 @@ index f4fb328a..ada3f4c2 100644
 +		return out, err
  	}
  	refused := s.built
- 	refused.Credential = s.conn.source.Credential()
+ 	refused.Credential = s.source.Credential()

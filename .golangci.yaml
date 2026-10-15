@@ -295,6 +295,37 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
 
+        # A process's one execution context, every file, a package of the execution context family. It builds the
+        # account snapshot, the account sessions' sources and the policy loader once for every component of a process
+        # that calls a provider, and reads each account's lowered target, so its statements run under the role of the
+        # pool its composition root hands it, which db/check maps for each component that admits it (ADR-0066,
+        # ADR-0090, ADR-0118). It builds each unit's rate limiter on the pool its caller passes, so it admits the rate
+        # limiter's lease package and no provider adapter.
+        assembly:
+          list-mode: strict
+          files:
+          - "${base-path}/executioncontext/assembly/**.go"
+          allow:
+          - "$gostd"
+          - "github.com/google/go-cmp/cmp$"
+          - "github.com/jackc/pgx/v5$"
+          - "github.com/jackc/pgx/v5/"
+          - "github.com/ppat/mediated-mailbox-mcp/core/classify$"
+          - "github.com/ppat/mediated-mailbox-mcp/core/scan$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/accountstate$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
+          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/accountload$"
+          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/assembly$"
+          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/open$"
+          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal$"
+          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/policyload$"
+          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/session$"
+          - "github.com/ppat/mediated-mailbox-mcp/ratelimit/core$"
+          - "github.com/ppat/mediated-mailbox-mcp/ratelimit/lease$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
+          - "github.com/prometheus/client_golang/prometheus$"
+
         # The sealed credentials, every file, packages of the execution context family.
         credential:
           list-mode: strict
@@ -691,6 +722,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/core/"
           - "github.com/ppat/mediated-mailbox-mcp/db/accountstate$"
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/accountload$"
+          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/assembly$"
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/core$"
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/open$"
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal$"
@@ -906,6 +938,7 @@ linters:
           - "github.com/jackc/pgx/v5$"
           - "github.com/jackc/pgx/v5/"
           - "github.com/ppat/mediated-mailbox-mcp/core/"
+          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/assembly$"
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/core$"
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/open$"
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal$"
@@ -924,6 +957,9 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
           - "github.com/ppat/mediated-mailbox-mcp/worker/"
           - "github.com/prometheus/client_golang/prometheus$"
+          # The sender classifier's domain functions, which the composition root passes the execution context.
+          - "golang.org/x/net/idna$"
+          - "golang.org/x/net/publicsuffix$"
 
         # Backfill's job kind in the worker, its shell code and its pure core. A job kind imports its own code, the
         # worker's shared code and the shared libraries, never another job kind's code (ADR-0117). It names each
@@ -955,6 +991,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/db/senders/statistics$"
           - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/accountload$"
+          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/assembly$"
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/open$"
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal$"
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/policyload$"
@@ -1013,6 +1050,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/db/senders/statistics$"
           - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/accountload$"
+          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/assembly$"
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/open$"
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal$"
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/policyload$"
@@ -1153,6 +1191,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/core/"
           - "github.com/ppat/mediated-mailbox-mcp/db/"
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/accountload$"
+          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/assembly$"
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/core$"
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/open$"
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal$"
@@ -1216,6 +1255,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/core/"
           - "github.com/ppat/mediated-mailbox-mcp/db/"
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/accountload$"
+          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/assembly$"
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/core$"
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/open$"
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal$"
@@ -1267,6 +1307,7 @@ linters:
           - "!${base-path}/core/**"
           - "!${base-path}/db/**"
           - "!${base-path}/executioncontext/accountload/**"
+          - "!${base-path}/executioncontext/assembly/**"
           - "!${base-path}/executioncontext/credential/**"
           - "!${base-path}/executioncontext/policyload/**"
           - "!${base-path}/executioncontext/session/**"

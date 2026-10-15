@@ -403,12 +403,15 @@ The shape enforces these properties.
     through, and is read in full by the roles that list accounts, while its writes stay confined to
     the transaction's account ([ADR-0091](./0091-accounts-listed-apart-from-their-state.md)).
   - `oauth_clients` belongs to no account and carries no account column, so grants alone decide
-    who reaches it. The four roles that call a provider read it in full. The UI's role reads it in
-    full too, its `name`, `provider`, `client_id` and `project_id` since it runs the consent with a
-    client, sets a client up again and shows where each client lives, and its sealed
-    `client_secret` for the one part of the UI that opens it, for a consent's code exchange
-    ([ADR-0081](../operability/0081-credentials-sealed-to-a-public-key.md)). Only
-    the UI's role, when a client is set up, and delta sync's, when it re-seals a secret, write it
+    who reaches it. The roles the account snapshot's statements run under, the API server's and
+    delta sync's, read it in full, and no other job kind's role reads it, since a job kind reaches
+    it only through the worker's execution context
+    ([ADR-0118](./0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)). The
+    UI's role reads it in full too, its `name`, `provider`, `client_id` and `project_id` since it
+    runs the consent with a client, sets a client up again and shows where each client lives, and
+    its sealed `client_secret` for the one part of the UI that opens it, for a consent's code
+    exchange ([ADR-0081](../operability/0081-credentials-sealed-to-a-public-key.md)). Only the UI's
+    role, when a client is set up, and delta sync's, when it re-seals a secret, write it
     ([ADR-0080](./0080-accounts-and-credentials-live-in-the-database.md),
     [ADR-0106](../provider/0106-accounts-of-a-provider-connect-through-any-of-its-oauth-clients.md),
     [ADR-0107](../provider/0107-gmail-through-an-installed-app-oauth-client-set-up-in-the-ui.md),

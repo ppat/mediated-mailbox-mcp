@@ -5,20 +5,20 @@ tests: TestEachJobKindIsHandedThePoolOfItsOwnRole
 scheduled-count: no
 
 diff --git a/worker/app/app.go b/worker/app/app.go
-index b6c154d7..e47246bc 100644
+index df55791..64cfef4 100644
 --- a/worker/app/app.go
 +++ b/worker/app/app.go
-@@ -338,11 +338,11 @@ func kinds(pools Pools, keys *open.Keyring, scanner scan.Scanner, c Configuratio
+@@ -415,11 +415,11 @@ func kinds(pools Pools, ec *assembly.Context, c Section, client *http.Client, lo
  	registry prometheus.Registerer, s *schedule.Scheduler,
  ) (backfill.Config, deltasync.Config) {
  	return backfill.Config{
--		Pool: pools.Backfill, Keys: keys, Scanner: scanner, Client: client,
-+		Pool: pools.Sync, Keys: keys, Scanner: scanner, Client: client,
+-		Pool: pools.Backfill, Context: ec, Client: client,
++		Pool: pools.Sync, Context: ec, Client: client,
  		Registry: labelled(registry, backfill.Kind), Logger: logger.With("job_kind", backfill.Kind), Jobs: s,
  		Concurrency: c.Backfill.Concurrency, ReloadInterval: c.ReloadInterval,
  	}, deltasync.Config{
--		Pool: pools.Sync, Keys: keys, Scanner: scanner, Client: client,
-+		Pool: pools.Backfill, Keys: keys, Scanner: scanner, Client: client,
+-		Pool: pools.Sync, Context: ec, Client: client,
++		Pool: pools.Backfill, Context: ec, Client: client,
  		Registry: labelled(registry, deltasync.Kind), Logger: logger.With("job_kind", deltasync.Kind), Jobs: s,
  		Concurrency: c.Sync.Concurrency, ReloadInterval: c.ReloadInterval,
  		SyncInterval: c.Sync.SyncInterval, FirstWindow: c.Sync.FirstWindow, DecisionsPerTick: c.Sync.DecisionsPerTick,

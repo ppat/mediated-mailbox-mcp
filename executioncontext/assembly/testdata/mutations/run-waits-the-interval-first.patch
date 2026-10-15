@@ -1,0 +1,20 @@
+control: A process's execution context reloads its accounts and their policy together, keeps in force what a failed read could not read, and loads at once, retrying its first load until it succeeds
+removes: the reload task waits its interval before its first load, so a process serves no account for a whole interval after it starts
+packages: ./executioncontext/assembly
+tests: TestRunLoadsAtOnce TestRunRetriesItsFirstLoadUntilItSucceeds
+scheduled-count: no
+integration: yes
+
+diff --git a/executioncontext/assembly/assembly.go b/executioncontext/assembly/assembly.go
+index eed60e6..4f8ecaa 100644
+--- a/executioncontext/assembly/assembly.go
++++ b/executioncontext/assembly/assembly.go
+@@ -215,7 +215,7 @@ const firstRetry = 5 * time.Second
+ // reload interval, and every firstRetry while no load has succeeded. A failed reload is logged and
+ // keeps in force what was, and Run returns nil once ctx ends.
+ func (c *Context) Run(ctx context.Context) error {
+-	wait := time.Duration(0)
++	wait := c.n.ReloadInterval
+ 	if c.Latest().Loaded() {
+ 		wait = c.n.ReloadInterval
+ 	}

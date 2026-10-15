@@ -1,4 +1,4 @@
-control: The worker serves the health probe and backfill's reload-failure series on its metrics endpoint
+control: The worker serves the health probe and its execution context's reload-failure series on its metrics endpoint
 removes: the health probe is not served
 packages: ./worker/app
 tests: TestTheProbesServeTheRunsSeries

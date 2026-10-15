@@ -5,14 +5,17 @@
 // root other than the worker's own can compose it, and every other package of this deployable sits
 // under internal.
 //
-// It builds one scheduler, one connection pool per job kind under that kind's own runtime role, and
-// each job kind with what it needs and nothing more, and its one task ensures each kind's reload,
-// which adds and drops the kind's account jobs (ADR-0117, ADR-0118, ADR-0119). It links no data-access
-// subsection itself and runs no statement on the pools it opens. Each pool reaches only its own job
-// kind's code, which runs its statements under its role. The import lists cannot see which pool
-// reaches which code, so TestEachJobKindIsHandedThePoolOfItsOwnRole holds that openPools opens each
-// pool as its kind's role and that kinds hands each kind its own, and review holds that the root
-// passes the pools it opens on through Assemble (ADR-0118).
+// It builds one scheduler, one connection pool per job kind under that kind's own runtime role, the
+// worker's one execution context over delta sync's pool, and each job kind with what it needs and
+// nothing more, and its one task ensures each kind's reload, which adds and drops the kind's account
+// jobs from what the context's latest reload left in force, and which each reload of the context wakes
+// (ADR-0090, ADR-0117, ADR-0118, ADR-0119). The context's reload is a second task. It links no
+// data-access subsection itself and runs no statement on the pools it opens. Each job kind's pool
+// reaches only its own job kind's code, which runs its statements under its role, and the context's
+// statements run under delta sync's role. The import lists cannot see which pool reaches which code,
+// so TestEachJobKindIsHandedThePoolOfItsOwnRole holds that openPools opens each pool as its kind's role,
+// that kinds hands each kind its own and that the context is built over delta sync's, and review holds
+// that the root passes the pools it opens on through Assemble (ADR-0118).
 package app
 
 import (
@@ -27,8 +30,12 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prometheus/client_golang/prometheus"
+	"golang.org/x/net/idna"
+	"golang.org/x/net/publicsuffix"
 
+	"github.com/ppat/mediated-mailbox-mcp/core/classify"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
+	"github.com/ppat/mediated-mailbox-mcp/executioncontext/assembly"
 	credentialcore "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/core"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/open"
 	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core"
@@ -40,8 +47,9 @@ import (
 )
 
 // scannerSection is the scanner's section of the configuration, whose revision every verdict and
-// masking decision is made under (ADR-0005, ADR-0078). Backfill and delta sync scan with the one
-// scanner built from it, so both record the same revision by construction (ADR-0120).
+// masking decision is made under (ADR-0005, ADR-0078). Backfill and delta sync scan with the
+// execution context's one scanner built from it, so both record the same revision by construction
+// (ADR-0120).
 const scannerSection = "scanner"
 
 // Configuration is the worker's root configuration type, loaded by the configuration library
@@ -61,9 +69,10 @@ type Configuration struct {
 // Section is the worker's own section of the configuration, the values every job kind reads and a
 // section per job kind.
 type Section struct {
-	// ReloadInterval is how often each job kind reloads its account snapshot and its policy, and so
-	// how soon an account connected, a credential replaced or a policy edited reaches the worker, and
-	// how often backfill asks each account whether it has work (ADR-0090, ADR-0119).
+	// ReloadInterval is how often the worker's execution context reloads its account snapshot and its
+	// policy, and so how soon an account connected, a credential replaced or a policy edited reaches
+	// the worker, how often each job kind's reload is asked beside the wake each context reload gives
+	// it, and how often backfill asks each account whether it has work (ADR-0090, ADR-0119).
 	ReloadInterval time.Duration `yaml:"reload_interval"`
 	Backfill       Backfill      `yaml:"backfill"`
 	Sync           Sync          `yaml:"sync"`
@@ -217,8 +226,10 @@ func Run(ctx context.Context, args, environ []string, stdout, stderr io.Writer, 
 }
 
 // fromConfiguration builds what the worker needs from the configuration, the scanner from its section
-// under the section's revision, the keyring and a pool per job kind connecting as that kind's role, and
-// assembles the worker from them.
+// under the section's revision, the keyring, a pool per job kind connecting as that kind's role and the
+// worker's execution context over delta sync's pool, which holds the credential write-back and re-seal
+// grants (ADR-0092, ADR-0118), and assembles the worker from them. The context's reload is the
+// process's task.
 func fromConfiguration(ctx context.Context, provided host.Provided[Configuration]) (host.Parts, error) {
 	scanner, err := buildScanner(provided.Loaded)
 	if err != nil {
@@ -233,11 +244,34 @@ func fromConfiguration(ctx context.Context, provided host.Provided[Configuration
 	if err != nil {
 		return host.Parts{}, err
 	}
-	return Assemble(ctx, Needs{
-		Section: c.Section, Pools: pools, Keys: keys, Scanner: scanner, Client: http.DefaultClient,
+	ec, err := newContext(pools, keys, scanner, c.Section, provided.Registerer, provided.Logger)
+	if err != nil {
+		return host.Parts{}, err
+	}
+	parts, err := Assemble(ctx, Needs{
+		Section: c.Section, Pools: pools, Context: ec, Client: http.DefaultClient,
 		Registerer: provided.Registerer, Logger: provided.Logger,
 	})
+	if err != nil {
+		return host.Parts{}, err
+	}
+	parts.Tasks = append(parts.Tasks, host.Task{Name: "execution context reload", Run: ec.Run})
+	return parts, nil
 }
+
+// newContext returns the worker's execution context over delta sync's pool, and so under delta sync's
+// role, reloading on the reload interval (ADR-0090, ADR-0118).
+func newContext(pools Pools, keys *open.Keyring, scanner scan.Scanner, s Section, reg prometheus.Registerer, logger *slog.Logger) (*assembly.Context, error) {
+	return assembly.New(assembly.Needs{
+		Pool: pools.Sync, Keys: keys, ThroughClient: []string{gmailProvider}, Scanner: scanner,
+		Lookups:        classify.Lookups{ToUnicode: idna.Lookup.ToUnicode, ToASCII: idna.Lookup.ToASCII, Registrable: publicsuffix.EffectiveTLDPlusOne},
+		ReloadInterval: s.ReloadInterval, Registerer: reg, Logger: logger,
+	})
+}
+
+// gmailProvider is the provider an account served through the Gmail adapter names, in accounts and
+// in oauth_clients.
+const gmailProvider = "gmail"
 
 // opener opens a pool from a connection, measured on a registerer.
 type opener func(ctx context.Context, c dbconnectcore.Config, reg prometheus.Registerer) (*pgxpool.Pool, error)
@@ -279,10 +313,9 @@ type Needs struct {
 	Section Section
 	// Pools are the job kinds' pools, each connecting as its kind's runtime role (ADR-0118).
 	Pools Pools
-	// Keys open the accounts' sealed credentials (ADR-0081).
-	Keys *open.Keyring
-	// Scanner is the one scanner every job kind masks and scans with (ADR-0120).
-	Scanner scan.Scanner
+	// Context is the process's execution context, whose scanner every job kind masks and scans with
+	// (ADR-0090, ADR-0120).
+	Context *assembly.Context
 	// Client is the HTTP client each Gmail adapter calls through.
 	Client *http.Client
 	// Registerer is where every series of the worker is registered, each job kind's labelled with it
@@ -293,7 +326,8 @@ type Needs struct {
 
 // Assemble builds the worker from n and returns its parts, the task that runs the scheduler and the
 // readiness checks, each job kind's pool answering as its role and each job kind's first reload done.
-// It starts nothing. The scheduler's runs end when ctx ends (ADR-0119).
+// Each reload of the execution context wakes every job kind's reload. It starts nothing. The
+// scheduler's runs end when ctx ends (ADR-0119).
 func Assemble(ctx context.Context, n Needs) (host.Parts, error) {
 	w, err := assemble(ctx, n)
 	if err != nil {
@@ -342,7 +376,7 @@ func assemble(ctx context.Context, n Needs) (*worker, error) {
 		return nil, err
 	}
 	s := schedule.New(ctx, metrics)
-	bc, dc := kinds(n.Pools, n.Keys, n.Scanner, n.Section, n.Client, n.Logger, n.Registerer, s)
+	bc, dc := kinds(n.Pools, n.Context, n.Section, n.Client, n.Logger, n.Registerer, s)
 	b, err := backfill.New(bc)
 	if err != nil {
 		return nil, err
@@ -368,22 +402,27 @@ func assemble(ctx context.Context, n Needs) (*worker, error) {
 		r.job = job
 		w.reloads = append(w.reloads, r)
 	}
+	n.Context.OnReload(func(context.Context) {
+		for _, r := range w.reloads {
+			s.Wake(r.key)
+		}
+	})
 	return w, nil
 }
 
-// kinds returns what each job kind is built from. Each is handed its own pool, the one keyring, the
-// one scanner built from the worker's scanner section, so both record the same scanner version and
-// revision on every verdict and mask (ADR-0117, ADR-0120), the registerer labelled with its job kind,
-// a logger carrying it, and the scheduler, which adds and drops its jobs.
-func kinds(pools Pools, keys *open.Keyring, scanner scan.Scanner, c Section, client *http.Client, logger *slog.Logger,
+// kinds returns what each job kind is built from. Each is handed its own pool, the one execution
+// context, whose one scanner built from the worker's scanner section has both record the same scanner
+// version and revision on every verdict and mask (ADR-0117, ADR-0120), the registerer labelled with its
+// job kind, a logger carrying it, and the scheduler, which adds and drops its jobs.
+func kinds(pools Pools, ec *assembly.Context, c Section, client *http.Client, logger *slog.Logger,
 	registry prometheus.Registerer, s *schedule.Scheduler,
 ) (backfill.Config, deltasync.Config) {
 	return backfill.Config{
-		Pool: pools.Backfill, Keys: keys, Scanner: scanner, Client: client,
+		Pool: pools.Backfill, Context: ec, Client: client,
 		Registry: labelled(registry, backfill.Kind), Logger: logger.With("job_kind", backfill.Kind), Jobs: s,
 		Concurrency: c.Backfill.Concurrency, ReloadInterval: c.ReloadInterval,
 	}, deltasync.Config{
-		Pool: pools.Sync, Keys: keys, Scanner: scanner, Client: client,
+		Pool: pools.Sync, Context: ec, Client: client,
 		Registry: labelled(registry, deltasync.Kind), Logger: logger.With("job_kind", deltasync.Kind), Jobs: s,
 		Concurrency: c.Sync.Concurrency, ReloadInterval: c.ReloadInterval,
 		SyncInterval: c.Sync.SyncInterval, FirstWindow: c.Sync.FirstWindow, DecisionsPerTick: c.Sync.DecisionsPerTick,

@@ -6,11 +6,12 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/deltasync.go
+index 5a7ea58..7efbe01 100644
 --- a/worker/internal/deltasync/deltasync.go
 +++ b/worker/internal/deltasync/deltasync.go
-@@ -128,7 +128,7 @@
- // session builds a Gmail source and adapter over c.Client, fresh for the tick, so delta sync holds no
- // source across ticks.
+@@ -127,7 +127,7 @@ type DeltaSync struct {
+ // build each Gmail adapter over c.Client, and a Gmail source over it when the execution context holds
+ // none for the account.
  func New(c Config) (*DeltaSync, error) {
 -	metrics, err := gmail.NewMetrics(c.Registry)
 +	metrics, err := gmail.NewMetrics(prometheus.NewRegistry())

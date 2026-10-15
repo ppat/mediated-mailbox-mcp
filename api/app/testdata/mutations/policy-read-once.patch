@@ -5,19 +5,20 @@ tests: TestTheAPIServerServesTheAccountsEachReloadLists TestEveryReloadLoadsTheP
 scheduled-count: no
 integration: yes
 
-diff --git a/api/app/app.go b/api/app/app.go
-index 8f9657ee..8069bd08 100644
---- a/api/app/app.go
-+++ b/api/app/app.go
-@@ -350,7 +350,10 @@ func (s *serving) reload(ctx context.Context) error {
+diff --git a/executioncontext/assembly/assembly.go b/executioncontext/assembly/assembly.go
+index d74efe4..3966da0 100644
+--- a/executioncontext/assembly/assembly.go
++++ b/executioncontext/assembly/assembly.go
+@@ -169,8 +169,10 @@ func (c *Context) Reload(ctx context.Context) error {
+ 	snapshot := c.loader.Snapshot()
+ 	targets := c.readTargets(ctx, snapshot)
+ 	var err error
+-	if policyErr := c.loadPolicy(ctx, idsOf(snapshot)); policyErr != nil {
+-		err = fmt.Errorf("%w: %w", ErrPolicyNotLoaded, policyErr)
++	if c.policies.Load() == nil {
++		if policyErr := c.loadPolicy(ctx, idsOf(snapshot)); policyErr != nil {
++			err = fmt.Errorf("%w: %w", ErrPolicyNotLoaded, policyErr)
++		}
  	}
- 	next := s.loader.Snapshot()
- 	ids := idsOf(next)
--	failed := s.loadPolicy(ctx, ids)
-+	var failed error
-+	if s.policies.Load() == nil {
-+		failed = s.loadPolicy(ctx, ids)
-+	}
- 	s.snapshot.Store(next)
- 	s.registry.Serve(ids)
- 	s.logger.Info("accounts served", "accounts", len(ids))
+ 	c.latest.Store(&Reloaded{snapshot: snapshot, targets: targets, loaded: true, err: err})
+ 	c.observersMu.Lock()
