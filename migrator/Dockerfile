@@ -8,7 +8,7 @@
 
 FROM public.ecr.aws/docker/library/golang:1.27.2-trixie@sha256:e58d6f83b3416618d8bcac2b3dde1b7f7e3c4a77d25e88637f8bbae81536c48d AS goose
 # renovate: datasource=go depName=github.com/pressly/goose/v3
-ARG GOOSE_VERSION=v3.28.0
+ARG GOOSE_VERSION=v3.29.0
 # no_mssql also excludes azuresql, and the tag is listed anyway so the list reads as goose documents it.
 RUN CGO_ENABLED=0 go install -trimpath -ldflags="-s -w" \
       -tags="no_azuresql no_clickhouse no_libsql no_mssql no_mysql no_sqlite3 no_vertica no_ydb" \
