@@ -119,7 +119,7 @@ jobs:
 
     - name: Build the image, and on main push and sign it
       id: image
-      uses: ppat/homelab-ops-actions/actions/build-docker-image@d21b387fa6a35e48f78985a1e636ec728866981e # v2.8.0
+      uses: ppat/homelab-ops-actions/actions/build-docker-image@66ed3b99f806f50f4e623d3d346f4ba37505ec68 # v2.12.0
       with:
         image_context_path: .
         dockerfile: ${{ matrix.image }}/Dockerfile
