@@ -62,7 +62,7 @@ repos:
   - id: yamllint
     args: [--strict]
 - repo: https://github.com/DavidAnson/markdownlint-cli2
-  rev: v0.23.2
+  rev: v0.24.0
   hooks:
   - id: markdownlint-cli2
     args: ["--fix", "--config", ".markdownlint-cli2.yaml"]
@@ -110,12 +110,12 @@ repos:
     pass_filenames: false
     always_run: true
 - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
-  rev: v9.26.0
+  rev: v9.27.0
   hooks:
   - id: commitlint
     language: node
     stages: [commit-msg]
     additional_dependencies:
-    - '@commitlint/cli@21.2.2'
-    - '@commitlint/config-conventional@21.2.2'
+    - '@commitlint/cli@21.2.4'
+    - '@commitlint/config-conventional@21.2.4'
     args: ['--verbose']
