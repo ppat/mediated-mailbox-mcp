@@ -492,8 +492,9 @@ top-level documents, a decision record, or a ticket from here without guessing.
   sense, a running instance of a deployable, which this family's code runs inside rather than names.
 - **Host** (the package `process/host`) — what runs one process over the components a composition
   root hands it, doing what every process does whatever it hosts, from its configuration and its
-  operations endpoints to its background tasks and its ordered stop. A component provides its
-  parts to the host and never starts them itself (rules in ADR-0138, via the
+  operations endpoints to its background tasks and its ordered stop. A process that does one piece
+  of work and exits, as the migrator does, gets the same start and pools and no servers or tasks. A
+  component provides its parts to the host and never starts them itself (rules in ADR-0138, via the
   [decision-record index](./docs/adr/README.md)).
 - **Message content** (the family `content/`) — the code that reads a message's content in memory
   and stores none of it, which is today the conversion of a body's HTML to Markdown (rules in
@@ -663,9 +664,9 @@ top-level documents, a decision record, or a ticket from here without guessing.
   schema. How it evolves, when it is applied, and what its first entry carries are ADR-0048's
   (via the [decision-record index](./docs/adr/README.md)).
 - **The migrator** (published as `mediated-mailbox-migrator` from the directory `migrator/`) — the
-  image the migration step runs, which applies the migration chain. It is not a deployable and
-  holds none of this project's Go code (ADR-0048 and ADR-0049, via the
-  [decision-record index](./docs/adr/README.md)).
+  image the migration step runs, whose one binary carries the migration chain and applies it, once
+  per run. It is not a deployable, and it is configured and connects like every process (ADR-0048,
+  ADR-0049 and ADR-0139, via the [decision-record index](./docs/adr/README.md)).
 - **The command-line program** (published as `mediated-mailbox-cli` from the directory `cli/`) —
   the one binary an operator runs by hand, outside every deployment, with a subcommand per task,
   such as `keygen`, which writes the key pair credentials are sealed to. It is not a deployable and

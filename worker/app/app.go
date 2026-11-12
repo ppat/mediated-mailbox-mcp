@@ -58,10 +58,11 @@ const scannerSection = "scanner"
 // fields are pinned by the test beside this file, so a new value is a visible change. No account and
 // no provider credential is configuration. Both come from the database (ADR-0080).
 type Configuration struct {
-	host.Process `yaml:",inline"`
-	Section      `yaml:",inline"`
-	Database     Database              `yaml:"database"`
-	Credential   credentialcore.Config `yaml:"credential"`
+	host.Process    `yaml:",inline"`
+	host.Operations `yaml:",inline"`
+	Section         `yaml:",inline"`
+	Database        Database              `yaml:"database"`
+	Credential      credentialcore.Config `yaml:"credential"`
 	// Scanner is the scanner's section, one for every job kind that masks or scans (ADR-0120).
 	Scanner scan.Config `yaml:"scanner"`
 }
@@ -137,8 +138,9 @@ func DefaultSection() Section {
 // the ones the application ships.
 func defaults() Configuration {
 	return Configuration{
-		Process: host.DefaultProcess(),
-		Section: DefaultSection(),
+		Process:    host.DefaultProcess(),
+		Operations: host.DefaultOperations(),
+		Section:    DefaultSection(),
 		Database: Database{
 			Port: 5432, SSLMode: "verify-full",
 			Backfill: Role{User: "mediated_mailbox_backfill", PoolSize: 4},
@@ -220,6 +222,7 @@ func Run(ctx context.Context, args, environ []string, stdout, stderr io.Writer, 
 		Name:       "mediated-mailbox-worker",
 		Defaults:   defaults(),
 		Process:    func(c Configuration) host.Process { return c.Process },
+		Operations: func(c Configuration) host.Operations { return c.Operations },
 		Validate:   validate,
 		Components: []host.Component[Configuration]{{Name: "worker", Assemble: fromConfiguration}},
 	})

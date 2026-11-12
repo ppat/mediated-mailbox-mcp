@@ -67,7 +67,8 @@ calls for one and the second because policy lives in the database.
   is the prefix `MEDIATED_MAILBOX_` plus the path upper-cased with segments joined by `__`, so
   `scanner.triggers.de` is `MEDIATED_MAILBOX_SCANNER__TRIGGERS__DE` and the flag
   `--scanner.triggers.de`. `--help` is generated from the same declaration and lists each
-  value's path, environment name, flag and default. Every deployable uses the one prefix.
+  value's path, environment name, flag and default. Every deployable, and the migrator, uses the
+  one prefix.
 - **The worker reads one tree**, with shared sections, such as the scanner and the credential keys,
   and a section per job kind it runs
   ([ADR-0117](../operability/0117-one-background-worker-runs-every-job-kind.md)). A value several
@@ -99,16 +100,19 @@ calls for one and the second because policy lives in the database.
   field by field, so a new value, one meant to hold a secret included, is a visible change.
 - **The database connection.** pgx reads its `PG*` environment variables on every parse, among them
   `PGPASSWORD`, with no option to stop it, and a stray one wins over the mounted password file. So
-  every connection setting a deployable uses is a configuration value rendered into the connection
-  string on every start, the password comes from a password file, and a deployable refuses to start
-  while `PGPASSWORD` or `PGSSLPASSWORD` is set.
-  - Every deployable's connection settings are one `database` section. `host`, `name` and
-    `password_file` are required. `port` defaults to 5432, `user` to the deployable's own runtime
-    role ([ADR-0118](../data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)), and
-    `sslmode` to `verify-full`. `sslrootcert` is optional and holds the path of a mounted CA file.
-    `pool_size` is the most connections the deployable's pool opens, a positive number. The
-    API server and the UI default it to the driver's own default, the larger of 4 and the processor
-    count, and the worker's job kinds keep their own default of 4.
+  every connection setting a process uses is a configuration value rendered into the connection
+  string on every start, the password comes from a password file, and a process that connects
+  refuses to start while `PGPASSWORD` or `PGSSLPASSWORD` is set.
+  - The connection settings of every process that connects, every deployable and the migrator
+    ([ADR-0139](../data/0139-the-migration-runner-is-goose-linked-into-the-migrator.md)), are one
+    `database` section. `host`, `name` and `password_file` are required. `port` defaults to 5432,
+    `user` to the deployable's own runtime role
+    ([ADR-0118](../data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)) and to the
+    migration role for the migrator, and `sslmode` to `verify-full`. `sslrootcert` is optional and
+    holds the path of a mounted CA file. `pool_size` is the most connections the process's pool
+    opens, a positive number. The API server, the UI and the migrator default it to the driver's
+    own default, the larger of 4 and the processor count, and the worker's job kinds keep their own
+    default of 4.
   - The worker connects as one runtime role per job kind
     ([ADR-0118](../data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)), so its one
     `database` section holds, beside the settings every job kind shares, each job kind's user and
@@ -130,9 +134,10 @@ calls for one and the second because policy lives in the database.
   ([ADR-0040](./0040-pure-core-decisions-as-values.md)). A change takes a restart. The effective
   configuration is logged at start with each value's source. The scanner's revision stamped on every
   verdict is the library's revision of the scanner's section, so a change in any layer changes it.
-- **The environment is read in one place.** In the deployables and the shared libraries, outside
-  test files and the test tooling, the environment is read only by a deployable's `main.go`, and
-  handed through its composition root and the host to the library from there.
+- **The environment is read in one place.** In the deployables, the migrator and the shared
+  libraries, outside test files and the test tooling, the environment is read only by a
+  deployable's or the migrator's `main.go`, and handed through its composition root and the host to
+  the library from there.
 - **The library is the project's own**, `process/settings/`, about five hundred lines on
   `go.yaml.in/yaml/v3` and the standard library. The grid below does not separate it from the
   flag-layer koanf column on any gate, so this is a preference. It adds no module beyond the YAML

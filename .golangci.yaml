@@ -352,6 +352,32 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal$"
           - "github.com/ppat/mediated-mailbox-mcp/process/version$"
 
+        # The migrator, every file. Its composition root hands the host its configuration and its work, which applies
+        # the chain db/migrations embeds through db/migrate (ADR-0138, ADR-0139). Its tests render the chart and run it
+        # against a test database.
+        migrator:
+          list-mode: strict
+          files:
+          - "${base-path}/migrator/**.go"
+          allow:
+          - "$gostd"
+          - "github.com/google/go-cmp/cmp$"
+          - "github.com/jackc/pgx/v5$"
+          - "github.com/jackc/pgx/v5/stdlib$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/migrate$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/migrations$"
+          - "github.com/ppat/mediated-mailbox-mcp/migrator/app$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/host$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/logging$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/settings$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/version$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/helmchart$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
+
         # The database connection, every file, a package of the process family. It builds the connection a
         # deployable's database section describes, and connects as no role of its own.
         dbconnect:
@@ -455,11 +481,12 @@ linters:
           - "$gostd"
           - "github.com/ppat/mediated-mailbox-mcp/process/version$"
 
-        # The data-access library, every file.
+        # The data-access library, every file but the application of the migration chain, whose list follows.
         db:
           list-mode: strict
           files:
           - "${base-path}/db/**.go"
+          - "!${base-path}/db/migrate/**"
           allow:
           - "$gostd"
           - "github.com/google/go-cmp/cmp$"
@@ -481,6 +508,23 @@ linters:
           - "go/"
           - "google.golang.org/protobuf/reflect/protoreflect$"
           - "pgregory.net/rapid$"
+
+        # The application of the migration chain, every file, the one package goose is admitted to (ADR-0139). Its
+        # tests apply a chain beside the one db/migrations embeds to a test database through the driver's database/sql
+        # adapter.
+        db-migrate:
+          list-mode: strict
+          files:
+          - "${base-path}/db/migrate/**.go"
+          allow:
+          - "$gostd"
+          - "github.com/jackc/pgx/v5$"
+          - "github.com/jackc/pgx/v5/stdlib$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/migrate$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/migrations$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
+          - "github.com/pressly/goose/v3$"
+          - "github.com/pressly/goose/v3/lock$"
 
         # The policy loader, every file, a package of the execution context family. It is a library, so it connects
         # as no role of its own. db/check plans the statements of the subsection it names under the role of each
@@ -1198,6 +1242,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/policyload$"
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/session$"
           - "github.com/ppat/mediated-mailbox-mcp/api/"
+          - "github.com/ppat/mediated-mailbox-mcp/migrator/"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect$"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core$"
           - "github.com/ppat/mediated-mailbox-mcp/process/host$"
@@ -1219,6 +1264,9 @@ linters:
           - "github.com/prometheus/client_golang/prometheus$"
           - "github.com/prometheus/client_golang/prometheus/collectors$"
           - "github.com/prometheus/client_golang/prometheus/promhttp$"
+          # The migration runner, which db/migrate's own list confines to that package (ADR-0139).
+          - "github.com/pressly/goose/v3$"
+          - "github.com/pressly/goose/v3/lock$"
           # The configuration library's decoder (ADR-0078).
           - "go.yaml.in/yaml/v3$"
           # Restores the standard library under go/, which the entry above hides (see the notes at the top).
@@ -1262,6 +1310,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/policyload$"
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/session$"
           - "github.com/ppat/mediated-mailbox-mcp/api/"
+          - "github.com/ppat/mediated-mailbox-mcp/migrator/"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect$"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core$"
           - "github.com/ppat/mediated-mailbox-mcp/process/host$"
@@ -1312,6 +1361,7 @@ linters:
           - "!${base-path}/executioncontext/policyload/**"
           - "!${base-path}/executioncontext/session/**"
           - "!${base-path}/api/**"
+          - "!${base-path}/migrator/**"
           - "!${base-path}/packaging/**"
           - "!${base-path}/process/dbconnect/**"
           - "!${base-path}/process/dbmetrics/**"

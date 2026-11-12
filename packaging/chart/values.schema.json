@@ -224,10 +224,10 @@
                 "secretKeys": {
                   "type": "object",
                   "properties": {
-                    "passwordFile": {
+                    "password": {
                       "type": "string",
                       "minLength": 1,
-                      "description": "The key holding the password in the libpq password file format."
+                      "description": "The key holding the password."
                     }
                   },
                   "additionalProperties": false
@@ -1189,6 +1189,22 @@
             }
           },
           "additionalProperties": false
+        },
+        "config": {
+          "type": "object",
+          "properties": {
+            "log_level": {
+              "type": "string",
+              "enum": [
+                "debug",
+                "info",
+                "warn",
+                "error"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "description": "The migrator's own configuration keys. Keys the chart renders itself are refused here."
         },
         "backoffLimit": {
           "type": "integer"

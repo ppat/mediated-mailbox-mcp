@@ -454,6 +454,7 @@ func TestAPathOutsideBothRootsIsNotFound(t *testing.T) {
 func TestTheConfigurationTypeIsPinned(t *testing.T) {
 	mustnotcompile.RequireFields(t, "github.com/ppat/mediated-mailbox-mcp/api/app", "Configuration",
 		"Process host.Process",
+		"Operations host.Operations",
 		"Serving host.Serving",
 		"Section Section",
 		"Database core.Config",
@@ -489,11 +490,12 @@ func starter(t *testing.T) host.Starter {
 // the key files are required.
 func TestTheDefaults(t *testing.T) {
 	want := Configuration{
-		Process:  host.Process{ProbeListen: ":8080", LogLevel: "info"},
-		Serving:  host.Serving{Listen: ":8443"},
-		Section:  Section{AccountReloadInterval: time.Minute, ProviderTimeout: 30 * time.Second},
-		Database: dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_api", SSLMode: "verify-full", PoolSize: max(4, runtime.NumCPU())},
-		Scanner:  scan.DefaultConfig(),
+		Process:    host.Process{LogLevel: "info"},
+		Operations: host.Operations{ProbeListen: ":8080"},
+		Serving:    host.Serving{Listen: ":8443"},
+		Section:    Section{AccountReloadInterval: time.Minute, ProviderTimeout: 30 * time.Second},
+		Database:   dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_api", SSLMode: "verify-full", PoolSize: max(4, runtime.NumCPU())},
+		Scanner:    scan.DefaultConfig(),
 	}
 	if diff := cmp.Diff(want, defaults(), compare.Options); diff != "" {
 		t.Errorf("defaults (-want +got):\n%s", diff)

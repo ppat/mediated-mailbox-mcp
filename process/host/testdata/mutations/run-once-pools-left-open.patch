@@ -1,0 +1,22 @@
+control: A process that runs once does its work with what the host provides a component, and returns once its pools are closed
+removes: a process that runs once returns without closing the pools its work opened
+packages: ./process/host
+tests: TestAProcessThatRunsOnceDoesItsWorkAndClosesItsPools
+scheduled-count: no
+
+diff --git a/process/host/host.go b/process/host/host.go
+index 8c310a7a..14f82583 100644
+--- a/process/host/host.go
++++ b/process/host/host.go
+@@ -296,11 +296,10 @@ func RunOnce[T any](ctx context.Context, args, environ []string, stdout, stderr
+ 	}
+ 	err = spec.Work(ctx, Provided[T]{
+ 		Loaded: loaded, Logger: h.Logger(spec.Component), Registerer: h.Registerer(spec.Component),
+ 		Draining: ctx, OpenPool: h.OpenPool, Start: h.Starter(spec.Component),
+ 	})
+-	h.Close()
+ 	return errors.Join(err, h.startedFailures())
+ }
+ 
+ // starting is what start needs of a root, whichever way its process runs.
+ type starting[T any] struct {

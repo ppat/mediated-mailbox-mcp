@@ -10,7 +10,8 @@
 
 Every process does the same work around its components. It refuses the environment, loads the
 configuration, logs it, sets the level, writes the banner, builds a registry and the runtime
-series, opens its pools, opens its listeners, loads its TLS key pair, serves its probes and stops.
+series and opens its pools, and a process that runs until it is told to stop also opens its
+listeners, loads its TLS key pair, serves its probes and stops.
 Written once per deployable, each copy is a place a rule can be left out. A copy that leaves out
 readiness leaves its platform unable to tell when the process can serve, and one that starts a
 goroutine without recovering and joining it can lose a panic or close a pool under it. A harness or
@@ -45,10 +46,11 @@ un-braiding asks that it be ignorant of what else shares its process.
   | Tasks | Starts each component's background tasks once it serves, and a goroutine a component asks for while it runs. It recovers a panic on either as that component's failure, and waits for every one before the pools close |
   | Stop | When the process is told to stop, a server or a task fails, or a goroutine a component started through the starter panics, answers not ready, ends what draining components listen for, drains the application server's requests for ten seconds, ends the tasks' context and waits for every task and every started goroutine, stops the operations server and closes the pools |
 
-- **The process's sections are the host's.** `host.Process` holds `probe_listen` and `log_level`,
-  which every process has, and `host.Serving` holds `listen`, `tls_cert` and `tls_key`, which a
-  process has when a component it hosts serves requests. A root embeds them inline in its root
-  type, so their keys sit at the top of its tree
+- **The process's sections are the host's.** `host.Process` holds `log_level`, which every process
+  has, `host.Operations` holds `probe_listen`, which a process has when it runs until it is told to
+  stop, and `host.Serving` holds `listen`, `tls_cert` and `tls_key`, which a process has when a
+  component it hosts serves requests. A root embeds them inline in its root type, so their keys sit
+  at the top of its tree
   ([ADR-0078](./0078-configuration-layers-through-an-owned-library.md)). The sections every
   deployable shares, `database`, `credential` and `scanner`, stay their concerns' and are declared by
   each root.
@@ -68,6 +70,15 @@ un-braiding asks that it be ignorant of what else shares its process.
   validation and its components, each with the patterns its handler is mounted at and an assembly
   that builds what the component needs from the loaded configuration and calls the component's own.
   A root that composes several components is the same call with several.
+- **A process that does one piece of work and exits is run by the host too, through `RunOnce`.**
+  Its root hands the host its root type's defaults, the process's section, its validation and the
+  work. The host starts it as it starts every process, the environment, the configuration, the
+  level and the banner, builds the registry and opens the pools the work asks for, and hands the
+  work what it hands a component's assembly. It serves no operations endpoints and no application
+  server and runs no task, since nothing probes, scrapes or calls a process that exits on its own,
+  and it returns the work's error once every goroutine the work started has returned and the pools
+  are closed. The migrator is that process
+  ([ADR-0139](../data/0139-the-migration-runner-is-goose-linked-into-the-migrator.md)).
 - **What each component provides.**
 
   | Component | Mounted at | Readiness | Tasks | Refuses |

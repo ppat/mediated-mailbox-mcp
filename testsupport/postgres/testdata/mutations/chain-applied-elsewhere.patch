@@ -1,20 +1,24 @@
 control: The chain applies from an empty database on every test run
-removes: goose applies the chain to the database the migration URL names rather than the one just created empty
+removes: the chain is applied to the database the migration URL names rather than the one just created empty
 packages: ./testsupport/postgres
 tests: TestTheChainFailsFromEmptyOnAMigrationOnlyTheCurrentShapeAccepts TestTheChainFailsFromEmptyOnAMigrationOnlyTheCurrentShapeAccepts/from_empty
 scheduled-count: no
 integration: yes
 
 diff --git a/testsupport/postgres/chain.go b/testsupport/postgres/chain.go
-index c3471cbf..d723b230 100644
+index bf1546e3..dbbb3aa9 100644
 --- a/testsupport/postgres/chain.go
 +++ b/testsupport/postgres/chain.go
-@@ -34,7 +34,7 @@ func ApplyChain(ctx context.Context, admin, migrate, name, dir string) (err erro
+@@ -36,11 +36,11 @@ func ApplyChain(ctx context.Context, admin, migrator, name string, chain fs.FS)
+ 	defer func() { err = errors.Join(err, conn.Close(context.Background())) }()
+ 	if _, err := conn.Exec(ctx, "CREATE DATABASE "+pgx.Identifier{name}.Sanitize()+" OWNER "+pgx.Identifier{MigrationRole}.Sanitize()); err != nil {
  		return err
  	}
  
--	databaseMigrate, err := inDatabase(migrate, name)
-+	databaseMigrate, err := migrate, nil
+-	url, err := inDatabase(migrator, name)
++	url, err := migrator, nil
  	if err != nil {
  		return err
  	}
+ 	return up(ctx, chain, url)
+ }

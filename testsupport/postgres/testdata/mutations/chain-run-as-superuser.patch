@@ -6,15 +6,19 @@ scheduled-count: no
 integration: yes
 
 diff --git a/testsupport/postgres/chain.go b/testsupport/postgres/chain.go
-index c3471cbf..4f7b5c4b 100644
+index bf1546e3..70d3a5ad 100644
 --- a/testsupport/postgres/chain.go
 +++ b/testsupport/postgres/chain.go
-@@ -34,7 +34,7 @@ func ApplyChain(ctx context.Context, admin, migrate, name, dir string) (err erro
+@@ -36,11 +36,11 @@ func ApplyChain(ctx context.Context, admin, migrator, name string, chain fs.FS)
+ 	defer func() { err = errors.Join(err, conn.Close(context.Background())) }()
+ 	if _, err := conn.Exec(ctx, "CREATE DATABASE "+pgx.Identifier{name}.Sanitize()+" OWNER "+pgx.Identifier{MigrationRole}.Sanitize()); err != nil {
  		return err
  	}
  
--	databaseMigrate, err := inDatabase(migrate, name)
-+	databaseMigrate, err := inDatabase(admin, name)
+-	url, err := inDatabase(migrator, name)
++	url, err := inDatabase(admin, name)
  	if err != nil {
  		return err
  	}
+ 	return up(ctx, chain, url)
+ }

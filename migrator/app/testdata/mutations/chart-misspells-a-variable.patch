@@ -1,0 +1,23 @@
+control: The chart sets the migration Job a configuration the migrator starts with
+removes: the chart names the database section's variables with one underscore after the section, a name the migrator does not read
+packages: ./migrator/app
+tests: TestTheChartSetsAConfigurationTheMigratorStartsWith
+scheduled-count: no
+
+diff --git a/packaging/chart/templates/migration/job.yaml b/packaging/chart/templates/migration/job.yaml
+index 982bfc6a..b1cff4dc 100644
+--- a/packaging/chart/templates/migration/job.yaml
++++ b/packaging/chart/templates/migration/job.yaml
+@@ -52,11 +52,11 @@ spec:
+         imagePullPolicy: {{ .Values.global.image.pullPolicy }}
+         env:
+         - name: MEDIATED_MAILBOX_LOG_LEVEL
+           value: {{ $c.log_level | quote }}
+         {{- range $key, $value := $c.database }}
+-        - name: {{ printf "MEDIATED_MAILBOX_DATABASE__%s" (upper $key) }}
++        - name: {{ printf "MEDIATED_MAILBOX_DATABASE_%s" (upper $key) }}
+           value: {{ $value | toString | quote }}
+         {{- end }}
+         {{- with $v.goSoftMemoryLimit }}
+         - name: GOMEMLIMIT
+           value: {{ . | quote }}

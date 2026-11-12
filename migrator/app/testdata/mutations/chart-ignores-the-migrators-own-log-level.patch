@@ -1,0 +1,23 @@
+control: The chart sets the migration Job a configuration the migrator starts with
+removes: the chart takes the migrator's log level from the shared configuration whatever the migrator's own block sets
+packages: ./migrator/app
+tests: TestTheChartSetsAConfigurationTheMigratorStartsWith
+scheduled-count: no
+
+diff --git a/packaging/chart/templates/_config.tpl b/packaging/chart/templates/_config.tpl
+index 1844d74e..77633366 100644
+--- a/packaging/chart/templates/_config.tpl
++++ b/packaging/chart/templates/_config.tpl
+@@ -42,11 +42,11 @@ so no key is written twice.
+ 
+ {{/* The migration step's configuration, its log level and its database section, which the Job sets through the
+ environment layer rather than a file, since no ConfigMap of the release exists at pre-install (ADR-0129). */}}
+ {{- define "mm.config.migration" -}}
+ {{- $v := .Values.migration }}
+-{{- toYaml (dict "log_level" (default .Values.sharedConfig.log_level (index $v.config "log_level")) "database" (include "mm.config.database" (list . $v.database) | fromYaml)) }}
++{{- toYaml (dict "log_level" .Values.sharedConfig.log_level "database" (include "mm.config.database" (list . $v.database) | fromYaml)) }}
+ {{- end }}
+ 
+ {{- define "mm.config.api" -}}
+ {{- $v := .Values.api }}
+ {{- $c := deepCopy $v.config }}

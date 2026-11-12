@@ -38,13 +38,14 @@ func TestTheChartRendersAFileTheUIStartsWith(t *testing.T) {
 		t.Fatalf("the UI refuses the chart's file: %v", err)
 	}
 	c := loaded.Config
-	if err := errors.Join(host.ValidateProcess(c.Process), host.ValidateServing(c.Serving), validate(c)); err != nil {
+	if err := errors.Join(host.ValidateProcess(c.Process), host.ValidateOperations(c.Operations), host.ValidateServing(c.Serving), validate(c)); err != nil {
 		t.Fatalf("the UI's validation refuses the chart's file: %v", err)
 	}
 	mounted := "/etc/mediated-mailbox/secrets/"
 	want := Configuration{
-		Process: host.Process{ProbeListen: ":8080", LogLevel: "debug"},
-		Serving: host.Serving{Listen: ":8443", TLSCert: mounted + "tls/tls.crt", TLSKey: mounted + "tls/tls.key"},
+		Process:    host.Process{LogLevel: "debug"},
+		Operations: host.Operations{ProbeListen: ":8080"},
+		Serving:    host.Serving{Listen: ":8443", TLSCert: mounted + "tls/tls.crt", TLSKey: mounted + "tls/tls.key"},
 		Database: dbconnectcore.Config{
 			Host: "db.example", Port: 6432, Name: "mediated_mailbox", User: "mailbox_ui", SSLMode: "verify-ca",
 			SSLRootCert: mounted + "ca/ca.crt", PasswordFile: mounted + "database/password", PoolSize: 11,

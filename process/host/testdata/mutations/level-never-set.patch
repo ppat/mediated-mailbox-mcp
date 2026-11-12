@@ -1,19 +1,23 @@
 control: Each deployable logs at the level its configuration sets
 removes: the host reads log_level and never sets the level variable, so the logger stays at info
-packages: ./process/host
-tests: TestTheConfiguredLevelGovernsTheLog/warn TestTheConfiguredLevelGovernsTheLog/error,_from_the_environment TestTheConfiguredLevelGovernsTheLog/a_refused_value_at_error
+packages: ./process/host ./migrator/app
+tests: TestTheConfiguredLevelGovernsTheLog/until_stopped/warn TestTheConfiguredLevelGovernsTheLog/until_stopped/error,_from_the_environment TestTheConfiguredLevelGovernsTheLog/until_stopped/a_refused_value_at_error TestTheConfiguredLevelGovernsTheLog/once/warn TestTheConfiguredLevelGovernsTheLog/once/error,_from_the_environment TestTheConfiguredLevelGovernsTheLog/once/a_refused_value_at_error TestTheStartLogsItsConfigurationThenSetsItsLevelAndWritesItsBanner
 scheduled-count: no
 
 diff --git a/process/host/host.go b/process/host/host.go
-index f5afd783..60599e87 100644
+index 8c310a7a..74dba856 100644
 --- a/process/host/host.go
 +++ b/process/host/host.go
-@@ -214,7 +214,7 @@ func Run[T any](ctx context.Context, args, environ []string, stdout, stderr io.W
+@@ -353,11 +353,11 @@ func start[T any](args, environ []string, stdout, stderr io.Writer, logger *slog
+ 	}
+ 	lv, err := logging.ParseLevel(root.process(loaded.Config).LogLevel)
  	if err != nil {
- 		return fmt.Errorf("validating the configuration: %w", err)
+ 		return loaded, false, fmt.Errorf("validating the configuration: %w", err)
  	}
 -	level.Set(lv)
 +	_ = lv
- 	var serving Serving
- 	if spec.Serving != nil {
- 		serving = spec.Serving(loaded.Config)
+ 	if root.validate != nil {
+ 		if err := root.validate(loaded.Config); err != nil {
+ 			return loaded, false, fmt.Errorf("validating the configuration: %w", err)
+ 		}
+ 	}

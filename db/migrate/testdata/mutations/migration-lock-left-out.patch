@@ -1,0 +1,37 @@
+control: Two runs of the migration chain at once apply each migration once
+removes: the chain is applied with no session locker, so nothing stops a second run reading what is applied while the first applies it
+packages: ./db/migrate
+tests: TestTwoRunsAtOnceApplyAMigrationOnce
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrate/migrate.go b/db/migrate/migrate.go
+index 723382e1..f17c1584 100644
+--- a/db/migrate/migrate.go
++++ b/db/migrate/migrate.go
+@@ -9,25 +9,19 @@ import (
+ 	"fmt"
+ 	"io/fs"
+ 	"log/slog"
+ 
+ 	"github.com/pressly/goose/v3"
+-	"github.com/pressly/goose/v3/lock"
+ )
+ 
+ // Apply applies every migration of chain the database does not yet hold, in order, each in its own
+ // transaction, connected through db as the role that owns the schema. It first takes goose's
+ // PostgreSQL advisory lock on a connection of its own, so a second run at the same time waits, then
+ // finds the migrations already applied and applies nothing. goose logs each migration it applies
+ // through logger.
+ func Apply(ctx context.Context, db *sql.DB, chain fs.FS, logger *slog.Logger) error {
+-	locker, err := lock.NewPostgresSessionLocker()
+-	if err != nil {
+-		return fmt.Errorf("building the migration lock: %w", err)
+-	}
+ 	provider, err := goose.NewProvider(goose.DialectPostgres, db, chain,
+-		goose.WithSessionLocker(locker),
+ 		goose.WithSlog(logger),
+ 		goose.WithDisableGlobalRegistry(true),
+ 	)
+ 	if err != nil {
+ 		return fmt.Errorf("reading the migration chain: %w", err)

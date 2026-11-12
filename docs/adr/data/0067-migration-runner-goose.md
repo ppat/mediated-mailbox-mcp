@@ -1,6 +1,6 @@
 # 0067. The migration runner is goose, invoked as a command
 
-**Status:** Accepted ·
+**Status:** Superseded — **Superseded by:** [ADR-0139](./0139-the-migration-runner-is-goose-linked-into-the-migrator.md) ·
 **Serves:** [O6](../../../USE_CASES.md#o6--deployable)
 
 ## Context

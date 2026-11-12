@@ -5,10 +5,12 @@ tests: TestTheApplicationServerGivenNoKeyPairIsPlain/both_blank TestTheProcessSe
 scheduled-count: no
 
 diff --git a/process/host/host.go b/process/host/host.go
-index f5afd783..a21af58f 100644
+index 8c310a7a..68e3f7f8 100644
 --- a/process/host/host.go
 +++ b/process/host/host.go
-@@ -74,7 +74,7 @@ func DefaultServing() Serving {
+@@ -88,11 +88,11 @@ func DefaultServing() Serving {
+ }
+ 
  // ServesTLS reports whether s names a key pair. ValidateServing has refused one that names only one of
  // its two files, so the certificate alone decides.
  func (s Serving) ServesTLS() bool {
@@ -16,4 +18,6 @@ index f5afd783..a21af58f 100644
 +	return s.TLSCert != ""
  }
  
- // ValidateProcess refuses an empty probe_listen and a log_level that names no level.
+ // ValidateProcess refuses a log_level that names no level.
+ func ValidateProcess(p Process) error {
+ 	_, err := logging.ParseLevel(p.LogLevel)

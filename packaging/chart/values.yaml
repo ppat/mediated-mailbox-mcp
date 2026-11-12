@@ -91,12 +91,11 @@ secrets:
           # -- The key holding the password alone.
           password: password
     migration:
-      # -- The Secret holding the migration role's password in the libpq password file format,
-      # host:port:database:user:password, such as CloudNativePG's <cluster>-app Secret. Required.
+      # -- The Secret holding the migration role's password, such as CloudNativePG's <cluster>-app Secret. Required.
       existingSecret: ""
       secretKeys:
-        # -- The key holding the password file.
-        passwordFile: pgpass
+        # -- The key holding the password alone.
+        password: password
   databaseCaCertificate:
     # -- A Secret holding the CA certificate the database server's certificate is checked against. Only that key is
     # mounted, so a Secret that also holds the CA's private key, as CloudNativePG's <cluster>-ca does, can be named
@@ -439,6 +438,8 @@ migration:
     # -- The migration role, which owns the schema (ADR-0048). Its password file is
     # secrets.databasePasswords.migration.
     user: mediated_mailbox_migrator
+  # -- The migrator's own configuration keys: log_level.
+  config: {}
   # -- How many times a failed run is retried, enough to outlast roles created within the release's timeout. Helm
   # waits on the migration only up to that timeout, five minutes unless --timeout says otherwise.
   backoffLimit: 10

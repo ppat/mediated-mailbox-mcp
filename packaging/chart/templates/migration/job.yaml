@@ -1,15 +1,13 @@
 {{- /*
 The migration step (ADR-0048, ADR-0129): one Job run as a Helm hook before install and before every upgrade, so no
 deployable rolls onto a schema the chain did not reach. It reads only user-supplied Secrets and its own spec, since no
-object of this release exists yet at pre-install. goose reads the connection string from GOOSE_DBSTRING, which names
-the migration role and a password file mounted from the user's Secret and carries no password itself (ADR-0079).
+object of this release exists yet at pre-install. The migrator reads the same configuration as every process (ADR-0078,
+ADR-0139), its log level and its database section, set here through the environment layer from the helper that renders
+every other process's database section, and the password from the file mounted from the user's Secret, never from the
+environment (ADR-0079).
 */ -}}
 {{- $v := .Values.migration }}
-{{- $d := .Values.database }}
-{{- $query := list (printf "sslmode=%s" (urlquery $d.sslmode)) (printf "passfile=%s/database/pgpass" (include "mm.secretsDir" .)) }}
-{{- if .Values.secrets.databaseCaCertificate.existingSecret }}
-{{- $query = append $query (printf "sslrootcert=%s/ca/ca.crt" (include "mm.secretsDir" .)) }}
-{{- end }}
+{{- $c := include "mm.config.migration" . | fromYaml }}
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -53,8 +51,12 @@ spec:
         image: {{ include "mm.image" (list $ $v.image) }}
         imagePullPolicy: {{ .Values.global.image.pullPolicy }}
         env:
-        - name: GOOSE_DBSTRING
-          value: {{ printf "postgres://%s@%s:%v/%s?%s" (urlquery $v.database.user) (required "database.host is required" $d.host) $d.port (urlquery (required "database.name is required" $d.name)) (join "&" $query) | quote }}
+        - name: MEDIATED_MAILBOX_LOG_LEVEL
+          value: {{ $c.log_level | quote }}
+        {{- range $key, $value := $c.database }}
+        - name: {{ printf "MEDIATED_MAILBOX_DATABASE__%s" (upper $key) }}
+          value: {{ $value | toString | quote }}
+        {{- end }}
         {{- with $v.goSoftMemoryLimit }}
         - name: GOMEMLIMIT
           value: {{ . | quote }}
@@ -77,8 +79,8 @@ spec:
           - secret:
               name: {{ required "secrets.databasePasswords.migration.existingSecret is required" .Values.secrets.databasePasswords.migration.existingSecret }}
               items:
-              - key: {{ .Values.secrets.databasePasswords.migration.secretKeys.passwordFile }}
-                path: database/pgpass
+              - key: {{ .Values.secrets.databasePasswords.migration.secretKeys.password }}
+                path: database/password
           {{- include "mm.databaseCaCertificateSource" . | nindent 10 }}
       {{- with $v.nodeSelector }}
       nodeSelector:
