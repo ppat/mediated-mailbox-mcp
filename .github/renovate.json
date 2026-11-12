@@ -41,9 +41,9 @@
     "helpers:pinGitHubActionDigests",
     "mergeConfidence:age-confidence-badges",
     "mergeConfidence:all-badges",
-    "github>ppat/renovate-presets#v1.0.1",
-    "github>ppat/renovate-presets:dev-tools#v1.0.1",
-    "github>ppat/renovate-presets:github-actions#v1.0.1"
+    "github>ppat/renovate-presets#v1.1.0",
+    "github>ppat/renovate-presets:dev-tools#v1.1.0",
+    "github>ppat/renovate-presets:github-actions#v1.1.0"
   ],
   "internalChecksFilter": "strict",
   "labels": [
@@ -118,7 +118,7 @@
       "commitMessagePrefix": "{{semanticCommitType}}({{semanticCommitScope}}):"
     },
     {
-      "description": "A uses: reference or a runner version moving is the one dependency class whose scope is decidable from the changed lines alone, so it keeps its own name. Restated locally rather than inherited from the shared github-actions preset, and with the prefix written out without the breaking marker: the runner is versioned by calendar, so its next release would otherwise arrive as a breaking major of a surface that ships nothing.",
+      "description": "A uses: reference or a runner version moving is the one dependency class whose scope is decidable from the changed lines alone, so it keeps its own name. Restated locally rather than inherited from the shared github-actions preset, and with the prefix written out without the breaking marker: the runner is versioned by calendar, so every release of it is a major, and a preset that stopped stripping the marker would bring it back on a surface that ships nothing.",
       "matchManagers": [
         "github-actions"
       ],

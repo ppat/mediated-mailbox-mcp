@@ -132,8 +132,13 @@ const CASES = [
   {
     id: 'I4', check: 'closure', expect: /'chore\(github-actions\)!: update something/,
     defect: 'the breaking marker left on a major of an action or the runner, which release-please bumps on and commitlint rejects',
-    // Two rules strip it, the internal-pins claim over .github/** and the github-actions claim, so both are
-    // removed: an injection the other rule absorbs would prove nothing.
+    // Two local rules strip it, the internal-pins claim over .github/** and the github-actions claim, and the
+    // shared github-actions preset strips it too, so all three are removed: an injection another rule absorbs
+    // would prove nothing, and the local claims are what must hold when a preset bump drops the upstream one.
+    presets: (name, preset) => {
+      if (name === 'github-actions') for (const r of preset.packageRules ?? []) delete r.commitMessagePrefix
+      return preset
+    },
     overrides: patchRenovate((c) => {
       delete c.packageRules[ruleWhere(c, actionsRule)].commitMessagePrefix
       const r = c.packageRules[ruleWhere(c, internalPinsRule)]
@@ -390,7 +395,9 @@ for (const c of CASES) {
     continue
   }
   const before = await run(c.check, base())
-  const injected = await run(c.check, withOverrides(c.overrides))
+  const injected = await run(c.check, c.presets
+    ? repoEnv(root, { prCommits: 0, prBody: '', overrides: c.overrides, offlinePresets: await offlinePresets(c.presets) })
+    : withOverrides(c.overrides))
   if (c.guard) {
     if (injected.fail.length) record(c.id, 'NOT CAUGHT', `${c.defect}: ${c.check} fired: ${injected.fail.join(' / ')}`)
     else record(c.id, 'held', c.defect)
