@@ -6,7 +6,7 @@ every component are [CLAUDE.md](../CLAUDE.md#code-layout-and-conventions)'s.
 
 | Path | Holds |
 | --- | --- |
-| `db/migrations/` | The migration chain ([ADR-0048](../docs/adr/data/0048-forward-only-migrations.md)). A baseline of three files, the one extension the schema needs, which the migration role creates since it is trusted, every table in [ADR-0016](../docs/adr/data/0016-schema.md)'s order, and the grants with one section per runtime role followed by one per shared library, then the migrations after it, each tested over rows the chain before it wrote. Beside the SQL files sits one Go file, which embeds them, so the migrator's binary carries the chain and the integration runs apply the same files ([ADR-0139](../docs/adr/data/0139-the-migration-runner-is-goose-linked-into-the-migrator.md)). The generator reads only the SQL files as its schema |
+| `db/migrations/` | The migration chain ([ADR-0048](../docs/adr/data/0048-forward-only-migrations.md)). A baseline of three files, the one extension the schema needs, which the migration role creates since it is trusted, every table in [ADR-0016](../docs/adr/data/0016-schema.md)'s order, and the grants with one section per runtime role followed by one per shared library, then the migrations after it, each tested over rows the chain before it wrote. The schema's file ends with the compatibility floor, and every migration after the baseline declares that every chain the floor admits runs on it, in the line `-- compatibility: every chain the floor admits runs on this migration`, or raises the floor ([ADR-0140](../docs/adr/data/0140-each-migration-declares-the-oldest-chain-that-runs-on-it.md)). Beside the SQL files sit the Go files, which embed them, so the migrator's binary carries the chain and the integration runs apply the same files ([ADR-0139](../docs/adr/data/0139-the-migration-runner-is-goose-linked-into-the-migrator.md)), and which give the chain's version, its newest migration's, and the start check's comparison of it with the schema's, which every deployable's composition root hands the host ([ADR-0140](../docs/adr/data/0140-each-migration-declares-the-oldest-chain-that-runs-on-it.md)). The generator reads only the SQL files as its schema |
 | `db/migrate/` | The application of a migration chain with goose linked as a library, the one package goose is admitted to. It applies every migration the database does not yet hold, after taking goose's PostgreSQL advisory lock on a connection of its own, so a second run at the same time waits and then applies nothing. The migrator applies the embedded chain through it, and so does every integration run ([ADR-0139](../docs/adr/data/0139-the-migration-runner-is-goose-linked-into-the-migrator.md)) |
 | `db/bootstrap/` | `roles.sql`, run once per cluster before the chain by a role allowed to create roles, the one privileged step a deployment takes, since nothing runs inside the application database before the chain ([ADR-0048](../docs/adr/data/0048-forward-only-migrations.md)). It is also the contract a deployment platform follows. It grants nothing on the schema, so confining schema change to the migration role rests on PostgreSQL 15 or later, where PUBLIC holds no CREATE on the public schema. PUBLIC keeps TEMP on the database on every version, so a runtime role can create temporary objects in its own session |
 | `db/<subsection>/` | One subsection per table or closely related group of tables of [ADR-0016](../docs/adr/data/0016-schema.md), each holding its statement files and the package generated from them ([ADR-0066](../docs/adr/data/0066-data-access-generated-from-sql.md)). A table's statements sit in the table's subsection. A statement that a role admitted to that subsection may not be granted under [ADR-0118](../docs/adr/data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)'s three lines sits one directory further down, in a subsection named for what it holds, which only the roles that may run it admit. They are listed under [Subsections one directory down](#subsections-one-directory-down). `db/policychanges` is the policy history's own subsection, which only the UI admits. How each subsection's package is named is under [Package names](#package-names) |
@@ -84,6 +84,17 @@ being unique in the library.
   regular expression functions, an embedded `(?i)` in a pattern, a case-insensitive collation, and
   any other form that folds case or matches approximately, full-text search among them.
 - The migration lint.
+- The compatibility declaration check. Every migration after the baseline, the three files whose
+  versions run to 3, holds the line saying every chain the floor admits runs on it, meaning no
+  binary whose chain is at or above the current floor depends on what it removes or changes, or
+  raises the compatibility floor as `UPDATE schema_compatibility SET oldest_chain_version =
+  greatest(oldest_chain_version, E)`, with E an integer from 1 up to the migration's own version,
+  which its file name starts with. A statement that names the floor's table anywhere in its parse
+  tree is admitted only when it is that raise, a read, which is a select or a create table as a
+  select holding no write and no row lock, or a grant or a revoke of `SELECT` alone. Every other is
+  refused, whatever its kind, so no migration lowers the floor, writes it otherwise or grants a
+  runtime role a write of it
+  ([ADR-0140](../docs/adr/data/0140-each-migration-declares-the-oldest-chain-that-runs-on-it.md)).
 - The derived account-keyed table list and its exceptions, the accounts listing, the base policy's
   statements, which compare the account `IS NULL`, and the operation log, which carries no account
   and is reached through a join from its plan column to a plan tied to the transaction's account
@@ -138,9 +149,11 @@ map from import list to database role those checks read is held in `db/check`, k
 API server's and the UI's import lists, by each narrower list governing part of their code that
 admits code naming subsections, and by each list of a job kind of the worker
 ([ADR-0118](../docs/adr/data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)). The
-worker's own list names no subsection and admits no shared library that runs statements, so it has
-no entry, and a shared library has none either, since it connects as no role of its own. The
-worker's list admits the driver only so its composition root can open each job kind's pool through
-the host, and a statement the worker's own code runs on a pool is left to review. The migrator's
+worker's own list names one subsection, the start check's, and admits the execution context, so it
+maps to delta sync's role, the role of the pool its composition root builds the context over. The
+start check also runs on backfill's pool under backfill's role, which the worker's own integration
+test proves. A shared library has no entry, since it connects as no role of its own. The worker's
+list admits the driver only so its composition root can open each job kind's pool through the host,
+and any other statement the worker's own code runs on a pool is left to review. The migrator's
 list names no subsection, so it has no entry either. It runs the chain as the migration role, which
 owns the schema ([ADR-0048](../docs/adr/data/0048-forward-only-migrations.md)).

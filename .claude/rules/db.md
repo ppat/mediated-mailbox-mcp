@@ -18,6 +18,13 @@ and Images. These are the tripwires:
   bootstrap before the chain, and the chain's first migration creates the one extension the schema
   needs, which is trusted, so nothing runs as a superuser inside the application database
   (ADR-0048).
+- **Every migration after the baseline declares which binaries run on the schema it leaves**, the
+  line `-- compatibility: every chain the floor admits runs on this migration`, which says no
+  binary whose chain is at or above the current floor depends on what it removes or changes, or a
+  raise of the
+  compatibility floor to E in the one form `db/check` accepts, where E is the oldest chain whose
+  binaries do not depend on what the migration removes or changes. Expand and contract is the
+  default, and a raised floor makes every older binary refuse to start (ADR-0140).
 - **SQL lives only in statement files**, grouped by concern into data-access subsections, never as
   strings in a component (ADR-0047, ADR-0066). The one exception is the transaction helper's own
   setting and reading back of the account, and of the base policy's scope (ADR-0112), the
@@ -39,5 +46,6 @@ and Images. These are the tripwires:
   operation log reads its plan's account through its join, so its role reads those plan columns too.
 - **goose is linked as a library into `db/migrate` alone**, the one package whose own import list
   admits it. It applies the chain `db/migrations` embeds under goose's advisory lock, for the
-  migrator and for the integration runs alike, and `db/migrations` holds the SQL files and the one
-  Go file that embeds them (ADR-0139).
+  migrator and for the integration runs alike, and `db/migrations` holds the SQL files, the Go
+  file that embeds them (ADR-0139), and the chain's version with the start check's comparison
+  (ADR-0140).

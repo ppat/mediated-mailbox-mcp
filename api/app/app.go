@@ -50,6 +50,8 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
+	"github.com/ppat/mediated-mailbox-mcp/db/migrations"
+	"github.com/ppat/mediated-mailbox-mcp/db/schemacompatibility"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/accountload"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/assembly"
 	credentialcore "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/core"
@@ -172,16 +174,28 @@ var Mount = []string{"/api/", "/mcp"}
 // standard error in main.go, so standard output carries only the logger's JSON records otherwise.
 func Run(ctx context.Context, args, environ []string, stdout, stderr io.Writer, logger *slog.Logger, level *slog.LevelVar) error {
 	return host.Run(ctx, args, environ, stdout, stderr, logger, level, host.Spec[Configuration]{
-		Name:       "mediated-mailbox-api",
-		Defaults:   defaults(),
-		Process:    func(c Configuration) host.Process { return c.Process },
-		Operations: func(c Configuration) host.Operations { return c.Operations },
-		Serving:    func(c Configuration) host.Serving { return c.Serving },
-		Validate:   validate,
+		Name:        "mediated-mailbox-api",
+		Defaults:    defaults(),
+		Process:     func(c Configuration) host.Process { return c.Process },
+		Operations:  func(c Configuration) host.Operations { return c.Operations },
+		Serving:     func(c Configuration) host.Serving { return c.Serving },
+		Validate:    validate,
+		CheckSchema: checkSchema,
 		Components: []host.Component[Configuration]{{
 			Name: "api", Mount: Mount, RefuseEnvironment: RefuseEnvironment, Assemble: fromConfiguration,
 		}},
 	})
+}
+
+// checkSchema refuses a schema this binary's migration chain cannot run on, read through pool under
+// the role pool connects as. The host runs it on each pool it opens, before the pool is used
+// (ADR-0140).
+func checkSchema(ctx context.Context, pool *pgxpool.Pool) error {
+	v, err := schemacompatibility.New(pool).SchemaVersions(ctx)
+	if err != nil {
+		return fmt.Errorf("reading the schema's versions: %w", err)
+	}
+	return migrations.Refuse(v.Applied, v.OldestChainVersion)
 }
 
 // fromConfiguration builds what the API server needs from the configuration, the scanner from its

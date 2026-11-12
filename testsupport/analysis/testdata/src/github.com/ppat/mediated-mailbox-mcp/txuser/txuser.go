@@ -13,6 +13,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/db/oauthclients/secret"
 	"github.com/ppat/mediated-mailbox-mcp/db/oauthclients/setup"
 	"github.com/ppat/mediated-mailbox-mcp/db/policyrules/base"
+	"github.com/ppat/mediated-mailbox-mcp/db/schemacompatibility"
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
 	"github.com/ppat/mediated-mailbox-mcp/other/queries"
 )
@@ -63,6 +64,12 @@ func Exceptions(ctx context.Context, p pool) error {
 		return err
 	}
 	if err := secret.New(p).Other(ctx); err != nil { // want `calls secret.New outside a function literal passed to tx.Run`
+		return err
+	}
+	if err := schemacompatibility.New(p).SchemaVersions(ctx); err != nil {
+		return err
+	}
+	if err := schemacompatibility.New(p).Other(ctx); err != nil { // want `calls schemacompatibility.New outside a function literal passed to tx.Run`
 		return err
 	}
 	for _, statement := range []func(context.Context) error{

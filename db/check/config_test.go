@@ -19,7 +19,8 @@ import (
 // deployable's list and each job kind's list map to their role, the worker's job kinds' lists to the
 // roles named for their job kinds, and the worker's own list to delta sync's role, since the worker's
 // composition root builds the worker's execution context over delta sync's pool and its own code
-// names no subsection (ADR-0118). A statement the worker's own code runs on a pool is left to review.
+// names no subsection but the start check's, which the host runs on every job kind's pool (ADR-0118,
+// ADR-0140). Any other statement the worker's own code runs on a pool is left to review.
 // A shared library connects as no role of its own, so its list has no entry here. Its statements run
 // under the role of each list with a role that admits it, and the grant check plans them under each of
 // those roles (ADR-0066), apart from the execution context's, which executionContext maps. The lists

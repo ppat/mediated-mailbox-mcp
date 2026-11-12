@@ -195,13 +195,20 @@ type Spec[T any] struct {
 	Serving    func(T) Serving
 	// Validate refuses a configuration the root's own sections cannot run with. The host validates
 	// the process's sections first.
-	Validate   func(T) error
-	Components []Component[T]
+	Validate func(T) error
+	// CheckSchema refuses a database schema the process's binary cannot run on. The host runs it on
+	// each pool it opens, before handing the pool to the component that asked for it, so a refused
+	// schema stops the start before anything serves (ADR-0140). Run refuses a spec without it.
+	CheckSchema func(ctx context.Context, pool *pgxpool.Pool) error
+	Components  []Component[T]
 }
 
 // Run runs the process the spec describes until ctx ends. It starts the process as every process
 // starts, then assembles each component in order and serves (ADR-0051, ADR-0078, ADR-0122).
 func Run[T any](ctx context.Context, args, environ []string, stdout, stderr io.Writer, logger *slog.Logger, level *slog.LevelVar, spec Spec[T]) error {
+	if spec.CheckSchema == nil {
+		return errors.New("the composition root hands the host no schema check")
+	}
 	refusals := make([]func([]string) error, 0, len(spec.Components))
 	for _, c := range spec.Components {
 		refusals = append(refusals, c.RefuseEnvironment)
@@ -230,6 +237,7 @@ func Run[T any](ctx context.Context, args, environ []string, stdout, stderr io.W
 	if err != nil {
 		return err
 	}
+	h.checkSchema = spec.CheckSchema
 	// The assembly runs under the host's context, which outlives ctx until the process has drained.
 	// While it runs, ctx ending ends it too, so a start told to stop stops.
 	stopAssembly := context.AfterFunc(ctx, h.stopRun)
@@ -439,6 +447,10 @@ type Host struct {
 	pools      []*pgxpool.Pool
 	components []component
 
+	// checkSchema is the root's schema check, which OpenPool runs on each pool it opens, nil for a host
+	// that checks none, as one a test or a harness builds with New or RunOnce builds.
+	checkSchema func(context.Context, *pgxpool.Pool) error
+
 	// startedMu guards the goroutines Starter starts. joining is set once the host waits for them,
 	// after which nothing starts. failures are their panics, and failed closes on the first.
 	startedMu sync.Mutex
@@ -493,7 +505,9 @@ func (h *Host) Logger(name string) *slog.Logger {
 }
 
 // OpenPool opens a pool from c, connecting as c's role, measured on reg, which the host closes once
-// every task has returned. A pool opens no connection until its first use (ADR-0118, ADR-0125).
+// every task has returned. A pool opens no connection until its first use (ADR-0118, ADR-0125), apart
+// from the schema check of a host that Run built, which runs on the pool before OpenPool returns it
+// and refuses the pool when it refuses the schema (ADR-0140).
 func (h *Host) OpenPool(ctx context.Context, c dbconnectcore.Config, reg prometheus.Registerer) (*pgxpool.Pool, error) {
 	config, err := dbconnect.PoolConfig(c)
 	if err != nil {
@@ -506,6 +520,11 @@ func (h *Host) OpenPool(ctx context.Context, c dbconnectcore.Config, reg prometh
 	h.mu.Lock()
 	h.pools = append(h.pools, pool)
 	h.mu.Unlock()
+	if h.checkSchema != nil {
+		if err := h.checkSchema(ctx, pool); err != nil {
+			return nil, fmt.Errorf("checking the database schema as %s: %w", c.User, err)
+		}
+	}
 	return pool, nil
 }
 

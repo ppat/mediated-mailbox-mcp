@@ -47,12 +47,18 @@ func TestTestLibraryStatementFiles(t *testing.T) {
 
 func TestMigrationAndBootstrapFiles(t *testing.T) {
 	for _, lib := range []library{realLibrary, testLibrary} {
-		files := lib.migrationChain(t)
+		chain := lib.migrationChain(t)
+		files := slices.Clone(chain)
 		for _, path := range sqlFiles(t, lib.bootstrap) {
 			files = append(files, parseFile(t, path))
 		}
 		for _, f := range files {
 			for _, found := range checkMigration(f) {
+				t.Error(found)
+			}
+		}
+		for _, f := range chain {
+			for _, found := range checkCompatibility(f) {
 				t.Error(found)
 			}
 		}
@@ -98,7 +104,8 @@ func TestViolationFiles(t *testing.T) {
 	// The base policy's subsection is named by its directory too, so its cases sit in one of that name.
 	run(baseSubsection, func(f sqlFile) []finding { return checkStatements(s, f) })
 	run("migrations", checkMigration)
-	for _, check := range append(slices.Clone(statementChecks), checkDatabaseCode) {
+	run("compatibility", checkCompatibility)
+	for _, check := range append(slices.Clone(statementChecks), checkDatabaseCode, checkUndeclared, checkFloorStatement) {
 		if !covered[check] {
 			t.Errorf("no violation file wants %s, so nothing shows that check still refuses anything", check)
 		}
@@ -118,6 +125,7 @@ func unreadSQLFiles(t *testing.T, lib library) []string {
 		read = append(read, sqlFiles(t, filepath.Join(lib.violations, "accounts"))...)
 		read = append(read, sqlFiles(t, filepath.Join(lib.violations, baseSubsection))...)
 		read = append(read, sqlFiles(t, filepath.Join(lib.violations, "migrations"))...)
+		read = append(read, sqlFiles(t, filepath.Join(lib.violations, "compatibility"))...)
 		read = append(read, sqlFiles(t, filepath.Join(lib.violations, checkGeneration))...)
 	}
 	var out []string

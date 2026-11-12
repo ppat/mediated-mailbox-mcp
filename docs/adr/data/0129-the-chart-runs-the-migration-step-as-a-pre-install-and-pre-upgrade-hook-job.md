@@ -84,6 +84,13 @@ upgrade the hook still sees the previous release's objects.
   goose's PostgreSQL advisory lock before it reads what is applied, so a second run waits for the
   first and then applies nothing
   ([ADR-0139](./0139-the-migration-runner-is-goose-linked-into-the-migrator.md)).
+- **A rollback runs no migration step.** Helm runs the hooks of the release it rolls back to, and
+  that release's Job is a `pre-install` and `pre-upgrade` hook, not a `pre-rollback` one, so the
+  older release's binaries start on the schema the newer release's chain left. Each of them reads
+  the compatibility floor at start and refuses a schema whose floor is above its own chain, so a
+  rollback across a migration that raised the floor fails with the older pods refusing, and a
+  rollback across migrations that left the floor alone serves on the older release
+  ([ADR-0140](./0140-each-migration-declares-the-oldest-chain-that-runs-on-it.md)).
 - **The roles exist before the chain runs, and the chart cannot order that.** A grant to a role not
   yet created fails its migration's transaction, and the Job's retries converge once the platform
   has created the roles. Helm, and Flux running Helm, wait on the hook only up to the release's

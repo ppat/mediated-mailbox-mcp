@@ -784,6 +784,9 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/content/markdown$"
           - "github.com/ppat/mediated-mailbox-mcp/db/senders$"
           - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
+          # The start check the composition root hands the host, the schema's versions and the chain's own (ADR-0140).
+          - "github.com/ppat/mediated-mailbox-mcp/db/migrations$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/schemacompatibility$"
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/policyload$"
           - "github.com/ppat/mediated-mailbox-mcp/api/"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect$"
@@ -875,6 +878,9 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/db/scangatedecisions$"
           - "github.com/ppat/mediated-mailbox-mcp/db/senders/classification$"
           - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
+          # The start check the composition root hands the host, the schema's versions and the chain's own (ADR-0140).
+          - "github.com/ppat/mediated-mailbox-mcp/db/migrations$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/schemacompatibility$"
           # The composition root's configuration (ADR-0078) and its database section, in ui/app.
           - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect$"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core$"
@@ -962,11 +968,12 @@ linters:
 
         # Deployable worker, every file outside its job kinds' code: its entry, its composition root, its scheduler and
         # the code its job kinds share. A deployable imports its own code and the shared libraries, never another
-        # deployable (ADR-0054). Its tests may also use test tooling, which the list for non-test code refuses. It names
-        # no data-access subsection and admits no shared library that runs statements, so this list needs no role in
-        # db/check (ADR-0118, ADR-0066). It admits the driver only so the composition root can open each job kind's pool
-        # under that job kind's role through the host. A statement the worker's own code runs on a pool is left to
-        # review.
+        # deployable (ADR-0054). Its tests may also use test tooling, which the list for non-test code refuses. The
+        # one data-access subsection it names is the start check's, which the composition root hands the host, and
+        # db/check plans it, and the execution context's statements, under delta sync's role, the role of the pool the
+        # root builds the context over (ADR-0118, ADR-0066, ADR-0140). It admits the driver only so the composition root
+        # can open each job kind's pool under that job kind's role through the host. Any other statement the worker's
+        # own code runs on a pool is left to review.
         worker:
           list-mode: strict
           files:
@@ -982,6 +989,9 @@ linters:
           - "github.com/jackc/pgx/v5$"
           - "github.com/jackc/pgx/v5/"
           - "github.com/ppat/mediated-mailbox-mcp/core/"
+          # The start check the composition root hands the host, the schema's versions and the chain's own (ADR-0140).
+          - "github.com/ppat/mediated-mailbox-mcp/db/migrations$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/schemacompatibility$"
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/assembly$"
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/core$"
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/open$"

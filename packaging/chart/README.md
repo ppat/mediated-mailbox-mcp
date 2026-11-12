@@ -262,9 +262,17 @@ on and reads, such as its folder annotation.
 ## Upgrades and the worker
 
 Every upgrade runs the migration step first, and a failed migration stops the upgrade before any
-deployable rolls. The migrations are forward-only, so a rollback to an older release runs older
-binaries against the newer schema. Under Flux, set the release's upgrade remediation to retry rather
-than roll back.
+deployable rolls. A rollback is supported, `helm rollback` and a HelmRelease's
+`upgrade.remediation.strategy: rollback` alike. The migrations are forward-only and a rollback runs
+no migration step, so the older release's pods start on the newer schema. Each migration either
+leaves working every release whose chain is at or above the schema's compatibility floor, or raises
+the floor.
+Every pod reads the floor when it starts, before it reports ready, and a binary whose chain is older
+than the floor refuses to start and says so in its log. A rollback across migrations that left the
+floor alone serves on the older release. A rollback across one that raised the floor fails, with the
+older pods refusing and nothing written, and the way out is forward, to a release at or above the
+floor. A pod also refuses to start when the database has not yet applied every migration its own
+chain holds.
 
 The worker runs as exactly one pod, and its rollout stops the old pod before it starts the new one.
 Outside a rollout Kubernetes does not hold that guarantee. Any deletion of the pod, an eviction for

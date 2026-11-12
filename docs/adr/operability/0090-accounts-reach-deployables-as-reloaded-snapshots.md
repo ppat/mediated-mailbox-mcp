@@ -38,8 +38,11 @@ immutable snapshot that a process reloads and that a unit of work takes once
   ([ADR-0078](../engineering/0078-configuration-layers-through-an-owned-library.md)),
   `account_reload_interval` in the API server and `reload_interval` in the worker
   ([ADR-0119](./0119-the-workers-jobs-are-scheduled-from-recorded-state.md)). Its first load runs
-  at once and, while no load has succeeded, again every five seconds, so a process started before
-  its database answers serves soon after it does. Once a load has succeeded, a reload that fails is
+  at once and, while no load has succeeded, again every five seconds, so a process whose first load
+  fails after it has started, the database having answered its start's schema check
+  ([ADR-0140](../data/0140-each-migration-declares-the-oldest-chain-that-runs-on-it.md)), serves
+  soon after a load succeeds. A process whose database does not answer at start does not start,
+  and the platform restarts it. Once a load has succeeded, a reload that fails is
   tried again at the next interval. Every unit of work
   takes the latest snapshot its process holds when it starts, whether the unit is a body request, a
   tick of delta sync or a page of backfill

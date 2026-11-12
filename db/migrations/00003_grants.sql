@@ -558,3 +558,13 @@ GRANT SELECT (account_id, credential), UPDATE (credential) ON account_state
 TO mediated_mailbox_api, mediated_mailbox_sync;
 GRANT SELECT (name, provider, client_id, client_secret) ON oauth_clients
 TO mediated_mailbox_api, mediated_mailbox_sync;
+
+-- The start check's statement, in db/schemacompatibility, runs under every role a deployable connects
+-- as, on each pool its process opens, before the pool is used (ADR-0140). It reads the newest
+-- migration goose records and the compatibility floor, which describe the schema and no account. The
+-- roles of the job kinds that open no pool yet, reorg apply and rollback's and the heuristics run's,
+-- gain the grant with their pools.
+GRANT SELECT (version_id) ON goose_db_version
+TO mediated_mailbox_api, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_ui;
+GRANT SELECT (oldest_chain_version) ON schema_compatibility
+TO mediated_mailbox_api, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_ui;

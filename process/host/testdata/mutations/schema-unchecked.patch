@@ -1,0 +1,23 @@
+control: A process that runs until it is told to stop checks the schema on each pool it opens before handing it out, and refuses a root that hands no check
+removes: no pool's schema is checked, so a process starts on a schema it cannot run on
+packages: ./process/host
+tests: TestEveryPoolIsCheckedBeforeItIsHandedOut
+scheduled-count: no
+
+diff --git a/process/host/host.go b/process/host/host.go
+index 2a64c732..eb052c14 100644
+--- a/process/host/host.go
++++ b/process/host/host.go
+@@ -518,11 +518,11 @@ func (h *Host) OpenPool(ctx context.Context, c dbconnectcore.Config, reg prometh
+ 		return nil, fmt.Errorf("configuring the database connection of %s: %w", c.User, err)
+ 	}
+ 	h.mu.Lock()
+ 	h.pools = append(h.pools, pool)
+ 	h.mu.Unlock()
+-	if h.checkSchema != nil {
++	if false && h.checkSchema != nil {
+ 		if err := h.checkSchema(ctx, pool); err != nil {
+ 			return nil, fmt.Errorf("checking the database schema as %s: %w", c.User, err)
+ 		}
+ 	}
+ 	return pool, nil

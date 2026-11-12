@@ -40,7 +40,7 @@ un-braiding asks that it be ignorant of what else shares its process.
   | Banner | Writes the start banner to the standard error it is handed |
   | Metrics | Builds the process's one registry, registers the runtime series once, and hands each component a registerer that labels every series it registers with `component`, the component's directory |
   | Logs | Hands each component the process's logger carrying `component` |
-  | Pools | Opens every pool a root asks for through the database connection and measurement packages, and closes them once every task has returned |
+  | Pools | Opens every pool a root asks for through the database connection and measurement packages, and closes them once every task has returned. In a process that runs until it is told to stop, it runs the schema check the root hands it on each pool before handing the pool to the component that asked for it, so a schema the process cannot run on stops the start before anything serves ([ADR-0140](../data/0140-each-migration-declares-the-oldest-chain-that-runs-on-it.md)) |
   | Operations server | Serves `/healthz`, `/readyz` and `/metrics` on the probe listener as plain text. `/readyz` answers 200 only while the process serves and every readiness check of every component passes, and names the first that fails |
   | Application server | Serves on one listener, with TLS when the configuration names a key pair, loaded before anything is served, mounting each component's handler at the patterns its root gives |
   | Tasks | Starts each component's background tasks once it serves, and a goroutine a component asks for while it runs. It recovers a panic on either as that component's failure, and waits for every one before the pools close |
@@ -67,7 +67,7 @@ un-braiding asks that it be ignorant of what else shares its process.
   order, and waits for it before the pools close. Once the host waits for its tasks, the starter
   starts nothing and says so to its caller.
 - **Each deployable's root is one call.** Its `Run` hands the host its root type's defaults, its
-  validation and its components, each with the patterns its handler is mounted at and an assembly
+  validation, its schema check and its components, each with the patterns its handler is mounted at and an assembly
   that builds what the component needs from the loaded configuration and calls the component's own.
   A root that composes several components is the same call with several.
 - **A process that does one piece of work and exits is run by the host too, through `RunOnce`.**

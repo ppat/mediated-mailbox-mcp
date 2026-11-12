@@ -1,0 +1,26 @@
+control: A binary refuses a schema whose compatibility floor is above its chain or that has not applied its chain, and runs on every other
+removes: the chain's version is its oldest migration rather than its newest, so a binary takes itself for older than it is
+packages: ./db/migrations ./api/app ./ui/app ./worker/app
+tests: TestABinaryRefusesASchemaItsChainCannotRunOn TestTheAPIServerRefusesASchemaItCannotRunOn TestTheUIRefusesASchemaItCannotRunOn TestTheWorkerRefusesASchemaItCannotRunOn
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/compatibility.go b/db/migrations/compatibility.go
+index e68f72f0..f44fc227 100644
+--- a/db/migrations/compatibility.go
++++ b/db/migrations/compatibility.go
+@@ -29,11 +29,13 @@ func Version() int64 {
+ 		prefix, _, found := strings.Cut(name, "_")
+ 		v, err := strconv.ParseInt(prefix, 10, 64)
+ 		if !found || err != nil {
+ 			panic(fmt.Sprintf("migration %s is not named for its version", name))
+ 		}
+-		newest = max(newest, v)
++		if newest == 0 || v < newest {
++			newest = v
++		}
+ 	}
+ 	return newest
+ }
+ 
+ // Refuse decides whether a binary built with this chain may run on a schema whose newest applied

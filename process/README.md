@@ -35,7 +35,9 @@ under the list over files outside every component, which admits only the standar
 is the execution context family's and the scanner's section is `core/scan`'s, while this family
 holds only the layering mechanism and the database section, whose whole concern is running as a
 process. Nothing here reads an account, a policy or a message, and nothing here runs a statement.
-Readiness is a component's, because each component answers it from state only it holds, so a
+The schema check's statement is the data-access library's and its comparison sits beside the
+migration chain, so the host runs a check its root hands it and knows neither. Readiness is a
+component's, because each component answers it from state only it holds, so a
 component hands the host its readiness checks and the host serves `/readyz` over them. No component
 is imported here, and the host knows a component only by the parts it is handed. The execution
 context a process's components share is the execution context family's, which the composition root
@@ -157,7 +159,10 @@ once, the endpoints are the same in every process that serves them. The host ser
 The host runs one process over the components a composition root hands it
 ([ADR-0138](../docs/adr/engineering/0138-one-host-runs-each-process-and-each-component-provides-its-parts.md)).
 It refuses the environment, loads the configuration and logs it, sets the level, writes the start
-banner, builds the one registry and the runtime series, opens every pool a root asks for, assembles
+banner, builds the one registry and the runtime series, opens every pool a root asks for, runs the
+schema check a root whose process runs until it is told to stop hands it on each of those pools
+before the component that asked for it receives it, so a schema the binary cannot run on stops the
+start ([ADR-0140](../docs/adr/data/0140-each-migration-declares-the-oldest-chain-that-runs-on-it.md)), assembles
 each component with a logger and a registerer carrying its name, serves the application server and
 the operations endpoints under one set of connection limits, starts and recovers each component's
 background tasks and every goroutine a component asks its starter for while it runs, and stops in

@@ -108,7 +108,8 @@ func TestAnEmptyListOfPrivateKeysRefusesTheStart(t *testing.T) {
 
 // The start logs every effective value with the layer that set it, the password file's path and
 // never its contents, and the identifier of the key it seals to (ADR-0092, VERIFICATIONS, the row for
-// the UI's log of its key). It stops at the TLS key pair, after the log and before it serves.
+// the UI's log of its key). It stops at the schema check, which reaches no database here, after the log
+// and before it serves (ADR-0140).
 func TestTheEffectiveConfigurationIsLogged(t *testing.T) {
 	passwordFile := filepath.Join(t.TempDir(), "password")
 	if err := os.WriteFile(passwordFile, []byte("the-secret-itself\n"), 0o600); err != nil {
@@ -128,8 +129,8 @@ func TestTheEffectiveConfigurationIsLogged(t *testing.T) {
 		"--credential.private_key_files=[" + privateKeyFile + "]",
 	},
 		[]string{"MEDIATED_MAILBOX_DATABASE__NAME=mailbox"}, io.Discard, io.Discard, logger, new(slog.LevelVar))
-	if err == nil || !strings.HasPrefix(err.Error(), "loading the TLS key pair: ") {
-		t.Fatalf("Run returned %v, want the key pair refused", err)
+	if err == nil || !strings.HasPrefix(err.Error(), "checking the database schema as mediated_mailbox_ui: ") {
+		t.Fatalf("Run returned %v, want the schema check refused", err)
 	}
 	want := []string{
 		`level=INFO msg=configuration path=attention_backlog_share source=default value=5`,

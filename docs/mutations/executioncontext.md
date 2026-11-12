@@ -45,7 +45,7 @@ The demonstrations of the controls whose patches sit in `executioncontext/`. [MU
 ## A process's execution context reloads its accounts and their policy together, keeps in force what a failed read could not read, and loads at once, retrying its first load until it succeeds
 
 - **Date · evidence:** 2026-10-15 · [pull request #394](https://github.com/ppat/mediated-mailbox-mcp/pull/394), at RAPID_SEED=1
-- **Break (1):** a first load that fails is tried again only at the next interval, so a process started before its database answers serves nothing for a whole interval
+- **Break (1):** a first load that fails is tried again only at the next interval, so a process whose first load fails serves nothing for a whole interval
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/executioncontext/assembly`:** `TestRunRetriesItsFirstLoadUntilItSucceeds`
 - **Break (2):** a reload whose policy load fails keeps the accounts of the reload before it in force and tells no component, so an account no longer listed stays served
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/executioncontext/assembly`:** `TestAFailedReloadKeepsWhatItCouldNotRead`

@@ -1,0 +1,22 @@
+control: A process that runs until it is told to stop checks the schema on each pool it opens before handing it out, and refuses a root that hands no check
+removes: the check the root hands is never given to the host that opens the pools, so Run opens every pool unchecked
+packages: ./process/host
+tests: TestEveryPoolIsCheckedBeforeItIsHandedOut
+scheduled-count: no
+
+diff --git a/process/host/host.go b/process/host/host.go
+index 2a64c732..3bfa1cb0 100644
+--- a/process/host/host.go
++++ b/process/host/host.go
+@@ -235,11 +235,10 @@ func Run[T any](ctx context.Context, args, environ []string, stdout, stderr io.W
+ 
+ 	h, err := New(logger)
+ 	if err != nil {
+ 		return err
+ 	}
+-	h.checkSchema = spec.CheckSchema
+ 	// The assembly runs under the host's context, which outlives ctx until the process has drained.
+ 	// While it runs, ctx ending ends it too, so a start told to stop stops.
+ 	stopAssembly := context.AfterFunc(ctx, h.stopRun)
+ 	err = assemble(h, spec, loaded)
+ 	stopAssembly()
