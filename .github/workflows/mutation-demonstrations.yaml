@@ -27,7 +27,7 @@ permissions:
 
 jobs:
   demonstrate:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 120
     # Sixteen jobs, each taking every sixteenth patch. The values only make the jobs. Each job reads its index
     # and the number of jobs from the strategy context, so every patch falls in exactly one job whatever the
