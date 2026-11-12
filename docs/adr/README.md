@@ -137,6 +137,7 @@ moves it. Records themselves link freely and deep, into
 | 0133 | [Backfill is full-history and two-pass: metadata first, gated scanning second](./data/0133-backfill-is-full-history-and-two-pass.md) | Accepted |
 | 0135 | [Every statement reads its account from the transaction, and no table carries a row-level security policy](./data/0135-every-statement-reads-its-account-from-the-transaction.md) | Accepted |
 | 0139 | [The migration runner is goose, linked into the migrator, which configures and connects like every process](./data/0139-the-migration-runner-is-goose-linked-into-the-migrator.md) | Accepted |
+| 0140 | [Each migration declares the oldest chain whose binaries run on the schema it leaves, and a binary refuses a schema it cannot run on](./data/0140-each-migration-declares-the-oldest-chain-that-runs-on-it.md) | Accepted |
 
 ## Mutation — `mutation/`
 

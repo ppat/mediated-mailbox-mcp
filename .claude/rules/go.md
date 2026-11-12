@@ -40,7 +40,7 @@ layout](../../CLAUDE.md#code-layout-and-conventions), and what tests the work ne
   package-level functions and the built-in `print` and `println` (ADR-0122, CLAUDE.md, Inside a
   component).
 - **A generated data-access function runs only inside the transaction helper.** The `go vet`
-  txhelper analyser enforces it, by the rules and the three exempt statements CLAUDE.md states under
+  txhelper analyser enforces it, by the rules and the exempt statements CLAUDE.md states under
   Static analysis and formatting (ADR-0047). The base policy's statements run only in the helper's
   base-policy transaction, and no other subsection's do (ADR-0112).
 - **The UI registers a route only through its recording mux.** In a non-test file under `ui/`, the

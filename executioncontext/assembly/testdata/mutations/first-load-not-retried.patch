@@ -1,5 +1,5 @@
 control: A process's execution context reloads its accounts and their policy together, keeps in force what a failed read could not read, and loads at once, retrying its first load until it succeeds
-removes: a first load that fails is tried again only at the next interval, so a process started before its database answers serves nothing for a whole interval
+removes: a first load that fails is tried again only at the next interval, so a process whose first load fails serves nothing for a whole interval
 packages: ./executioncontext/assembly
 tests: TestRunRetriesItsFirstLoadUntilItSucceeds
 scheduled-count: no

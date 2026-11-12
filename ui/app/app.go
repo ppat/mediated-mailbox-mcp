@@ -24,6 +24,8 @@ import (
 
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
+	"github.com/ppat/mediated-mailbox-mcp/db/migrations"
+	"github.com/ppat/mediated-mailbox-mcp/db/schemacompatibility"
 	credentialcore "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/core"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal"
 	"github.com/ppat/mediated-mailbox-mcp/process/dbconnect"
@@ -152,30 +154,49 @@ var Mount = []string{"/"}
 // standard error in main.go, so standard output carries only the logger's JSON records otherwise.
 func Run(ctx context.Context, args, environ []string, stdout, stderr io.Writer, logger *slog.Logger, level *slog.LevelVar) error {
 	return host.Run(ctx, args, environ, stdout, stderr, logger, level, host.Spec[Configuration]{
-		Name:       "mediated-mailbox-ui",
-		Defaults:   defaults(),
-		Process:    func(c Configuration) host.Process { return c.Process },
-		Operations: func(c Configuration) host.Operations { return c.Operations },
-		Serving:    func(c Configuration) host.Serving { return c.Serving },
-		Validate:   validate,
-		Components: []host.Component[Configuration]{{Name: "ui", Mount: Mount, Assemble: fromConfiguration}},
+		Name:        "mediated-mailbox-ui",
+		Defaults:    defaults(),
+		Process:     func(c Configuration) host.Process { return c.Process },
+		Operations:  func(c Configuration) host.Operations { return c.Operations },
+		Serving:     func(c Configuration) host.Serving { return c.Serving },
+		Validate:    validate,
+		CheckSchema: checkSchema,
+		Components:  []host.Component[Configuration]{{Name: "ui", Mount: Mount, Assemble: fromConfiguration}},
 	})
 }
 
-// fromConfiguration opens the pool connecting as the UI's role and assembles the UI over the
-// embedded bundle.
+// checkSchema refuses a schema this binary's migration chain cannot run on, read through pool under
+// the role pool connects as. The host runs it on each pool it opens, before the pool is used
+// (ADR-0140).
+func checkSchema(ctx context.Context, pool *pgxpool.Pool) error {
+	v, err := schemacompatibility.New(pool).SchemaVersions(ctx)
+	if err != nil {
+		return fmt.Errorf("reading the schema's versions: %w", err)
+	}
+	return migrations.Refuse(v.Applied, v.OldestChainVersion)
+}
+
+// fromConfiguration loads the public key the UI seals to and logs its identifier, then opens the pool
+// connecting as the UI's role, whose schema the host checks as it opens it, so the key the UI would
+// seal to is in the log before the start needs the database, and assembles the UI over the embedded
+// bundle (ADR-0092, ADR-0140).
 func fromConfiguration(ctx context.Context, provided host.Provided[Configuration]) (host.Parts, error) {
 	c := provided.Loaded.Config
 	bundle, err := browser.Bundle()
 	if err != nil {
 		return host.Parts{}, err
 	}
+	sealKey, err := seal.LoadPublicKey(c.Credential.PublicKeyFile)
+	if err != nil {
+		return host.Parts{}, fmt.Errorf("loading the public key: %w", err)
+	}
+	provided.Logger.Info("sealing to the public key", "key_id", sealKey.KeyID().String())
 	pool, err := provided.OpenPool(ctx, c.Database, provided.Registerer)
 	if err != nil {
 		return host.Parts{}, err
 	}
 	return Assemble(Needs{
-		Section: c.Section, Credential: c.Credential, Pool: pool, Bundle: bundle,
+		Section: c.Section, Credential: c.Credential, SealKey: sealKey, Pool: pool, Bundle: bundle,
 		Registerer: provided.Registerer, Logger: provided.Logger, Clock: time.Now, Draining: provided.Draining,
 	})
 }
@@ -186,6 +207,8 @@ type Needs struct {
 	// Credential names the public key the UI seals to and the private keys only its client-secret
 	// package opens with (ADR-0081).
 	Credential credentialcore.Config
+	// SealKey is the public key the UI seals to, loaded from the file Credential names.
+	SealKey seal.PublicKey
 	// Pool connects as the UI's runtime role (ADR-0118).
 	Pool *pgxpool.Pool
 	// Bundle is the browser bundle, rooted at its top level.
@@ -201,14 +224,9 @@ type Needs struct {
 }
 
 // Assemble builds the UI from n and returns its parts, the UI's handler and its readiness check, the
-// database answering as the UI's role. It loads the public key the UI seals to, the request token's
-// key and the client-secret opener, and starts nothing.
+// database answering as the UI's role. It loads the request token's key and the client-secret opener,
+// and starts nothing.
 func Assemble(n Needs) (host.Parts, error) {
-	sealKey, err := seal.LoadPublicKey(n.Credential.PublicKeyFile)
-	if err != nil {
-		return host.Parts{}, fmt.Errorf("loading the public key: %w", err)
-	}
-	n.Logger.Info("sealing to the public key", "key_id", sealKey.KeyID().String())
 	tokenKey, err := loadTokenKey(n.Section.TokenKeyFile)
 	if err != nil {
 		return host.Parts{}, err
@@ -240,7 +258,7 @@ func Assemble(n Needs) (host.Parts, error) {
 			ConsentRedirect: s.ConsentRedirect,
 		},
 		TokenKey: tokenKey,
-		Seal:     sealKey,
+		Seal:     n.SealKey,
 		Consents: map[string]mail.Consent[context.Context]{
 			"gmail": consent.New(&http.Client{Timeout: providerTimeout}, s.ConsentRedirect),
 		},

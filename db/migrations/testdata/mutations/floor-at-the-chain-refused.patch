@@ -1,0 +1,24 @@
+control: A binary refuses a schema whose compatibility floor is above its chain or that has not applied its chain, and runs on every other
+removes: a floor at the chain is refused as well, so a binary refuses the schema its own release raised the floor to
+packages: ./db/migrations ./api/app ./ui/app ./worker/app
+tests: TestABinaryRefusesASchemaItsChainCannotRunOn TestTheAPIServerRefusesASchemaItCannotRunOn TestTheUIRefusesASchemaItCannotRunOn TestTheWorkerRefusesASchemaItCannotRunOn
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrations/compatibility.go b/db/migrations/compatibility.go
+index e68f72f0..de835ca7 100644
+--- a/db/migrations/compatibility.go
++++ b/db/migrations/compatibility.go
+@@ -40,11 +40,11 @@ func Version() int64 {
+ // migration is applied and whose compatibility floor is floor. It refuses a floor above the chain's
+ // version, and a newest applied migration older than it, and accepts every other schema, a newer one
+ // whose floor the chain meets among them (ADR-0140).
+ func Refuse(applied, floor int64) error {
+ 	k := Version()
+-	if k < floor {
++	if k <= floor {
+ 		return fmt.Errorf("%w: the floor is %d and the chain's newest migration is %d", ErrBelowFloor, floor, k)
+ 	}
+ 	if applied < k {
+ 		return fmt.Errorf("%w: the newest applied migration is %d and the chain's newest is %d", ErrNotMigrated, applied, k)
+ 	}

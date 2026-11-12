@@ -57,12 +57,13 @@ func defaults() config {
 // that it ran.
 func spec(assembled *atomic.Bool, parts host.Parts, refuse func([]string) error) host.Spec[config] {
 	return host.Spec[config]{
-		Name:       "mediated-mailbox-test",
-		Defaults:   defaults(),
-		Process:    func(c config) host.Process { return c.Process },
-		Operations: func(c config) host.Operations { return c.Operations },
-		Serving:    func(c config) host.Serving { return c.Serving },
-		Validate:   validateOwn,
+		Name:        "mediated-mailbox-test",
+		Defaults:    defaults(),
+		Process:     func(c config) host.Process { return c.Process },
+		Operations:  func(c config) host.Operations { return c.Operations },
+		Serving:     func(c config) host.Serving { return c.Serving },
+		Validate:    validateOwn,
+		CheckSchema: func(context.Context, *pgxpool.Pool) error { return nil },
 		Components: []host.Component[config]{{
 			Name: "comp", Mount: []string{"/"}, RefuseEnvironment: refuse,
 			Assemble: func(context.Context, host.Provided[config]) (host.Parts, error) {
@@ -912,5 +913,80 @@ func TestAProcessThatRunsOnceDoesItsWorkAndClosesItsPools(t *testing.T) {
 	err = host.RunOnce(t.Context(), []string{"--probe_listen=127.0.0.1:0"}, nil, io.Discard, io.Discard, discard(), new(slog.LevelVar), once(&worked, nil, nil))
 	if err == nil || !strings.HasPrefix(err.Error(), "loading the configuration: ") || worked.Load() {
 		t.Errorf("RunOnce given a probe address returned %v having worked %v, want the flag refused", err, worked.Load())
+	}
+}
+
+// A process that runs until it is told to stop runs its root's schema check on each pool it opens,
+// before the component that asked for the pool receives it, under the pool's own role, so a schema
+// the process cannot run on stops the start before anything serves, with the check's error (ADR-0140).
+// The pools open no connection here, so what the check is handed is the only sign it ran.
+func TestEveryPoolIsCheckedBeforeItIsHandedOut(t *testing.T) {
+	password := filepath.Join(t.TempDir(), "password")
+	if err := os.WriteFile(password, []byte("secret\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	refused := errors.New("the schema is refused")
+	connection := func(user string) dbconnectcore.Config {
+		return dbconnectcore.Config{Host: "127.0.0.1", Port: 1, Name: "none", User: user, SSLMode: "disable", PasswordFile: password, PoolSize: 1}
+	}
+	for _, c := range []struct {
+		name    string
+		refuse  string
+		checked []string
+		handed  []string
+	}{
+		{"every pool passes", "", []string{"first", "second"}, []string{"first", "second"}},
+		{"the second pool's schema is refused", "second", []string{"first", "second"}, []string{"first"}},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			var checked, handed []string
+			s := spec(new(atomic.Bool), host.Parts{}, nil)
+			s.CheckSchema = func(_ context.Context, pool *pgxpool.Pool) error {
+				user := pool.Config().ConnConfig.User
+				checked = append(checked, user)
+				if user == c.refuse {
+					return refused
+				}
+				return nil
+			}
+			assembled := errors.New("assembled")
+			s.Components[0].Assemble = func(ctx context.Context, p host.Provided[config]) (host.Parts, error) {
+				for _, user := range []string{"first", "second"} {
+					pool, err := p.OpenPool(ctx, connection(user), prometheus.WrapRegistererWith(prometheus.Labels{"pool": user}, p.Registerer))
+					if err != nil {
+						return host.Parts{}, err
+					}
+					handed = append(handed, pool.Config().ConnConfig.User)
+				}
+				return host.Parts{}, assembled
+			}
+			err := run(t, s, nil, nil, io.Discard, io.Discard, discard(), new(slog.LevelVar))
+			want := assembled
+			if c.refuse != "" {
+				want = refused
+			}
+			if !errors.Is(err, want) {
+				t.Errorf("Run returned %v, want %v", err, want)
+			}
+			if diff := cmp.Diff(c.checked, checked, compare.Options); diff != "" {
+				t.Errorf("pools checked (-want +got):\n%s", diff)
+			}
+			if diff := cmp.Diff(c.handed, handed, compare.Options); diff != "" {
+				t.Errorf("pools handed to the component (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+// A composition root that hands the host no schema check is refused before anything starts, so no
+// process that runs until it is told to stop can open a pool unchecked (ADR-0140).
+func TestASpecWithoutASchemaCheckIsRefused(t *testing.T) {
+	var assembled atomic.Bool
+	s := spec(&assembled, host.Parts{}, nil)
+	s.CheckSchema = nil
+	var stderr bytes.Buffer
+	err := run(t, s, nil, nil, io.Discard, &stderr, discard(), new(slog.LevelVar))
+	if err == nil || assembled.Load() || stderr.Len() > 0 {
+		t.Errorf("Run without a schema check returned %v, assembled %v, wrote %q, want a refusal before the start", err, assembled.Load(), stderr.String())
 	}
 }

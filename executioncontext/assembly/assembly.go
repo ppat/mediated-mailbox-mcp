@@ -207,8 +207,8 @@ func (c *Context) reload(ctx context.Context) error {
 	return err
 }
 
-// firstRetry is how soon a reload is tried again while no load has succeeded, so a process started
-// before its database answers serves soon after it does.
+// firstRetry is how soon a reload is tried again while no load has succeeded, so a process whose first
+// load fails after its start's schema check serves soon after a load succeeds (ADR-0090, ADR-0140).
 const firstRetry = 5 * time.Second
 
 // Run reloads until ctx ends, at once when no load has succeeded yet, then on every tick of the

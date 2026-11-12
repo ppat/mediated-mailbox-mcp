@@ -1,4 +1,5 @@
 -- +goose Up
+-- compatibility: every chain the floor admits runs on this migration
 -- The indexes the reads that repeat need (ADR-0016). Each leads with the account, which every
 -- statement compares with the transaction's account.
 --

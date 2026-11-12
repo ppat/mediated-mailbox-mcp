@@ -501,9 +501,9 @@ The demonstrations of the controls whose patches sit in `testsupport/`. [MUTATIO
 - **Break (10):** test files are no longer exempt
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestRoutes`
 
-## The txhelper analyser holds every generated data-access function to the transaction helper, except the accounts listing, the read of oauth_clients, delta sync's re-seal of a client secret and the UI's client setup
+## The txhelper analyser holds every generated data-access function to the transaction helper, except the accounts listing, the read of oauth_clients, delta sync's re-seal of a client secret, the UI's client setup and the start check's read of the schema's versions
 
-- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-13 at RAPID_SEED=1, after the rename of the API server and the migrator moved the code, tests or patches the row rests on · [pull request #376](https://github.com/ppat/mediated-mailbox-mcp/pull/376), in run [38440944897](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/38440944897) of the `mutation-demonstrations` workflow
+- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-13 at RAPID_SEED=1, after the rename of the API server and the migrator moved the code, tests or patches the row rests on · [pull request #376](https://github.com/ppat/mediated-mailbox-mcp/pull/376), in run [38440944897](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/38440944897) of the `mutation-demonstrations` workflow · and breaks (16) and (18) again on 2026-11-12 at RAPID_SEED=1, after the start check's exception moved the patches they rest on, with break (23) new · [pull request #421](https://github.com/ppat/mediated-mailbox-mcp/pull/421)
 - **Break (1):** taking the transaction parameter's address is not reported
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestTxHelper`
 - **Break (2):** taking the address of any variable is reported, not only of the transaction parameter
@@ -547,6 +547,8 @@ The demonstrations of the controls whose patches sit in `testsupport/`. [MUTATIO
 - **Break (21):** New used as a value is not reported
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestTxHelper`
 - **Break (22):** WithTx is not reported
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestTxHelper`
+- **Break (23):** the start check's read of the schema's versions is no longer exempt, so a composition root's check outside an account's transaction is reported
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestTxHelper`
 
 ## The txhelper analyser holds the base policy's subsection and tx.RunBase to each other

@@ -379,6 +379,13 @@ CREATE TABLE audit_log (
 -- A mutation's own columns are added in the migration that brings mutation, and rows written before keep their meaning.
 CREATE INDEX ON audit_log (account_id, ts DESC);
 CREATE INDEX ON audit_log (account_id, message_id, ts DESC);
+
+CREATE TABLE schema_compatibility (      -- one row, the oldest chain whose binaries may run on the
+                                         -- schema, read at every process's start (ADR-0140)
+  oldest_chain_version bigint NOT NULL CHECK (oldest_chain_version >= 0)
+);
+INSERT INTO schema_compatibility (oldest_chain_version) VALUES (0);
+-- only a migration writes it, raising it and never lowering it
 ```
 
 The shape enforces these properties.
@@ -398,7 +405,7 @@ The shape enforces these properties.
   the transaction-local setting `app.account`, which every process sets before reading, by an
   ordinary statement and never by database-resident code
   ([ADR-0060](../engineering/0060-no-code-in-the-database.md)). No table carries a row-level
-  security policy. Four exceptions are stated.
+  security policy. Five exceptions are stated.
   - `accounts` holds only each account's identifier, provider and the OAuth client it connects
     through, and is read in full by the roles that list accounts, while its writes stay confined to
     the transaction's account ([ADR-0091](./0091-accounts-listed-apart-from-their-state.md)).
@@ -426,6 +433,9 @@ The shape enforces these properties.
   - `reorg_op_log` carries no account column at all and is reached only through its plan, by a join
     to a plan the statement ties to the transaction's account
     ([ADR-0135](./0135-every-statement-reads-its-account-from-the-transaction.md)).
+  - `schema_compatibility` belongs to no account and describes the schema, not any account's data.
+    Every role a deployable connects as reads it in full, with the newest migration the chain's
+    runner records, and only a migration writes it ([ADR-0140](./0140-each-migration-declares-the-oldest-chain-that-runs-on-it.md)).
 - **An unset account is silent, and the application compensates.** Once a connection has set
   `app.account`, Postgres keeps the parameter known and resets it to the empty string between
   transactions rather than to unrecognised. A statement that then reads the setting without setting

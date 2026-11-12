@@ -43,8 +43,9 @@ import (
 //
 // The statements that are not account-scoped run outside the transaction helper and are exempt.
 // They are the accounts listing, the read of oauth_clients (ADR-0091), delta sync's re-seal of a
-// client secret (ADR-0092), and the UI's OAuth client setup, listing each client's identity and
-// adding, replacing and removing a client, which belong to no account (ADR-0084, ADR-0106). Each is
+// client secret (ADR-0092), the UI's OAuth client setup, listing each client's identity and
+// adding, replacing and removing a client, which belong to no account (ADR-0084, ADR-0106), and the
+// start check's read of the schema's versions, which describe the schema (ADR-0140). Each is
 // exempt only when written as one chained call, such as accounts.New(h).Accounts(ctx) or
 // clientsetup.New(h).AddClient(ctx, arg), with any handle h. Any other use of those packages' New
 // follows the rules above, so a statement later added to any of them is not exempt.
@@ -71,6 +72,7 @@ var txHelperExceptions = map[string][]string{
 	modulePath + "/db/oauthclients":        {"OAuthClients"},
 	modulePath + "/db/oauthclients/secret": {"ReplaceSealedClient"},
 	modulePath + "/db/oauthclients/setup":  {"SetupClients", "AddClient", "ReplaceClient", "RemoveClient"},
+	modulePath + "/db/schemacompatibility": {"SchemaVersions"},
 }
 
 const (

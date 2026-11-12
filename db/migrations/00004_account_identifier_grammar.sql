@@ -1,4 +1,5 @@
 -- +goose Up
+-- compatibility: every chain the floor admits runs on this migration
 -- An account identifier is one DNS label, lowercase letters, digits and hyphens, at most 63
 -- characters, starting and ending with a letter or a digit. Every identifier the grammar accepts is a
 -- path segment the API server's API root can address (ADR-0087), so the grammar replaces the check that

@@ -1,0 +1,25 @@
+control: A process that runs until it is told to stop checks the schema on each pool it opens before handing it out, and refuses a root that hands no check
+removes: a root that hands no schema check is run, so its pools open unchecked
+packages: ./process/host
+tests: TestASpecWithoutASchemaCheckIsRefused
+scheduled-count: no
+
+diff --git a/process/host/host.go b/process/host/host.go
+index 2a64c732..5b8db2a4 100644
+--- a/process/host/host.go
++++ b/process/host/host.go
+@@ -204,13 +204,11 @@ type Spec[T any] struct {
+ }
+ 
+ // Run runs the process the spec describes until ctx ends. It starts the process as every process
+ // starts, then assembles each component in order and serves (ADR-0051, ADR-0078, ADR-0122).
+ func Run[T any](ctx context.Context, args, environ []string, stdout, stderr io.Writer, logger *slog.Logger, level *slog.LevelVar, spec Spec[T]) error {
+-	if spec.CheckSchema == nil {
+-		return errors.New("the composition root hands the host no schema check")
+-	}
++
+ 	refusals := make([]func([]string) error, 0, len(spec.Components))
+ 	for _, c := range spec.Components {
+ 		refusals = append(refusals, c.RefuseEnvironment)
+ 	}
+ 	loaded, started, err := start(args, environ, stdout, stderr, logger, level, starting[T]{

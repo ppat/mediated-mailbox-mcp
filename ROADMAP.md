@@ -248,6 +248,7 @@ its part, and the rows it added. Which rows it proved are the rows whose Status 
 | [#390](https://github.com/ppat/mediated-mailbox-mcp/pull/390) | F9 | F9's later work, the chart's worker Deployment probing the worker's readiness at `/readyz` on its metrics port, as the API server's and the UI's are probed, and the Helm test checking that the worker reports ready | It adds and proves the row for every process the chart runs being probed for health and readiness on its operations endpoints | The probes' control, new, with three breaks |
 | [#394](https://github.com/ppat/mediated-mailbox-mcp/pull/394) | F9 | F9's later work, one execution context per process in `executioncontext/assembly`, built once by each composition root and shared by every component that calls a provider, its one reload a task of the process, one token source per account, one policy loader and one scanner, run under the API server's role and under delta sync's in the worker, with the grants on sealed credentials and OAuth clients of backfill's role and of reorg apply and rollback's removed from the baseline ([ADR-0090](./docs/adr/operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md), [ADR-0118](./docs/adr/data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)) | It adds and proves the rows for one execution context per process, the sources the components' session holders share, each context reload waking the job kinds, the quiet worker start and no job kind's role but delta sync's reaching a sealed value, and proves again through the context the rows of the account snapshot, the account session, the policy load, the reload-failure series, the re-seal and the lowered target | The context's controls, new, each with its breaks. Every demonstration whose code, tests or patches the change touched is demonstrated again, its patch rebuilt over the code it moved to where it did not apply |
 | [#397](https://github.com/ppat/mediated-mailbox-mcp/pull/397) | F2 | F2's later work, the migrator configured and connected as every process is, a composition root the host runs as a process that runs once, through `host.RunOnce`, reading `log_level` and a `database` section through the configuration library with its password in a mounted file, and applying the chain its binary embeds from `db/migrations` with goose linked as a library in `db/migrate` under goose's advisory lock, the chart's migration Job setting that section through the environment layer and mounting the role's `password` key, and every integration run applying the chain through `db/migrate` ([ADR-0139](./docs/adr/data/0139-the-migration-runner-is-goose-linked-into-the-migrator.md)) | It adds and proves the rows for two runs of the chain at once applying each migration once, the embedded chain being the chain's directory and the migration Job's environment loading through the migrator's configuration, adds the row for a fully qualified host against CloudNativePG, pending until the migrator's image is published, adds and proves the row for a process that runs once, and proves the migrator's part of the rows for the password variables, the log level and the pinned configuration type | The lock's, the embedded chain's, the migration Job's configuration's and the run-once process's controls, new, with two, two, four and two breaks, a sixth break of the pinned configuration type, and the breaks of the rows the change moved again, the host's start's among them, with the migrator's tests going red beside the host's |
+| [#421](https://github.com/ppat/mediated-mailbox-mcp/pull/421) | F2 | F2's later work, the compatibility floor in the baseline with its grants, every migration after the baseline declaring that every chain the floor admits runs on it or raising the floor, which `db/check` requires, and the start check the host runs on each pool the API server, the UI and the worker open, refusing a schema whose floor is above the binary's chain or that has not applied it, the chain's version read from the embedded chain, and the chart's guide supporting a rollback ([ADR-0140](./docs/adr/data/0140-each-migration-declares-the-oldest-chain-that-runs-on-it.md)) | It adds and proves the rows for the start check, the host's check of every pool and the compatibility declaration, and proves the txhelper row's part for the start check's read | The start check's and the host's check's controls, new, with five and four breaks, a break of the txhelper analyser's exceptions for the start check's read, and the breaks whose patches the change moved again |
 
 ### What each composition root runs
 
@@ -255,7 +256,9 @@ What the code on `main` runs today, per composition root, none of it yet release
 Every deployable's root hands its component to the host, `process/host`, which runs the process.
 It refuses the environment the database driver and the component refuse, loads, logs and validates
 the configuration, sets the level, writes the start banner, labels every series the component registers
-with the component's name, opens its pools, serves its handler on one listener under
+with the component's name, opens its pools and checks each one's schema before the component
+receives it, refusing a schema whose compatibility floor is above the binary's chain or that has
+not applied it ([ADR-0140](./docs/adr/data/0140-each-migration-declares-the-oldest-chain-that-runs-on-it.md)), serves its handler on one listener under
 [ADR-0130](./docs/adr/operability/0130-the-api-server-bounds-what-one-request-can-make-it-hold.md)'s
 connection limits, over TLS when given a key pair, and its health and readiness probes and metrics
 endpoint as plain text on another, runs its background tasks and every goroutine the component
@@ -432,8 +435,26 @@ draining its requests before it stops its tasks and those goroutines and closes 
   ([ADR-0139](./docs/adr/data/0139-the-migration-runner-is-goose-linked-into-the-migrator.md),
   [ADR-0138](./docs/adr/engineering/0138-one-host-runs-each-process-and-each-component-provides-its-parts.md),
   [ADR-0129](./docs/adr/data/0129-the-chart-runs-the-migration-step-as-a-pre-install-and-pre-upgrade-hook-job.md)).
-  **What the further later work did not deliver.** Rollback safety across migrations, which is
-  F2's later work in ticket [#396](https://github.com/ppat/mediated-mailbox-mcp/issues/396).
+  **What the further later work did not deliver.** Rollback safety across migrations, which the
+  third later work delivers. **Third later work**, placed before
+  [production point 1](#production-point-1--the-read-path) and delivered by pull request
+  [#421](https://github.com/ppat/mediated-mailbox-mcp/pull/421), which closed its ticket
+  [#396](https://github.com/ppat/mediated-mailbox-mcp/issues/396), and not yet released. A
+  release's rollback is safe. The baseline holds the compatibility floor, one row holding the oldest
+  chain whose binaries may run on the schema, starting at 0 and read by every role a deployable
+  connects as. Every migration after the baseline declares that every chain the floor admits runs
+  on it, or raises the floor, which `db/check` requires. The API server, the UI and the worker check the
+  schema on each pool they open before anything serves, through the host, and refuse with a named
+  error when their chain is below the floor or the database has not applied their chain, reading
+  their chain's version from the chain they embed. The chart's guide supports a rollback
+  ([ADR-0140](./docs/adr/data/0140-each-migration-declares-the-oldest-chain-that-runs-on-it.md),
+  [ADR-0048](./docs/adr/data/0048-forward-only-migrations.md),
+  [ADR-0129](./docs/adr/data/0129-the-chart-runs-the-migration-step-as-a-pre-install-and-pre-upgrade-hook-job.md),
+  [ADR-0138](./docs/adr/engineering/0138-one-host-runs-each-process-and-each-component-provides-its-parts.md)).
+  **What the third later work did not deliver.** The check that the newest release's generated
+  statements still plan, as their roles, on the new chain, needed before the second release's first
+  migration, and a chainsaw test that upgrades from the newest release and rolls back, which can run
+  only once a release with images exists. Each is cut as a ticket when its work becomes due.
 - [x] **F5 — The Gmail adapter** → [G1](./USE_CASES.md#g1--whole-mailbox-visibility) ·
   [V2](#v2--the-corpus-can-be-acquired) · finished at tested
   Delivered by pull requests [#154](https://github.com/ppat/mediated-mailbox-mcp/pull/154),

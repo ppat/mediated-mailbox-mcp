@@ -62,12 +62,21 @@ append-only audit log ([ADR-0016](./0016-schema.md)).
 - **Down migrations.** The case for them: the conventional rollback story. Rejected: against a
   data-bearing schema they are a fiction that rots. The from-empty chain only ever tests the
   forward direction, so the down path is untested by construction, and the real recovery path is
-  forward anyway.
+  forward anyway. A Helm rollback could not run them either. It runs the hooks of the release it
+  rolls back to, whose image was built before the newer migrations existed and so carries no down
+  step for them.
 
 ## Consequences
 
-- A brief unavailability during a migration is accepted, because lockstep versioning dissolves
-  expand-contract choreography and this system's shape tolerates the pause.
+- Lockstep versioning shortens the window in which older binaries run on a newer schema, and does
+  not remove it. During every upgrade the previous release's binaries keep running while the
+  migration step applies the chain, and until each is replaced, and after a release is rolled back
+  the older release's binaries start on the newer schema, since a rollback of the release runs no
+  migration step ([ADR-0129](./0129-the-chart-runs-the-migration-step-as-a-pre-install-and-pre-upgrade-hook-job.md)). So each
+  migration either leaves every chain at or above the compatibility floor working on the schema it
+  leaves, or raises the floor, so binaries older than the floor refuse to start
+  ([ADR-0140](./0140-each-migration-declares-the-oldest-chain-that-runs-on-it.md)). A brief unavailability across a migration that raises the floor is
+  accepted, because this system's shape tolerates the pause.
 - Database extensions are versioned dependencies of the schema, with their upgrade cadence owned by
   the platform's database, not by this repository. The schema needs only trusted extensions, which
   the migration role, owning the database, creates itself in the chain's first migration, so no

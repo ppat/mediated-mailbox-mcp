@@ -663,6 +663,11 @@ top-level documents, a decision record, or a ticket from here without guessing.
 - **The migration chain** — the ordered set of hand-written migration files that builds the
   schema. How it evolves, when it is applied, and what its first entry carries are ADR-0048's
   (via the [decision-record index](./docs/adr/README.md)).
+- **Chain version** and **compatibility floor** — a chain version is the version of a migration
+  chain's newest migration, so each binary has one, the chain its build carries. The compatibility
+  floor is the oldest chain version whose binaries may run on the database's schema, which a
+  migration raises when older binaries cannot run on what it leaves, and below which a binary
+  refuses to start (ADR-0140, via the [decision-record index](./docs/adr/README.md)).
 - **The migrator** (published as `mediated-mailbox-migrator` from the directory `migrator/`) — the
   image the migration step runs, whose one binary carries the migration chain and applies it, once
   per run. It is not a deployable, and it is configured and connects like every process (ADR-0048,

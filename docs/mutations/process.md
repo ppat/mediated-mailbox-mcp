@@ -170,6 +170,18 @@ The demonstrations of the controls whose patches sit in `process/`. [MUTATIONS.m
 - **Break (2):** the work's logger carries no component name, unlike every component's
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/host`:** `TestAProcessThatRunsOnceDoesItsWorkAndClosesItsPools`
 
+## A process that runs until it is told to stop checks the schema on each pool it opens before handing it out, and refuses a root that hands no check
+
+- **Date · evidence:** 2026-11-12 · [pull request #421](https://github.com/ppat/mediated-mailbox-mcp/pull/421), at RAPID_SEED=1
+- **Break (1):** the check the root hands is never given to the host that opens the pools, so Run opens every pool unchecked
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/host`:** `TestEveryPoolIsCheckedBeforeItIsHandedOut`, `TestEveryPoolIsCheckedBeforeItIsHandedOut/every_pool_passes`, `TestEveryPoolIsCheckedBeforeItIsHandedOut/the_second_pool's_schema_is_refused`
+- **Break (2):** a root that hands no schema check is run, so its pools open unchecked
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/host`:** `TestASpecWithoutASchemaCheckIsRefused`
+- **Break (3):** a refused schema is logged and its pool handed out, so the process goes on to serve
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/host`:** `TestEveryPoolIsCheckedBeforeItIsHandedOut`, `TestEveryPoolIsCheckedBeforeItIsHandedOut/the_second_pool's_schema_is_refused`
+- **Break (4):** no pool's schema is checked, so a process starts on a schema it cannot run on
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/host`:** `TestEveryPoolIsCheckedBeforeItIsHandedOut`, `TestEveryPoolIsCheckedBeforeItIsHandedOut/every_pool_passes`, `TestEveryPoolIsCheckedBeforeItIsHandedOut/the_second_pool's_schema_is_refused`
+
 ## A process's servers close an idle connection and cut off a request that has not arrived within their limits, and bound no answer
 
 - **Date · evidence:** 2026-10-14 · [pull request #384](https://github.com/ppat/mediated-mailbox-mcp/pull/384), at RAPID_SEED=1, and every break again on 2026-10-15 at RAPID_SEED=1, after the host's start, shared with a process that runs once, changed the code, tests or patches the row rests on · [pull request #397](https://github.com/ppat/mediated-mailbox-mcp/pull/397)
