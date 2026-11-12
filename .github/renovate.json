@@ -78,13 +78,41 @@
       "commitMessagePrefix": "{{semanticCommitType}}({{semanticCommitScope}}):"
     },
     {
-      "description": "A browser devDependency is a build, lint or test tool that never enters the bundle, so it is internal wherever its manifest sits. The shared dev-tools preset already scopes it internal-dependencies but leaves the major-update breaking marker in place, so this rule restates the claim locally and writes the prefix without the marker. A browser dependency, the runtime code the bundle ships, is deliberately not matched: it keeps the ordinary release-cutting types, and its majors keep the marker.",
+      "description": "A bun devDependency is a build, lint or test tool that never enters the bundle, so it is internal wherever its manifest sits. It takes the internal claim here, with the prefix written out without the major-update breaking marker the shared default preset gives every major, and a group of its own. The shared dev-tools preset groups every bun dependency by the manager's name, which mixes these internal updates with the bundle's runtime dependencies in one branch under one header, and takes the name of the group below that moves the bun runtime's own pins. Named here, so a preset bump moves neither the claim nor the group.",
       "matchManagers": [
         "bun"
       ],
       "matchDepTypes": [
         "devDependencies"
       ],
+      "groupName": "bun devDependencies",
+      "semanticCommitType": "chore",
+      "semanticCommitScope": "internal-dependencies",
+      "commitMessagePrefix": "{{semanticCommitType}}({{semanticCommitScope}}):"
+    },
+    {
+      "description": "A bun dependency outside devDependencies is runtime code the bundle ships. It keeps the ordinary release-cutting types, and its majors keep the marker. Its group is named here, apart from the devDependencies group above and from the bun runtime group below, so no branch carries a shipped and an internal update under one header, and a preset bump cannot regroup it. Keyed on the dependency type, so a lock file refresh keeps the lock file group.",
+      "matchManagers": [
+        "bun"
+      ],
+      "matchDepTypes": [
+        "dependencies",
+        "optionalDependencies",
+        "peerDependencies"
+      ],
+      "groupName": "bun dependencies"
+    },
+    {
+      "description": "commitlint is pinned twice, in the root package.json the gates resolve and in the commit-msg hook's additional_dependencies in .pre-commit-config.yaml, and the commit-taxonomy self-consistency check refuses the two at different versions. Both pins join one group so they move in one pull request. Placed after the bun devDependencies rule, whose group it replaces for these two packages.",
+      "matchManagers": [
+        "bun",
+        "pre-commit"
+      ],
+      "matchPackageNames": [
+        "@commitlint/cli",
+        "@commitlint/config-conventional"
+      ],
+      "groupName": "commitlint",
       "semanticCommitType": "chore",
       "semanticCommitScope": "internal-dependencies",
       "commitMessagePrefix": "{{semanticCommitType}}({{semanticCommitScope}}):"

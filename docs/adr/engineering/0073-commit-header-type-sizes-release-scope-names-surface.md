@@ -1,6 +1,6 @@
 # 0073. A commit header's type sizes the release and its scope names the maintenance surface, never the component
 
-**Status:** Accepted · **Serves:** [O6](../../../USE_CASES.md#o6--deployable)
+**Status:** Superseded — **Superseded by:** [ADR-0141](./0141-commit-header-type-sizes-release-scope-names-surface.md) · **Serves:** [O6](../../../USE_CASES.md#o6--deployable)
 
 ## Context
 

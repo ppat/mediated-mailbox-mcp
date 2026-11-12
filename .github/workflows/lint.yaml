@@ -54,13 +54,17 @@ jobs:
   #
   # No `paths:` filter, no `needs:` and no `if:`, and none may be added. A job gated by any of them reports
   # `skipped` on the runs it skips, and `skipped` SATISFIES a required status check: the gate would read as armed
-  # and enforce nothing. The self-consistency step asserts these properties of this very job. The steps that need
-  # a pull request find no commits on the schedule and dispatch runs and check nothing, which is the intended
-  # shape: those runs exist for the repository-state steps, whose inputs go stale with no pull request in sight.
+  # and enforce nothing. The self-consistency step asserts these properties of this very job, and the step shape
+  # below. The steps that need a pull request find no commits on the schedule and dispatch runs and check nothing,
+  # which is the intended shape: those runs exist for the repository-state steps, whose inputs go stale with no
+  # pull request in sight.
   #
-  # Part of the verdict is a function of repository state rather than of the pull request, so when it goes red
-  # it goes red on every open pull request at once. The step names are what tell a repository-state failure from
-  # a pull-request one.
+  # The repository-state steps judge the tree, not the pull request, so they run only when the pull request
+  # changes a file they read, which the relevance step decides, and always on the schedule and dispatch runs.
+  # Their condition runs them unless relevance said false, so a relevance step that wrote nothing runs them, and a
+  # relevance step that failed fails the job. The pull-request-state steps judge each pull request's own messages
+  # and carry no condition. A change to Go code alone that moves a dependency file into or out of a binary's build
+  # graph is not seen by relevance, and the weekly run reads it.
   commit-taxonomy:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -82,23 +86,38 @@ jobs:
       shell: bash
       run: mise exec -- bun install --frozen-lockfile
 
-    # First, so that everything below is a verdict from a checker that has just demonstrated it can see defects.
+    # Reads the paths each of the pull request's commits changed. With no pull request commits it says true.
+    - name: Relevance - does this pull request change what the repository-state steps read
+      id: relevance
+      working-directory: ./current
+      shell: bash
+      env:
+        COMMIT_TAXONOMY_PR_COMMITS: ${{ github.event.pull_request.commits || 0 }}
+      run: mise exec -- node .github/scripts/commit-taxonomy/check-commit-taxonomy.mjs --relevance
+
+    # First of the repository-state steps, so that every verdict below it is from a checker that has just
+    # demonstrated it can see defects. It sits behind relevance too, because several of its cases are
+    # inconclusive whenever repository state is red.
     - name: Self-test - every known defect must be caught
+      if: ${{ steps.relevance.outputs.relevant != 'false' }}
       working-directory: ./current
       shell: bash
       run: mise exec -- node .github/scripts/commit-taxonomy/self-test.mjs
 
     - name: Emission closure
+      if: ${{ steps.relevance.outputs.relevant != 'false' }}
       working-directory: ./current
       shell: bash
       run: mise exec -- node .github/scripts/commit-taxonomy/check-commit-taxonomy.mjs closure
 
     - name: Emission truth
+      if: ${{ steps.relevance.outputs.relevant != 'false' }}
       working-directory: ./current
       shell: bash
       run: mise exec -- node .github/scripts/commit-taxonomy/check-commit-taxonomy.mjs truth
 
     - name: Config self-consistency
+      if: ${{ steps.relevance.outputs.relevant != 'false' }}
       working-directory: ./current
       shell: bash
       run: mise exec -- node .github/scripts/commit-taxonomy/check-commit-taxonomy.mjs self-consistency

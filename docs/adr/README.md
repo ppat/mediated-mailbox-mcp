@@ -222,7 +222,7 @@ moves it. Records themselves link freely and deep, into
 | 0070 | [Unit tests compare returned values with go-cmp, through one shared options value](./engineering/0070-unit-comparison-through-one-options-value.md) | Accepted |
 | 0071 | [Static enforcement runs under golangci-lint, with import boundaries as a closed allow list](./engineering/0071-static-enforcement-toolchain.md) | Accepted |
 | 0072 | [The browser's bans run under oxlint, with the signal-position rule on ast-grep](./engineering/0072-browser-bans-under-oxlint-and-ast-grep.md) | Accepted |
-| 0073 | [A commit header's type sizes the release and its scope names the maintenance surface, never the component](./engineering/0073-commit-header-type-sizes-release-scope-names-surface.md) | Accepted |
+| 0073 | [A commit header's type sizes the release and its scope names the maintenance surface, never the component](./engineering/0073-commit-header-type-sizes-release-scope-names-surface.md) | **Superseded** |
 | 0076 | [Metrics are emitted through Prometheus's client_golang, on a registry each process builds](./engineering/0076-metrics-emitted-through-client-golang.md) | Accepted |
 | 0078 | [Configuration layers defaults, one optional YAML file, environment variables and flags, strictly, through a small project-owned library](./engineering/0078-configuration-layers-through-an-owned-library.md) | Accepted |
 | 0086 | [The MCP root speaks the protocol through the official Go SDK, stateless and tools only](./engineering/0086-mcp-root-on-the-official-go-sdk.md) | Accepted |
@@ -232,3 +232,4 @@ moves it. Records themselves link freely and deep, into
 | 0124 | [Each kind of test runs in a CI workflow of its own, selected by its file's kind, at triggers set by measurement](./engineering/0124-each-kind-of-test-runs-in-a-workflow-of-its-own.md) | Accepted |
 | 0125 | [Performance is measured once at each place a request or a job spends its time, each series naming the tuning question it answers](./engineering/0125-performance-is-measured-once-at-each-place-time-goes.md) | Accepted |
 | 0138 | [One host runs each process over the components its composition root hands it, and each component provides its parts without starting them](./engineering/0138-one-host-runs-each-process-and-each-component-provides-its-parts.md) | Accepted |
+| 0141 | [A commit header's type sizes the release and its scope names the maintenance surface, never the component](./engineering/0141-commit-header-type-sizes-release-scope-names-surface.md) | Accepted |

@@ -147,6 +147,10 @@ export const repoEnv = (root, opts = {}) => {
     root,
     offlinePresets: opts.offlinePresets ?? null,
     text,
+    // The read of a file a custom manager's file pattern matches, scanned for its match strings. Kept
+    // apart from text so the self-test can tell these reads, whose relevance is decided by content,
+    // from the reads relevance must cover by path.
+    scanText: (rel) => env.text(rel),
     json: (rel) => JSON.parse(env.text(rel)),
     yaml: memoBy((rel) => parseYaml(env.text(rel))),
     commitlint: () => require(join(root, 'commitlint.config.js')),
@@ -175,6 +179,15 @@ export const repoEnv = (root, opts = {}) => {
       return GRAPHS.get(key)
     },
     commits: memo(() => readCommits(git, opts)),
+    // Each of the pull request's commits with every path it changed, a rename's old path included,
+    // since a file's leaving can move a cell as much as its arriving.
+    prChanges: memo(() => env.commits().map(({ sha }) => ({
+      sha, paths: git('show', '--no-renames', '--name-only', '--format=', sha).trim().split('\n').filter(Boolean),
+    }))),
+    // A file's content at a revision, or null where the revision does not hold it.
+    textAt: (rev, rel) => {
+      try { return execFileSync('git', ['show', `${rev}:${rel}`], { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], maxBuffer: 64 * 1024 * 1024 }) } catch { return null }
+    },
     prBody: () => opts.prBody ?? process.env.COMMIT_TAXONOMY_PR_BODY ?? '',
     // A transient failure (a network error, a timeout, a 5xx or a 429) is retried with backoff, so a
     // raw-content blip costs seconds rather than a red required check. A 404 is terminal on the first
@@ -303,15 +316,17 @@ const extractGithubActions = (env, file) => {
   return cells
 }
 
+const customFilePatterns = (manager) => (manager.managerFilePatterns ?? []).map((p) => {
+  const m = p.match(/^\/(.*)\/$/)
+  if (!m) throw new Error(`custom manager file pattern '${p}' is not in the /regex/ form this check models`)
+  return new RegExp(m[1])
+})
+
 const extractRegex = (env, manager, tracked) => {
   const cells = []
-  const filePatterns = (manager.managerFilePatterns ?? []).map((p) => {
-    const m = p.match(/^\/(.*)\/$/)
-    if (!m) throw new Error(`custom manager file pattern '${p}' is not in the /regex/ form this check models`)
-    return new RegExp(m[1])
-  })
+  const filePatterns = customFilePatterns(manager)
   for (const file of tracked.filter((f) => filePatterns.some((re) => re.test(f)))) {
-    const content = env.text(file)
+    const content = env.scanText(file)
     for (const matchString of manager.matchStrings ?? []) {
       for (const m of content.matchAll(new RegExp(matchString, 'g'))) {
         const depName = m.groups?.depName ?? manager.depNameTemplate
@@ -351,6 +366,22 @@ const extractRenovateConfig = (env, file) => {
   return cells
 }
 
+// The files each modelled manager reads, with the extractor that reads them. Relevance reads the same
+// list, so no file decides a cell here while a pull request changing it is judged irrelevant.
+const OCCUPANCY_FILES = [
+  [/(^|\/)go\.mod$/, extractGomod],
+  [DOCKERFILE, extractDockerfile],
+  [/(^|\/)\.?mise\.toml$/, extractMise],
+  [/(^|\/)package\.json$/, extractBun],
+  [/^\.pre-commit-config\.ya?ml$/, extractPreCommit],
+  [WORKFLOW, extractGithubActions],
+  [/(^|\/)values\.ya?ml$/, extractHelmValues],
+  [/^\.github\/renovate\.json$/, extractRenovateConfig],
+]
+// Files whose presence alone decides a cell: a bun manifest yields cells only beside its lock file,
+// and mise.lock adds the lock refresh cell.
+const OCCUPANCY_COMPANIONS = [/(^|\/)bun\.lock$/, /^mise\.lock$/]
+
 const occupancy = (env) => {
   const tracked = env.tracked()
   const cells = []
@@ -358,14 +389,7 @@ const occupancy = (env) => {
   for (const file of tracked) {
     if (/(^|\/)node_modules\//.test(file)) continue
     for (const [re, manager] of UNMODELLED_OCCUPANCY) if (re.test(file)) unmodelled.push(`${file} (${manager})`)
-    if (/(^|\/)go\.mod$/.test(file)) cells.push(...extractGomod(env, file))
-    if (DOCKERFILE.test(file)) cells.push(...extractDockerfile(env, file))
-    if (/(^|\/)\.?mise\.toml$/.test(file)) cells.push(...extractMise(env, file))
-    if (/(^|\/)package\.json$/.test(file)) cells.push(...extractBun(env, file, tracked))
-    if (/^\.pre-commit-config\.ya?ml$/.test(file)) cells.push(...extractPreCommit(env, file))
-    if (WORKFLOW.test(file)) cells.push(...extractGithubActions(env, file))
-    if (/(^|\/)values\.ya?ml$/.test(file)) cells.push(...extractHelmValues(env, file))
-    if (file === '.github/renovate.json') cells.push(...extractRenovateConfig(env, file))
+    for (const [re, extract] of OCCUPANCY_FILES) if (re.test(file)) cells.push(...extract(env, file, tracked))
   }
   if (tracked.includes('mise.lock')) cells.push({ manager: 'mise', packageFile: 'mise.toml', depName: null, depType: null, datasource: null, lockfile: true })
   for (const manager of env.json('.github/renovate.json').customManagers ?? []) {
@@ -484,9 +508,14 @@ const renderPrefix = (template, type, scope) => template
   .replace(/\{\{\{?semanticCommitType\}?\}\}/g, type)
   .replace(/\{\{\{?semanticCommitScope\}?\}\}/g, scope)
 
+// A cell's package name is read as its dependency name, as ruleMatches reads matchPackageNames, so a
+// group named by package holds the same cells the rule that names it matched.
 const renderGroup = (template, cell) => {
   if (!template) return null
-  const rendered = template.replace(/\{\{\{?manager\}?\}\}/g, cell.manager).replace(/\{\{\{?depType\}?\}\}/g, cell.depType ?? '')
+  const rendered = template
+    .replace(/\{\{\{?manager\}?\}\}/g, cell.manager)
+    .replace(/\{\{\{?depType\}?\}\}/g, cell.depType ?? '')
+    .replace(/\{\{\{?(?:packageName|depName)\}?\}\}/g, cell.depName ?? '')
   if (/\{\{/.test(rendered)) throw new Error(`groupName template '${template}' uses a construct this check does not render`)
   return rendered
 }
@@ -548,7 +577,7 @@ const emission = async (env) => {
 const describeCell = (row) => `${row.cell.manager} ${row.cell.packageFile}${row.cell.depName ? ` ${row.cell.depName}` : ' (lock file)'} ${row.updateType}`
 
 // ---------------------------------------------------------------------------------------------
-// The shipped boundary, as ADR-0073 reads it. A path ships when a release puts it in front of a
+// The shipped boundary, as ADR-0141 reads it. A path ships when a release puts it in front of a
 // consumer, which is one of these.
 //
 // - A file of the non-test build graph of a binary the release publishes: each image's binary, named
@@ -757,6 +786,41 @@ const truth = async (env) => {
 
 // ---------------------------------------------------------------------------------------------
 
+// The job's step shape. The relevance step decides once whether the repository-state steps run, and
+// they read its output through one condition that runs them unless it said false, so a relevance step
+// that wrote nothing runs them rather than skipping them. A failed relevance step fails the job, since
+// every later step keeps the default success() guard. The pull-request-state steps carry no
+// condition, because they judge each pull request's own messages.
+const RELEVANCE_CONDITION = "${{ steps.relevance.outputs.relevant != 'false' }}"
+const RELEVANCE_COMMAND = 'check-commit-taxonomy.mjs --relevance'
+const SELF_TEST = 'self-test.mjs'
+const squash = (v) => String(v).replace(/\s/g, '')
+const stepCheck = (step) => {
+  const run = String(step.run ?? '')
+  if (run.includes(SELF_TEST)) return SELF_TEST
+  return Object.keys(CHECKS).find((name) => new RegExp(`check-commit-taxonomy\\.mjs\\s+${name}(\\s|$)`).test(run)) ?? null
+}
+const stepShape = (steps) => {
+  const fail = []
+  for (const name of Object.keys(CHECKS)) {
+    if (REPOSITORY_STATE_CHECKS.includes(name) === PULL_REQUEST_STATE_CHECKS.includes(name)) fail.push(`check '${name}' is not classified as exactly one of repository state and pull-request state, so whether it may be skipped is undecided`)
+  }
+  const relevanceSteps = steps.filter((s) => s.id === 'relevance')
+  if (relevanceSteps.length !== 1 || !String(relevanceSteps[0].run ?? '').includes(RELEVANCE_COMMAND)) fail.push(`the commit-taxonomy job has no single step with id 'relevance' running ${RELEVANCE_COMMAND}, so the repository-state steps have no relevance decision to read`)
+  for (const step of steps) {
+    const name = step.name ?? step.uses ?? '(unnamed)'
+    const check = stepCheck(step)
+    const gated = check === SELF_TEST || REPOSITORY_STATE_CHECKS.includes(check)
+    if (step['continue-on-error'] && check !== 'named-scope') fail.push(`step '${name}' has continue-on-error, so its failure does not fail the required context`)
+    if (gated && squash(step.if ?? '') !== squash(RELEVANCE_CONDITION)) fail.push(`step '${name}' judges repository state and must carry exactly the condition ${RELEVANCE_CONDITION}, but carries ${step.if === undefined ? 'none' : `'${step.if}'`}`)
+    if (!gated && step.if !== undefined) fail.push(`step '${name}' carries the condition '${step.if}', but only a repository-state step may be skipped: a skipped ${check ? 'pull-request-state check' : 'setup or relevance step'} judges nothing`)
+  }
+  for (const name of [SELF_TEST, ...Object.keys(CHECKS)]) {
+    if (!steps.some((s) => stepCheck(s) === name)) fail.push(`no step of the commit-taxonomy job runs ${name}`)
+  }
+  return fail
+}
+
 const selfConsistency = async (env) => {
   const fail = []
   const note = []
@@ -801,6 +865,7 @@ const selfConsistency = async (env) => {
   else {
     if (job.needs) fail.push('the commit-taxonomy job has a needs:, so an upstream failure makes it report skipped, which satisfies the required context instead of blocking on it')
     if (job.if) fail.push('the commit-taxonomy job has an if:, so it can report skipped, which satisfies the required context instead of blocking on it')
+    fail.push(...stepShape(job.steps ?? []))
   }
   for (const trigger of ['pull_request', 'workflow_dispatch', 'schedule']) {
     if (!(trigger in (lintOn ?? {}))) fail.push(`lint.yaml does not trigger on ${trigger}. the repository-state checks in this job go stale without it`)
@@ -923,6 +988,67 @@ const namedScope = async (env) => {
   return { fail, note }
 }
 
+// ---------------------------------------------------------------------------------------------
+// Relevance: whether a pull request changes anything the repository-state checks read. Those checks
+// judge the tree, not the pull request, so their verdict on a pull request that changes none of
+// their inputs is the verdict main already has. The pull-request-state checks judge the pull
+// request's own messages and run on every pull request regardless.
+//
+// The inputs, each derived from the reader that consumes it rather than listed apart from it:
+// - the checks themselves, and the configuration files they read by name;
+// - every file a modelled manager reads, its companion lock files, and every file only an
+//   unmodelled manager reads, from the same lists occupancy uses;
+// - a file a custom manager's file pattern matches, when one of its match strings finds a cell in
+//   the file at the head or before any commit of the pull request that touched it;
+// - a path that falls in more than one named footprint.
+// The self-test records every file the repository-state checks read and requires each to be
+// relevant here, so a reader added without its input fails before it can turn a break green.
+//
+// Not seen: a change to Go code alone that moves a dependency file into or out of a binary's build
+// graph, by an embed, a new package or a directory an image copies gaining or losing its Go code.
+// Deciding that needs the build graph at both ends of the pull request. The scheduled run reads it.
+
+export const REPOSITORY_STATE_CHECKS = ['closure', 'truth', 'self-consistency']
+export const PULL_REQUEST_STATE_CHECKS = ['message-shape', 'empty-scope', 'named-scope']
+const CHECKER_DIR = '.github/scripts/commit-taxonomy/'
+const CONFIGURATION_INPUTS = [
+  '.github/renovate.json', 'commitlint.config.js', 'release-please-config.json', 'package.json', 'bun.lock',
+  '.pre-commit-config.yaml', '.github/workflows/lint.yaml', '.github/workflows/pr-title.yaml', '.github/workflows/release.yaml',
+]
+
+// Why a path is relevant, or null. versions are the file's contents at the revisions that matter, a
+// missing one as null.
+const relevantReason = (path, versions, customManagers, inputs = CONFIGURATION_INPUTS) => {
+  if (path.startsWith(CHECKER_DIR)) return 'the checks themselves'
+  if (inputs.includes(path)) return 'a configuration file a check reads'
+  if (OCCUPANCY_FILES.some(([re]) => re.test(path)) || OCCUPANCY_COMPANIONS.some((re) => re.test(path))) return 'a dependency file a modelled manager reads'
+  const unmodelled = UNMODELLED_OCCUPANCY.find(([re]) => re.test(path))
+  if (unmodelled) return `a dependency file only the unmodelled ${unmodelled[1]} manager reads`
+  if (namedFootprints(path).length > 1) return 'a path in more than one named footprint'
+  for (const manager of customManagers) {
+    if (!customFilePatterns(manager).some((re) => re.test(path))) continue
+    for (const text of versions) {
+      if (text !== null && (manager.matchStrings ?? []).some((m) => new RegExp(m).test(text))) return 'a file holding a comment-pinned dependency'
+    }
+  }
+  return null
+}
+
+const relevance = (env) => {
+  const changes = env.prChanges()
+  if (!changes.length) return { relevant: true, reasons: ['no pull request commits, so every check runs'] }
+  const customManagers = env.json('.github/renovate.json').customManagers ?? []
+  const touched = new Map()
+  for (const { sha, paths } of changes) for (const path of paths) touched.set(path, [...(touched.get(path) ?? []), sha])
+  const reasons = []
+  for (const [path, shas] of touched) {
+    const versions = [env.textAt('HEAD', path), ...shas.map((sha) => env.textAt(`${sha}^`, path))]
+    const reason = relevantReason(path, versions, customManagers)
+    if (reason) reasons.push(`${path}: ${reason}`)
+  }
+  return { relevant: reasons.length > 0, reasons: reasons.length ? reasons : [`none of the ${touched.size} changed path(s) is read by a repository-state check`] }
+}
+
 export const CHECKS = {
   closure,
   truth,
@@ -932,4 +1058,4 @@ export const CHECKS = {
   'named-scope': namedScope,
 }
 
-export const internals = { FOOTPRINTS, classifyPrefix, emission, fold, footprintOf, occupancy, parseHeader, renderPrefix, shippedBoundary, ruleMatches }
+export const internals = { CONFIGURATION_INPUTS, FOOTPRINTS, classifyPrefix, emission, fold, footprintOf, occupancy, parseHeader, relevance, relevantReason, renderPrefix, shippedBoundary, ruleMatches }
