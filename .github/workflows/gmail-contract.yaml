@@ -23,7 +23,7 @@ permissions:
 
 jobs:
   contract:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     # Longer than the 55-minute go test timeout go tool livecontract sets plus the setup, so the test binary, which
     # stops starting cases ten minutes before its deadline, ends before the job is killed and its cleanups run.
     timeout-minutes: 75

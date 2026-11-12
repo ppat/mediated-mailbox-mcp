@@ -27,7 +27,7 @@ permissions:
 
 jobs:
   data:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
     steps:
     - name: Setup repository and tools

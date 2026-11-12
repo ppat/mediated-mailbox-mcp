@@ -42,7 +42,7 @@ permissions:
 
 jobs:
   pr-title:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 5
     steps:
     # The same commitlint the commit-messages job resolves: this repository's committed package.json and
