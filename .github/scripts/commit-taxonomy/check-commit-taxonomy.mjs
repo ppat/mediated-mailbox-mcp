@@ -6,11 +6,15 @@
 //   check-commit-taxonomy.mjs <check> [--offline-presets DIR]
 //   check-commit-taxonomy.mjs --list
 //   check-commit-taxonomy.mjs --dump-headers
+//   check-commit-taxonomy.mjs --relevance
 //
 // --offline-presets replaces the fetch of every ppat/renovate-presets file with a read from DIR,
 // which is how a preset bump is rehearsed before it is taken. --dump-headers prints every emittable
-// header with the cell and update type that produces it.
+// header with the cell and update type that produces it. --relevance says whether the pull request
+// changes anything the repository-state checks read, and writes relevant=true or relevant=false to
+// the step's GITHUB_OUTPUT file when one is given.
 
+import { appendFileSync } from 'node:fs'
 import { CHECKS, internals, repoEnv } from './checks.mjs'
 
 const args = process.argv.slice(2)
@@ -27,6 +31,14 @@ if (args.includes('--dump-headers')) {
   for (const row of e.rows) console.log(`${row.header.padEnd(40)} ${row.cell.manager} ${row.cell.packageFile} ${row.cell.depName ?? '(lock file)'} ${row.updateType}`)
   for (const refusal of e.refusals) console.error(`refused: ${refusal}`)
   process.exit(e.refusals.length ? 1 : 0)
+}
+
+if (args.includes('--relevance')) {
+  const { relevant, reasons } = internals.relevance(env)
+  for (const reason of reasons) console.log(`  ${reason}`)
+  console.log(`\nrelevant: ${relevant}`)
+  if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `relevant=${relevant}\n`)
+  process.exit(0)
 }
 
 const name = args.find((a, i) => !a.startsWith('--') && !(offlineFlag !== -1 && i === offlineFlag + 1))

@@ -41,6 +41,13 @@ const patchCommitlint = (mutate) => {
   return { commitlint: () => { const c = b.commitlint(); return mutate({ ...c, rules: JSON.parse(JSON.stringify(c.rules)) }) } }
 }
 const patchRenovate = (mutate) => patchJson('.github/renovate.json', mutate)
+const patchTaxonomySteps = (mutate) => patchYaml('.github/workflows/lint.yaml', (w) => { mutate(w.jobs['commit-taxonomy'].steps); return w })
+const stepRunning = (steps, text) => {
+  const step = steps.find((s) => String(s.run ?? '').includes(text))
+  if (!step) throw new Error(`self-test cannot find the step running ${text}; the workflow moved under it`)
+  return step
+}
+const RELEVANCE_CONDITION = "${{ steps.relevance.outputs.relevant != 'false' }}"
 
 // Rules are located by what they claim, never by index, so a reordering of the file does not turn
 // an injection into a no-op.
@@ -215,6 +222,31 @@ const CASES = [
     overrides: patchYaml('.github/workflows/pr-title.yaml', (w) => { (w.on ?? w[true]).pull_request.types = ['opened', 'synchronize', 'reopened']; return w }),
   },
   {
+    id: 'I12g', check: 'self-consistency', expect: /step 'Emission truth' judges repository state and must carry exactly the condition .* but carries none/,
+    defect: 'a repository-state step stripped of its relevance condition, so a red main fails every pull request again',
+    overrides: patchTaxonomySteps((steps) => { delete stepRunning(steps, 'check-commit-taxonomy.mjs truth').if }),
+  },
+  {
+    id: 'I12h', check: 'self-consistency', expect: /step 'Empty-scope concordance' carries the condition .* only a repository-state step may be skipped/,
+    defect: 'a pull-request-state step given the relevance condition, so a claim type over a diff that ships nothing passes on every pull request relevance skips',
+    overrides: patchTaxonomySteps((steps) => { stepRunning(steps, 'check-commit-taxonomy.mjs empty-scope').if = RELEVANCE_CONDITION }),
+  },
+  {
+    id: 'I12i', check: 'self-consistency', expect: /step 'Emission closure' judges repository state and must carry exactly the condition .* but carries '\$\{\{ steps\.relevance\.outputs\.relevant == 'true' \}\}'/,
+    defect: 'a repository-state step run only on an explicit true, so a relevance step that wrote nothing skips it',
+    overrides: patchTaxonomySteps((steps) => { stepRunning(steps, 'check-commit-taxonomy.mjs closure').if = "${{ steps.relevance.outputs.relevant == 'true' }}" }),
+  },
+  {
+    id: 'I12j', check: 'self-consistency', expect: /step 'Relevance - .*' has continue-on-error/,
+    defect: 'the relevance step made unable to fail the job',
+    overrides: patchTaxonomySteps((steps) => { stepRunning(steps, '--relevance')['continue-on-error'] = true }),
+  },
+  {
+    id: 'I12k', check: 'self-consistency', expect: /no single step with id 'relevance'/,
+    defect: 'the relevance step renamed away from the id the conditions read, so every condition reads an output that never exists',
+    overrides: patchTaxonomySteps((steps) => { stepRunning(steps, '--relevance').id = 'relevant-paths' }),
+  },
+  {
     id: 'I12d', check: 'self-consistency', expect: /commit-msg hook runs @commitlint\/cli 20\.0\.0 and the gates run/,
     defect: 'the local commit-msg hook and the gates resolving different commitlint versions',
     overrides: patchText('.pre-commit-config.yaml', (t) => t.replace(/@commitlint\/cli@[^'"\s]+/, '@commitlint/cli@20.0.0')),
@@ -294,6 +326,16 @@ const CASES = [
     id: 'I18', check: 'truth', expect: /claimed by github>ppat\/renovate-presets#[^ ]+ \(top level\), a shared preset/,
     defect: 'the shipped empty scope inherited from the preset rather than claimed locally, so a preset rename would move every shipped header',
     overrides: patchRenovate((c) => { delete c.semanticCommitScope; return c }),
+  },
+  {
+    id: 'I19', check: 'truth', expect: /bun ui\/browser\/package\.json \S+ \S+ renders 'chore\(internal-dependencies\):', a hidden type, but ui\/browser\/package\.json ships/,
+    defect: 'every bun dependency grouped under the bun runtime group\'s name, as the shared dev-tools preset does, so internal devDependency updates ride a shipped branch under one header',
+    overrides: patchRenovate((c) => { c.packageRules.push({ matchManagers: ['bun'], groupName: '{{manager}}' }); return c }),
+  },
+  {
+    id: 'I20', check: 'truth', guard: true,
+    defect: 'bun dependencies grouped by package name, as the shared dev-tools preset groups language runtimes, must render one group per package and NOT mix a shipped and an internal dependency',
+    overrides: patchRenovate((c) => { c.packageRules.push({ matchManagers: ['bun'], matchDepTypes: ['dependencies', 'devDependencies'], groupName: '{{packageName}}' }); return c }),
   },
   // Rule defects, proven against commitlint itself.
   { id: 'R1', reject: 'feat(internal-workflows): speed up the lint job', accept: 'ci(internal-workflows): speed up the lint job', defect: 'a claim type on an internal scope' },
@@ -386,6 +428,56 @@ for (const c of CASES) {
   const refuse = await run('closure', repoEnv(root, { prCommits: 0, prBody: '', offlinePresets: unmodelled }))
   if (refuse.fail.some((f) => /neither a semanticCommit\* template nor a literal header/.test(f))) record('P1-refuse', 'caught', 'a preset bump introducing an unmodelled commitMessagePrefix is refused rather than assumed harmless')
   else record('P1-refuse', 'NOT CAUGHT', `an unmodelled commitMessagePrefix passed silently: ${refuse.fail.join(' / ') || 'nothing reported'}`)
+}
+
+// Relevance: the decision that lets the repository-state steps skip a pull request. A miss turns a
+// real break green, so the guard records every file a check reads and requires each to be relevant,
+// and the falsifier proves the guard would see a configuration input dropped from the predicate.
+{
+  const b = base()
+  const customManagers = b.json('.github/renovate.json').customManagers ?? []
+  const synthetic = (paths, textAt = (rev, rel) => (rev === 'HEAD' ? b.textAt('HEAD', rel) : null)) => repoEnv(root, {
+    prCommits: 0, prBody: '', overrides: { prChanges: () => [{ sha: 'deadbeefcafe0000', paths }], textAt },
+  })
+  const decide = (id, paths, expected, defect, textAt) => {
+    const { relevant, reasons } = internals.relevance(synthetic(paths, textAt))
+    if (relevant === expected) record(id, 'held', `${defect}: ${reasons.join('; ')}`)
+    else record(id, 'NOT CAUGHT', `${defect}: relevance said ${relevant}: ${reasons.join('; ')}`)
+  }
+  decide('V1', ['docs/adr/README.md', 'ROADMAP.md', 'api/app/app.go', 'packaging/chart/templates/api/deployment.yaml'], false,
+    'documents, Go code and a chart template holding no comment-pinned dependency change nothing a repository-state check reads')
+  for (const [id, path] of [['V2a', '.github/renovate.json'], ['V2b', 'package.json'], ['V2c', 'bun.lock'], ['V2d', 'ui/browser/bun.lock'],
+    ['V2e', '.github/scripts/commit-taxonomy/README.md'], ['V2f', 'packaging/chart/Chart.lock'], ['V2g', 'go.mod'], ['V2h', 'ui/Dockerfile']]) {
+    decide(id, ['docs/adr/README.md', path], true, `${path} is read by a repository-state check`)
+  }
+  const pinned = '# renovate: datasource=github-releases depName=pinned-thing\nversion: "1.0.0"\n'
+  decide('V3a', ['packaging/tests/chainsaw/kind.yaml'], true, 'a yaml file whose comment-pinned dependency the pull request removed',
+    (rev) => (rev === 'deadbeefcafe0000^' ? pinned : 'version: "1.0.0"\n'))
+  decide('V3b', ['packaging/tests/chainsaw/kind.yaml'], false, 'the same yaml file with no comment-pinned dependency at either end',
+    () => 'version: "1.0.0"\n')
+  {
+    const { relevant } = internals.relevance(repoEnv(root, { prCommits: 0, prBody: '' }))
+    record('V4', relevant ? 'held' : 'NOT CAUGHT', 'a run with no pull request commits, the schedule and dispatch runs, runs every check')
+  }
+
+  const read = new Set()
+  const recording = repoEnv(root, {
+    prCommits: 0, prBody: '', overrides: {
+      text: (rel) => { read.add(rel); return b.text(rel) },
+      scanText: (rel) => b.text(rel),
+      commitlint: () => { read.add('commitlint.config.js'); return b.commitlint() },
+    },
+  })
+  for (const name of Object.keys(CHECKS)) await run(name, recording)
+  const missed = (inputs) => [...read].filter((path) => internals.relevantReason(path, [b.text(path)], customManagers, inputs) === null)
+  const known = ['.github/renovate.json', 'commitlint.config.js', '.github/workflows/lint.yaml', '.github/workflows/release.yaml', 'go.mod']
+  const absent = known.filter((path) => !read.has(path))
+  if (absent.length) record('V5-guard', 'VACUOUS', `the recording saw no read of ${absent.join(', ')}, so it records nothing the checks read`)
+  else if (missed(internals.CONFIGURATION_INPUTS).length) record('V5-guard', 'NOT CAUGHT', `a repository-state check reads ${missed(internals.CONFIGURATION_INPUTS).join(', ')}, and a pull request changing it is judged irrelevant`)
+  else record('V5-guard', 'held', `every one of the ${read.size} files the checks read is relevant`)
+  const narrowed = missed(internals.CONFIGURATION_INPUTS.filter((path) => path !== 'commitlint.config.js'))
+  if (narrowed.includes('commitlint.config.js')) record('V5-falsifier', 'caught', 'with commitlint.config.js dropped from the configuration inputs, the guard names it')
+  else record('V5-falsifier', 'NOT CAUGHT', 'the guard above is vacuous: dropping a configuration input changed nothing')
 }
 
 rmSync(SANDBOX, { recursive: true, force: true })

@@ -59,8 +59,10 @@ formatting to Tools and versions. These are the tripwires:
   CI's mise reads (CLAUDE.md, Tools and versions).
 - **The `commit-taxonomy` and `pr-title` jobs carry no `paths:`, `needs:` or `if:`**, and none may
   be added, and the `commit-messages` job carries only the condition that is true on every pull
-  request event: a skipped job satisfies a required status check. The commit vocabulary, the pairing
-  rule and what the closure check proves are `.claude/rules/commits.md`'s (ADR-0073).
+  request event: a skipped job satisfies a required status check. Inside `commit-taxonomy`, only the
+  steps that judge the tree carry a condition, the relevance step's output, which `self-consistency`
+  asserts. The commit vocabulary, the pairing rule and what the closure check proves are
+  `.claude/rules/commits.md`'s (ADR-0141).
 - **Every tool a local pre-commit hook runs also runs in a CI workflow**, and generated, recorded
   and fixture files stay excluded from the text fixers and formatters (CLAUDE.md, Static analysis
   and formatting).

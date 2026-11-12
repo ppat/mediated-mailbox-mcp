@@ -329,7 +329,7 @@ draining its requests before it stops its tasks and those goroutines and closes 
   program proves them all. It also delivered the commit vocabulary with its gates over the branch
   commits and the pull request title, and the check that derives every header Renovate and
   release-please can emit and requires each to be inside the vocabulary and true of its file
-  ([ADR-0073](./docs/adr/engineering/0073-commit-header-type-sizes-release-scope-names-surface.md)),
+  ([ADR-0141](./docs/adr/engineering/0141-commit-header-type-sizes-release-scope-names-surface.md)),
   and the workflow that sets a pull request's component labels from its diff. Its `go vet`
   analysers refuse package-level state in a pure core, and a route the UI registers other than
   through its recording mux by the calls
@@ -1175,7 +1175,7 @@ draining its requests before it stops its tasks and those goroutines and closes 
   the data-access library, selects the inter-component import rules again for the regrouping with
   the pure-core rule staying on `depguard`, and has the commit taxonomy read what ships as the
   non-test build graph of each binary a release publishes
-  ([ADR-0073](./docs/adr/engineering/0073-commit-header-type-sizes-release-scope-names-surface.md)).
+  ([ADR-0141](./docs/adr/engineering/0141-commit-header-type-sizes-release-scope-names-surface.md)).
   #320 brings the document set into line with the conventions and the purpose of each document
   type, removing historical narration, build state outside this document, restated facts and
   in-sentence em dashes, semicolons and colons, and trimming this document's table by pull request

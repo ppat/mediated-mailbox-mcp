@@ -23,7 +23,8 @@ name: pr-title
 # that write none by hand. Renovate composes its title from the commit message, and no preset in this
 # repository's pinned chain sets `prTitle`, so the two are one string. The commit-taxonomy closure check refuses
 # any config introducing `prTitle` or `commitMessage`. release-please renders its title from
-# `pull-request-title-pattern`, which that same check renders and lints on every run.
+# `pull-request-title-pattern`, which that same check renders and lints on every pull request that changes a file
+# it reads, and on its schedule.
 #
 # The job carries no `paths:`, `needs:` or `if:`, and none may be added: a gated job reports `skipped`, and
 # `skipped` SATISFIES a required status check.
