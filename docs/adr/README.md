@@ -138,6 +138,7 @@ moves it. Records themselves link freely and deep, into
 | 0135 | [Every statement reads its account from the transaction, and no table carries a row-level security policy](./data/0135-every-statement-reads-its-account-from-the-transaction.md) | Accepted |
 | 0139 | [The migration runner is goose, linked into the migrator, which configures and connects like every process](./data/0139-the-migration-runner-is-goose-linked-into-the-migrator.md) | Accepted |
 | 0140 | [Each migration declares the oldest chain whose binaries run on the schema it leaves, and a binary refuses a schema it cannot run on](./data/0140-each-migration-declares-the-oldest-chain-that-runs-on-it.md) | Accepted |
+| 0143 | [The API server, the UI and the worker connect as one application user, and the migrator as its own](./data/0143-the-programs-connect-as-one-application-user-and-the-migrator-as-its-own.md) | **Proposed** |
 
 ## Mutation — `mutation/`
 
@@ -234,3 +235,4 @@ moves it. Records themselves link freely and deep, into
 | 0125 | [Performance is measured once at each place a request or a job spends its time, each series naming the tuning question it answers](./engineering/0125-performance-is-measured-once-at-each-place-time-goes.md) | Accepted |
 | 0138 | [One host runs each process over the components its composition root hands it, and each component provides its parts without starting them](./engineering/0138-one-host-runs-each-process-and-each-component-provides-its-parts.md) | Accepted |
 | 0141 | [A commit header's type sizes the release and its scope names the maintenance surface, never the component](./engineering/0141-commit-header-type-sizes-release-scope-names-surface.md) | Accepted |
+| 0142 | [A program's spec lists its pieces, and the process builds each through its own function, keeps one of each shared thing, and runs them](./engineering/0142-a-programs-spec-lists-its-pieces-and-the-process-builds-and-runs-them.md) | **Proposed** |
