@@ -96,8 +96,8 @@ github.com/tailscale/hujson v0.0.0-20221223112325-20486734a56a h1:SJy1Pu0eH1C29X
 github.com/tailscale/hujson v0.0.0-20221223112325-20486734a56a/go.mod h1:DFSS3NAGHthKo1gTlmEcSBiZrRJXi28rLNd/1udP1c8=
 github.com/tetratelabs/wazero v1.12.0 h1:DuWcpNu/FzgEXgGBDp8J1Spc+CWOvvtvVyjKlaZopYU=
 github.com/tetratelabs/wazero v1.12.0/go.mod h1:LvKtzl2RqO4gyF27BiXU+nKAjcV8f38U+kP/q2vgxh0=
-github.com/wasilibs/go-pgquery v0.0.0-20260915022521-81f99195012b h1:SqUpK3E15NZTrniKZC0Hfci9SQcYXJBwZifPOf4G2hY=
-github.com/wasilibs/go-pgquery v0.0.0-20260915022521-81f99195012b/go.mod h1:elM5l4bnltzUZrplpRLARKQKdSOq2orDfGfDcHChwFI=
+github.com/wasilibs/go-pgquery v0.0.0-20261106060434-4301e51f8dbf h1:zcAPl1D4vTT1I9s3l7sP4zvhr59iVQmYqebG0Qfzcyk=
+github.com/wasilibs/go-pgquery v0.0.0-20261106060434-4301e51f8dbf/go.mod h1:qsL+i7YEWvAeqOvbo1ARwbB6bdgdZKyravVkGOC8BYk=
 github.com/wasilibs/wazero-helpers v0.0.0-20250123031827-cd30c44769bb h1:gQ+ZV4wJke/EBKYciZ2MshEouEHFuinB85dY3f5s1q8=
 github.com/wasilibs/wazero-helpers v0.0.0-20250123031827-cd30c44769bb/go.mod h1:jMeV4Vpbi8osrE/pKUxRZkVaA0EX7NZN0A9/oRzgpgY=
 github.com/yosida95/uritemplate/v3 v3.0.2 h1:Ed3Oyj9yrmi9087+NczuL5BwkIc4wvTb5zIM+UJPGz4=
