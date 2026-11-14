@@ -17,7 +17,7 @@ require (
 	github.com/pressly/goose/v3 v3.29.0
 	github.com/prometheus/client_golang v1.25.0
 	github.com/prometheus/client_model v0.6.3
-	github.com/wasilibs/go-pgquery v0.0.0-20260915022521-81f99195012b
+	github.com/wasilibs/go-pgquery v0.0.0-20261106060434-4301e51f8dbf
 	github.com/yuin/goldmark v1.8.7
 	go.yaml.in/yaml/v3 v3.0.6
 	golang.org/x/net v0.62.0
