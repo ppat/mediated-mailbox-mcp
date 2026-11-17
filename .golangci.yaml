@@ -248,9 +248,8 @@ linters:
           - "mime$"
           - "pgregory.net/rapid$"
 
-        # The account snapshot, every file, a package of the execution context family. It is a library, so it
-        # connects as no role of its own. db/check plans the statements of the subsections it names under the role of
-        # each deployable or job kind whose list admits it (ADR-0066, ADR-0118).
+        # The account snapshot, every file, a package of the execution context family. db/check plans the statements
+        # of the subsections it names under the application user, as it does every list's (ADR-0066, ADR-0143).
         accountload:
           list-mode: strict
           files:
@@ -271,8 +270,8 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
 
         # The account session, every file, a package of the execution context family. It holds an account's provider
-        # connection over the account snapshot and records the latest authentication attempt, under the role of each
-        # deployable or job kind whose list admits it. It imports no provider adapter and no rate limiter, since each
+        # connection over the account snapshot and records the latest authentication attempt, as the application user
+        # every program connects as (ADR-0143). It imports no provider adapter and no rate limiter, since each
         # composition root passes it a connector per provider and leases inside each call (ADR-0089, ADR-0097).
         session:
           list-mode: strict
@@ -283,10 +282,10 @@ linters:
           - "github.com/google/go-cmp/cmp$"
           - "github.com/jackc/pgx/v5$"
           - "github.com/jackc/pgx/v5/pgtype$"
-          # Its tests' pool, keys and database, under the role of a job kind that holds sources.
+          # Its tests' pool, keys and database, as the application user.
           - "github.com/jackc/pgx/v5/pgxpool$"
           - "github.com/ppat/mediated-mailbox-mcp/core/mail$"
-          - "github.com/ppat/mediated-mailbox-mcp/db/accountstate/authentication$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/accountstate$"
           - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/accountload$"
           - "github.com/ppat/mediated-mailbox-mcp/credential/open$"
@@ -297,9 +296,9 @@ linters:
 
         # A process's one execution context, every file, a package of the execution context family. It builds the
         # account snapshot, the account sessions' sources and the policy loader once for every component of a process
-        # that calls a provider, and reads each account's lowered target, so its statements run under the role of the
-        # pool its composition root hands it, which db/check maps for each component that admits it (ADR-0066,
-        # ADR-0090, ADR-0118). It builds each unit's rate limiter on the pool its caller passes, so it admits the rate
+        # that calls a provider, and reads each account's lowered target, so its statements run on the pool its
+        # composition root hands it, as the application user, which db/check plans them under (ADR-0066, ADR-0090,
+        # ADR-0143). It builds each unit's rate limiter on the pool its caller passes, so it admits the rate
         # limiter's lease package and no provider adapter.
         assembly:
           list-mode: strict
@@ -549,9 +548,9 @@ linters:
           - "github.com/pressly/goose/v3$"
           - "github.com/pressly/goose/v3/lock$"
 
-        # The policy loader, every file, a package of the execution context family. It is a library, so it connects
-        # as no role of its own. db/check plans the statements of the subsection it names under the role of each
-        # deployable or job kind whose list admits it (ADR-0066, ADR-0118). client_golang is admitted for the
+        # The policy loader, every file, a package of the execution context family. db/check plans the statements of
+        # the subsection it names under the application user, as it does every list's (ADR-0066, ADR-0143).
+        # client_golang is admitted for the
         # reload-failure series (ADR-0076, ADR-0077), and core/classify for preparing each account's policy in the
         # reload that swaps it in (ADR-0041).
         policyload:
@@ -667,8 +666,8 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/marker$"
 
         # The rate limiter, provider/ratelimit, every file. Its pure rules under provider/ratelimit/core also meet the
-        # pure-core lists. It is a library, so it connects as no role of its own. db/check plans the statements of the
-        # subsections it names under the role of each deployable or job kind whose list admits it (ADR-0066, ADR-0118).
+        # pure-core lists. db/check plans the statements of the subsections it names under the application user, as it
+        # does every list's (ADR-0066, ADR-0143).
         ratelimit:
           list-mode: strict
           files:
@@ -821,9 +820,10 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/credential/seal$"
 
         # Deployable api, every file. A deployable imports its own code and the shared libraries, never another
-        # deployable (ADR-0054). Its tests may also use test tooling, which the list for non-test code refuses.
-        # It names each data-access subsection it may use, which db/check tests against its role's grants.
-        # The MCP root's generator is left out, because it alone imports the MCP SDK, and its own list governs it.
+        # deployable (ADR-0054). Its tests may also use test tooling, which the list for non-test code refuses. It names
+        # each data-access subsection it may use, which db/check tests against the application user's grants, and which
+        # bounds what its code can do in the database (ADR-0143). The MCP root's generator is left out, because it alone
+        # imports the MCP SDK, and its own list governs it.
         api:
           list-mode: strict
           files:
@@ -890,14 +890,14 @@ linters:
           - "pgregory.net/rapid$"
 
         # Deployable ui, every file. A deployable imports its own code and the shared libraries, never another
-        # deployable (ADR-0054). Its tests may also use test tooling, which the list for non-test code refuses.
-        # It names each data-access subsection it may use, which db/check tests against its role's grants.
-        # It admits neither the provider adapters nor the rate limiter, because the UI holds no provider credential,
-        # cannot reach a mailbox and does not spend the rate budget (ADR-0038, ADR-0021, ADR-0025). Of the provider
-        # library it admits Gmail's consent alone, which holds no Provider Port code, and the provider fake for its
-        # tests. Of the credential code it admits the sealing half and the configuration section naming the key files,
-        # which holds paths and opens nothing, so no code of the UI but its client-secret package, which the list
-        # below governs, links code that opens a value (ADR-0081, ADR-0107).
+        # deployable (ADR-0054). Its tests may also use test tooling, which the list for non-test code refuses. It names
+        # each data-access subsection it may use, which db/check tests against the application user's grants, and which
+        # bounds what its code can do in the database (ADR-0143). It admits neither the provider adapters nor the rate
+        # limiter, because the UI holds no provider credential, cannot reach a mailbox and does not spend the rate
+        # budget (ADR-0038, ADR-0021, ADR-0025). Of the provider library it admits Gmail's consent alone, which holds no
+        # Provider Port code, and the provider fake for its tests. Of the credential code it admits the sealing half and
+        # the configuration section naming the key files, which holds paths and opens nothing, so no code of the UI but
+        # its client-secret package, which the list below governs, links code that opens a value (ADR-0081, ADR-0107).
         ui:
           list-mode: strict
           files:
@@ -921,21 +921,16 @@ linters:
           # The sealing half, with which the setups seal a client's secret and an account's credential.
           - "github.com/ppat/mediated-mailbox-mcp/credential/seal$"
           # The data-access subsections the read API's statements sit in, from ui/internal/registry and
-          # ui/internal/api. Of account_state and rate_state only the parent subsections, so the UI's role is never
-          # planned against a statement that touches a credential or the limiter's writes.
+          # ui/internal/api. Of account_state and rate_state only the parent subsections, so the UI's code reaches no
+          # statement that touches a credential or the limiter's writes (ADR-0143).
           - "github.com/ppat/mediated-mailbox-mcp/db/accounts$"
           # The account setup's writes and reads, and the code exchange's authentication attempt, recorded by the
           # latest-wins statement the deployables share (ADR-0084, ADR-0097), in ui/internal/api.
           - "github.com/ppat/mediated-mailbox-mcp/db/accounts/setup$"
           - "github.com/ppat/mediated-mailbox-mcp/db/accountstate$"
-          - "github.com/ppat/mediated-mailbox-mcp/db/accountstate/authentication$"
           - "github.com/ppat/mediated-mailbox-mcp/db/auditlog$"
           - "github.com/ppat/mediated-mailbox-mcp/db/jobruns$"
-          - "github.com/ppat/mediated-mailbox-mcp/db/jobruns/classification$"
           - "github.com/ppat/mediated-mailbox-mcp/db/maskingevents$"
-          # The masking events counted under their message's sender, which Home's masking card reads, in
-          # ui/internal/api/attention.go.
-          - "github.com/ppat/mediated-mailbox-mcp/db/maskingevents/senders$"
           - "github.com/ppat/mediated-mailbox-mcp/db/messages$"
           # The OAuth client setup's statements, which read no secret, in ui/internal/api.
           - "github.com/ppat/mediated-mailbox-mcp/db/oauthclients/setup$"
@@ -1048,11 +1043,10 @@ linters:
         # Deployable worker, every file outside its job kinds' code: its entry, its composition root, its scheduler and
         # the code its job kinds share. A deployable imports its own code and the shared libraries, never another
         # deployable (ADR-0054). Its tests may also use test tooling, which the list for non-test code refuses. The
-        # one data-access subsection it names is the start check's, which the composition root hands the host, and
-        # db/check plans it, and the execution context's statements, under delta sync's role, the role of the pool the
-        # root builds the context over (ADR-0118, ADR-0066, ADR-0140). It admits the driver only so the composition root
-        # can open each job kind's pool under that job kind's role through the host. Any other statement the worker's
-        # own code runs on a pool is left to review.
+        # one data-access subsection it names is the start check's, which the composition root hands the host
+        # (ADR-0066, ADR-0140). It admits the driver only so the composition root can open each job kind's pool
+        # through the host. The raw SQL analyser refuses any other statement the worker's own code runs on a pool
+        # (ADR-0143).
         worker:
           list-mode: strict
           files:
@@ -1096,11 +1090,11 @@ linters:
 
         # Backfill's job kind in the worker, its shell code and its pure core. A job kind imports its own code, the
         # worker's shared code and the shared libraries, never another job kind's code (ADR-0117). It names each
-        # data-access subsection it may use, which db/check tests against backfill's role's grants. The two passes'
-        # writes sit in subsections the readers' lists do not admit, which backfill shares with delta sync apart
-        # from the completion flags, and the progress, restart mark and lowered target are read in
-        # db/accountstate and its completion subsection (ADR-0118, ADR-0066). The recording of the last
-        # authentication attempt runs in the account session, which executioncontext/session admits (ADR-0097).
+        # data-access subsection it may use, which db/check tests against the application user's grants, and which holds
+        # its code to its own statements (ADR-0143). The two passes' writes sit in subsections the readers' lists do not
+        # admit, which backfill shares with delta sync apart from the completion flags, and the progress, restart mark
+        # and lowered target are read in db/accountstate and its completion subsection (ADR-0066). The recording of the
+        # last authentication attempt runs in the account session, which executioncontext/session admits (ADR-0097).
         worker-backfill:
           list-mode: strict
           files:
@@ -1152,15 +1146,15 @@ linters:
           - "golang.org/x/net/publicsuffix$"
           - "pgregory.net/rapid$"
 
-        # Delta sync's job kind in the worker, its shell code and its pure core. A job kind imports its own code,
-        # the worker's shared code and the shared libraries, never another job kind's code (ADR-0117). It names
-        # each data-access subsection it may use, which db/check tests against delta sync's role's grants. A tick
-        # adds and masks mail and records its runs as backfill's first pass does, and decides and scans what waits
-        # as its second pass does, through the subsections it shares with backfill. The change cursor, a change's
-        # labels, flags and removals, and the re-seal of a client secret sit in subsections only this list admits.
-        # The account's progress and lowered target are read in db/accountstate (ADR-0118, ADR-0066, ADR-0104,
-        # ADR-0092). The recording of the last authentication attempt runs in the account session, which
-        # executioncontext/session admits (ADR-0097).
+        # Delta sync's job kind in the worker, its shell code and its pure core. A job kind imports its own code, the
+        # worker's shared code and the shared libraries, never another job kind's code (ADR-0117). It names each
+        # data-access subsection it may use, which db/check tests against the application user's grants, and which holds
+        # its code to its own statements (ADR-0143). A tick adds and masks mail and records its runs as backfill's first
+        # pass does, and decides and scans what waits as its second pass does, through the subsections it shares with
+        # backfill. The change cursor, a change's labels, flags and removals, and the re-seal of a client secret sit in
+        # subsections only this list admits. The account's progress and lowered target are read in db/accountstate
+        # (ADR-0066, ADR-0104, ADR-0092). The recording of the last authentication attempt runs in the account session,
+        # which executioncontext/session admits (ADR-0097).
         worker-sync:
           list-mode: strict
           files:

@@ -49,7 +49,7 @@ type tb interface {
 }
 
 // The role backfill connects as, so its grants apply as in production.
-const role = "mediated_mailbox_backfill"
+const role = postgres.ApplicationUser
 
 var (
 	pools    atomic.Pointer[pgxpool.Pool]

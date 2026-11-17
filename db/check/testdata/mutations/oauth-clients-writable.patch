@@ -1,18 +1,20 @@
-control: Only the roles that call a provider read oauth_clients and their own account's state, and the UI reads its account's progress and never a credential
-removes: the roles the account snapshot's statements run under write every client's secret with no statement that uses the grant
+control: The application user reads every OAuth client and writes what the client setup and the re-seal write
+removes: the application user's update on oauth_clients covers every column, so a client's name or provider can be changed with no statement that uses the grant
 packages: ./db/check
-tests: TestOnlyTheProviderCallingRolesReadTheOAuthClients TestOnlyTheProviderCallingRolesReadTheOAuthClients/mediated_mailbox_api/writes_a_client
+tests: TestTheApplicationUserReadsAndWritesTheOAuthClients TestTheApplicationUserReadsAndWritesTheOAuthClients/changes_a_client's_name_or_provider
 scheduled-count: no
 integration: yes
 
 diff --git a/db/migrations/00003_grants.sql b/db/migrations/00003_grants.sql
-index 5a8ad6f..443423d 100644
+index 809f1022..e4157a87 100644
 --- a/db/migrations/00003_grants.sql
 +++ b/db/migrations/00003_grants.sql
-@@ -556,5 +556,5 @@ GRANT SELECT (account_id, provider, oauth_client) ON accounts
- TO mediated_mailbox_api, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
- GRANT SELECT (account_id, credential), UPDATE (credential) ON account_state
- TO mediated_mailbox_api, mediated_mailbox_sync;
--GRANT SELECT (name, provider, client_id, client_secret) ON oauth_clients
-+GRANT SELECT (name, provider, client_id, client_secret), UPDATE (client_secret) ON oauth_clients
- TO mediated_mailbox_api, mediated_mailbox_sync;
+@@ -42,7 +42,7 @@ TO application_user;
+ -- db/oauthclients/secret rewrites a client's secret by compare-and-set on the stored bytes. No
+ -- statement changes a client's name or provider (ADR-0016, ADR-0084, ADR-0092, ADR-0106).
+ GRANT INSERT (name, provider, client_id, client_secret, project_id),
+-UPDATE (client_id, client_secret, project_id),
++UPDATE,
+ DELETE ON oauth_clients TO application_user;
+ 
+ -- The UI's account setup in db/accounts/setup writes an account's listing row with the client it

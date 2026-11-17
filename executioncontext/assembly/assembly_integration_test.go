@@ -33,8 +33,8 @@ func TestMain(m *testing.M) {
 	postgres.Main(m)
 }
 
-// The role the context connects as in these tests, delta sync's, as the worker builds it (ADR-0118).
-const role = "mediated_mailbox_sync"
+// The user the context connects as in these tests, the application user (ADR-0143).
+const role = postgres.ApplicationUser
 
 // ceiling is a provider's declared budget per second, Gmail's.
 const ceiling = 100

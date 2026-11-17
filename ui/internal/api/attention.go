@@ -13,7 +13,7 @@ import (
 
 	"github.com/ppat/mediated-mailbox-mcp/db/auditlog"
 	"github.com/ppat/mediated-mailbox-mcp/db/jobruns"
-	maskingsenders "github.com/ppat/mediated-mailbox-mcp/db/maskingevents/senders"
+	"github.com/ppat/mediated-mailbox-mcp/db/maskingevents"
 	"github.com/ppat/mediated-mailbox-mcp/db/messages"
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/attention"
@@ -70,7 +70,7 @@ func (s *Server) getAttention(w http.ResponseWriter, r *http.Request) {
 		now := s.opts.Clock()
 		out.AsOf = registry.Stamp(now)
 		in, err := s.attentionInputs(r.Context(), attentionQueries{
-			messages: messages.New(t), masking: maskingsenders.New(t),
+			messages: messages.New(t), masking: maskingevents.New(t),
 			audit: auditlog.New(t), runs: jobruns.New(t),
 		}, now)
 		if err != nil {
@@ -97,7 +97,7 @@ func (s *Server) getAttention(w http.ResponseWriter, r *http.Request) {
 // transaction helper (ADR-0047).
 type attentionQueries struct {
 	messages *messages.Queries
-	masking  *maskingsenders.Queries
+	masking  *maskingevents.Queries
 	audit    *auditlog.Queries
 	runs     *jobruns.Queries
 }
@@ -119,7 +119,7 @@ func (s *Server) attentionInputs(ctx context.Context, q attentionQueries, now ti
 		in.Pending, in.Messages = pending, corpus.Messages
 	}
 	if th.MaskCount > 0 {
-		pairs, err := q.masking.MaskingPairsAbove(ctx, maskingsenders.MaskingPairsAboveParams{
+		pairs, err := q.masking.MaskingPairsAbove(ctx, maskingevents.MaskingPairsAboveParams{
 			Since: at(now.Add(-maskingWindow)), Above: th.MaskCount,
 		})
 		if err != nil {

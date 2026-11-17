@@ -5,7 +5,6 @@ package check_test
 import (
 	"context"
 	"errors"
-	"fmt"
 	"maps"
 	"slices"
 	"strings"
@@ -13,27 +12,18 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+
+	"github.com/ppat/mediated-mailbox-mcp/testsupport/postgres"
 )
 
-// The tests below run statements under the runtime roles against the migration chain pgrun applied
-// from empty to this package's database. Each works inside one transaction it rolls back, and runs
-// each statement in a savepoint of its own under the role, so a refused statement leaves the rest of
-// the test able to run and nothing reaches the other tests of this package.
+// The tests below run statements as the application user, the one user the API server, the UI and
+// the worker connect as (ADR-0143), against the migration chain pgrun applied from empty to this
+// package's database with its grants made to that user. Each works inside one transaction it rolls
+// back, and runs each statement in a savepoint of its own as the user, so a refused statement leaves
+// the rest of the test able to run and nothing reaches the other tests of this package.
 
-// migrationRole owns the schema (ADR-0048).
-const migrationRole = "mediated_mailbox_migrator"
-
-// runtimeRoles is one role per deployable, and inside the worker one per job kind (ADR-0118).
-var runtimeRoles = []string{
-	"mediated_mailbox_backfill",
-	"mediated_mailbox_api",
-	"mediated_mailbox_organize",
-	"mediated_mailbox_propose",
-	"mediated_mailbox_sync",
-	"mediated_mailbox_ui",
-}
-
-const uiRole = "mediated_mailbox_ui"
+// appUser is the application user.
+const appUser = postgres.ApplicationUser
 
 // The rows every test below starts from, written by the superuser the tests connect as.
 const (
@@ -110,13 +100,13 @@ func refusedByGrant(err error) bool {
 		(strings.HasPrefix(pgErr.Message, "permission denied") || strings.HasPrefix(pgErr.Message, "must be owner"))
 }
 
-// TestTheBootstrapCreatesOneRuntimeRolePerDeployable requires the bootstrap's roles to be exactly the
-// migration role and ADR-0118's runtime roles, so the tests below, which run under each runtime role
-// in turn, cannot miss one. A runtime role must also hold nothing beyond its grants, so no role
-// attribute but LOGIN. It must not be a superuser, bypass row-level security, create roles or
+// TestTheBootstrapCreatesTheTwoUsers requires the bootstrap's users to be exactly the migrator's user
+// and the application user, so the tests below, which run as the application user, run as every user a
+// program connects as (ADR-0143). The application user must also hold nothing beyond its grants, so no
+// role attribute but LOGIN. It must not be a superuser, bypass row-level security, create roles or
 // databases or replicate, each a power no grant gives or takes away, and it must not belong to another
 // role, since a member acts with that role's privileges.
-func TestTheBootstrapCreatesOneRuntimeRolePerDeployable(t *testing.T) {
+func TestTheBootstrapCreatesTheTwoUsers(t *testing.T) {
 	ctx := t.Context()
 	conn := connect(t)
 	rows, err := conn.Query(ctx, `
@@ -134,25 +124,25 @@ func TestTheBootstrapCreatesOneRuntimeRolePerDeployable(t *testing.T) {
 			t.Fatal(err)
 		}
 		names = append(names, name)
-		if name == migrationRole {
+		if name == postgres.MigrationRole {
 			continue
 		}
 		if !login || privileged || member {
-			t.Errorf("role %s: can log in %t, holds a role attribute beyond login %t, belongs to another role %t. Want only login", name, login, privileged, member)
+			t.Errorf("user %s: can log in %t, holds a role attribute beyond login %t, belongs to another role %t. Want only login", name, login, privileged, member)
 		}
 	}
 	if err := rows.Err(); err != nil {
 		t.Fatal(err)
 	}
-	if want := slices.Sorted(slices.Values(append(slices.Clone(runtimeRoles), migrationRole))); !slices.Equal(names, want) {
-		t.Errorf("the bootstrap's roles are %v, want %v", names, want)
+	if want := []string{appUser, postgres.MigrationRole}; !slices.Equal(names, want) {
+		t.Errorf("the bootstrap's users are %v, want %v", names, want)
 	}
 }
 
-// TestRuntimeRolesCannotChangeTheSchema attempts schema changes under each runtime role. Only the
-// migration role owns the schema and the tables (ADR-0048), so each must be refused for want of a
+// TestTheApplicationUserCannotChangeTheSchema attempts schema changes as the application user. Only
+// the migrator's user owns the schema and the tables (ADR-0048), so each must be refused for want of a
 // privilege.
-func TestRuntimeRolesCannotChangeTheSchema(t *testing.T) {
+func TestTheApplicationUserCannotChangeTheSchema(t *testing.T) {
 	ctx := t.Context()
 	tx := seeded(t)
 	changes := map[string]string{
@@ -164,253 +154,74 @@ func TestRuntimeRolesCannotChangeTheSchema(t *testing.T) {
 		"enable row security":  "ALTER TABLE messages ENABLE ROW LEVEL SECURITY",
 		"create a schema":      "CREATE SCHEMA schema_probe",
 		"create a function":    "CREATE FUNCTION schema_probe() RETURNS int LANGUAGE sql AS 'SELECT 1'",
-		"change a table owner": "ALTER TABLE audit_log OWNER TO " + uiRole,
+		"change a table owner": "ALTER TABLE audit_log OWNER TO " + appUser,
 	}
-	for _, role := range runtimeRoles {
-		for _, name := range slices.Sorted(maps.Keys(changes)) {
-			t.Run(role+"/"+name, func(t *testing.T) {
-				if _, err := as(ctx, tx, role, accountA, changes[name]); !refusedByGrant(err) {
-					t.Errorf("%s: got %v, want a refusal for want of a privilege", changes[name], err)
-				}
-			})
-		}
+	for _, name := range slices.Sorted(maps.Keys(changes)) {
+		t.Run(name, func(t *testing.T) {
+			if _, err := as(ctx, tx, appUser, accountA, changes[name]); !refusedByGrant(err) {
+				t.Errorf("%s: got %v, want a refusal for want of a privilege", changes[name], err)
+			}
+		})
 	}
 }
 
-// TestNoRuntimeRoleCanAlterTheAuditLog attempts to update, delete and truncate the audit log under
-// each runtime role in turn, with the account set to the audit row's own. The statements read no
-// column, so an UPDATE or DELETE grant alone would let them through. Each must be refused for want of a
-// grant (ADR-0016).
-func TestNoRuntimeRoleCanAlterTheAuditLog(t *testing.T) {
+// TestTheApplicationUserCannotAlterTheAuditLog attempts to update, delete and truncate the audit log as
+// the application user, with the account set to the audit row's own. The statements read no column,
+// so an UPDATE or DELETE grant alone would let them through. Each must be refused for want of a grant
+// (ADR-0016). The user's own insert of an audit row succeeds, so the refusals are the grant's doing.
+func TestTheApplicationUserCannotAlterTheAuditLog(t *testing.T) {
 	ctx := t.Context()
 	tx := seeded(t)
+	if n, err := as(ctx, tx, appUser, accountA, "INSERT INTO audit_log (account_id, actor, action, stage, reason, sender_class, scan_state) VALUES (current_setting('app.account'), 'agent', 'READ_BODY', 'serve', 'released', 'normal', 'scanned')"); err != nil || n != 1 {
+		t.Fatalf("recording an audit row inserted %d rows with error %v, want 1 and no error", n, err)
+	}
 	attempts := map[string]string{
 		"update":   "UPDATE audit_log SET actor = 'erased'",
 		"delete":   "DELETE FROM audit_log",
 		"truncate": "TRUNCATE audit_log",
 	}
-	for _, role := range runtimeRoles {
-		for _, name := range slices.Sorted(maps.Keys(attempts)) {
-			t.Run(role+"/"+name, func(t *testing.T) {
-				if _, err := as(ctx, tx, role, accountA, attempts[name]); !refusedByGrant(err) {
-					t.Errorf("%s: got %v, want a refusal for want of a grant", attempts[name], err)
-				}
-			})
-		}
+	for _, name := range slices.Sorted(maps.Keys(attempts)) {
+		t.Run(name, func(t *testing.T) {
+			if _, err := as(ctx, tx, appUser, accountA, attempts[name]); !refusedByGrant(err) {
+				t.Errorf("%s: got %v, want a refusal for want of a grant", attempts[name], err)
+			}
+		})
 	}
 }
 
-// TestNoRuntimeRoleCanAlterThePolicyHistory attempts to update, delete and truncate the policy
-// history under each runtime role in turn, with the account set to the history row's own. Each must be
-// refused for want of a grant, so who lifted a restriction survives a compromise of the process that
-// wrote it (ADR-0102).
-func TestNoRuntimeRoleCanAlterThePolicyHistory(t *testing.T) {
+// TestTheApplicationUserCannotAlterThePolicyHistory attempts to update, delete and truncate the policy
+// history as the application user, with the account set to the history row's own. Each must be refused
+// for want of a grant, so who lifted a restriction survives a compromise of the process that wrote it
+// (ADR-0102). The user's own append of a history row succeeds, so the refusals are the grant's doing.
+func TestTheApplicationUserCannotAlterThePolicyHistory(t *testing.T) {
 	ctx := t.Context()
 	tx := seeded(t)
-	if _, err := tx.Exec(ctx, "INSERT INTO policy_changes (account_id, actor, action, rule_id, suffixes_after) VALUES ($1, 'operator', 'added', 'operator.example.com', '{example.com}')", accountA); err != nil {
-		t.Fatal(err)
+	if n, err := as(ctx, tx, appUser, accountA, "INSERT INTO policy_changes (account_id, actor, action, rule_id, suffixes_after) VALUES (current_setting('app.account'), 'operator', 'added', 'operator.example.com', '{example.com}')"); err != nil || n != 1 {
+		t.Fatalf("appending a history row inserted %d rows with error %v, want 1 and no error", n, err)
 	}
 	attempts := map[string]string{
 		"update":   "UPDATE policy_changes SET actor = 'erased'",
 		"delete":   "DELETE FROM policy_changes",
 		"truncate": "TRUNCATE policy_changes",
 	}
-	for _, role := range runtimeRoles {
-		for _, name := range slices.Sorted(maps.Keys(attempts)) {
-			t.Run(role+"/"+name, func(t *testing.T) {
-				if _, err := as(ctx, tx, role, accountA, attempts[name]); !refusedByGrant(err) {
-					t.Errorf("%s: got %v, want a refusal for want of a grant", attempts[name], err)
-				}
-			})
-		}
+	for _, name := range slices.Sorted(maps.Keys(attempts)) {
+		t.Run(name, func(t *testing.T) {
+			if _, err := as(ctx, tx, appUser, accountA, attempts[name]); !refusedByGrant(err) {
+				t.Errorf("%s: got %v, want a refusal for want of a grant", attempts[name], err)
+			}
+		})
 	}
 }
 
-// uiUpdates, uiInserts and uiDeletes are the UI's whole write grant, its two verbs' columns, the rule
-// a confirmation inserts, the columns its OAuth client setup and account setup write with the delete of
-// an unused client, and policy management's insert, edit of a rule's suffixes and lift, each with its
-// history row (ADR-0084, ADR-0102). uiInserts maps a table to the columns an insert may name, nil
-// for every column. The test states them rather than reading them from the chain, because they are
-// what it checks the chain against.
-var (
-	uiUpdates = map[string][]string{
-		"reorg_plans":       {"status", "approved_at", "approved_by"},
-		"policy_candidates": {"status", "reviewed_at", "reviewed_by"},
-		"oauth_clients":     {"client_id", "client_secret", "project_id"},
-		"accounts":          {"oauth_client"},
-		"account_state":     {"credential", "mailbox", "lowered_target_rate", "last_auth_at", "last_auth_outcome"},
-		"policy_rules":      {"domain_suffix"},
-	}
-	uiInserts = map[string][]string{
-		"policy_rules":   nil,
-		"oauth_clients":  {"name", "provider", "client_id", "client_secret", "project_id"},
-		"accounts":       {"account_id", "provider", "oauth_client"},
-		"account_state":  {"account_id", "credential", "mailbox", "lowered_target_rate"},
-		"policy_changes": nil,
-	}
-	uiDeletes = []string{"oauth_clients", "policy_rules"}
-)
-
-// TestTheUIWritesOnlyItsDecisionColumnsAndPolicyRules attempts every write under the UI's role, an
-// insert into every table, an insert naming each column outside a table's insert grant, an update of
-// every column, a delete from every table and a truncation of every table, reading the tables and
-// columns from the database so a table or column added later is covered. Each write outside the grant
-// must be refused for want of a grant. The two verbs' own writes and the setups' writes must succeed,
-// so the refusals are the grant's doing rather than a role that can write nothing.
-func TestTheUIWritesOnlyItsDecisionColumnsAndPolicyRules(t *testing.T) {
-	ctx := t.Context()
-	tx := seeded(t)
-	columns := map[string][]string{}
-	// An identity column generated always can be set only to its default, and PostgreSQL refuses any
-	// other value before it checks the grant, so its update sets the default.
-	generated := map[string]bool{}
-	rows, err := tx.Query(ctx, `
-		SELECT c.table_name, c.column_name, c.identity_generation IS NOT DISTINCT FROM 'ALWAYS'
-		FROM information_schema.columns c
-		JOIN pg_tables p ON p.schemaname = c.table_schema AND p.tablename = c.table_name
-		WHERE c.table_schema = 'public' ORDER BY c.table_name, c.ordinal_position`)
-	if err != nil {
-		t.Fatal(err)
-	}
-	for rows.Next() {
-		var table, column string
-		var always bool
-		if err := rows.Scan(&table, &column, &always); err != nil {
-			t.Fatal(err)
-		}
-		columns[table] = append(columns[table], column)
-		generated[table+"."+column] = always
-	}
-	if err := rows.Err(); err != nil {
-		t.Fatal(err)
-	}
-	for table := range uiUpdates {
-		if _, ok := columns[table]; !ok {
-			t.Fatalf("the schema has no table %s", table)
-		}
-	}
-
-	t.Run("approve a plan", func(t *testing.T) {
-		n, err := as(ctx, tx, uiRole, accountA, "UPDATE reorg_plans SET status = 'APPROVED', approved_at = now(), approved_by = 'operator' WHERE plan_id = $1", planA)
-		if err != nil || n != 1 {
-			t.Errorf("approving the plan updated %d rows with error %v, want 1 and no error", n, err)
-		}
-	})
-	t.Run("confirm a candidate", func(t *testing.T) {
-		n, err := as(ctx, tx, uiRole, accountA, "UPDATE policy_candidates SET status = 'confirmed', reviewed_at = now(), reviewed_by = 'operator' WHERE account_id = $1 AND domain = $2", accountA, candidate)
-		if err != nil || n != 1 {
-			t.Errorf("confirming the candidate updated %d rows with error %v, want 1 and no error", n, err)
-		}
-		n, err = as(ctx, tx, uiRole, accountA, "INSERT INTO policy_rules (account_id, rule_id, class, domain_suffix, source, created_by) VALUES ($1, $2, 'restricted', $3, 'candidate', 'operator')",
-			accountA, "candidate."+accountA+"."+candidate, []string{candidate})
-		if err != nil || n != 1 {
-			t.Errorf("inserting the confirmed rule inserted %d rows with error %v, want 1 and no error", n, err)
-		}
-	})
-
-	t.Run("set up a client, connect an account and re-authorize it", func(t *testing.T) {
-		// Each write builds on the one before, so all run in one savepoint, in a transaction set to the
-		// new account. The client's table has no account column, so the setting does not reach it.
-		err := asRole(ctx, tx, uiRole, "acct-new", func(sp pgx.Tx) error {
-			for _, sql := range []string{
-				"INSERT INTO oauth_clients (name, provider, client_id, client_secret, project_id) VALUES ('household', 'gmail', 'id', 's', 'household')",
-				"UPDATE oauth_clients SET client_id = 'id-2', client_secret = 's-2', project_id = NULL WHERE name = 'household'",
-				"INSERT INTO accounts (account_id, provider, oauth_client) VALUES ('acct-new', 'gmail', 'household')",
-				"INSERT INTO account_state (account_id, credential, mailbox, lowered_target_rate) VALUES ('acct-new', 'c', 'jo@gmail.com', 0.3)",
-				"UPDATE account_state SET credential = 'd', mailbox = coalesce(mailbox, 'x'), lowered_target_rate = NULL, " +
-					"last_auth_at = now(), last_auth_outcome = 'succeeded' WHERE account_id = 'acct-new'",
-				"UPDATE accounts SET oauth_client = NULL WHERE account_id = 'acct-new'",
-				"DELETE FROM oauth_clients WHERE name = 'household'",
-			} {
-				tag, err := sp.Exec(ctx, sql)
-				if err != nil {
-					return fmt.Errorf("%s: %w", sql, err)
-				}
-				if tag.RowsAffected() != 1 {
-					return fmt.Errorf("%s wrote %d rows, want 1", sql, tag.RowsAffected())
-				}
-			}
-			return nil
-		})
-		if err != nil {
-			t.Error(err)
-		}
-	})
-
-	t.Run("add, edit and lift an account's rule with its history", func(t *testing.T) {
-		err := asRole(ctx, tx, uiRole, accountA, func(sp pgx.Tx) error {
-			for _, sql := range []string{
-				"INSERT INTO policy_rules (account_id, rule_id, class, domain_suffix, source, created_by) VALUES ('" + accountA + "', 'operator.example.net', 'restricted', '{example.net}', 'operator', 'operator')",
-				"INSERT INTO policy_changes (account_id, actor, action, rule_id, suffixes_after) VALUES ('" + accountA + "', 'operator', 'added', 'operator.example.net', '{example.net}')",
-				"UPDATE policy_rules SET domain_suffix = '{example.net,example.org}' WHERE account_id = '" + accountA + "' AND rule_id = 'operator.example.net'",
-				"DELETE FROM policy_rules WHERE account_id = '" + accountA + "' AND rule_id = 'operator.example.net'",
-			} {
-				tag, err := sp.Exec(ctx, sql)
-				if err != nil {
-					return fmt.Errorf("%s: %w", sql, err)
-				}
-				if tag.RowsAffected() != 1 {
-					return fmt.Errorf("%s wrote %d rows, want 1", sql, tag.RowsAffected())
-				}
-			}
-			return nil
-		})
-		if err != nil {
-			t.Error(err)
-		}
-	})
-
-	for _, table := range slices.Sorted(maps.Keys(columns)) {
-		quoted := pgx.Identifier{table}.Sanitize()
-		writes := map[string]string{
-			"truncate": "TRUNCATE " + quoted,
-		}
-		if !slices.Contains(uiDeletes, table) {
-			writes["delete"] = "DELETE FROM " + quoted
-		}
-		insertable, granted := uiInserts[table]
-		switch {
-		case !granted:
-			writes["insert"] = "INSERT INTO " + quoted + " DEFAULT VALUES"
-		case insertable != nil:
-			// An insert naming only the columns a table's insert grant names may pass the grant, so each
-			// column outside it is named on its own.
-			for _, column := range columns[table] {
-				if !slices.Contains(insertable, column) && !generated[table+"."+column] {
-					c := pgx.Identifier{column}.Sanitize()
-					writes["insert "+column] = "INSERT INTO " + quoted + " (" + c + ") VALUES (DEFAULT)"
-				}
-			}
-		}
-		for _, column := range columns[table] {
-			if !slices.Contains(uiUpdates[table], column) {
-				c := pgx.Identifier{column}.Sanitize()
-				value := c
-				if generated[table+"."+column] {
-					value = "DEFAULT"
-				}
-				writes["update "+column] = "UPDATE " + quoted + " SET " + c + " = " + value
-			}
-		}
-		for _, name := range slices.Sorted(maps.Keys(writes)) {
-			t.Run(table+"/"+name, func(t *testing.T) {
-				if _, err := as(ctx, tx, uiRole, accountA, writes[name]); !refusedByGrant(err) {
-					t.Errorf("%s: got %v, want a refusal for want of a grant", writes[name], err)
-				}
-			})
-		}
-	}
-}
-
-// opLogWriter stands in for a role whose statements write the operation log. No runtime role writes
-// it yet. It holds the plan columns the join to a plan reads (ADR-0135).
+// opLogWriter stands in for a user whose statements write the operation log. No statement writes it
+// yet, so the application user holds no grant to. It holds the plan columns the join to a plan reads (ADR-0135).
 const opLogWriter = "check_op_log_writer"
 
 // TestTheOperationLogIsReachedThroughItsPlan reads and appends to the operation log in the form the
 // statement check requires of it, through a join to its plan tied to the transaction's account, under
 // an account that does not own the entry's plan and again under the account that does. The log has no
-// account column, so only the plan can tell the two apart (ADR-0135). The reads run as the UI's role,
-// which reads the log. Under the other account the read finds no entry and the append writes none.
+// account column, so only the plan can tell the two apart (ADR-0135). The reads run as the application
+// user, which reads the log. Under the other account the read finds no entry and the append writes none.
 func TestTheOperationLogIsReachedThroughItsPlan(t *testing.T) {
 	ctx := t.Context()
 	tx := seeded(t)
@@ -430,7 +241,7 @@ func TestTheOperationLogIsReachedThroughItsPlan(t *testing.T) {
 		SELECT p.plan_id, 'm-2', '{}', '{Receipts}' FROM reorg_plans AS p
 		WHERE p.account_id = current_setting('app.account') AND p.plan_id = $1`
 	count := func(account string) (n int, err error) {
-		err = asRole(ctx, tx, uiRole, account, func(sp pgx.Tx) error { return sp.QueryRow(ctx, read, planA).Scan(&n) })
+		err = asRole(ctx, tx, appUser, account, func(sp pgx.Tx) error { return sp.QueryRow(ctx, read, planA).Scan(&n) })
 		return n, err
 	}
 

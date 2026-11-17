@@ -6,16 +6,16 @@ scheduled-count: no
 integration: yes
 
 diff --git a/db/migrations/00002_schema.sql b/db/migrations/00002_schema.sql
-index 16df97b3..dcc543f7 100644
+index d1041389..0cbae721 100644
 --- a/db/migrations/00002_schema.sql
 +++ b/db/migrations/00002_schema.sql
-@@ -360,12 +360,7 @@ CREATE TABLE job_runs (
+@@ -368,12 +368,7 @@ CREATE TABLE job_runs (
      counters jsonb NOT NULL DEFAULT '{}',
      -- Provider or scanner text, never a body.
      last_error text,
 -    PRIMARY KEY (account_id, run_id),
 -    -- A closed set of the pairs the built job kinds record. Each job kind adds its own pairs in the
--    -- migration that brings its role.
+-    -- migration that brings its statements.
 -    CONSTRAINT job_runs_workload_pass_check CHECK (
 -        (workload, pass) IN (('backfill', 'pass1'), ('backfill', 'pass2'), ('sync', 'tick'), ('sync', 'gap_recovery'))
 -    )

@@ -4,16 +4,20 @@ import (
 	"go/ast"
 	"go/types"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"golang.org/x/tools/go/analysis"
 )
 
-// RawSQL reports a statement the UI runs other than through the data-access library, the rule
-// ADR-0071 sets so that the UI's role's read of an OAuth client's sealed secret stays with
-// ui/internal/clientsecret, the one package its import lists admit that read's subsection to
-// (ADR-0081). It covers every package under ui/ and exempts test files, since a statement a test runs
-// is never served.
+// RawSQL reports a statement the API server, the UI or the worker runs other than through the
+// data-access library, the rule ADR-0071 sets so that a program's code runs only the statements of the
+// subsections its exact import list admits. The three connect as one application user, whose grants
+// cannot tell one program's code from another's, so the lists are what bound what each program's code
+// can do in the database (ADR-0143), and in the UI they keep the read of an OAuth client's sealed
+// secret with ui/internal/clientsecret, the one package its import lists admit that read's subsection
+// to (ADR-0081). It covers every package under api/, ui/ and worker/ and exempts test files, since a
+// statement a test runs is never served.
 //
 // Any use of a method that runs a statement is reported, a call or a method value alike, whatever
 // type declares it, matched by its name and by how its parameters open. Those are Query, QueryRow,
@@ -22,7 +26,7 @@ import (
 // the driver's table identifier or a reader and a statement, CopyTo given a writer and a statement,
 // and StartPipeline returning the driver's pipeline. So the driver's connection, pool, transaction
 // and lower-level connection are reported, and so are a generated subsection's DBTX interface, an
-// interface embedding it, and a wrapper or interface the UI declares itself. A parameter spelled
+// interface embedding it, and a wrapper or interface the program declares itself. A parameter spelled
 // through an alias counts as the type it stands for. The generated statements sit under db/,
 // outside the scope. Not reported are a statement run through reflection, written to the wire
 // through the raw network connection or protocol frontend the lower-level connection hands out, and
@@ -30,11 +34,11 @@ import (
 // review.
 var RawSQL = &analysis.Analyzer{
 	Name: "rawsql",
-	Doc:  "reports a statement the UI runs other than through the data-access library",
+	Doc:  "reports a statement the API server, the UI or the worker runs other than through the data-access library",
 	Run:  runRawSQL,
 }
 
-const rawSQLMessage = "%s runs a statement the data-access library did not generate. Add the statement to the subsection the UI's import list admits (ADR-0071, ADR-0081)"
+const rawSQLMessage = "%s runs a statement the data-access library did not generate. Add the statement to a subsection the program's import list admits (ADR-0071, ADR-0143)"
 
 // shape is how a statement runner's parameters open, each type printed with aliases replaced, and
 // the type of its first result when its name and parameters alone could belong to anything else.
@@ -67,9 +71,14 @@ var statementRunners = map[string][]shape{
 	"StartPipeline": {{params: []string{ctxType}, result: "*" + pgconnPath + ".Pipeline"}},
 }
 
+// rawSQLPrograms are the top-level directories of the programs that connect as the application user.
+var rawSQLPrograms = []string{"api", "ui", "worker"}
+
 func runRawSQL(pass *analysis.Pass) (any, error) {
 	path := pass.Pkg.Path()
-	if path != modulePath+"/ui" && !strings.HasPrefix(path, modulePath+"/ui/") {
+	if !slices.ContainsFunc(rawSQLPrograms, func(dir string) bool {
+		return path == modulePath+"/"+dir || strings.HasPrefix(path, modulePath+"/"+dir+"/")
+	}) {
 		return nil, nil
 	}
 	for _, file := range pass.Files {

@@ -917,7 +917,7 @@ func TestAProcessThatRunsOnceDoesItsWorkAndClosesItsPools(t *testing.T) {
 }
 
 // A process that runs until it is told to stop runs its root's schema check on each pool it opens,
-// before the component that asked for the pool receives it, under the pool's own role, so a schema
+// before the component that asked for the pool receives it, as the pool's own user, so a schema
 // the process cannot run on stops the start before anything serves, with the check's error (ADR-0140).
 // The pools open no connection here, so what the check is handed is the only sign it ran.
 func TestEveryPoolIsCheckedBeforeItIsHandedOut(t *testing.T) {

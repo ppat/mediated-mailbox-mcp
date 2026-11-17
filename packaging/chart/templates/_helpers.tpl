@@ -126,6 +126,15 @@ probes and the Services read the same number.
 The projected secret sources more than one pod mounts. Each lists only the keys a process reads, under a fixed path
 the rendered configuration names (ADR-0079).
 */}}
+{{- define "mm.applicationPasswordSource" -}}
+{{- $p := .Values.secrets.databasePasswords.application }}
+- secret:
+    name: {{ required "secrets.databasePasswords.application.existingSecret is required" $p.existingSecret }}
+    items:
+    - key: {{ $p.secretKeys.password }}
+      path: database/password
+{{- end }}
+
 {{- define "mm.credentialSealingKeyPairSource" -}}
 {{- $k := .Values.secrets.credentialSealingKeyPair }}
 - secret:

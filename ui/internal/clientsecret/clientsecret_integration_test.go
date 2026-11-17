@@ -40,7 +40,7 @@ func connect(t *testing.T, role string) *pgx.Conn {
 	return conn
 }
 
-// The opener opens a client's secret sealed to its own row, as the UI's role reads it. A value sealed
+// The opener opens a client's secret sealed to its own row, as the application user reads it. A value sealed
 // as an account's credential and copied into a client's row, and a secret sealed to another client's
 // row, are each refused, so the one part of the UI that opens a stored value cannot be made to open a
 // credential (ADR-0081, ADR-0088, VERIFICATIONS, the UI's open of a credential row).
@@ -85,7 +85,7 @@ func TestTheOpenerOpensAClientsSecretAndNothingElse(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	opener, err := clientsecret.Load(publicFile, []string{privateFile}, connect(t, "mediated_mailbox_ui"))
+	opener, err := clientsecret.Load(publicFile, []string{privateFile}, connect(t, postgres.ApplicationUser))
 	if err != nil {
 		t.Fatal(err)
 	}

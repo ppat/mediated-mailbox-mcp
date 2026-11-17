@@ -5,14 +5,12 @@ tests: TestTheChartRendersAFileTheWorkerStartsWith
 scheduled-count: no
 
 diff --git a/packaging/chart/templates/_config.tpl b/packaging/chart/templates/_config.tpl
-index 02c2add5..f3c9907c 100644
+index b8bf7d3b..12d2e697 100644
 --- a/packaging/chart/templates/_config.tpl
 +++ b/packaging/chart/templates/_config.tpl
-@@ -89,13 +89,10 @@ so no key is written twice.
- {{- with $jk.database.poolSize }}
- {{- $_ := set $role "pool_size" . }}
+@@ -99,9 +99,6 @@ file, since no ConfigMap of the release exists at pre-install (ADR-0129, ADR-013
  {{- end }}
- {{- $_ := set $db $kind $role }}
+ {{- range $kind, $jk := .Values.worker.jobKinds }}
  {{- $section := deepCopy $jk.config }}
 -{{- if eq $kind "sync" }}
 -{{- $_ := set $section "sync_interval" $.Values.sharedConfig.sync_interval }}
@@ -20,5 +18,3 @@ index 02c2add5..f3c9907c 100644
  {{- if $section }}
  {{- $_ := set $c $kind $section }}
  {{- end }}
- {{- end }}
- {{- $_ := set $c "database" $db }}

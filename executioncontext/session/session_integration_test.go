@@ -26,9 +26,9 @@ func TestMain(m *testing.M) {
 	postgres.Main(m)
 }
 
-// role is delta sync's role, which the worker's execution context, whose holder keeps the sources
-// across units of work, connects as, so its grants apply as they do in production (ADR-0118).
-const role = "mediated_mailbox_sync"
+// role is the application user, which the worker's execution context, whose holder keeps the sources
+// across units of work, connects as, so its grants apply as they do in production (ADR-0143).
+const role = postgres.ApplicationUser
 
 func pool(t *testing.T) *pgxpool.Pool {
 	t.Helper()

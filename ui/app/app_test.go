@@ -49,7 +49,7 @@ func TestTheDefaults(t *testing.T) {
 		Process:    host.Process{LogLevel: "info"},
 		Operations: host.Operations{ProbeListen: ":8080"},
 		Serving:    host.Serving{Listen: ":8443"},
-		Database:   dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_ui", SSLMode: "verify-full", PoolSize: max(4, runtime.NumCPU())},
+		Database:   dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_app", SSLMode: "verify-full", PoolSize: max(4, runtime.NumCPU())},
 		Section: Section{
 			SyncInterval:       5 * time.Minute,
 			HeuristicsInterval: 24 * time.Hour,
@@ -129,7 +129,7 @@ func TestTheEffectiveConfigurationIsLogged(t *testing.T) {
 		"--credential.private_key_files=[" + privateKeyFile + "]",
 	},
 		[]string{"MEDIATED_MAILBOX_DATABASE__NAME=mailbox"}, io.Discard, io.Discard, logger, new(slog.LevelVar))
-	if err == nil || !strings.HasPrefix(err.Error(), "checking the database schema as mediated_mailbox_ui: ") {
+	if err == nil || !strings.HasPrefix(err.Error(), "checking the database schema as mediated_mailbox_app: ") {
 		t.Fatalf("Run returned %v, want the schema check refused", err)
 	}
 	want := []string{
@@ -147,7 +147,7 @@ func TestTheEffectiveConfigurationIsLogged(t *testing.T) {
 		`level=INFO msg=configuration path=database.port source=default value=5432`,
 		`level=INFO msg=configuration path=database.sslmode source=default value=verify-full`,
 		`level=INFO msg=configuration path=database.sslrootcert source=default value=""`,
-		`level=INFO msg=configuration path=database.user source=default value=mediated_mailbox_ui`,
+		`level=INFO msg=configuration path=database.user source=default value=mediated_mailbox_app`,
 		`level=INFO msg=configuration path=default_theme source=default value=system`,
 		`level=INFO msg=configuration path=heuristics_interval source=default value=24h0m0s`,
 		`level=INFO msg=configuration path=identity_header source=default value=""`,

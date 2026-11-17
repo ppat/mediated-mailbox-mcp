@@ -18,7 +18,7 @@ import (
 func TestTheStartBannerGoesToStandardErrorAndStandardOutputStaysJSON(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	level := new(slog.LevelVar)
-	err := Run(t.Context(), append([]string{"--database.host=db", "--database.name=mailbox", "--database.backfill.password_file=/absent", "--database.sync.password_file=/absent"}, absentKeys...), nil, &stdout, &stderr, logging.New(&stdout, level), level)
+	err := Run(t.Context(), append([]string{"--database.host=db", "--database.name=mailbox", "--database.password_file=/absent"}, absentKeys...), nil, &stdout, &stderr, logging.New(&stdout, level), level)
 	if err == nil || !strings.HasPrefix(err.Error(), "loading the keyring: ") {
 		t.Fatalf("Run returned %v, want the start to stop at loading the keyring: ", err)
 	}

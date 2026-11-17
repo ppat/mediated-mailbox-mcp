@@ -1,18 +1,19 @@
-control: The raw SQL analyser refuses a statement the UI runs other than through the data-access library
+control: The raw SQL analyser refuses a statement the API server, the UI or the worker runs other than through the data-access library
 removes: the lower-level connection's ExecParams, ExecBatch, CopyTo, its CopyFrom and StartPipeline are not reported
 packages: ./testsupport/analysis
 tests: TestRawSQL
 scheduled-count: no
 
 diff --git a/testsupport/analysis/rawsql.go b/testsupport/analysis/rawsql.go
-index f9344bb0..334d329a 100644
+index 0647de16..245a9167 100644
 --- a/testsupport/analysis/rawsql.go
 +++ b/testsupport/analysis/rawsql.go
-@@ -58,12 +58,8 @@ var statementRunners = map[string][]shape{
+@@ -63,12 +63,9 @@ var statementRunners = map[string][]shape{
  	"QueryRow":      {{params: []string{ctxType, "string"}}},
  	"Exec":          {{params: []string{ctxType, "string"}}},
  	"Prepare":       {{params: []string{ctxType, "string", "string"}}},
 -	"ExecParams":    {{params: []string{ctxType, "string"}}},
++
  	"SendBatch":     {{params: []string{ctxType, "*" + pgxPath + ".Batch"}}},
 -	"ExecBatch":     {{params: []string{ctxType, "*" + pgconnPath + ".Batch"}}},
 -	"CopyFrom":      {{params: []string{ctxType, pgxPath + ".Identifier"}}, {params: []string{ctxType, "io.Reader", "string"}}},
@@ -21,4 +22,4 @@ index f9344bb0..334d329a 100644
 +	"CopyFrom":      {{params: []string{ctxType, pgxPath + ".Identifier"}}},
  }
  
- func runRawSQL(pass *analysis.Pass) (any, error) {
+ // rawSQLPrograms are the top-level directories of the programs that connect as the application user.

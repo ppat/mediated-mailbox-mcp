@@ -1,19 +1,19 @@
-control: Only the roles that call a provider read oauth_clients and their own account's state, and the UI reads its account's progress and never a credential
-removes: delta sync's role loses the read and write of its account's credential that its snapshot's statements need
+control: The application user lists every account and reads one account's state in the statements' form
+removes: the application user loses the write of an account's credential that the connections' write-back needs
 packages: ./db/check
-tests: TestGrantsCoverAdmittedSubsections TestTheProviderCallingRolesReadTheirAccountsState
+tests: TestGrantsCoverAdmittedSubsections TestTheApplicationUserListsEveryAccountAndReadsOneState TestTheApplicationUserListsEveryAccountAndReadsOneState/the_credential's_write-back
 scheduled-count: no
 integration: yes
 
 diff --git a/db/migrations/00003_grants.sql b/db/migrations/00003_grants.sql
-index 5a8ad6f..a213257 100644
+index 809f1022..1f3ca9a5 100644
 --- a/db/migrations/00003_grants.sql
 +++ b/db/migrations/00003_grants.sql
-@@ -555,6 +555,6 @@ TO mediated_mailbox_api, mediated_mailbox_backfill, mediated_mailbox_sync;
- GRANT SELECT (account_id, provider, oauth_client) ON accounts
- TO mediated_mailbox_api, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
- GRANT SELECT (account_id, credential), UPDATE (credential) ON account_state
--TO mediated_mailbox_api, mediated_mailbox_sync;
-+TO mediated_mailbox_api;
- GRANT SELECT (name, provider, client_id, client_secret) ON oauth_clients
- TO mediated_mailbox_api, mediated_mailbox_sync;
+@@ -58,7 +58,6 @@ GRANT INSERT (account_id, provider, oauth_client), UPDATE (oauth_client) ON acco
+ -- authentication attempt, only over an older one, in db/accountstate (ADR-0097).
+ GRANT INSERT (account_id, credential, mailbox, lowered_target_rate),
+ UPDATE (
+-    credential,
+     mailbox,
+     lowered_target_rate,
+     backfill_pass1_complete,

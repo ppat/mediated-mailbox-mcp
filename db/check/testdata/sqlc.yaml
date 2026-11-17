@@ -17,7 +17,6 @@ sql:
       package: counting
       out: counting
       sql_package: pgx/v5
-      emit_interface: true
       omit_unused_structs: true
 - engine: postgresql
   schema: [../../migrations, migrations]
@@ -27,7 +26,6 @@ sql:
       package: listing
       out: listing
       sql_package: pgx/v5
-      emit_interface: true
       omit_unused_structs: true
 - engine: postgresql
   schema: [../../migrations, migrations]
@@ -37,5 +35,4 @@ sql:
       package: reuse
       out: reuse
       sql_package: pgx/v5
-      emit_interface: true
       omit_unused_structs: true

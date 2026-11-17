@@ -49,7 +49,7 @@ func TestMain(m *testing.M) {
 }
 
 // The role delta sync connects as, so its grants apply as in production.
-const role = "mediated_mailbox_sync"
+const role = postgres.ApplicationUser
 
 // syncPool returns a pool connecting as role.
 func syncPool(t *testing.T) *pgxpool.Pool {
@@ -67,7 +67,7 @@ func syncPool(t *testing.T) *pgxpool.Pool {
 	return p
 }
 
-// executionContext returns an execution context over pool, which connects as delta sync's role as the
+// executionContext returns an execution context over pool, which connects as the application user as the
 // worker's does, opening with ring, scanning with s and reloading every interval, as the worker's
 // composition root builds it.
 func executionContext(t *testing.T, pool *pgxpool.Pool, ring *open.Keyring, s scan.Scanner, logger *slog.Logger, interval time.Duration) *assembly.Context {
@@ -116,7 +116,7 @@ func must(t *testing.T, conn *pgx.Conn, sql string, args ...any) {
 	}
 }
 
-// revoke revokes a grant of delta sync's role for the rest of the test, and grants it again when the
+// revoke revokes a grant of the application user for the rest of the test, and grants it again when the
 // test ends, so the tests after it see the role as the migration chain made it.
 func revoke(t *testing.T, conn *pgx.Conn, privilege string) {
 	t.Helper()
@@ -508,7 +508,7 @@ func TestEachReloadLoadsTheAccountSnapshot(t *testing.T) {
 	if diff := cmp.Diff([]string{"personal"}, j.removed, compare.Options); diff != "" {
 		t.Errorf("the account jobs dropped (-want +got):\n%s", diff)
 	}
-	revoke(t, conn, "SELECT (account_id, provider) ON accounts")
+	revoke(t, conn, "SELECT ON accounts")
 
 	if err := cycle(t, d, j); !errors.Is(err, accountload.ErrUntrustedRead) {
 		t.Fatalf("the reload and ticks returned %v, want the failed read", err)

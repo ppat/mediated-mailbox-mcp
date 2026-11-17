@@ -13,7 +13,6 @@ sql:
       package: limiter
       out: ratestate/limiter
       sql_package: pgx/v5
-      emit_interface: true
       omit_unused_structs: true
 - engine: postgresql
   schema: migrations
@@ -23,7 +22,6 @@ sql:
       package: policyrules
       out: policyrules
       sql_package: pgx/v5
-      emit_interface: true
       omit_unused_structs: true
 - engine: postgresql
   schema: migrations
@@ -33,7 +31,6 @@ sql:
       package: accounts
       out: accounts
       sql_package: pgx/v5
-      emit_interface: true
       omit_unused_structs: true
 - engine: postgresql
   schema: migrations
@@ -43,7 +40,6 @@ sql:
       package: credential
       out: accountstate/credential
       sql_package: pgx/v5
-      emit_interface: true
       omit_unused_structs: true
 - engine: postgresql
   schema: migrations
@@ -53,7 +49,6 @@ sql:
       package: clientsetup
       out: oauthclients/setup
       sql_package: pgx/v5
-      emit_interface: true
       omit_unused_structs: true
 - engine: postgresql
   schema: migrations
@@ -63,7 +58,6 @@ sql:
       package: accountsetup
       out: accounts/setup
       sql_package: pgx/v5
-      emit_interface: true
       omit_unused_structs: true
 - engine: postgresql
   schema: migrations
@@ -73,7 +67,6 @@ sql:
       package: oauthclients
       out: oauthclients
       sql_package: pgx/v5
-      emit_interface: true
       omit_unused_structs: true
 - engine: postgresql
   schema: migrations
@@ -83,7 +76,6 @@ sql:
       package: reorgplans
       out: reorgplans
       sql_package: pgx/v5
-      emit_interface: true
       omit_unused_structs: true
 - engine: postgresql
   schema: migrations
@@ -93,7 +85,6 @@ sql:
       package: policycandidates
       out: policycandidates
       sql_package: pgx/v5
-      emit_interface: true
       omit_unused_structs: true
 - engine: postgresql
   schema: migrations
@@ -103,27 +94,6 @@ sql:
       package: jobruns
       out: jobruns
       sql_package: pgx/v5
-      emit_interface: true
-      omit_unused_structs: true
-- engine: postgresql
-  schema: migrations
-  queries: jobruns/classification
-  gen:
-    go:
-      package: runclassification
-      out: jobruns/classification
-      sql_package: pgx/v5
-      emit_interface: true
-      omit_unused_structs: true
-- engine: postgresql
-  schema: migrations
-  queries: maskingevents/senders
-  gen:
-    go:
-      package: maskingsenders
-      out: maskingevents/senders
-      sql_package: pgx/v5
-      emit_interface: true
       omit_unused_structs: true
 - engine: postgresql
   schema: migrations
@@ -133,7 +103,6 @@ sql:
       package: messages
       out: messages
       sql_package: pgx/v5
-      emit_interface: true
       omit_unused_structs: true
 - engine: postgresql
   schema: migrations
@@ -143,7 +112,6 @@ sql:
       package: auditlog
       out: auditlog
       sql_package: pgx/v5
-      emit_interface: true
       omit_unused_structs: true
 - engine: postgresql
   schema: migrations
@@ -153,7 +121,6 @@ sql:
       package: maskingevents
       out: maskingevents
       sql_package: pgx/v5
-      emit_interface: true
       omit_unused_structs: true
 - engine: postgresql
   schema: migrations
@@ -163,7 +130,6 @@ sql:
       package: scangatedecisions
       out: scangatedecisions
       sql_package: pgx/v5
-      emit_interface: true
       omit_unused_structs: true
 - engine: postgresql
   schema: migrations
@@ -173,7 +139,6 @@ sql:
       package: reorgoplog
       out: reorgoplog
       sql_package: pgx/v5
-      emit_interface: true
       omit_unused_structs: true
 - engine: postgresql
   schema: migrations
@@ -183,7 +148,6 @@ sql:
       package: accountstate
       out: accountstate
       sql_package: pgx/v5
-      emit_interface: true
       omit_unused_structs: true
 - engine: postgresql
   schema: migrations
@@ -193,7 +157,6 @@ sql:
       package: ratestate
       out: ratestate
       sql_package: pgx/v5
-      emit_interface: true
       omit_unused_structs: true
 - engine: postgresql
   schema: migrations
@@ -203,7 +166,6 @@ sql:
       package: ingest
       out: messages/ingest
       sql_package: pgx/v5
-      emit_interface: true
       omit_unused_structs: true
 - engine: postgresql
   schema: migrations
@@ -213,7 +175,6 @@ sql:
       package: auditrecord
       out: auditlog/record
       sql_package: pgx/v5
-      emit_interface: true
       omit_unused_structs: true
 - engine: postgresql
   schema: migrations
@@ -223,7 +184,6 @@ sql:
       package: maskingrecord
       out: maskingevents/record
       sql_package: pgx/v5
-      emit_interface: true
       omit_unused_structs: true
 - engine: postgresql
   schema: migrations
@@ -233,7 +193,6 @@ sql:
       package: runrecord
       out: jobruns/record
       sql_package: pgx/v5
-      emit_interface: true
       omit_unused_structs: true
 - engine: postgresql
   schema: migrations
@@ -243,17 +202,6 @@ sql:
       package: completion
       out: accountstate/completion
       sql_package: pgx/v5
-      emit_interface: true
-      omit_unused_structs: true
-- engine: postgresql
-  schema: migrations
-  queries: accountstate/authentication
-  gen:
-    go:
-      package: authentication
-      out: accountstate/authentication
-      sql_package: pgx/v5
-      emit_interface: true
       omit_unused_structs: true
 - engine: postgresql
   schema: migrations
@@ -263,7 +211,6 @@ sql:
       package: senders
       out: senders
       sql_package: pgx/v5
-      emit_interface: true
       omit_unused_structs: true
 - engine: postgresql
   schema: migrations
@@ -273,7 +220,6 @@ sql:
       package: statistics
       out: senders/statistics
       sql_package: pgx/v5
-      emit_interface: true
       omit_unused_structs: true
 - engine: postgresql
   schema: migrations
@@ -283,7 +229,6 @@ sql:
       package: senderclassification
       out: senders/classification
       sql_package: pgx/v5
-      emit_interface: true
       omit_unused_structs: true
 - engine: postgresql
   schema: migrations
@@ -293,7 +238,6 @@ sql:
       package: manage
       out: policyrules/manage
       sql_package: pgx/v5
-      emit_interface: true
       omit_unused_structs: true
 - engine: postgresql
   schema: migrations
@@ -303,7 +247,6 @@ sql:
       package: base
       out: policyrules/base
       sql_package: pgx/v5
-      emit_interface: true
       omit_unused_structs: true
 - engine: postgresql
   schema: migrations
@@ -313,7 +256,6 @@ sql:
       package: policychanges
       out: policychanges
       sql_package: pgx/v5
-      emit_interface: true
       omit_unused_structs: true
 - engine: postgresql
   schema: migrations
@@ -323,7 +265,6 @@ sql:
       package: scan
       out: messages/scan
       sql_package: pgx/v5
-      emit_interface: true
       omit_unused_structs: true
 - engine: postgresql
   schema: migrations
@@ -333,7 +274,6 @@ sql:
       package: gaterecord
       out: scangatedecisions/record
       sql_package: pgx/v5
-      emit_interface: true
       omit_unused_structs: true
 - engine: postgresql
   schema: migrations
@@ -343,7 +283,6 @@ sql:
       package: change
       out: messages/change
       sql_package: pgx/v5
-      emit_interface: true
       omit_unused_structs: true
 - engine: postgresql
   schema: migrations
@@ -353,7 +292,6 @@ sql:
       package: cursor
       out: accountstate/cursor
       sql_package: pgx/v5
-      emit_interface: true
       omit_unused_structs: true
 - engine: postgresql
   schema: migrations
@@ -363,7 +301,6 @@ sql:
       package: secret
       out: oauthclients/secret
       sql_package: pgx/v5
-      emit_interface: true
       omit_unused_structs: true
 - engine: postgresql
   schema: migrations
@@ -373,5 +310,4 @@ sql:
       package: schemacompatibility
       out: schemacompatibility
       sql_package: pgx/v5
-      emit_interface: true
       omit_unused_structs: true

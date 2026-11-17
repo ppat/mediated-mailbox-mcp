@@ -1,0 +1,20 @@
+control: The chain's grants are made to the application user's name the migrator is configured with
+removes: the placeholder is replaced inside a longer name too, so the replacement changes a name other than a grantee
+packages: ./db/migrate ./db/check
+tests: TestTheApplicationUserTakesThePlaceholdersPlace TestViolationFiles
+scheduled-count: no
+integration: no
+
+diff --git a/db/migrate/migrate.go b/db/migrate/migrate.go
+index 9b266009..8bdacc91 100644
+--- a/db/migrate/migrate.go
++++ b/db/migrate/migrate.go
+@@ -125,7 +125,7 @@ func Occurrences(text []byte) []int {
+ 		}
+ 		start, end := at+i, at+i+len(Placeholder)
+ 		at = end
+-		if (start == 0 || !continuesIdentifier(text[start-1])) && (end == len(text) || !continuesIdentifier(text[end])) {
++		if start >= 0 {
+ 			out = append(out, start)
+ 		}
+ 	}

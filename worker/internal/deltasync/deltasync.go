@@ -1,5 +1,5 @@
 // Package deltasync is delta sync's job kind in the worker (ADR-0117, ADR-0119). It runs its own
-// statements on delta sync's own connection pool under its own runtime role (ADR-0118), and works
+// statements on delta sync's own connection pool, as the application user (ADR-0119, ADR-0143), and works
 // from the worker's one execution context, which the worker builds over delta sync's pool, through
 // account sessions of its own that call Gmail through delta sync's own adapter series. Its reload adds
 // and drops one job per account the context's latest reload lists. Each job ticks its account on the
@@ -77,9 +77,9 @@ type Jobs interface {
 
 // Config is what delta sync's job kind is built from, and nothing more.
 type Config struct {
-	// Pool is delta sync's own pool, which connects as delta sync's runtime role, and which its own
-	// statements, its leases, its recording of authentication attempts and its re-seal of the OAuth
-	// clients' secrets run under (ADR-0118, ADR-0092).
+	// Pool is delta sync's own pool, which its own statements, its leases, its recording of
+	// authentication attempts and its re-seal of the OAuth clients' secrets run on (ADR-0119,
+	// ADR-0092).
 	Pool *pgxpool.Pool
 	// Context is the worker's execution context, whose loader delta sync re-seals through and whose
 	// scanner masks subjects and scans bodies (ADR-0090, ADR-0092, ADR-0120).

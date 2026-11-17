@@ -27,15 +27,15 @@ func TestMain(m *testing.M) {
 // reloadFailedName is the series the reload-failure alarm reads.
 const reloadFailedName = "mediated_mailbox_policyload_reload_failed"
 
-// backfill returns a pool connecting as backfill's role, the first deployable that loads policy.
-// Its grants apply to it, as they do in production.
+// backfill returns a pool connecting as the application user, as backfill, the first deployable that
+// loads policy, does. Its grants apply to it, as they do in production.
 func backfill(t *testing.T) *pgxpool.Pool {
 	t.Helper()
 	cfg, err := pgxpool.ParseConfig(postgres.URL(t))
 	if err != nil {
 		t.Fatal(err)
 	}
-	cfg.ConnConfig.RuntimeParams["options"] = "-c role=mediated_mailbox_backfill"
+	cfg.ConnConfig.RuntimeParams["options"] = "-c role=" + postgres.ApplicationUser
 	pool, err := pgxpool.NewWithConfig(t.Context(), cfg)
 	if err != nil {
 		t.Fatal(err)

@@ -11,20 +11,13 @@ linters:
           allow:
           - "github.com/ppat/mediated-mailbox-mcp/db/"
 
-        # Names only subsections its role can run.
+        # Names only a subsection the test library's user can run.
         reader:
           allow:
           - "github.com/ppat/mediated-mailbox-mcp/db/listing$"
           - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
 
-        # Names only subsections its role can run.
-        writer:
-          allow:
-          - "github.com/ppat/mediated-mailbox-mcp/db/counting$"
-          - "github.com/ppat/mediated-mailbox-mcp/db/listing$"
-          - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
-
-        # Names a subsection whose update its role holds no grant for.
+        # Names a subsection whose update the test library's user holds no grant for.
         misaligned:
           allow:
           - "github.com/ppat/mediated-mailbox-mcp/db/counting$"
@@ -35,96 +28,29 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/db/"
 
         # Admits the library's root package, by its exact path and by a prefix of it that stops before its
-        # last segment's end, and has no role.
+        # last segment's end.
         rootpackage:
           allow:
           - "github.com/ppat/mediated-mailbox-mcp/db$"
           - "github.com/ppat/mediated-mailbox-mcp/d"
 
-        # Names a subsection and has no role.
-        unmapped:
-          allow:
-          - "github.com/ppat/mediated-mailbox-mcp/db/listing$"
-
-        # A library's list, naming a subsection. A library connects as no role of its own, so the subsection is
-        # planned under the role of each list that admits the code this list governs.
+        # A library's list, naming a subsection whose update the test library's user holds no grant for. A
+        # library's list is planned like any other.
         library:
           files:
           - "${base-path}/fixturelib/**.go"
           allow:
           - "github.com/ppat/mediated-mailbox-mcp/db/counting$"
 
-        # Admits the library, and its role holds no grant for the update the library's subsection runs.
-        narrow:
-          allow:
-          - "github.com/ppat/mediated-mailbox-mcp/fixturelib/"
-
-        # Admits one package of the library, and its role can run everything the library's subsection runs.
-        wide:
-          allow:
-          - "github.com/ppat/mediated-mailbox-mcp/fixturelib/lease$"
-
-        # A library's list naming a subsection, whose code no list with a role admits.
-        orphan:
-          files:
-          - "${base-path}/orphanlib/**.go"
-          allow:
-          - "github.com/ppat/mediated-mailbox-mcp/db/listing$"
-
-        # Admits the library and has no role, so the library's statements would run under a role nothing tested.
-        propose:
-          allow:
-          - "github.com/ppat/mediated-mailbox-mcp/fixturelib/"
-
-        # Admits only a subdirectory of the library, so it does not admit the library.
-        coreonly:
-          allow:
-          - "github.com/ppat/mediated-mailbox-mcp/fixturelib/core/"
-
-        # A cross-cutting list admitting the library's code, which is not a deployable admitting the library.
+        # A cross-cutting list, which may admit the library's root package by a wide prefix.
         everything:
           allow:
           - "github.com/ppat/mediated-mailbox-mcp/"
 
-        # Admits the package that runs the library's statements through a prefix entry, and has no role.
-        leaseprefix:
-          allow:
-          - "github.com/ppat/mediated-mailbox-mcp/fixturelib/lease"
-
-        # Admits only the library's pure core, by its exact package, which runs none of its statements.
-        coreexact:
-          allow:
-          - "github.com/ppat/mediated-mailbox-mcp/fixturelib/core$"
-
-        # Admits only a package that runs the library's statements through another of its packages, and has no role.
-        facadeonly:
-          allow:
-          - "github.com/ppat/mediated-mailbox-mcp/fixturelib/facade$"
-
-        # A second library's list, naming a subsection, whose code imports the first library's package
-        # that runs its statements. It has no role, and a list with a role reaches it, so both libraries'
-        # statements are planned under that role.
+        # A second library's list, naming a subsection the test library's user can run.
         chained:
           files:
           - "${base-path}/chainlib/**.go"
           allow:
           - "github.com/ppat/mediated-mailbox-mcp/db/listing$"
           - "github.com/ppat/mediated-mailbox-mcp/fixturelib/lease$"
-
-        # A library's list naming no subsection, over one directory's files alone, whose code imports the first
-        # library's package that runs its statements. It has no role, and a list with a role reaches it.
-        calling:
-          files:
-          - "${base-path}/callinglib/*.go"
-          allow:
-          - "github.com/ppat/mediated-mailbox-mcp/fixturelib/lease$"
-
-        # Admits the library that names no subsection, so the first library's statements are planned under its role.
-        caller:
-          allow:
-          - "github.com/ppat/mediated-mailbox-mcp/callinglib$"
-
-        # Admits the second library, and its role can run everything both libraries' subsections run.
-        outer:
-          allow:
-          - "github.com/ppat/mediated-mailbox-mcp/chainlib/chain$"

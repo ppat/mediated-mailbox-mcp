@@ -1,0 +1,19 @@
+control: The raw SQL analyser refuses a statement the API server, the UI or the worker runs other than through the data-access library
+removes: the analyser reads the UI's packages alone, so a statement the API server's or the worker's code runs by hand is not reported
+packages: ./testsupport/analysis
+tests: TestRawSQL
+scheduled-count: no
+
+diff --git a/testsupport/analysis/rawsql.go b/testsupport/analysis/rawsql.go
+index 0647de16..1621ed11 100644
+--- a/testsupport/analysis/rawsql.go
++++ b/testsupport/analysis/rawsql.go
+@@ -72,7 +72,7 @@ var statementRunners = map[string][]shape{
+ }
+ 
+ // rawSQLPrograms are the top-level directories of the programs that connect as the application user.
+-var rawSQLPrograms = []string{"api", "ui", "worker"}
++var rawSQLPrograms = []string{"ui"}
+ 
+ func runRawSQL(pass *analysis.Pass) (any, error) {
+ 	path := pass.Pkg.Path()

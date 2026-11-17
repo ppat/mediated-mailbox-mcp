@@ -13,7 +13,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/db/migrations"
 )
 
-// SchemaChecks runs a deployable's start check under each of its roles over one database of the
+// SchemaChecks runs a deployable's start check as each of the users it names over one database of the
 // test's own, built from the chain in dir. It holds every migration below the chain's newest first,
 // then the whole chain, then a compatibility floor and a newest applied migration set by hand, and
 // requires the refusal each state calls for: a schema that has not applied the chain, and one whose

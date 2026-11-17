@@ -13,6 +13,7 @@ import (
 
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	credentialcore "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/core"
+	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core"
 	"github.com/ppat/mediated-mailbox-mcp/process/host"
 	"github.com/ppat/mediated-mailbox-mcp/process/settings"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
@@ -26,7 +27,7 @@ const chartDir = "../../packaging/chart"
 // loads that file through the configuration library as the process does, validates it and builds the scanner from
 // it, so a key the chart writes that the worker does not read, or a value of the wrong type, fails here rather than
 // at the pod's start (ADR-0052, ADR-0078). The loaded configuration is compared with the values written out below,
-// each job kind's role and section included, so a value the chart drops or moves is caught too.
+// the database section and each job kind's section included, so a value the chart drops or moves is caught too.
 func TestTheChartRendersAFileTheWorkerStartsWith(t *testing.T) {
 	objects := helmchart.Render(t, chartDir, "-f", "testdata/chart-values.yaml")
 	path := filepath.Join(t.TempDir(), "worker.yaml")
@@ -52,10 +53,9 @@ func TestTheChartRendersAFileTheWorkerStartsWith(t *testing.T) {
 			Backfill:       Backfill{Concurrency: 5},
 			Sync:           Sync{SyncInterval: 3 * time.Minute, FirstWindow: 48 * time.Hour, DecisionsPerTick: 50, Concurrency: 6},
 		},
-		Database: Database{
-			Host: "db.example", Port: 6432, Name: "mediated_mailbox", SSLMode: "require", SSLRootCert: mounted + "ca/ca.crt",
-			Backfill: Role{User: "mailbox_backfill", PasswordFile: mounted + "database/backfill/password", PoolSize: 3},
-			Sync:     Role{User: "mailbox_sync", PasswordFile: mounted + "database/sync/password", PoolSize: 2},
+		Database: dbconnectcore.Config{
+			Host: "db.example", Port: 6432, Name: "mediated_mailbox", User: "mailbox_app", SSLMode: "require",
+			SSLRootCert: mounted + "ca/ca.crt", PasswordFile: mounted + "database/password", PoolSize: 3,
 		},
 		Credential: credentialcore.Config{
 			PublicKeyFile:   mounted + "credential-sealing-key-pair/credential.pub",
@@ -77,7 +77,7 @@ func TestTheChartRendersAFileTheWorkerStartsWith(t *testing.T) {
 
 // TestTheChartAdmitsEveryWorkerKeyItDoesNotRender reads the values schema's blocks for the worker and checks that,
 // with the keys the chart renders itself, they name exactly the keys of the worker's configuration types: the root,
-// each job kind's block under database and each job kind's own section, and the scanner section the chart renders
+// the database section and each job kind's own section, and the scanner section the chart renders
 // into the worker and the API server. A key the worker gains that the schema does not admit, or one the schema admits
 // that the worker would refuse, fails here.
 func TestTheChartAdmitsEveryWorkerKeyItDoesNotRender(t *testing.T) {
@@ -91,9 +91,7 @@ func TestTheChartAdmitsEveryWorkerKeyItDoesNotRender(t *testing.T) {
 		got  []string
 	}{
 		{"the root", reflect.TypeFor[Configuration](), root},
-		{"the database section", reflect.TypeFor[Database](), sorted(append([]string{"host", "name", "port", "sslmode", "sslrootcert"}, jobKinds...))},
-		{"backfill's block under database", reflect.TypeFor[Role](), roleKeys(t, "backfill")},
-		{"delta sync's block under database", reflect.TypeFor[Role](), roleKeys(t, "sync")},
+		{"the database section", reflect.TypeFor[dbconnectcore.Config](), databaseKeys(t)},
 		{"backfill's section", reflect.TypeFor[Backfill](), helmchart.SchemaKeys(t, chartDir, "worker", "jobKinds", "backfill", "config")},
 		{"delta sync's section", reflect.TypeFor[Sync](), sorted(append(helmchart.SchemaKeys(t, chartDir, "worker", "jobKinds", "sync", "config"), "sync_interval"))},
 		{"the scanner section", reflect.TypeFor[scan.Config](), helmchart.SchemaKeys(t, chartDir, "sharedConfig", "scanner")},
@@ -105,17 +103,18 @@ func TestTheChartAdmitsEveryWorkerKeyItDoesNotRender(t *testing.T) {
 	}
 }
 
-// roleKeys returns the worker's keys under database.<kind> that the chart renders from the job kind's database
-// block in the values schema, its camelCase keys turned into the worker's names, with the password file the chart
-// always renders, sorted. A schema key with no rendering written out here fails the test.
-func roleKeys(t *testing.T, kind string) []string {
+// databaseKeys returns the worker's keys under database that the chart renders from worker.database in the values
+// schema, its camelCase keys turned into the worker's names, with the keys the chart always renders, the server's,
+// the application user's name and the password file, sorted. A schema key with no rendering written out here fails
+// the test.
+func databaseKeys(t *testing.T) []string {
 	t.Helper()
-	renders := map[string]string{"user": "user", "poolSize": "pool_size"}
-	keys := []string{"password_file"}
-	for _, k := range helmchart.SchemaKeys(t, chartDir, "worker", "jobKinds", kind, "database") {
+	renders := map[string]string{"poolSize": "pool_size"}
+	keys := []string{"host", "name", "password_file", "port", "sslmode", "sslrootcert", "user"}
+	for _, k := range helmchart.SchemaKeys(t, chartDir, "worker", "database") {
 		name, ok := renders[k]
 		if !ok {
-			t.Errorf("worker.jobKinds.%s.database.%s has no rendering this test knows", kind, k)
+			t.Errorf("worker.database.%s has no rendering this test knows", k)
 			continue
 		}
 		keys = append(keys, name)

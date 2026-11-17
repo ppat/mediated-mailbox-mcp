@@ -4,6 +4,7 @@ package check_test
 
 import (
 	"context"
+	"fmt"
 	"maps"
 	"slices"
 	"strings"
@@ -12,7 +13,7 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-// isolationRole stands in for any runtime role. It holds reads and writes on every table and nothing
+// isolationRole stands in for any user a program connects as. It holds reads and writes on every table and nothing
 // else, so what each statement below reaches is the statement's own doing.
 const isolationRole = "check_isolation"
 
@@ -186,152 +187,41 @@ func TestTheTransactionsAccountScopesEveryAccountTable(t *testing.T) {
 	}
 }
 
-// listingRoles are the roles that read every row of accounts, the UI's for its account selector and
-// the roles of the code that calls a provider for their account snapshots, the API server's and those of
-// the worker's job kinds backfill, delta sync, and reorg apply and rollback (ADR-0091). The heuristics
-// job's role is not among them.
-var listingRoles = []string{
-	"mediated_mailbox_backfill",
-	"mediated_mailbox_api",
-	"mediated_mailbox_organize",
-	"mediated_mailbox_sync",
-	uiRole,
-}
-
-// TestTheListingRolesReadEveryAccount is ADR-0091's listing, under the roles as the migration chain
-// grants them. Each role that lists accounts reads every account's identifier, provider and client on
-// a connection that never set the account, since the listing compares no account. The heuristics
-// job's role, which lists nothing yet, is refused by the grant.
-func TestTheListingRolesReadEveryAccount(t *testing.T) {
-	for _, role := range append(slices.Clone(listingRoles), "mediated_mailbox_propose") {
-		t.Run(role, func(t *testing.T) {
-			ctx := t.Context()
-			tx, err := connect(t).Begin(ctx)
-			if err != nil {
-				t.Fatal(err)
-			}
-			defer func() {
-				if err := tx.Rollback(context.Background()); err != nil {
-					t.Error(err)
-				}
-			}()
-			for _, sql := range []string{
-				"INSERT INTO accounts (account_id, provider) VALUES ('" + accountA + "', 'gmail'), ('" + accountB + "', 'gmail')",
-				"SET LOCAL ROLE " + pgx.Identifier{role}.Sanitize(),
-			} {
-				if _, err := tx.Exec(ctx, sql); err != nil {
-					t.Fatalf("%s: %v", sql, err)
-				}
-			}
-			var n int
-			err = tx.QueryRow(ctx, "SELECT count(*) FROM (SELECT account_id, provider, oauth_client FROM accounts) AS a").Scan(&n)
-			switch {
-			case role == "mediated_mailbox_propose" && !refusedByGrant(err):
-				t.Errorf("got %v, want the grant to refuse the listing", err)
-			case role != "mediated_mailbox_propose" && (err != nil || n != 2):
-				t.Errorf("listed %d of the two accounts with error %v, want both and no error", n, err)
-			}
-		})
-	}
-}
-
-// policyWriter is the role that writes the policy, the UI's (ADR-0084, ADR-0102).
-const policyWriter = uiRole
-
-// TestOnlyTheUIWritesThePolicy holds the policy's write grants, which with the statement check confine
-// a write of the base policy to the UI's own statements in db/policyrules/base (ADR-0135). Every other
-// runtime role is refused an insert, an update and a delete of a rule, the base policy's included, and
-// an insert of a history row, for want of a grant. The UI's role writes each, so the refusals are the
-// grant's doing.
-func TestOnlyTheUIWritesThePolicy(t *testing.T) {
-	ctx := t.Context()
-	tx := seeded(t)
-	if _, err := tx.Exec(ctx, "INSERT INTO policy_rules (account_id, rule_id, class, domain_suffix, source, created_by) VALUES (NULL, 'base.example.org', 'restricted', '{example.org}', 'operator', 'operator')"); err != nil {
-		t.Fatal(err)
-	}
-	writes := map[string]string{
-		"insert a base rule":       "INSERT INTO policy_rules (account_id, rule_id, class, domain_suffix, source, created_by) VALUES (NULL, 'base.example.net', 'restricted', '{example.net}', 'operator', 'operator')",
-		"edit a base rule":         "UPDATE policy_rules SET domain_suffix = '{example.org,example.info}' WHERE account_id IS NULL",
-		"lift a base rule":         "DELETE FROM policy_rules WHERE account_id IS NULL",
-		"record a base change":     "INSERT INTO policy_changes (account_id, actor, action, rule_id) VALUES (NULL, 'operator', 'added', 'base.example.net')",
-		"insert an account's rule": "INSERT INTO policy_rules (account_id, rule_id, class, domain_suffix, source, created_by) VALUES (current_setting('app.account'), 'own.example.net', 'restricted', '{example.net}', 'operator', 'operator')",
-		"record an account change": "INSERT INTO policy_changes (account_id, actor, action, rule_id) VALUES (current_setting('app.account'), 'operator', 'added', 'own.example.net')",
-	}
-	for _, role := range runtimeRoles {
-		for _, name := range slices.Sorted(maps.Keys(writes)) {
-			t.Run(role+"/"+name, func(t *testing.T) {
-				n, err := as(ctx, tx, role, accountA, writes[name])
-				switch {
-				case role == policyWriter && (err != nil || n != 1):
-					t.Errorf("%s: wrote %d rows with error %v, want 1 and no error", writes[name], n, err)
-				case role != policyWriter && !refusedByGrant(err):
-					t.Errorf("%s: got %v, want a refusal for want of a grant", writes[name], err)
-				}
-			})
-		}
-	}
-}
-
-// providerRoles are the roles the account snapshot's statements run under, which read every OAuth
-// client and their own account's credential. They are exactly the roles a composition root builds an
-// execution context over, the API server's own and delta sync's in the worker (ADR-0016, ADR-0090,
-// ADR-0118, ADR-0091).
-var providerRoles = []string{
-	"mediated_mailbox_api",
-	"mediated_mailbox_sync",
-}
-
-// contextJobKindRoles are the roles of the worker's job kinds that call a provider through the
-// worker's execution context, backfill's and reorg apply and rollback's, which so hold no grant on a
-// sealed credential or an OAuth client (ADR-0118).
-var contextJobKindRoles = []string{
-	"mediated_mailbox_backfill",
-	"mediated_mailbox_organize",
-}
-
-// syncRole is delta sync's role, the one runtime role that writes a client's secret (ADR-0092).
-const syncRole = "mediated_mailbox_sync"
-
-// TestTheProviderCallingRolesReadTheirAccountsState holds the account snapshot's grants on
-// account_state, under the roles as the migration chain grants them. Each role the account snapshot's
-// statements run under reads its transaction's account's credential, and an update of it in the
-// library's form changes that account's row alone. Backfill's role neither reads nor writes a
-// credential. The UI's role reads its transaction's account's progress and last authentication, the
-// columns its statement in db/accountstate reads, and never a credential. No other role reads the table
-// (ADR-0084, ADR-0091, ADR-0118).
-func TestTheProviderCallingRolesReadTheirAccountsState(t *testing.T) {
+// TestTheApplicationUserListsEveryAccountAndReadsOneState is ADR-0091's listing and ADR-0135's state
+// read as the application user, as the migration chain grants it. On a connection that never set the
+// account, the listing reads every account's identifier, provider and client, since it compares no
+// account. With the transaction set to one account, a read of account_state in the statements' form
+// returns that account's row alone, its sealed credential included, and an update of the credential in
+// that form changes that row alone. What a program's code may read of an account's state is held by its
+// import list, since one user's grants cannot tell programs apart (ADR-0143).
+func TestTheApplicationUserListsEveryAccountAndReadsOneState(t *testing.T) {
 	ctx := t.Context()
 	tx := seeded(t)
 	if _, err := tx.Exec(ctx, "INSERT INTO account_state (account_id, credential) VALUES ($1, 'a'), ($2, 'b')", accountA, accountB); err != nil {
 		t.Fatal(err)
 	}
-	for _, role := range providerRoles {
-		t.Run(role+"/reads its own account's state", func(t *testing.T) {
-			var accounts []string
-			err := asRole(ctx, tx, role, accountA, func(sp pgx.Tx) error {
-				rows, err := sp.Query(ctx, "SELECT account_id FROM account_state WHERE account_id = current_setting('app.account') AND credential IS NOT NULL")
-				if err != nil {
-					return err
-				}
-				accounts, err = pgx.CollectRows(rows, pgx.RowTo[string])
-				return err
-			})
-			if err != nil || !slices.Equal(accounts, []string{accountA}) {
-				t.Errorf("read the state of %v with error %v, want %s's alone", accounts, err, accountA)
+	t.Run("the listing", func(t *testing.T) {
+		sp, err := tx.Begin(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer func() {
+			if err := sp.Rollback(context.Background()); err != nil {
+				t.Error(err)
 			}
-		})
-		t.Run(role+"/updates its own account's credential", func(t *testing.T) {
-			if n, err := as(ctx, tx, role, accountA, "UPDATE account_state SET credential = 'x' WHERE account_id = current_setting('app.account')"); err != nil || n != 1 {
-				t.Errorf("updated %d rows with error %v, want its own account's alone and no error", n, err)
-			}
-		})
-	}
-	t.Run(uiRole+"/reads its own account's progress", func(t *testing.T) {
+		}()
+		if _, err := sp.Exec(ctx, "SET LOCAL ROLE "+pgx.Identifier{appUser}.Sanitize()); err != nil {
+			t.Fatal(err)
+		}
+		var n int
+		if err := sp.QueryRow(ctx, "SELECT count(*) FROM (SELECT account_id, provider, oauth_client FROM accounts) AS a").Scan(&n); err != nil || n != 2 {
+			t.Errorf("listed %d of the two accounts with error %v, want both and no error", n, err)
+		}
+	})
+	t.Run("the state read", func(t *testing.T) {
 		var accounts []string
-		err := asRole(ctx, tx, uiRole, accountA, func(sp pgx.Tx) error {
-			rows, err := sp.Query(ctx, `SELECT account_id FROM account_state
-				WHERE account_id = current_setting('app.account') AND NOT backfill_pass1_complete AND NOT backfill_pass2_complete
-				AND sync_cursor_at IS NULL AND last_auth_at IS NULL AND last_auth_outcome IS NULL ORDER BY account_id`)
+		err := asRole(ctx, tx, appUser, accountA, func(sp pgx.Tx) error {
+			rows, err := sp.Query(ctx, "SELECT account_id FROM account_state WHERE account_id = current_setting('app.account') AND credential IS NOT NULL")
 			if err != nil {
 				return err
 			}
@@ -339,103 +229,64 @@ func TestTheProviderCallingRolesReadTheirAccountsState(t *testing.T) {
 			return err
 		})
 		if err != nil || !slices.Equal(accounts, []string{accountA}) {
-			t.Errorf("read the progress of %v with error %v, want %s's alone", accounts, err, accountA)
+			t.Errorf("read the state of %v with error %v, want %s's alone", accounts, err, accountA)
 		}
 	})
-	t.Run(uiRole+"/reads a credential", func(t *testing.T) {
-		if _, err := as(ctx, tx, uiRole, accountA, "SELECT credential FROM account_state"); !refusedByGrant(err) {
-			t.Errorf("got %v, want the grant to refuse it", err)
-		}
-	})
-	for _, role := range contextJobKindRoles {
-		t.Run(role+"/reads a credential", func(t *testing.T) {
-			if _, err := as(ctx, tx, role, accountA, "SELECT credential FROM account_state"); !refusedByGrant(err) {
-				t.Errorf("got %v, want the grant to refuse it", err)
-			}
-		})
-		t.Run(role+"/updates a credential", func(t *testing.T) {
-			if _, err := as(ctx, tx, role, accountA, "UPDATE account_state SET credential = 'x' WHERE account_id = current_setting('app.account')"); !refusedByGrant(err) {
-				t.Errorf("got %v, want the grant to refuse it", err)
-			}
-		})
-	}
-	t.Run("mediated_mailbox_propose/reads account state", func(t *testing.T) {
-		if _, err := as(ctx, tx, "mediated_mailbox_propose", accountA, "SELECT account_id FROM account_state"); !refusedByGrant(err) {
-			t.Errorf("got %v, want the grant to refuse it", err)
+	t.Run("the credential's write-back", func(t *testing.T) {
+		if n, err := as(ctx, tx, appUser, accountA, "UPDATE account_state SET credential = 'x' WHERE account_id = current_setting('app.account')"); err != nil || n != 1 {
+			t.Errorf("updated %d rows with error %v, want its own account's alone and no error", n, err)
 		}
 	})
 }
 
-// TestOnlyTheProviderCallingRolesReadTheOAuthClients holds oauth_clients' grants, the only barrier
-// around a table that belongs to no account (ADR-0016). Each role the account snapshot's statements run
-// under reads every row, each client's name included (ADR-0106). The UI's role reads each client's name, provider,
-// identifier, project ID and sealed secret, which the one part of the UI that opens a client's secret
-// opens for a consent's code exchange (ADR-0081), and writes what its client setup writes, adding a
-// client, replacing its identifier, secret and project ID, and removing it (ADR-0084). Delta sync's
-// role writes a client's secret, which its re-seal does, and nothing else of the table. No other role
-// reads it or writes it (ADR-0092).
-func TestOnlyTheProviderCallingRolesReadTheOAuthClients(t *testing.T) {
+// TestTheApplicationUserReadsAndWritesTheOAuthClients holds oauth_clients' grants. An OAuth client
+// belongs to no account (ADR-0016), so the application user reads every row, its sealed secret
+// included, which the connections and the UI's one part that opens a client's secret read (ADR-0081),
+// adds, replaces and removes a client, which the UI's client setup does (ADR-0084), and rewrites a
+// client's secret, which the connections' re-seal does (ADR-0092). Which code may do each is held by the
+// import lists (ADR-0143). No statement changes a client's name or provider, so the user is refused it.
+func TestTheApplicationUserReadsAndWritesTheOAuthClients(t *testing.T) {
 	ctx := t.Context()
 	tx := seeded(t)
 	if _, err := tx.Exec(ctx, "INSERT INTO oauth_clients (name, provider, client_id, client_secret) VALUES ('household', 'gmail', 'id', 's'), ('other', 'other', 'id', 's')"); err != nil {
 		t.Fatal(err)
 	}
-	for _, role := range providerRoles {
-		t.Run(role+"/reads every client", func(t *testing.T) {
-			var n int
-			err := asRole(ctx, tx, role, accountA, func(sp pgx.Tx) error {
-				return sp.QueryRow(ctx, "SELECT count(*) FROM (SELECT name, provider, client_id, client_secret FROM oauth_clients) AS c").Scan(&n)
-			})
-			if err != nil || n != 2 {
-				t.Errorf("read %d clients with error %v, want both and no error", n, err)
-			}
-		})
-	}
-	t.Run(uiRole+"/reads every client", func(t *testing.T) {
+	t.Run("reads every client", func(t *testing.T) {
 		var n int
-		err := asRole(ctx, tx, uiRole, accountA, func(sp pgx.Tx) error {
+		err := asRole(ctx, tx, appUser, accountA, func(sp pgx.Tx) error {
 			return sp.QueryRow(ctx, "SELECT count(*) FROM (SELECT name, provider, client_id, client_secret, project_id FROM oauth_clients) AS c").Scan(&n)
 		})
 		if err != nil || n != 2 {
 			t.Errorf("read %d clients with error %v, want both and no error", n, err)
 		}
 	})
-	for _, role := range append([]string{"mediated_mailbox_propose"}, contextJobKindRoles...) {
-		t.Run(role+"/reads a client", func(t *testing.T) {
-			// Each column is read on its own, so a grant of any one of them is caught.
-			for _, column := range []string{"name", "provider", "client_id", "client_secret", "project_id"} {
-				if _, err := as(ctx, tx, role, accountA, "SELECT "+column+" FROM oauth_clients"); !refusedByGrant(err) {
-					t.Errorf("reading %s: got %v, want the grant to refuse it", column, err)
+	t.Run("sets up, re-seals and removes a client", func(t *testing.T) {
+		err := asRole(ctx, tx, appUser, accountA, func(sp pgx.Tx) error {
+			for _, sql := range []string{
+				"INSERT INTO oauth_clients (name, provider, client_id, client_secret, project_id) VALUES ('new', 'gmail', 'new-id', 's', 'project')",
+				"UPDATE oauth_clients SET client_id = 'id-2', client_secret = 's-2', project_id = NULL WHERE name = 'new'",
+				"UPDATE oauth_clients SET client_secret = 'resealed' WHERE name = 'household' AND client_secret = 's'",
+				"DELETE FROM oauth_clients WHERE name = 'other'",
+			} {
+				tag, err := sp.Exec(ctx, sql)
+				if err != nil {
+					return fmt.Errorf("%s: %w", sql, err)
+				}
+				if tag.RowsAffected() != 1 {
+					return fmt.Errorf("%s wrote %d rows, want 1", sql, tag.RowsAffected())
 				}
 			}
+			return nil
 		})
-	}
-	for _, role := range runtimeRoles {
-		t.Run(role+"/writes a client", func(t *testing.T) {
-			_, err := as(ctx, tx, role, accountA, "UPDATE oauth_clients SET client_secret = 'resealed' WHERE name = 'household'")
-			switch {
-			case (role == syncRole || role == uiRole) && err != nil:
-				t.Errorf("updating the secret: got %v, want it written", err)
-			case role != syncRole && role != uiRole && !refusedByGrant(err):
-				t.Errorf("updating the secret: got %v, want the grant to refuse it", err)
+		if err != nil {
+			t.Error(err)
+		}
+	})
+	t.Run("changes a client's name or provider", func(t *testing.T) {
+		for _, sql := range []string{"UPDATE oauth_clients SET name = name", "UPDATE oauth_clients SET provider = provider"} {
+			if _, err := as(ctx, tx, appUser, accountA, sql); !refusedByGrant(err) {
+				t.Errorf("%s: got %v, want the grant to refuse it", sql, err)
 			}
-			writes := map[string]string{
-				"updating the identifier": "UPDATE oauth_clients SET client_id = client_id",
-				"inserting":               "INSERT INTO oauth_clients (name, provider, client_id, client_secret) VALUES ('new', 'gmail', 'new-id', 's')",
-				"deleting":                "DELETE FROM oauth_clients WHERE name = 'other'",
-			}
-			for _, name := range slices.Sorted(maps.Keys(writes)) {
-				_, err := as(ctx, tx, role, accountA, writes[name])
-				switch {
-				case role == uiRole && err != nil:
-					t.Errorf("%s: got %v, want the UI's client setup to write it", name, err)
-				case role != uiRole && !refusedByGrant(err):
-					t.Errorf("%s: got %v, want the grant to refuse it", name, err)
-				}
-			}
-			if _, err := as(ctx, tx, role, accountA, "UPDATE oauth_clients SET name = name, provider = provider"); !refusedByGrant(err) {
-				t.Errorf("updating the name and provider: got %v, want the grant to refuse it", err)
-			}
-		})
-	}
+		}
+	})
 }

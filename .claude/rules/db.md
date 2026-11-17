@@ -15,12 +15,14 @@ and Images. These are the tripwires:
 
 - **Migrations are hand-written, forward-only SQL** (ADR-0048), and no migration creates a trigger,
   a procedure or a function (ADR-0060). The project names no database user. The two users, the
-  application user and the migrator's user, are created by the deployment platform before the
-  chain, under names the deployment chooses (ADR-0143). The chain makes every grant to the
-  application user's name, which the migrator is given as a required setting. How the migrator
-  hands that name to the migrations is not yet chosen, and the first change to the chain's grants
-  chooses it. The chain's first migration creates the one extension the schema needs, which is
-  trusted, so nothing runs as a superuser inside the application database (ADR-0048).
+  application user and the migrator's user, are created by the deployment platform before the chain,
+  under names the deployment chooses (ADR-0143). The chain makes every grant to the application
+  user's name, which the migrator is given as a required setting, by writing every grantee as the
+  placeholder `application_user`, which `db/migrate` replaces with that name and `db/check` holds to
+  the grantee position, refusing every other role a migration names and every statement that
+  creates, renames or drops a role or sets or resets the session's role or authorization (ADR-0048).
+  The chain's first migration creates the one extension the schema needs, which is trusted, so
+  nothing runs as a superuser inside the application database (ADR-0048).
 - **Every migration after the baseline declares which binaries run on the schema it leaves**, the
   line `-- compatibility: every chain the floor admits runs on this migration`, which says no
   binary whose chain is at or above the current floor depends on what it removes or changes, or a

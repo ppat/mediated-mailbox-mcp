@@ -4,9 +4,10 @@
 // process, refusing the database driver's password variables before the configuration is read,
 // reading the configuration through the configuration library, answering --help and --version,
 // logging every effective value, setting the level from log_level, validating and writing the start
-// banner, and opens its pool. The work connects as the migration role the database section names, with
+// banner, and opens its pool. The work connects as the migrator's user the database section names, with
 // the password from the mounted file it names, and applies the migration chain its binary carries
-// under goose's advisory lock (ADR-0078, ADR-0079, ADR-0122).
+// under goose's advisory lock, its grants made to the application user application_user names
+// (ADR-0048, ADR-0078, ADR-0079, ADR-0122, ADR-0143).
 package app
 
 import (
@@ -25,16 +26,22 @@ import (
 )
 
 // Configuration is the migrator's root configuration type, loaded by the configuration library
-// (ADR-0078). It composes the process's section, inline at the top of the tree, and the database
-// section. Its fields are pinned by the test beside this file, so a new value is a visible change.
+// (ADR-0078). It composes the process's section, inline at the top of the tree, the database section,
+// and the application user's name. Its fields are pinned by the test beside this file, so a new value
+// is a visible change.
 type Configuration struct {
 	host.Process `yaml:",inline"`
 	Database     dbconnectcore.Config `yaml:"database"`
+	// ApplicationUser is the name of the user the API server, the UI and the worker connect as, which
+	// every grant of the chain is made to. The project names no database user, so it has no default
+	// (ADR-0048, ADR-0139, ADR-0143).
+	ApplicationUser string `yaml:"application_user" settings:"required"`
 }
 
-// defaults are the migrator's defaults. The user is the migration role, which owns the schema
-// (ADR-0048), the TLS mode is the one that fails closed, and the pool size is the driver's own default.
-// The password file has no default, since a default path assumes the environment.
+// defaults are the migrator's defaults. The user is the test harness's migrator's user, the TLS mode
+// is the one that fails closed, and the pool size is the driver's own default. The password file and
+// the application user's name have no default, since a default path assumes the environment and the
+// project names no database user (ADR-0143).
 func defaults() Configuration {
 	return Configuration{
 		Process:  host.DefaultProcess(),
@@ -42,8 +49,12 @@ func defaults() Configuration {
 	}
 }
 
-// validate refuses a database section the migrator cannot connect with.
+// validate refuses a database section the migrator cannot connect with, and an empty application
+// user's name, which would name no grantee.
 func validate(c Configuration) error {
+	if c.ApplicationUser == "" {
+		return errors.New("application_user is empty")
+	}
 	return dbconnectcore.Validate(c.Database)
 }
 
@@ -65,7 +76,8 @@ func Run(ctx context.Context, args, environ []string, stdout, stderr io.Writer, 
 	})
 }
 
-// apply connects as the role the database section names and applies the chain this build carries.
+// apply connects as the user the database section names and applies the chain this build carries,
+// its grants made to the application user.
 func apply(ctx context.Context, provided host.Provided[Configuration]) (err error) {
 	pool, err := provided.OpenPool(ctx, provided.Loaded.Config.Database, provided.Registerer)
 	if err != nil {
@@ -73,5 +85,5 @@ func apply(ctx context.Context, provided host.Provided[Configuration]) (err erro
 	}
 	db := stdlib.OpenDBFromPool(pool)
 	defer func() { err = errors.Join(err, db.Close()) }()
-	return migrate.Apply(ctx, db, migrations.Chain(), provided.Logger)
+	return migrate.Apply(ctx, db, migrations.Chain(), provided.Loaded.Config.ApplicationUser, provided.Logger)
 }

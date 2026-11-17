@@ -19,7 +19,6 @@ sharedConfig:
   sync_interval: 3m
 ui:
   database:
-    user: mailbox_ui
     poolSize: 11
   config:
     heuristics_interval: 12h

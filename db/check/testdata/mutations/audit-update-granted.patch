@@ -1,18 +1,19 @@
-control: No runtime role can update or delete an audit row
-removes: the chain grants the API server's role UPDATE on the audit log
+control: The application user cannot update or delete an audit row
+removes: the chain grants the application user UPDATE on the audit log
 packages: ./db/check
-tests: TestNoRuntimeRoleCanAlterTheAuditLog TestNoRuntimeRoleCanAlterTheAuditLog/mediated_mailbox_api/update
+tests: TestTheApplicationUserCannotAlterTheAuditLog TestTheApplicationUserCannotAlterTheAuditLog/update
 scheduled-count: no
 integration: yes
+
 diff --git a/db/migrations/00003_grants.sql b/db/migrations/00003_grants.sql
-index f763c1aa..2383b7d8 100644
+index 809f1022..ebb331b9 100644
 --- a/db/migrations/00003_grants.sql
 +++ b/db/migrations/00003_grants.sql
-@@ -98,6 +98,7 @@ GRANT INSERT (
-     account_id, actor, action, message_id, stage, reason, sender_class, class_rule_id, class_rule_scope, content_flags,
+@@ -226,6 +226,7 @@ GRANT INSERT (
      content_rule_ids, serve_rule_ids, scan_state, scanner_version, scanner_revision
- ) ON audit_log TO mediated_mailbox_api;
-+GRANT INSERT, UPDATE ON audit_log TO mediated_mailbox_api;
- GRANT USAGE ON SEQUENCE audit_log_id_seq TO mediated_mailbox_api;
+ ) ON audit_log TO application_user;
+ GRANT USAGE ON SEQUENCE audit_log_id_seq TO application_user;
++GRANT INSERT, UPDATE ON audit_log TO application_user;
  
- -- Backfill (ADR-0118, ADR-0133).
+ -- The start check's statement in db/schemacompatibility runs on each pool a process opens, before the
+ -- pool is used (ADR-0140). It reads the newest migration goose records and the compatibility floor,

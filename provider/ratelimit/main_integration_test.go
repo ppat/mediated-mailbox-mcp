@@ -30,15 +30,15 @@ const ceiling = 100
 // hardCap is one second's worth at the hard cap under ceiling.
 const hardCap = 80
 
-// spenders returns a pool connecting as backfill's role, one of the four whose lists admit the rate
-// limiter. Its grants apply to it, as they do in production.
+// spenders returns a pool connecting as the application user, as every program that spends from the
+// budget does. Its grants apply to it, as they do in production.
 func spenders(t *testing.T) *pgxpool.Pool {
 	t.Helper()
 	cfg, err := pgxpool.ParseConfig(postgres.URL(t))
 	if err != nil {
 		t.Fatal(err)
 	}
-	cfg.ConnConfig.RuntimeParams["options"] = "-c role=mediated_mailbox_backfill"
+	cfg.ConnConfig.RuntimeParams["options"] = "-c role=" + postgres.ApplicationUser
 	pool, err := pgxpool.NewWithConfig(t.Context(), cfg)
 	if err != nil {
 		t.Fatal(err)

@@ -51,7 +51,7 @@ func TestTheChartRendersAFileTheAPIServerStartsWith(t *testing.T) {
 		Serving:    host.Serving{Listen: ":8443", TLSCert: mounted + "tls/tls.crt", TLSKey: mounted + "tls/tls.key"},
 		Section:    Section{TokenFile: mounted + "bearer-token", AccountReloadInterval: 2 * time.Minute, ProviderTimeout: 45 * time.Second},
 		Database: dbconnectcore.Config{
-			Host: "db.example", Port: 6432, Name: "mediated_mailbox", User: "mailbox_api", SSLMode: "verify-ca",
+			Host: "db.example", Port: 6432, Name: "mediated_mailbox", User: "mailbox_app", SSLMode: "verify-ca",
 			SSLRootCert: mounted + "ca/ca.crt", PasswordFile: mounted + "database/password", PoolSize: 9,
 		},
 		Credential: credentialcore.Config{

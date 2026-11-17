@@ -19,7 +19,7 @@ const countPlans = "SELECT count(*) FROM reorg_plans WHERE account_id = current_
 
 // uiConnection returns one connection, so every transaction below runs on the same server session,
 // holding a plan for each of two accounts, a base rule and one of the first account's own rules, and
-// acting as the UI's role.
+// acting as the application user.
 func uiConnection(t *testing.T) *pgx.Conn {
 	t.Helper()
 	ctx := t.Context()
@@ -42,7 +42,7 @@ func uiConnection(t *testing.T) *pgx.Conn {
 			(NULL, 'operator.example.org', 'restricted', '{example.org}', 'operator', 'operator'),
 			('acct-a', 'operator.example.net', 'restricted', '{example.net}', 'operator', 'operator')
 			ON CONFLICT DO NOTHING`,
-		"SET ROLE mediated_mailbox_ui",
+		"SET ROLE mediated_mailbox_app",
 	}
 	for _, sql := range setup {
 		if _, err := conn.Exec(ctx, sql); err != nil {

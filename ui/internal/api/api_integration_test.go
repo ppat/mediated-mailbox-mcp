@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"maps"
@@ -126,7 +127,7 @@ func TestTheEntryDocumentIsRenderedForEveryScreenRoute(t *testing.T) {
 // check's included (VERIFICATIONS, the registry row).
 func TestTheRegistryRefusesWhatItDoesNotDeclare(t *testing.T) {
 	seed(t)
-	pool, sent := countingPool(t, "mediated_mailbox_ui")
+	pool, sent := countingPool(t, postgres.ApplicationUser)
 	s, _ := serverAs(t, pool)
 	if r := get(t, s.Handler(), "/ui/api/accounts/personal/lens?dataset=plans&level=0"); r.status != http.StatusOK || sent.sent.Load() == 0 {
 		t.Fatalf("a declared request answered %d after %d statements, so the count proves nothing", r.status, sent.sent.Load())
@@ -281,12 +282,30 @@ func TestTheLensAnswersItsLevels(t *testing.T) {
 	}
 }
 
-// TestADatabaseFailureReportsTheDatabaseOrigin reads as a role holding no grant on the plans, whose
-// refusal names a table and nothing the operator could act on, and requires it reported with the
-// database origin (docs/UI.md section 17.3, ADR-0084).
+// TestADatabaseFailureReportsTheDatabaseOrigin reads as a role the test creates holding no grant at
+// all, whose refusal names a table and nothing the operator could act on, and requires it reported with
+// the database origin (docs/UI.md section 17.3, ADR-0084).
 func TestADatabaseFailureReportsTheDatabaseOrigin(t *testing.T) {
 	seed(t)
-	s, _ := serverAs(t, uiPool(t, "mediated_mailbox_backfill"))
+	ctx := t.Context()
+	conn, err := pgx.Connect(ctx, postgres.URL(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// A role belongs to the whole cluster, so its name is the test binary's own.
+	refused := pgx.Identifier{fmt.Sprintf("ui_refused_%d", os.Getpid())}
+	if _, err := conn.Exec(ctx, "CREATE ROLE "+refused.Sanitize()+" NOLOGIN"); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if _, err := conn.Exec(context.Background(), "DROP ROLE "+refused.Sanitize()); err != nil {
+			t.Error(err)
+		}
+		if err := conn.Close(context.Background()); err != nil {
+			t.Error(err)
+		}
+	})
+	s, _ := serverAs(t, uiPool(t, refused[0]))
 	r := get(t, s.Handler(), "/ui/api/accounts/personal/lens?dataset=plans&level=3")
 	if origin, _ := errorOf(t, r); r.status != http.StatusServiceUnavailable || origin != "database" {
 		t.Fatalf("a refused read answered %d %s, want 503 database: %s", r.status, origin, r.body)
@@ -294,10 +313,10 @@ func TestADatabaseFailureReportsTheDatabaseOrigin(t *testing.T) {
 }
 
 // TestReadinessFollowsTheDatabase requires the UI's readiness check to pass while the database answers
-// as the UI's role and to fail once it does not.
+// as the application user and to fail once it does not.
 func TestReadinessFollowsTheDatabase(t *testing.T) {
 	seed(t)
-	pool := uiPool(t, "mediated_mailbox_ui")
+	pool := uiPool(t, postgres.ApplicationUser)
 	s, _ := serverAs(t, pool)
 	if err := s.Ready(t.Context()); err != nil {
 		t.Fatalf("not ready with the database up: %v", err)
@@ -359,7 +378,7 @@ func TestTheStreamEndsWhenTheProcessDrains(t *testing.T) {
 	draining, drain := context.WithCancel(t.Context())
 	defer drain()
 	s, err := api.New(api.Options{
-		Bundle: os.DirFS(filepath.Join("..", "..", "browser", "dist")), Database: uiPool(t, "mediated_mailbox_ui"),
+		Bundle: os.DirFS(filepath.Join("..", "..", "browser", "dist")), Database: uiPool(t, postgres.ApplicationUser),
 		Datasets: registry.Datasets(lookups), Lookups: lookups, Logger: slog.New(slog.NewJSONHandler(io.Discard, nil)),
 		Metrics: prometheus.NewRegistry(), Draining: draining, Clock: func() time.Time { return now },
 		Cadences: api.Cadences{Sync: 5 * time.Minute, Heuristics: 24 * time.Hour}, StreamInterval: 50 * time.Millisecond,

@@ -6,12 +6,12 @@ scheduled-count: no
 integration: yes
 
 diff --git a/db/migrations/00002_schema.sql b/db/migrations/00002_schema.sql
-index f40c7fd3..a38c6ecc 100644
+index d1041389..7e2d6013 100644
 --- a/db/migrations/00002_schema.sql
 +++ b/db/migrations/00002_schema.sql
-@@ -346,7 +346,7 @@ CREATE TABLE job_runs (
+@@ -372,7 +372,7 @@ CREATE TABLE job_runs (
      -- A closed set of the pairs the built job kinds record. Each job kind adds its own pairs in the
-     -- migration that brings its role.
+     -- migration that brings its statements.
      CONSTRAINT job_runs_workload_pass_check CHECK (
 -        (workload, pass) IN (('backfill', 'pass1'), ('backfill', 'pass2'), ('sync', 'tick'), ('sync', 'gap_recovery'))
 +        workload IN ('backfill', 'sync') AND pass IN ('pass1', 'pass2', 'tick', 'gap_recovery')

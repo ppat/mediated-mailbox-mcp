@@ -25,7 +25,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/series"
 )
 
-// revoke revokes a grant of delta sync's role for the rest of the test, and grants it again when the
+// revoke revokes a grant of the application user for the rest of the test, and grants it again when the
 // test ends, so the tests after it see the role as the migration chain made it.
 func revoke(t *testing.T, conn *pgx.Conn, privilege string) {
 	t.Helper()

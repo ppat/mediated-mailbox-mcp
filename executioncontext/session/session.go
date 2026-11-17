@@ -23,7 +23,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
-	"github.com/ppat/mediated-mailbox-mcp/db/accountstate/authentication"
+	"github.com/ppat/mediated-mailbox-mcp/db/accountstate"
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/accountload"
 )
@@ -85,8 +85,8 @@ type Config struct {
 	// Loader is the account loader its caller owns, so when snapshots reload stays the caller's
 	// (ADR-0090). A refused credential is read again through it, and a credential handed over to it.
 	Loader *accountload.Loader
-	// DB is where the latest authentication attempt is recorded, under the role of the caller that
-	// opens the session.
+	// DB is where the latest authentication attempt is recorded, the pool of the caller that opens
+	// the session.
 	DB tx.Beginner
 	// Logger logs each account a listing skips.
 	Logger *slog.Logger
@@ -128,8 +128,8 @@ func New(c Config) *Holder {
 // Through returns a holder that shares h's loader and the sources h keeps, so an account's units of
 // work hold one source and hand one rotated credential over however many callers open them, and
 // opens its sessions with connectors' ports, recording each session's latest authentication attempt
-// through db. Each caller in a process that keeps its own series of provider calls and records under
-// its own role sees the process's holder through a holder of its own (ADR-0089, ADR-0117).
+// through db. Each caller in a process that keeps its own series of provider calls and records on
+// its own pool sees the process's holder through a holder of its own (ADR-0089, ADR-0117).
 func (h *Holder) Through(connectors map[string]Connector, db tx.Beginner) *Holder {
 	c := h.config
 	c.Connectors, c.DB = connectors, db
@@ -285,7 +285,7 @@ func recordAttempt(ctx context.Context, db tx.Beginner, account string, attempt 
 		return nil
 	}
 	err := tx.Run(ctx, db, account, func(t pgx.Tx) error {
-		return authentication.New(t).RecordAuthentication(ctx, authentication.RecordAuthenticationParams{
+		return accountstate.New(t).RecordAuthentication(ctx, accountstate.RecordAuthenticationParams{
 			AttemptedAt: pgtype.Timestamptz{Time: time.UnixMilli(int64(attempt.At)).UTC(), Valid: true},
 			Outcome:     pgtype.Text{String: string(attempt.Outcome), Valid: true},
 		})

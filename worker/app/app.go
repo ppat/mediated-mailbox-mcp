@@ -5,17 +5,16 @@
 // root other than the worker's own can compose it, and every other package of this deployable sits
 // under internal.
 //
-// It builds one scheduler, one connection pool per job kind under that kind's own runtime role, the
-// worker's one execution context over delta sync's pool, and each job kind with what it needs and
-// nothing more, and its one task ensures each kind's reload, which adds and drops the kind's account
-// jobs from what the context's latest reload left in force, and which each reload of the context wakes
-// (ADR-0090, ADR-0117, ADR-0118, ADR-0119). The context's reload is a second task. It links no
-// data-access subsection itself and runs no statement on the pools it opens. Each job kind's pool
-// reaches only its own job kind's code, which runs its statements under its role, and the context's
-// statements run under delta sync's role. The import lists cannot see which pool reaches which code,
-// so TestEachJobKindIsHandedThePoolOfItsOwnRole holds that openPools opens each pool as its kind's role,
-// that kinds hands each kind its own and that the context is built over delta sync's, and review holds
-// that the root passes the pools it opens on through Assemble (ADR-0118).
+// It builds one scheduler, one connection pool per job kind, each connecting as the one application
+// user, the worker's one execution context over delta sync's pool, and each job kind with what it
+// needs and nothing more, and its one task ensures each kind's reload, which adds and drops the kind's
+// account jobs from what the context's latest reload left in force, and which each reload of the
+// context wakes (ADR-0090, ADR-0117, ADR-0119, ADR-0143). The context's reload is a second task. It
+// links no data-access subsection itself and runs no statement on the pools it opens. Each job kind's
+// pool reaches only its own job kind's code, so one job kind cannot starve another of connections. The
+// import lists cannot see which pool reaches which code, so TestEachJobKindIsHandedAPoolOfItsOwn holds
+// that openPools opens a pool per job kind and that kinds hands each kind its own, and review holds
+// that the root passes the pools it opens on through Assemble (ADR-0119).
 package app
 
 import (
@@ -56,14 +55,14 @@ const scannerSection = "scanner"
 
 // Configuration is the worker's root configuration type, loaded by the configuration library
 // (ADR-0078). It composes the process's section and the worker's own section, inline, with the
-// sections every job kind shares, read once, and the database section with a role per job kind. Its
+// sections every job kind shares, read once, among them the one database section. Its
 // fields are pinned by the test beside this file, so a new value is a visible change. No account and
 // no provider credential is configuration. Both come from the database (ADR-0080).
 type Configuration struct {
 	host.Process    `yaml:",inline"`
 	host.Operations `yaml:",inline"`
 	Section         `yaml:",inline"`
-	Database        Database              `yaml:"database"`
+	Database        dbconnectcore.Config  `yaml:"database"`
 	Credential      credentialcore.Config `yaml:"credential"`
 	// Scanner is the scanner's section, one for every job kind that masks or scans (ADR-0120).
 	Scanner scan.Config `yaml:"scanner"`
@@ -79,26 +78,6 @@ type Section struct {
 	ReloadInterval time.Duration `yaml:"reload_interval"`
 	Backfill       Backfill      `yaml:"backfill"`
 	Sync           Sync          `yaml:"sync"`
-}
-
-// Database is the worker's database section. The server is named once, and each job kind connects as
-// a runtime role of its own, with its own password file and its own pool (ADR-0078, ADR-0118).
-type Database struct {
-	Host        string `yaml:"host" settings:"required"`
-	Port        int    `yaml:"port"`
-	Name        string `yaml:"name" settings:"required"`
-	SSLMode     string `yaml:"sslmode"`
-	SSLRootCert string `yaml:"sslrootcert"`
-	Backfill    Role   `yaml:"backfill"`
-	Sync        Role   `yaml:"sync"`
-}
-
-// Role is one job kind's connection, its runtime role, the mounted file holding its password, and how
-// many connections its pool opens at most (ADR-0079).
-type Role struct {
-	User         string `yaml:"user"`
-	PasswordFile string `yaml:"password_file" settings:"required"`
-	PoolSize     int    `yaml:"pool_size"`
 }
 
 // Backfill is backfill's section.
@@ -133,55 +112,27 @@ func DefaultSection() Section {
 	}
 }
 
-// defaults are the worker's defaults. Each job kind's user is its own runtime role (ADR-0118), and the
-// TLS mode is the one that fails closed. Each pool's size is set explicitly, since the driver's default
-// follows the node's processors and not the worker's limit. The key files and the password files have
-// no default, since a default path assumes the environment. The scanner's vocabulary and tuning are
-// the ones the application ships.
+// defaults are the worker's defaults. The user is the test harness's application user (ADR-0143), and
+// the TLS mode is the one that fails closed. The pool size, which sizes each job kind's pool alike, is
+// set explicitly, since the driver's default follows the node's processors and not the worker's limit
+// (ADR-0078). The key files and the password file have no default, since a default path assumes the
+// environment. The scanner's vocabulary and tuning are the ones the application ships.
 func defaults() Configuration {
 	return Configuration{
 		Process:    host.DefaultProcess(),
 		Operations: host.DefaultOperations(),
 		Section:    DefaultSection(),
-		Database: Database{
-			Port: 5432, SSLMode: "verify-full",
-			Backfill: Role{User: "mediated_mailbox_backfill", PoolSize: 4},
-			Sync:     Role{User: "mediated_mailbox_sync", PoolSize: 4},
-		},
-		Scanner: scan.DefaultConfig(),
-	}
-}
-
-// connection returns the job kind's connection as the database section of a deployable, the server's
-// values with the role's.
-func (d Database) connection(r Role) dbconnectcore.Config {
-	return dbconnectcore.Config{
-		Host: d.Host, Port: d.Port, Name: d.Name, User: r.User, SSLMode: d.SSLMode, SSLRootCert: d.SSLRootCert, PasswordFile: r.PasswordFile,
-		PoolSize: r.PoolSize,
+		Database:   dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_app", SSLMode: "verify-full", PoolSize: 4},
+		Scanner:    scan.DefaultConfig(),
 	}
 }
 
 // validate refuses a configuration the worker cannot run with, past the process's section, which the
-// host validates. Each job kind's connection passes the database section's validation, every pool,
-// interval, window and bound is positive, and the credential section names its key files.
+// host validates. The database section passes its validation, every interval, window and bound is
+// positive, and the credential section names its key files.
 func validate(c Configuration) error {
-	for _, kind := range []struct {
-		name string
-		role Role
-	}{{backfill.Kind, c.Database.Backfill}, {deltasync.Kind, c.Database.Sync}} {
-		// The role's own values are refused by their own paths, so the shared ones are all a refusal
-		// of the composed section can name, and its paths are the worker's too.
-		switch {
-		case kind.role.User == "":
-			return fmt.Errorf("database.%s.user is empty", kind.name)
-		case kind.role.PasswordFile == "":
-			return fmt.Errorf("database.%s.password_file is empty", kind.name)
-		case kind.role.PoolSize <= 0:
-			return fmt.Errorf("database.%s.pool_size %d is not positive", kind.name, kind.role.PoolSize)
-		}
-		if err := dbconnectcore.Validate(c.Database.connection(kind.role)); err != nil {
-			return err
-		}
+	if err := dbconnectcore.Validate(c.Database); err != nil {
+		return err
 	}
 	if err := ValidateSection(c.Section); err != nil {
 		return err
@@ -232,7 +183,7 @@ func Run(ctx context.Context, args, environ []string, stdout, stderr io.Writer, 
 }
 
 // checkSchema refuses a schema this binary's migration chain cannot run on, read through pool under
-// the role pool connects as. The host runs it on each pool it opens, before the pool is used
+// the user pool connects as. The host runs it on each pool it opens, before the pool is used
 // (ADR-0140).
 func checkSchema(ctx context.Context, pool *pgxpool.Pool) error {
 	v, err := schemacompatibility.New(pool).SchemaVersions(ctx)
@@ -243,9 +194,9 @@ func checkSchema(ctx context.Context, pool *pgxpool.Pool) error {
 }
 
 // fromConfiguration builds what the worker needs from the configuration, the scanner from its section
-// under the section's revision, the keyring, a pool per job kind connecting as that kind's role and the
-// worker's execution context over delta sync's pool, which holds the credential write-back and re-seal
-// grants (ADR-0092, ADR-0118), and assembles the worker from them. The context's reload is the
+// under the section's revision, the keyring, a pool per job kind connecting as the application user,
+// and the worker's execution context over delta sync's pool (ADR-0119, ADR-0143), and assembles the
+// worker from them. The context's reload is the
 // process's task.
 func fromConfiguration(ctx context.Context, provided host.Provided[Configuration]) (host.Parts, error) {
 	scanner, err := buildScanner(provided.Loaded)
@@ -276,8 +227,8 @@ func fromConfiguration(ctx context.Context, provided host.Provided[Configuration
 	return parts, nil
 }
 
-// newContext returns the worker's execution context over delta sync's pool, and so under delta sync's
-// role, reloading on the reload interval (ADR-0090, ADR-0118).
+// newContext returns the worker's execution context over delta sync's pool, reloading on the reload
+// interval (ADR-0090).
 func newContext(pools Pools, keys *open.Keyring, scanner scan.Scanner, s Section, reg prometheus.Registerer, logger *slog.Logger) (*assembly.Context, error) {
 	return assembly.New(assembly.Needs{
 		Pool: pools.Sync, Keys: keys, ThroughClient: []string{gmailProvider}, Scanner: scanner,
@@ -293,15 +244,16 @@ const gmailProvider = "gmail"
 // opener opens a pool from a connection, measured on a registerer.
 type opener func(ctx context.Context, c dbconnectcore.Config, reg prometheus.Registerer) (*pgxpool.Pool, error)
 
-// openPools returns each job kind's pool through open, connecting as that kind's own role with its
-// password file, opening at most its pool size of connections, measured on registry labelled with the
-// job kind. A pool opens no connection until its first use (ADR-0118, ADR-0125).
-func openPools(ctx context.Context, d Database, open opener, registry prometheus.Registerer) (Pools, error) {
-	backfillPool, err := open(ctx, d.connection(d.Backfill), labelled(registry, backfill.Kind))
+// openPools returns a pool of its own for each job kind through open, each from the one database
+// section, so each connects as the application user and opens at most the section's pool size of
+// connections, measured on registry labelled with the job kind. A pool opens no connection until its
+// first use (ADR-0119, ADR-0125, ADR-0143).
+func openPools(ctx context.Context, d dbconnectcore.Config, open opener, registry prometheus.Registerer) (Pools, error) {
+	backfillPool, err := open(ctx, d, labelled(registry, backfill.Kind))
 	if err != nil {
 		return Pools{}, err
 	}
-	syncPool, err := open(ctx, d.connection(d.Sync), labelled(registry, deltasync.Kind))
+	syncPool, err := open(ctx, d, labelled(registry, deltasync.Kind))
 	if err != nil {
 		return Pools{}, err
 	}
@@ -320,7 +272,7 @@ func buildScanner(loaded settings.Loaded[Configuration]) (scan.Scanner, error) {
 	return s, nil
 }
 
-// Pools are the job kinds' connection pools, each connecting as its own kind's runtime role.
+// Pools are the job kinds' connection pools, one per job kind, each connecting as the application user.
 type Pools struct {
 	Backfill, Sync *pgxpool.Pool
 }
@@ -328,7 +280,7 @@ type Pools struct {
 // Needs are what the worker is assembled from.
 type Needs struct {
 	Section Section
-	// Pools are the job kinds' pools, each connecting as its kind's runtime role (ADR-0118).
+	// Pools are the job kinds' pools, one per job kind (ADR-0119).
 	Pools Pools
 	// Context is the process's execution context, whose scanner every job kind masks and scans with
 	// (ADR-0090, ADR-0120).
@@ -342,7 +294,7 @@ type Needs struct {
 }
 
 // Assemble builds the worker from n and returns its parts, the task that runs the scheduler and the
-// readiness checks, each job kind's pool answering as its role and each job kind's first reload done.
+// readiness checks, each job kind's pool answering and each job kind's first reload done.
 // Each reload of the execution context wakes every job kind's reload. It starts nothing. The
 // scheduler's runs end when ctx ends (ADR-0119).
 func Assemble(ctx context.Context, n Needs) (host.Parts, error) {

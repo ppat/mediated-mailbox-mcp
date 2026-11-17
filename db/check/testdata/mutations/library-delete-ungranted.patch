@@ -1,20 +1,20 @@
-control: A shared library's statements are planned under the role of each deployable and job kind that admits it
-removes: the spenders' roles may read and write grants but not delete them
+control: The grant check plans every statement an import list admits under the application user
+removes: the application user may read and write the rate limiter's grants but not delete them, which the rate limiter's statements, admitted by a shared library's list, do
 packages: ./db/check
 tests: TestGrantsCoverAdmittedSubsections
 scheduled-count: no
 integration: yes
 
 diff --git a/db/migrations/00003_grants.sql b/db/migrations/00003_grants.sql
-index 1c11b3a..1da302a 100644
+index 809f1022..c4c44d05 100644
 --- a/db/migrations/00003_grants.sql
 +++ b/db/migrations/00003_grants.sql
-@@ -530,7 +530,7 @@ UPDATE (
+@@ -92,7 +92,7 @@ UPDATE (
+     classes,
      updated_at
- ) ON rate_state
- TO mediated_mailbox_api, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
--GRANT SELECT, INSERT (account_id, class, tokens, issued_at), UPDATE (issued_at), DELETE ON rate_grants
-+GRANT SELECT, INSERT (account_id, class, tokens, issued_at), UPDATE (issued_at) ON rate_grants
- TO mediated_mailbox_api, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
+ ) ON rate_state TO application_user;
+-GRANT INSERT (account_id, class, tokens, issued_at), UPDATE (issued_at), DELETE ON rate_grants
++GRANT INSERT (account_id, class, tokens, issued_at), UPDATE (issued_at) ON rate_grants
+ TO application_user;
  
- -- The policy loader's statement, in db/policyrules, runs under the role of each process's execution context
+ -- Backfill and delta sync rebuild the statistics of each sender they saw from the messages the index

@@ -63,11 +63,20 @@ func TestMigrationAndBootstrapFiles(t *testing.T) {
 			}
 		}
 	}
+	// The grantee check holds the chain db/migrate applies. The test library's own migration grants to its
+	// user by name, since nothing replaces a placeholder in it.
+	for _, f := range realLibrary.migrationChain(t) {
+		for _, found := range checkGrantees(f) {
+			t.Error(found)
+		}
+	}
 }
 
 // TestViolationFiles runs the checks over SQL files that each break checks on purpose. Each file states
-// the checks it must fail in want annotations, and the test fails unless exactly those are reported. A
-// check weakened until it refuses nothing therefore turns this test red.
+// the checks it must fail in want annotations, each in the statement it is to be reported in, and the
+// test fails unless exactly those are reported, statement by statement, so a finding missed in one
+// statement and a spurious one in another cannot make up the count. A check weakened until it refuses
+// nothing therefore turns this test red.
 func TestViolationFiles(t *testing.T) {
 	s := readSchema(t, testLibrary.migrationChain(t))
 	covered := map[string]bool{}
@@ -78,13 +87,13 @@ func TestViolationFiles(t *testing.T) {
 		}
 		for _, path := range paths {
 			f := parseFile(t, path)
-			want := wants(f.src)
+			want := placedWants(f)
 			if len(want) == 0 {
 				t.Errorf("%s states no want", path)
 			}
 			var got []string
 			for _, found := range check(f) {
-				got = append(got, found.check)
+				got = append(got, fmt.Sprintf("%s %s", f.statementAt(found.line), found.check))
 				t.Log(found)
 			}
 			slices.Sort(want)
@@ -93,7 +102,7 @@ func TestViolationFiles(t *testing.T) {
 				t.Errorf("%s: reported %v, want %v", path, got, want)
 			}
 			for _, w := range want {
-				covered[w] = true
+				covered[w[strings.LastIndex(w, " ")+1:]] = true
 			}
 		}
 	}
@@ -105,7 +114,8 @@ func TestViolationFiles(t *testing.T) {
 	run(baseSubsection, func(f sqlFile) []finding { return checkStatements(s, f) })
 	run("migrations", checkMigration)
 	run("compatibility", checkCompatibility)
-	for _, check := range append(slices.Clone(statementChecks), checkDatabaseCode, checkUndeclared, checkFloorStatement) {
+	run(checkGrantee, checkGrantees)
+	for _, check := range append(slices.Clone(statementChecks), checkDatabaseCode, checkUndeclared, checkFloorStatement, checkGrantee) {
 		if !covered[check] {
 			t.Errorf("no violation file wants %s, so nothing shows that check still refuses anything", check)
 		}
@@ -126,6 +136,7 @@ func unreadSQLFiles(t *testing.T, lib library) []string {
 		read = append(read, sqlFiles(t, filepath.Join(lib.violations, baseSubsection))...)
 		read = append(read, sqlFiles(t, filepath.Join(lib.violations, "migrations"))...)
 		read = append(read, sqlFiles(t, filepath.Join(lib.violations, "compatibility"))...)
+		read = append(read, sqlFiles(t, filepath.Join(lib.violations, checkGrantee))...)
 		read = append(read, sqlFiles(t, filepath.Join(lib.violations, checkGeneration))...)
 	}
 	var out []string

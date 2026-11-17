@@ -61,7 +61,7 @@ func TestOneResponseClassifiesUnderOnePolicy(t *testing.T) {
 	}
 	cfg.ConnConfig.Tracer = l
 	cfg.AfterConnect = func(ctx context.Context, conn *pgx.Conn) error {
-		_, err := conn.Exec(ctx, "SET ROLE mediated_mailbox_ui")
+		_, err := conn.Exec(ctx, "SET ROLE mediated_mailbox_app")
 		return err
 	}
 	pool, err := pgxpool.NewWithConfig(ctx, cfg)

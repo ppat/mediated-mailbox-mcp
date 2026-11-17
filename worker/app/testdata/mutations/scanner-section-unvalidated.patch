@@ -5,11 +5,11 @@ tests: TestAnInvalidScannerSectionRefusesTheStart
 scheduled-count: no
 
 diff --git a/worker/app/app.go b/worker/app/app.go
-index df55791..d652c96 100644
+index 4b236336..a6bcc770 100644
 --- a/worker/app/app.go
 +++ b/worker/app/app.go
-@@ -231,10 +231,7 @@ func Run(ctx context.Context, args, environ []string, stdout, stderr io.Writer,
- // grants (ADR-0092, ADR-0118), and assembles the worker from them. The context's reload is the
+@@ -199,10 +199,7 @@ func checkSchema(ctx context.Context, pool *pgxpool.Pool) error {
+ // worker from them. The context's reload is the
  // process's task.
  func fromConfiguration(ctx context.Context, provided host.Provided[Configuration]) (host.Parts, error) {
 -	scanner, err := buildScanner(provided.Loaded)

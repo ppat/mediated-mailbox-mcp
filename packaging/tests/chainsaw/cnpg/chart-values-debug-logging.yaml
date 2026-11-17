@@ -3,19 +3,14 @@
 database:
   host: mailbox-db-rw.${NAMESPACE}.svc.cluster.local
   name: mediated_mailbox
+  applicationUser: mailbox_app
+  migrationUser: mailbox_migrator
 sharedConfig:
   log_level: debug
 secrets:
   databasePasswords:
-    api:
-      existingSecret: api-db
-    ui:
-      existingSecret: ui-db
-    worker:
-      backfill:
-        existingSecret: backfill-db
-      sync:
-        existingSecret: sync-db
+    application:
+      existingSecret: app-db
     migration:
       existingSecret: mailbox-db-app
   databaseCaCertificate:

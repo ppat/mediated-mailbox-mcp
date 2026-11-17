@@ -40,7 +40,7 @@ type tb interface {
 }
 
 // The role delta sync connects as, so its grants apply as in production.
-const role = "mediated_mailbox_sync"
+const role = postgres.ApplicationUser
 
 var (
 	pools    atomic.Pointer[pgxpool.Pool]

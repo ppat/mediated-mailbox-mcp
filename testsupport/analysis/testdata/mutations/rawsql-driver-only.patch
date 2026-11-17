@@ -1,4 +1,4 @@
-control: The raw SQL analyser refuses a statement the UI runs other than through the data-access library
+control: The raw SQL analyser refuses a statement the API server, the UI or the worker runs other than through the data-access library
 removes: only the driver's own methods are reported, so a generated subsection's handle, an interface embedding it and a wrapper escape
 packages: ./testsupport/analysis
 tests: TestRawSQL

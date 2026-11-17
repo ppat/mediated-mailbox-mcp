@@ -1,46 +1,14 @@
 ---
-# Each runtime role's password, as the basic-auth Secrets CloudNativePG's managed roles read, whose username must equal
-# the role. The label has CloudNativePG apply a changed password at once.
+# The application user's password, as the basic-auth Secret CloudNativePG's managed roles read, whose username must
+# equal the user. The label has CloudNativePG apply a changed password at once. The user's name is the suite's own
+# choice, since the system names no database user (ADR-0143).
 apiVersion: v1
 kind: Secret
 metadata:
-  name: api-db
+  name: app-db
   labels:
     cnpg.io/reload: "true"
 type: kubernetes.io/basic-auth
 stringData:
-  username: mediated_mailbox_api
-  password: api-test-password
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: ui-db
-  labels:
-    cnpg.io/reload: "true"
-type: kubernetes.io/basic-auth
-stringData:
-  username: mediated_mailbox_ui
-  password: ui-test-password
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: backfill-db
-  labels:
-    cnpg.io/reload: "true"
-type: kubernetes.io/basic-auth
-stringData:
-  username: mediated_mailbox_backfill
-  password: backfill-test-password
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: sync-db
-  labels:
-    cnpg.io/reload: "true"
-type: kubernetes.io/basic-auth
-stringData:
-  username: mediated_mailbox_sync
-  password: sync-test-password
+  username: mailbox_app
+  password: app-test-password

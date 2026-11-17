@@ -1,19 +1,22 @@
-control: The raw SQL analyser refuses a statement the UI runs other than through the data-access library
+control: The raw SQL analyser refuses a statement the API server, the UI or the worker runs other than through the data-access library
 removes: every package of the module is checked, the data-access library included
 packages: ./testsupport/analysis
 tests: TestRawSQL
 scheduled-count: no
 
 diff --git a/testsupport/analysis/rawsql.go b/testsupport/analysis/rawsql.go
-index 2fea906c..8b5138e5 100644
+index 0647de16..53f8c1eb 100644
 --- a/testsupport/analysis/rawsql.go
 +++ b/testsupport/analysis/rawsql.go
-@@ -45,7 +45,7 @@ var statementRunners = map[string]string{
+@@ -76,9 +76,8 @@ var rawSQLPrograms = []string{"api", "ui", "worker"}
  
  func runRawSQL(pass *analysis.Pass) (any, error) {
  	path := pass.Pkg.Path()
--	if path != modulePath+"/ui" && !strings.HasPrefix(path, modulePath+"/ui/") {
-+	if !strings.HasPrefix(path, modulePath) {
+-	if !slices.ContainsFunc(rawSQLPrograms, func(dir string) bool {
+-		return path == modulePath+"/"+dir || strings.HasPrefix(path, modulePath+"/"+dir+"/")
+-	}) {
++	// Every package of the module, with the programs named only so their list stays in use.
++	if !strings.HasPrefix(path, modulePath) || slices.Contains(rawSQLPrograms, path) {
  		return nil, nil
  	}
  	for _, file := range pass.Files {

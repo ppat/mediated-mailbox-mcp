@@ -4,10 +4,12 @@ package check_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -16,7 +18,10 @@ import (
 	"testing"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 
+	"github.com/ppat/mediated-mailbox-mcp/db/migrate"
+	"github.com/ppat/mediated-mailbox-mcp/db/migrations"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/postgres"
 )
 
@@ -88,26 +93,23 @@ func explainAs(ctx context.Context, db beginner, role, sql string) (err error) {
 	return err
 }
 
-// grantProblems runs every statement of every subsection a list names under each role plans gives
-// it. An import list admitting a component to a statement its role cannot run is a problem naming the
-// list, the statement and the role, found here instead of at run time. A library's list is named with
-// the deployable's list that admits it.
-func grantProblems(t *testing.T, db beginner, lists importLists, roles map[string]string, ec contextMapping) []string {
+// grantProblems plans every statement of every subsection an import list names under user. A list
+// admitting code to a statement user cannot run is a problem naming the list, the statement and the
+// user, found here instead of at run time. One user's grants cannot tell one list's code from
+// another's, so every list is planned under the same user, a library's list as any other (ADR-0066,
+// ADR-0143).
+func grantProblems(t *testing.T, db beginner, lists importLists, user string) []string {
 	t.Helper()
 	var out []string
-	for _, p := range plans(lists, roles, ec) {
-		named := fmt.Sprintf("list %q names", p.list)
-		if p.via != p.list {
-			named = fmt.Sprintf("list %q, which list %q admits, names", p.list, p.via)
-		}
-		for _, s := range p.subs {
+	for _, list := range slices.Sorted(maps.Keys(lists)) {
+		for _, s := range lists[list] {
 			statements := generatedStatements(t, s)
 			if len(statements) == 0 {
 				out = append(out, fmt.Sprintf("subsection %s has no generated statements, so its grants were not tested", s.name))
 			}
 			for _, st := range statements {
-				if err := explainAs(t.Context(), db, p.role, st.sql); err != nil {
-					out = append(out, fmt.Sprintf("%s %s, but role %s cannot run its %s: %v", named, s.name, p.role, st.name, err))
+				if err := explainAs(t.Context(), db, user, st.sql); err != nil {
+					out = append(out, fmt.Sprintf("list %q names %s, but user %s cannot run its %s: %v", list, s.name, user, st.name, err))
 				}
 			}
 		}
@@ -129,16 +131,91 @@ func connect(t *testing.T) *pgx.Conn {
 	return conn
 }
 
+// TestGrantsCoverAdmittedSubsections plans every statement of every subsection any import list names
+// under the application user, as the migration chain grants it.
 func TestGrantsCoverAdmittedSubsections(t *testing.T) {
 	lists, _ := realLibrary.admissions(t, realLibrary.subsections(t))
-	requireNoProblems(t, grantProblems(t, connect(t), lists, componentRoles, executionContext))
+	requireNoProblems(t, grantProblems(t, connect(t), lists, postgres.ApplicationUser))
 }
 
-// TestGrantProblemsReported applies the test library's roles and schema inside a transaction it rolls
-// back, so the roles, which belong to the whole cluster, never reach another test package. Its import
-// lists hold one list naming a subsection whose update its role holds no grant for, a library's list
-// naming that subsection and admitted by two lists, one whose role holds no grant for the update and
-// one whose role does, and lists naming only what their roles can run.
+// TestTheChainGrantsTheNameTheMigratorIsGiven applies the chain from empty with the migrator given the
+// name of a user the test creates, a name neither the test harness's application user nor the
+// placeholder the chain's grants name, and plans every statement an import list admits under that
+// user. It then applies the chain with the migrator given a name no role holds, which must fail at the
+// chain's first grant, so the grants reach the user the deployment names and no other (ADR-0048,
+// ADR-0143).
+func TestTheChainGrantsTheNameTheMigratorIsGiven(t *testing.T) {
+	ctx := t.Context()
+	admin := connect(t)
+	chosen := fmt.Sprintf("Chosen App %d", os.Getpid())
+	if _, err := admin.Exec(ctx, "CREATE ROLE "+pgx.Identifier{chosen}.Sanitize()+" LOGIN"); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		ctx := context.Background()
+		conn, err := pgx.Connect(ctx, postgres.URL(t))
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		defer func() {
+			if err := conn.Close(ctx); err != nil {
+				t.Error(err)
+			}
+		}()
+		// The databases ChainFor creates hold the role's grants, and their cleanups, registered after
+		// this one, run before it and drop them.
+		if _, err := conn.Exec(ctx, "DROP ROLE IF EXISTS "+pgx.Identifier{chosen}.Sanitize()); err != nil {
+			t.Error(err)
+		}
+	})
+
+	url, err := postgres.ChainFor(t, "chosen", migrations.Chain(), chosen)
+	if err != nil {
+		t.Fatalf("the chain did not apply with its grants made to %q: %v", chosen, err)
+	}
+	conn, err := pgx.Connect(ctx, url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := conn.Close(context.Background()); err != nil {
+			t.Error(err)
+		}
+	})
+	lists, _ := realLibrary.admissions(t, realLibrary.subsections(t))
+	requireNoProblems(t, grantProblems(t, conn, lists, chosen))
+	var placeholder bool
+	if err := conn.QueryRow(ctx, "SELECT EXISTS (SELECT FROM pg_roles WHERE rolname = $1)", migrate.Placeholder).Scan(&placeholder); err != nil || placeholder {
+		t.Fatalf("a role holds the placeholder's name, %v, error %v, so a chain applied without the replacement would not fail", placeholder, err)
+	}
+
+	absent := fmt.Sprintf("absent_%d", os.Getpid())
+	unnamed, err := postgres.ChainFor(t, "unnamed", migrations.Chain(), absent)
+	var pgErr *pgconn.PgError
+	if !errors.As(err, &pgErr) || pgErr.Code != "42704" || !strings.Contains(pgErr.Message, absent) {
+		t.Fatalf("applying the chain for a user no role holds returned %v, want it refused for want of role %s", err, absent)
+	}
+	stopped, err := pgx.Connect(ctx, unnamed)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := stopped.Close(context.Background()); err != nil {
+			t.Error(err)
+		}
+	}()
+	// The grants migration's transaction rolled back, so the chain stands at the migration before it.
+	var version int64
+	if err := stopped.QueryRow(ctx, "SELECT max(version_id) FROM goose_db_version").Scan(&version); err != nil || version != 2 {
+		t.Errorf("the chain stopped at version %d, error %v, want 2, before the grants migration", version, err)
+	}
+}
+
+// TestGrantProblemsReported applies the test library's user and schema inside a transaction it rolls
+// back, so the user, which belongs to the whole cluster, never reaches another test package. Its import
+// lists hold a list and a library's list each naming a subsection whose update the user holds no grant
+// for, and lists naming only what the user can run.
 func TestGrantProblemsReported(t *testing.T) {
 	ctx := t.Context()
 	tx, err := connect(t).Begin(ctx)
@@ -162,9 +239,8 @@ func TestGrantProblemsReported(t *testing.T) {
 		}
 	}
 	lists, _ := testLibrary.admissions(t, testLibrary.subsections(t))
-	requireProblems(t, grantProblems(t, tx, lists, testRoles, contextMapping{}), []string{
-		`list "library", which list "caller" admits, names counting, but role check_fixture_reader cannot run its AddSenderMessages: ERROR: permission denied for table fixture_senders (SQLSTATE 42501)`,
-		`list "library", which list "narrow" admits, names counting, but role check_fixture_reader cannot run its AddSenderMessages: ERROR: permission denied for table fixture_senders (SQLSTATE 42501)`,
-		`list "misaligned" names counting, but role check_fixture_reader cannot run its AddSenderMessages: ERROR: permission denied for table fixture_senders (SQLSTATE 42501)`,
+	requireProblems(t, grantProblems(t, tx, lists, "check_fixture_user"), []string{
+		`list "library" names counting, but user check_fixture_user cannot run its AddSenderMessages: ERROR: permission denied for table fixture_senders (SQLSTATE 42501)`,
+		`list "misaligned" names counting, but user check_fixture_user cannot run its AddSenderMessages: ERROR: permission denied for table fixture_senders (SQLSTATE 42501)`,
 	})
 }

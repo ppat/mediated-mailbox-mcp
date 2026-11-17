@@ -33,7 +33,7 @@ func TestMain(m *testing.M) {
 	postgres.Main(m)
 }
 
-// apiServer returns a pool connecting as the API server's role, under which the grants apply as they do
+// apiServer returns a pool connecting as the application user, under which the grants apply as they do
 // in production.
 func apiServer(t *testing.T) *pgxpool.Pool {
 	t.Helper()
@@ -41,7 +41,7 @@ func apiServer(t *testing.T) *pgxpool.Pool {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cfg.ConnConfig.RuntimeParams["options"] = "-c role=mediated_mailbox_api"
+	cfg.ConnConfig.RuntimeParams["options"] = "-c role=" + postgres.ApplicationUser
 	pool, err := pgxpool.NewWithConfig(t.Context(), cfg)
 	if err != nil {
 		t.Fatal(err)
@@ -111,7 +111,7 @@ func orEmpty(s []string) []string {
 	return s
 }
 
-// reads returns the registry of the operations the API server serves, reading as the API server's role,
+// reads returns the registry of the operations the API server serves, reading as the application user,
 // serving accounts, and deciding under the policy the tables hold for them.
 func reads(t *testing.T, accounts ...string) service.Registry {
 	t.Helper()

@@ -10,7 +10,5 @@ secrets:
 sharedConfig:
   log_level: warn
 migration:
-  database:
-    user: mailbox_migrator
   config:
     log_level: debug

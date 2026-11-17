@@ -5,19 +5,15 @@ tests: TestTheConfigurationTypeIsPinned
 scheduled-count: no
 
 diff --git a/migrator/app/app.go b/migrator/app/app.go
-index 592cad1b..aa817969 100644
+index 71d734d7..09e45e52 100644
 --- a/migrator/app/app.go
 +++ b/migrator/app/app.go
-@@ -28,10 +28,12 @@ import (
- // (ADR-0078). It composes the process's section, inline at the top of the tree, and the database
- // section. Its fields are pinned by the test beside this file, so a new value is a visible change.
- type Configuration struct {
- 	host.Process `yaml:",inline"`
- 	Database     dbconnectcore.Config `yaml:"database"`
+@@ -36,6 +36,8 @@ type Configuration struct {
+ 	// every grant of the chain is made to. The project names no database user, so it has no default
+ 	// (ADR-0048, ADR-0139, ADR-0143).
+ 	ApplicationUser string `yaml:"application_user" settings:"required"`
 +	// Timeout bounds the whole run.
 +	Timeout string `yaml:"timeout"`
  }
  
- // defaults are the migrator's defaults. The user is the migration role, which owns the schema
- // (ADR-0048), the TLS mode is the one that fails closed, and the pool size is the driver's own default.
- // The password file has no default, since a default path assumes the environment.
+ // defaults are the migrator's defaults. The user is the test harness's migrator's user, the TLS mode

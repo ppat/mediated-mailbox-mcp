@@ -12,7 +12,6 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/db/accounts"
 	"github.com/ppat/mediated-mailbox-mcp/db/auditlog"
 	"github.com/ppat/mediated-mailbox-mcp/db/jobruns"
-	runclassification "github.com/ppat/mediated-mailbox-mcp/db/jobruns/classification"
 	"github.com/ppat/mediated-mailbox-mcp/db/policycandidates"
 	"github.com/ppat/mediated-mailbox-mcp/db/policychanges"
 	"github.com/ppat/mediated-mailbox-mcp/db/policyrules/manage"
@@ -203,7 +202,7 @@ func (s *Server) lens(w http.ResponseWriter, r *http.Request) {
 		// The statements are built here, from the transaction that set the account (ADR-0047).
 		q := registry.Queries{
 			Plans: reorgplans.New(t), Candidates: policycandidates.New(t),
-			Runs: jobruns.New(t), Failures: runclassification.New(t), Audit: auditlog.New(t),
+			Runs: jobruns.New(t), Failures: jobruns.New(t), Audit: auditlog.New(t),
 			Rules: manage.New(t), Changes: policychanges.New(t), Senders: senderclassification.New(t), Accounts: accounts.New(t),
 		}
 		figures, total, err := dataset.Summary(r.Context(), q, read)
@@ -331,7 +330,7 @@ func (s *Server) rowDetail(dataset registry.Dataset) func(http.ResponseWriter, *
 			var err error
 			q := registry.Queries{
 				Plans: reorgplans.New(t), Candidates: policycandidates.New(t),
-				Runs: jobruns.New(t), Failures: runclassification.New(t), Audit: auditlog.New(t),
+				Runs: jobruns.New(t), Failures: jobruns.New(t), Audit: auditlog.New(t),
 				Rules: manage.New(t), Changes: policychanges.New(t), Senders: senderclassification.New(t), Accounts: accounts.New(t),
 			}
 			body, err = dataset.Detail(r.Context(), q, account, req, s.opts.Clock())

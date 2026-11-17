@@ -5,10 +5,10 @@ tests: TestNoDependencyAddedForAJobImportsUnsafe TestNoDependencyAddedForAJobImp
 scheduled-count: no
 
 diff --git a/worker/app/app.go b/worker/app/app.go
-index df55791..0cd9010 100644
+index 4b236336..f01d8430 100644
 --- a/worker/app/app.go
 +++ b/worker/app/app.go
-@@ -28,6 +28,7 @@ import (
+@@ -27,6 +27,7 @@ import (
  	"sync/atomic"
  	"time"
  
@@ -16,7 +16,7 @@ index df55791..0cd9010 100644
  	"github.com/jackc/pgx/v5/pgxpool"
  	"github.com/prometheus/client_golang/prometheus"
  	"golang.org/x/net/idna"
-@@ -52,6 +53,8 @@ import (
+@@ -53,6 +54,8 @@ import (
  // (ADR-0120).
  const scannerSection = "scanner"
  
@@ -24,4 +24,4 @@ index df55791..0cd9010 100644
 +
  // Configuration is the worker's root configuration type, loaded by the configuration library
  // (ADR-0078). It composes the process's section and the worker's own section, inline, with the
- // sections every job kind shares, read once, and the database section with a role per job kind. Its
+ // sections every job kind shares, read once, among them the one database section. Its

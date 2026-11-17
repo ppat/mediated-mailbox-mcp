@@ -28,17 +28,13 @@ sharedConfig:
     threshold: 0.7
     subject_threshold: 0.65
 worker:
+  database:
+    poolSize: 3
   jobKinds:
     backfill:
-      database:
-        user: mailbox_backfill
-        poolSize: 3
       config:
         concurrency: 5
     sync:
-      database:
-        user: mailbox_sync
-        poolSize: 2
       config:
         first_window: 48h
         decisions_per_tick: 50

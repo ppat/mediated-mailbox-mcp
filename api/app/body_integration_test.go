@@ -796,7 +796,7 @@ func TestANewlyListedDomainIsDeniedOnTheNextCall(t *testing.T) {
 		t.Error("the denial reached the provider")
 	}
 
-	const policyRead = "SELECT (account_id, rule_id, class, domain_suffix) ON policy_rules"
+	const policyRead = "SELECT ON policy_rules"
 	revoke(t, h.conn, policyRead)
 	must(t, h.conn, "DELETE FROM policy_rules WHERE rule_id = 'base.news'")
 	if got, _ := h.request(t, "m-news"); got.Released || got.Reason != "restricted_sender" {

@@ -1,7 +1,7 @@
 ---
-# The database, owned by the migration role, which CloudNativePG creates with a generated password it writes under the
-# key password into the Secret mailbox-db-app. Every runtime role the migration chain
-# grants to exists before the chain runs. The roles of job kinds the chart does not yet run hold no password.
+# The database, owned by the migrator's user, which CloudNativePG creates with a generated password it writes under the
+# key password into the Secret mailbox-db-app, and the application user the migration chain grants to, which exists
+# before the chain runs. Both names are the suite's own choice, since the system names no database user (ADR-0143).
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
@@ -14,26 +14,10 @@ spec:
   bootstrap:
     initdb:
       database: mediated_mailbox
-      owner: mediated_mailbox_migrator
+      owner: mailbox_migrator
   managed:
     roles:
-    - name: mediated_mailbox_api
+    - name: mailbox_app
       login: true
       passwordSecret:
-        name: api-db
-    - name: mediated_mailbox_ui
-      login: true
-      passwordSecret:
-        name: ui-db
-    - name: mediated_mailbox_backfill
-      login: true
-      passwordSecret:
-        name: backfill-db
-    - name: mediated_mailbox_sync
-      login: true
-      passwordSecret:
-        name: sync-db
-    - name: mediated_mailbox_organize
-      login: true
-    - name: mediated_mailbox_propose
-      login: true
+        name: app-db

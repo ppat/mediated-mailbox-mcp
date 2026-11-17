@@ -1,4 +1,4 @@
-control: The raw SQL analyser refuses a statement the UI runs other than through the data-access library
+control: The raw SQL analyser refuses a statement the API server, the UI or the worker runs other than through the data-access library
 removes: no statement is reported
 packages: ./testsupport/analysis
 tests: TestRawSQL

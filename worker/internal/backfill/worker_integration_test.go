@@ -263,7 +263,7 @@ func TestNoAccountIsAddedWhileThePolicyReloadFails(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	revokeFrom(t, conn, contextRole, "SELECT ON policy_rules")
+	revokeFrom(t, conn, role, "SELECT ON policy_rules")
 	account(t, conn, "work", gmailProvider, sealed(t, public, "work-token", seal.AccountCredential("work")), false)
 	must(t, conn, "UPDATE accounts SET oauth_client = 'household' WHERE account_id = 'work'")
 	must(t, conn, "UPDATE account_state SET credential = NULL WHERE account_id = 'personal'")
@@ -277,7 +277,7 @@ func TestNoAccountIsAddedWhileThePolicyReloadFails(t *testing.T) {
 		t.Errorf("the jobs dropped while the policy load fails (-want +got):\n%s", diff)
 	}
 
-	must(t, conn, "GRANT SELECT ON policy_rules TO "+contextRole)
+	must(t, conn, "GRANT SELECT ON policy_rules TO "+role)
 	if err := b.reloadWithContext(t.Context()); err != nil {
 		t.Fatal(err)
 	}
@@ -551,7 +551,7 @@ func TestTheRunStartStepIsNotMadeAgainAtAJobsLaterAsks(t *testing.T) {
 }
 
 // A run-start step that fails is made again at the job's next ask, since the step counts as made only
-// once it has succeeded. A process whose step for the account fails once, its role briefly lacking a
+// once it has succeeded. A process whose step for the account fails once, the application user briefly lacking a
 // grant the step needs, returns the verdicts made under another scanner to pending at the next ask,
 // and they are scanned again under its scanner (ADR-0121).
 func TestAFailedRunStartStepIsMadeAgainAtTheNextAsk(t *testing.T) {

@@ -18,6 +18,7 @@ import (
 
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
+	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core"
 	"github.com/ppat/mediated-mailbox-mcp/process/dbmetrics"
 	"github.com/ppat/mediated-mailbox-mcp/process/host"
 	"github.com/ppat/mediated-mailbox-mcp/process/settings"
@@ -34,7 +35,7 @@ func TestTheConfigurationTypeIsPinned(t *testing.T) {
 		"Process host.Process",
 		"Operations host.Operations",
 		"Section Section",
-		"Database Database",
+		"Database core.Config",
 		"Credential core.Config",
 		"Scanner scan.Config",
 	)
@@ -42,20 +43,6 @@ func TestTheConfigurationTypeIsPinned(t *testing.T) {
 		"ReloadInterval time.Duration",
 		"Backfill Backfill",
 		"Sync Sync",
-	)
-	mustnotcompile.RequireFields(t, pkg, "Database",
-		"Host string",
-		"Port int",
-		"Name string",
-		"SSLMode string",
-		"SSLRootCert string",
-		"Backfill Role",
-		"Sync Role",
-	)
-	mustnotcompile.RequireFields(t, pkg, "Role",
-		"User string",
-		"PasswordFile string",
-		"PoolSize int",
 	)
 	mustnotcompile.RequireFields(t, pkg, "Backfill",
 		"Concurrency int",
@@ -70,12 +57,12 @@ func TestTheConfigurationTypeIsPinned(t *testing.T) {
 
 func discard() *slog.Logger { return slog.New(slog.DiscardHandler) }
 
-// The worker's defaults are the process's, its probe listener and the info level, the port, each job
-// kind's own runtime role with a pool of four, the TLS
-// mode that fails closed, a reload every minute, ADR-0018's five-minute sync interval, a first window
-// of seven days, two hundred decisions a tick, two accounts backfilled at once and four ticking at
-// once. The host, the database name and each role's password file are required (ADR-0103, ADR-0104,
-// ADR-0105, ADR-0118, ADR-0119).
+// The worker's defaults are the process's, its probe listener and the info level, the port, the test
+// harness's application user with a pool of four for each job kind, the TLS mode that fails closed, a
+// reload every minute, ADR-0018's five-minute sync interval, a first window of seven days, two hundred
+// decisions a tick, two accounts backfilled at once and four ticking at once. The host, the database
+// name and the password file are required (ADR-0078, ADR-0103, ADR-0104, ADR-0105, ADR-0119,
+// ADR-0143).
 func TestTheDefaults(t *testing.T) {
 	want := Configuration{
 		Process:    host.Process{LogLevel: "info"},
@@ -85,12 +72,8 @@ func TestTheDefaults(t *testing.T) {
 			Backfill:       Backfill{Concurrency: 2},
 			Sync:           Sync{SyncInterval: 5 * time.Minute, FirstWindow: 7 * 24 * time.Hour, DecisionsPerTick: 200, Concurrency: 4},
 		},
-		Database: Database{
-			Port: 5432, SSLMode: "verify-full",
-			Backfill: Role{User: "mediated_mailbox_backfill", PoolSize: 4},
-			Sync:     Role{User: "mediated_mailbox_sync", PoolSize: 4},
-		},
-		Scanner: scan.DefaultConfig(),
+		Database: dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_app", SSLMode: "verify-full", PoolSize: 4},
+		Scanner:  scan.DefaultConfig(),
 	}
 	if diff := cmp.Diff(want, defaults(), compare.Options); diff != "" {
 		t.Errorf("defaults (-want +got):\n%s", diff)
@@ -105,18 +88,14 @@ func TestTheDefaults(t *testing.T) {
 // absentKeys names key files that do not exist, for a start meant to stop before the keyring or at it.
 var absentKeys = []string{"--credential.public_key_file=/absent/public", "--credential.private_key_files=[/absent/private]"}
 
-// database names a database whose password files do not exist, so a start that gets past the keyring
-// stops at the first job kind's password file, before any connection is made.
-var database = []string{
-	"--database.host=db.example", "--database.name=mailbox",
-	"--database.backfill.password_file=/absent/backfill-password", "--database.sync.password_file=/absent/sync-password",
-}
+// database names a database whose password file does not exist, so a start that gets past the keyring
+// stops at the password file, before any connection is made.
+var database = []string{"--database.host=db.example", "--database.name=mailbox", "--database.password_file=/absent/password"}
 
 // The start validates the merged configuration before it configures any connection.
 func TestAnEmptyHostRefusesTheStart(t *testing.T) {
 	err := Run(t.Context(), append([]string{
-		"--database.host=", "--database.name=mailbox",
-		"--database.backfill.password_file=/absent", "--database.sync.password_file=/absent",
+		"--database.host=", "--database.name=mailbox", "--database.password_file=/absent",
 	}, absentKeys...), nil, io.Discard, io.Discard, discard(), new(slog.LevelVar))
 	want := "validating the configuration: database.host is empty"
 	if err == nil || err.Error() != want {
@@ -124,7 +103,7 @@ func TestAnEmptyHostRefusesTheStart(t *testing.T) {
 	}
 }
 
-// Each job kind's pool, the reload interval, the sync interval, the first window, the bound on a tick's
+// The pool size, the reload interval, the sync interval, the first window, the bound on a tick's
 // decisions and each job kind's concurrency must be positive, and the start refuses one that is not
 // before it reads a key file.
 func TestATickThatCannotRunRefusesTheStart(t *testing.T) {
@@ -135,10 +114,8 @@ func TestATickThatCannotRunRefusesTheStart(t *testing.T) {
 		{"--sync.concurrency=0", "validating the configuration: sync.concurrency 0 is not positive"},
 		{"--backfill.concurrency=0", "validating the configuration: backfill.concurrency 0 is not positive"},
 		{"--reload_interval=0s", "validating the configuration: reload_interval 0s is not positive"},
-		{"--database.backfill.pool_size=0", "validating the configuration: database.backfill.pool_size 0 is not positive"},
-		{"--database.sync.pool_size=0", "validating the configuration: database.sync.pool_size 0 is not positive"},
-		{"--database.backfill.user=", "validating the configuration: database.backfill.user is empty"},
-		{"--database.sync.user=", "validating the configuration: database.sync.user is empty"},
+		{"--database.pool_size=0", "validating the configuration: database.pool_size 0 is not positive"},
+		{"--database.user=", "validating the configuration: database.user is empty"},
 	} {
 		t.Run(c.arg, func(t *testing.T) {
 			err := Run(t.Context(), append(slices.Clone(database), append(slices.Clone(absentKeys), c.arg)...), nil, io.Discard, io.Discard, discard(), new(slog.LevelVar))
@@ -147,20 +124,15 @@ func TestATickThatCannotRunRefusesTheStart(t *testing.T) {
 			}
 		})
 	}
-	// A job kind's empty password file is refused by its own path.
-	for _, kind := range []string{"backfill", "sync"} {
-		t.Run(kind+" password file", func(t *testing.T) {
-			args := slices.DeleteFunc(slices.Clone(database), func(a string) bool { return strings.HasPrefix(a, "--database."+kind+".password_file=") })
-			err := Run(t.Context(), append(append(args, absentKeys...), "--database."+kind+".password_file="), nil, io.Discard, io.Discard, discard(), new(slog.LevelVar))
-			want := "validating the configuration: database." + kind + ".password_file is empty"
-			if err == nil || err.Error() != want {
-				t.Errorf("Run returned %v, want %q", err, want)
-			}
-		})
+	// The empty password file is refused by its own path.
+	args := slices.DeleteFunc(slices.Clone(database), func(a string) bool { return strings.HasPrefix(a, "--database.password_file=") })
+	err := Run(t.Context(), append(append(args, absentKeys...), "--database.password_file="), nil, io.Discard, io.Discard, discard(), new(slog.LevelVar))
+	if want := "validating the configuration: database.password_file is empty"; err == nil || err.Error() != want {
+		t.Errorf("Run returned %v, want %q", err, want)
 	}
 }
 
-// The start logs every effective value with the layer that set it, each password file's path and
+// The start logs every effective value with the layer that set it, the one password file's path and
 // never its contents.
 func TestTheEffectiveConfigurationIsLogged(t *testing.T) {
 	passwordFile := filepath.Join(t.TempDir(), "password")
@@ -177,7 +149,7 @@ func TestTheEffectiveConfigurationIsLogged(t *testing.T) {
 	// The key files do not exist, so the start stops at the keyring, after the log and before any
 	// connection is made.
 	err := Run(t.Context(), append([]string{
-		"--database.host=db.example", "--database.backfill.password_file=" + passwordFile, "--database.sync.password_file=" + passwordFile,
+		"--database.host=db.example", "--database.password_file=" + passwordFile,
 		"--sync.sync_interval=2m",
 	}, absentKeys...), []string{"MEDIATED_MAILBOX_DATABASE__NAME=mailbox"}, io.Discard, io.Discard, logger, new(slog.LevelVar))
 	if err == nil || !strings.HasPrefix(err.Error(), "loading the keyring: ") {
@@ -187,17 +159,14 @@ func TestTheEffectiveConfigurationIsLogged(t *testing.T) {
 		`level=INFO msg=configuration path=backfill.concurrency source=default value=2`,
 		`level=INFO msg=configuration path=credential.private_key_files source="flag --credential.private_key_files" value=[/absent/private]`,
 		`level=INFO msg=configuration path=credential.public_key_file source="flag --credential.public_key_file" value=/absent/public`,
-		`level=INFO msg=configuration path=database.backfill.password_file source="flag --database.backfill.password_file" value=` + passwordFile,
-		`level=INFO msg=configuration path=database.backfill.pool_size source=default value=4`,
-		`level=INFO msg=configuration path=database.backfill.user source=default value=mediated_mailbox_backfill`,
 		`level=INFO msg=configuration path=database.host source="flag --database.host" value=db.example`,
 		`level=INFO msg=configuration path=database.name source="environment variable MEDIATED_MAILBOX_DATABASE__NAME" value=mailbox`,
+		`level=INFO msg=configuration path=database.password_file source="flag --database.password_file" value=` + passwordFile,
+		`level=INFO msg=configuration path=database.pool_size source=default value=4`,
 		`level=INFO msg=configuration path=database.port source=default value=5432`,
 		`level=INFO msg=configuration path=database.sslmode source=default value=verify-full`,
 		`level=INFO msg=configuration path=database.sslrootcert source=default value=""`,
-		`level=INFO msg=configuration path=database.sync.password_file source="flag --database.sync.password_file" value=` + passwordFile,
-		`level=INFO msg=configuration path=database.sync.pool_size source=default value=4`,
-		`level=INFO msg=configuration path=database.sync.user source=default value=mediated_mailbox_sync`,
+		`level=INFO msg=configuration path=database.user source=default value=mediated_mailbox_app`,
 		`level=INFO msg=configuration path=log_level source=default value=info`,
 		`level=INFO msg=configuration path=probe_listen source=default value=:8080`,
 		`level=INFO msg=configuration path=reload_interval source=default value=1m0s`,
@@ -304,7 +273,7 @@ func TestThePublicKeyMustMatchAPrivateKey(t *testing.T) {
 		args := append(slices.Clone(database), "--credential.public_key_file="+public, "--credential.private_key_files=["+strings.Join(privates, ", ")+"]")
 		return Run(t.Context(), args, nil, io.Discard, io.Discard, discard(), new(slog.LevelVar))
 	}
-	pastTheKeyring := "configuring the database connection of mediated_mailbox_backfill: reading the password file: "
+	pastTheKeyring := "configuring the database connection of mediated_mailbox_app: reading the password file: "
 	for _, c := range []struct {
 		name     string
 		public   string
@@ -457,20 +426,18 @@ func TestBothJobKindsScanWithTheOneScanner(t *testing.T) {
 	}
 }
 
-// Each job kind's pool connects as the kind's own runtime role, and each kind is handed its own pool,
-// so backfill's statements run under backfill's grants and delta sync's under delta sync's inside the
-// one process (ADR-0118). The pools are opened as the start opens them, and open no connection.
-func TestEachJobKindIsHandedThePoolOfItsOwnRole(t *testing.T) {
-	dir := t.TempDir()
-	for _, name := range []string{"backfill", "sync"} {
-		if err := os.WriteFile(filepath.Join(dir, name), []byte(name+"-password"), 0o600); err != nil {
-			t.Fatal(err)
-		}
+// Each job kind is handed a pool of its own, every pool opened from the one database section and so
+// connecting as the application user with the section's pool size, so one job kind cannot starve
+// another of connections inside the one process (ADR-0119, ADR-0143). The pools are opened as the start
+// opens them, and open no connection.
+func TestEachJobKindIsHandedAPoolOfItsOwn(t *testing.T) {
+	password := filepath.Join(t.TempDir(), "password")
+	if err := os.WriteFile(password, []byte("the-password"), 0o600); err != nil {
+		t.Fatal(err)
 	}
 	loaded, err := settings.Load(defaults(), slices.Concat([]string{
-		"--database.host=db.example", "--database.name=mailbox",
-		"--database.backfill.password_file=" + filepath.Join(dir, "backfill"),
-		"--database.sync.password_file=" + filepath.Join(dir, "sync"),
+		"--database.host=db.example", "--database.name=mailbox", "--database.user=the_app",
+		"--database.password_file=" + password, "--database.pool_size=3",
 	}, absentKeys), nil)
 	if err != nil {
 		t.Fatal(err)
@@ -486,11 +453,13 @@ func TestEachJobKindIsHandedThePoolOfItsOwnRole(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := pools.Backfill.Config().ConnConfig.User; got != d.Backfill.User || got != "mediated_mailbox_backfill" {
-		t.Errorf("backfill's pool connects as %q, want backfill's role %q", got, d.Backfill.User)
+	if pools.Backfill == nil || pools.Backfill == pools.Sync {
+		t.Fatal("backfill and delta sync are not given a pool each")
 	}
-	if got := pools.Sync.Config().ConnConfig.User; got != d.Sync.User || got != "mediated_mailbox_sync" {
-		t.Errorf("delta sync's pool connects as %q, want delta sync's role %q", got, d.Sync.User)
+	for kind, p := range map[string]*pgxpool.Pool{"backfill": pools.Backfill, "sync": pools.Sync} {
+		if got := p.Config().ConnConfig.User; got != "the_app" {
+			t.Errorf("%s's pool connects as %q, want the application user the_app", kind, got)
+		}
 	}
 
 	scanner, err := buildScanner(loaded)
@@ -499,14 +468,14 @@ func TestEachJobKindIsHandedThePoolOfItsOwnRole(t *testing.T) {
 	}
 	ec := mustContext(t, pools, nil, scanner, loaded.Config.Section, prometheus.NewRegistry(), discard())
 	if ec.Pool() != pools.Sync {
-		t.Error("the execution context is built over a pool other than delta sync's, whose role holds its grants")
+		t.Error("the execution context is built over a pool other than delta sync's")
 	}
 	b, s := kinds(pools, ec, loaded.Config.Section, nil, discard(), prometheus.NewRegistry(), nil)
 	if b.Pool != pools.Backfill {
-		t.Error("backfill is handed a pool other than the one of its own role")
+		t.Error("backfill is handed a pool other than its own")
 	}
 	if s.Pool != pools.Sync {
-		t.Error("delta sync is handed a pool other than the one of its own role")
+		t.Error("delta sync is handed a pool other than its own")
 	}
 	// Each job kind's pool traces its statements and is read under its own job kind on the one
 	// registry, so the two kinds' pool series stand apart (ADR-0125).
@@ -532,7 +501,7 @@ func TestEachJobKindIsHandedThePoolOfItsOwnRole(t *testing.T) {
 			}
 		}
 	}
-	if diff := cmp.Diff(map[string]float64{"backfill": 4, "sync": 4}, got, compare.Options); diff != "" {
+	if diff := cmp.Diff(map[string]float64{"backfill": 3, "sync": 3}, got, compare.Options); diff != "" {
 		t.Errorf("each pool's ceiling by job kind (-want +got):\n%s", diff)
 	}
 }

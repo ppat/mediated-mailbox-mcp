@@ -15,7 +15,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
 	"github.com/ppat/mediated-mailbox-mcp/db/accounts"
 	accountsetup "github.com/ppat/mediated-mailbox-mcp/db/accounts/setup"
-	"github.com/ppat/mediated-mailbox-mcp/db/accountstate/authentication"
+	"github.com/ppat/mediated-mailbox-mcp/db/accountstate"
 	clientsetup "github.com/ppat/mediated-mailbox-mcp/db/oauthclients/setup"
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/schema"
@@ -373,7 +373,7 @@ func (s *Server) finish(w http.ResponseWriter, r *http.Request, mine func(attemp
 		return
 	}
 	err = tx.Run(r.Context(), s.opts.Database, a.Account, func(t pgx.Tx) error {
-		return s.store(r.Context(), clientsetup.New(t), accountsetup.New(t), authentication.New(t), a, sealed, started)
+		return s.store(r.Context(), clientsetup.New(t), accountsetup.New(t), accountstate.New(t), a, sealed, started)
 	})
 	if s.storeFailure(w, r, err) {
 		return
@@ -435,7 +435,7 @@ func (s *Server) consentFailure(w http.ResponseWriter, r *http.Request, a attemp
 // remembers from then on (ADR-0080). A move writes the new client and the credential issued to it
 // together (ADR-0106). Each records the code exchange's attempt through the latest-wins statement
 // (ADR-0097).
-func (s *Server) store(ctx context.Context, clients *clientsetup.Queries, q *accountsetup.Queries, auth *authentication.Queries, a attempt, sealed []byte, started time.Time) error {
+func (s *Server) store(ctx context.Context, clients *clientsetup.Queries, q *accountsetup.Queries, auth *accountstate.Queries, a attempt, sealed []byte, started time.Time) error {
 	identity, err := clients.ClientIdentity(ctx, a.Client)
 	if err != nil {
 		return err
@@ -483,7 +483,7 @@ func (s *Server) store(ctx context.Context, clients *clientsetup.Queries, q *acc
 			}
 		}
 	}
-	return auth.RecordAuthentication(ctx, authentication.RecordAuthenticationParams{
+	return auth.RecordAuthentication(ctx, accountstate.RecordAuthenticationParams{
 		AttemptedAt: pgtype.Timestamptz{Time: started, Valid: true},
 		Outcome:     pgtype.Text{String: string(mail.AuthSucceeded), Valid: true},
 	})

@@ -251,7 +251,8 @@ func seed(t *testing.T) {
 	}
 }
 
-// uiPool connects as the UI's own role, so every read below is held to the UI's grants. The test
+// uiPool connects as role, the application user for every read below but one that needs a refusal,
+// so each is held to the grants it runs under in production. The test
 // database's superuser owns the connection and sets the role on each new session.
 func uiPool(t *testing.T, role string) *pgxpool.Pool {
 	t.Helper()
@@ -293,12 +294,12 @@ func countingPool(t *testing.T, role string) (*pgxpool.Pool, *statements) {
 	return pool, counter
 }
 
-// server is the UI's server over the seeded database, as the UI's role, with the fixed clock and the
+// server is the UI's server over the seeded database, as the application user, with the fixed clock and the
 // bundle directory as the binary would embed it.
 func server(t *testing.T) (*api.Server, *prometheus.Registry) {
 	t.Helper()
 	seed(t)
-	return serverAs(t, uiPool(t, "mediated_mailbox_ui"))
+	return serverAs(t, uiPool(t, postgres.ApplicationUser))
 }
 
 func serverAs(t *testing.T, pool *pgxpool.Pool) (*api.Server, *prometheus.Registry) {

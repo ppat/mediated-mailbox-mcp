@@ -35,7 +35,7 @@ func cardsUnder(t *testing.T, thresholds attention.Thresholds, statements ...str
 	t.Helper()
 	seed(t)
 	execute(t, statements...)
-	s, _ := serverWith(t, uiPool(t, "mediated_mailbox_ui"), thresholds)
+	s, _ := serverWith(t, uiPool(t, postgres.ApplicationUser), thresholds)
 	r := get(t, s.Handler(), "/ui/api/accounts/personal/attention")
 	if r.status != http.StatusOK {
 		t.Fatalf("the attention endpoint answered %d: %s", r.status, r.body)
