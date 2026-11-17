@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/prometheus/client_golang/prometheus"
 
 	"golang.org/x/net/idna"
 	"golang.org/x/net/publicsuffix"
@@ -21,12 +22,33 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/api"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/lens"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/schema"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/policymanagement"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/reads"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/registry"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/server"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/setup"
 )
 
 // lookups are the sender classifier's domain functions, as the read API endpoint's New passes them.
 var lookups = classify.Lookups{ToUnicode: idna.Lookup.ToUnicode, ToASCII: idna.Lookup.ToASCII, Registrable: publicsuffix.EffectiveTLDPlusOne}
+
+// bespoke are the bespoke routes, the routes of reads, setup and policymanagement that the registry
+// does not claim, in the order the read API mounts them. Their handlers are bound to empty options and
+// never called, since the generator reads only what a route declares.
+func bespoke(t *testing.T) []server.Route {
+	t.Helper()
+	read, err := reads.Routes(reads.Options{Metrics: prometheus.NewRegistry()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var out []server.Route
+	for _, route := range slices.Concat(read, setup.Routes(setup.Options{}), policymanagement.Routes(policymanagement.Options{})) {
+		if !route.Registry {
+			out = append(out, route)
+		}
+	}
+	return out
+}
 
 // documentPath is the checked-in document, relative to this package's directory.
 var documentPath = filepath.Join("..", "..", "contract", "openapi.json")
@@ -162,7 +184,7 @@ func (g *generator) bespokeOperation(route server.Route) *openapi3.Operation {
 // dataset, its parent filter as the one query parameter (docs/UI.md section 17.1).
 func (g *generator) rowOperation(d registry.Dataset) *openapi3.Operation {
 	op := openapi3.NewOperation()
-	op.OperationID = api.RowOperation(d.Name)
+	op.OperationID = reads.RowOperation(d.Name)
 	op.Summary = "One row of " + d.Name + " with its provenance, for one account"
 	row := openapi3.NewStringSchema()
 	if d.Identity.Storage == "number" {
@@ -223,7 +245,7 @@ func (g *generator) lensOperation(datasets []registry.Dataset) *openapi3.Operati
 		op.Parameters = append(op.Parameters, query(f, "A dimension filter, value, a,b or !value", openapi3.NewStringSchema()))
 	}
 	op.AddResponse(http.StatusOK, openapi3.NewResponse().WithDescription("OK").
-		WithContent(openapi3.NewContentWithJSONSchemaRef(g.schema(api.LensResponse(datasets)))))
+		WithContent(openapi3.NewContentWithJSONSchemaRef(g.schema(reads.LensResponse(datasets)))))
 	g.errorResponses(op)
 	op.Extensions = map[string]any{"x-datasets": descriptors(datasets)}
 	return op
@@ -378,7 +400,7 @@ func render(t *testing.T, doc *openapi3.T) []byte {
 // compares it with the checked-in file, the first of the pipeline's three drift checks (ADR-0065). Run
 // with -update, it writes the file.
 func TestDocument(t *testing.T) {
-	doc, err := generate(registry.Datasets(lookups), api.Bespoke())
+	doc, err := generate(registry.Datasets(lookups), bespoke(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -393,13 +415,13 @@ func TestDocument(t *testing.T) {
 // served by two definitions (docs/UI.md section 17.1).
 func TestAPathClaimedByBothSourcesIsRefused(t *testing.T) {
 	for _, path := range []string{registry.LensPath, registry.RowPath("failures")} {
-		claimed := append(api.Bespoke(), server.Route{Pattern: path, Operation: "claimsARegistryPath", Scoped: true, Response: schema.Obj("Claim")})
+		claimed := append(bespoke(t), server.Route{Pattern: path, Operation: "claimsARegistryPath", Scoped: true, Response: schema.Obj("Claim")})
 		_, err := generate(registry.Datasets(lookups), claimed)
 		if err == nil || !strings.Contains(err.Error(), "claimed by both the registry and the bespoke handler claimsARegistryPath") {
 			t.Fatalf("%s, which both sources claim, was not refused: %v", path, err)
 		}
 	}
-	twice := append(api.Bespoke(), api.Bespoke()[0])
+	twice := append(bespoke(t), bespoke(t)[0])
 	if _, err := generate(registry.Datasets(lookups), twice); err == nil || !strings.Contains(err.Error(), "claimed by two bespoke handlers") {
 		t.Fatalf("a path two bespoke handlers claim was not refused: %v", err)
 	}

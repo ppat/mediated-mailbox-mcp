@@ -11,7 +11,7 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/marker"
-	"github.com/ppat/mediated-mailbox-mcp/ui/internal/api"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/policymanagement"
 )
 
 // The policy recordings' fixed instant, which every rule and history row a recorded write leaves is set
@@ -170,7 +170,7 @@ func TestTheRecordedPolicyFixturesMatchTheServer(t *testing.T) {
 	// A rule of three suffixes, two of which cover one sender together, so removing both releases
 	// more than the sum of removing each alone.
 	r.seedPolicyScreens()
-	decode[api.RuleAnswer](t, b.post("/ui/api/accounts/personal/policy/rules/operator.lender.example", map[string]any{
+	decode[policymanagement.RuleAnswer](t, b.post("/ui/api/accounts/personal/policy/rules/operator.lender.example", map[string]any{
 		"scope": "account", "suffixes_before": []string{"lender.example"},
 		"suffixes": []string{"lender.example", "newsletter.example", "mail.newsletter.example"}, "confirmation": nil,
 	}))

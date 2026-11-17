@@ -26,11 +26,11 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/prometheus/client_golang/prometheus"
 
-	"github.com/ppat/mediated-mailbox-mcp/ui/internal/api"
-	"github.com/ppat/mediated-mailbox-mcp/ui/internal/registry"
-
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/marker"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/postgres"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/policymanagement"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/reads"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/setup"
 )
 
 // policy is the content security policy ADR-0062 decides, written out here rather than read from the
@@ -312,16 +312,11 @@ func TestTheStreamEndsWhenTheProcessDrains(t *testing.T) {
 	seed(t)
 	draining, drain := context.WithCancel(t.Context())
 	defer drain()
-	s, err := api.NewServer(api.Options{
-		Database: uiPool(t, postgres.ApplicationUser), Datasets: registry.Datasets(lookups), Lookups: lookups,
-		Checks:  newChecks(t, tokenKey, slog.New(slog.NewJSONHandler(io.Discard, nil))),
-		Metrics: prometheus.NewRegistry(), Draining: draining, Clock: func() time.Time { return now },
-		Cadences: api.Cadences{Sync: 5 * time.Minute, Heuristics: 24 * time.Hour}, StreamInterval: 50 * time.Millisecond,
+	s := readAPI(t, uiPool(t, postgres.ApplicationUser), newChecks(t, tokenKey, slog.New(slog.NewJSONHandler(io.Discard, nil))), reads.Options{
+		Draining: draining, Clock: func() time.Time { return now },
+		Cadences: reads.Cadences{Sync: 5 * time.Minute, Heuristics: 24 * time.Hour}, StreamInterval: 50 * time.Millisecond,
 		Attention: starting(),
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
+	}, setup.Options{}, policymanagement.Options{})
 	ts := httptest.NewServer(s.Handler())
 	t.Cleanup(ts.Close)
 	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, ts.URL+"/ui/api/accounts/personal/events", nil)

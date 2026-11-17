@@ -1,0 +1,20 @@
+control: every account-scoped read refuses a request with no account, with the value meaning every account, or with an unknown account
+removes: the corpus route is declared without its account, so no account check admits its requests
+packages: ./ui/internal/api
+tests: TestEveryReadIsPerAccount
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/reads/routes.go b/ui/internal/reads/routes.go
+index caa6ab37..a9d9bf14 100644
+--- a/ui/internal/reads/routes.go
++++ b/ui/internal/reads/routes.go
+@@ -113,7 +113,7 @@ func Routes(o Options) ([]server.Route, error) {
+ 			Response: systemType(), Handler: s.getSystem,
+ 		},
+ 		{
+-			Pattern: paths.Accounts + "/{account}/corpus", Operation: "getCorpus", Scoped: true,
++			Pattern: paths.Accounts + "/{account}/corpus", Operation: "getCorpus",
+ 			Summary:  "Home's corpus figures, which count every message of the account, and the time they were read",
+ 			Response: corpusType(), Handler: s.getCorpus,
+ 		},

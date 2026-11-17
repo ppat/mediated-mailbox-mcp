@@ -1,0 +1,20 @@
+control: A delta sync gap recovery shows on Home as the sync-gap card
+removes: the rule reads the last seven days whatever its configured days, so a recovery within a longer window is missed
+packages: ./ui/internal/api
+tests: TestTheSyncGapRuleShowsTheRecovery
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/reads/attention.go b/ui/internal/reads/attention.go
+index 2bcd9983..e521321b 100644
+--- a/ui/internal/reads/attention.go
++++ b/ui/internal/reads/attention.go
+@@ -154,7 +154,7 @@ func (s *handlers) attentionInputs(ctx context.Context, q attentionQueries, now
+ 		}
+ 	}
+ 	if th.GapDays > 0 {
+-		runs, err := q.runs.GapRecoveriesSince(ctx, at(now.Add(-time.Duration(th.GapDays)*24*time.Hour)))
++		runs, err := q.runs.GapRecoveriesSince(ctx, at(now.Add(-7 * 24 * time.Hour)))
+ 		if err != nil {
+ 			return in, err
+ 		}

@@ -1,0 +1,20 @@
+control: a client replaced or removed while an attempt runs fails its finish, and nothing is stored
+removes: a finish compares the client's name with its identifier, so a client left as it was fails every finish
+packages: ./ui/internal/api
+tests: TestAConnectedAccountHoldsItsSealedGrant
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/setup/connect.go b/ui/internal/setup/connect.go
+index 2b6d3f2f..06f7bf76 100644
+--- a/ui/internal/setup/connect.go
++++ b/ui/internal/setup/connect.go
+@@ -388,7 +388,7 @@ func (s *handlers) stillFree(w http.ResponseWriter, r *http.Request, a attempt)
+ 		return false
+ 	}
+ 	if !slices.ContainsFunc(stored, func(c clientsetup.SetupClientsRow) bool {
+-		return c.ClientName == a.Client && c.Provider == a.Provider && c.ClientID == a.ClientID
++		return c.ClientName == a.ClientID && c.Provider == a.Provider && c.ClientID == a.ClientID
+ 	}) {
+ 		server.WriteFailure(w, r, server.ClientFault(http.StatusConflict, "client_changed", "the client "+a.Client+" changed while this was in progress"))
+ 		return false

@@ -6,15 +6,15 @@ scheduled-count: no
 integration: yes
 
 diff --git a/ui/internal/api/endpoint.go b/ui/internal/api/endpoint.go
-index 0b44a252..5fa505d6 100644
+index 77ea4293..bb892a64 100644
 --- a/ui/internal/api/endpoint.go
 +++ b/ui/internal/api/endpoint.go
-@@ -66,7 +66,7 @@ func New(ctx context.Context, p process.Capabilities, c config.UI) (http.Handler
- 		Datasets:       registry.Datasets(lookups),
- 		Checks:         checks,
+@@ -53,7 +53,7 @@ func New(ctx context.Context, p process.Capabilities, c config.UI) (http.Handler
+ 		Datasets:       datasets,
+ 		Admit:          admission(pool),
  		Metrics:        p.Metrics(),
 -		Draining:       p.Draining(),
 +		Draining:       nil,
  		Clock:          time.Now,
- 		Cadences:       Cadences{Sync: time.Duration(c.SyncInterval), Heuristics: time.Duration(c.HeuristicsInterval)},
+ 		Cadences:       reads.Cadences{Sync: time.Duration(c.SyncInterval), Heuristics: time.Duration(c.HeuristicsInterval)},
  		StreamInterval: time.Duration(c.StreamInterval),

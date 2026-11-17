@@ -1,0 +1,24 @@
+control: the installation screens show no account's state
+removes: the installation endpoint reads each account's mailbox and shows it as the account's client
+packages: ./ui/internal/api
+tests: TestTheInstallationShowsNoAccountsState
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/setup/setup.go b/ui/internal/setup/setup.go
+index 2bd0ea88..1331627f 100644
+--- a/ui/internal/setup/setup.go
++++ b/ui/internal/setup/setup.go
+@@ -107,7 +107,11 @@ func (s *handlers) installation(ctx context.Context) (installationResponse, erro
+ 		out.Clients = append(out.Clients, entry)
+ 	}
+ 	for _, a := range listed {
+-		out.Accounts = append(out.Accounts, installAccount{AccountID: a.AccountID, Provider: a.AccountProvider, OAuthClient: registry.OptionalText(a.OauthClient)})
++		held, err := s.accountSetup(ctx, a.AccountID)
++		if err != nil {
++			return installationResponse{}, err
++		}
++		out.Accounts = append(out.Accounts, installAccount{AccountID: a.AccountID, Provider: a.AccountProvider, OAuthClient: registry.OptionalText(held.Mailbox)})
+ 	}
+ 	if out.BaseRules, err = s.opts.BaseRules(ctx, s.opts.Database); err != nil {
+ 		return installationResponse{}, err

@@ -5,10 +5,10 @@ tests: TestTheStatementSetCheckReportsEachMismatch
 scheduled-count: no
 
 diff --git a/ui/internal/registry/registry.go b/ui/internal/registry/registry.go
-index 1ba4aee..9c5d561 100644
+index 8c05f069..d7640709 100644
 --- a/ui/internal/registry/registry.go
 +++ b/ui/internal/registry/registry.go
-@@ -206,7 +206,7 @@ func Check(datasets []Dataset) []string {
+@@ -250,7 +250,7 @@ func Check(datasets []Dataset) []string {
  			}
  		}
  		for _, dim := range d.Dimensions {

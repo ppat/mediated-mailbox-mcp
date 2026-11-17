@@ -1,0 +1,198 @@
+package reads
+
+import (
+	"context"
+	"net/http"
+	"slices"
+
+	"github.com/jackc/pgx/v5"
+
+	"github.com/ppat/mediated-mailbox-mcp/db/accounts"
+	"github.com/ppat/mediated-mailbox-mcp/db/accountstate"
+	"github.com/ppat/mediated-mailbox-mcp/db/jobruns"
+	"github.com/ppat/mediated-mailbox-mcp/db/messages"
+	"github.com/ppat/mediated-mailbox-mcp/db/policycandidates"
+	"github.com/ppat/mediated-mailbox-mcp/db/ratestate"
+	"github.com/ppat/mediated-mailbox-mcp/db/reorgplans"
+	"github.com/ppat/mediated-mailbox-mcp/db/tx"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/schema"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/registry"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/server"
+)
+
+// systemResponse is the system endpoint's two blocks (docs/UI.md sections 8.1, 8.8 and 17.4). It
+// counts nothing over every message of the account, since the partial-index banner reads it again on
+// every backfill run event (docs/UI.md section 9). Home's corpus figures are the corpus endpoint's.
+type systemResponse struct {
+	Account     string           `json:"account"`
+	Provider    string           `json:"provider"`
+	AsOf        string           `json:"as_of"`
+	Operational operationalBlock `json:"operational"`
+	Decisions   decisionsBlock   `json:"decisions"`
+}
+
+// operationalBlock carries the values ADR-0034 exposes to clients, one to one, and beside them each
+// pass's latest run for its progress, the rate state, and the finish of pass 1's latest succeeded run.
+// Connected is false for an account with no state row, whose flags then read false and whose times
+// read null (ADR-0091). BackfillPass1SucceededAt tells the partial-index banner a pass 1 a change of
+// scanner re-opened from a first one (docs/UI.md section 12, ADR-0120).
+type operationalBlock struct {
+	Connected                bool                `json:"connected"`
+	BackfillPass1Complete    bool                `json:"backfill_pass1_complete"`
+	BackfillPass1Run         *run                `json:"backfill_pass1_run"`
+	BackfillPass1SucceededAt *string             `json:"backfill_pass1_succeeded_at"`
+	BackfillPass2Complete    bool                `json:"backfill_pass2_complete"`
+	BackfillPass2Run         *run                `json:"backfill_pass2_run"`
+	PendingScan              int64               `json:"pending_scan"`
+	SyncCursorAt             *string             `json:"sync_cursor_at"`
+	LastSuccessfulTickAt     *string             `json:"last_successful_tick_at"`
+	Rate                     *registry.RateBlock `json:"rate"`
+	LastAuthAt               *string             `json:"last_auth_at"`
+	LastAuthOutcome          *string             `json:"last_auth_outcome"`
+}
+
+// decisionsBlock is what the chrome's counters read.
+type decisionsBlock struct {
+	PlansDraft        int64 `json:"plans_draft"`
+	CandidatesPending int64 `json:"candidates_pending"`
+	WorkloadsRunning  int64 `json:"workloads_running"`
+}
+
+func systemType() schema.Type {
+	nullRun := schema.Null(runType())
+	nullTime := schema.Null(schema.Time())
+	return schema.Obj("System",
+		schema.F("account", schema.Str()),
+		schema.F("provider", schema.Str()),
+		schema.F("as_of", schema.Time()),
+		schema.F("operational", schema.Obj("Operational",
+			schema.F("connected", schema.Bool()),
+			schema.F("backfill_pass1_complete", schema.Bool()),
+			schema.F("backfill_pass1_run", nullRun),
+			schema.F("backfill_pass1_succeeded_at", nullTime),
+			schema.F("backfill_pass2_complete", schema.Bool()),
+			schema.F("backfill_pass2_run", nullRun),
+			schema.F("pending_scan", schema.Int()),
+			schema.F("sync_cursor_at", nullTime),
+			schema.F("last_successful_tick_at", nullTime),
+			schema.F("rate", schema.Null(registry.RateType())),
+			schema.F("last_auth_at", nullTime),
+			schema.F("last_auth_outcome", schema.Null(schema.Str())),
+		)),
+		schema.F("decisions", schema.Obj("Decisions",
+			schema.F("plans_draft", schema.Int()),
+			schema.F("candidates_pending", schema.Int()),
+			schema.F("workloads_running", schema.Int()),
+		)),
+	)
+}
+
+// getSystem answers the system endpoint in one read transaction for the account.
+func (s *handlers) getSystem(w http.ResponseWriter, r *http.Request) {
+	account := r.PathValue("account")
+	listed, err := accounts.New(s.opts.Database).Accounts(r.Context())
+	if err != nil {
+		server.DatabaseFailure(w, r, err)
+		return
+	}
+	out := systemResponse{Account: account}
+	for _, a := range listed {
+		if a.AccountID == account {
+			out.Provider = a.AccountProvider
+		}
+	}
+	err = tx.Run(r.Context(), s.opts.Database, account, func(t pgx.Tx) error {
+		// as_of is the time the read transaction began.
+		now := s.opts.Clock()
+		out.AsOf = registry.Stamp(now)
+		return s.system(r.Context(), systemQueries{
+			state: accountstate.New(t), rate: ratestate.New(t), runs: jobruns.New(t), messages: messages.New(t),
+			plans: reorgplans.New(t), candidates: policycandidates.New(t),
+		}, account, &out)
+	})
+	if err != nil {
+		server.DatabaseFailure(w, r, err)
+		return
+	}
+	server.WriteJSON(w, r, out)
+}
+
+// systemQueries are the statements the system endpoint runs, built inside the literal passed the
+// transaction helper (ADR-0047).
+type systemQueries struct {
+	state      *accountstate.Queries
+	rate       *ratestate.Queries
+	runs       *jobruns.Queries
+	messages   *messages.Queries
+	plans      *reorgplans.Queries
+	candidates *policycandidates.Queries
+}
+
+func (s *handlers) system(ctx context.Context, q systemQueries, account string, out *systemResponse) error {
+	progress, err := registry.Progress(ctx, q.state)
+	if err != nil {
+		return err
+	}
+	op := &out.Operational
+	op.Connected = progress.Connected
+	op.BackfillPass1Complete = progress.Pass1Complete
+	op.BackfillPass2Complete = progress.Pass2Complete
+	op.SyncCursorAt = progress.SyncCursorAt
+	op.LastAuthAt = progress.LastAuthAt
+	op.LastAuthOutcome = progress.LastAuthOutcome
+	if op.Rate, err = registry.Rate(ctx, q.rate); err != nil {
+		return err
+	}
+
+	runs := q.runs
+	latest, err := latestRuns(ctx, runs)
+	if err != nil {
+		return err
+	}
+	running := map[string]bool{}
+	for _, row := range latest {
+		if row.State == "running" {
+			running[row.Workload] = true
+		}
+		if row.Workload == "backfill" && row.Pass == "pass1" {
+			op.BackfillPass1Run = latestRun(row)
+		}
+		if row.Workload == "backfill" && row.Pass == "pass2" {
+			op.BackfillPass2Run = latestRun(row)
+		}
+	}
+	out.Decisions.WorkloadsRunning = int64(len(running))
+	tick, err := finished(ctx, runs, "sync", "tick", "succeeded")
+	if err != nil {
+		return err
+	}
+	if tick != nil {
+		op.LastSuccessfulTickAt = tick.FinishedAt
+	}
+	pass1, err := finished(ctx, runs, "backfill", "pass1", "succeeded")
+	if err != nil {
+		return err
+	}
+	if pass1 != nil {
+		op.BackfillPass1SucceededAt = pass1.FinishedAt
+	}
+
+	if op.PendingScan, err = q.messages.ScanBacklog(ctx); err != nil {
+		return err
+	}
+	plans, err := q.plans.PlanStatusCounts(ctx, reorgplans.PlanStatusCountsParams{StatusIn: []string{"DRAFT"}})
+	if err != nil {
+		return err
+	}
+	if i := slices.IndexFunc(plans, func(p reorgplans.PlanStatusCountsRow) bool { return p.Status == "DRAFT" }); i >= 0 {
+		out.Decisions.PlansDraft = plans[i].Plans
+	}
+	candidates, err := q.candidates.CandidateStatusCounts(ctx, policycandidates.CandidateStatusCountsParams{StatusIn: []string{"pending"}})
+	if err != nil {
+		return err
+	}
+	if i := slices.IndexFunc(candidates, func(p policycandidates.CandidateStatusCountsRow) bool { return p.Status == "pending" }); i >= 0 {
+		out.Decisions.CandidatesPending = candidates[i].Candidates
+	}
+	return nil
+}

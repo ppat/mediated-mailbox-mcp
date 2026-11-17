@@ -1,0 +1,20 @@
+control: every stream event is its object's whole current state
+removes: a run event carries the run's state as first read and never the changed checkpoint
+packages: ./ui/internal/api
+tests: TestTheStreamSendsEachChangedObject
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/reads/stream.go b/ui/internal/reads/stream.go
+index 4f323a12..3a8e01c1 100644
+--- a/ui/internal/reads/stream.go
++++ b/ui/internal/reads/stream.go
+@@ -150,7 +150,7 @@ func (s *handlers) poll(ctx context.Context, account string, st *streamState) ([
+ 			return err
+ 		}
+ 		read[key] = data
+-		if bytes.Equal(st.sent[key], data) {
++		if _, sent := st.sent[key]; sent || bytes.Equal(st.sent[key], data) {
+ 			return nil
+ 		}
+ 		events = append(events, event{name: name, data: data})

@@ -1,0 +1,24 @@
+control: an account's two rows, and a move's client and credential, are written together or not at all
+removes: a move writes the account's new client outside the transaction that writes its credential
+packages: ./ui/internal/api
+tests: TestAMoveWritesTheClientAndTheCredentialTogether
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/setup/connect.go b/ui/internal/setup/connect.go
+index 2b6d3f2f..5ecedb43 100644
+--- a/ui/internal/setup/connect.go
++++ b/ui/internal/setup/connect.go
+@@ -447,7 +447,11 @@ func (s *handlers) store(ctx context.Context, clients *clientsetup.Queries, q *a
+ 		}
+ 	default:
+ 		if a.Kind == attemptMove {
+-			n, err := q.MoveAccount(ctx, accountsetup.MoveAccountParams{OauthClient: client, Provider: a.Provider})
++			var n int64 = 1
++			err := tx.Run(context.WithoutCancel(ctx), s.opts.Database, a.Account, func(t pgx.Tx) error {
++				_, err := accountsetup.New(t).MoveAccount(ctx, accountsetup.MoveAccountParams{OauthClient: client, Provider: a.Provider})
++				return err
++			})
+ 			if err != nil {
+ 				return err
+ 			}

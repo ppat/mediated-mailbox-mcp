@@ -6,11 +6,11 @@ scheduled-count: no
 integration: yes
 
 diff --git a/ui/internal/api/server.go b/ui/internal/api/server.go
-index c238c693..09776cdf 100644
+index b3fad150..9e1b8350 100644
 --- a/ui/internal/api/server.go
 +++ b/ui/internal/api/server.go
-@@ -287,7 +287,7 @@ func (s *Server) scoped(route string, h func(http.ResponseWriter, *http.Request)
- func (s *Server) admit(w http.ResponseWriter, r *http.Request) bool {
+@@ -153,7 +153,7 @@ func scoped(db accounts.DBTX, route string, h func(http.ResponseWriter, *http.Re
+ func admit(db accounts.DBTX, w http.ResponseWriter, r *http.Request) bool {
  	account := r.PathValue("account")
  	server.RequestLogOf(r.Context()).Account = account
 -	if account == "all" {

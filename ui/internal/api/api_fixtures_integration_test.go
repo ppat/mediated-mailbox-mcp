@@ -284,7 +284,7 @@ func advance(t *testing.T) {
 
 // record requests each path, requires its answer to match its declaration in the contract document,
 // and compares it with its recorded file, which -update writes.
-func record(t *testing.T, s *api.Server, doc *openapi3.T, paths map[string]string) {
+func record(t *testing.T, s *api.Endpoint, doc *openapi3.T, paths map[string]string) {
 	t.Helper()
 	for name, p := range paths {
 		r := get(t, s.Handler(), p)

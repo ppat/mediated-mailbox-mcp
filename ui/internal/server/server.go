@@ -1,5 +1,6 @@
 // Package server holds what every endpoint of the UI sits behind: the checks and their key, the error
-// contract and the route type (ADR-0142). The checks are the session cookie, the request token
+// contract and the route type, with the request plumbing every route of the read API uses, the reading
+// of a request's body and the answer to a failed statement (ADR-0142). The checks are the session cookie, the request token
 // (ADR-0061), the content security policy (ADR-0062), and the request's log line with its id
 // (docs/UI.md section 18.2). Each endpoint the UI's spec lists wraps its handler in them, so the
 // process, which mounts each endpoint at its pattern, serves no response of the UI's own without
