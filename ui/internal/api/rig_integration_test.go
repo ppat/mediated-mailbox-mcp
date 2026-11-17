@@ -14,9 +14,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"regexp"
 	"testing"
-	"testing/fstest"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -54,7 +52,6 @@ type rig struct {
 	public  seal.PublicKey
 	db      *pgx.Conn
 	clock   time.Time
-	bundle  fstest.MapFS
 	// redirect is the configured consent redirect.
 	redirect string
 	// keys are the key files the client-secret package loads, the public key and its private key.
@@ -81,7 +78,6 @@ func newRigAt(t *testing.T, redirect string) *rig {
 	seed(t)
 	r := &rig{
 		t: t, consent: fake.NewConsent(redirect), clock: now, redirect: redirect, identity: api.Identity{Operator: "operator"},
-		bundle: fstest.MapFS{"main.js": {Data: []byte("")}, "main.css": {Data: []byte("")}, "fonts/a.woff2": {Data: []byte("")}, ".gitkeep": {Data: []byte("")}},
 	}
 	r.consent.AddClient(householdID, householdSecret)
 	r.consent.AddClient(spareID, spareSecret)
@@ -122,7 +118,7 @@ func newRigAt(t *testing.T, redirect string) *rig {
 
 // server builds a server over the rig's database and fake with the given request token key, as a
 // second replica of the UI would be built with the key its token_key_file names. A code exchange
-// obtains its client's secret from the client-secret package, as the composition root wires it.
+// obtains its client's secret from the client-secret package, as New wires it.
 func (r *rig) server(key []byte) *api.Server {
 	r.t.Helper()
 	return r.serverOver(key, func(pool *pgxpool.Pool) api.Database { return pool })
@@ -136,12 +132,11 @@ func (r *rig) serverOver(key []byte, over func(*pgxpool.Pool) api.Database) *api
 	if err != nil {
 		r.t.Fatal(err)
 	}
-	s, err := api.New(api.Options{
-		Bundle: r.bundle, Database: over(pool), Datasets: registry.Datasets(lookups),
-		Logger: slog.New(slog.NewJSONHandler(&r.log, nil)), Metrics: prometheus.NewRegistry(),
-		Clock: func() time.Time { return r.clock }, StreamInterval: time.Second, TokenKey: key, Seal: r.public,
+	s, err := api.NewServer(api.Options{
+		Database: over(pool), Datasets: registry.Datasets(lookups),
+		Checks: newChecks(r.t, key, slog.New(slog.NewJSONHandler(&r.log, nil))), Metrics: prometheus.NewRegistry(),
+		Clock: func() time.Time { return r.clock }, StreamInterval: time.Second, Seal: r.public,
 		Consents: map[string]mail.Consent[context.Context]{"gmail": r.consent}, ClientSecrets: secrets,
-		Browser: api.Browser{DefaultTheme: "system", StreamReconnectMax: time.Second, StreamPollInterval: time.Second, ConsentRedirect: r.redirect},
 		Lookups: lookups, Identity: r.identity,
 	})
 	if err != nil {
@@ -221,18 +216,24 @@ type browser struct {
 	header map[string]string
 }
 
-var tokenMeta = regexp.MustCompile(`<meta name="mediated-mailbox.request_token" content="([^"]*)">`)
-
-// browser loads the entry document in a new session, keeping the session cookie and the token.
+// browser opens a new session, keeping the session cookie and the request token the entry document
+// would hand the page. The token is read from checks over the rig's key, behind which a page answers
+// with it, as the entry document carries it, and the entry document's own token is the pages' tests'.
 func (r *rig) browser() *browser {
 	r.t.Helper()
-	b := &browser{t: r.t, h: r.s.Handler(), cookies: map[string]string{}}
+	page := newChecks(r.t, tokenKey, slog.New(slog.DiscardHandler))
+	b := &browser{t: r.t, cookies: map[string]string{}}
+	b.h = page.Wrap(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		if _, err := io.WriteString(w, page.RequestToken(req.Context())); err != nil {
+			r.t.Error(err)
+		}
+	}))
 	res := b.do(http.MethodGet, "/ui/setup", nil)
-	m := tokenMeta.FindSubmatch(res.body)
-	if m == nil || b.cookies["ui_session"] == "" {
-		r.t.Fatalf("the entry document carried no token or no session:\n%s", res.body)
+	if len(res.body) == 0 || b.cookies["ui_session"] == "" {
+		r.t.Fatalf("the page carried no token or no session:\n%s", res.body)
 	}
-	b.token = string(m[1])
+	b.token = string(res.body)
+	b.h = r.s.Handler()
 	return b
 }
 

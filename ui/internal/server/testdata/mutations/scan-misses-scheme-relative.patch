@@ -1,0 +1,19 @@
+control: the entry template and the built bundle hold no inline script and reference no other origin
+removes: the scan reads only URLs with a scheme, so a scheme-relative reference to another origin passes
+packages: ./ui/internal/server
+tests: TestThePolicyScanReportsEachPlantedViolation
+scheduled-count: no
+
+diff --git a/ui/internal/server/scan.go b/ui/internal/server/scan.go
+index f61f845f..c7f54643 100644
+--- a/ui/internal/server/scan.go
++++ b/ui/internal/server/scan.go
+@@ -17,7 +17,7 @@ var (
+ 	// eventHandler is an inline event handler attribute, which the policy would also block.
+ 	eventHandler = regexp.MustCompile(`(?i)<[a-z][^>]*\son[a-z]+\s*=`)
+ 	// absolute is a URL that names an origin, with a scheme or scheme-relative.
+-	absolute = regexp.MustCompile(`(?i)\b(?:https?|wss?|ftp):\/\/[^\s"'<>)]+|["'(\s]\/\/[a-z0-9.-]+\.[a-z]{2,}`)
++	absolute = regexp.MustCompile(`(?i)\b(?:https?|wss?|ftp):\/\/[^\s"'<>)]+`)
+ 	// stylesheetURL is a url() or an @import in a stylesheet.
+ 	stylesheetURL = regexp.MustCompile(`(?i)url\(\s*["']?([^"')]*)|@import\s+["']([^"']*)`)
+ 	// fontFace is an @font-face rule's block, and inlineURL a url() holding a data: URI. They read the

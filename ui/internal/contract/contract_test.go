@@ -4,18 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"path/filepath"
 	"reflect"
 	"slices"
 	"strings"
 	"testing"
-	"testing/fstest"
-	"time"
 
 	"github.com/getkin/kin-openapi/openapi3"
-	"github.com/prometheus/client_golang/prometheus"
 
 	"golang.org/x/net/idna"
 	"golang.org/x/net/publicsuffix"
@@ -26,9 +22,10 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/lens"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/schema"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/registry"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/server"
 )
 
-// lookups are the sender classifier's domain functions, as the composition root passes them.
+// lookups are the sender classifier's domain functions, as the read API endpoint's New passes them.
 var lookups = classify.Lookups{ToUnicode: idna.Lookup.ToUnicode, ToASCII: idna.Lookup.ToASCII, Registrable: publicsuffix.EffectiveTLDPlusOne}
 
 // documentPath is the checked-in document, relative to this package's directory.
@@ -37,14 +34,14 @@ var documentPath = filepath.Join("..", "..", "contract", "openapi.json")
 // generate builds the document from the registry and the handler list, the two sources ADR-0057
 // names, by populating kin-openapi's document types explicitly (ADR-0065). It refuses a path both
 // sources claim.
-func generate(datasets []registry.Dataset, bespoke []api.Route) (*openapi3.T, error) {
+func generate(datasets []registry.Dataset, bespoke []server.Route) (*openapi3.T, error) {
 	g := &generator{components: map[string]schema.Type{}, doc: &openapi3.T{
 		OpenAPI:    "3.1.1",
 		Info:       &openapi3.Info{Title: "mediated-mailbox-ui", Version: "0"},
 		Paths:      openapi3.NewPaths(),
 		Components: &openapi3.Components{Schemas: openapi3.Schemas{}},
 	}}
-	g.schema(api.ErrorType())
+	g.schema(server.ErrorType())
 	g.doc.Paths.Set(registry.LensPath, &openapi3.PathItem{Get: g.lensOperation(datasets)})
 	for _, d := range datasets {
 		if d.Detail != nil {
@@ -98,7 +95,7 @@ func accountParameter() *openapi3.ParameterRef {
 		WithDescription("The account every read is scoped to. all and an unknown account are refused")}
 }
 
-func (g *generator) bespokeOperation(route api.Route) *openapi3.Operation {
+func (g *generator) bespokeOperation(route server.Route) *openapi3.Operation {
 	op := openapi3.NewOperation()
 	op.OperationID = route.Operation
 	op.Summary = route.Summary
@@ -396,7 +393,7 @@ func TestDocument(t *testing.T) {
 // served by two definitions (docs/UI.md section 17.1).
 func TestAPathClaimedByBothSourcesIsRefused(t *testing.T) {
 	for _, path := range []string{registry.LensPath, registry.RowPath("failures")} {
-		claimed := append(api.Bespoke(), api.Route{Pattern: path, Operation: "claimsARegistryPath", Scoped: true, Response: schema.Obj("Claim")})
+		claimed := append(api.Bespoke(), server.Route{Pattern: path, Operation: "claimsARegistryPath", Scoped: true, Response: schema.Obj("Claim")})
 		_, err := generate(registry.Datasets(lookups), claimed)
 		if err == nil || !strings.Contains(err.Error(), "claimed by both the registry and the bespoke handler claimsARegistryPath") {
 			t.Fatalf("%s, which both sources claim, was not refused: %v", path, err)
@@ -406,50 +403,4 @@ func TestAPathClaimedByBothSourcesIsRefused(t *testing.T) {
 	if _, err := generate(registry.Datasets(lookups), twice); err == nil || !strings.Contains(err.Error(), "claimed by two bespoke handlers") {
 		t.Fatalf("a path two bespoke handlers claim was not refused: %v", err)
 	}
-}
-
-// catchAlls are the patterns the server registers beside the document's operations. /ui/api/ refuses
-// every path under the read API that no operation answers, /ui/ serves the entry document and the
-// bundle, and GET /{$} answers / with a redirect to /ui/ (ADR-0137). Each is named whole, so no other
-// pattern passes by sharing a prefix with one.
-var catchAlls = []string{"/ui/api/", "/ui/", "GET /{$}"}
-
-// TestTheServerServesExactlyTheDocumentsRoutes builds the server and requires every pattern it
-// registered through the UI listener's recording mux to be an operation of the checked-in document or
-// one of the catch-alls, and each of those to be registered. The document is read from the file
-// rather than from the lists the server is built from, so a route registered through the recording mux
-// that the document lacks is caught, under the read API or outside it (ADR-0057).
-func TestTheServerServesExactlyTheDocumentsRoutes(t *testing.T) {
-	doc, err := openapi3.NewLoader().LoadFromFile(documentPath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	want := slices.Clone(catchAlls)
-	for path, item := range doc.Paths.Map() {
-		for method := range item.Operations() {
-			want = append(want, method+" "+path)
-		}
-	}
-	if got := sorted(newServer(t).Served()); !slices.Equal(got, sorted(want)) {
-		t.Fatalf("the server registers %v, and the document's operations with the catch-alls %v are %v", got, catchAlls, sorted(want))
-	}
-}
-
-// newServer builds the server. It touches no database while it is built, so it is given none.
-func newServer(t *testing.T) *api.Server {
-	t.Helper()
-	s, err := api.New(api.Options{
-		Bundle: fstest.MapFS{}, Datasets: registry.Datasets(lookups), Logger: slog.New(slog.DiscardHandler),
-		Metrics: prometheus.NewRegistry(), Clock: time.Now, StreamInterval: time.Second, TokenKey: make([]byte, api.MinTokenKey),
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	return s
-}
-
-func sorted(s []string) []string {
-	out := slices.Clone(s)
-	slices.Sort(out)
-	return out
 }

@@ -6,15 +6,15 @@ scheduled-count: no
 integration: yes
 
 diff --git a/ui/internal/api/server.go b/ui/internal/api/server.go
-index 626acce..9caea66 100644
+index c238c693..09776cdf 100644
 --- a/ui/internal/api/server.go
 +++ b/ui/internal/api/server.go
-@@ -245,7 +245,7 @@ func (s *Server) scoped(route string, h func(http.ResponseWriter, *http.Request)
+@@ -287,7 +287,7 @@ func (s *Server) scoped(route string, h func(http.ResponseWriter, *http.Request)
  func (s *Server) admit(w http.ResponseWriter, r *http.Request) bool {
  	account := r.PathValue("account")
- 	requestInfo(r.Context()).account = account
+ 	server.RequestLogOf(r.Context()).Account = account
 -	if account == "all" {
 +	if false && account == "all" {
- 		writeFailure(w, r, clientFault(http.StatusBadRequest, "all_accounts", "every view is one account's, and all names every account"))
+ 		server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, "all_accounts", "every view is one account's, and all names every account"))
  		return false
  	}

@@ -591,7 +591,7 @@ func TestTheBasePolicyReadsNoAccountsState(t *testing.T) {
 	r.seedPolicy()
 	b := r.browser()
 	var answers []string
-	for _, path := range []string{"/ui/api/setup/policy", "/ui/api/setup/policy/history?range=all", "/ui/api/setup/policy/export", "/ui/setup/policy", "/ui/api/setup"} {
+	for _, path := range []string{"/ui/api/setup/policy", "/ui/api/setup/policy/history?range=all", "/ui/api/setup/policy/export", "/ui/api/setup"} {
 		res := b.get(path)
 		if res.status != http.StatusOK {
 			t.Fatalf("%s answered %d:\n%s", path, res.status, res.body)

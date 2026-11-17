@@ -8,9 +8,9 @@ import (
 )
 
 // This file starts goroutines in the UI's code on purpose, by a go statement and through
-// standard-library functions that run a function they are given on a goroutine of their own. The host
-// would neither recover a panic on them nor wait for them before the pools close, so the UI starts one
-// only through the starter the host hands its assembly (ADR-0138).
+// standard-library functions that run a function they are given on a goroutine of their own. The
+// process would neither recover a panic on them nor wait for them before it closes its slots, so the
+// UI's code starts one only through the process's Go (ADR-0142).
 func startsAGoroutine(done chan struct{}, f func()) {
 	go close(done) // want vetcheck "starts a goroutine outside the host's starter"
 	p := new(int)

@@ -5,8 +5,9 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
+	"fmt"
 	"io"
-	"log/slog"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -18,24 +19,28 @@ import (
 	"github.com/google/go-cmp/cmp"
 
 	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
+	"github.com/ppat/mediated-mailbox-mcp/process"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 )
 
-func discard() *slog.Logger { return slog.New(slog.DiscardHandler) }
+// run runs the UI's spec as its main.go does, until ctx ends or the start fails.
+func run(ctx context.Context, args, environ []string, stdout, stderr io.Writer) error {
+	return process.RunContext(ctx, args, environ, stdout, stderr, Spec())
+}
 
 // The UI's defaults are core/config's, in which the database's host, name, user and password file
 // and the key files are required, so a start that names no host is refused at it, before anything
 // is read or connected (docs/UI.md section 18.1, ADR-0143).
 func TestAStartWithNoDatabaseHostIsRefused(t *testing.T) {
-	err := Run(t.Context(), []string{"--database.name=mailbox", "--database.user=mediated_mailbox_app", "--database.password_file=/absent"}, nil, io.Discard, io.Discard, discard(), new(slog.LevelVar))
+	err := run(t.Context(), []string{"--database.name=mailbox", "--database.user=mediated_mailbox_app", "--database.password_file=/absent"}, nil, io.Discard, io.Discard)
 	wantErr := "loading the configuration: database.host is required, and neither the file, MEDIATED_MAILBOX_DATABASE__HOST nor --database.host sets it"
 	if err == nil || err.Error() != wantErr {
-		t.Errorf("Run returned %v, want %q", err, wantErr)
+		t.Errorf("the run returned %v, want %q", err, wantErr)
 	}
-	err = Run(t.Context(), []string{"--database.host=db", "--database.name=mailbox", "--database.password_file=/absent"}, nil, io.Discard, io.Discard, discard(), new(slog.LevelVar))
+	err = run(t.Context(), []string{"--database.host=db", "--database.name=mailbox", "--database.password_file=/absent"}, nil, io.Discard, io.Discard)
 	wantErr = "loading the configuration: database.user is required, and neither the file, MEDIATED_MAILBOX_DATABASE__USER nor --database.user sets it"
 	if err == nil || err.Error() != wantErr {
-		t.Errorf("Run returned %v, want %q", err, wantErr)
+		t.Errorf("the run returned %v, want %q", err, wantErr)
 	}
 }
 
@@ -47,10 +52,10 @@ func TestAPoolSizeOfZeroRefusesTheStart(t *testing.T) {
 		"--database.host=db", "--database.name=mailbox", "--database.user=mediated_mailbox_app", "--database.password_file=/absent", "--database.pool_size=0",
 		"--credential.public_key_file=/absent", "--credential.private_key_files=[/absent]",
 	}
-	err := Run(t.Context(), args, nil, io.Discard, io.Discard, discard(), new(slog.LevelVar))
+	err := run(t.Context(), args, nil, io.Discard, io.Discard)
 	want := "validating the configuration: database.pool_size 0 is not positive"
 	if err == nil || err.Error() != want {
-		t.Errorf("Run returned %v, want %q", err, want)
+		t.Errorf("the run returned %v, want %q", err, want)
 	}
 }
 
@@ -62,10 +67,10 @@ func TestAnEmptyListOfPrivateKeysRefusesTheStart(t *testing.T) {
 		"--database.host=db", "--database.name=mailbox", "--database.user=mediated_mailbox_app", "--database.password_file=/absent", "--tls_cert=/tls/cert",
 		"--tls_key=/tls/key", "--credential.public_key_file=/absent", "--credential.private_key_files=[]",
 	}
-	err := Run(t.Context(), args, nil, io.Discard, io.Discard, discard(), new(slog.LevelVar))
+	err := run(t.Context(), args, nil, io.Discard, io.Discard)
 	want := "validating the configuration: credential.private_key_files names no file"
 	if err == nil || err.Error() != want {
-		t.Errorf("Run returned %v, want %q", err, want)
+		t.Errorf("the run returned %v, want %q", err, want)
 	}
 }
 
@@ -80,20 +85,14 @@ func TestTheEffectiveConfigurationIsLogged(t *testing.T) {
 	}
 	publicKeyFile, privateKeyFile, keyID := writeKeys(t)
 	var out bytes.Buffer
-	logger := slog.New(slog.NewTextHandler(&out, &slog.HandlerOptions{ReplaceAttr: func(_ []string, a slog.Attr) slog.Attr {
-		if a.Key == slog.TimeKey {
-			return slog.Attr{}
-		}
-		return a
-	}}))
-	err := Run(bounded(t), []string{
+	err := run(bounded(t), []string{
 		"--database.host=db.example", "--database.user=mediated_mailbox_app", "--database.password_file=" + passwordFile, "--tls_cert=/absent/tls.crt", "--tls_key=/absent/tls.key",
 		"--listen=127.0.0.1:0", "--probe_listen=127.0.0.1:0", "--credential.public_key_file=" + publicKeyFile,
 		"--credential.private_key_files=[" + privateKeyFile + "]",
 	},
-		[]string{"MEDIATED_MAILBOX_DATABASE__NAME=mailbox"}, io.Discard, io.Discard, logger, new(slog.LevelVar))
-	if err == nil || !strings.HasPrefix(err.Error(), "checking the database schema as mediated_mailbox_app: ") {
-		t.Fatalf("Run returned %v, want the schema check refused", err)
+		[]string{"MEDIATED_MAILBOX_DATABASE__NAME=mailbox"}, &out, io.Discard)
+	if err == nil || !strings.HasPrefix(err.Error(), "building the endpoint /ui/api/: checking the database schema as mediated_mailbox_app: ") {
+		t.Fatalf("the run returned %v, want the schema check refused", err)
 	}
 	want := []string{
 		`level=INFO msg=configuration path=attention_backlog_share source=default value=5`,
@@ -127,13 +126,50 @@ func TestTheEffectiveConfigurationIsLogged(t *testing.T) {
 		`level=INFO msg=configuration path=token_key_file source=default value=""`,
 		`level=INFO msg="sealing to the public key" component=ui key_id=` + keyID,
 	}
-	got := strings.Split(strings.TrimSpace(out.String()), "\n")
-	if diff := cmp.Diff(want, got, compare.Options); diff != "" {
+	got := records(t, out.String())
+	if len(got) == 0 || got[len(got)-1] != "level=ERROR msg=\"the process failed\"" {
+		t.Fatalf("the run's last record is not its failure: %v", got)
+	}
+	if diff := cmp.Diff(want, got[:len(got)-1], compare.Options); diff != "" {
 		t.Errorf("log (-want +got):\n%s", diff)
 	}
 	if strings.Contains(out.String(), "the-secret-itself") {
 		t.Errorf("the log holds the password:\n%s", out.String())
 	}
+}
+
+// records renders each JSON record in logs as level, message, then the attributes the test reads, in
+// the text handler's form, leaving out the time.
+func records(t *testing.T, logs string) []string {
+	t.Helper()
+	var got []string
+	for line := range strings.Lines(logs) {
+		var r struct {
+			Level, Msg, Path, Source, Component string
+			Value                               any
+			KeyID                               string `json:"key_id"`
+		}
+		if err := json.Unmarshal([]byte(line), &r); err != nil {
+			t.Fatalf("standard output holds a line that is not a JSON record: %q", line)
+		}
+		text := "level=" + r.Level + " msg=" + quoted(r.Msg)
+		switch r.Msg {
+		case "configuration":
+			text += " path=" + r.Path + " source=" + quoted(r.Source) + " value=" + quoted(fmt.Sprint(r.Value))
+		case "sealing to the public key":
+			text += " component=" + r.Component + " key_id=" + r.KeyID
+		}
+		got = append(got, text)
+	}
+	return got
+}
+
+// quoted quotes s as the text handler does, when it holds a space or a quote or is empty.
+func quoted(s string) string {
+	if s == "" || strings.ContainsAny(s, " \"=") {
+		return strconv.Quote(s)
+	}
+	return s
 }
 
 // writeKeys writes a new key pair's files and returns their paths and the key identifier, the first
@@ -181,10 +217,28 @@ func TestANonLoopbackConsentRedirectRefusesTheStart(t *testing.T) {
 			"--database.host=db", "--database.name=mailbox", "--database.user=mediated_mailbox_app", "--database.password_file=/absent", "--tls_cert=/tls/cert",
 			"--tls_key=/tls/key", "--credential.public_key_file=/absent", "--credential.private_key_files=[/absent]", "--consent_redirect=" + value,
 		}
-		err := Run(t.Context(), args, nil, io.Discard, io.Discard, discard(), new(slog.LevelVar))
+		err := run(t.Context(), args, nil, io.Discard, io.Discard)
 		want := "validating the configuration: consent_redirect is not an http address on a loopback IP literal with an explicit port"
 		if err == nil || err.Error() != want {
-			t.Errorf("%s: Run returned %v, want %q", value, err, want)
+			t.Errorf("%s: the run returned %v, want %q", value, err, want)
 		}
+	}
+}
+
+// Every endpoint the spec lists sits under the UI's root, /ui/, apart from the one redirect at /, so
+// the product's top-level words are its surfaces (ADR-0137, docs/UI.md section 5). The read API's own
+// test holds every route it registers under its endpoint.
+func TestEveryEndpointSitsUnderTheUIsRoot(t *testing.T) {
+	redirects := 0
+	for _, e := range Spec().Endpoints {
+		switch {
+		case e.Pattern == "/{$}":
+			redirects++
+		case !strings.HasPrefix(e.Pattern, "/ui/"):
+			t.Errorf("the spec lists the endpoint %s, outside the UI's root /ui/", e.Pattern)
+		}
+	}
+	if redirects != 1 {
+		t.Errorf("the spec lists / %d times, want once, as the redirect to /ui/", redirects)
 	}
 }

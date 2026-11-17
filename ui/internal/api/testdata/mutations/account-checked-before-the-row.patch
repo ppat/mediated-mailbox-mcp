@@ -6,13 +6,13 @@ scheduled-count: no
 integration: yes
 
 diff --git a/ui/internal/api/lens.go b/ui/internal/api/lens.go
-index 3058c27..6800380 100644
+index 8895d88e..72150440 100644
 --- a/ui/internal/api/lens.go
 +++ b/ui/internal/api/lens.go
-@@ -306,6 +306,9 @@ func (s *Server) rowDetail(dataset registry.Dataset) func(http.ResponseWriter, *
+@@ -311,6 +311,9 @@ func (s *Server) rowDetail(dataset registry.Dataset) func(http.ResponseWriter, *
  	return func(w http.ResponseWriter, r *http.Request) {
  		account := r.PathValue("account")
- 		requestInfo(r.Context()).account = account
+ 		server.RequestLogOf(r.Context()).Account = account
 +		if !s.admit(w, r) {
 +			return
 +		}

@@ -21,12 +21,14 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/schema"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/setup"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/registry"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/server"
 )
 
 // ClientSecrets hands the server the secret of the client a consent's code is exchanged with, since
 // Google refuses a desktop client's code exchange without it, PKCE notwithstanding. The UI stores the
 // secret sealed, and ui/internal/clientsecret, the one part of the UI that opens a stored value, opens
-// it (ADR-0081). The composition root passes it in, so this package links no code that opens one.
+// it (ADR-0081). New loads it from that package and hands the server this interface alone, so no
+// handler reaches the code that opens one.
 type ClientSecrets interface {
 	Secret(ctx context.Context, client string) (string, error)
 }
@@ -139,7 +141,7 @@ func (s *Server) startConnect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if refusal := setup.Identifier(body.Account); refusal != setup.None {
-		writeFailure(w, r, clientFault(http.StatusBadRequest, string(refusal), identifierGrammar))
+		server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, string(refusal), identifierGrammar))
 		return
 	}
 	if !s.validStart(w, r, body.Mailbox, body.LoweredTarget) {
@@ -151,7 +153,7 @@ func (s *Server) startConnect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if slices.ContainsFunc(listed, func(a accounts.AccountsRow) bool { return a.AccountID == body.Account }) {
-		writeFailure(w, r, clientFault(http.StatusConflict, "identifier_taken", "an account already holds this identifier"))
+		server.WriteFailure(w, r, server.ClientFault(http.StatusConflict, "identifier_taken", "an account already holds this identifier"))
 		return
 	}
 	client, ok := s.client(w, r, body.Client)
@@ -183,7 +185,7 @@ func (s *Server) startReauthorize(w http.ResponseWriter, r *http.Request) {
 		name = *body.Client
 	}
 	if name == "" {
-		writeFailure(w, r, clientFault(http.StatusNotFound, "unknown_client", "the account connects through no client"))
+		server.WriteFailure(w, r, server.ClientFault(http.StatusNotFound, "unknown_client", "the account connects through no client"))
 		return
 	}
 	client, ok := s.client(w, r, name)
@@ -191,16 +193,16 @@ func (s *Server) startReauthorize(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if client.Provider != held.AccountProvider {
-		writeFailure(w, r, clientFault(http.StatusBadRequest, "client_wrong_provider", "the client belongs to another provider than the account's"))
+		server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, "client_wrong_provider", "the client belongs to another provider than the account's"))
 		return
 	}
 	mailbox := held.Mailbox.String
 	switch {
 	case held.Mailbox.Valid && body.Mailbox != nil:
-		writeFailure(w, r, clientFault(http.StatusBadRequest, "mailbox_remembered", "the account remembers its mailbox, so the request names none"))
+		server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, "mailbox_remembered", "the account remembers its mailbox, so the request names none"))
 		return
 	case !held.Mailbox.Valid && body.Mailbox == nil:
-		writeFailure(w, r, clientFault(http.StatusBadRequest, "mailbox_required", "the account remembers no mailbox, so the request names it"))
+		server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, "mailbox_required", "the account remembers no mailbox, so the request names it"))
 		return
 	case !held.Mailbox.Valid:
 		mailbox = *body.Mailbox
@@ -221,11 +223,11 @@ func (s *Server) startReauthorize(w http.ResponseWriter, r *http.Request) {
 // validStart refuses a mailbox with no local part or domain and a lowered target outside its range.
 func (s *Server) validStart(w http.ResponseWriter, r *http.Request, mailbox string, target *float64) bool {
 	if setup.Mailbox(mailbox) != setup.None {
-		writeFailure(w, r, clientFault(http.StatusBadRequest, string(setup.MailboxRefused), "the mailbox is an address with a local part and a domain"))
+		server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, string(setup.MailboxRefused), "the mailbox is an address with a local part and a domain"))
 		return false
 	}
 	if setup.Target(target) != setup.None {
-		writeFailure(w, r, clientFault(http.StatusBadRequest, string(setup.TargetRefused), "a lowered target is above 5% and at most 50% of the declared ceiling"))
+		server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, string(setup.TargetRefused), "a lowered target is above 5% and at most 50% of the declared ceiling"))
 		return false
 	}
 	return true
@@ -246,7 +248,7 @@ func (s *Server) client(w http.ResponseWriter, r *http.Request, name string) (cl
 			}
 		}
 	}
-	writeFailure(w, r, clientFault(http.StatusNotFound, "unknown_client", "no client holds this name"))
+	server.WriteFailure(w, r, server.ClientFault(http.StatusNotFound, "unknown_client", "no client holds this name"))
 	return clientsetup.SetupClientsRow{}, false
 }
 
@@ -273,13 +275,13 @@ func (s *Server) start(w http.ResponseWriter, r *http.Request, a attempt) {
 	a.State, a.Verifier = rand.Text(), rand.Text()+rand.Text()
 	a.Expires = s.opts.Clock().Add(attemptLifetime).UnixMilli()
 	a.Consent = s.opts.Consents[a.Provider].ConsentAddress(a.ClientID, a.State, a.Verifier, a.Mailbox)
-	sealed, err := s.keys.sealAttempt(a, sessionOf(r.Context()).id)
+	sealed, err := s.keys.sealAttempt(a, server.SessionID(r.Context()))
 	if err != nil {
 		s.uiFailure(w, r, err)
 		return
 	}
 	keepAttempt(w, sealed)
-	writeJSON(w, r, attemptAnswer{Attempt: viewOf(a)})
+	server.WriteJSON(w, r, attemptAnswer{Attempt: viewOf(a)})
 }
 
 // getConnect reads the session's attempt to connect an account, which a reload of the page restores.
@@ -296,10 +298,10 @@ func (s *Server) getReauthorize(w http.ResponseWriter, r *http.Request) {
 func (s *Server) showAttempt(w http.ResponseWriter, r *http.Request, mine func(attempt) bool) {
 	a, err := s.keys.openAttempt(r)
 	if err != nil || !mine(a) {
-		writeJSON(w, r, attemptAnswer{})
+		server.WriteJSON(w, r, attemptAnswer{})
 		return
 	}
-	writeJSON(w, r, attemptAnswer{Attempt: viewOf(a)})
+	server.WriteJSON(w, r, attemptAnswer{Attempt: viewOf(a)})
 }
 
 // finishConnect finishes the session's attempt to connect an account and writes its two rows.
@@ -329,21 +331,21 @@ func (s *Server) finish(w http.ResponseWriter, r *http.Request, mine func(attemp
 	a, err := s.keys.openAttempt(r)
 	consent, known := s.opts.Consents[a.Provider]
 	if err != nil || !mine(a) || !known {
-		writeFailure(w, r, clientFault(http.StatusBadRequest, "no_attempt", "no connection is in progress in this browser session"))
+		server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, "no_attempt", "no connection is in progress in this browser session"))
 		return
 	}
 	if refusal := setup.Expired(a.Expires, s.opts.Clock().UnixMilli()); refusal != setup.None {
-		writeFailure(w, r, clientFault(http.StatusBadRequest, string(refusal), "the attempt expired"))
+		server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, string(refusal), "the attempt expired"))
 		return
 	}
 	redirect, err := consent.ReadRedirect(body.Address)
 	if err != nil {
-		requestInfo(r.Context()).err = err
-		writeFailure(w, r, clientFault(http.StatusBadRequest, "wrong_address", "this is not the address the provider redirected to"))
+		server.RequestLogOf(r.Context()).Err = err
+		server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, "wrong_address", "this is not the address the provider redirected to"))
 		return
 	}
 	if refusal := setup.Redirect(redirect, a.State); refusal != setup.None {
-		writeFailure(w, r, clientFault(http.StatusBadRequest, string(refusal), "the pasted address cannot finish this attempt"))
+		server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, string(refusal), "the pasted address cannot finish this attempt"))
 		return
 	}
 	if !s.stillFree(w, r, a) {
@@ -361,7 +363,7 @@ func (s *Server) finish(w http.ResponseWriter, r *http.Request, mine func(attemp
 		return
 	}
 	if !consent.SameMailbox(grant.Mailbox, a.Mailbox) {
-		writeFailure(w, r, clientFault(http.StatusBadRequest, "wrong_mailbox", "Google granted access to "+grant.Mailbox+", not "+a.Mailbox+"."))
+		server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, "wrong_mailbox", "Google granted access to "+grant.Mailbox+", not "+a.Mailbox+"."))
 		return
 	}
 	if !a.Remembered {
@@ -379,7 +381,7 @@ func (s *Server) finish(w http.ResponseWriter, r *http.Request, mine func(attemp
 		return
 	}
 	endAttempt(w)
-	writeJSON(w, r, finishAnswer{Kind: a.Kind, Account: a.Account, Mailbox: a.Mailbox, Client: a.Client})
+	server.WriteJSON(w, r, finishAnswer{Kind: a.Kind, Account: a.Account, Mailbox: a.Mailbox, Client: a.Client})
 }
 
 // stillFree refuses, before the code is exchanged, an identifier an account took since a connection's
@@ -393,7 +395,7 @@ func (s *Server) stillFree(w http.ResponseWriter, r *http.Request, a attempt) bo
 			return false
 		}
 		if slices.ContainsFunc(listed, func(l accounts.AccountsRow) bool { return l.AccountID == a.Account }) {
-			writeFailure(w, r, clientFault(http.StatusConflict, "identifier_taken", "an account was connected under this identifier while this one was in progress"))
+			server.WriteFailure(w, r, server.ClientFault(http.StatusConflict, "identifier_taken", "an account was connected under this identifier while this one was in progress"))
 			return false
 		}
 	}
@@ -405,7 +407,7 @@ func (s *Server) stillFree(w http.ResponseWriter, r *http.Request, a attempt) bo
 	if !slices.ContainsFunc(stored, func(c clientsetup.SetupClientsRow) bool {
 		return c.ClientName == a.Client && c.Provider == a.Provider && c.ClientID == a.ClientID
 	}) {
-		writeFailure(w, r, clientFault(http.StatusConflict, "client_changed", "the client "+a.Client+" changed while this was in progress"))
+		server.WriteFailure(w, r, server.ClientFault(http.StatusConflict, "client_changed", "the client "+a.Client+" changed while this was in progress"))
 		return false
 	}
 	return true
@@ -413,16 +415,16 @@ func (s *Server) stillFree(w http.ResponseWriter, r *http.Request, a attempt) bo
 
 // consentFailure answers a code exchange or mailbox read the provider refused or did not answer.
 func (s *Server) consentFailure(w http.ResponseWriter, r *http.Request, a attempt, err error) {
-	requestInfo(r.Context()).err = err
+	server.RequestLogOf(r.Context()).Err = err
 	switch {
 	case errors.Is(err, mail.ErrCodeRefused):
-		writeFailure(w, r, clientFault(http.StatusBadRequest, "code_refused", "the provider refused the code"))
+		server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, "code_refused", "the provider refused the code"))
 	case errors.Is(err, mail.ErrScopeMissing):
-		writeFailure(w, r, clientFault(http.StatusBadRequest, "scope_missing", "the provider granted no access to the mailbox"))
+		server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, "scope_missing", "the provider granted no access to the mailbox"))
 	case errors.Is(err, mail.ErrScopeRefused):
-		writeFailure(w, r, clientFault(http.StatusBadRequest, "scope_refused", "the provider granted more than the one permission asked for"))
+		server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, "scope_refused", "the provider granted more than the one permission asked for"))
 	case errors.Is(err, mail.ErrAPIDisabled):
-		writeFailure(w, r, clientFault(http.StatusBadRequest, "api_disabled", "the provider's API is not enabled in the project of the client "+a.Client))
+		server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, "api_disabled", "the provider's API is not enabled in the project of the client "+a.Client))
 	default:
 		s.providerFailure(w, r, err)
 	}
@@ -494,16 +496,16 @@ func (s *Server) storeFailure(w http.ResponseWriter, r *http.Request, err error)
 	if err == nil {
 		return false
 	}
-	requestInfo(r.Context()).err = err
+	server.RequestLogOf(r.Context()).Err = err
 	key, unique := violated(err, uniqueViolation)
 	_, unreachable := violated(err, checkViolation)
 	switch {
 	case errors.Is(err, errClientChanged):
-		writeFailure(w, r, clientFault(http.StatusConflict, "client_changed", "the attempt's client changed while this was in progress"))
+		server.WriteFailure(w, r, server.ClientFault(http.StatusConflict, "client_changed", "the attempt's client changed while this was in progress"))
 	case unique && key == accountKey:
-		writeFailure(w, r, clientFault(http.StatusConflict, "identifier_taken", "an account was connected under this identifier while this one was in progress"))
+		server.WriteFailure(w, r, server.ClientFault(http.StatusConflict, "identifier_taken", "an account was connected under this identifier while this one was in progress"))
 	case unreachable:
-		writeFailure(w, r, clientFault(http.StatusBadRequest, "identifier_refused", identifierGrammar))
+		server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, "identifier_refused", identifierGrammar))
 	default:
 		s.databaseFailure(w, r, err)
 	}

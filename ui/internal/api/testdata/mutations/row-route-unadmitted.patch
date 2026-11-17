@@ -6,11 +6,11 @@ scheduled-count: no
 integration: yes
 
 diff --git a/ui/internal/api/lens.go b/ui/internal/api/lens.go
-index 6781c399..0fb9311e 100644
+index 8895d88e..7b617316 100644
 --- a/ui/internal/api/lens.go
 +++ b/ui/internal/api/lens.go
 @@ -322,9 +322,6 @@ func (s *Server) rowDetail(dataset registry.Dataset) func(http.ResponseWriter, *
- 			writeFailure(w, r, uiFault())
+ 			server.WriteFailure(w, r, server.UIFault())
  			return
  		}
 -		if !s.admit(w, r) {

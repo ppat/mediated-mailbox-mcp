@@ -3,6 +3,8 @@ package api
 import (
 	"net/http"
 	"strings"
+
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/server"
 )
 
 // Identity is who a decision or a policy write is recorded as made by (ADR-0084). With Header set, the
@@ -25,7 +27,7 @@ func (s *Server) identity(w http.ResponseWriter, r *http.Request) (string, bool)
 	// operator name configured empty, is refused rather than recorded.
 	v = strings.TrimSpace(v)
 	if v == "" {
-		writeFailure(w, r, &failure{status: http.StatusForbidden, origin: originClient, code: "identity_missing", message: "No identity was forwarded, so the change was not recorded"})
+		server.WriteFailure(w, r, server.ClientFault(http.StatusForbidden, "identity_missing", "No identity was forwarded, so the change was not recorded"))
 		return "", false
 	}
 	return v, true

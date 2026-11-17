@@ -21,6 +21,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/lens"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/schema"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/registry"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/server"
 )
 
 // figuresResponse is a level 0 answer (docs/UI.md section 17.1).
@@ -172,16 +173,16 @@ func pascal(name string) string {
 // comes after it (ADR-0057).
 func (s *Server) lens(w http.ResponseWriter, r *http.Request) {
 	account := r.PathValue("account")
-	requestInfo(r.Context()).account = account
+	server.RequestLogOf(r.Context()).Account = account
 	req, err := lens.Parse(s.descriptors, r.URL.Query())
 	var refusal *lens.Refusal
 	if errors.As(err, &refusal) {
-		writeFailure(w, r, clientFault(http.StatusBadRequest, refusal.Code, refusal.Message))
+		server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, refusal.Code, refusal.Message))
 		return
 	}
 	if err != nil {
-		requestInfo(r.Context()).err = err
-		writeFailure(w, r, uiFault())
+		server.RequestLogOf(r.Context()).Err = err
+		server.WriteFailure(w, r, server.UIFault())
 		return
 	}
 	if !s.admit(w, r) {
@@ -242,15 +243,15 @@ func (s *Server) lens(w http.ResponseWriter, r *http.Request) {
 	})
 	s.metrics.readDuration.WithLabelValues(req.Dataset, strconv.Itoa(req.Level)).Observe(time.Since(started).Seconds())
 	if errors.Is(err, errUnservedLevel) {
-		requestInfo(r.Context()).err = err
-		writeFailure(w, r, uiFault())
+		server.RequestLogOf(r.Context()).Err = err
+		server.WriteFailure(w, r, server.UIFault())
 		return
 	}
 	if err != nil {
 		s.databaseFailure(w, r, err)
 		return
 	}
-	writeJSON(w, r, body)
+	server.WriteJSON(w, r, body)
 }
 
 var errUnservedLevel = errors.New("the registry admitted a group no statement serves")
@@ -309,16 +310,16 @@ func bounds(r lens.Range, now time.Time) registry.Bounds {
 func (s *Server) rowDetail(dataset registry.Dataset) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		account := r.PathValue("account")
-		requestInfo(r.Context()).account = account
+		server.RequestLogOf(r.Context()).Account = account
 		req, err := lens.ParseRow(s.descriptors, dataset.Name, r.PathValue("row"), r.URL.Query())
 		var refusal *lens.Refusal
 		if errors.As(err, &refusal) {
-			writeFailure(w, r, clientFault(http.StatusBadRequest, refusal.Code, refusal.Message))
+			server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, refusal.Code, refusal.Message))
 			return
 		}
 		if err != nil {
-			requestInfo(r.Context()).err = err
-			writeFailure(w, r, uiFault())
+			server.RequestLogOf(r.Context()).Err = err
+			server.WriteFailure(w, r, server.UIFault())
 			return
 		}
 		if !s.admit(w, r) {
@@ -338,13 +339,13 @@ func (s *Server) rowDetail(dataset registry.Dataset) func(http.ResponseWriter, *
 		})
 		s.metrics.readDuration.WithLabelValues(dataset.Name, "4").Observe(time.Since(started).Seconds())
 		if errors.Is(err, registry.ErrNoRow) {
-			writeFailure(w, r, clientFault(http.StatusNotFound, "unknown_row", "the account holds no such row"))
+			server.WriteFailure(w, r, server.ClientFault(http.StatusNotFound, "unknown_row", "the account holds no such row"))
 			return
 		}
 		if err != nil {
 			s.databaseFailure(w, r, err)
 			return
 		}
-		writeJSON(w, r, body)
+		server.WriteJSON(w, r, body)
 	}
 }

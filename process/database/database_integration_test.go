@@ -109,6 +109,11 @@ func metricsOf(t *testing.T, logs func() string) string {
 			if err := errors.Join(err, resp.Body.Close()); err != nil {
 				t.Fatal(err)
 			}
+			// The metrics endpoint answers a gather error, such as two series of one name and one set
+			// of label values, with an error status rather than the series.
+			if resp.StatusCode != http.StatusOK {
+				t.Fatalf("/metrics answered %d:\n%s", resp.StatusCode, body)
+			}
 			return string(body)
 		}
 	}
@@ -118,8 +123,11 @@ func metricsOf(t *testing.T, logs func() string) string {
 
 // Each job kind gets a pool of its own, opened from the one database part and labelled with its job
 // kind, asked for again it is the same pool, and a thing the process shares gets the process's one
-// pool, labelled with the program alone, whichever part asks first. Every pool is closed once the
-// process has stopped (ADR-0119, ADR-0125, ADR-0142, ADR-0143).
+// pool, labelled with the program alone, whichever part asks first. In this process, which holds job
+// kinds' pools beside the process's pool in one registry, the job kinds' series carry their job_kind
+// and the process's pool's carry no job_kind at all, the scrape succeeds, and no series appears
+// twice. Every pool is closed once the process has stopped (ADR-0119, ADR-0125, ADR-0142,
+// ADR-0143).
 func TestEachJobKindHasAPoolOfItsOwnAndTheProcessOneMore(t *testing.T) {
 	shared := process.NewOnePerProcess[*pgxpool.Pool]("shared")
 	pools := map[string][]*pgxpool.Pool{}
@@ -160,10 +168,24 @@ func TestEachJobKindHasAPoolOfItsOwnAndTheProcessOneMore(t *testing.T) {
 	for _, line := range []string{
 		`mediated_mailbox_db_pool_max_connections{component="test",job_kind="first"} 2`,
 		`mediated_mailbox_db_pool_max_connections{component="test",job_kind="second"} 2`,
-		`mediated_mailbox_db_pool_max_connections{component="test",job_kind=""} 2`,
+		`mediated_mailbox_db_pool_max_connections{component="test"} 2`,
 	} {
 		if !strings.Contains(metrics, "\n"+line) {
 			t.Errorf("/metrics does not serve %s:\n%s", line, metrics)
+		}
+	}
+	seen := map[string]bool{}
+	for line := range strings.Lines(metrics) {
+		if strings.HasPrefix(line, "#") {
+			continue
+		}
+		series, _, _ := strings.Cut(strings.TrimSpace(line), " ")
+		if seen[series] {
+			t.Errorf("/metrics serves %s twice", series)
+		}
+		seen[series] = true
+		if strings.HasPrefix(series, "mediated_mailbox_db_") && strings.Contains(series, `job_kind=""`) {
+			t.Errorf("/metrics serves %s, a pool series with an empty job_kind", series)
 		}
 	}
 	for _, pool := range []*pgxpool.Pool{first[0], second[0], process[0]} {
@@ -236,4 +258,30 @@ func TestGetChecksTheSchemaAndForMigrationDoesNot(t *testing.T) {
 // the application user every program but the migrator connects as (ADR-0140, ADR-0143).
 func TestTheSchemaCheckRefusesASchemaTheChainCannotRunOn(t *testing.T) {
 	postgres.SchemaChecks(t, "../../db/migrations", database.CheckSchema, postgres.ApplicationUser)
+}
+
+// A process that runs no job kind holds no job kind's pool, so its one pool serves its series with
+// the program's label alone and no job_kind, as the UI's does (ADR-0125, ADR-0142).
+func TestAPoolOfAProcessWithoutJobKindsCarriesNoJobKind(t *testing.T) {
+	url := postgres.URL(t)
+	var logs lockedBuffer
+	ctx, cancel := context.WithCancel(t.Context())
+	done := make(chan error, 1)
+	go func() {
+		args := append(flags(t, url), "--listen=127.0.0.1:0")
+		done <- process.RunContext(ctx, args, nil, &logs, io.Discard, process.Spec[served]{
+			Name: "test", Endpoints: []process.Endpoint[served]{{Pattern: "/", Build: func(ctx context.Context, p process.Capabilities, c served) (http.Handler, error) {
+				_, err := database.Get(ctx, p, c)
+				return http.NotFoundHandler(), err
+			}}},
+		})
+	}()
+	metrics := metricsOf(t, logs.String)
+	cancel()
+	if err := <-done; err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(metrics, "\n"+`mediated_mailbox_db_pool_max_connections{component="test"} 2`) || strings.Contains(metrics, "job_kind") {
+		t.Errorf("an endpoint's pool in a process with no job kind serves its series with a job_kind, or not at all:\n%s", metrics)
+	}
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/schema"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/registry"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/server"
 )
 
 // runSummary is the run summary endpoint's answer, the run screen's L0 strip and timeline (docs/UI.md
@@ -126,12 +127,12 @@ func (s *Server) getRun(w http.ResponseWriter, r *http.Request) {
 		return nil
 	})
 	if errors.Is(err, errUnknownRun) {
-		writeFailure(w, r, clientFault(http.StatusNotFound, "unknown_run", "the account holds no such run"))
+		server.WriteFailure(w, r, server.ClientFault(http.StatusNotFound, "unknown_run", "the account holds no such run"))
 		return
 	}
 	if err != nil {
 		s.databaseFailure(w, r, err)
 		return
 	}
-	writeJSON(w, r, out)
+	server.WriteJSON(w, r, out)
 }

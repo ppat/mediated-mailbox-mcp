@@ -70,56 +70,6 @@ func errorOf(t *testing.T, r response) (origin, code string) {
 	return body.Error.Origin, body.Error.Code
 }
 
-// TestEveryResponseCarriesThePolicy requires the policy header, exact in name and value, on every
-// kind of response the UI serves, the entry document on every screen route, the bundle, the read
-// API's answers and its errors, and a path no route answers (VERIFICATIONS, the policy row, ADR-0064's
-// first Go assertion).
-func TestEveryResponseCarriesThePolicy(t *testing.T) {
-	s, _ := server(t)
-	paths := []string{
-		"/", "/ui/", "/ui/accounts/personal", "/ui/accounts/personal/jobs", "/ui/accounts/personal/plans/" + draftPlan, "/personal",
-		"/ui/api/accounts", "/ui/api/accounts/personal/system", "/ui/api/accounts/personal/lens?dataset=plans",
-		"/ui/api/accounts/personal/lens?dataset=nothing", "/ui/api/accounts/all/system", "/ui/api/lens", "/ui/api/accounts/personal/nothing",
-	}
-	if built(t) {
-		paths = append(paths, "/ui/main.js", "/ui/main.css", "/ui/fonts/IBMPlexSans-Regular-Latin1.woff2")
-	}
-	for _, p := range paths {
-		r := get(t, s.Handler(), p)
-		if got := r.header.Values("Content-Security-Policy"); !slices.Equal(got, []string{policy}) {
-			t.Errorf("%s answered %d with the policy %q, want exactly %q", p, r.status, got, policy)
-		}
-	}
-}
-
-// built reports whether the bundle directory holds a bundle, which the go-integration workflow builds
-// before the integration tests. A fresh clone holds only the placeholder.
-func built(t *testing.T) bool {
-	t.Helper()
-	_, err := os.Stat(filepath.Join("..", "..", "browser", "dist", "main.js"))
-	return err == nil
-}
-
-// TestTheEntryDocumentIsRenderedForEveryScreenRoute requires every path the browser's router owns to
-// load the entry document, and it to load the bundle's entry module and its stylesheet from the UI's own
-// origin.
-func TestTheEntryDocumentIsRenderedForEveryScreenRoute(t *testing.T) {
-	s, _ := server(t)
-	for _, p := range []string{"/ui/", "/ui/accounts/personal", "/ui/accounts/personal/candidates?status=pending", "/ui/accounts/personal/jobs/r-0913"} {
-		r := get(t, s.Handler(), p)
-		if r.status != http.StatusOK || !strings.Contains(string(r.body), `<script type="module" src="/ui/main.js"></script>`) ||
-			!strings.Contains(string(r.body), `<link rel="stylesheet" href="/ui/main.css">`) {
-			t.Errorf("%s answered %d without the entry document:\n%s", p, r.status, r.body)
-		}
-		if r.header.Get("Content-Type") != "text/html; charset=utf-8" {
-			t.Errorf("%s answered as %q", p, r.header.Get("Content-Type"))
-		}
-	}
-	if r := get(t, s.Handler(), "/ui/.gitkeep"); !strings.Contains(string(r.body), "<!doctype html>") {
-		t.Errorf("the bundle's placeholder was served as a file: %d %q", r.status, r.body)
-	}
-}
-
 // TestTheRegistryRefusesWhatItDoesNotDeclare requests a dataset, a dimension filter, a sort column and
 // a group the registry does not declare, a level outside the ladder, a filter value no statement could
 // compare, and a row detail with a malformed row, without its parent or with another parameter, and
@@ -312,21 +262,6 @@ func TestADatabaseFailureReportsTheDatabaseOrigin(t *testing.T) {
 	}
 }
 
-// TestReadinessFollowsTheDatabase requires the UI's readiness check to pass while the database answers
-// as the application user and to fail once it does not.
-func TestReadinessFollowsTheDatabase(t *testing.T) {
-	seed(t)
-	pool := uiPool(t, postgres.ApplicationUser)
-	s, _ := serverAs(t, pool)
-	if err := s.Ready(t.Context()); err != nil {
-		t.Fatalf("not ready with the database up: %v", err)
-	}
-	pool.Close()
-	if err := s.Ready(t.Context()); err == nil {
-		t.Fatal("ready with the pool closed")
-	}
-}
-
 // sample returns the value of the series name with exactly the labels given on reg, and whether reg
 // holds it.
 func sample(t *testing.T, reg *prometheus.Registry, name string, labels map[string]string) (float64, bool) {
@@ -377,12 +312,12 @@ func TestTheStreamEndsWhenTheProcessDrains(t *testing.T) {
 	seed(t)
 	draining, drain := context.WithCancel(t.Context())
 	defer drain()
-	s, err := api.New(api.Options{
-		Bundle: os.DirFS(filepath.Join("..", "..", "browser", "dist")), Database: uiPool(t, postgres.ApplicationUser),
-		Datasets: registry.Datasets(lookups), Lookups: lookups, Logger: slog.New(slog.NewJSONHandler(io.Discard, nil)),
+	s, err := api.NewServer(api.Options{
+		Database: uiPool(t, postgres.ApplicationUser), Datasets: registry.Datasets(lookups), Lookups: lookups,
+		Checks:  newChecks(t, tokenKey, slog.New(slog.NewJSONHandler(io.Discard, nil))),
 		Metrics: prometheus.NewRegistry(), Draining: draining, Clock: func() time.Time { return now },
 		Cadences: api.Cadences{Sync: 5 * time.Minute, Heuristics: 24 * time.Hour}, StreamInterval: 50 * time.Millisecond,
-		Attention: starting(), TokenKey: tokenKey,
+		Attention: starting(),
 	})
 	if err != nil {
 		t.Fatal(err)

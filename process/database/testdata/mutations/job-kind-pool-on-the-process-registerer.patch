@@ -1,17 +1,18 @@
 control: Each job kind has a pool of its own and the process one more, every pool closed with the slots
-removes: a job kind's pool registers its series on the process's registerer, so the second job kind's pool collides with the first and the start fails
+removes: a job kind's pool registers its series on the process's registerer, so the two job kinds' pools serve series of one name and one set of label values and the scrape fails
 packages: ./process/database
 tests: TestEachJobKindHasAPoolOfItsOwnAndTheProcessOneMore
 scheduled-count: no
 integration: yes
 
 diff --git a/process/database/database.go b/process/database/database.go
+index 88528dae..8cf0f23c 100644
 --- a/process/database/database.go
 +++ b/process/database/database.go
-@@ -42,9 +42,6 @@
- 	}
+@@ -48,9 +48,6 @@ func Get(ctx context.Context, p process.Capabilities, c config.HasDatabase) (*pg
+ 	// job_kind, and every other pool through the process's own, so they carry none (ADR-0125).
  	kind := process.JobKind(p)
- 	reg := set.processPool()
+ 	reg := set.shared.Metrics()
 -	if kind != "" {
 -		reg = p.Metrics()
 -	}

@@ -1,0 +1,20 @@
+control: Every endpoint the UI's spec lists sits behind the checks
+removes: the checks meet the request token before the session, so a request carrying its session's token is refused as having none
+packages: ./ui/app
+tests: TestEveryEndpointSitsBehindTheChecks
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/server/server.go b/ui/internal/server/server.go
+index f984df5d..9759edab 100644
+--- a/ui/internal/server/server.go
++++ b/ui/internal/server/server.go
+@@ -60,7 +60,7 @@ func New(key []byte, logger *slog.Logger) (*Checks, error) {
+ // request whose method is not GET or HEAD is refused unless it carries the session's request token,
+ // all before h sees it.
+ func (c *Checks) Wrap(h http.Handler) http.Handler {
+-	return observe(c.logger, withPolicy(withSession(withToken(c.keys, h))))
++	return observe(c.logger, withPolicy(withToken(c.keys, withSession(h))))
+ }
+ 
+ // loadKey reads the key behind the request token from its mounted file, or generates one when no file

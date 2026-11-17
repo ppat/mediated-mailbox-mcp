@@ -6,15 +6,15 @@ scheduled-count: no
 integration: yes
 
 diff --git a/ui/internal/api/connect.go b/ui/internal/api/connect.go
-index 073610d6..fd0e1cc2 100644
+index 05cff588..8a91a93a 100644
 --- a/ui/internal/api/connect.go
 +++ b/ui/internal/api/connect.go
-@@ -399,7 +399,7 @@ func (s *Server) stillFree(w http.ResponseWriter, r *http.Request, a attempt) bo
+@@ -404,7 +404,7 @@ func (s *Server) stillFree(w http.ResponseWriter, r *http.Request, a attempt) bo
  		return false
  	}
  	if !slices.ContainsFunc(stored, func(c clientsetup.SetupClientsRow) bool {
 -		return c.ClientName == a.Client && c.Provider == a.Provider && c.ClientID == a.ClientID
 +		return c.ClientName == a.ClientID && c.Provider == a.Provider && c.ClientID == a.ClientID
  	}) {
- 		writeFailure(w, r, clientFault(http.StatusConflict, "client_changed", "the client "+a.Client+" changed while this was in progress"))
+ 		server.WriteFailure(w, r, server.ClientFault(http.StatusConflict, "client_changed", "the client "+a.Client+" changed while this was in progress"))
  		return false

@@ -18,6 +18,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/schema"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/registry"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/server"
 )
 
 // The stream's event names (docs/UI.md section 17.5).
@@ -80,7 +81,7 @@ func (s *Server) streamEvents(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
 	w.WriteHeader(http.StatusOK)
 	if err := controller.Flush(); err != nil {
-		requestInfo(r.Context()).err = err
+		server.RequestLogOf(r.Context()).Err = err
 		return
 	}
 	s.metrics.subscribers.Inc()
@@ -93,8 +94,7 @@ func (s *Server) streamEvents(w http.ResponseWriter, r *http.Request) {
 		events, err := s.poll(r.Context(), account, st)
 		if err != nil {
 			if r.Context().Err() == nil {
-				requestInfo(r.Context()).err = err
-				requestInfo(r.Context()).origin = originDatabase
+				server.RequestLogOf(r.Context()).DatabaseFailed(err)
 			}
 			return
 		}

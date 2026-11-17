@@ -7,55 +7,15 @@ import (
 
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/schema"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/paths"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/server"
 )
-
-// Route is one bespoke handler as the contract describes it.
-type Route struct {
-	// Method is the route's method, GET for a read when it is empty. A route of any other method
-	// changes state, and the server refuses it without the session's request token before routing it
-	// (ADR-0061).
-	Method    string
-	Pattern   string
-	Operation string
-	Summary   string
-	// Scoped says the path carries the account as its {account} segment.
-	Scoped bool
-	// Registry marks a route the registry claims, which admits its account after the pure core reads
-	// the request. No bespoke route sets it.
-	Registry bool
-	// Request is the JSON body a state-changing route reads, with no other field admitted. A route
-	// that reads no body has none.
-	Request *schema.Type
-	// Response is the JSON body of a 200 response. A stream route has none.
-	Response schema.Type
-	// Events are the event stream's data objects, one per event name, for a stream route.
-	Events map[string]schema.Type
-	// Query names the optional query parameters a read takes.
-	Query []string
-	// Download is the media type of a route that answers with a file to save rather than JSON.
-	Download string
-	// Refusal is the body a refused request's 400 carries when it names problems beyond the error
-	// contract's, as a refused policy write or file does.
-	Refusal *schema.Type
-}
-
-// Stream reports whether the route answers with an event stream.
-func (r Route) Stream() bool { return len(r.Events) > 0 }
-
-// Verb is the route's method, GET when Method is empty.
-func (r Route) Verb() string {
-	if r.Method == "" {
-		return http.MethodGet
-	}
-	return r.Method
-}
 
 // Bespoke is the list of bespoke handlers, the second of the two sources the contract is generated
 // from (ADR-0057). A handler exists only where a screen needs a shape the ladder does not produce, and
 // the server mounts exactly these and the dataset endpoint under the read API's root, paths.API. Each route's handler is bound
-// by its operation in New, which refuses a route without one and a handler without a route.
-func Bespoke() []Route {
-	return []Route{
+// by its operation in newServer, which refuses a route without one and a handler without a route.
+func Bespoke() []server.Route {
+	return []server.Route{
 		{
 			Pattern: paths.Accounts, Operation: "listAccounts",
 			Summary:  "Every account's identifier and provider, the one unscoped read",
@@ -242,7 +202,7 @@ func ptr(t schema.Type) *schema.Type { return &t }
 // CheckPaths refuses a bespoke route claiming a path the registry claims, and two bespoke routes
 // claiming one path under one method, so no route is served by two definitions (docs/UI.md section
 // 17.1). The contract generator and the server both run it.
-func CheckPaths(registryPaths []string, bespoke []Route) error {
+func CheckPaths(registryPaths []string, bespoke []server.Route) error {
 	seen := map[string]string{}
 	for _, route := range bespoke {
 		if slices.Contains(registryPaths, route.Pattern) {

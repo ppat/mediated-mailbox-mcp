@@ -1,0 +1,20 @@
+control: A pool that is no job kind's carries no job_kind, beside job kinds' pools that carry theirs in one registry
+removes: each pool registers its series checked, so a pool that is no job kind's conflicts with a job kind's at registration and the start fails
+packages: ./process/database
+tests: TestEachJobKindHasAPoolOfItsOwnAndTheProcessOneMore
+scheduled-count: no
+integration: yes
+
+diff --git a/process/database/pool.go b/process/database/pool.go
+index c6442f21..8e1f61aa 100644
+--- a/process/database/pool.go
++++ b/process/database/pool.go
+@@ -55,7 +55,7 @@ type unchecked struct {
+ }
+ 
+ // Describe yields nothing, which makes the collector unchecked.
+-func (unchecked) Describe(chan<- *prometheus.Desc) {}
++func (u unchecked) Describe(ch chan<- *prometheus.Desc) { u.Collector.Describe(ch) }
+ 
+ // poolStatistics is a collector over one connection pool. It reads the pool only when gathered, so it adds
+ // nothing to a statement's path.

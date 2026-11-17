@@ -5,6 +5,7 @@ import (
 
 	"github.com/ppat/mediated-mailbox-mcp/db/accounts"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/schema"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/server"
 )
 
 type accountsResponse struct {
@@ -36,5 +37,5 @@ func (s *Server) listAccounts(w http.ResponseWriter, r *http.Request) {
 	for _, row := range rows {
 		out.Accounts = append(out.Accounts, account{AccountID: row.AccountID, Provider: row.AccountProvider})
 	}
-	writeJSON(w, r, out)
+	server.WriteJSON(w, r, out)
 }

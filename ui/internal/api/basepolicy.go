@@ -24,6 +24,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/lens"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/schema"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/registry"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/server"
 )
 
 // inAccount runs fn in the account's read-only snapshot transaction with every statement the registry
@@ -129,7 +130,7 @@ func (s *Server) getBasePolicy(w http.ResponseWriter, r *http.Request) {
 		s.databaseFailure(w, r, err)
 		return
 	}
-	writeJSON(w, r, out)
+	server.WriteJSON(w, r, out)
 }
 
 // BaseHistory is the base policy's history screen's read, newest first (docs/UI.md section 8.14).
@@ -149,7 +150,7 @@ func (s *Server) getBaseHistory(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	for name, values := range query {
 		if name != "range" && name != "rule" || len(values) != 1 {
-			writeFailure(w, r, clientFault(http.StatusBadRequest, "unknown_parameter", "the base policy's history takes range and rule, each once"))
+			server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, "unknown_parameter", "the base policy's history takes range and rule, each once"))
 			return
 		}
 	}
@@ -160,7 +161,7 @@ func (s *Server) getBaseHistory(w http.ResponseWriter, r *http.Request) {
 	rng, err := lens.ParseRange(rangeText)
 	var refusal *lens.Refusal
 	if errors.As(err, &refusal) {
-		writeFailure(w, r, clientFault(http.StatusBadRequest, refusal.Code, refusal.Message))
+		server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, refusal.Code, refusal.Message))
 		return
 	}
 	if err != nil {
@@ -189,7 +190,7 @@ func (s *Server) getBaseHistory(w http.ResponseWriter, r *http.Request) {
 		s.databaseFailure(w, r, err)
 		return
 	}
-	writeJSON(w, r, out)
+	server.WriteJSON(w, r, out)
 }
 
 // timestamptz is an optional instant as the generated statements take it.

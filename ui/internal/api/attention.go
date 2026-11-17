@@ -20,6 +20,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/schema"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/paths"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/registry"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/server"
 )
 
 // maskingWindow and servesWindow are the masking rule's 7 days and the body-serve rule's 24 hours
@@ -90,7 +91,7 @@ func (s *Server) getAttention(w http.ResponseWriter, r *http.Request) {
 		s.databaseFailure(w, r, err)
 		return
 	}
-	writeJSON(w, r, out)
+	server.WriteJSON(w, r, out)
 }
 
 // attentionQueries are the statements the attention endpoint runs, built inside the literal passed the

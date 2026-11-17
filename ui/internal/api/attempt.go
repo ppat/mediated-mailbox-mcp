@@ -1,7 +1,6 @@
 package api
 
 import (
-	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
 	"encoding/base64"
@@ -11,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/paths"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/server"
 )
 
 // attemptCookie carries the session's one consent attempt, sealed by the server (ADR-0111). It is
@@ -48,12 +48,10 @@ type attempt struct {
 	Consent string `json:"consent"`
 }
 
-func newAEAD(key []byte) (cipher.AEAD, error) {
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		return nil, err
-	}
-	return cipher.NewGCM(block)
+// keys are what the read API seals the consent attempt with, the cipher the UI's checks derive from
+// their key under the attempt's own label (ADR-0111).
+type keys struct {
+	attempt cipher.AEAD
 }
 
 // sealAttempt seals a to the session, its identifier the additional data, so it opens in no other
@@ -85,7 +83,7 @@ func (k keys) openAttempt(r *http.Request) (attempt, error) {
 	if err != nil || len(sealed) < n {
 		return attempt{}, errNoAttempt
 	}
-	plain, err := k.attempt.Open(nil, sealed[:n], sealed[n:], []byte(sessionOf(r.Context()).id))
+	plain, err := k.attempt.Open(nil, sealed[:n], sealed[n:], []byte(server.SessionID(r.Context())))
 	if err != nil {
 		return attempt{}, errNoAttempt
 	}

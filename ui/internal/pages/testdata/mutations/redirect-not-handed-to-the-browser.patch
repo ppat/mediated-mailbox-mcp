@@ -1,0 +1,18 @@
+control: the consent's redirect address is the configured loopback address, read by every use
+removes: the entry document carries no consent redirect for the browser
+packages: ./ui/internal/pages
+tests: TestTheEntryDocumentCarriesTheBrowsersConfiguration
+scheduled-count: no
+
+diff --git a/ui/internal/pages/entry.go b/ui/internal/pages/entry.go
+index dc7ad383..5d66ba90 100644
+--- a/ui/internal/pages/entry.go
++++ b/ui/internal/pages/entry.go
+@@ -32,7 +32,6 @@ const entryTemplate = `<!doctype html>
+ <meta name="mediated-mailbox.default_theme" content="{{.Browser.DefaultTheme}}">
+ <meta name="mediated-mailbox.stream_reconnect_max" content="{{.ReconnectMax}}">
+ <meta name="mediated-mailbox.stream_poll_interval" content="{{.PollInterval}}">
+-<meta name="mediated-mailbox.consent_redirect" content="{{.Browser.ConsentRedirect}}">
+ <meta name="mediated-mailbox.request_token" content="{{.Token}}">
+ <link rel="stylesheet" href="{{.Root}}/{{.Stylesheet}}">
+ <script type="module" src="{{.Root}}/{{.Entry}}"></script>
