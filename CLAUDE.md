@@ -44,7 +44,7 @@ had alternatives live in the records, cited by number. What tests a piece of wor
 [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md)'s, and build state is [ROADMAP.md](./ROADMAP.md)'s,
 apart from a decision record's status. The UI's own layout is
 [docs/UI.md section 18](./docs/UI.md#18-repository-and-build-layout). The data-access library and
-the six narrow shared libraries, three of them families, each describe themselves in a README in
+the five narrow shared libraries, three of them families, each describe themselves in a README in
 their own directory.
 
 ### The Go module
@@ -72,24 +72,89 @@ convention, and a directory carries the bare word.
 | Directory | Kind | Published as | Holds |
 | --- | --- | --- | --- |
 | `content/` | Family | `mediated-mailbox-content` | The code that reads a message's content in memory and stores none of it. Its package is `content/markdown`, the conversion of a body's HTML to clean Markdown, argued in [content/README.md](./content/README.md) |
-| `core/` | Library | `mediated-mailbox-core` | The shared pure library ([ADR-0050](./docs/adr/engineering/0050-shared-code-pure-or-narrow.md)), with one subsection per pure concern needed by more than one deployable. They are `sensitivity`, `classify`, `redact`, `authorize`, `scan`, `scangate`, `index` (the decisions every job kind that writes the index makes about a message), `plan`, `policy`, and `mail` (the canonical model with the normalization of attachment media and their mapping to the closed vocabulary of attachment types, the Provider Port interface, the canonical query, the rate profile types, the hard-cap fraction and the call size it bounds) |
+| `core/` | Library | `mediated-mailbox-core` | The shared pure library ([ADR-0050](./docs/adr/engineering/0050-shared-code-pure-or-narrow.md)), with one subsection per pure concern needed by more than one deployable. They are `sensitivity`, `classify`, `redact`, `authorize`, `scan`, `scangate`, `index` (the decisions every job kind that writes the index makes about a message), `plan`, `policy`, `mail`, the canonical mail model and the Provider Port's pure names, [listed below](#what-coremail-holds), and `config` (every program's configuration type with its defaults and checks, and a length of time as `config.Duration`, so it imports no clock) |
+| `credential/` | Family | `mediated-mailbox-credential` | The encryption of a stored credential, argued in [credential/README.md](./credential/README.md). `credential/seal` seals a value to the public key. `credential/open` loads the private keys and opens a sealed value with the key its header names, and only `process/connections`, the UI's `ui/internal/setup/clientsecret` and the test tool `testsupport/cmd/keypaircheck` import it. The settings naming the key files are `core/config`'s |
 | `db/` | Library | `mediated-mailbox-db` | The data-access library ([ADR-0047](./docs/adr/data/0047-schema-first-data-access.md)), laid out in [db/README.md](./db/README.md) |
-| `executioncontext/` | Family | `mediated-mailbox-executioncontext` | What a job or a request executes with. Its packages are `executioncontext/assembly`, a process's one execution context, which its composition root builds once over the others and hands every component that calls a provider, with its one reload, `executioncontext/accountload`, the loading of a process's accounts, the installation's OAuth clients and their opened credentials into one account snapshot, the compare-and-set write-back of a rotated credential and delta sync's re-seal, `executioncontext/session`, the account session every provider-calling component holds its accounts' provider connections through, `executioncontext/policyload`, the loading of the policy tables into one snapshot and the reload-failure alarm, and `executioncontext/credential`, the sealing and opening of an account's provider credential, the loading of its keys, and the configuration section naming the key files with its validation in `executioncontext/credential/core`, all argued in [executioncontext/README.md](./executioncontext/README.md) |
-| `process/` | Family | `mediated-mailbox-process` | What every deployable needs to run as a process. Its packages are `process/settings`, the layering of defaults, one optional configuration file, environment variables and flags into each deployable's configuration, `process/dbconnect`, a deployable's database section of its configuration in `process/dbconnect/core` and the connection built from it, `process/dbmetrics`, the opening of a deployable's measured pool, the latency of every statement a connection runs and the statistics of each pool, `process/runtimemetrics`, the registration of the Go runtime's and the process's series, `process/probes`, the operations endpoints of every process that runs until it is told to stop, its health and readiness probes and its metrics endpoint, `process/host`, the host that runs one process over the components a composition root hands it ([ADR-0138](./docs/adr/engineering/0138-one-host-runs-each-process-and-each-component-provides-its-parts.md)), `process/logging`, the logger every deployable writes JSON to standard output through and the reading of its `log_level`, and `process/version`, the release version every binary's `--version` reports, which the release cut writes, all argued in [process/README.md](./process/README.md) |
-| `provider/` | Library | `mediated-mailbox-provider` | The provider adapters and their rate profiles, the Gmail adapter's pure core of body decisions in `provider/gmail/core`, Gmail's consent apart from its adapter, the provider fake, the contract suite, and the one-time Gmail consent command, argued in [provider/README.md](./provider/README.md) |
-| `ratelimit/` | Library | `mediated-mailbox-ratelimit` | The rate limiter, argued in [ratelimit/README.md](./ratelimit/README.md) |
+| `process/` | Family | `mediated-mailbox-process` | What a process is and what it holds ([ADR-0142](./docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md)), argued in [process/README.md](./process/README.md). Its packages are [listed below this table](#the-packages-of-the-process-family-and-the-provider-library) |
+| `provider/` | Library | `mediated-mailbox-provider` | Everything about talking to a provider, argued in [provider/README.md](./provider/README.md). Its packages are [listed below this table](#the-packages-of-the-process-family-and-the-provider-library) |
 | `testsupport/` | Library | `mediated-mailbox-testsupport` | The shared test tooling, argued in [testsupport/README.md](./testsupport/README.md) |
 | `api/` | Deployable | `mediated-mailbox-api` | The API server |
-| `worker/` | Deployable | `mediated-mailbox-worker` | The worker, which runs every background job kind ([ADR-0117](./docs/adr/operability/0117-one-background-worker-runs-every-job-kind.md)). Its scheduler is `worker/internal/schedule` ([ADR-0119](./docs/adr/operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md)), and the series its job kinds share are `worker/internal/series`. Each job kind's shell code sits under `worker/internal/<job kind>/` and its pure core under `worker/internal/core/<job kind>/`, with backfill as `backfill` and delta sync as `deltasync`, and each job kind has an import list of its own |
+| `worker/` | Deployable | `mediated-mailbox-worker` | The worker, which runs every background job kind ([ADR-0117](./docs/adr/operability/0117-one-background-worker-runs-every-job-kind.md)). Its spec in `worker/app` lists its job kinds, which run on the process's scheduler, `process/schedule` ([ADR-0119](./docs/adr/operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md)). Each job kind's shell code sits under `worker/internal/<job kind>/`, with backfill as `backfill` and delta sync as `deltasync`, and each job kind has an import list of its own. Each package's pure core sits in a `core` beside it, such as `worker/internal/backfill/core` and `worker/internal/deltasync/tick/core`. The code the job kinds share is `worker/internal/index`, which writes a message to the index and runs the gate-and-scan loop, and `worker/internal/runs`, which records runs, with its pure core beside it. The series the job kinds share are `worker/internal/series` |
 | `ui/` | Deployable | `mediated-mailbox-ui` | The UI, both halves ([docs/UI.md](./docs/UI.md#18-repository-and-build-layout)) |
-| `migrator/` | Image | `mediated-mailbox-migrator` | The migrator, the migration step's image, which is not a deployable. Its composition root, `main.go` and `migrator/app`, is shaped like a deployable's and hands the host its configuration and one piece of work through `host.RunOnce`, which applies the chain `db/migrations` embeds through `db/migrate` and exits ([ADR-0048](./docs/adr/data/0048-forward-only-migrations.md), [ADR-0049](./docs/adr/engineering/0049-image-per-component-lockstep.md), [ADR-0139](./docs/adr/data/0139-the-migration-runner-is-goose-linked-into-the-migrator.md)) |
+| `migrator/` | Image | `mediated-mailbox-migrator` | The migrator, the migration step's image, which is not a deployable. Its `main.go` and its spec in `migrator/app` are shaped like a deployable's, and the spec's one task, built by `migrate.Build` in `migrator/internal/migrate`, applies the chain `db/migrations` embeds through `db/migrate` and exits. The task's package is the migrator's own, since a task's `Build` takes the process's capabilities and the layers bar `db/` from importing `process` ([ADR-0048](./docs/adr/data/0048-forward-only-migrations.md), [ADR-0049](./docs/adr/engineering/0049-image-per-component-lockstep.md), [ADR-0139](./docs/adr/data/0139-the-migration-runner-is-goose-linked-into-the-migrator.md), [ADR-0142](./docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md)) |
 | `cli/` | Program | `mediated-mailbox-cli` | The command-line program, the one binary an operator runs by hand, with a subcommand per task. Its `main.go` reads the subcommand and `--version`, and each subcommand sits under `cli/internal/<subcommand>/`. Its one subcommand is `keygen`, which writes the key pair credentials are sealed to ([ADR-0088](./docs/adr/operability/0088-credentials-sealed-with-hpke-x-wing.md)). It has no image, and ships as signed static binaries attached to each release |
 | `packaging/chart/`, `packaging/tests/chainsaw/` | Packaging | `mediated-mailbox` | The Helm chart ([ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md)), its usage guide in [packaging/chart/README.md](./packaging/chart/README.md), and its unit tests, a Go package of test files alone that `.helmignore` keeps out of the packaged chart with their `testdata/` and the values file under `ci/`. The chainsaw suite in `packaging/tests/chainsaw/` is the system test of the chart ([ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md)), apart from every deployable ([ADR-0054](./docs/adr/engineering/0054-one-repository-flat-layout-naming-convention.md)), and carries the chart's label |
+
+#### The packages of the process family and the provider library
+
+The last column names the only importers a package's fence admits. Their own lists admit it, and
+so does every wider list that matches their files, while every list that matches only other
+packages' files and does not admit the package refuses it. So a fence holds only where every
+non-test file outside the importers is matched by a list that leaves the importers' files out and
+does not admit the package, and where no such list exists yet the code ticket that builds the fence
+writes one ([ADR-0071](./docs/adr/engineering/0071-static-enforcement-toolchain.md), whose fences
+table names each refusing list). A wider list, which admits this project's packages by prefix,
+refuses no fenced package. A package with no entry there is admitted to each component whose import
+list names it.
+
+| Package | Holds | Imported only by |
+| --- | --- | --- |
+| `process` | The spec, which lists what a program is made of, and the process that runs it. That is the build and the run, the servers, the stop order, the readiness reports, the health and readiness probes and the metrics endpoint of every process that runs until it is told to stop, the registration of the Go runtime's and the process's series, and the slots the owner packages keep shared things in | |
+| `process/settings` | The layering of defaults, one optional configuration file, environment variables and flags into the configuration of each program that runs as a process, and the reading of a `config.Duration` | |
+| `process/database` | The opening of every measured pool, through `database.Get` and, for the migrator, `database.ForMigration`, the latency of every statement a connection runs, the statistics of each pool, and the schema check | |
+| `process/schedule` | The scheduler, which runs each job kind's plan, adds and drops its jobs by key, and reports the job kind not ready until its first listing has succeeded | |
+| `process/sessions` | The Session, all the user state a process holds, with its one reload, the reload's order and its failure rules | |
+| `process/accounts` | The reading of the list of accounts | |
+| `process/policies` | Each account's policy, the base policy included, the load concurrent body requests share, and the reload-failure alarm | |
+| `process/connections` | Each account's connection to its provider, the unit of work and the re-seal to a new key | `api/internal/bodies` and the packages of a job kind that calls a provider |
+| `process/scanner` | The building of the scanner, once per process, and the body-processing histogram | |
+| `process/logging` | The logger every program that runs as a process writes JSON to standard output through, and the reading of its `log_level` | |
+| `process/version` | The release version every binary's `--version` reports, which the release cut writes | |
+| `provider` | The calling side, which is the caller, the token, the one wrapper of a mailbox's operations, the list of shipped adapters, the facts about each provider and the shared provider metrics | |
+| `provider/mail` | What any mail provider can do, `mail.Mailbox`, the Provider Port's interface for mail, with its consent contract and the call sizes a caller needs, which backfill and delta sync's tick read. Each is what `core/mail`'s `CallSize` gives within the hard-cap fraction `core/mail` holds. The port's errors, the body's part and the canonical model it speaks are `core/mail`'s | |
+| `provider/mail/gmail` | The Gmail adapter and its rate profile | `provider` |
+| `provider/mail/gmail/core` | The Gmail adapter's pure core of body decisions | `provider/mail/gmail` |
+| `provider/mail/fake` | The provider fake | Test files |
+| `provider/mail/contract` | The contract suite | |
+| `provider/google` | Google's grant, its token source and token endpoint and its consent, with the one-time Gmail consent command | |
+| `provider/consent` | Each provider's consent by name | `ui/internal/setup` |
+| `provider/ratelimit` | The rate limiter, its shared state and its leased call | `provider`, and the API server's `api/internal/registry` for the rate-state collector |
+| `provider/ratelimit/core` | The rate limiter's pure rules, its limits and its state, reached only by the limiter and the caller that builds it | `provider` and `provider/ratelimit` |
+| `provider/mail/jmap`, `provider/calendar/google`, `provider/calendar/caldav` | Designed directories for the JMAP adapter and the calendar adapters | `provider` |
+
+#### What `core/mail` holds
+
+A name sits in `core/mail`, beside the canonical model, when code that may not import the provider
+library reads it, when it is a pure decision, which sits under a directory named `core`, or when it
+stays with the throttle error, as the names the rate profiles are stated in do. The Provider Port's
+interface, `mail.Mailbox`, is `provider/mail`'s, with the call sizes it carries.
+
+| Names | Why they sit in `core/mail` |
+| --- | --- |
+| The canonical model, with the normalization of attachment media and their mapping to the closed vocabulary of attachment types, and the canonical query | The adapters, the pure decisions of `core/` and the programs all read the model the port speaks ([ADR-0010](./docs/adr/provider/0010-one-provider-port.md)) |
+| `MaxBodyBytes`, the size bound of a rendered body | The conversion in `content/markdown` reads it ([ADR-0131](./docs/adr/provider/0131-the-body-is-one-rendered-part-bounded-by-one-size-constant.md)) |
+| The port's errors, among them the throttle error, with the throttle signal and its scopes, which it carries | `core/index` classifies the errors and the API server's service layer reads them, and neither may import the provider library |
+| `NextBodyPart`, the decision on a second body call, with `BodyPart` and `HeldApartError`, which it reads | It is a pure decision ([ADR-0131](./docs/adr/provider/0131-the-body-is-one-rendered-part-bounded-by-one-size-constant.md)) |
+| `RateLimitProfile`, the interface every adapter's rate profile implements, with the operations it prices, the cost type and the hard-cap fraction | They stay with the throttle error. The adapters and the provider fake read the profile's types and the throttle signal, the contract suite those and the hard-cap fraction, and the rate limiter's pure rules the cost type, the throttle signal and the fraction, so none of them is the limiter's own ([ADR-0023](./docs/adr/operability/0023-adapter-declares-cost.md)) |
+| `CallSize`, the sizing of a call within one second's worth at the hard cap | It is a pure decision. The call sizes `mail.Mailbox` carries are what it gives ([ADR-0010](./docs/adr/provider/0010-one-provider-port.md)) |
+
+The components sit in layers, and a layer imports only the layers above it.
+
+```text
+core                           shared pure decisions, the canonical mail model, and core/config
+content                        reading a message's content
+db                             the statements
+credential                     the encryption of a stored credential
+provider                       everything about talking to a provider
+process                        what a process is and what it holds
+api  ui  worker  migrator  cli the programs
+testsupport  packaging         the test tooling, and the chart with its system test
+```
 
 A deployable is named for its role in one plain word, as `api` and `worker` are. `ui` keeps
 the directory the Glossary gives it. Shared code is the shared pure library, or a narrow, named library
 that argues its own case as [ADR-0050](./docs/adr/engineering/0050-shared-code-pure-or-narrow.md)
-requires. The data-access library's case is ADR-0047's, and each of the other six argues its case
+requires. The data-access library's case is ADR-0047's, and each of the other five argues its case
 in its README, a family once for all its packages. Where shared code goes, and when a library or a
 family of packages is founded, are the rules against sprawl in
 [ADR-0050](./docs/adr/engineering/0050-shared-code-pure-or-narrow.md). How a component, a family or
@@ -100,15 +165,71 @@ a package is named, and who chooses the name, is the naming convention in
 
 | Convention | Rule |
 | --- | --- |
-| Composition root | A deployable's one hand-written composition root is its entry package, `<deployable>/app`, which composes the deployable in ordinary code and hands it to the host, `process/host`, which runs the process ([ADR-0040](./docs/adr/engineering/0040-pure-core-decisions-as-values.md), [ADR-0138](./docs/adr/engineering/0138-one-host-runs-each-process-and-each-component-provides-its-parts.md)). The entry exports the component's section of the configuration, its assembly, which takes what the component needs as values, starts nothing of its own, starting any goroutine it needs while it runs through the starter the host hands it, and returns its handler, readiness checks and background tasks, and `Run`, which hands the host the root's configuration type, its validation, its schema check, which reads the schema's versions through the start check's subsection and compares them with the chain's through `db/migrations` ([ADR-0140](./docs/adr/data/0140-each-migration-declares-the-oldest-chain-that-runs-on-it.md)), and its components. Its `main.go` at the directory root sets up the process, the logger with its level variable, made the process default for code the project does not own, the signal context and the exit status, reads the arguments and the environment, and calls the entry's `Run` with standard output and standard error, the logger and the level variable. The host answers `--help` and `--version` on standard output, writes the start banner to standard error, sets the level from the configuration, and hands each component's assembly the logger, which hands it to every shell that logs. A `forbidigo` ban refuses, in every Go file, reading a default logger through `slog`'s or `log`'s package-level functions and the built-in `print` and `println` ([ADR-0122](./docs/adr/engineering/0122-logs-through-slog-at-a-configured-level-handed-to-shells.md)). Nothing else in the deployable is `package main`. The entry sits outside `internal/`, so the compiler lets a root other than the deployable's own compose it, and the import lists refuse it to every other component until such a root exists. A deployable with nothing to run yet holds its entry as a designed directory |
-| Operator commands | A command an operator runs by hand, which no deployable runs, is a subcommand of the command-line program, `cli/`, which ships as signed static binaries attached to each release. Its `keygen` subcommand writes the key pair that credentials are sealed to ([ADR-0088](./docs/adr/operability/0088-credentials-sealed-with-hpke-x-wing.md)). A developer's tool, which ships nowhere, sits under its library as `cmd/<name>/` in `package main`. The Gmail consent for the test account's token is `provider/gmail/cmd/consent`, a developer's tool that ships in no image ([ADR-0107](./docs/adr/provider/0107-gmail-through-an-installed-app-oauth-client-set-up-in-the-ui.md)). The test tooling programs under `testsupport/cmd/` follow the same form |
-| Private code | Everything else a deployable holds sits under `<deployable>/internal/`, so the compiler refuses an import from another component as well as the import rules of [ADR-0071](./docs/adr/engineering/0071-static-enforcement-toolchain.md). The exceptions are the entry package, the UI's browser bundle package `ui/browser`, which embeds the bundle beside it since an embed pattern cannot reach a parent directory, so any root serving the UI imports it, and an `importtarget` package holding a violation file, described under [Tests](#tests) |
-| Pure core | Pure-core code sits under a directory named `core`. That is the top-level `core/`, `<deployable>/internal/core/<concern>/`, `<library>/core/` inside a library that holds pure rules of its own, `<library>/<package>/core/` inside a library's package whose pure rules are that package's alone, such as the Gmail adapter's `provider/gmail/core`, and `<family>/<package>/core/` inside a family's package, such as `process/dbconnect/core`, since each package of a family keeps its own and a family never pools them. The word means the Glossary's pure core wherever it appears, so the core import check matches a `core` path element at any depth, anchored at the repository root |
-| Shell packages | Named for what they do, for example `api`, `mcp`, `service`, `lease`, `gmail`. No package is named `util`, `common` or `helpers` |
+| Spec | A deployable's or the migrator's entry package, `<deployable>/app`, holds its spec, `process.Spec`, and nothing else. What a spec lists, what a `Build` is handed and returns, what the process keeps for the parts and the order it starts and stops in are [ADR-0142](./docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md)'s. The conventions that go with the spec are [listed below this table](#the-conventions-that-go-with-the-spec) |
+| Operator commands | A command an operator runs by hand, which no deployable runs, is a subcommand of the command-line program, `cli/`, which ships as signed static binaries attached to each release. Its `keygen` subcommand writes the key pair that credentials are sealed to ([ADR-0088](./docs/adr/operability/0088-credentials-sealed-with-hpke-x-wing.md)). A developer's tool, which ships nowhere, sits under its library as `cmd/<name>/` in `package main`. The Gmail consent for the test account's token is `provider/google/cmd/consent`, a developer's tool that ships in no image ([ADR-0107](./docs/adr/provider/0107-gmail-through-an-installed-app-oauth-client-set-up-in-the-ui.md)). The test tooling programs under `testsupport/cmd/` follow the same form |
+| Private code | Everything else a deployable holds sits under `<deployable>/internal/`, so the compiler refuses an import from another component as well as the import rules of [ADR-0071](./docs/adr/engineering/0071-static-enforcement-toolchain.md). The exceptions are the entry package, the UI's browser bundle package `ui/browser`, and an `importtarget` package holding a violation file, described under [Tests](#tests). `ui/browser` embeds the bundle beside it, since an embed pattern cannot reach a parent directory, so the package serving the UI's pages, `ui/internal/pages`, imports it |
+| Pure core | Pure-core code sits under a directory named `core`. That is the top-level `core/`, `<deployable>/internal/core/<concern>/`, such as the API server's `api/internal/core/release`, `<deployable>/internal/<package>/core/` beside the shell code that uses it, such as the worker's `worker/internal/backfill/core`, `<library>/core/` inside a library that holds pure rules of its own, `<library>/<package>/core/` inside a library's package whose pure rules are that package's alone, such as the Gmail adapter's `provider/mail/gmail/core` and the rate limiter's `provider/ratelimit/core`, and `<family>/<package>/core/` inside a family's package, since each package of a family keeps its own and a family never pools them. The word means the Glossary's pure core wherever it appears, so the core import check matches a `core` path element at any depth, anchored at the repository root |
+| Shell packages | Named for what they do, for example `api`, `mcp`, `service`, `bearer`, `gmail`. No package is named `util`, `common` or `helpers` |
 | Library subsections | A library is organized in subsections by concern, each a package, granular enough that an import list can name exactly the subsections a component may use, as every component's list does for the data-access library |
-| API server layering | `api/internal/api` and `api/internal/mcp` are the two protocol roots, `api/internal/service` is the one service layer beneath both, and enforcement sits below it ([ADR-0030](./docs/adr/operability/0030-api-core-mcp-thin-adapter.md)). Import rules per root refuse a root reaching below the service layer. Each root is generated from the service layer's operation registry by one file, `api.go` and `mcp.go`. Each registry entry declares its effect, and its HTTP method, path shape and MCP annotations are derived from it ([ADR-0087](./docs/adr/operability/0087-client-surface-derives-method-and-hints-from-each-operations-effect.md)). Only the generator file of its root is admitted the library its protocol is served with, `net/http` and the MCP SDK. The MCP SDK is admitted nowhere else in the API server, and every other package under `api/internal/`, a new one included, is admitted no HTTP package, so an operation cannot be registered on the client surface from any of them. The composition root mounts the two roots on an HTTP mux, and what it mounts is left to review ([ADR-0053](./docs/adr/engineering/0053-parity-by-construction.md), [ADR-0086](./docs/adr/engineering/0086-mcp-root-on-the-official-go-sdk.md)) |
+| API server layering | The API server's packages and the fences between them, [listed below this table](#the-api-servers-layering) |
 | Generated code | Stays inside the component that generates it. Data access sits under `db/<subsection>/`, the UI's contract document at `ui/contract/`, the API server's at `api/contract/`, and the browser types under `ui/browser/src/generated/` |
 | Designed directories | A directory the design names as a Go package states its role in its package comment, which sits in a `doc.go` while the package holds no other Go file. Any other designed directory that holds no file yet holds a `.gitkeep` |
+
+#### The conventions that go with the spec
+
+- **The wiring is ordinary code.** The spec builds nothing, so a reader can follow the wiring, with
+  nothing resolved by registry, reflection, annotation or naming convention
+  ([ADR-0040](./docs/adr/engineering/0040-pure-core-decisions-as-values.md),
+  [ADR-0142](./docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md)).
+- **`main.go` is one call.** A deployable's or the migrator's `main.go` at the directory root is
+  `process.Run(os.Args[1:], os.Environ(), app.Spec())`, since only a `main.go` may read the
+  environment ([ADR-0078](./docs/adr/engineering/0078-configuration-layers-through-an-owned-library.md)).
+  `process.Run` sets up the signal context the stop begins from and turns the run's result into the
+  exit status. Nothing else in the deployable is `package main`.
+- **The configuration type is `core/config`'s**, with its defaults and checks. A `Build` takes the
+  program's whole configuration and reads what it needs.
+- **The schema check.** `database.Get` runs it on each pool before returning it. The check reads the
+  schema's versions through the start check's subsection and compares them with the chain's through
+  `db/migrations`
+  ([ADR-0140](./docs/adr/data/0140-each-migration-declares-the-oldest-chain-that-runs-on-it.md)).
+- **Logs.** The process builds the logger and makes it the process default for code the project
+  does not own. A `Build` takes it through the capabilities and hands it to every shell that logs. A
+  `forbidigo` ban refuses, in every Go file, reading a default logger through `slog`'s or `log`'s
+  package-level functions and the built-in `print` and `println`
+  ([ADR-0122](./docs/adr/engineering/0122-logs-through-slog-at-a-configured-level-handed-to-shells.md)).
+- **Goroutines and routes.** A `Build` starts no goroutine of its own and registers no route on a
+  mux it is handed. The worker's job code starts a goroutine only through the scheduler's helper,
+  `schedule.Go`, whose panic fails that run and stops nothing else
+  ([ADR-0119](./docs/adr/operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md)).
+  The API server's and the UI's code, and a thing the process shares, start one only through the
+  process's `Go`, whose panic fails what started it and stops the process in order
+  ([ADR-0142](./docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md)). The
+  goroutines analyser refuses a `go` statement and any use of a function that starts a goroutine
+  running what it is given in the non-test code under `api/`, `ui/` and `worker/`, so that code
+  starts one only through a helper that recovers it. Which helper is held by review, since a job
+  kind's `Build` is handed the process's `Go` too and the analyser refuses a call of neither, and so
+  is a goroutine a thing the process shares starts, since the analyser does not read the process
+  family's code.
+- **The entry sits outside `internal/`**, so the compiler lets another program's spec join it, and
+  the import lists refuse it to every other component until such a spec exists.
+- **A deployable with nothing to run yet** holds its entry as a designed directory.
+
+#### The API server's layering
+
+| Package | Holds | Its fence |
+| --- | --- | --- |
+| `api/internal/api`, `api/internal/mcp` | The two protocol roots, each generated by one file, `api.go` and `mcp.go`, from the one registry of operations. `api/internal/mcp` also holds the spec's `Init`, which refuses `MCPGODEBUG` | Only the generator file of each root is admitted the library its protocol is served with, `net/http` and the MCP SDK. Import rules per root refuse a root reaching below the service layer |
+| `api/internal/service` | The one service layer beneath both roots, holding every operation, the body operation among them. Enforcement sits below it ([ADR-0030](./docs/adr/operability/0030-api-core-mcp-thin-adapter.md)) | Admitted no connections and no provider, held by the API server's one list over its non-test code that leaves `api/internal/bodies` and `api/internal/registry` out, which the code ticket that builds the fence writes. Each of those two packages' own lists refuses the other's fenced package |
+| `api/internal/registry` | The building of the registry of operations, and the rate-state collector registered beside it. Each entry declares its effect, and its HTTP method, path shape and MCP annotations are derived from it ([ADR-0087](./docs/adr/operability/0087-client-surface-derives-method-and-hints-from-each-operations-effect.md)) | |
+| `api/internal/bodies` | The two functions the body operation needs of a provider, loading the policy fresh and fetching a body through a unit of work. It is the one package of the API server that begins a unit of work, and the body operation alone is built with its functions | The one package of the API server admitted `process/connections` |
+| `api/internal/bearer` | The bearer-token check and the no-store header | Admitted `net/http` as a whole package, though it is no root |
+| Every other package under `api/internal/`, a new one included | | Admitted no HTTP package and not the MCP SDK, so an operation cannot be registered on the client surface from any of them. A list over the non-test code under `api/internal/` that leaves out the two roots and `api/internal/bearer` holds it, which the code ticket that builds the fence writes |
+
+The process mounts each endpoint the spec lists at its pattern. Which endpoints the spec lists, and
+any route `api/internal/bearer`'s wrapper adds to the root handler it wraps, are left to review
+([ADR-0053](./docs/adr/engineering/0053-parity-by-construction.md),
+[ADR-0086](./docs/adr/engineering/0086-mcp-root-on-the-official-go-sdk.md),
+[ADR-0142](./docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md)).
 
 ### Tests
 
@@ -121,7 +242,7 @@ a package is named, and who chooses the name, is the naming convention in
 | Recorded browser fixtures | Integration tests that record the browser's fixtures from the real server and fail when a checked-in fixture differs are named `*_fixtures_integration_test.go`, carry the `integration` build tag, and run in the `ui` workflow beside the browser tests that read the fixtures ([ADR-0064](./docs/adr/engineering/0064-browser-tests-run-under-bun-against-a-dom-shim.md)) |
 | Which workflow runs a test | A test file's name gives its kind, unit, property, crash, integration or recorded fixtures, and its build constraint its level, unit when it compiles with no build tag and integration when it compiles only with the `integration` tag. `go tool testkinds args <kind> <level>`, from `testsupport/cmd/testkinds`, prints the arguments that make `go test` run exactly that kind at that level, and `go tool testkinds check` refuses a test file whose kind and level no workflow runs, a test name two runs would both select, a workflow that asks for its run only narrowed to some packages, a workflow line that runs `go test` without those arguments or adds anything beyond `-race`, `-count`, `-v`, `-timeout` and a pipe into `tee`, and a job or step condition, `continue-on-error` or `GOFLAGS` in a workflow that runs `go test`, so each test runs in the workflow that gates on its kind, and a property test or crash sequence also in its kind's deep workflow, and in no other ([ADR-0124](./docs/adr/engineering/0124-each-kind-of-test-runs-in-a-workflow-of-its-own.md)). A unit test is at the unit level, an integration or recorded-fixtures test at the integration level, and a property test or a crash sequence at either. A contract run against a real provider runs only in its own workflow, `gmail-contract`, through `go tool livecontract`. The check refuses a `_live_test.go` file that compiles at either level, and any line naming the livecontract command, however it is started, or its marker variable in any other workflow, and `args` prints no selection while a live file compiles at a level in its own environment. The check guards a workflow edit against honest mistakes and reads each workflow's text only for the forms named here, parsing neither YAML nor the shell, so a step whose shell, error handling, environment or selection is changed by any other means is left to review, as is a `go test` reached through a variable, a script or another program, examples being `set +e`, a `shell:` without `-e` or pipefail, a quoted `'if':` key and a `GOENV` file |
 | Contract runs against a real provider | Files named `*_live_test.go` beside the adapter, carrying a build tag of the provider's own, `gmail_live` for Gmail, so no other test run compiles them, while lint and the `go vet` analysers read them. They add their own marked messages and check and report only those ([ADR-0043](./docs/adr/engineering/0043-no-mocking.md)). They run only through `go tool livecontract <provider>`, from `testsupport/cmd/livecontract`, which sets the marker the live test requires. Run any other way, the build tag included, a live test skips and names the command, so no accidental or incidental test invocation reaches a real provider |
-| The live agent's exercise harness | `api/app/exercise_integration_test.go`, an integration test serving the API server through the API server's assembly and the host's lifecycle, as its composition root does, over the provider fake, one account holding the shared synthetic fixtures with the bank's domain restricted, written to the index as backfill's passes write it. It runs only when `MEDIATED_MAILBOX_EXERCISE` names the address it listens on, so every other run skips it, and the operator, or a session on the operator's instruction, starts it under `go tool pgrun` with `-run` naming it and `-timeout 0` for the manual exercises with a live agent that [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) keys to D3. It prints the account, the bearer token and the roots' addresses, serves plain HTTP until it is interrupted, and then prints every audit row the exercise wrote. Nothing that ships can select the fake |
+| The live agent's exercise harness | `api/app/exercise_integration_test.go`, an integration test serving the API server through its spec and `process.Run`, as its `main.go` does, over the provider fake, one account holding the shared synthetic fixtures with the bank's domain restricted, written to the index as backfill's passes write it. It hands the process connections over the fake through the one option the connections' package exports for a test, so what it serves is what the API server serves apart from the fake ([ADR-0142](./docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md)). It runs only when `MEDIATED_MAILBOX_EXERCISE` names the address it listens on, so every other run skips it, and the operator, or a session on the operator's instruction, starts it under `go tool pgrun` with `-run` naming it and `-timeout 0` for the manual exercises with a live agent that [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) keys to D3. It prints the account, the bearer token and the roots' addresses, serves plain HTTP until it is interrupted, and then prints every audit row the exercise wrote. Nothing that ships can select the fake |
 | Violation files | Placed where the ban or import rule they prove applies, and named for it. A Go violation file ends in `_violation.go` for a rule over non-test files, or in `_violation_test.go`, `_violation_property_test.go` or another test-file suffix for a rule over test files. It carries the `banproof` build tag, so the gating lint never loads it, and holds `// want` annotations naming the finding it must produce ([ADR-0071](./docs/adr/engineering/0071-static-enforcement-toolchain.md)). A browser violation file ends in `_violation.ts` or `_violation.tsx`. The gating browser lint and type check skip files with that name, and nothing imports one, so the bundler never reaches it. An SQL violation file ends in `_violation.sql` under `db/check/testdata/violations/`. A few violation files need a target of their own. A deployable's `importtarget` package sits outside `internal/` only so the other deployables' lists have something to refuse, and `residual_violation.go` at the repository root proves the list over Go files outside every component. `worker/internal/testdata/target`, `worker/internal/_target` and `worker/internal/.target` are what `worker/unlinted_violation.go` imports, one in each kind of directory `./...` skips by its name. They carry no `banproof` tag, because `./...` never lists them and only the violation file imports them, so nothing builds them outside the ban-proof run |
 | Must-not-compile fixtures | Under `testdata/mustnotcompile/<case>/`, loaded by `testsupport/mustnotcompile` ([ADR-0042](./docs/adr/engineering/0042-implementation-stack.md)) |
 | Golden files | Under `testdata/golden/` in the package that owns them, written and compared by the golden-file helper in `testsupport/compare` ([ADR-0070](./docs/adr/engineering/0070-unit-comparison-through-one-options-value.md)). A recorded file read outside the recording test's package sits where its reader expects it, outside `testdata/golden/`, and is written and compared by the helper's `GoldenAt`. They are the browser's fixtures under `ui/browser/test/fixtures/`, recorded by the UI's server tests ([ADR-0064](./docs/adr/engineering/0064-browser-tests-run-under-bun-against-a-dom-shim.md)), the contract document under `ui/contract/`, and the table of account identifier cases at `ui/browser/test/identifiers.json`, which the UI's server tests write from the table they test the server's check and the database against, so the browser's test of the proposal reads the same cases ([ADR-0128](./docs/adr/data/0128-account-identifiers-are-one-lowercase-dns-label.md)). Both forms share one `-update` flag, which `testsupport/compare` registers and no other package does |
@@ -165,7 +286,7 @@ file's import target described under Violation files.
   Functions that read fixed platform variables for their own purpose, such as `os.UserHomeDir`,
   `os.TempDir` and `http.ProxyFromEnvironment`, stay allowed. The rule covers every package of the
   module outside `testsupport`, apart from test files and a deployable's or the migrator's `main.go`
-  at its directory root, which hands the environment to its composition root
+  at its directory root, which hands the environment to `process.Run`
   ([ADR-0078](./docs/adr/engineering/0078-configuration-layers-through-an-owned-library.md)). It is
   scoped by path, which a `forbidigo` rule could carry only through an exclusion ADR-0071 refuses.
   The txhelper analyser holds every call of a generated data-access subsection's `New` to a
@@ -177,48 +298,69 @@ file's import target described under Violation files.
   only from such a literal and no other subsection from one
   ([ADR-0112](./docs/adr/data/0112-the-base-policy-is-written-and-read-in-a-transaction-of-its-own.md)).
   A subsection is recognised by its type, a package under `db/` whose `New` returns its own
-  `Queries`. It covers every package, test files included, and exempts the accounts listing, the
-  read of `oauth_clients`, delta sync's re-seal of a client secret, the UI's OAuth client setup,
-  listing each client's identity and adding, replacing and removing a client, and the start check's
-  read of the schema's versions, each written as one chained call, which are not account-scoped. The one gap it leaves is a query value built inside
-  the literal that escapes it and is used after `tx.Run` returns, which its package comment
+  `Queries`. It covers every package, test files included. It exempts the calls that are not
+  account-scoped, each written as one chained call. They are the accounts listing, the read of
+  `oauth_clients`, the connections' re-seal of a client secret, which delta sync runs, the UI's
+  OAuth client setup (listing each client's identity, and adding, replacing and removing a client),
+  and the start check's read of the schema's versions. The one gap it leaves is a query value built
+  inside the literal that escapes it and is used after `tx.Run` returns, which its package comment
   states. The routes analyser refuses a route registered on a mux in the UI other than through its
   recording mux, as any use of `(*http.ServeMux).Handle`, `(*http.ServeMux).HandleFunc`,
   `http.Handle`, `http.HandleFunc`, or a method of an interface or type parameter named `Handle` or
-  `HandleFunc` with the mux's parameters, in a non-test file under `ui/` outside the recording mux's
-  own `Handle` method ([ADR-0071](./docs/adr/engineering/0071-static-enforcement-toolchain.md)).
-  Registration through reflection, by an imported package on the default mux, or through an
-  interface method one of whose parameter types is a type parameter is left to review. The
-  API server is outside its scope, and what its composition root mounts is left to review.
-  The raw SQL analyser refuses a statement the UI runs other than through the data-access library,
-  as any use, on any type, of a method named and typed like one of the driver's methods that run a
-  statement or start a batch or pipeline that does, `Query`, `QueryRow`, `Exec`, `Prepare`,
-  `ExecParams`, `SendBatch`, `ExecBatch`, `CopyFrom`, `CopyTo` and `StartPipeline`, in a non-test
-  file under `ui/`, so the read of a client's sealed secret stays with the part its import list
-  admits it to ([ADR-0071](./docs/adr/engineering/0071-static-enforcement-toolchain.md),
+  `HandleFunc` with the mux's parameters, in a non-test file under `ui/` outside the recording
+  mux's own `Handle` method
+  ([ADR-0071](./docs/adr/engineering/0071-static-enforcement-toolchain.md)). Registration through
+  reflection, by an imported package on the default mux, or through an interface method one of
+  whose parameter types is a type parameter is left to review. The API server is outside its
+  scope. Which endpoints its spec lists, and any route `api/internal/bearer`'s wrapper adds to the
+  root handler it wraps, are left to review. The raw SQL analyser refuses a statement the API
+  server, the UI or the worker runs other than through the data-access library, as any use, on any
+  type, of a method named and typed like one of the driver's methods that run a statement or start
+  a batch or pipeline that does, `Query`, `QueryRow`, `Exec`, `Prepare`, `ExecParams`,
+  `SendBatch`, `ExecBatch`, `CopyFrom`, `CopyTo` and `StartPipeline`, in a non-test file under
+  `api/`, `ui/` or `worker/`. So a program's code runs only the statements of the data-access
+  subsections its exact import list admits. The API server, the UI and the worker connect as one
+  application user, so that is what bounds what their code can do in the database
+  ([ADR-0143](./docs/adr/data/0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)).
+  In the UI it keeps the read of a client's sealed secret with the part its import list admits it
+  to ([ADR-0071](./docs/adr/engineering/0071-static-enforcement-toolchain.md),
   [ADR-0081](./docs/adr/operability/0081-credentials-sealed-to-a-public-key.md)). A statement run
   through reflection, written to the wire through the raw connection the lower-level connection
   hands out, or run through a method one of whose parameter types is a type parameter is left to
-  review. The goroutines analyser refuses, in a non-test file of any package under `worker/`
-  outside `worker/internal/schedule`, the worker's scheduler, a `go` statement and any use, a call, a
-  method value or a method expression, of a function that starts a goroutine running what it is
-  given, which are `(*sync.WaitGroup).Go`, `time.AfterFunc`, `context.AfterFunc`,
+  review. So is a statement written by hand in code outside those three directories, since the
+  analyser does not read it. The process family's code runs as the application user in the API
+  server, the UI and the worker, and as the migrator's user in the migrator, and the Session, the
+  connections and the provider library's rate limiter run in the API server and the worker. Two
+  analyser rules hold a method of the connections to the callers of one package each. The attach
+  of the connections to the Session is called only from `process/connections`, and the re-seal to
+  a new key, `conns.Reseal`, only from delta sync's package, `worker/internal/deltasync`
+  ([ADR-0071](./docs/adr/engineering/0071-static-enforcement-toolchain.md),
+  [ADR-0092](./docs/adr/operability/0092-key-replacement-by-keyring-and-re-seal.md),
+  [ADR-0142](./docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md)). The
+  goroutines analyser refuses, in a non-test file of any package under `worker/`, a `go` statement
+  and any use, a call, a method value or a method expression, of a function that starts a goroutine
+  running what it is given, which are `(*sync.WaitGroup).Go`, `time.AfterFunc`, `context.AfterFunc`,
   `runtime.SetFinalizer`, `runtime.AddCleanup`, `(*net/http.Server).RegisterOnShutdown`,
-  `(*errgroup.Group).Go` and `TryGo` and `(*singleflight.Group).DoChan` of `golang.org/x/sync`, so
-  job code starts a goroutine only through `schedule.Go`, which recovers a panic on it and returns
-  it as the run's error
+  `(*errgroup.Group).Go` and `TryGo` and `(*singleflight.Group).DoChan` of `golang.org/x/sync`.
+  It refuses the same in a non-test file of any package under `api/` or `ui/`. So that code starts
+  a goroutine only through a helper that recovers it. The worker's job code uses `schedule.Go`, the
+  helper of the process's scheduler in `process/schedule`, which recovers a panic on it and returns
+  it as the run's error, so it fails that run and stops nothing else
   ([ADR-0119](./docs/adr/operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md)).
-  It refuses the same in a non-test file of any package under `api/` or `ui/`, so the API server's
-  and the UI's code start a goroutine only through the host's starter, which recovers a panic on it
-  as the component's failure and waits for it before the pools close
-  ([ADR-0138](./docs/adr/engineering/0138-one-host-runs-each-process-and-each-component-provides-its-parts.md)).
-  Such a function reached through an interface value or reflection, a dependency that calls a
-  function or value it was given on a goroutine of its own, and a function of any other module that
-  starts a goroutine are left to review. The unsafeimport analyser refuses an import of `unsafe` in
-  a non-test file of any package of the module, a `go:linkname`'s included, and any use of
-  `reflect.NewAt`, `reflect.SliceAt`, `(reflect.Value).UnsafePointer` and
-  `(reflect.Value).SetPointer`, which hand out or take an unsafe pointer with no import of `unsafe`,
-  since code isolation per job kind in the worker rests on memory safety
+  The API server's and the UI's code use the process's `Go`, which recovers a panic on it as the
+  failure of what started it, stops the process in order, and waits for it before the slots are
+  closed ([ADR-0142](./docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md)).
+  The analyser refuses a call of neither helper, and a job kind's `Build` is handed the process's
+  `Go` too, so which helper code uses is held by review. A thing the process shares, which its
+  owner package under `process/` builds, starts one through the process's `Go` too, held by review,
+  since the analyser does not read the process family's code. Such a function reached through an
+  interface value or reflection, a dependency that calls a function or value it was given on a
+  goroutine of its own, and a function of any other module that starts a goroutine are left to
+  review. The unsafeimport analyser refuses an import of `unsafe` in a non-test file of any
+  package of the module, a `go:linkname`'s included, and any use of `reflect.NewAt`,
+  `reflect.SliceAt`, `(reflect.Value).UnsafePointer` and `(reflect.Value).SetPointer`, which hand
+  out or take an unsafe pointer with no import of `unsafe`, since code isolation per job kind in the
+  worker rests on memory safety
   ([ADR-0117](./docs/adr/operability/0117-one-background-worker-runs-every-job-kind.md)). A use of
   those through an interface value or reflect's own method lookup, and writing the process's own
   memory through the operating system, such as through `/proc/self/mem` at an address
@@ -337,7 +479,7 @@ that need the repository's tools install them from `mise.toml` through
 | Workflow | Runs on | Does |
 | --- | --- | --- |
 | `go-lint` | Go code, the lint configuration, every workflow file, tool pins | `go mod tidy -diff`, `golangci-lint config verify`, `golangci-lint run ./...` over the whole module whenever its paths match, the `go vet` analysers, `go tool banproof`, and `go tool testkinds check`, which reads every workflow file ([ADR-0124](./docs/adr/engineering/0124-each-kind-of-test-runs-in-a-workflow-of-its-own.md)) |
-| `go-unit` | Go code, the chart, the browser bundle's sources, tool pins | The browser bundle's build, which the UI's tests read, then the unit tests, the example tests that need no build tag, which include `promtool test rules` over the alerting rules and a render of the chart that ships them ([ADR-0077](./docs/adr/operability/0077-conditions-raised-as-alerting-rules.md)), the chart's own tests in `packaging/chart`, which render it, and each deployable's test that loads the file the chart renders for it through its configuration library ([ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md)), the `db/check` tests and the comparison of the UI's contract document with the registry. Every gating test run sets a fixed non-zero `RAPID_SEED`, the gating `RAPID_CHECKS` and `RAPID_NOFAILFILE=true` in the workflow and passes no `-short` ([ADR-0069](./docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md)). The worker's scheduler's tests run once more under the race detector, with cgo enabled for that test build alone ([ADR-0119](./docs/adr/operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md)) |
+| `go-unit` | Go code, the chart, the browser bundle's sources, tool pins | The browser bundle's build, which the UI's tests read, then the unit tests, the example tests that need no build tag, which include `promtool test rules` over the alerting rules and a render of the chart that ships them ([ADR-0077](./docs/adr/operability/0077-conditions-raised-as-alerting-rules.md)), the chart's own tests in `packaging/chart`, which render it, and each deployable's test that loads the file the chart renders for it through its configuration library ([ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md)), the `db/check` tests and the comparison of the UI's contract document with the registry. Every gating test run sets a fixed non-zero `RAPID_SEED`, the gating `RAPID_CHECKS` and `RAPID_NOFAILFILE=true` in the workflow and passes no `-short` ([ADR-0069](./docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md)). The scheduler's tests, `process/schedule`'s, run once more under the race detector, with cgo enabled for that test build alone ([ADR-0119](./docs/adr/operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md)) |
 | `go-property` | Go code, tool pins | The gating run of every property test, at the gating seed and case count, those needing the integration tag under `go tool pgrun` ([ADR-0055](./docs/adr/engineering/0055-property-based-safety-invariants.md), [ADR-0069](./docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md)) |
 | `go-property-deep` | A schedule, by hand, and a change to the workflow itself | The deep search over the same property tests at the scheduled case count, which a manual run may override, with a fresh seed each run, never cancelled by the next run, and failing when no property reported a passed run. It gates nothing ([ADR-0055](./docs/adr/engineering/0055-property-based-safety-invariants.md), [ADR-0069](./docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md)) |
 | `go-crash` | Go code, tool pins | The bounded run of every crash sequence, at the gating seed and case count, those needing the integration tag under `go tool pgrun` ([ADR-0045](./docs/adr/engineering/0045-crash-injection-testing.md)) |

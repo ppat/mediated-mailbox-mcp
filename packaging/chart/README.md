@@ -1,10 +1,10 @@
 # mediated-mailbox chart
 
-Stands up the mediated mailbox system on Kubernetes: the migration step, the API server, the worker
-and the UI ([ADR-0052](https://github.com/ppat/mediated-mailbox-mcp/blob/main/docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md)). The chart
+Stands up the mediated mailbox system on Kubernetes, which is the migration step, the API server,
+the worker and the UI ([ADR-0052](https://github.com/ppat/mediated-mailbox-mcp/blob/main/docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md)). The chart
 deploys these workloads and nothing else. PostgreSQL, the key pair stored credentials are sealed to,
-and each database role's password are inputs you supply. Accounts and policy are set up through the
-UI once the system runs.
+and the passwords of the two database users are inputs you supply. Accounts and policy are set up
+through the UI once the system runs.
 
 `values.yaml` documents every value, and `values.schema.json` refuses a value the chart or a process
 would not read.
@@ -13,10 +13,10 @@ would not read.
 
 | Object | Runs | Reads |
 | --- | --- | --- |
-| Job `<release>-mediated-mailbox-migration` | The migration chain, as a Helm hook before install and before every upgrade ([ADR-0129](https://github.com/ppat/mediated-mailbox-mcp/blob/main/docs/adr/data/0129-the-chart-runs-the-migration-step-as-a-pre-install-and-pre-upgrade-hook-job.md)) | The migration role's password, the CA certificate |
-| Deployment `<release>-mediated-mailbox-api` | The client surface agents call, over MCP and HTTP | Its role's password, the key pair, the bearer token, the CA certificate, its TLS pair |
-| Deployment `<release>-mediated-mailbox-worker` | Every background job kind, as exactly one pod | Each job kind's role password, the key pair, the CA certificate |
-| Deployment `<release>-mediated-mailbox-ui` | The operator's UI | Its role's password, the key pair, the request token's key, the CA certificate, its TLS pair |
+| Job `<release>-mediated-mailbox-migration` | The migration chain, as a Helm hook before install and before every upgrade ([ADR-0129](https://github.com/ppat/mediated-mailbox-mcp/blob/main/docs/adr/data/0129-the-chart-runs-the-migration-step-as-a-pre-install-and-pre-upgrade-hook-job.md)) | The migrator's user's password, the CA certificate |
+| Deployment `<release>-mediated-mailbox-api` | The client surface agents call, over MCP and HTTP | The application user's password, the key pair, the bearer token, the CA certificate, its TLS pair |
+| Deployment `<release>-mediated-mailbox-worker` | Every background job kind, as exactly one pod | The application user's password, the key pair, the CA certificate |
+| Deployment `<release>-mediated-mailbox-ui` | The operator's UI | The application user's password, the key pair, the request token's key, the CA certificate, its TLS pair |
 | ConfigMap `<release>-mediated-mailbox-config` | One configuration file per process | |
 | Secret `<release>-mediated-mailbox-access-credentials` | Whichever of the API server's bearer token and the UI's request token key you name no Secret for | |
 
@@ -25,20 +25,22 @@ Standard with a read-only root filesystem and no ServiceAccount token.
 
 ## Before you install
 
-1. **PostgreSQL** with the roles the migration chain grants to, and a database owned by the migration
-   role ([ADR-0048](https://github.com/ppat/mediated-mailbox-mcp/blob/main/docs/adr/data/0048-forward-only-migrations.md)). The roles are those of
-   `db/bootstrap/roles.sql` in this repository: `mediated_mailbox_migrator` owns the database, and
-   `mediated_mailbox_api`, `mediated_mailbox_ui`, `mediated_mailbox_backfill`,
-   `mediated_mailbox_sync`, `mediated_mailbox_organize` and `mediated_mailbox_propose` are the runtime
-   roles. The migration fails until every runtime role exists, and its Job retries. Helm, and Flux
-   running Helm, wait on the migration only up to the release's timeout, five minutes unless set
-   otherwise, so create the roles before installing, or give `helm install --timeout` or the
-   HelmRelease's `spec.timeout` enough time for them to appear.
-2. **A Secret per role password**, and **the key pair** stored credentials are sealed to, as the
+1. **PostgreSQL** with the two database users and a database
+   ([ADR-0048](https://github.com/ppat/mediated-mailbox-mcp/blob/main/docs/adr/data/0048-forward-only-migrations.md),
+   [ADR-0143](https://github.com/ppat/mediated-mailbox-mcp/blob/main/docs/adr/data/0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)).
+   The two users have names you choose, since the system names no database user. The migrator's
+   user owns the database and applies the migration chain. The application user is the one the
+   API server, the UI and the worker all connect as, and the one the chain grants to. You give the
+   chart both names as required values, `database.applicationUser` and `database.migrationUser`,
+   with no default. The migration fails until the application user exists, and its Job retries.
+   Helm, and Flux running Helm, wait on the migration only up to the release's timeout, five
+   minutes unless set otherwise, so create the users before installing, or give
+   `helm install --timeout` or the HelmRelease's `spec.timeout` enough time for them to appear.
+2. **A Secret per user's password**, and **the key pair** stored credentials are sealed to, as the
    next section lists. Write the key pair with the `keygen` subcommand of the command-line program,
    attached to each release as `mediated-mailbox-cli-<os>-<arch>` with its Sigstore bundle
-   `mediated-mailbox-cli-<os>-<arch>.sigstore.json`, and keep a copy elsewhere: losing the private
-   key loses every stored credential. Verify the binary against the release workflow's identity
+   `mediated-mailbox-cli-<os>-<arch>.sigstore.json`, and keep a copy elsewhere, since losing the
+   private key loses every stored credential. Verify the binary against the release workflow's identity
    before running it, with `<tag>` the release's tag.
 
    ```sh
@@ -66,11 +68,9 @@ reads only the keys it names, and mounts each one only into the pods whose proce
 
 | Entry under `secrets` | Holds, under the key named, with its default | Mounted into | Required |
 | --- | --- | --- | --- |
-| `databasePasswords.api` | The API server role's password alone, `secretKeys.password: password` | the API server | yes |
-| `databasePasswords.ui` | The UI role's password alone, `secretKeys.password: password` | the UI | yes |
-| `databasePasswords.worker.backfill`, `databasePasswords.worker.sync` | Each job kind's role password alone, `secretKeys.password: password` | the worker | yes |
-| `databasePasswords.migration` | The migration role's password alone, `secretKeys.password: password` | the migration Job | yes |
-| `credentialSealingKeyPair` | The key pair stored credentials are sealed to: the public key, `secretKeys.publicKey: credential.pub`, and every private key of the keyring, `secretKeys.privateKeys: [credential.key]` | the API server, the worker and the UI | yes |
+| `databasePasswords.application` | The application user's password alone, `secretKeys.password: password` | the API server, the worker and the UI | yes |
+| `databasePasswords.migration` | The migrator's user's password alone, `secretKeys.password: password` | the migration Job | yes |
+| `credentialSealingKeyPair` | The key pair stored credentials are sealed to, the public key, `secretKeys.publicKey: credential.pub`, and every private key of the keyring, `secretKeys.privateKeys: [credential.key]` | the API server, the worker and the UI | yes |
 | `databaseCaCertificate` | The CA certificate the database server's certificate is checked against, `secretKeys.certificate: ca.crt` | every process and the migration Job | no |
 | `apiBearerToken` | The bearer token clients present to the API server, `secretKeys.bearerToken: api-bearer-token` | the API server | no, the chart generates one when empty |
 | `uiRequestTokenKey` | The key the UI signs its request tokens with, at least 32 bytes, `secretKeys.requestTokenKey: ui-request-token-key` | the UI | no, the chart generates one when empty |
@@ -78,24 +78,23 @@ reads only the keys it names, and mounts each one only into the pods whose proce
 
 ## With a CloudNativePG cluster
 
-CloudNativePG creates the database owned by the migration role and writes that role's password,
+CloudNativePG creates the database owned by the migrator's user and writes that user's password,
 under `password`, into the Secret `<cluster>-app`, and the server's CA certificate into
 `<cluster>-ca`. The chart mounts only `ca.crt` from that Secret, so its CA private key stays out
-of every pod.
+of every pod. Replace `<application-user>` and `<migration-user>` below with the names you choose
+for the two users, the same in each place, and give the chart the same names.
 
 ```yaml
 apiVersion: v1
 kind: Secret
 metadata:
-  name: api-db
+  name: app-db
   labels:
     cnpg.io/reload: "true"
 type: kubernetes.io/basic-auth
 stringData:
-  username: mediated_mailbox_api
+  username: <application-user>
   password: <a password>
-# ...and likewise ui-db, backfill-db and sync-db for mediated_mailbox_ui,
-# mediated_mailbox_backfill and mediated_mailbox_sync.
 ---
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
@@ -108,33 +107,17 @@ spec:
   bootstrap:
     initdb:
       database: mediated_mailbox
-      owner: mediated_mailbox_migrator
+      owner: <migration-user>
   managed:
     roles:
-    - name: mediated_mailbox_api
+    - name: <application-user>
       login: true
       passwordSecret:
-        name: api-db
-    - name: mediated_mailbox_ui
-      login: true
-      passwordSecret:
-        name: ui-db
-    - name: mediated_mailbox_backfill
-      login: true
-      passwordSecret:
-        name: backfill-db
-    - name: mediated_mailbox_sync
-      login: true
-      passwordSecret:
-        name: sync-db
-    - name: mediated_mailbox_organize
-      login: true
-    - name: mediated_mailbox_propose
-      login: true
+        name: app-db
 ```
 
 Wait for the cluster to report Ready before installing, as the chainsaw suite does, so the
-migration's wait for the roles stays well inside the release's timeout:
+migration's wait for the application user stays well inside the release's timeout:
 
 ```sh
 kubectl wait cluster/mailbox-db --for=condition=Ready --timeout=10m
@@ -146,17 +129,12 @@ Then install the chart in the same namespace with these values:
 database:
   host: mailbox-db-rw
   name: mediated_mailbox
+  applicationUser: <application-user>
+  migrationUser: <migration-user>
 secrets:
   databasePasswords:
-    api:
-      existingSecret: api-db
-    ui:
-      existingSecret: ui-db
-    worker:
-      backfill:
-        existingSecret: backfill-db
-      sync:
-        existingSecret: sync-db
+    application:
+      existingSecret: app-db
     migration:
       existingSecret: mailbox-db-app
   databaseCaCertificate:
@@ -177,11 +155,12 @@ fully qualified name.
 
 ## With any other PostgreSQL
 
-Create the roles and the database as `db/bootstrap/roles.sql` and the list above describe, give each
-role a password, and store each in its Secret. Set `database.sslmode` to what the server offers, and
-`secrets.databaseCaCertificate` when the server's certificate is checked against a CA of your own. To the chart a
-CloudNativePG database is no different: it takes a host, password files and a CA certificate from any
-server, which is why the chainsaw suite tests with CloudNativePG alone.
+Create the two users, under names you choose, and the database the migrator's user owns, as the
+list above describes. Give each user a password, store each in its Secret, and give the chart both
+names. Set `database.sslmode` to what the server offers, and `secrets.databaseCaCertificate` when
+the server's certificate is checked against a CA of your own. To the chart a CloudNativePG database
+is no different. It takes a host, password files and a CA certificate from any server, which is why
+the chainsaw suite tests with CloudNativePG alone.
 
 ## Values you will most often set
 
@@ -195,7 +174,7 @@ server, which is why the chainsaw suite tests with CloudNativePG alone.
 | `monitoring` | The Prometheus Operator's resources and the Grafana dashboard |
 | `*.resources` | Requests are set, and no limit is, so set limits to suit your nodes. |
 | `*.goSoftMemoryLimit` | The Go runtime's soft memory limit for that container, its `GOMEMLIMIT`, unset by default. Go sets none by itself, so when you set a memory limit, set this below it, written in Go's units such as `460MiB`, not Kubernetes' `Mi`. Lower it with the limit, since an in-place resize changes only the limit |
-| `api.database.poolSize`, `ui.database.poolSize`, `worker.jobKinds.<kind>.database.poolSize` | The most connections each pool opens. Their sum across replicas is what PostgreSQL's connection limit must allow. Unset, the API server and the UI open up to the larger of 4 and the node's processor count, and each of the worker's job kinds up to 4 |
+| `api.database.poolSize`, `ui.database.poolSize`, `worker.database.poolSize` | The most connections each pool opens, the worker's one value sizing each of its job kinds' pools alike ([ADR-0078](https://github.com/ppat/mediated-mailbox-mcp/blob/main/docs/adr/engineering/0078-configuration-layers-through-an-owned-library.md)). PostgreSQL's connection limit must allow every process's pools summed across its replicas, which for the worker is at least its value once for each job kind, and more for any pool it holds beside them. Unset, the API server and the UI open up to the larger of 4 and the node's processor count, and each of the worker's job kinds up to 4 |
 
 ### Quoting
 
@@ -215,8 +194,8 @@ sharedConfig:
 
 For whichever of `secrets.apiBearerToken` and `secrets.uiRequestTokenKey` names no Secret, the
 chart generates the value into its own Secret, `<release>-mediated-mailbox-access-credentials`,
-keeps that Secret when the release is uninstalled, and reads each value back on every later install and upgrade, so the
-values stay the same. Read the bearer token agents present with:
+keeps that Secret when the release is uninstalled, and reads each value back on every later install
+and upgrade, so the values stay the same. Read the bearer token agents present with:
 
 ```sh
 kubectl get secret <release>-mediated-mailbox-access-credentials \
@@ -282,9 +261,11 @@ period, `worker.terminationGracePeriodSeconds`, and a lost node's pod can keep r
 node stops it. The worker's runs tolerate that overlap, since each reads recorded state and is
 idempotent or conditional.
 
-A new worker pod reports ready once each job kind's database pool answers and each job kind has read
-its accounts and ensured their jobs at least once, so an upgrade that waits on its pods finishes
-only when the worker can run its jobs.
+A new worker pod reports ready once each job kind's database pool answers, the worker has loaded
+the accounts, their connections and their policy once, and each job kind's first listing of what
+it runs for has succeeded
+([ADR-0142](https://github.com/ppat/mediated-mailbox-mcp/blob/main/docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md)).
+So an upgrade that waits on its pods finishes only when the worker can run its jobs.
 
 ## Tests
 

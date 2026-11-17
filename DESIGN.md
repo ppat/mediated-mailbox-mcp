@@ -46,9 +46,9 @@ owns.
 │ The API server                     │  │ UI (Web interface)       │
 │                                    │  │  read-mostly reporting   │
 │ ┌────────────────────────────────┐ │  │  + approvals and setup   │
-│ │ Client Surface: API + MCP roots│ │  │  separate identity and   │
-│ └──────────────┬─────────────────┘ │  │  DB role; NEVER shows    │
-│ ┌──────────────▼─────────────────┐ │  │  bodies (none exist)     │
+│ │ Client Surface: API + MCP roots│ │  │  separate identity,      │
+│ └──────────────┬─────────────────┘ │  │  NEVER shows bodies      │
+│ ┌──────────────▼─────────────────┐ │  │  (none exist)            │
 │ │ Redaction Gate     ◄ CHOKEPOINT│ │  └────────┬─────────────────┘
 │ └──────────────┬─────────────────┘ │           │
 │ ┌──────────────▼─────────────────┐ │           │ writes ONLY (direct
@@ -109,7 +109,7 @@ owns.
 | Scan Gate | Choose which non-restricted bodies get scanned | the worker |
 | Content Scanner | Read bodies it will withhold and emit content-free verdicts | the worker |
 | Rate Limiter | Keep every spender inside one polite per-account budget | the API server, and each job kind of the worker that calls a provider |
-| The worker | Run every background job kind, each scheduled from recorded state, with its code, role and series kept apart | separate deployment |
+| The worker | Run every background job kind, each scheduled from recorded state, with its code, connection pool and series kept apart | separate deployment |
 | Backfill Job | Build the full-history metadata index | job kind of the worker |
 | Delta Sync | Keep the index current against the provider | job kind of the worker |
 | Reorg Engine | Turn approved plans into reversible bulk mutations | job kind of the worker |
@@ -298,7 +298,7 @@ the second account exists. Until then it is enforced structure awaiting its test
 read across accounts by design, the accounts table, which holds each account's identifier,
 provider and the OAuth client it connects through, and nothing an account carries (ADR-0091, via
 the [decision-record index](./docs/adr/README.md)). The OAuth clients belong to no account, so the
-roles the account snapshot's statements run under read them whatever the account (ADR-0016).
+connections' statements read them whatever the account (ADR-0016).
 
 ### An accepted risk that is not measured is an unmeasured risk
 
@@ -328,24 +328,26 @@ depend on the network position of the deployment.
 ### The mediation layer is the irreducible trust anchor
 
 The mediation layer holds full mailbox credentials, in every one of its processes that calls a
-provider. The UI joins them for the moment it completes a consent, because it holds the fresh grant
-in plaintext until it seals it, and it holds the private key that opens a stored credential, which
-only its code confines to opening an OAuth client's secret. Membership is by process, and
-everything a member process links is inside the anchor, the code of every job kind the worker runs
-included. Inside a member process, code that calls no provider is held away from the credentials by
-isolation of its code, not by a process boundary (ADR-0081, ADR-0117). If any of those processes is
-compromised, redaction is moot, because the attacker calls the provider directly. The design does
-not pretend otherwise. The stance is that this anchor is hardened, its blast radius is understood,
-and evidence of its compromise survives outside its own reach.
+provider. The UI is a member too, at all times. Its process connects as the application user,
+which can read every stored credential, and it holds the private key that opens them
+(ADR-0143). Only its code confines that key to opening an OAuth client's secret, in the code that
+sets up an OAuth client and an account. While it completes a consent, it also holds the fresh grant
+in plaintext until it seals it. Membership is by process, and everything a member process links is
+inside the anchor, the code of every job kind the worker runs included. Inside a member process,
+code that calls no provider is held away from the credentials by isolation of its code, not by a
+process boundary (ADR-0081, ADR-0117). If any of those processes is compromised, redaction is
+moot, because the attacker calls the provider directly. The design does not pretend otherwise. The
+stance is that this anchor is hardened, its blast radius is understood, and evidence of its
+compromise survives outside its own reach.
 
 Why: some process must hold the over-privileged credential. That follows from redaction being
 enforced by code, not the token. The design accepts this as the irreducible trust anchor rather
 than pretending otherwise, and directs the hardening there.
 
 Known limit, stated rather than hidden: this is the one failure the design cannot make
-unrepresentable, only expensive, detectable, and evidenced, which is why no runtime role can erase
-an audit row. What that buys is bounded. Evidence written before a compromise survives it. What an
-attacker writes afterwards is theirs.
+unrepresentable, only expensive, detectable, and evidenced, which is why the application user
+cannot erase an audit row. What that buys is bounded. Evidence written before a compromise survives
+it. What an attacker writes afterwards is theirs.
 
 ### Concerns stay un-braided; components know only their contracts
 
@@ -363,9 +365,9 @@ front door. They do not inhibit evolution. What inhibits it is implicit coupling
 quietly relying on how another behaves today, captured in no record and found by no future reader
 until it breaks their extension. The architecture already instantiates the principle (the
 provider port, the separation of the gate from the authorizer, the background job kinds kept apart
-by their code, their database roles and their run records inside one worker), and
-this pillar makes it binding on every decision and every line of code to come, which is why
-decision records name their cross-component assumptions in their Consequences.
+by their code and their run records inside one worker), and this pillar makes it binding on every
+decision and every line of code to come, which is why decision records name their cross-component
+assumptions in their Consequences.
 
 Known limit, stated rather than hidden: like the backend swap, this is only tested when an
 evolution arrives. Until then it is enforced structure awaiting its test.
@@ -383,18 +385,19 @@ where each disposition is recorded, not what it is. The record named is the sing
 | A single chokepoint concentrates correctness, so a gate bug is a bug everywhere | Built first and proven offline, via the S1 unit in [ROADMAP.md](./ROADMAP.md) and its rows in [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) |
 | Fail-closed paths are exercised by tests or not at all | Their injections in [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md), and the proof those tests can fail in the mutation ledger, [docs/MUTATIONS.md](./docs/MUTATIONS.md) and the files it lists (ADR-0046) |
 | Union composition means over-restriction stands until its policy or verdict is corrected | The masking and gate review loops (ADR-0003, ADR-0093) |
-| The approval surface is itself a target | ADR-0084 (two decision verbs, a rollback request, OAuth client setup, account setup and policy management, scoped role, seals credentials its code never opens), with every policy change recorded where no runtime role can rewrite it (ADR-0102) |
+| The approval surface is itself a target | ADR-0084 (two decision verbs, a rollback request, OAuth client setup, account setup and policy management, writes held to that list by its import lists, seals credentials its code never opens), with every policy change recorded where the application user cannot rewrite it (ADR-0102) |
 | Bodies must transit the API server's memory to be served and scanned at all | ADR-0009 |
 | A metric not collected for a past window is lost for good | [ROADMAP.md](./ROADMAP.md), where emission is a non-deferrable riding the units that emit |
 | Content released to the agent is released, into context, transcripts, and memory | ADR-0036 bounds it. It cannot be recalled |
 | Text a sender hides with CSS is released as ordinary text, and delimiter words written in look-alike letters pass the release step | ADR-0036's consequences |
 | Compromise of a process holding provider credentials defeats redaction | ADR-0028 (hardening, blast radius, evidence that survives) |
-| Code that calls no provider runs inside a credential-holding process, the heuristics run reading attacker-chosen text there, held away from the credentials by code isolation alone, and inside the worker a compromised job holds every job kind's database role | ADR-0117, ADR-0118 |
+| Code that calls no provider runs inside a credential-holding process, the heuristics run reading attacker-chosen text there, held away from the credentials by code isolation alone | ADR-0117 |
+| The API server, the UI and the worker connect as one application user, so a compromised UI can read every stored credential, and it holds the key that opens them | ADR-0143, ADR-0081 |
 | Backend-swap and multi-account isolation are unproven until a second adapter/account exists | [ROADMAP.md](./ROADMAP.md), as the units that run those tests |
 | Every account's identifier and provider is readable across accounts, so any listing can enumerate the accounts | ADR-0091 |
 | Un-braided concerns and contract-only knowledge are only tested when an evolution arrives | The records' assumption-naming convention ([docs/adr/README.md](./docs/adr/README.md)) |
 | The corpus is assumed ≤100k messages per account | ADR-0016 records what changes beyond it, and ADR-0066 what stops being affordable |
-| Nothing in the running system can trim the audit log, because no runtime role may delete from it | ADR-0016, with the retention question open in [ROADMAP.md](./ROADMAP.md) |
+| Nothing in the running system can trim the audit log, because the application user may not delete from it | ADR-0016, with the retention question open in [ROADMAP.md](./ROADMAP.md) |
 
 ## 4. Failure modes
 
@@ -432,9 +435,9 @@ top-level documents, a decision record, or a ticket from here without guessing.
 - **The API server** (published as `mediated-mailbox-api` from the directory `api/`) — the
   process that enforces redaction and serves the client surface. It holds provider credentials, as
   every process that calls a provider does (ADR-0080 and ADR-0081, via the
-  [decision-record index](./docs/adr/README.md)), and those processes together, with the UI while
-  it completes a consent, are the trust anchor. Distinct from **the API**, one of the two roots it
-  serves, and from the UI's read API.
+  [decision-record index](./docs/adr/README.md)), and those processes together, with the UI, are
+  the trust anchor. Distinct from **the API**, one of the two roots it serves, and from the UI's
+  read API.
 - **Client** — any caller of the serving surface, whether the agent over MCP or any other caller
   of the API. Every client is untrusted by design. Every control assumes a client can be talked
   into, or built to attempt, anything.
@@ -453,12 +456,15 @@ top-level documents, a decision record, or a ticket from here without guessing.
   plans.
 - **The UI** (directory `ui/`) — the read-mostly reporting and approval surface, and where the
   installation's OAuth clients are set up and accounts are connected and repaired. Separate
-  deployment, separate identity, and a database role that never reads a stored credential. It holds
-  the private key, and one isolated part of it opens an OAuth client's secret and nothing else.
-  Carries the approval verbs no client has. Its design is [docs/UI.md](./docs/UI.md).
+  deployment and separate identity. Its import lists admit no read of an account's stored
+  credential. It is a standing member of the trust anchor, since its process connects as the one
+  application user, which can read every stored credential (ADR-0143, via the
+  [decision-record index](./docs/adr/README.md)). It holds the private key, and one isolated part of
+  it opens an OAuth client's secret and nothing else. Carries the approval verbs no client has. Its
+  design is [docs/UI.md](./docs/UI.md).
 - **The worker** (published as `mediated-mailbox-worker` from the directory `worker/`) — the one
   deployable that runs every background job kind, scheduled and triggered side by side in one
-  process, with each job kind's code, database role and series kept apart inside it. It holds
+  process, with each job kind's code, connection pool and series kept apart inside it. It holds
   provider credentials, so it is inside the trust anchor (rules in ADR-0117 and ADR-0119, via the
   [decision-record index](./docs/adr/README.md)). Distinct from a *worker* in the rate limiter's
   records, ADR-0024, ADR-0025 and ADR-0077, which is any caller asking for or holding a **Lease**.
@@ -467,8 +473,8 @@ top-level documents, a decision record, or a ticket from here without guessing.
   `job_kind` label on the worker's series and logs names, spelled as `job_runs.workload` spells
   it. A **job** is one job kind for one account, or for one plan in the case of apply and rollback,
   and a **run** is one execution of a job (ADR-0117, via the
-  [decision-record index](./docs/adr/README.md)). The word *workload* names the same thing where
-  older text and the UI's copy use it.
+  [decision-record index](./docs/adr/README.md)). The word *workload* names the same thing in
+  `job_runs.workload` and in the UI's copy.
 - **The shared pure library** — the pure-core-only library every deployable may
   import. Impure shared needs live in narrow, named exception libraries instead (rule in
   ADR-0050, via the [decision-record index](./docs/adr/README.md)).
@@ -476,30 +482,41 @@ top-level documents, a decision record, or a ticket from here without guessing.
   component by its own import-list entry, so it argues its case once. When one exists, when a
   concern joins it and when one is founded are ADR-0050's (via the
   [decision-record index](./docs/adr/README.md)).
-- **Execution context** (the family `executioncontext/`) — what a job or a request executes with:
-  the account snapshot with its opened credentials, the account session over it, the policy
-  snapshot, and the sealed credentials they are opened from. A process holds one, which every
-  component of the process that calls a provider shares and the UI never receives (rules in ADR-0090
-  and ADR-0118, via the [decision-record index](./docs/adr/README.md)). It holds no rate state, which
-  the rate limiter keeps apart, so it is narrower than the **Account context**, everything held for
-  one account. Its case is [executioncontext/README.md](./executioncontext/README.md)'s.
-- **Process** (the family `process/`) — what every deployable needs to run as a process under the
-  environment contract: its configuration layered from defaults, a file, the environment and flags,
-  its database connection and what it measures of that connection, what it measures of its
-  runtime, its operations endpoints, its logs, and the **host** that runs it (contract in ADR-0051,
-  via the [decision-record index](./docs/adr/README.md)). Its case is
-  [process/README.md](./process/README.md)'s. Distinct from a *process* in the operating system's
-  sense, a running instance of a deployable, which this family's code runs inside rather than names.
-- **Host** (the package `process/host`) — what runs one process over the components a composition
-  root hands it, doing what every process does whatever it hosts, from its configuration and its
-  operations endpoints to its background tasks and its ordered stop. A process that does one piece
-  of work and exits, as the migrator does, gets the same start and pools and no servers or tasks. A
-  component provides its parts to the host and never starts them itself (rules in ADR-0138, via the
-  [decision-record index](./docs/adr/README.md)).
+- **Spec** (the type `process.Spec`) — what one program is made of, which is its name, its start
+  check, and its endpoints, its job kinds or its one task, each with the function of its own package
+  that builds it. A spec lists and builds nothing, and a **process** runs it (rules in ADR-0142,
+  via the [decision-record index](./docs/adr/README.md)). An entry of a spec's job list is one job
+  kind, distinct from a **job**, one job kind for one account or one plan.
+- **Process** (the family `process/`) — one running program. A process starts under the
+  environment contract, loads its program's configuration, calls each function its spec lists,
+  serves, runs the jobs, answers the probes from what was reported and stops in order, whatever
+  program it runs. It holds the loaded configuration and its database pools, the logger, the
+  metrics registry, the servers, the scheduler, the readiness reports, the **Session**, and
+  anything else an owner package keeps in it, in a slot the owner package declares,
+  `process.OnePerProcess`. A program that does one piece of work and exits, as the migrator does,
+  gets the same start and no servers or jobs (rules in ADR-0142 and the contract in ADR-0051, via
+  the [decision-record index](./docs/adr/README.md)). Its case is
+  [process/README.md](./process/README.md)'s.
+- **Session** (the package `process/sessions`) — all the user state a process holds, as one
+  thing. That is the accounts, each account's policy and each account's connection to its
+  provider, every one of them belonging to an account. It owns their reload, its order, its failure
+  rules and who is told after it. Its package imports no credential and no provider code. The
+  **connections** attach to it as its third member, so code that holds the Session and not the
+  connections cannot reach a credential. A process holds one Session, which every endpoint and job
+  kind of the process may ask for, and the UI never holds it (rules in ADR-0090 and ADR-0142, via
+  the [decision-record index](./docs/adr/README.md)). It holds no rate state, which the rate limiter
+  keeps apart, so it is narrower than the **Account context**, everything held for one account.
+  Written with a capital to tell it from a browser session in the UI and an MCP session, which
+  keep their ordinary meanings.
 - **Message content** (the family `content/`) — the code that reads a message's content in memory
   and stores none of it, which is today the conversion of a body's HTML to Markdown (rules in
   ADR-0009 and ADR-0036, via the [decision-record index](./docs/adr/README.md)). Its case is
   [content/README.md](./content/README.md)'s.
+- **Credential encryption** (the family `credential/`) — the sealing of a stored credential to the
+  public key and its opening with the private key, which the connections, the UI's setup and the
+  command-line program use (rules in ADR-0081 and ADR-0088, via the
+  [decision-record index](./docs/adr/README.md)). Its case is
+  [credential/README.md](./credential/README.md)'s.
 - **Provider** — the managed service actually holding the mail or calendar (Gmail, Fastmail).
 - **The real mailbox** — the operator's own mail at the provider, as distinct from the synthetic
   fixtures every test runs over.
@@ -542,8 +559,8 @@ top-level documents, a decision record, or a ticket from here without guessing.
 - **Release step** — the API server's last decision on a body the Redaction Gate lets through,
   which either releases its Markdown wrapped in the untrusted-content delimiters, with the snippet
   and attachment filenames beside it, or withholds all of them, running the serve-time pattern check
-  over all of them for a gate-skipped message, and over the filenames of every message, on the way (rules in ADR-0036 and ADR-0002, via
-  the [decision-record index](./docs/adr/README.md)).
+  over all of them for a gate-skipped message, and over the filenames of every message, on the way
+  (rules in ADR-0036 and ADR-0002, via the [decision-record index](./docs/adr/README.md)).
 - **The residual** — the accepted, measured set of bodies released without having been scanned
   (bounds in ADR-0093 and ADR-0002, via the
   [decision-record index](./docs/adr/README.md)).
@@ -557,8 +574,8 @@ top-level documents, a decision record, or a ticket from here without guessing.
 - **Policy overlay** — per-account additions to the base policy. Overlays only add restrictions.
   They can over-restrict, never under-restrict.
 - **Policy snapshot** — the immutable, atomically-swapped copy of the policy that one request or
-  unit of batch work decides against (rule in ADR-0041, via the
-  [decision-record index](./docs/adr/README.md)).
+  unit of batch work decides against, as the Session's policies hold it in force (rule in ADR-0041,
+  via the [decision-record index](./docs/adr/README.md)).
 - **Policy history** — the append-only record of every change to the policy list, who made it,
   when, and what it added or lifted (rule in ADR-0102, via the
   [decision-record index](./docs/adr/README.md)).
@@ -576,7 +593,13 @@ top-level documents, a decision record, or a ticket from here without guessing.
 ### Provider abstraction and accounts
 
 - **Provider Port** — the single interface the system's canonical model is defined against.
-  Everything above it is provider-blind.
+  Everything above it is provider-blind. Its form for mail is `mail.Mailbox`, in the provider
+  library's `provider/mail` (ADR-0010, via the [decision-record index](./docs/adr/README.md)).
+- **Caller** — one job kind's, or the API server's body operation's, own equipment for calling a
+  provider, which is its adapter clients, its limiter, its provider metrics, its priority class and
+  its timeout. Each builds its own while it is built, so every series it produces carries its own
+  labels (rule in ADR-0117, via the [decision-record index](./docs/adr/README.md)). Distinct from a
+  **Client**, a caller of the client surface, and from the ordinary sense, the caller of a function.
 - **Adapter** — a per-provider implementation of the port, and the only code that knows provider
   concepts. Adapters are deliberately dumb. They return in full what the port defines, a body
   being its rendered part, and make no release or redaction decision.
@@ -600,9 +623,9 @@ top-level documents, a decision record, or a ticket from here without guessing.
   [decision-record index](./docs/adr/README.md)).
 - **Account context** — everything the system holds for one account and for no other: its
   credential, its provider connection, its policy overlay and its rate state. It is a concept, not a
-  Go `context.Context` and not one package. Its parts live apart, the account snapshot, the account
-  session, the policy snapshot and the rate limiter, each in its own package. Nothing
-  about an account is ambient. Every operation names one (ADR-0085, via the
+  Go `context.Context` and not one package. Its parts live apart, the Session's accounts and
+  policies, the connections and the rate limiter, each in its own package. Nothing about an
+  account is ambient. Every operation names one (ADR-0085, via the
   [decision-record index](./docs/adr/README.md)).
 - **Sealed credential** — an account's provider credential as the database stores it, encrypted so
   that only code that calls a provider opens it (ADR-0081 and its construction in
@@ -615,16 +638,29 @@ top-level documents, a decision record, or a ticket from here without guessing.
 - **Keyring** — the set of private keys a process that opens credentials, or the UI, holds,
   looked up by the key a sealed value names (rule in ADR-0092, via the
   [decision-record index](./docs/adr/README.md)).
-- **Account snapshot** — the immutable copy of its accounts, each paired with the OAuth client it
-  connects through where its provider has one, and their opened credentials that a process
-  calling a provider works from, one for every component of the process (rule in ADR-0090, via the
+- **Account snapshot** — the list of accounts the Session has in force, each paired with the OAuth
+  client it connects through where its provider has one. It is immutable, one for the whole
+  process, replaced whole at a reload, and taken once by a unit of work. The opened credentials are
+  not in it. They sit in the connections' records, one per account, which a process calling a
+  provider works from beside the snapshot. A record changes in place only when the connections
+  adopt a value read from the account's row, at a reload or at the re-read after a refused
+  credential, or when they write one back by compare-and-set, and every unit of work on that
+  account follows those changes (rules in ADR-0090, ADR-0089 and ADR-0106, via the
   [decision-record index](./docs/adr/README.md)).
-- **Account session** — what a process calling a provider holds for an account while it calls the
-  account's provider, which is the credentials its token source was built from, their adoption
-  stamp, and the provider connection over them. At the end of each unit of work it hands the
-  credential over and records the latest authentication attempt. One package holds it for every
-  such process, and its case is [executioncontext/README.md](./executioncontext/README.md)'s
-  (hand-over rules in ADR-0089 and ADR-0097, via the [decision-record index](./docs/adr/README.md)).
+- **Connections** (the package `process/connections`) — each account's connection to its
+  provider, one record per account holding its stored and its opened credential, the adoption stamp
+  that keeps a credential the operator replaced from being overwritten, the token made from the
+  credential and the account's lowered rate target, none of it exported. They attach to the Session
+  as its third member, begin each **unit of work**, and re-seal what a replaced key opens (rules in
+  ADR-0089, ADR-0090 and ADR-0092, via the [decision-record index](./docs/adr/README.md)).
+- **Unit of work** — one body request, one page of backfill or one delta sync tick, on one
+  account, begun through the connections with the caller that makes it. For its length it holds the
+  account's mailbox, the provider connection a program calls. At its end it writes a refreshed
+  credential back under the adoption stamp of the record it began on, and records the latest
+  authentication attempt (rules in ADR-0089 and ADR-0097, via the
+  [decision-record index](./docs/adr/README.md)). Distinct from the broader sense some records
+  use, as ADR-0041's policy snapshot taken once per unit of work, where it means any one request or
+  one piece of batch work, whether or not it calls a provider.
 
 ### Data paths and mutation
 
@@ -655,11 +691,12 @@ top-level documents, a decision record, or a ticket from here without guessing.
 - **Account-keyed table** — a table carrying an `account_id` column. What every statement against
   one must do, how the set of them is established, and which tables are excepted are ADR-0047's
   (via the [decision-record index](./docs/adr/README.md)).
-- **Runtime role** — a database role a running deployable, or inside the worker a job kind,
-  connects as, whose grants ADR-0118 bounds, as distinct from the schema-owning role the migration
-  step uses. The worker holds one per job kind, so a role bounds a buggy job and not a compromised
-  process (roles in ADR-0048, ADR-0084 and ADR-0118, via the
-  [decision-record index](./docs/adr/README.md)).
+- **Application user** — the one database user the API server, the UI and every job kind of the
+  worker connect as. It is the runtime role [O2](./USE_CASES.md#o2--observable) speaks of.
+  ADR-0143 bounds its grants. Distinct from the **migrator's user**, the database user the
+  migration step connects as, which owns the schema (users in ADR-0048 and ADR-0143, via the
+  [decision-record index](./docs/adr/README.md)). The project names neither, and the deployment
+  platform creates both under names the deployment chooses.
 - **The migration chain** — the ordered set of hand-written migration files that builds the
   schema. How it evolves, when it is applied, and what its first entry carries are ADR-0048's
   (via the [decision-record index](./docs/adr/README.md)).
@@ -690,8 +727,8 @@ top-level documents, a decision record, or a ticket from here without guessing.
 - **Lease** — a short-lived allocation of rate budget to one spender, the mechanism by which the
   API server and the worker's job kinds share one per-account budget without a coordinator process.
 - **Audit log** — the record of every body served, every denial, and every mutation. Must survive
-  the compromise of any process holding provider credentials, so no runtime role may update or
-  delete a row of it (grant and bound in ADR-0016 and ADR-0028, via the [decision-record
+  the compromise of any process holding provider credentials, so the application user may not
+  update or delete a row of it (grant and bound in ADR-0016 and ADR-0028, via the [decision-record
   index](./docs/adr/README.md)).
 - **Masking events / gate decisions** — the per-event records that make masking behavior and scan
   skips tunable from evidence.

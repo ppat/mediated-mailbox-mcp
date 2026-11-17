@@ -19,14 +19,19 @@ the toolchain that proves them. It weighs the choice on four principles.
 - Validation in the server is necessary whatever the browser does.
 - Nothing is built before it is needed.
 
-The seven UI controls this record places divide this way. Five are server behaviors proven in Go
-against real Postgres, one, inert rendering, is provable only where rendering happens, and one,
-the content security policy, splits into three assertions Go can prove and one act only a browser
-performs. The table shows where each is proven under this decision.
+The seven UI controls this record places divide this way.
+
+- Five are server behaviors proven in Go, four against real Postgres and one by the violation
+  files of the import lists and the analysers.
+- One, inert rendering, is provable only where rendering happens.
+- One, the content security policy, splits into three assertions Go can prove and one act only a
+  browser performs.
+
+The table shows where each is proven under this decision.
 
 | Control | Proven where | Instrument |
 | --- | --- | --- |
-| The database grant bounds the UI's writes | Postgres | a Go integration test against the real database |
+| The UI's import lists and the raw SQL analyser bound the UI's writes ([ADR-0143](../data/0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)) | Go | the violation files the ban-proof script requires, and review of the subsections the UI's lists admit, which hold no write outside the UI's list and no read of an account's stored credential |
 | Message-derived text renders inert | the browser's rendering layer | `bun test` against the shim in the required assertion form, and once in a real browser as a drill |
 | The registry refuses what it does not declare | Go | an HTTP test against the real server, plus the build check |
 | Every lens is per account | Go | an HTTP test against the real server |

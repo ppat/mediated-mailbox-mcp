@@ -11,14 +11,14 @@ credential is stored, or the next restart resumes from the stale credential and 
 gone, the most common way systems like this die quietly. Credentials are stored sealed in the
 database ([ADR-0080](../data/0080-accounts-and-credentials-live-in-the-database.md),
 [ADR-0081](./0081-credentials-sealed-to-a-public-key.md)), and the deployables that call a provider
-already hold a database role.
+already connect to it.
 
 ## Decision
 
 - **The deployable that receives a rotated credential seals it and writes it to the account's
   state row** ([ADR-0091](../data/0091-accounts-listed-apart-from-their-state.md)), in the same
-  database it reads credentials from. Its role's write grant on the account's credential is that
-  one column, nothing more.
+  database it reads credentials from. Its write of the account's credential sets that one column,
+  nothing more.
 - **No other store takes part.** No deployable holds a credential for a secret store, because no
   account credential lives in one.
 - **The process keeps the new value in memory**, so a failed write loses access only if the process
@@ -41,9 +41,11 @@ already hold a database role.
 - Rotation write-back stays the deliberately exercised day-one drill. Force a rotation, restart,
   confirm access survives. The drill and its injection are catalogued in
   [docs/VERIFICATIONS.md](../../VERIFICATIONS.md).
-- Each provider-calling deployable's role can update the credential column of its accounts' rows,
-  so a compromised provider-calling deployable can overwrite a stored credential. It already holds
-  the credential in plaintext.
+- The application user, which the API server, the UI and the worker connect as, can update the
+  credential column of every account's row
+  ([ADR-0143](../data/0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)).
+  So a compromised provider-calling deployable can overwrite a stored credential, as any
+  compromised program can. A provider-calling deployable already holds the credential in plaintext.
 - Assumptions about other components. The update's statement compares the account with the
   transaction's, so it reaches only the account the transaction set
   ([ADR-0135](../data/0135-every-statement-reads-its-account-from-the-transaction.md)).

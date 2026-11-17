@@ -18,7 +18,9 @@ recorded. *Image* means tested, and the deployable's image builds, which the ima
 chainsaw suite, against `main`'s `latest` images before the pull request merges
 ([ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md)). A unit that delivers
 code inside a deployable or a library is proven at tested. A unit that delivers a deployable, by
-creating or changing its composition root, is proven at image, the deployable's artifact
+creating or changing its entry package, `<program>/app`, which holds its spec
+([ADR-0142](./docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md)), is proven
+at image, the deployable's artifact
 ([ADR-0049](./docs/adr/engineering/0049-image-per-component-lockstep.md)). A unit that delivers the
 chart's coverage is proven at packaged. Continuous integration builds every image and lints the
 chart on the changes the workflow table of [CLAUDE.md](./CLAUDE.md#ci-workflows) names, so the upper
@@ -249,6 +251,7 @@ its part, and the rows it added. Which rows it proved are the rows whose Status 
 | [#394](https://github.com/ppat/mediated-mailbox-mcp/pull/394) | F9 | F9's later work, one execution context per process in `executioncontext/assembly`, built once by each composition root and shared by every component that calls a provider, its one reload a task of the process, one token source per account, one policy loader and one scanner, run under the API server's role and under delta sync's in the worker, with the grants on sealed credentials and OAuth clients of backfill's role and of reorg apply and rollback's removed from the baseline ([ADR-0090](./docs/adr/operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md), [ADR-0118](./docs/adr/data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)) | It adds and proves the rows for one execution context per process, the sources the components' session holders share, each context reload waking the job kinds, the quiet worker start and no job kind's role but delta sync's reaching a sealed value, and proves again through the context the rows of the account snapshot, the account session, the policy load, the reload-failure series, the re-seal and the lowered target | The context's controls, new, each with its breaks. Every demonstration whose code, tests or patches the change touched is demonstrated again, its patch rebuilt over the code it moved to where it did not apply |
 | [#397](https://github.com/ppat/mediated-mailbox-mcp/pull/397) | F2 | F2's later work, the migrator configured and connected as every process is, a composition root the host runs as a process that runs once, through `host.RunOnce`, reading `log_level` and a `database` section through the configuration library with its password in a mounted file, and applying the chain its binary embeds from `db/migrations` with goose linked as a library in `db/migrate` under goose's advisory lock, the chart's migration Job setting that section through the environment layer and mounting the role's `password` key, and every integration run applying the chain through `db/migrate` ([ADR-0139](./docs/adr/data/0139-the-migration-runner-is-goose-linked-into-the-migrator.md)) | It adds and proves the rows for two runs of the chain at once applying each migration once, the embedded chain being the chain's directory and the migration Job's environment loading through the migrator's configuration, adds the row for a fully qualified host against CloudNativePG, pending until the migrator's image is published, adds and proves the row for a process that runs once, and proves the migrator's part of the rows for the password variables, the log level and the pinned configuration type | The lock's, the embedded chain's, the migration Job's configuration's and the run-once process's controls, new, with two, two, four and two breaks, a sixth break of the pinned configuration type, and the breaks of the rows the change moved again, the host's start's among them, with the migrator's tests going red beside the host's |
 | [#421](https://github.com/ppat/mediated-mailbox-mcp/pull/421) | F2 | F2's later work, the compatibility floor in the baseline with its grants, every migration after the baseline declaring that every chain the floor admits runs on it or raising the floor, which `db/check` requires, and the start check the host runs on each pool the API server, the UI and the worker open, refusing a schema whose floor is above the binary's chain or that has not applied it, the chain's version read from the embedded chain, and the chart's guide supporting a rollback ([ADR-0140](./docs/adr/data/0140-each-migration-declares-the-oldest-chain-that-runs-on-it.md)) | It adds and proves the rows for the start check, the host's check of every pool and the compatibility declaration, and proves the txhelper row's part for the start check's read | The start check's and the host's check's controls, new, with five and four breaks, a break of the txhelper analyser's exceptions for the start check's read, and the breaks whose patches the change moved again |
+| [#444](https://github.com/ppat/mediated-mailbox-mcp/pull/444) | F9 | No code. It records the design of the refactor that gives each thing in the code one home and one name, in [ADR-0142](./docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md), the spec and the process, superseding [ADR-0138](./docs/adr/engineering/0138-one-host-runs-each-process-and-each-component-provides-its-parts.md), and [ADR-0143](./docs/adr/data/0143-the-programs-connect-as-one-application-user-beside-the-migrators.md), two database users, superseding [ADR-0118](./docs/adr/data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md), both Accepted, with the records the refactor touches reworded in place, and every document of the set stating the refactored design ahead of the code | It adds the pending rows for the two records' controls, brings the rows whose injection or proof names a moved package, a database role or the host to the refactored design, and marks each proven row whose mechanism a code ticket rewrites pending again at F9's later work in that ticket, its evidence kept | — |
 
 ### What each composition root runs
 
@@ -452,9 +455,10 @@ draining its requests before it stops its tasks and those goroutines and closes 
   [ADR-0129](./docs/adr/data/0129-the-chart-runs-the-migration-step-as-a-pre-install-and-pre-upgrade-hook-job.md),
   [ADR-0138](./docs/adr/engineering/0138-one-host-runs-each-process-and-each-component-provides-its-parts.md)).
   **What the third later work did not deliver.** The check that the newest release's generated
-  statements still plan, as their roles, on the new chain, needed before the second release's first
-  migration, and a chainsaw test that upgrades from the newest release and rolls back, which can run
-  only once a release with images exists. Each is cut as a ticket when its work becomes due.
+  statements still plan, as the application user, on the new chain, needed before the second
+  release's first migration, and a chainsaw test that upgrades from the newest release and rolls
+  back, which can run only once a release with images exists. Each is cut as a ticket when its work
+  becomes due.
 - [x] **F5 — The Gmail adapter** → [G1](./USE_CASES.md#g1--whole-mailbox-visibility) ·
   [V2](#v2--the-corpus-can-be-acquired) · finished at tested
   Delivered by pull requests [#154](https://github.com/ppat/mediated-mailbox-mcp/pull/154),
@@ -580,10 +584,9 @@ draining its requests before it stops its tasks and those goroutines and closes 
   ([ADR-0089](./docs/adr/operability/0089-sealed-values-written-by-compare-and-set.md)), re-seals
   account credentials to the current key, and returns the scan of what is sealed to an old key or
   not opening, which [D4](#delivered-mapped-to-outcomes) reports as series
-  ([ADR-0092](./docs/adr/operability/0092-key-replacement-by-keyring-and-re-seal.md)), as
-  [executioncontext/README.md](./executioncontext/README.md) describes. The Gmail adapter takes its
-  credential from what a deployable supplies, and its token source holds a rotated refresh token for
-  the deployable to persist
+  ([ADR-0092](./docs/adr/operability/0092-key-replacement-by-keyring-and-re-seal.md)). The Gmail
+  adapter takes its credential from what a deployable supplies, and its token source holds a
+  rotated refresh token for the deployable to persist
   ([ADR-0082](./docs/adr/operability/0082-rotation-writeback-to-the-database.md)). A known-answer
   test holds a key pair and a value sealed by an earlier build, which this build must open to the
   plaintext sealed, with the seed deriving that public key and the identifier the value names, so a
@@ -1290,6 +1293,55 @@ draining its requests before it stops its tasks and those goroutines and closes 
   snapshot, the account session, the policy load, the re-seal and the lowered target are proven
   again through the context, and every demonstration whose code, tests or patches moved ran again.
 
+  The refactor of the code is also later work before production point 1. It gives each thing in
+  the code one home and one name, builds the same kind of thing the same way in every program, and
+  keeps what each program does, apart from the changes its records name. Its decisions and
+  documents are delivered by pull request
+  [#444](https://github.com/ppat/mediated-mailbox-mcp/pull/444), which closed its ticket
+  [#427](https://github.com/ppat/mediated-mailbox-mcp/issues/427), with no code, and not yet
+  released.
+
+  - Each program is a spec that one process runs, keeping what its endpoints and jobs share
+    ([ADR-0142](./docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md),
+    superseding
+    [ADR-0138](./docs/adr/engineering/0138-one-host-runs-each-process-and-each-component-provides-its-parts.md)).
+  - The API server, the UI and the worker connect to the database as one application user beside
+    the migrator's, and each program's import lists bound what its code can do there
+    ([ADR-0143](./docs/adr/data/0143-the-programs-connect-as-one-application-user-beside-the-migrators.md),
+    superseding
+    [ADR-0118](./docs/adr/data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)).
+  - Both records are Accepted. Every other record in which the refactor makes a sentence false is
+    reworded in place, and every document of the set states the refactored design ahead of the
+    code.
+
+  **What it did not deliver.** Any code, which the tickets
+  [#428](https://github.com/ppat/mediated-mailbox-mcp/issues/428),
+  [#429](https://github.com/ppat/mediated-mailbox-mcp/issues/429),
+  [#430](https://github.com/ppat/mediated-mailbox-mcp/issues/430),
+  [#431](https://github.com/ppat/mediated-mailbox-mcp/issues/431),
+  [#432](https://github.com/ppat/mediated-mailbox-mcp/issues/432),
+  [#433](https://github.com/ppat/mediated-mailbox-mcp/issues/433),
+  [#434](https://github.com/ppat/mediated-mailbox-mcp/issues/434),
+  [#435](https://github.com/ppat/mediated-mailbox-mcp/issues/435),
+  [#436](https://github.com/ppat/mediated-mailbox-mcp/issues/436),
+  [#437](https://github.com/ppat/mediated-mailbox-mcp/issues/437),
+  [#438](https://github.com/ppat/mediated-mailbox-mcp/issues/438),
+  [#439](https://github.com/ppat/mediated-mailbox-mcp/issues/439),
+  [#440](https://github.com/ppat/mediated-mailbox-mcp/issues/440) and
+  [#441](https://github.com/ppat/mediated-mailbox-mcp/issues/441) bring to the documents, each
+  proving the verification rows pending in it, with the mutation demonstrations and ledger rows of
+  the controls it lands or changes
+  ([ADR-0046](./docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md)).
+
+  Until #441 merges, the code on `main` and the documents disagree, which the operator accepted for
+  the length of the refactor. So the build state this document records, [the table by composition
+  root](#what-each-composition-root-runs) among it, describes the code on `main` and not the
+  documents. The chainsaw suite, the chart's system test, does not run on pull requests from #428,
+  which turns its pull-request trigger off, until #441 turns it back on and has it pass against the
+  images built from `main`. So a pull request in that window that touches `packaging/` lands
+  without it. [ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md) and
+  [TESTING.md](./TESTING.md) go on describing the run on a pull request for that window.
+
 - [x] **F8 — Logging levels** → [O2](./USE_CASES.md#o2--observable) ·
   [V3](#v3--the-agent-arrives-read-only) · finished at image
   Delivered by pull request [#323](https://github.com/ppat/mediated-mailbox-mcp/pull/323), which
@@ -1625,7 +1677,7 @@ draining its requests before it stops its tasks and those goroutines and closes 
   keeping the values the chart generated at install. Every verification row keyed to it is proven, among
   them the chart's part of the private key's row and the chainsaw suite's emptiness row. The bare-cluster
   install proof stands from here. **What it did not deliver.** The key-generation check's proof
-  against a published release: the check landed with
+  against a published release. The check landed with
   [#356](https://github.com/ppat/mediated-mailbox-mcp/pull/356) in the release workflow, and its run
   on the release [production point 1](#production-point-1--the-read-path) deploys proves it
   ([ADR-0088](./docs/adr/operability/0088-credentials-sealed-with-hpke-x-wing.md)). A lock against
@@ -1771,14 +1823,14 @@ holds, with an entry naming the point.
   [M7](#delivered-mapped-to-outcomes), [M8](#delivered-mapped-to-outcomes) and
   [F9](#delivered-mapped-to-outcomes) that is placed before this point.
 - **Supplied there:**
-  - PostgreSQL with the roles created, which needs the privilege to create roles and no superuser
-    step inside the application database, the migration role, and the credentials of the runtime
-    roles the API server, the UI and the worker's backfill and delta sync job kinds connect as, each
-    delivered to the process that connects as it, the worker receiving those of its backfill and
-    delta sync job kinds
+  - PostgreSQL with the two database users, the migrator's and the application's, created under
+    names the deployment chooses, which needs the privilege to create roles and no superuser step
+    inside the application database. Each user's name and credential are delivered to what
+    connects as it. The migrator's go to the migration step alone, together with the application
+    user's name. The application user's go to the API server, the UI and the worker
     ([ADR-0048](./docs/adr/data/0048-forward-only-migrations.md),
     [ADR-0139](./docs/adr/data/0139-the-migration-runner-is-goose-linked-into-the-migrator.md),
-    [ADR-0118](./docs/adr/data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)).
+    [ADR-0143](./docs/adr/data/0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)).
   - The client bearer token unless the chart generates it
     ([ADR-0030](./docs/adr/operability/0030-api-core-mcp-thin-adapter.md),
     [ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md)), and the client
@@ -1853,13 +1905,12 @@ holds, with an entry naming the point.
 - **Preconditions:** [production point 1](#production-point-1--the-read-path) has run long enough
   for the index to hold the real corpus and the review loops to have traffic.
 - **Supplied there:**
-  - The worker's two new role credentials, for its reorganization and heuristics job kinds
-    ([ADR-0118](./docs/adr/data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)).
   - Re-consent on the first account's grant for the calendar scope
     ([ADR-0027](./docs/adr/provider/0027-calendar-classification.md),
-    [ADR-0080](./docs/adr/data/0080-accounts-and-credentials-live-in-the-database.md)).
-  - The module's change delivering those two credentials to the worker, with its tickets in the
-    sibling repositories.
+    [ADR-0080](./docs/adr/data/0080-accounts-and-credentials-live-in-the-database.md)). No
+    database credential is new, since the worker's reorganization and heuristics job kinds connect
+    as the application user the worker already connects as
+    ([ADR-0143](./docs/adr/data/0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)).
 - **Proven only there:** rollback of a real plan of around a thousand messages before any plan of
   corpus scale is trusted
   ([ADR-0020](./docs/adr/mutation/0020-reorg-plan-approve-apply-rollback.md)), apply after a
@@ -2026,7 +2077,7 @@ under the policy in force when it reads
   ([ADR-0032](./docs/adr/mutation/0032-whole-batch-validation.md)), built in the shared pure core
   the reorg workload also uses. Permanent delete exists on
   neither the surface nor the granted scope. It adds operations inside the API server's service layer
-  and touches no composition root, so it finishes at tested. *Criteria:* every applied and every
+  and touches no entry package, so it finishes at tested. *Criteria:* every applied and every
   refused mutation writes an audit row ([ADR-0016](./docs/adr/data/0016-schema.md)) and is counted
   as a metric ([O2](./USE_CASES.md#o2--observable)). A mixed-class
   batch with a disposal verb fails whole. A batch with an invalid operation anywhere in it fails
@@ -2048,12 +2099,14 @@ under the policy in force when it reads
   [F3](#delivered-mapped-to-outcomes)'s budget in the batch class
   ([ADR-0025](./docs/adr/operability/0025-priority-classes-and-leases.md)), the op log, and rollback
   as exact replay. Apply starts from APPROVED by a compare-and-set on the plan's status, and a
-  rollback is requested as a plan status the UI writes within its existing grant, both read by the
+  rollback is requested as a plan status the UI writes within its existing list of writes
+  ([ADR-0084](./docs/adr/mutation/0084-ui-writes-decisions-and-account-setup.md)), both read by the
   apply job's due decision ([ADR-0020](./docs/adr/mutation/0020-reorg-plan-approve-apply-rollback.md),
   [ADR-0119](./docs/adr/operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md)).
-  The rollback request's status value and the interval at which apply checks are settled here, and
-  apply's role gains the update of the last authentication columns the other provider-calling roles
-  hold ([ADR-0097](./docs/adr/operability/0097-authentication-outcome-reported-by-the-adapter-recorded-by-the-deployable.md)).
+  The rollback request's status value and the interval at which apply checks are settled here.
+  Apply records the latest authentication attempt at the end of each unit of work, as every job
+  kind that calls a provider does
+  ([ADR-0097](./docs/adr/operability/0097-authentication-outcome-reported-by-the-adapter-recorded-by-the-deployable.md)).
   Apply and rollback are the crash harness's first target by payoff
   ([ADR-0045](./docs/adr/engineering/0045-crash-injection-testing.md)). *Criteria:* saving a plan
   writes its operations as rows with their flows, apply and rollback runs are recorded with their
@@ -2064,8 +2117,8 @@ under the policy in force when it reads
   [ADR-0117](./docs/adr/operability/0117-one-background-worker-runs-every-job-kind.md),
   [ADR-0016](./docs/adr/data/0016-schema.md),
   [ADR-0051](./docs/adr/engineering/0051-environment-contract.md)). The apply job kind takes its
-  account snapshot from the worker's execution context at each batch, and the worker refuses to start unless its
-  public key matches one of its private keys
+  account snapshot from the worker's Session at each batch, and the worker refuses to start unless
+  its public key matches one of its private keys
   ([ADR-0090](./docs/adr/operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md),
   [ADR-0088](./docs/adr/operability/0088-credentials-sealed-with-hpke-x-wing.md)). Approval is a
   hand-written database update until [M5](#group-m--mutation-and-approval) lands. The apply and
@@ -2080,7 +2133,7 @@ under the policy in force when it reads
   [C4](./USE_CASES.md#c4--the-sensitive-sender-list-keeps-pace) ·
   [V4](#v4--the-agent-acts-and-calendar-joins-mail) · finishes at image
   The heuristics run, a job kind of the worker held by code isolation away from every credential,
-  provider and account session
+  provider, connection to a provider and unit of work
   ([ADR-0117](./docs/adr/operability/0117-one-background-worker-runs-every-job-kind.md)), proposing
   candidates into the review queue from the heuristics of
   [ADR-0004](./docs/adr/classification/0004-sender-list-decides.md), over the sender statistics
@@ -2119,7 +2172,7 @@ under the policy in force when it reads
   ([ADR-0102](./docs/adr/mutation/0102-policy-changes-recorded-in-an-append-only-history.md)). One
   integration test drives a fixture plan from DRAFT to APPROVED through the real server. It adds
   handlers and screens inside
-  the UI's server and browser app and touches no composition root, so it finishes at tested.
+  the UI's server and browser app and touches no entry package, so it finishes at tested.
   *Criteria:* a verb without its request token or its declared identity is refused. No path writes a
   decision's status without its companion columns and, on confirm, its rule row and its history row
   ([ADR-0060](./docs/adr/engineering/0060-no-code-in-the-database.md)). Decision outcomes are counted
@@ -2143,8 +2196,8 @@ under the policy in force when it reads
   [ADR-0004](./docs/adr/classification/0004-sender-list-decides.md)). Its datasets are generated
   from statements, and its screens are tested in the browser tests over recorded fixtures
   ([ADR-0064](./docs/adr/engineering/0064-browser-tests-run-under-bun-against-a-dom-shim.md)). It
-  adds datasets and screens inside the UI's server and browser app and touches no composition root,
-  so it finishes at tested, and none of its proofs waits for a production point. *Criteria:* every
+  adds datasets and screens inside the UI's server and browser app and touches no entry package, so
+  it finishes at tested, and none of its proofs waits for a production point. *Criteria:* every
   dataset it adds is declared in the registry with the statements it requires, and
   [M3](#delivered-mapped-to-outcomes)'s controls hold on every screen it adds. It follows
   [M2](#group-m--mutation-and-approval), which settles the maximum plan age the plans screens read, so
@@ -2188,7 +2241,7 @@ the adapter.
   second account is another account's rows connected through the UI and another account context in
   the deployables that exist
   ([ADR-0080](./docs/adr/data/0080-accounts-and-credentials-live-in-the-database.md)), so no
-  composition root changes and the unit finishes at tested. Two fixture accounts run the
+  entry package changes and the unit finishes at tested. Two fixture accounts run the
   adversarial cross-account injection. The real second mailbox and its independent grant arrive
   at [production point 3](#production-point-3--a-second-of-everything). If anything above the port
   needs changing, the model was wrong, and finding out here, cheaply, is the point. With the second
@@ -2205,11 +2258,12 @@ the adapter.
   [ADR-0027](./docs/adr/provider/0027-calendar-classification.md)) and the JMAP rate profile
   ([ADR-0023](./docs/adr/operability/0023-adapter-declares-cost.md)), passing the same contract
   suite ([ADR-0043](./docs/adr/engineering/0043-no-mocking.md)), selected per account by the
-  provider its row names, through the connector per provider that
-  [F9](#delivered-mapped-to-outcomes)'s account session package takes, so the dispatch is written once for
-  the API server and the worker
-  ([ADR-0085](./docs/adr/provider/0085-multi-account-contexts-with-an-installation-client.md)), and
-  connected through the UI's account setup, which takes the Fastmail tokens and seals them
+  provider its row names. The connections of [F9](#delivered-mapped-to-outcomes)'s later work reach
+  every provider through the provider library's list of shipped adapters, so the dispatch is
+  written once for the API server and the worker
+  ([ADR-0085](./docs/adr/provider/0085-multi-account-contexts-with-an-installation-client.md)). A
+  Fastmail account is connected through the UI's account setup, which takes the Fastmail tokens and
+  seals them
   ([ADR-0080](./docs/adr/data/0080-accounts-and-credentials-live-in-the-database.md)). Whether a
   Fastmail mail token can be issued without the ability to permanently delete mail, which
   [A2](./USE_CASES.md#a2--no-destructive-action-on-sensitive-mail) requires of the token, is an
@@ -2255,18 +2309,15 @@ value is set and neither the defaults nor the suite set it, for the reasons
 
 - [ ] **R2 — Package the action path and calendar** → [O6](./USE_CASES.md#o6--deployable) ·
   [V4](#v4--the-agent-acts-and-calendar-joins-mail) · finishes at packaged
-  The chart and its suites gain the reorganization and heuristics job kinds' inputs, the worker
-  delivered their two role credentials
-  ([ADR-0118](./docs/adr/data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)), the
-  worker already holding the pod security contexts and the mounted private key
+  The chart and its suites gain the reorganization and heuristics job kinds' inputs, and the
+  calendar scope's inputs ([ADR-0027](./docs/adr/provider/0027-calendar-classification.md)). The
+  worker already holds the application user's name and credential those job kinds connect as
+  ([ADR-0143](./docs/adr/data/0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)),
+  the pod security contexts and the mounted private key
   ([ADR-0028](./docs/adr/operability/0028-trust-anchor-hardening.md),
-  [ADR-0081](./docs/adr/operability/0081-credentials-sealed-to-a-public-key.md)), and no new
-  deployable to package, since the worker schedules the heuristics run and starts apply on
-  approval itself
-  ([ADR-0119](./docs/adr/operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md)),
-  and the calendar scope's inputs
-  ([ADR-0027](./docs/adr/provider/0027-calendar-classification.md)), added to the chart and its
-  suites.
+  [ADR-0081](./docs/adr/operability/0081-credentials-sealed-to-a-public-key.md)). There is no new
+  deployable to package, since the worker schedules the heuristics run and starts apply on approval
+  itself ([ADR-0119](./docs/adr/operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md)).
 - [ ] **R3 — Package the second account and the Fastmail backend** →
   [O6](./USE_CASES.md#o6--deployable) · [V5](#v5--a-second-of-everything) · finishes at packaged
   A second account and the Fastmail tokens are connected through the UI and add no input to the
@@ -2316,11 +2367,11 @@ lands in is the [value path](#the-value-path)'s.
 | S1 → F3, F2 → F3, F5 → F3 | The property-testing setup the hard-cap test runs under ([ADR-0069](./docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md)), the rate-state row and grants table leases are held in ([ADR-0025](./docs/adr/operability/0025-priority-classes-and-leases.md)), the provider fake whose throttle schedule the controller is tested against ([ADR-0043](./docs/adr/engineering/0043-no-mocking.md)), and the Gmail adapter's count of each request's cost, which F3's observed-rate criterion reads ([ADR-0077](./docs/adr/operability/0077-conditions-raised-as-alerting-rules.md)) |
 | F2 → M3, M3 → M6, M2 → M6, M3 → M5, M6 → M5 | The schema the fixtures populate, the UI's server and browser app the later screens and the decisions live in, the plans and the maximum plan age the plans screens read, and the plan reviewer and review queue the decisions act on |
 | F2 → F6, F5 → F6 | The schema whose accounts table F6 splits, and the Gmail adapter whose credential comes from the database instead of mounted files |
-| F6 → M3 | The accounts table every role reads in full, which the UI's account selector lists ([ADR-0091](./docs/adr/data/0091-accounts-listed-apart-from-their-state.md)) |
+| F6 → M3 | The accounts table the application user reads in full, which the UI's account selector lists ([ADR-0091](./docs/adr/data/0091-accounts-listed-apart-from-their-state.md)) |
 | F6 → D4 | The keyring and the re-seal delta sync runs, and the scan of what is sealed to an old key ([ADR-0092](./docs/adr/operability/0092-key-replacement-by-keyring-and-re-seal.md)) |
-| F6 → D1, F6 → D3 | The accounts, their state rows and the sealed credentials the first provider-calling deployables read, the library that opens them, and `executioncontext/accountload/`, which builds the account snapshot from them ([ADR-0080](./docs/adr/data/0080-accounts-and-credentials-live-in-the-database.md), [ADR-0081](./docs/adr/operability/0081-credentials-sealed-to-a-public-key.md), [ADR-0090](./docs/adr/operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md)) |
+| F6 → D1, F6 → D3 | The accounts, their state rows and the sealed credentials the first provider-calling deployables read, the library that opens them, and the account snapshot read from them ([ADR-0080](./docs/adr/data/0080-accounts-and-credentials-live-in-the-database.md), [ADR-0081](./docs/adr/operability/0081-credentials-sealed-to-a-public-key.md), [ADR-0090](./docs/adr/operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md)) |
 | F6 → M7, M3 → M7 | The accounts and state rows and the sealing library account setup writes through, the several clients per provider F6's discovery [#244](https://github.com/ppat/mediated-mailbox-mcp/issues/244) landed, and the UI's server and browser app its screens live in |
-| F9 → F10 | The entry package per deployable, the account session package and the families, which the worker's composition root composes and its job kinds' import lists name |
+| F9 → F10 | The entry package per deployable, the account handling written once and the families, which the worker is built from and its job kinds' import lists name |
 | F9 → F8 | The entry package per deployable, which takes the logger and its level from `main.go`, and the process family `process/logging` joins |
 | F8 → F10 | The logger and level variable each entry package takes, from which the worker derives each job's logger with its job kind and account ([ADR-0122](./docs/adr/engineering/0122-logs-through-slog-at-a-configured-level-handed-to-shells.md)) |
 | D1 → F10, D2 → F10, D4 → F10 | Backfill's two passes and delta sync, the job kinds the worker runs from the start |
@@ -2334,12 +2385,12 @@ lands in is the [value path](#the-value-path)'s.
 | F11 → X2 | The flattened chain and schema baseline the calendar tables are added to, and the migration test helper in `testsupport/postgres` the progress move is tested through |
 | M7 → F10, M8 → F10 | The changes the UI makes that the worker's reloads pick up, a connected account and a replaced credential (M7) and a policy edit (M8) |
 | F9 → F11, D3 → F11 | The families whose paths the chain's tests and patches name, and the one Go normalizer of sender domains that D3 landed, so every writer lowercases before the domain columns become `text` |
-| F9 → R1, F10 → R1, F11 → R1 | The worker, its roles and the schema with no extension bootstrap, which the chart packages |
-| F10 → F12, F11 → F12 | The worker whose job kinds each run with a role and a connection pool of their own and whose series carry the job kind, and the schema baseline the data-access statements run against, which the measurements are captured from |
+| F9 → R1, F10 → R1, F11 → R1 | The worker, its database connection and the schema with no extension bootstrap, which the chart packages |
+| F10 → F12, F11 → F12 | The worker whose job kinds each run on a connection pool of their own and whose series carry the job kind, and the schema baseline the data-access statements run against, which the measurements are captured from |
 | F10 → F4's test-separation later work, F11 → F4's test-separation later work | The worker, into which backfill's and delta sync's tests moved with their job kinds, crash sequences included, and whose scheduler is tested under `testing/synctest`, and the schema baseline's migrations tested over rows through the helper in `testsupport/postgres`, which are among the tests the later work separates by kind |
-| F10 → M2, F10 → M4, F11 → M4, F10 → X2, F9 → X2, F10 → X3, F9 → X4, F10 → X4 | The worker each background job kind runs in, with its scheduler, role, pool and execution context, the schema baseline the heuristics run's candidates and pass are written into, and the account session package through which a provider's connector is passed once |
+| F10 → M2, F10 → M4, F11 → M4, F10 → X2, F9 → X2, F10 → X3, F9 → X4, F10 → X4 | The worker each background job kind runs in, with its scheduler, a pool per job kind and the Session every job kind may hold, the schema baseline the heuristics run's candidates and pass are written into, and the provider library's list of shipped adapters. The connections of F9's later work reach every provider through that list, so a provider's adapter is named once |
 | M7 → M5 | The request token the decisions reuse ([ADR-0061](./docs/adr/operability/0061-ui-browser-security-posture.md)) |
-| F2 → every later unit that holds a database role | The runtime database roles, created with the schema, that each unit's component connects to the database as |
+| F2 → every later unit that runs a statement | The migration chain's grants to the application user, the one database user the API server, the UI and the worker connect as ([ADR-0143](./docs/adr/data/0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)) |
 | S1 → M3, S1 → F5 | The marker text and synthetic fixtures the UI's recorded fixtures, the provider fake and the adapter's tests are built from ([ADR-0044](./docs/adr/engineering/0044-synthetic-fixtures-marker-text.md)) |
 | S1 → M8, D1 → M8, D2 → M8 | The policy snapshot validation a reload applies to every published edit, the stored senders the search picks from, and how a removed rule reaches the delisting transition |
 | M7 → M8 | The request token every policy request is bound to ([ADR-0061](./docs/adr/operability/0061-ui-browser-security-posture.md)) |
@@ -2364,14 +2415,13 @@ lands in is the [value path](#the-value-path)'s.
 | M6 → X1, M5 → X1 | The masking-events and gate views and the UI's decision path the feedback verb joins |
 | S1 → D2, S1 → M1, S1 → M2, S1 → X2 | The pure cores these units run, the classifier, the gate and the authorization matrix |
 | F2 → M1, F2 → M2, F2 → M4, F2 → X2, F2 → D4 | The schema each writes through |
-| F2 → R2 | The runtime database roles the worker's reorganization and heuristics job kinds connect as |
 | M7 → X3 | The account setup a second account is connected through |
 | M1 → X3, M2 → X3, D4 → X3, M4 → X3, X2 → X3 | The mutation the cross-account injection attempts, the reorg, delta sync and heuristics job kinds a second account also runs, and the calendar client every account holds, which the injection also covers |
 | S1 → F2, and S1 → every later unit | The marker text and synthetic fixtures later tests are built from ([ADR-0044](./docs/adr/engineering/0044-synthetic-fixtures-marker-text.md)) |
 | F5 → X4, F3 → X4, D1 → X4, D3 → X4, D4 → X4, M2 → X4, X2 → X4 | The contract suite, the provider fake, the convention for running the suite against the real provider, the rate limiter the Fastmail backend spends through, the deployables that call a provider, how a label is renamed and deleted at the provider, and the calendar side of the port the CalDAV adapter implements. The Fastmail wiring also follows the answers on how a running deployable learns of a new account or a replaced credential and on recording the authentication outcome |
 | S2 → X1, D2 → X1, D4 → X1 | The tier boundary and the scanner version tier 3 fits into, the masking events and gate decisions its training examples come from, the re-scan that ships it, which re-masks stale subjects stored unmasked from the store and fetches again only those stored masked ([ADR-0120](./docs/adr/redaction/0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md)), and the scanning workloads it runs in |
-| F2 → R1, D1 → R1, D3 → R1, D4 → R1, M3 → R1, M7 → R1, M8 → R1 | The migration chain the step runs, the runtime database role the UI connects as, the read path's deployables and the UI with its account setup, to which the chart mounts the public key and the private key its client-secret part opens a client's secret with, and its policy management, whose writes the UI's role is granted |
-| M2 → R2, M4 → R2, X2 → R2, R1 → R2 | The action path's job kinds and their roles, the calendar inputs, and the chart and suites R2 adds to |
+| F2 → R1, D1 → R1, D3 → R1, D4 → R1, M3 → R1, M7 → R1, M8 → R1 | The migration chain the step runs, the application user the API server, the UI and the worker connect as, the read path's deployables and the UI with its account setup, to which the chart mounts the public key and the private key its client-secret part opens a client's secret with, and its policy management, whose writes the application user is granted |
+| M2 → R2, M4 → R2, X2 → R2, R1 → R2 | The action path's job kinds, the calendar inputs, and the chart and suites R2 adds to |
 | X4 → R3, R2 → R3 | The Fastmail backend, and the chart and suites R3 would add to |
 
 ### What can be built in parallel
@@ -2515,6 +2565,8 @@ index](./docs/adr/README.md).
 | What ADR-0001's per-rule subject-masking switch does, and how policy rows store it | nothing yet | [ADR-0001](./docs/adr/redaction/0001-redaction-matrix.md) says the policy schema keeps a per-rule switch for subject masking, off by default, [ADR-0016](./docs/adr/data/0016-schema.md) has no column for it, and [ADR-0003](./docs/adr/redaction/0003-subject-masking.md) masks every message. No outcome, verification row or screen depends on it, so no unit needs it yet. Whoever first extends a rule's shape, this switch or any other field, meets two facts. Importing a policy file is making the scope's rules equal to the file ([ADR-0110](./docs/adr/mutation/0110-a-policy-file-holds-one-scope-and-importing-it-replaces-that-scope.md)), so importing an older file that lacks the new key silently resets that key on every rule to its default. And `policy_changes` records only a rule's suffixes before and after ([ADR-0102](./docs/adr/mutation/0102-policy-changes-recorded-in-an-append-only-history.md)), so a later rule field needs columns there for its history |
 | How a reorganization renames and deletes a label at the provider | M2 | [ADR-0020](./docs/adr/mutation/0020-reorg-plan-approve-apply-rollback.md) plans creating, renaming and deleting labels, and [ADR-0010](./docs/adr/provider/0010-one-provider-port.md)'s port has `ensure_label` and `mutate` and nothing to rename or delete a label. It is decided where apply is built, together with any addition to the port, the provider fake and the contract suite |
 | Whether a plan touching exactly a quarter of the corpus needs the second confirmation | M5 | [ADR-0020](./docs/adr/mutation/0020-reorg-plan-approve-apply-rollback.md) requires it for a plan touching more than a quarter, and [docs/UI.md](./docs/UI.md#82-plan-reviewer) for a plan touching a quarter or more. It is decided where approve, and the server's recalculation of the plan's share, are built |
+| What holds `database.ForMigration` to the migrator, the compiler or a check in CI | F9 | [ADR-0142](./docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md) leaves it to the code that builds `process/database`, ticket [#431](https://github.com/ppat/mediated-mailbox-mcp/issues/431), where its row in [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) is pending |
+| How the migrator hands the application user's name to the migrations | F9 | [ADR-0143](./docs/adr/data/0143-the-programs-connect-as-one-application-user-beside-the-migrators.md) leaves it to the first change to the chain's grants, ticket [#428](https://github.com/ppat/mediated-mailbox-mcp/issues/428), where its row in [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) is pending |
 | How a reorganization or batch operation is represented in Go | M1 | [ADR-0071](./docs/adr/engineering/0071-static-enforcement-toolchain.md) leaves the representation undecided. The shared validation core used by both the API server and the reorg workload depends on it, so it is decided where that core is first built |
 | Whether the heuristics' embeddings run in Go or in a separate deployable, and how they are stored if they are | M4 | [ADR-0042](./docs/adr/engineering/0042-implementation-stack.md) allows either, and a model runtime that needs cgo runs outside the worker ([ADR-0117](./docs/adr/operability/0117-one-background-worker-runs-every-job-kind.md)). The schema holds no vector column and needs no extension, so stored embeddings take a column of their own in a migration of M4's ([ADR-0016](./docs/adr/data/0016-schema.md)). It is decided where the heuristics workload is built |
 | The calendar index schema | X2 | [ADR-0016](./docs/adr/data/0016-schema.md) has no calendar table, and storing calendar data needs one. It is decided, and recorded beside ADR-0016, where the tables are built, before calendar is wired into the deployables |
@@ -2525,6 +2577,6 @@ index](./docs/adr/README.md).
 | How a per-project throttle reaches other accounts in the same Google Cloud project | X3 | [ADR-0023](./docs/adr/operability/0023-adapter-declares-cost.md) gives a per-project throttle the same response as a per-user one while one account uses a project. [ADR-0106](./docs/adr/provider/0106-accounts-of-a-provider-connect-through-any-of-its-oauth-clients.md) lets accounts share an OAuth client and so its Cloud project, and Gmail counts its limit per user per project. X3 brings the second account, so it is decided there |
 | Whether the rate may rise above the target so a ceiling above the declared one can be found | X4 | [ADR-0024](./docs/adr/operability/0024-conservative-target-aimd.md) keeps the rate between the floor and the target, which is half the declared ceiling, so the controller can find only a lower real ceiling. [ADR-0023](./docs/adr/operability/0023-adapter-declares-cost.md) has the controller discover JMAP's budget from a conservative guess, which needs finding a higher one, and [ADR-0024](./docs/adr/operability/0024-conservative-target-aimd.md)'s own alternatives count discovery as the only way to find JMAP's. ADR-0024's token bucket and one-second window are sized from the hard cap, which the answer does not move. Gmail publishes its ceiling, so only the JMAP adapter depends on the answer, and it is decided there |
 | What taking a message out of view means for the label verbs | M1 | [ADR-0019](./docs/adr/mutation/0019-asymmetric-mutation.md) lets restricted mail be labelled and moved but "nothing that removes a message from view: no archive, trash, or spam", and [USE_CASES A1](./USE_CASES.md#a1--asymmetric-mutation) is falsified if a restricted message cannot be moved. Label verbs can reach what the refused verbs do. A label or move into the trash or spam label trashes or spams a message in one operation, and an unlabel of the inbox archives it in one. A move out of the inbox followed by an unlabel of the new label reaches archive's end state over two operations, which a check of one operation at a time cannot see. M1 runs the verbs with the Mutation Authorizer and whole-batch validation, and decides where the line falls and how it is enforced |
-| How the heuristics workload finds its accounts | M4 | [ADR-0080](./docs/adr/data/0080-accounts-and-credentials-live-in-the-database.md) takes no account from configuration, and [ADR-0091](./docs/adr/data/0091-accounts-listed-apart-from-their-state.md) grants the read of every account in `accounts` only to the roles whose consumer is decided, which leaves out the heuristics workload's. It proposes from each account's sender statistics, which every statement confines to its transaction's account ([ADR-0135](./docs/adr/data/0135-every-statement-reads-its-account-from-the-transaction.md)), so it needs the list. The heuristics workload is built in M4, so it is decided there. If the workload reads `accounts`, its role is granted the listing's columns, as ADR-0091's roles are, and needs nothing else |
-| Whether the audit log is ever trimmed, and by what | nothing yet | No runtime role may delete from it ([ADR-0016](./docs/adr/data/0016-schema.md)), so nothing in the running system trims it. Never trimming is affordable at the stated corpus and is the strongest form of the surviving-evidence claim. If trimming is ever wanted it is a forward migration plus a step under a role that does not exist today |
-| How long run history is kept, and what trims it | nothing yet | Delta sync records about 105,000 runs a year per account at the default interval **[inferred]**, with two timeline events each, and one pass 1 run on a seed of 100,000 messages records 33,334 events. No runtime role may delete run rows ([ADR-0016](./docs/adr/data/0016-schema.md)), and the schema baseline's indexes keep the reads of them [F11](#delivered-mapped-to-outcomes) measured fast through the first year. So nothing trims them, and no unit needs a trim yet. A ticket is cut when the run tables' size or a read's time shows a need |
+| How the heuristics workload finds its accounts | M4 | [ADR-0080](./docs/adr/data/0080-accounts-and-credentials-live-in-the-database.md) takes no account from configuration, and [ADR-0091](./docs/adr/data/0091-accounts-listed-apart-from-their-state.md) leaves undecided how the heuristics workload finds its accounts. It proposes from each account's sender statistics, which every statement confines to its transaction's account ([ADR-0135](./docs/adr/data/0135-every-statement-reads-its-account-from-the-transaction.md)), so it needs the list. The worker's Session holds the accounts in force, and every job kind may hold it. A job kind that calls no provider reaches no credential through it ([ADR-0142](./docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md), [ADR-0117](./docs/adr/operability/0117-one-background-worker-runs-every-job-kind.md)). The heuristics workload is built in M4, so it is decided there. If the workload takes its accounts from the Session, it needs nothing else |
+| Whether the audit log is ever trimmed, and by what | nothing yet | The application user may not delete from it ([ADR-0016](./docs/adr/data/0016-schema.md)), so nothing in the running system trims it. Never trimming is affordable at the stated corpus and is the strongest form of the surviving-evidence claim. If trimming is ever wanted it is a forward migration plus a step under a database user that does not exist |
+| How long run history is kept, and what trims it | nothing yet | Delta sync records about 105,000 runs a year per account at the default interval **[inferred]**, with two timeline events each, and one pass 1 run on a seed of 100,000 messages records 33,334 events. The application user may not delete run rows ([ADR-0016](./docs/adr/data/0016-schema.md)), and the schema baseline's indexes keep the reads of them [F11](#delivered-mapped-to-outcomes) measured fast through the first year. So nothing trims them, and no unit needs a trim yet. A ticket is cut when the run tables' size or a read's time shows a need |

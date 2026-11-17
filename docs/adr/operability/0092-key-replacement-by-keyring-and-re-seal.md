@@ -14,12 +14,14 @@ private key can go.
 Re-sealing needs the plaintext, so only a process holding the private key can do it, and only the
 processes that call a provider and the UI hold it
 ([ADR-0079](./0079-secrets-arrive-as-mounted-files.md)). Each of those processes serves every
-account ([ADR-0085](../provider/0085-multi-account-contexts-with-an-installation-client.md)), and
-delta sync runs on its sync interval
+account ([ADR-0085](../provider/0085-multi-account-contexts-with-an-installation-client.md)). The
+connections of a process that calls a provider open every account's credential and each stored
+client secret at each reload of its Session
+([ADR-0090](./0090-accounts-reach-deployables-as-reloaded-snapshots.md)). Delta sync runs on its
+sync interval
 ([ADR-0117](./0117-one-background-worker-runs-every-job-kind.md),
-[ADR-0103](./0103-delta-sync-runs-continuously-and-ticks-on-the-sync-interval.md)) and opens every
-account's credential and each stored client secret each time it loads its accounts
-([ADR-0090](./0090-accounts-reach-deployables-as-reloaded-snapshots.md)).
+[ADR-0103](./0103-delta-sync-runs-continuously-and-ticks-on-the-sync-interval.md)), and reaches
+every value the worker's connections opened each time it lists its accounts.
 
 ## Decision
 
@@ -30,8 +32,10 @@ account's credential and each stored client secret each time it loads its accoun
   deployables, seals to one current public key.
 - **Delta sync re-seals.** A value it opens with a key that is not the current one is sealed again
   to the current key and written through the compare-and-set of
-  [ADR-0089](./0089-sealed-values-written-by-compare-and-set.md). No other process re-seals, and no
-  role or command exists for it.
+  [ADR-0089](./0089-sealed-values-written-by-compare-and-set.md). It re-seals through the
+  connections' re-seal, `conns.Reseal`, whose callers an analyser rule holds to delta sync's
+  package ([ADR-0071](../engineering/0071-static-enforcement-toolchain.md)). No other process
+  re-seals, and no role or command exists for it.
 - **Delta sync scans on every run.** It reports one series for each account `accounts` lists and one
   for each row of `oauth_clients`. A provider with no OAuth client has no row and no series. A
   series reads 1 while its value is sealed to a key other than the current one or cannot be opened,
@@ -57,13 +61,15 @@ account's credential and each stored client secret each time it loads its accoun
 ## Alternatives considered
 
 - **Every opener re-seals what it opens.** For it, a value is re-sealed on its first use by anyone.
-  Against it, each opener's role would need a write on the client secrets, beyond the credential
-  write ADR-0082 grants, and delta sync already opens every value on each run.
+  Against it, each opener's code would need a write on the client secrets, beyond the credential
+  write ADR-0082 makes, and delta sync already reaches every opened value on each run.
 - **A command that re-seals every account under a role of its own.** For it, key replacement would
   not wait on a sync run. Against it, the command would need the private key that only the
-  processes that call a provider and the UI hold, and a role reading every account, which
-  [ADR-0118](../data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md) gives only to a
-  deployable or a job kind of the worker.
+  processes that call a provider and the UI hold. A role of its own would be a third database user
+  beside the application user and the migrator's, which
+  [ADR-0143](../data/0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)'s
+  two users rule out, and the application user is delivered only to the API server, the UI and the
+  worker.
 - **Retire on silence, when no deployable reports an old key.** For it, no series per account.
   Against it, a value no process opens reports nothing, and the gate would pass while it is still
   sealed to the old key.
@@ -74,12 +80,13 @@ account's credential and each stored client secret each time it loads its accoun
   while any listed account or row of `oauth_clients` has no series or reads 1.
 - A value that cannot be opened keeps the old key in service until the operator re-authorizes that
   account or sets up that OAuth client again.
-- Delta sync's role writes the client secrets as well as the credential
-  ([ADR-0118](../data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)). The shared library
-  [`executioncontext/accountload/`](../../../executioncontext/README.md#the-account-snapshot-accountload)
-  carries the re-seal. Delta sync re-seals through the loader of the worker's one execution
-  context, which the worker builds over delta sync's pool, so the re-seal of a credential runs under
-  delta sync's role, and the re-seal of a client's secret through a write of delta sync's own, in
-  each of delta sync's reloads, whether or not the context lists an account.
+- Delta sync's re-seal writes the client secrets as well as the credential, both writes the
+  application user holds
+  ([ADR-0143](../data/0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)).
+  The analyser rule on `conns.Reseal`'s callers holds the re-seal to delta sync. The
+  [connections](../../../process/README.md#the-connections-connections), `process/connections`,
+  carry the re-seal. Delta sync re-seals the credentials and the client secrets alike through the
+  connections of the worker's one Session, each time it lists its accounts, whether or not the
+  Session lists an account.
 - Assumptions about other components. Delta sync ticks every account on its sync interval. The
   platform can mount two private key files at once and restarts a deployable when told to.

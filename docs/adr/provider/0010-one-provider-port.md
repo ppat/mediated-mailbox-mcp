@@ -50,9 +50,28 @@ class MailProvider(Protocol):
     async def enumerate_all(self, cursor: str | None) -> Page[MessageMetadata]: ...  # may carry a total
 
     # Cost declaration — the adapter is the only layer that knows what
-    # an operation costs on its provider. See ADR-0023.
+    # an operation costs on its provider. The provider library reads it
+    # to lease each call, and mail.Mailbox does not carry it. See ADR-0023.
     def rate_profile(self) -> RateLimitProfile: ...
 ```
+
+The sketch's last member, `rate_profile`, is the adapter's declaration and not an operation of the
+port. The port's form for mail is `mail.Mailbox`, in the provider library's `provider/mail`, with
+the ten operations above it, and the call sizes the code calling it needs, a call size being how
+many identifiers one call of an operation priced per message may name. Backfill and delta sync's
+tick read them. Each is what `core/mail`'s pure `CallSize` gives, the most identifiers whose call
+costs no more than one second's worth at the hard cap, the hard-cap fraction of the declared
+ceiling, and at least one, so no call is refused when its lease is issued. The fraction is
+`core/mail`'s too
+([ADR-0023](../operability/0023-adapter-declares-cost.md),
+[ADR-0024](../operability/0024-conservative-target-aimd.md)). The canonical model it
+speaks, its query and its mutations among it, is `core/mail`'s. So are the port's errors, which
+`core/index` and the API server's service layer read, and the pure decision on a second body call
+with the part of a body a call names
+([ADR-0131](./0131-the-body-is-one-rendered-part-bounded-by-one-size-constant.md)). Only the
+provider library imports an adapter, which the import lists hold
+([ADR-0071](../engineering/0071-static-enforcement-toolchain.md)), so no program names one. A
+program that reads or changes mail calls the `mail.Mailbox` its unit of work holds.
 
 These are the choices inside the contract, each with its reason.
 
@@ -70,7 +89,7 @@ These are the choices inside the contract, each with its reason.
 | Only a label an op adds must exist | Removing a label a message does not carry, or one the account does not have, changes nothing and succeeds, so a retried batch never fails on work already done. Adding an absent label is refused, because it would mean creating taxonomy outside `ensure_label` |
 | `auth_results` in metadata | Carried as message metadata. [ADR-0004](../classification/0004-sender-list-decides.md) lets the policy list alone decide sender class, so classification does not read it |
 | `account_id` everywhere | Multi-account correctness enforced by type, not convention |
-| `rate_profile()` on the port | Cost models are provider knowledge; see [ADR-0023](../operability/0023-adapter-declares-cost.md) |
+| `rate_profile()` declared by the adapter | Cost models are provider knowledge ([ADR-0023](../operability/0023-adapter-declares-cost.md)). The provider library sizes each call's lease from it, so code that calls `mail.Mailbox` reads the call sizes it carries and no cost |
 
 This is what each adapter compiles, per concern.
 

@@ -6,18 +6,19 @@ every component are [CLAUDE.md](../CLAUDE.md#code-layout-and-conventions)'s.
 
 | Path | Holds |
 | --- | --- |
-| `db/migrations/` | The migration chain ([ADR-0048](../docs/adr/data/0048-forward-only-migrations.md)). A baseline of three files, the one extension the schema needs, which the migration role creates since it is trusted, every table in [ADR-0016](../docs/adr/data/0016-schema.md)'s order, and the grants with one section per runtime role followed by one per shared library, then the migrations after it, each tested over rows the chain before it wrote. The schema's file ends with the compatibility floor, and every migration after the baseline declares that every chain the floor admits runs on it, in the line `-- compatibility: every chain the floor admits runs on this migration`, or raises the floor ([ADR-0140](../docs/adr/data/0140-each-migration-declares-the-oldest-chain-that-runs-on-it.md)). Beside the SQL files sit the Go files, which embed them, so the migrator's binary carries the chain and the integration runs apply the same files ([ADR-0139](../docs/adr/data/0139-the-migration-runner-is-goose-linked-into-the-migrator.md)), and which give the chain's version, its newest migration's, and the start check's comparison of it with the schema's, which every deployable's composition root hands the host ([ADR-0140](../docs/adr/data/0140-each-migration-declares-the-oldest-chain-that-runs-on-it.md)). The generator reads only the SQL files as its schema |
+| `db/migrations/` | The migration chain ([ADR-0048](../docs/adr/data/0048-forward-only-migrations.md)). A baseline of three files, the one extension the schema needs, which the migrator's user creates since it is trusted, every table in [ADR-0016](../docs/adr/data/0016-schema.md)'s order, and the grants in one section, the application user's ([ADR-0143](../docs/adr/data/0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)), then the migrations after it, each tested over rows the chain before it wrote. The schema's file ends with the compatibility floor, and every migration after the baseline declares that every chain the floor admits runs on it, in the line `-- compatibility: every chain the floor admits runs on this migration`, or raises the floor ([ADR-0140](../docs/adr/data/0140-each-migration-declares-the-oldest-chain-that-runs-on-it.md)). Beside the SQL files sit the Go files, which embed them, so the migrator's binary carries the chain and the integration runs apply the same files ([ADR-0139](../docs/adr/data/0139-the-migration-runner-is-goose-linked-into-the-migrator.md)), and which give the chain's version, its newest migration's, and the start check's comparison of it with the schema's, which `process/database` runs on each pool of a process that runs until it is told to stop ([ADR-0142](../docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md), [ADR-0140](../docs/adr/data/0140-each-migration-declares-the-oldest-chain-that-runs-on-it.md)). The generator reads only the SQL files as its schema |
 | `db/migrate/` | The application of a migration chain with goose linked as a library, the one package goose is admitted to. It applies every migration the database does not yet hold, after taking goose's PostgreSQL advisory lock on a connection of its own, so a second run at the same time waits and then applies nothing. The migrator applies the embedded chain through it, and so does every integration run ([ADR-0139](../docs/adr/data/0139-the-migration-runner-is-goose-linked-into-the-migrator.md)) |
-| `db/bootstrap/` | `roles.sql`, run once per cluster before the chain by a role allowed to create roles, the one privileged step a deployment takes, since nothing runs inside the application database before the chain ([ADR-0048](../docs/adr/data/0048-forward-only-migrations.md)). It is also the contract a deployment platform follows. It grants nothing on the schema, so confining schema change to the migration role rests on PostgreSQL 15 or later, where PUBLIC holds no CREATE on the public schema. PUBLIC keeps TEMP on the database on every version, so a runtime role can create temporary objects in its own session |
-| `db/<subsection>/` | One subsection per table or closely related group of tables of [ADR-0016](../docs/adr/data/0016-schema.md), each holding its statement files and the package generated from them ([ADR-0066](../docs/adr/data/0066-data-access-generated-from-sql.md)). A table's statements sit in the table's subsection. A statement that a role admitted to that subsection may not be granted under [ADR-0118](../docs/adr/data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)'s three lines sits one directory further down, in a subsection named for what it holds, which only the roles that may run it admit. They are listed under [Subsections one directory down](#subsections-one-directory-down). `db/policychanges` is the policy history's own subsection, which only the UI admits. How each subsection's package is named is under [Package names](#package-names) |
+| `db/bootstrap/` | `roles.sql`, run once per cluster before the chain by a role allowed to create roles. It creates the two users, the application user and the migrator's user, and nothing else. Creating them and the database are the privileged steps taken before the chain, since nothing runs inside the application database before the chain. The test harness runs `roles.sql` and creates the database. In a deployment the platform creates the application database, owned by the migrator's user ([ADR-0048](../docs/adr/data/0048-forward-only-migrations.md)), and creates the same two users by its own means, under names the deployment chooses, since the project names no database user, and configures the API server, the UI, the worker and the migrator with them ([ADR-0143](../docs/adr/data/0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)). `roles.sql` grants nothing on the schema, so confining schema change to the migrator's user rests on PostgreSQL 15 or later, where PUBLIC holds no CREATE on the public schema. PUBLIC keeps TEMP on the database on every version, so the application user can create temporary objects in its own session |
+| `db/<subsection>/` | One subsection per table or closely related group of tables of [ADR-0016](../docs/adr/data/0016-schema.md), each holding its statement files and the package generated from them ([ADR-0066](../docs/adr/data/0066-data-access-generated-from-sql.md)). A table's statements sit in the table's subsection, and where a subsection sits one directory further down, or folds into its table, is the rule [ADR-0066](../docs/adr/data/0066-data-access-generated-from-sql.md) states, so no subsection sits there only so one database user could be granted fewer columns ([ADR-0143](../docs/adr/data/0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)). They are listed under [Subsections one directory down](#subsections-one-directory-down). `db/policychanges` is the policy history's own subsection, which only the UI admits. How each subsection's package is named is under [Package names](#package-names) |
 | `db/tx/` | The shared transaction helper that sets and verifies the account, which every statement reads as `current_setting('app.account')` ([ADR-0047](../docs/adr/data/0047-schema-first-data-access.md), [ADR-0135](../docs/adr/data/0135-every-statement-reads-its-account-from-the-transaction.md)). `Run` opens its transaction at the database's default isolation level, where each statement reads the state committed when it starts. A unit whose statements must read one state passes `Run` the source `Snapshot` wraps, whose transactions are repeatable read and read-only, as the client surface's index reads do ([ADR-0109](../docs/adr/operability/0109-the-index-is-read-through-search-count-and-the-sender-listing.md)) and the UI's reads that classify senders ([ADR-0136](../docs/adr/redaction/0136-the-index-stores-no-sender-class-and-every-reader-classifies-when-it-reads.md)). The wrapper takes only a pool or a connection, never a transaction, so it cannot hide one from `Run`'s refusal. `RunBase` opens the base-policy transaction, which sets the account empty and reads it back, the one unit of data access that names no account ([ADR-0112](../docs/adr/data/0112-the-base-policy-is-written-and-read-in-a-transaction-of-its-own.md)). Each statement it runs starts with a `-- name:` comment, as a generated statement does, so its latency is measured under that name ([ADR-0125](../docs/adr/engineering/0125-performance-is-measured-once-at-each-place-time-goes.md)) |
 | `db/check/` | The checks over the library's own files, run as Go tests, listed under [The checks](#the-checks). Their test inputs, including a small library of their own and the SQL violation files, sit under `db/check/testdata/`. Each check runs over the real library, which must be clean, and over that test library, which must produce exactly its listed problems, so no check passes over an empty input |
 
 The generator's configuration sits at `db/sqlc.yaml`, which joins the library with its first
 statement file because the generator refuses a configuration with no statements. CI always diffs the
 test library's generated code, whose configuration also reads the real migration chain, and diffs
-the library's own generated code whenever `db/sqlc.yaml` exists. Statement and migration files are
-linted by sqlfluff, configured to read the generator's parameters as placeholders.
+the library's own generated code whenever `db/sqlc.yaml` exists. No `Querier` interface is
+generated, since nothing uses one. Statement and migration files are linted by sqlfluff,
+configured to read the generator's parameters as placeholders.
 
 ## Subsections one directory down
 
@@ -28,11 +29,21 @@ for what it holds.
 | --- | --- |
 | `db/accountstate/credential` | The statements that read and write an account's sealed credential, which is a secret |
 | `db/ratestate/limiter` | The rate limiter's lease statements, which write the rate state |
-| `db/jobruns/classification` | The reads of a run's failures, which read the failure columns the API server's role is not granted and join each item's message with its sender's domain, which the UI classifies under the policy in force ([ADR-0136](../docs/adr/redaction/0136-the-index-stores-no-sender-class-and-every-reader-classifies-when-it-reads.md)) |
-| `db/maskingevents/senders` | The count of masking events under the domain of each event's message's sender, a column the API server's role is not granted |
-| `db/senders/classification` | The UI's reads of the sender statistics, which it classifies under the policy in force, its policy screens counting rules against them, Home summing the messages of the restricted ones and its sender picker searching them with their prior scan hits, a column the API server's role is not granted |
+| `db/senders/classification` | The UI's reads of the sender statistics, which it classifies under the policy in force, its policy screens counting rules against them, Home summing the messages of the restricted ones and its sender picker searching them with their prior scan hits. It sits below `db/senders` because the API server's list admits `db/senders` and [ADR-0109](../docs/adr/operability/0109-the-index-is-read-through-search-count-and-the-sender-listing.md) keeps the prior scan hits from the API server |
 
-The writes the tables' readers are not granted sit apart the same way.
+The reads of a run's failures, which join each item's message with its sender's domain for the UI
+to classify under the policy in force
+([ADR-0136](../docs/adr/redaction/0136-the-index-stores-no-sender-class-and-every-reader-classifies-when-it-reads.md)),
+sit in `db/jobruns` itself. The count of masking events under the domain of each event's message's
+sender sits in `db/maskingevents` itself. No record forbids their statements to code whose import
+list admits their table's subsection, and a subsection of their own would exist only to grant a
+database user fewer columns ([ADR-0066](../docs/adr/data/0066-data-access-generated-from-sql.md)).
+
+The writes sit apart by the same rule of
+[ADR-0066](../docs/adr/data/0066-data-access-generated-from-sql.md), each one a write that the records bounding the
+other programs' writes forbid them, such as
+[ADR-0084](../docs/adr/mutation/0084-ui-writes-decisions-and-account-setup.md)'s list of the UI's
+writes.
 
 | Path | Holds |
 | --- | --- |
@@ -41,29 +52,31 @@ The writes the tables' readers are not granted sit apart the same way.
 | `db/auditlog/record` | The API server's recording of each body it serves or denies |
 | `db/jobruns/record` | A job kind recording its own runs, their timelines and failed items with the read it resumes from, and `RecordedSuccess`, the read of the account's latest recorded success and earliest run's start that each job's latest success starts from at its ensure ([ADR-0119](../docs/adr/operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md)) |
 | `db/accountstate/completion` | Setting backfill's completion flags and clearing them when a pass is due again, and setting, reading and clearing the mark that starts the second pass over |
-| `db/accountstate/authentication` | Recording the last provider authentication attempt |
 | `db/senders/statistics` | The rebuild of a sender's statistics from the stored messages and the counts of prior scan hits. Delta sync's removal of a sender with no stored message sits in `db/messages/change` |
 | `db/messages/scan` | A scanning job kind's writes of a scan verdict, a skip, the delisting transition over the messages skipped as restricted ([ADR-0037](../docs/adr/redaction/0037-delisting-transition.md)), the return to pending of what another scanner decided and of each gate skip the gate no longer decides the same way, with the reads they need |
 | `db/scangatedecisions/record` | Recording the scan gate's decisions |
 | `db/messages/change` | Delta sync's application of the provider's changes, setting a stored message's labels and flags, removing a message the provider no longer holds and removing a sender's statistics once none of its messages is stored, with the read of the stored messages dated in a gap recovery's window |
 | `db/accountstate/cursor` | Delta sync's read and write of its change cursor with the time it was written |
-| `db/oauthclients/secret` | Delta sync's re-seal of an OAuth client's secret by compare-and-set, the one write of a client secret beside the UI's setup |
+| `db/oauthclients/secret` | The connections' re-seal of an OAuth client's secret by compare-and-set, which delta sync runs, the one write of a client secret beside the UI's setup |
 | `db/oauthclients/setup` | The UI's OAuth client setup, listing each client's identity and adding, replacing and removing a client |
 | `db/accounts/setup` | The UI's account setup across `accounts` and `account_state`, writing a connected account's two rows, replacing a re-authorized credential, moving an account to another client, and reading and writing what account settings shows, never the credential |
 | `db/policyrules/manage` | The UI's policy management of an account's own rules, adding, editing and lifting them, and the read of the rules its policy screen lists |
 | `db/policyrules/base` | The base policy's rules and history rows, read and written only in a base-policy transaction, each statement scoped by the null account alone, which the statement check holds it to ([ADR-0112](../docs/adr/data/0112-the-base-policy-is-written-and-read-in-a-transaction-of-its-own.md)) |
 
+Recording the last provider authentication attempt sits in `db/accountstate` itself, since every
+importer of the table may record one.
+
 ## Package names
 
-A subsection's package takes the last segment of its directory's path, and where that segment names
-another subsection's package too, a word for its parent before it, so no two packages of the library
-share a name and no importer needs an alias for one. They are `auditrecord`, `runrecord`,
-`maskingrecord` and `gaterecord` under `db/auditlog`, `db/jobruns`, `db/maskingevents` and
-`db/scangatedecisions`, `runclassification` and `senderclassification` under `db/jobruns` and
-`db/senders`, `maskingsenders` under `db/maskingevents`, and
-`accountsetup` and `clientsetup` under `db/accounts` and `db/oauthclients`. `sqlc.yaml`'s `package:`
-sets each name, and `db/check` holds every name to ending with its directory's last segment and to
-being unique in the library.
+A subsection's package name ends with the last segment of its directory's path, and where that
+segment names another subsection's package too, a word for its parent stands before it, so no two
+packages of the library share a name and no importer needs an alias for one. Those are
+`auditrecord`, `runrecord`, `maskingrecord` and `gaterecord` under `db/auditlog`, `db/jobruns`,
+`db/maskingevents` and `db/scangatedecisions`, and `accountsetup` and `clientsetup` under
+`db/accounts` and `db/oauthclients`. `senderclassification` under `db/senders` carries its parent's
+word as well, which ending with its segment allows. `sqlc.yaml`'s `package:` sets each name, and
+`db/check` holds every name to ending with its directory's last segment and to being unique in the
+library.
 
 ## The checks
 
@@ -79,10 +92,11 @@ being unique in the library.
   whose other direct operand holds one, a parameter cast to `citext` among them, and `ILIKE`,
   `NOT ILIKE`, `~*` or `!~*` with a domain column in either operand. It matches a domain column by
   its name, `domain` or `from_domain`, whatever table, alias or common table expression qualifies
-  it. These forms are outside what it matches and held by review: a fold inside a nested query whose
-  output is compared with a domain, a domain column read under another name, the `'i'` flag of the
-  regular expression functions, an embedded `(?i)` in a pattern, a case-insensitive collation, and
-  any other form that folds case or matches approximately, full-text search among them.
+  it. These forms are outside what it matches and held by review. They are a fold inside a nested
+  query whose output is compared with a domain, a domain column read under another name, the `'i'`
+  flag of the regular expression functions, an embedded `(?i)` in a pattern, a case-insensitive
+  collation, and any other form that folds case or matches approximately, full-text search among
+  them.
 - The migration lint.
 - The compatibility declaration check. Every migration after the baseline, the three files whose
   versions run to 3, holds the line saying every chain the floor admits runs on it, meaning no
@@ -92,8 +106,8 @@ being unique in the library.
   which its file name starts with. A statement that names the floor's table anywhere in its parse
   tree is admitted only when it is that raise, a read, which is a select or a create table as a
   select holding no write and no row lock, or a grant or a revoke of `SELECT` alone. Every other is
-  refused, whatever its kind, so no migration lowers the floor, writes it otherwise or grants a
-  runtime role a write of it
+  refused, whatever its kind, so no migration lowers the floor, writes it otherwise or grants the
+  application user a write of it
   ([ADR-0140](../docs/adr/data/0140-each-migration-declares-the-oldest-chain-that-runs-on-it.md)).
 - The derived account-keyed table list and its exceptions, the accounts listing, the base policy's
   statements, which compare the account `IS NULL`, and the operation log, which carries no account
@@ -127,33 +141,22 @@ being unique in the library.
 - The check that a component's list admits the library only by naming `db/tx`, `db/migrate`,
   `db/migrations` and generated subsections exactly, never the library's root package or another
   directory holding no statements. None of the three named packages holds a statement of its own,
-  and the migrator's list names the last two.
-- The check that every list naming data-access subsections has a database role to be tested under,
-  its own or that of a deployable or job kind whose list admits it, directly or through the lists of
-  other shared libraries that admit it, as the account session's list admits the account snapshot's
-  package, and every role names a list that names such subsections or admits a library's list that
-  does.
-- The integration tests that hold each runtime role to its grants, every account-keyed table to the
-  transaction's account in the statements' form, and the log tables to their foreign keys.
-- The grant check, which plans each statement under the role of every deployable or job kind whose
-  list admits its subsection, directly or through the lists of one or more shared libraries, and
-  the statements of the execution context's packages, the account snapshot's, the policy loader's
-  and `executioncontext/assembly`'s, under the role of the pool each composition root builds the
-  context over, delta sync's for the worker's job kinds
-  ([ADR-0118](../docs/adr/data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)).
+  and the list of the migrator's task package names the last two.
+- The integration tests that hold the application user to its grants, every account-keyed table
+  to the transaction's account in the statements' form, and the log tables to their foreign keys.
+- The grant check, which plans every statement of every subsection an import list admits, directly
+  or through the lists of one or more shared libraries, under the application user, so the user's
+  grants are proven enough for every admitted statement
+  ([ADR-0143](../docs/adr/data/0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)).
+  What one program's code may run apart from another's is the import lists' to tell, not the
+  grants'.
 
 A list admits a library when one of its entries admits a package of the library that runs the
 library's statements, one that imports one of the library's subsections or, through the library's
-own packages, reaches one that does, so admitting only a library's pure core does not count. The
-map from import list to database role those checks read is held in `db/check`, keyed by the
-API server's and the UI's import lists, by each narrower list governing part of their code that
-admits code naming subsections, and by each list of a job kind of the worker
-([ADR-0118](../docs/adr/data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)). The
-worker's own list names one subsection, the start check's, and admits the execution context, so it
-maps to delta sync's role, the role of the pool its composition root builds the context over. The
-start check also runs on backfill's pool under backfill's role, which the worker's own integration
-test proves. A shared library has no entry, since it connects as no role of its own. The worker's
-list admits the driver only so its composition root can open each job kind's pool through the host,
-and any other statement the worker's own code runs on a pool is left to review. The migrator's
-list names no subsection, so it has no entry either. It runs the chain as the migration role, which
-owns the schema ([ADR-0048](../docs/adr/data/0048-forward-only-migrations.md)).
+own packages, reaches one that does, so admitting only a library's pure core does not count. No
+list of the migrator names a subsection. Its task's list reaches the start check's subsection
+through `process/database`, and the grant check plans that subsection under the application user
+as it does for every other list that reaches it. The chain itself is applied as the migrator's
+user, which owns the schema and which the grant check does not plan under
+([ADR-0048](../docs/adr/data/0048-forward-only-migrations.md),
+[ADR-0066](../docs/adr/data/0066-data-access-generated-from-sql.md)).

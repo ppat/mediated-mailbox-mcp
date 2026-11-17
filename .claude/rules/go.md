@@ -18,27 +18,30 @@ layout](../../CLAUDE.md#code-layout-and-conventions), and what tests the work ne
   entry in each workflow that watches it.
 - **Pure-core code sits under a directory named `core`**, and does no I/O and reads nothing ambient
   (ADR-0040). The core checks match a `core` path element at any depth, and each package of a family
-  keeps its own `core`, such as `process/dbconnect/core`, never one pooled for the family. So does a
-  library's package whose pure rules are its own, such as `provider/gmail/core`. A
-  deployable's composition root is its entry package `<deployable>/app`, which its `main.go` calls,
-  and everything else it holds sits under `internal/`, apart from the entry, the UI's browser bundle
-  package `ui/browser` and an `importtarget` package holding a violation file (CLAUDE.md, Inside a
-  component). The entry hands its component to the host, `process/host`, which runs the process
-  (ADR-0138).
+  keeps its own `core`, never one pooled for the family. So does a library's package whose pure
+  rules are its own, such as `provider/mail/gmail/core`, and a deployable's shell package whose pure
+  rules only it uses, such as `worker/internal/backfill/core`. A deployable's or the migrator's
+  entry package `<deployable>/app` holds its spec and nothing else, and its `main.go` is one call,
+  `process.Run(os.Args[1:], os.Environ(), app.Spec())`. Everything else it holds sits under
+  `internal/`, apart from the entry, the UI's browser bundle package `ui/browser` and an
+  `importtarget` package holding a violation file (CLAUDE.md, Inside a component). The process, the
+  package `process`, runs the spec, and each endpoint, job kind or task the spec lists is built by
+  the `Build` function of its own package (ADR-0142).
+- **A layer imports only the layers above it** (CLAUDE.md, Components).
 - **The environment is read only by a deployable's or the migrator's `main.go`**, which hands it
-  through the entry package and the host to the configuration library in `process/settings/`. The
-  `go vet` environment analyser refuses, anywhere else outside test files and `testsupport`, every standard-library function that
-  returns an environment variable's value by a name its caller gives, or the environment as a whole,
-  such as `os.Getenv`. Functions that read fixed platform variables for their own purpose, such as
-  `os.UserHomeDir`, stay allowed (ADR-0078, CLAUDE.md, Static analysis and formatting).
-- **A shell logs through the logger it is handed.** A deployable's `main.go` builds the logger and
-  its level variable through `process/logging`, makes the logger the process default for code the
-  project does not own, and hands both to the entry with standard output and standard error, which
-  hands them to the host. The host writes the start banner, sets the level from `log_level` and
-  passes each component's assembly the logger, which passes it to every shell that logs. A
-  `forbidigo` ban refuses, in every Go file, reading a default logger through `slog`'s or `log`'s
-  package-level functions and the built-in `print` and `println` (ADR-0122, CLAUDE.md, Inside a
-  component).
+  to `process.Run` and through it to the configuration library in `process/settings/`. The
+  `go vet` environment analyser refuses, anywhere else outside test files and `testsupport`, every
+  standard-library function that returns an environment variable's value by a name its caller
+  gives, or the environment as a whole, such as `os.Getenv`. Functions that read fixed platform
+  variables for their own purpose, such as `os.UserHomeDir`, stay allowed (ADR-0078, CLAUDE.md,
+  Static analysis and formatting).
+- **A shell logs through the logger it is handed.** The process builds the logger and its level
+  variable through `process/logging` before the configuration exists, makes the logger the process
+  default for code the project does not own, writes the start banner, and sets the level from
+  `log_level`. It passes each `Build` the logger through the capabilities it hands it, and the
+  `Build` passes it to every shell that logs. A `forbidigo` ban refuses, in every Go file, reading a
+  default logger through `slog`'s or `log`'s package-level functions and the built-in `print` and
+  `println` (ADR-0122, CLAUDE.md, Inside a component).
 - **A generated data-access function runs only inside the transaction helper.** The `go vet`
   txhelper analyser enforces it, by the rules and the exempt statements CLAUDE.md states under
   Static analysis and formatting (ADR-0047). The base policy's statements run only in the helper's
@@ -49,15 +52,31 @@ layout](../../CLAUDE.md#code-layout-and-conventions), and what tests the work ne
   parameters, outside the recording mux's own `Handle`. Registration through reflection, by an
   imported package on the default mux, or through an interface method one of whose parameter types
   is a type parameter is left to review (ADR-0071, CLAUDE.md, Static analysis and formatting).
+- **A program's code runs a statement only through the data-access subsections its import list
+  admits.** In a non-test file under `api/`, `ui/` or `worker/`, the `go vet` raw SQL analyser
+  refuses a statement run any other way. The API server, the UI and the worker connect as one
+  application user, so their import lists are what bound their code in the database. The process
+  family's code runs as that user in those three, and as the migrator's user in the migrator, and
+  the Session, the connections and the provider library's rate limiter run in the API server and
+  the worker. The analyser does not read that code, so a statement written by
+  hand there is held by review (ADR-0071, ADR-0143, CLAUDE.md, Static analysis and formatting).
+- **The connections attach to the Session only from their own package, and their re-seal runs only
+  from delta sync's.** Two analyser rules hold the callers (ADR-0071, ADR-0092, ADR-0142,
+  CLAUDE.md, Static analysis and formatting).
 - **The worker's job code starts a goroutine only through `schedule.Go`, and the API server's and
-  the UI's code only through the host's starter.** The `go vet` goroutines analyser refuses, in a
-  non-test file under `worker/` outside `worker/internal/schedule`, a `go` statement and any use of
-  a function that starts a goroutine running what it is given, the standard library's and those of
+  the UI's code, and a thing the process shares, only through the process's `Go`.** The `go vet`
+  goroutines analyser refuses, in a non-test file under `worker/`, a `go` statement and any use of a
+  function that starts a goroutine running what it is given, the standard library's and those of
   `golang.org/x/sync`, because a panic is recovered only on the goroutine that raised it, and one on
-  any other goroutine would stop every job. It refuses the same in a non-test file under `api/` or
-  `ui/`, whose code starts a goroutine only through the host's starter, which recovers its panic and
-  waits for it before the pools close (ADR-0138). Such a function reached through an interface value
-  or reflection, a dependency that calls what it was given on a goroutine of its own, and any other
+  any other goroutine would stop every job. `schedule.Go` is the helper of the process's scheduler,
+  `process/schedule`, and its panic fails that run and stops nothing else. The analyser refuses the
+  same in a non-test file under `api/` or `ui/`, whose code starts a goroutine only through the
+  process's `Go`. That helper recovers its panic as the failure of what started it, which stops the
+  process in order, and waits for it before the slots are closed (ADR-0142). The analyser refuses a
+  call of neither helper, and a job kind's `Build` is handed the process's `Go` too, so which
+  helper code uses is held by review, as is a shared thing's goroutine, since the analyser does not
+  read the process family's code. Such a function reached through an interface value or
+  reflection, a dependency that calls what it was given on a goroutine of its own, and any other
   module's goroutine starter are left to review (ADR-0119, CLAUDE.md, Static analysis and
   formatting).
 - **No code of this project imports `unsafe`**, a `go:linkname`'s included, **or takes an unsafe

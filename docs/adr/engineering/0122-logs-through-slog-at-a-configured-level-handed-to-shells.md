@@ -1,4 +1,4 @@
-# 0122. Every deployable logs through log/slog as JSON to standard output, at the level its configuration sets, through a logger its entry package hands its shells
+# 0122. Every deployable logs through log/slog as JSON to standard output, at the level its configuration sets, through a logger the process hands its shells
 
 **Status:** Accepted ·
 **Serves:** [O2](../../../USE_CASES.md#o2--observable)
@@ -48,21 +48,22 @@ grading, because no shell logs in a loop tighter than one line per page of provi
 - **The level is the configuration value `log_level`**, read by every deployable through the
   configuration library. It takes `debug`, `info`, `warn` or `error`, spelled exactly so, and
   defaults to `info`. Any other text is refused at start by the deployable's validation, as every
-  value outside its designed range is under ADR-0078, so a configuration without the key starts as
-  before. The default is `info` because routine progress, backfill's line per page and the UI's
+  value outside its designed range is under ADR-0078, so a configuration without the key starts at
+  `info`. The default is `info` because routine progress, backfill's line per page and the UI's
   line per request ([docs/UI.md section 18.2](../../UI.md#182-the-uis-own-observability)) among it,
   is written at `info`.
 - **What each level carries.** Errors, and the decisions an operator acts on, at `warn` or above.
   Routine progress at `info`. Detail at `debug`.
-- **`main.go` builds the logger, and the host sets its level.** A deployable's `main.go` builds a
-  `*slog.LevelVar`, builds the logger over it on standard output, makes that logger the process
-  default, and passes the logger and the level variable to the entry's `Run`, with standard output
-  and standard error for the start banner below. `Run` hands them to the host that runs the process
-  ([ADR-0138](./0138-one-host-runs-each-process-and-each-component-provides-its-parts.md)). The logger exists before the configuration does, so
-  a start that fails before its level is read still reports its error as JSON on standard output.
+- **The process builds the logger and sets its level.** Before it reads the configuration, the
+  process builds a `*slog.LevelVar`, builds the logger over it on standard output and makes that
+  logger the process default, for every program, since a program's `main.go` only hands
+  `process.Run` its arguments, its environment and its spec
+  ([ADR-0142](./0142-each-program-is-a-spec-that-one-process-runs.md)). The logger exists before
+  the configuration does, so a start that fails before its level is read still reports its error
+  as JSON on standard output.
 - **The effective configuration is written before the level applies.** Once the configuration
-  loads, the host writes each value with its source at `info` while the level variable still holds
-  `info`, then reads `log_level`, refusing a level that names none, and only then sets the
+  loads, the process writes each value with its source at `info` while the level variable still
+  holds `info`, then reads `log_level`, refusing a level that names none, and only then sets the
   variable. ADR-0078 logs the effective configuration at start with each value's source, and a
   refusal names only the key, so the source of a refused value reaches the operator through those
   lines. Written after the level applies, they would vanish under `warn` or `error`, and with them
@@ -71,9 +72,11 @@ grading, because no shell logs in a loop tighter than one line per page of provi
 - **The process default is for code the project does not own.** Making the logger the default also
   routes the standard `log` package into it, so a line the standard library or a dependency writes
   through either default is JSON on standard output under the configured level. Project code never
-  reads a default. The host hands each component's assembly the logger, carrying the component's
-  name, and the assembly hands it to every shell that logs, as a parameter, and a shell that builds
-  an `http.Server` gives it an error log made from that logger.
+  reads a default. The process hands each endpoint's, job kind's or task's `Build` the logger,
+  carrying the program's name and, for a job kind, the job kind's
+  ([ADR-0142](./0142-each-program-is-a-spec-that-one-process-runs.md)). The `Build` hands it to
+  every shell that logs, as a parameter, and a shell that builds an `http.Server` gives it an error
+  log made from that logger.
 - **The MCP SDK's server logs through the handed logger, its routine records at `debug`.** With no
   session kept, the server connects one session per request and writes "server connecting" and
   "server session connected" at `info` for each, which is detail. The API server's MCP root
@@ -83,10 +86,9 @@ grading, because no shell logs in a loop tighter than one line per page of provi
 - **The start banner goes to standard error, and is no log record.** Each deployable writes a few
   plain lines for a person reading its output once its configuration has validated, naming its
   published name, the release version
-  ([ADR-0078](./0078-configuration-layers-through-an-owned-library.md)) and where it serves. They
-  go to standard error, through a writer `main.go` hands the entry's `Run` beside the logger, which
-  hands it to the host, so standard output stays one JSON object per line. A failed write of the banner is logged and stops
-  nothing.
+  ([ADR-0078](./0078-configuration-layers-through-an-owned-library.md)) and where it serves. The
+  process writes them to standard error, so standard output stays one JSON object per line. A
+  failed write of the banner is logged and stops nothing.
 - **A logger per job is `logger.With(...)` over the handed logger.** It shares the handler and the
   level, so a job's records follow the configured level without the job reading configuration.
 - **A pure core does not log.** It imports no logging package and calls no built-in print function,
@@ -103,15 +105,15 @@ The table gives what the library's ordinary path does that this project forbids.
 | A logging import in a pure core | A pure core with a side effect | The pure-core import lists of ADR-0071, which admit no logging package, proven by a violation file |
 
 The setters, `slog.SetDefault` and the `log` package's `SetOutput`, `SetFlags` and `SetPrefix`,
-stay allowed, because `main.go` sets the default for code the project does not own, and a setter
+stay allowed, because the process sets the default for code the project does not own, and a setter
 gives project code no logger to log through.
 
 | Requirement | Met by |
 | --- | --- |
 | Structured to standard output | `slog.NewJSONHandler` over standard output, built in `process/logging` |
 | A configured level | `log_level`, read by `process/logging`'s level parser, set on the `*slog.LevelVar` the handler reads |
-| A value, never ambient | `*slog.Logger` parameters from the entry package down, and the ban on reading a default |
-| One level for everything the process writes | The logger made the process default in `main.go`, which also routes the `log` package, the server error logs made from the handed logger, and the MCP SDK's server and handler logs |
+| A value, never ambient | `*slog.Logger` parameters from the process down, and the ban on reading a default |
+| One level for everything the process writes | The logger made the process default by the process, which also routes the `log` package, the server error logs made from the handed logger, and the MCP SDK's server and handler logs |
 | Interoperates with what takes a logger | The handed `*slog.Logger` to the MCP SDK's streamable handler and, with its routine records lowered to `debug`, to its server, and `slog.NewLogLogger` over its handler for `http.Server.ErrorLog` |
 | The process default refusable | The `forbidigo` ban |
 | A small dependency footprint | The standard library alone |
@@ -170,15 +172,15 @@ the shells. Regretting a challenger costs every shell's signature.
   bridge rather than instead of it.
 - **zap.** For it, a long production record and a sampling option. Against it, the largest
   footprint measured, standard error as its production default, and the same bridge as zerolog.
-- **`main.go` passes standard output, and `Run` builds the logger once the level is known.** For
-  it, the level is a value read once and never changed, with no variable shared between `main.go`
-  and `Run`. Against it, a line written through the process default by code the project does not
-  own would sit at a level fixed before the configuration loads, or as plain text on standard
-  error if no default were set, so one level would not govern everything the process writes.
-- **The configuration read in `main.go`, ahead of a `Run` that takes it.** For it, `main.go` would
-  build the logger at its final level. Against it, every deployable's `main.go` would load and
-  validate configuration, which [CLAUDE.md](../../../CLAUDE.md#inside-a-component) keeps in the
-  entry package, the composition root.
+- **The logger built only once the level is known.** For it, the level is a value read once and
+  never changed, with no level variable set after the logger is built. Against it, a line written
+  through the process default by code the project does not own would sit at a level fixed before
+  the configuration loads, or as plain text on standard error if no default were set, so one level
+  would not govern everything the process writes.
+- **The configuration read in `main.go`, ahead of the process that takes it.** For it, `main.go`
+  would build the logger at its final level. Against it, every deployable's `main.go` would load
+  and validate configuration, which the process does once for every program
+  ([ADR-0142](./0142-each-program-is-a-spec-that-one-process-runs.md)).
 - **A `log` section with a `level` key.** For it, room for later logging values under one prefix.
   Against it, no other logging value is needed, and the flat key matches the other single values,
   `listen` and `provider_timeout`.
@@ -195,11 +197,12 @@ the shells. Regretting a challenger costs every shell's signature.
 
 ## Consequences
 
-- Every deployable's `main.go` builds the logger and its level variable and makes the logger the
-  process default, and its entry package's `Run` takes both and hands them to the host, which sets
-  the level. A future entry package takes the same two, and standard output and standard error.
-- The worker's job loggers are `logger.With` over the logger its entry package receives, carrying
-  the job kind and the account, so adding them changes no hand-off.
+- The process builds the logger and its level variable, makes the logger the process default and
+  sets the level, for every program, so a further program gets the same by writing its spec
+  ([ADR-0142](./0142-each-program-is-a-spec-that-one-process-runs.md)).
+- The worker's job loggers are `logger.With` over the logger the process hands each job kind's
+  `Build`. That logger already carries the job kind, and each job adds its account, so adding the
+  account changes no hand-off.
 - The default-logger ban joins the bans `forbidigo` carries under
   [ADR-0071](./0071-static-enforcement-toolchain.md), proven by a violation file, and the pure-core
   import lists' refusal of a logging import is proven by violation files at a depth below the

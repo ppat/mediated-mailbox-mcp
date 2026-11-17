@@ -1,6 +1,6 @@
 # 0138. One host runs each process over the components its composition root hands it, and each component provides its parts without starting them
 
-**Status:** Accepted ·
+**Status:** Superseded — **Superseded by:** [ADR-0142](./0142-each-program-is-a-spec-that-one-process-runs.md) ·
 **Pillar:** [Concerns stay un-braided; components know only their contracts](../../../DESIGN.md#concerns-stay-un-braided-components-know-only-their-contracts) ·
 **Serves:** [O3](../../../USE_CASES.md#o3--survives-its-failure-modes),
 [O2](../../../USE_CASES.md#o2--observable),

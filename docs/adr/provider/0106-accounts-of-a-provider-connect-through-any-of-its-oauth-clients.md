@@ -27,15 +27,15 @@ through different clients must both be options, and a client never spans provide
   identifier is held by one client only, so one client is never set up twice under two names.
 - **Each account of such a provider connects through exactly one of that provider's clients.**
   Several accounts may share a client, or an account may have one of its own. The person chooses
-  the client when connecting the account. The account's token source is built from that client and
-  the account's own credential, and from no other client.
+  the client when connecting the account. The account's token is made from that client and the
+  account's own credential, and from no other client.
 - **Which client an account connects through is part of what the account is**, held with its
   identifier and provider in `accounts`
   ([ADR-0091](../data/0091-accounts-listed-apart-from-their-state.md)). The reference carries the
   provider, so an account cannot name a client of another provider. An account of a provider
   without an OAuth client names none. The schema does not know which providers use a client, so
-  that an account of such a provider names one is held by the account setup that writes it and by
-  the account snapshot that loads it, which serves no such account without its client.
+  that an account of such a provider names one is held in three places. The account setup writes
+  it, the account snapshot loads it, and the connections serve no such account without its client.
 - **An account moves to another client only through a re-authorization through that client.** A
   grant works only with the client it was issued to, so the new client and the new credential are
   written in one transaction.
@@ -58,8 +58,8 @@ through different clients must both be options, and a client never spans provide
 - **The client an account uses held in `account_state`, beside the credential.** For it, the grant
   and the client it was issued to sit in one row. Against it, the installation screens read no
   account's state ([ADR-0056](../operability/0056-ui-organized-around-the-operators-work.md)), and
-  they must name the accounts a client serves before it is replaced or removed. The account
-  snapshot also builds each account's token source from what it lists
+  they must name the accounts a client serves before it is replaced or removed. The connections
+  also make each account's token from the client its listing names
   ([ADR-0090](../operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md)).
 
 ## Consequences
@@ -74,10 +74,11 @@ through different clients must both be options, and a client never spans provide
   client ([ADR-0090](../operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md)).
 - A client's sealed secret is bound to its row
   ([ADR-0088](../operability/0088-credentials-sealed-with-hpke-x-wing.md)). A name never changes,
-  so nothing re-seals a secret for its row's sake. A client stored while the table was keyed on the
-  provider takes its provider's value as its name, so its sealed secret stays bound to its row with
-  no re-seal. The UI's role holds delete on `oauth_clients` for removing an unused client, as
-  [ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md) states.
+  so nothing re-seals a secret for its row's sake. The migration that keys the table on the name
+  gives each client already stored its provider's value as its name, so its sealed secret stays
+  bound to its row with no re-seal. The UI's writes include the delete on `oauth_clients` for
+  removing an unused client, as [ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)
+  states.
 - Assumptions about other components. The provider refuses a credential presented with a client
   other than the one it was issued to, so an account paired with the wrong client fails to
   authenticate rather than acting through it.

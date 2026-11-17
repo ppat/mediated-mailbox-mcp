@@ -64,8 +64,8 @@ paged.
   untouched, as a stored fill instant ahead of the clock does.
 - **Routing a firing rule to a person is the platform's**, as is proving that a page arrived. The
   repository proves the signal and the rule.
-- **The policy loader's reload alarm and delta sync's gap alert follow the same form**, each a rule
-  over a metric its unit emits.
+- **The reload alarm of the Session's policies and delta sync's gap alert follow the same form**,
+  each a rule over a metric its unit emits.
 - **A stopped worker, and a job whose last success has aged past a bound, are rules of the same
   form**, over the series the worker emits per job kind and per job
   ([ADR-0119](./0119-the-workers-jobs-are-scheduled-from-recorded-state.md)). One rule fires when

@@ -58,9 +58,13 @@ without the adoption stamp the records said it carried.
   own README. A library may hold pure packages of its own, and those sit under the same core import
   check as `mediated-mailbox-core`.
 - **Where pure code goes.** Pure code is a component's own when it states that component's
-  concern, whoever calls it, such as the rate rules or a configuration section, and it sits in that
-  component's `core` sub-package. It is shared, in `mediated-mailbox-core`, when no single
-  component owns its concern, such as the classifier or the gate.
+  concern, whoever calls it, such as the rate rules, and it sits in that component's `core`
+  sub-package. It is shared, in `mediated-mailbox-core`, when no single component owns its concern,
+  such as the classifier or the gate. The programs' configuration types are the one exception, and
+  sit together in `core/config`, the shared parts of the configuration that no single program owns
+  and each program's own type beside them
+  ([ADR-0078](./0078-configuration-layers-through-an-owned-library.md)). A configuration check is a
+  pure decision, so it sits under a directory named `core`.
 - **Purity is the first fence, and cutting by concern is the second, made only when needed.** A
   wholly pure library can still lump unrelated concerns into one dependency unit, so
   `mediated-mailbox-core` is cut by concern once a second concern actually shows up, and never
@@ -82,11 +86,15 @@ library hides is what lets it change for one reason.
 - **When a family is founded.** Only for a concept the Glossary names that no family covers, by a
   decision record or the operator's ruling, never by one ticket's need. One ticket's view never
   creates a top-level library.
-- **Repeated assembly**, logic several composition roots repeat, is a package of its concept's
-  family. Composition stays in each root ([ADR-0040](./0040-pure-core-decisions-as-values.md)).
-- **A concern's configuration section stays with its concern**, as the process family's README
-  says, so the code that owns a section also owns its validation, wherever the
-  layering mechanism sits ([ADR-0078](./0078-configuration-layers-through-an-owned-library.md)).
+- **Repeated assembly**, logic several programs would otherwise repeat, is a package of its
+  concept's family, as each thing a process shares is built by its one owner package
+  ([ADR-0142](./0142-each-program-is-a-spec-that-one-process-runs.md)). Composition stays in each
+  program's own code, its spec and the functions that build what the spec lists
+  ([ADR-0040](./0040-pure-core-decisions-as-values.md)).
+- **A configuration section's type and its validation are one package's**, `core/config`, which
+  holds every program's configuration type with each section's defaults and checks, so the code
+  that defines a section also owns its validation, wherever the layering mechanism sits
+  ([ADR-0078](./0078-configuration-layers-through-an-owned-library.md)).
 - **The guard against a family turning into a grab bag** is the founding rule, the exact import list
   per package, and each family's README naming what does not belong. A package growing code for a
   concept its family does not serve shows in its import list first, which is where review catches
@@ -98,6 +106,12 @@ library hides is what lets it change for one reason.
 Placing a concern by these rules is an application of rules already decided, not a decision a
 ticket makes, so nothing is created ahead of its consumer. How packages and families are named is
 [ADR-0054](./0054-one-repository-flat-layout-naming-convention.md)'s.
+
+Where each concern sits by these rules is [CLAUDE.md](../../../CLAUDE.md#components)'s component
+table and each family's README. One family is founded under the founding rule above, by the
+operator's ruling. The sealing and opening of a stored credential is a concept the Glossary names
+that no other family covers. The connections, the UI's setup and the command-line program use it,
+and none of them is the provider library, so it is a family of its own, `credential/`.
 
 ## Alternatives considered
 

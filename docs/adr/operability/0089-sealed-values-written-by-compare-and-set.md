@@ -56,21 +56,26 @@ rule holds per account.
 
 - A rotation write-back or a re-seal that loses to a re-authorization is discarded, and the
   deployable carries on with the value the operator stored.
-- A deployable whose loader has already adopted the operator's value, through a reload or a re-read
-  while a unit of work ran, would see the compare-and-set land against those adopted bytes. An
-  adoption stamp per account prevents that.
-  - Each time the loader adopts a value from an account's row that it did not write itself, it
-    gives that account's credential a new adoption stamp.
-  - A unit of work hands over, beside the credential it holds now, the adoption stamp the loader
-    gave with the credential that one was built from. That is the stamp the account had when that
-    credential was taken, from the snapshot or from a re-read the unit went on with.
-  - The loader discards the hand-over only when that account's stamp has changed since.
+- A deployable whose connections have already adopted the operator's value, through a reload or a
+  re-read while a unit of work ran, would see the compare-and-set land against those adopted bytes.
+  An adoption stamp per account prevents that.
+  - Each time the connections adopt a value from an account's row that they did not write
+    themselves, they give that account's record a new adoption stamp.
+  - A unit of work carries no stamp of its own. At its end it reads the credential it holds now and
+    the adoption stamp together from the record it began on, under that record's lock. A re-read,
+    by this unit or by another unit of work on the same account, changes that record in place, so
+    the unit follows it.
+  - The write-back lands only while the record's stamp is still the stamp the unit read with the
+    credential. When the connections adopted another value between that read and the write, the
+    record's stamp has moved, and the write-back is discarded.
   - The process's own earlier write-back leaves the stamp as it is, so two units that overlap and
     each see a rotation both land, the later by compare-and-set against the earlier's bytes.
-- A process holds one loader for every component it hosts, in its one execution context, and one
-  token source per account, so a rotation of an account's credential is held by one source and
-  written back by one loader, whichever component's unit of work received it. Two processes, the API
-  server and the worker, reconcile by the compare-and-set above
+- A process that calls a provider holds one set of
+  [connections](../../../process/README.md#the-connections-connections), attached to its one
+  Session, for every endpoint and job kind of it that calls a provider, with one record and one
+  token per account. So a rotation of an account's credential is held by one token and written
+  back through one record, whichever endpoint's or job kind's unit of work received it. Two processes, the API server and
+  the worker, reconcile by the compare-and-set above
   ([ADR-0090](./0090-accounts-reach-deployables-as-reloaded-snapshots.md)).
 - A provider that rotates refresh tokens and revokes a grant when an old one is reused cannot be
   repaired by a compare-and-set after the fact. Such a provider needs the advisory lock above, and

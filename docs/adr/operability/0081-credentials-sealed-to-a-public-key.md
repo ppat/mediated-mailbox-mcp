@@ -30,25 +30,33 @@ needs the secret of the client a consent was issued to.
   one. That is held by the UI's import lists and by what its one opening part can open, not by
   keeping the key from the UI. Inside the worker that runs every background job kind
   ([ADR-0117](./0117-one-background-worker-runs-every-job-kind.md)), a job kind that calls no
-  provider, heuristics today, never opens one either. That is held by its own import list, which
-  admits no opening code, by its role holding no grant on a sealed credential, and by its entry
-  constructor taking only what the job needs, not by keeping the key from the worker.
+  provider, heuristics today, never opens one either. Three things hold that, and keeping the key
+  from the worker is not one of them.
+  - Its own import list, which admits no opening code, not the connections' package, and no
+    data-access subsection that reads a stored credential
+    ([ADR-0143](../data/0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)).
+  - The raw SQL analyser, which refuses any other statement in the worker's code
+    ([ADR-0071](../engineering/0071-static-enforcement-toolchain.md)).
+  - Its `Build`, whose parameters the worker's spec fixes, so it can be handed nothing that opens
+    a value ([ADR-0142](../engineering/0142-each-program-is-a-spec-that-one-process-runs.md)).
 - **One isolated part of the UI opens an OAuth client's secret, and nothing else.** The secret stays
   in its one sealed column and is never stored in a second form. The UI holds the same private keys
-  the deployables that call a provider hold, and one package of the UI, `ui/internal/clientsecret`,
-  opens with them a value bound to the client-secret purpose and to a client's row, for a consent's
-  code exchange. Its one operation takes a client's name and no sealing context, so it cannot be
-  asked to open an account's credential, and a credential's bytes copied into a client's row fail to
-  open, since the purpose is bound into the value
+  the deployables that call a provider hold, and one package of the UI,
+  `ui/internal/setup/clientsecret`, opens with them a value bound to the client-secret purpose and
+  to a client's row, for a consent's code exchange. Its one operation takes a client's name and no
+  sealing context, so it cannot be asked to open an account's credential, and a credential's bytes
+  copied into a client's row fail to open, since the purpose is bound into the value
   ([ADR-0088](./0088-credentials-sealed-with-hpke-x-wing.md)). The UI's import lists admit the
   opening half of the credential code, and the read of a client's sealed secret, to that package
   alone. They admit to the rest of the UI's shipped code only the packages under `crypto/` it
   uses, so it links none of the public-key code an opening is built on. The project's own `go vet`
   analyser refuses a statement the UI's shipped code runs other than through the data-access
-  library ([ADR-0071](../engineering/0071-static-enforcement-toolchain.md)), so the role's read of
-  the secret stays with that package too. The plaintext secret lives for the exchange that asked
-  for it, and for client setup's check of a secret the operator brought back, and reaches no log
-  line, no response and no cookie.
+  library ([ADR-0071](../engineering/0071-static-enforcement-toolchain.md)), so the read of the
+  secret, which the application user holds
+  ([ADR-0143](../data/0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)),
+  stays with that package too. The plaintext secret lives for the exchange that asked for it, and
+  for client setup's check of a secret the operator brought back, and reaches no log line, no
+  response and no cookie.
 - **The construction is an authenticated one, as standard practice has it**, so an altered sealed
   credential is refused rather than opened.
 - **The keys are secrets delivered as mounted files**
@@ -56,8 +64,8 @@ needs the secret of the client a consent was issued to.
   the UI read the private key's file.
 - **A sealed credential records the key it was sealed to**, so a key can be replaced while
   credentials sealed to the old one are still stored.
-- **The code that seals and opens is `executioncontext/credential/`**, packages of the execution
-  context family, a narrow shared library that argues its own case in its README
+- **The code that seals and opens is `credential/`**, the packages of the credential encryption
+  family, a narrow shared library that argues its own case in its README
   ([ADR-0050](../engineering/0050-shared-code-pure-or-narrow.md)).
 
 ## Alternatives considered
@@ -84,14 +92,15 @@ needs the secret of the client a consent was issued to.
   ([ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)).
 - **The cost.** A compromised UI process holds the private key that opens every stored refresh
   token, since it is the same key. The guarantee that the UI opens no credential is its code's,
-  not key custody, so code an attacker runs inside the UI's process is held by neither. Its
-  database role still never reads a stored credential
-  ([ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)), so the key yields a
-  refresh token only with a credential's bytes taken from somewhere else.
+  not key custody, so code an attacker runs inside the UI's process is held by neither. The
+  application user it connects as reads every stored credential, so the key and that user
+  together yield every refresh token, a cost
+  [ADR-0143](../data/0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)
+  states.
 - **What stays with review.** The import lists and the analyser hold the UI's code to its one
   opening part by what it links and what statements it runs. Code that sets out to get around them
   is held by review alone. Such code would open a value with primitives written from scratch, or
-  reached through `go:linkname` or `unsafe`, with the key files whose paths the composition root
+  reached through `go:linkname` or `unsafe`, with the key files whose paths its configuration
   holds, or run a statement through the paths the analyser leaves to review, which
   [ADR-0071](../engineering/0071-static-enforcement-toolchain.md) lists. Test code is outside both
   rules, since it is never served. The same holds for a job kind of the worker that calls no

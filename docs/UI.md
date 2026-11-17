@@ -59,7 +59,7 @@ to start. Any record cited in a section and not listed here is read when that se
    [O4](../USE_CASES.md#o4--the-operator-can-see-and-steer). Ten minutes. It says what the UI is
    judged on and what it must never do.
 2. ADR-0084, ADR-0016, ADR-0042, ADR-0047, and ADR-0051, via the [index](./adr/README.md). The
-   UI's shape and grants, the schema it reads, the languages it is written in, how queries are
+   UI's shape and its writes, the schema it reads, the languages it is written in, how queries are
    written, the environment contract.
 3. This document, in order. Sections 3 to 7 are the model every screen instantiates. Section 8 is
    the screens. Sections 14 to 19 are what the code must be. Section 20 is what remains open.
@@ -188,7 +188,7 @@ a range.
 | `/ui/accounts/{account}/policy/import` | Import the account's own rules from a file ([8.7](#87-policy)) |
 | `/ui/accounts/{account}/system` | System ([8.8](#88-system)) |
 | `/ui/accounts/{account}/{dataset}?group=a&level=N&range=…&{dimension}={value}…` | an analysis lens ([8.5](#85-the-analysis-lenses)), `{dataset}` one of `messages`, `senders`, `masking`, `gate`, `audit` |
-| `/ui/accounts/{account}/{dataset}/{row-id}` | one row, the panel over the lens's L3. Not for `senders`, which has no row detail; its rows link out to `messages?sender=` |
+| `/ui/accounts/{account}/{dataset}/{row-id}` | one row, the panel over the lens's L3. Not for `senders`, which has no row detail and whose rows link out to `messages?sender=` |
 
 The fixed and object routes are matched before the lens route, so `plans`, `candidates`, `jobs`,
 `policy`, `account`, and `system` are never read as dataset names. An identifier the operator
@@ -236,7 +236,7 @@ is a dataset.
 | Dataset | Rows | Parent | Sensitivity counts |
 | --- | --- | --- | --- |
 | `messages` | messages, with `label` as a grouping (the label distribution is a grouping, not a dataset) | none | yes |
-| `senders` | one per sender domain, each row carrying the sender's class. No row detail; identity `domain` | none | no |
+| `senders` | one per sender domain, each row carrying the sender's class. No row detail, and its identity is `domain` | none | no |
 | `masking` | masking events | none | yes |
 | `gate` | gate decisions | none | yes |
 | `audit` | audit rows | none | yes |
@@ -278,13 +278,13 @@ account's data. `/ui/accounts/{account}/policy` shows the base rules, marked "ba
 rules (ADR-0004), and base rules are written from it as well as the account's own
 ([section 8.7](#87-policy)). The base policy alone also has an installation screen, which needs no
 account to exist ([section 8.14](#814-base-policy)). No row of another account's data is shown, so
-the per-account rule of [section 1](#1-what-the-ui-is-for) is not breached. Nothing else on an account's screens shows a row
-outside the account in the path.
+the per-account rule of [section 1](#1-what-the-ui-is-for) is not breached. Nothing else on an
+account's screens shows a row outside the account in the path.
 
 **Decisions.** Two, each with two outcomes. A plan is approved or rejected, a candidate is
-confirmed or dismissed. Four requests carry them, all by database grant (ADR-0084), which calls
+confirmed or dismissed. Four requests carry them, all among the writes ADR-0084 lists, which calls
 them its two decision verbs. Beside them, the operator requests the rollback of an applied plan,
-which the UI writes as a plan status within its grant on a plan's status (ADR-0020, ADR-0084).
+which the UI writes as a plan status, a write already among those ADR-0084 lists (ADR-0020).
 Where that request sits and how it reads are designed where rollback is built. No request exists
 for retrying a job, or editing policy other than through the policy management of
 [section 8.7](#87-policy).
@@ -365,7 +365,7 @@ ellipsis and shows its full value on hover.
 | sender address | `from_email` | 220 px | mono, the full address | the corpus lens at L3 with `from=` this address |
 | masked subject | `subject` | flexible, 240 px minimum | text, the stored subject exactly (already masked at rest per ADR-0003) | the row's detail (L4) |
 | date | `sent_at` | 88 px | `2026-09-03` in the row, the full UTC time on hover | nothing |
-| labels | `labels` | 200 px | the first four labels in stored order as chips, then `+N`; below 1360 px the column collapses to one chip with the count | the corpus lens filtered by that label |
+| labels | `labels` | 200 px | the first four labels in stored order as chips, then `+N`, and below 1360 px the column collapses to one chip with the count | the corpus lens filtered by that label |
 | sender class | `sender_class` | 72 px | a badge, `restricted` in the restricted color or `normal` in muted text | nothing |
 | content flags | `content_flags` | 72 px per badge | one badge per flag, `mfa` or `link`, in the flagged color | nothing |
 | scan state | `scan_state` | 96 px | muted text, the short form of [section 11](#11-rendering-and-formatting-rules), the long wording on hover | nothing |
@@ -444,7 +444,7 @@ Every chart is inline SVG drawn from the same rows its table shows.
 | --- | --- |
 | bars (L1 and L2) | horizontal, 20 px tall with 8 px gaps, filling the region's width, one bar per group, sorted by count descending, the top 20 groups then one `other` bar for the rest, which is not clickable. Direct label with the count at the bar's end, a hairline baseline in the border token, no gridlines, bar fill the neutral chart fill with the restricted share drawn as an inner segment in the restricted color, which a dataset that is not message-derived does not draw. The table beside it lists every group, 50 per page, paged in the browser under `page=`, since the endpoint answers every group at once ([section 17.1](#171-the-dataset-endpoint)). A value stored empty is drawn and listed as "empty" and links with the filter word `empty` on a dimension that declares it can hold one ([section 17.1](#171-the-dataset-endpoint)). A stored value the filter grammar of [section 5](#5-information-architecture-and-the-url) cannot name as itself is a group no filter can name, and is drawn and listed without a link, as the `other` bar is. That is a value holding a comma, which the grammar reads as any of, a value starting with `!`, which it reads as an exclusion, a value spelled `none` or `empty`, and a value stored empty on a dimension that does not declare it. When the dimension is an array (labels, content flags, rule ids) a row counts in each of its groups, shares are over the total count, and the chart carries the note "a message with several labels counts in each" |
 | flow diagram (a plan's flows) | 320 px tall. Old labels in a column on the left sorted by outflow descending, with a `none` row for flows that remove nothing, new labels in a column on the right sorted by inflow descending, one straight band per flow drawn in the left column's order with 2 px gaps, band width proportional to message count, the selected band in the action color and the rest in the neutral fill |
-| run timeline | 120 px tall. x is wall time from the run's start to its finish or to now, marks for start, backoff, retry, failure, resume, and finish drawn from the run's events; for paged runs y is the page index and the progress events trace a line; for runs without pages the marks sit on one line. A run is paged when any of its events records a page. Each mark kind has its own shape, so no kind is told by color alone, and each mark's hover names its kind, its time and the event's detail as recorded, which renders as text |
+| run timeline | 120 px tall. x is wall time from the run's start to its finish or to now, marks for start, backoff, retry, failure, resume, and finish drawn from the run's events. For paged runs y is the page index and the progress events trace a line, and for runs without pages the marks sit on one line. A run is paged when any of its events records a page. Each mark kind has its own shape, so no kind is told by color alone, and each mark's hover names its kind, its time and the event's detail as recorded, which renders as text |
 | progress bar | track in raised, fill in info while running, ok when complete, restricted when failed, the count of total as text beside it |
 
 ## 8. The screens
@@ -979,9 +979,9 @@ signal shows "no signal recorded".
 | Sender statistics | the sender row's fields, then display names seen, sampled local parts, the label distribution as label and count pairs, and the current sender class |
 | Messages | the sender's messages as message rows, L3, newest first |
 
-Above the outcomes, one sentence: "Confirming makes {domain} a restricted sender. From each
+Above the outcomes sits one sentence, "Confirming makes {domain} a restricted sender. From each
 process's next policy reload its bodies are denied and its messages become organize-only."
-Dismiss writes the candidate's status, reviewed time, and reviewer, the columns ADR-0084 grants.
+Dismiss writes the candidate's status, reviewed time, and reviewer, the columns ADR-0084 lists.
 Confirm writes the same three and, in the same transaction, inserts the policy rule row the
 confirmation emits (ADR-0004), with rule id `candidate.{account}.{domain}`, the candidate's
 account as its account (an overlay rule, never the base policy), the candidate's domain as its
@@ -1099,7 +1099,7 @@ in view's alone, and nothing is summed across accounts.
   which refuses nothing and asks no confirmation. Add a rule opened from the sender picker returns
   to the picker, with its search and selection, on Cancel and on `Escape`.
 
-  The share is a tenth: a suffix matching more than 10% of the account's senders carries the
+  The share is a tenth, so a suffix matching more than 10% of the account's senders carries the
   warning. One institution's domains are a small part of a mailbox's senders, and the warning only
   advises, so warning early costs a sentence while warning late lets a broad suffix pass
   unremarked. The quarter at which a plan asks a typed restatement was the alternative, and it would
@@ -1402,7 +1402,7 @@ step, so the operator never needs a guide from anywhere else. Not live.
 in the UI's. Instructions in full take more space than a step list can give, and an operator
 switching tabs to read the next click loses their place in both. So every step has two forms. A
 collapsed row of one line, and its full instructions, shown for one step at a time. The full
-instructions also go where the operator is looking: beside or over Google's tab.
+instructions also go where the operator is looking, beside or over Google's tab.
 
 **The page.** A rail of the seven steps on the left, each with its status, and the steps as rows on
 the right, every step reachable in any order. The step in view is expanded and the others are one
@@ -1571,7 +1571,7 @@ until the third succeeds (ADR-0091). Not live.
    says the identifier cannot change once connected, since every record of the account is keyed on
    it, and that the mailbox is remembered. Confirming the step starts the consent attempt, so an
    identifier refusal shows here, before anything happens at Google.
-2. **Grant access at Google.** One sentence of what Google asks next: to pick the account, past its
+2. **Grant access at Google.** One sentence says what Google asks next, to pick the account, past its
    unverified-app warning by Advanced and the link to continue, which is expected, and to allow
    Gmail access, leaving the Gmail permission ticked. The same sentence, never collapsed, adds "If
    Google's warning says the app is being tested, stop: the client is still in Testing. Publish it
@@ -1675,7 +1675,7 @@ credential's banner clears, and reads "Re-authorized {identifier}. Every workloa
 credential within a minute." Each workload takes it up at its next account reload, and at once
 when the provider refuses the old one (ADR-0090). An account with no
 mailbox remembered, one with no state row or one stored before the mailbox was kept, is connected
-here too: step 1 then asks for the mailbox once, the grant is checked against it, and success
+here too. Step 1 then asks for the mailbox once, the grant is checked against it, and success
 writes the state row, or the credential and the mailbox into it, so the mailbox the consent
 confirmed is remembered from then on (ADR-0080).
 
@@ -1712,9 +1712,10 @@ does not compute ADR-0024's fractions. Each workload uses it from its next accou
 Lowering asks no confirmation, since a lower target only slows the account's work.
 
 **What this account's rows hold.** A two-column list of what the UI reads of the account's two
-rows: identifier, provider, client, mailbox, whether it is connected, the last authentication,
+rows, its identifier, provider, client and mailbox, whether it is connected, the last authentication,
 the rate target, the two backfill passes' flags and when the sync cursor was written. It never shows
-the credential, which the UI cannot read (ADR-0084). A link goes to System for the live view.
+the credential, which no statement of the UI's code reads (ADR-0084). A link goes to System for the
+live view.
 
 ### 8.14 Base policy
 
@@ -1908,7 +1909,7 @@ the operator would miss, so it asks nothing beyond the consent itself.
 | shares | one decimal, percent sign | 14.8% |
 | rates | one decimal with the unit | 3.1 of 5.0 units/s |
 | durations | largest two units | 1h 10m · 6h 41m · 12s |
-| ages | largest two units, relative, with the absolute UTC time on hover; an age against a maximum reads "{age} of {maximum}" | 1d 4h · 1d 4h of 14d |
+| ages | largest two units, relative, with the absolute UTC time on hover, and an age against a maximum reads "{age} of {maximum}" | 1d 4h · 1d 4h of 14d |
 | absolute times | UTC with the `Z` suffix, date and time, or time alone within a day already named | 2026-09-10 10:12Z · 10:12Z |
 | plan identifiers | mono. UUIDs shown as their first six characters with an ellipsis, full on hover and in the address line | 7f3a9c… |
 | run identifiers | mono, short opaque strings, shown in full | r-0913 |
@@ -1922,7 +1923,7 @@ carry, spelled as ADR-0016 stores it, and the registry declares each column's va
 | --- | --- | --- |
 | plan status | DRAFT · APPROVED · APPLYING · APPLIED · ROLLED_BACK · REJECTED · APPLY_REFUSED | Awaiting approval · Approved, waiting to apply · Applying · Applied · Rolled back · Rejected · Apply refused |
 | candidate status | pending · confirmed · dismissed | Awaiting review · Confirmed · Dismissed |
-| scan state | scanned · skipped_restricted · skipped_gate · pending · refused | in cells `scanned` · `restricted` · `gate skip` · `pending` · `refused`; on hover and in L4 "scanned" · "not scanned, restricted sender" · "released unscanned, gate skip" · "pending content scan" · "not scanned, body refused" |
+| scan state | scanned · skipped_restricted · skipped_gate · pending · refused | in cells `scanned` · `restricted` · `gate skip` · `pending` · `refused`, and on hover and in L4 "scanned" · "not scanned, restricted sender" · "released unscanned, gate skip" · "pending content scan" · "not scanned, body refused" |
 | sender class | normal · restricted | normal · restricted |
 | content flag | mfa_code · login_link | mfa · link |
 | gate decision and reason | SCAN · SKIP, with the reason as ADR-0093's skip branches name it | scan · skip, with the reason as recorded |
@@ -1957,7 +1958,7 @@ vocabularies are ADR-0016's.
 | A failed read | An error card in the region's place with the origin from the error contract of [section 17.3](#173-the-error-contract). "This request was refused" for the client's fault (with the message), "The UI server failed" for its own, "The database did not answer" for the database, each with the request id and a retry link. Other regions stay |
 | A decision refused | The footer or outcome area shows the refusal inline, with the origin and message, and the object reloads on a conflict. A missing declared identity reads "No identity was forwarded, so the decision was not recorded" |
 | Search with no result | The corpus lens at L3 with the chip and "No messages match" |
-| An account's credential refused | While the account's latest authentication reads `refused` (ADR-0097), a banner under the chrome on every screen of the account, in the partial-index banner's place and above it when both show: "{provider} refused {account}'s credential at {time}. Workloads that call {provider} fail for this account until it is re-authorized.", with a Re-authorize link to [section 8.12](#812-connect-an-account-and-re-authorize). It reads the system endpoint's operational block the partial-index banner already reads, and follows the stream and the polls as that banner does. A `failed` outcome raises no banner, since workloads retry it |
+| An account's credential refused | While the account's latest authentication reads `refused` (ADR-0097), a banner under the chrome on every screen of the account, in the partial-index banner's place and above it when both show, reading "{provider} refused {account}'s credential at {time}. Workloads that call {provider} fail for this account until it is re-authorized.", with a Re-authorize link to [section 8.12](#812-connect-an-account-and-re-authorize). It reads the system endpoint's operational block the partial-index banner already reads, and follows the stream and the polls as that banner does. A `failed` outcome raises no banner, since workloads retry it |
 | No account exists | `/` goes to the installation screen ([section 8.10](#810-installation)), whose getting-started list is the whole first run |
 
 ## 13. Keyboard map
@@ -2033,19 +2034,19 @@ colors and the neutral fill, never the categorical slots.
 
 | State | Token |
 | --- | --- |
-| link | info; hover text, underlined |
+| link | info, and on hover text, underlined |
 | focus ring | action, 2 px outside the control |
 | hover wash on a row or card | raised |
 | selected row, active navigation item, active rail section | raised background with a 2 px action bar on the left |
 | disabled control or text | faint |
-| progress track | raised; fill info while running, ok when complete, restricted when failed |
+| progress track | raised, its fill info while running, ok when complete, restricted when failed |
 | chart hairline, gridline, baseline | border |
-| chip | border outline; an applied filter chip is action outline with action text |
+| chip | border outline, and an applied filter chip is action outline with action text |
 | badge | outline in its semantic color with the same color text, never filled |
-| decision button | action fill for approve and confirm; border outline with text color for reject and dismiss |
+| decision button | action fill for approve and confirm, and border outline with text color for reject and dismiss |
 | lift control (removing a restriction) | restricted outline with restricted text, never filled, set apart from the add controls |
-| selection box | border outline when clear; action fill with a ground-colored check when selected; faint border and not selectable for a row the action cannot take |
-| setup step status | text with a glyph: a filled check in ok for done, an open circle in muted for not started, a dashed circle in faint for cannot start yet |
+| selection box | border outline when clear, action fill with a ground-colored check when selected, and a faint border and not selectable for a row the action cannot take |
+| setup step status | text with a glyph, a filled check in ok for done, an open circle in muted for not started, a dashed circle in faint for cannot start yet |
 
 **Theme switching.** The OS preference selects the palette by default. The override in the
 settings menu (system, dark, light) is stored per browser and wins over the OS setting. Every
@@ -2062,7 +2063,7 @@ token is a CSS custom property defined for both palettes, so a screen never name
 | line height | 1.45 body, 1.3 titles, tables single-line |
 | numerals | tabular in any column that aligns vertically, proportional elsewhere |
 | spacing scale | 4, 8, 12, 16, 24 px. Panel padding 12 px, region gap 16 px, screen margin 24 px |
-| controls | 28 px tall inline, 36 px tall primary decision buttons and table rows. Standalone controls have a 44 px minimum hit target; table rows are full-width targets and exempt |
+| controls | 28 px tall inline, 36 px tall primary decision buttons and table rows. Standalone controls have a 44 px minimum hit target. Table rows are full-width targets and exempt |
 | radius | 4 px everywhere, except chips at 10 px |
 | borders | 1 px, border token |
 
@@ -2088,16 +2089,21 @@ back to the next face in the stack.
 ## 15. Security of the UI itself
 
 The UI's code never opens a stored credential and never reads mail (ADR-0081, ADR-0084). It
-sees a credential in plaintext only while it completes a connection or a re-authorization, seals
-it before storing it, and runs under the trust anchor's hardening for that reason (ADR-0028). It
-holds the private key, because Google refuses a desktop client's code exchange without the
-client's secret, and one isolated package of its server, `ui/internal/clientsecret`, opens with it
-the secret of the client a consent was issued to and nothing else. Its import lists admit the
-opening half of the credential code there alone, its one operation takes a client's name and
-no sealing context, and the plaintext secret reaches no log line, no response and no cookie. A
-compromised UI process holds the key that opens every stored refresh token, while its database role
-reads none (ADR-0081). What remains is the browser, the transport, the database connection, the two
-decisions, the two setups, and the policy writes.
+sees a credential in plaintext only while it completes a connection or a re-authorization, and
+seals it before storing it. It holds the private key, because Google refuses a desktop client's
+code exchange without the client's secret, and one isolated package of its server,
+`ui/internal/setup/clientsecret`, opens with it the secret of the client a consent was issued to
+and nothing else. Its import lists admit the opening half of the credential code there alone, its
+one operation takes a client's name and no sealing context, and the plaintext secret reaches no log
+line, no response and no cookie.
+
+While the UI completes a consent it is part of the trust anchor, since it holds a full-mailbox
+grant in plaintext until it seals it, so it runs under the anchor's hardening (ADR-0028,
+ADR-0084). It is a member at other times too. A compromised UI process holds the key that opens
+every stored refresh token, and can read every one through the application user, which the API
+server, the UI and the worker connect as, so the hardening applies whether or not a consent is
+under way (ADR-0081, ADR-0143). What remains is the browser, the transport, the database
+connection, the two decisions, the two setups, and the policy writes.
 
 - **TLS when given a key pair, and plain HTTP otherwise** (ADR-0127). The UI serves TLS when its
   configuration names both TLS files, plain HTTP when it names neither, and refuses to start with
@@ -2156,9 +2162,11 @@ decisions, the two setups, and the policy writes.
   others is carried by the tests of [section 18](#18-repository-and-build-layout).
 - **Message-derived text is inert** ([section 11](#11-rendering-and-formatting-rules)).
 - **The UI never calls the API server.** It has no route to it and no credential for it. Every read
-  is the UI's own database role against the tables ADR-0084 grants. The only outside endpoints it
-  calls are a provider's, to check a client, complete a consent, and confirm which mailbox granted
-  it (ADR-0107).
+  is a statement of a data-access subsection the UI's exact import lists admit, and none of those
+  subsections reads an account's stored credential. The raw SQL analyser refuses any other
+  statement in its code (ADR-0143).
+  The only outside endpoints it calls are a provider's, to check a client, complete a
+  consent, and confirm which mailbox granted it (ADR-0107).
 - The dependency tree is small, pinned, and enumerated in a roster (ADR-0063), and the browser
   bundle ships as static files inside the Go binary (ADR-0042), so the runtime has one origin and
   one process.
@@ -2210,9 +2218,12 @@ shapes below are design and are generated into the contract document the browser
 built from (ADR-0042, ADR-0057).
 
 **The contract.** Two enumerated sources feed one generator, the dataset registry and the list of
-bespoke handlers. A route outside both fails the build. The generator writes an OpenAPI 3
-document, checked in at `ui/contract/` and regenerated in CI, and an OpenAPI-to-TypeScript
-generator writes the browser's types from it. The tools and the drift check are ADR-0065's. The
+bespoke handlers. That list is the bespoke routes, those of `reads`, `setup` and `policymanagement`
+that the registry does not generate, each carrying its handler, which the read API endpoint mounts
+beside the registry's ([section 18](#18-repository-and-build-layout)).
+A route outside both fails the build. The generator writes an OpenAPI 3 document, checked in at
+`ui/contract/` and regenerated in CI, and an OpenAPI-to-TypeScript generator writes the browser's
+types from it. The tools and the drift check are ADR-0065's. The
 client surface of ADR-0030 already carries its contract as OpenAPI.
 
 ### 17.1 The dataset endpoint
@@ -2294,7 +2305,7 @@ statement.
 | Sortable | `created_at` | `score`, `created_at` |
 | Range | over `created_at`, default all time | over `created_at`, default all time |
 | Default | L3, `sort=created_at,desc`, no filter | L3, `sort=score,desc`, `status=pending` |
-| L0 figures | one per status, worded as [section 11](#11-rendering-and-formatting-rules) words the status, each linking to the plans screen with that status | one per status, worded as section 11 words the status apart from `confirmed`, worded Confirmed because the count holds candidates whose index is updated and those whose index is not yet, each linking to the review queue with that status |
+| L0 figures | one per status, worded as [section 11](#11-rendering-and-formatting-rules) words the status, each linking to the plans screen with that status | one per status, worded as section 11 words the status, each linking to the review queue with that status |
 | Row | plan id, description, status, proposer, created time, decision time and identity, refusal reason, message count, and the latest apply run and rollback run found by their plan reference | domain, score, the recorded signals, status, created time, reviewed time and identity, and the sender's message count and first-seen time from its sender statistics |
 
 A candidate's recorded signals reach the browser typed, as a list of entries each carrying
@@ -2437,7 +2448,7 @@ Every failure is one shape, and the origin mirrors
 | `GET /ui/api/accounts/{account}/jobs` | one block per workload with its derived workload state and the card fields of [section 8.3](#83-jobs), the rate block (current, target, cap, backoff, last throttle, and reserved and used per class), and the cadences from configuration |
 | `GET /ui/api/accounts/{account}/jobs/{run}` | the run as the jobs endpoint sends it, the latest run whose `resumed_from` names it, its item failures counted in all and per disposition, the runs that recovered its items with how many each, and every event of its timeline (kind, time, page, detail) in the order recorded. An unknown run is refused with the client's 404, `unknown_run` |
 | `GET /ui/api/accounts/{account}/attention` | the "worth a look" cards of [section 8.1](#81-home), in their order, each with its rule id (`backlog`, `masking`, `body_serves`, `sync_gap`, `expiry`), what, number, since (`null` when the rule has none), the sentence, and the link the rule's table names |
-| `GET /ui/api/accounts/{account}/system` | two blocks. `operational`, the values of [section 8.8](#88-system) and the finish time of backfill pass 1's latest succeeded run, which tells the partial-index banner a re-opened pass 1 from a first one ([section 12](#12-empty-loading-partial-and-error-patterns)); `decisions`, the counts of plans in DRAFT, candidates pending, and workloads running, which the chrome's counters read. It counts nothing over every message of the account, since the banner reads it again on every backfill run event ([section 9](#9-live-surfaces)) |
+| `GET /ui/api/accounts/{account}/system` | two blocks. `operational`, the values of [section 8.8](#88-system) and the finish time of backfill pass 1's latest succeeded run, which tells the partial-index banner a re-opened pass 1 from a first one ([section 12](#12-empty-loading-partial-and-error-patterns)), and `decisions`, the counts of plans in DRAFT, candidates pending, and workloads running, which the chrome's counters read. It counts nothing over every message of the account, since the banner reads it again on every backfill run event ([section 9](#9-live-surfaces)) |
 | `GET /ui/api/accounts/{account}/corpus` | the corpus figures of Home's System column ([section 8.1](#81-home)) with `as_of`, the time the read transaction began, then the messages, threads, unfiled and restricted messages of the account, the restricted ones the sum of the stored message counts of the senders the account's composed policy restricts, classified in the read's transaction (ADR-0136), the audit rows of the last 24 hours by action as stored, each action present with zero when no row has it, the masking events and the gate's skips of the last 7 days. It counts every message of the account, which is why it is a read apart from the system endpoint, read by Home alone |
 | `GET /ui/api/accounts/{account}/events` | the live stream, `text/event-stream` |
 | `GET /ui/api/setup` | the installation endpoint. The providers whose accounts connect through an OAuth client, each OAuth client's name, provider, client identifier and project ID with the accounts connected through it, every account's identifier, provider and the client it connects through, and the count of base rules. Unscoped, and reads nothing of any account's state, so the getting-started list of [section 8.10](#810-installation) reads whether an account exists, never whether one is connected |
@@ -2512,14 +2523,14 @@ and is read again later is sent again, which costs nothing, since every event is
 every object the stream ever sent was the alternative, and it grows by every run of the account for
 as long as the stream is open.
 
-The host that runs the UI's process serves it under the connection limits of
+The process that runs the UI serves it under the connection limits of
 [ADR-0130](./adr/operability/0130-the-api-server-bounds-what-one-request-can-make-it-hold.md), so
 a request's headers have 10 seconds to arrive and the whole request 30, and a connection that sits
 idle between requests is closed after two minutes. Neither limit bounds an answer, and no timeout
 bounds writing a response, since that would cut an open stream, which is one response that never
 ends. When the process stops, every open stream ends as draining begins, so the requests in flight
 drain before the server closes
-([ADR-0138](./adr/engineering/0138-one-host-runs-each-process-and-each-component-provides-its-parts.md)).
+([ADR-0142](./adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md)).
 
 ## 18. Repository and build layout
 
@@ -2528,22 +2539,29 @@ half is Go and the browser half is TypeScript. How much of it is built is tracke
 
 ```text
 ui/
-  main.go               hands the arguments, the environment and the logger to app
-  app/                  the composition root, the entry package exporting the UI's section and assembly,
-                        whose Run hands the UI to the host (ADR-0138)
+  main.go               hands its arguments, its environment and the UI's spec to process.Run (ADR-0142)
+  app/                  the entry package, which holds the UI's spec and nothing else, the spec listing the
+                        endpoints /ui/api/, /ui/ and /{$} (ADR-0142)
   Dockerfile            the bundle stage, then the Go stage, then a minimal base
   internal/
     registry/           the dataset registry entries, each pointing at the data-access accessors it reads
-    api/                the server. The entry document, static files, the read API, the decisions, the stream,
-                        the bespoke handlers, the error contract, the request token, identity
-    contract/           builds the OpenAPI document from the registry and the handler list
-    clientsecret/       opens an OAuth client's sealed secret for a consent's code exchange, the one part
-                        of the UI that opens a stored value (ADR-0081)
+    server/             the checks every endpoint sits behind, the session cookie, the request token and the
+                        content security policy, with their key, and the error contract and the route type
+    api/                the read API endpoint, which mounts the routes of reads, setup and policymanagement
+    reads/              the read routes and their handlers
+    setup/              OAuth client setup and account setup, with the public key credentials are sealed to
+                        and each provider's consent
+      clientsecret/     opens an OAuth client's sealed secret for a consent's code exchange, the one part
+                        of the UI that opens a stored value (ADR-0081, ADR-0143)
+    policymanagement/   policy editing
+    pages/              the bundle, the entry document, and the redirect /{$} answers
+    contract/           builds the OpenAPI document from the registry and the bespoke routes
     paths/              the UI's root and the addresses under it the server builds (ADR-0137)
     core/               pure-core packages private to the UI
   contract/             the generated OpenAPI document (checked in, regenerated in CI)
   browser/              the TypeScript app, with its manifest, lock file, runner, compiler, lint and format settings
-    bundle.go           the Go package browser, which embeds dist beside it and hands it to any root
+    bundle.go           the Go package browser, which embeds dist beside it, imported by any package that
+                        serves the UI's pages
     codegen/            the type generation step's own package (ADR-0065)
     scripts/            the build and the dataset descriptor table's generator
     rules/              the ast-grep rules (ADR-0072)
@@ -2560,6 +2578,19 @@ ui/
   design/               the mockup sources and their notes
 ```
 
+- **The server's packages.** Each endpoint the spec lists is built by a function of its own
+  package, the read API by `api` and the pages and the redirect by `pages`
+  ([ADR-0142](./adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md)). The checks
+  of `server` and their key are built once per process, by the first endpoint that asks for them
+  through `server.Get`, and wrap every endpoint's handler. A route carries its handler, the Go
+  function that serves it, so no list apart from the routes binds an operation to that function.
+  The read API endpoint mounts the routes that `reads`, `setup` and `policymanagement` hold, each
+  route in one of the three. Which of them holds the decisions' routes is decided where the
+  decisions are built. Which of them holds the event stream's route, and where the identity header
+  that decisions and policy writes record is read, are open, and the code that places the stream's
+  route decides them. `setup` is refused the opening half of the
+  credential code. In the UI only `setup/clientsecret`, a package of its own, imports it
+  ([ADR-0143](./adr/data/0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)).
 - **Build.** `bun build` produces `browser/dist`, the Go binary embeds it, and the image of ADR-0049
   carries the binary and nothing else. A placeholder in `browser/dist` keeps Go's build and lint
   working before any bundle exists, since the embed needs a file to embed, and the image build
@@ -2568,7 +2599,7 @@ ui/
   ([ADR-0124](./adr/engineering/0124-each-kind-of-test-runs-in-a-workflow-of-its-own.md)). Where
   tests, violation files and tooling sit follows
   [CLAUDE.md](../CLAUDE.md#code-layout-and-conventions). Every build passes the production define
-  ADR-0063 names. The contract document is generated from the registry and the handler list in CI,
+  ADR-0063 names. The contract document is generated from the registry and the bespoke routes in CI,
   and the browser types and the descriptor table from the document. A stale document, stale types,
   or a stale descriptor table fails the build (ADR-0065).
 - **The root.** The browser writes the UI's root, `/ui`, in one module, `src/app/paths.ts`, and
@@ -2604,13 +2635,19 @@ ui/
 
 The UI knows its environment contract and never its platform (ADR-0051), and standing it up
 requires only what its artifacts declare ([O6](../USE_CASES.md#o6--deployable)). This is the
-declaration. Each key is its configuration path under ADR-0078, its one name, from which its
-environment name and flag derive, so `listen` is also `MEDIATED_MAILBOX_LISTEN` and `--listen`, and
-each key can come from the file, the environment or a flag. Every key is read at start, and no key
-carries secret material, which arrives as a mounted file whose path a key names (ADR-0079). A key
-lands in the binary with the work that first reads it, and until then the binary refuses it as it
-refuses any key it does not declare (ADR-0078). Which keys the binary reads today is build state,
-tracked in [ROADMAP.md](../ROADMAP.md).
+declaration. The keys are the fields of the UI's configuration type, `config.UI` in
+`core/config`, which holds their defaults and checks. Its `database` and `credential` sections are
+the types every program holding them shares (ADR-0078). It has no accounts part, which the
+compiler checks through `config.HasAccounts`, so the UI cannot ask for the Session or the
+connections
+([ADR-0142](./adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md)). Each key is
+its configuration path under ADR-0078, its one name, from which its environment name and flag
+derive, so `listen` is also `MEDIATED_MAILBOX_LISTEN` and `--listen`, and each key can come from
+the file, the environment or a flag. Every key is read at start, and no key carries secret
+material, which arrives as a mounted file whose path a key names (ADR-0079). A key lands in the
+binary with the work that first reads it, and until then the binary refuses it as it refuses any
+key it does not declare (ADR-0078). Which keys the binary reads today is build state, tracked in
+[ROADMAP.md](../ROADMAP.md).
 
 Four keys are the browser's, `default_theme`, `stream_reconnect_max`, `stream_poll_interval` and
 `consent_redirect`. The Go handler renders each into the entry document on every page load as a
@@ -2623,7 +2660,7 @@ pictures no address and finds no pasted address to be the redirect's.
 
 | Key | Value | Required |
 | --- | --- | --- |
-| `database` | the section ADR-0078 declares for every deployable, the Postgres connection settings for the UI's own role (ADR-0084) rendered into the connection string, with the password read from the file `database.password_file` names, `database.user` defaulting to that role and `database.pool_size` to the driver's own default | yes |
+| `database` | the section ADR-0078 declares for every deployable. It holds the Postgres connection settings for the application user, which the API server, the UI and the worker connect as (ADR-0143), rendered into the connection string. The password is read from the file `database.password_file` names. `database.user` is that user's name, which the deployment provides and which has no default. `database.pool_size` defaults to the driver's own default | yes |
 | `listen` | the address and port the UI serves on | no, defaults to `:8443`, as the API server's does |
 | `probe_listen` | the address and port the health and readiness probes and the metrics endpoint serve on, in plain HTTP | no, defaults to `:8080`, as the API server's does |
 | `tls_cert`, `tls_key` | paths to the TLS material, mounted as files (ADR-0079's convention) and read again on each handshake, as the API server's are, so a renewed certificate needs no restart. Both named, the UI serves TLS, and neither named, plain HTTP. A path of spaces counts as unset (ADR-0127) | no, but one without the other refuses the start, naming the missing one |
@@ -2649,10 +2686,14 @@ result, as `mediated_mailbox_ui_read_duration_seconds` by `dataset` and `level`,
 `mediated_mailbox_ui_stream_subscribers`, and the decision outcomes' series where the decisions are
 built. They also carry the statement, pool, Go runtime and process series every deployable
 registers ([ADR-0125](./adr/engineering/0125-performance-is-measured-once-at-each-place-time-goes.md)).
-Every series the UI registers carries `component` with the value `ui`. The host serves the health
-and readiness probes and the metrics endpoint on their own plain-HTTP listener, `probe_listen`,
-apart from the UI's own listener, as plain text without the content security policy, which is for
-the UI's own responses, and the UI reports ready only while the database answers its role. No log line and no metric label ever carries message-derived text. This is the UI's share of [O2](../USE_CASES.md#o2--observable).
+Every series the UI registers carries `component` with the value `ui`. The process serves the
+health and readiness probes and the metrics endpoint on their own plain-HTTP listener,
+`probe_listen`, apart from the UI's own listener. They answer as plain text without the content
+security policy, which is for the UI's own responses. The UI reports ready only while the database
+answers a ping
+([ADR-0142](./adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md)). No log line
+and no metric label ever carries message-derived text. This is the UI's share of
+[O2](../USE_CASES.md#o2--observable).
 
 ## 19. Building it
 
@@ -2665,16 +2706,16 @@ object in the data state. No global mutable store beyond these three. Which mech
 each is ADR-0063's decision.
 
 **What not to do.** Do not add a rendering path that interprets message-derived text. Do not add a
-decision, however small, without a record that widens ADR-0084's grant. Do not let any of the UI's
-code but `ui/internal/clientsecret` open a stored value. Do not aggregate across accounts. Do not proxy anything
-through the API server. Do not fetch a corpus into the browser to
+decision, however small, without a record that widens ADR-0084's list of writes. Do not let any of
+the UI's code but `ui/internal/setup/clientsecret` open a stored value. Do not aggregate across
+accounts. Do not proxy anything through the API server. Do not fetch a corpus into the browser to
 group it there. Do not paint a fake status bar or keyboard in any layout. Do not introduce a
 color outside the token tables without re-running the palette derivation and, for a chart series,
 its validator. Do not read a header for identity unless the deployment declared it. Do not keep
-view state outside the URL. What is kept per browser is none of it view state: the theme override,
+view state outside the URL. What is kept per browser is not view state. It is the theme override,
 the account last used, and the OAuth client setup's marks and project identifier, per client, of
-[section 8.11](#811-oauth-client-setup). Do not put a trigger, a procedure, or a function in the database for
-anything (ADR-0060).
+[section 8.11](#811-oauth-client-setup). Do not put a trigger, a procedure, or a function in the
+database for anything (ADR-0060).
 
 **Tests the UI owes.** Every control the UI carries is dispositioned in
 [docs/VERIFICATIONS.md](./VERIFICATIONS.md), as an injection row keyed to the unit that delivers it or

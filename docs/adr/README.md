@@ -122,7 +122,7 @@ moves it. Records themselves link freely and deep, into
 | 0017 | [Backfill is full-history and two-pass: metadata first, gated scanning second](./data/0017-two-pass-backfill.md) | **Superseded** |
 | 0018 | [Delta sync polls on a short cadence; push delivery rejected](./data/0018-delta-sync-polls.md) | Accepted |
 | 0047 | [The schema is the single authority, read through per-query result types — no entity model](./data/0047-schema-first-data-access.md) | Accepted |
-| 0048 | [Migrations are hand-written SQL, forward-only, run under their own role](./data/0048-forward-only-migrations.md) | Accepted |
+| 0048 | [Migrations are hand-written SQL, forward-only, run as a database user of their own](./data/0048-forward-only-migrations.md) | Accepted |
 | 0066 | [Data access is generated from hand-written SQL, and the dataset endpoint is enumerated rather than composed](./data/0066-data-access-generated-from-sql.md) | Accepted |
 | 0067 | [The migration runner is goose, invoked as a command](./data/0067-migration-runner-goose.md) | **Superseded** |
 | 0075 | [Each deployable connects to the database as a runtime role of its own](./data/0075-one-runtime-role-per-deployable.md) | **Superseded** |
@@ -130,14 +130,15 @@ moves it. Records themselves link freely and deep, into
 | 0091 | [The accounts table holds only what every listing needs, and each account's state lives apart](./data/0091-accounts-listed-apart-from-their-state.md) | Accepted |
 | 0105 | [A cursor gap re-enumerates from an hour before the last cursor was written, with no cap, and an account with no cursor is reconciled over a first window](./data/0105-a-cursor-gap-is-recovered-from-the-last-cursors-write-time.md) | Accepted |
 | 0112 | [The base policy is read and written in a transaction of its own, which names no account and reaches only the base policy's rows](./data/0112-the-base-policy-is-written-and-read-in-a-transaction-of-its-own.md) | Accepted |
-| 0118 | [Each deployable, and inside the worker each job kind, connects as a runtime role of its own](./data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md) | Accepted |
+| 0118 | [Each deployable, and inside the worker each job kind, connects as a runtime role of its own](./data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md) | **Superseded** |
 | 0126 | [Backfill's second pass reads the messages waiting for a scan newest first, keyed on the send time and the identifier](./data/0126-backfills-second-pass-walks-newest-first.md) | Accepted |
 | 0128 | [Account identifiers are one lowercase DNS label, held alike by the UI's proposal, its server check and the database](./data/0128-account-identifiers-are-one-lowercase-dns-label.md) | Accepted |
-| 0129 | [The chart runs the migration step as one Helm hook Job before install and every upgrade, holding the migration role's credential alone](./data/0129-the-chart-runs-the-migration-step-as-a-pre-install-and-pre-upgrade-hook-job.md) | Accepted |
+| 0129 | [The chart runs the migration step as one Helm hook Job before install and every upgrade, holding the migrator's user's credential alone](./data/0129-the-chart-runs-the-migration-step-as-a-pre-install-and-pre-upgrade-hook-job.md) | Accepted |
 | 0133 | [Backfill is full-history and two-pass: metadata first, gated scanning second](./data/0133-backfill-is-full-history-and-two-pass.md) | Accepted |
 | 0135 | [Every statement reads its account from the transaction, and no table carries a row-level security policy](./data/0135-every-statement-reads-its-account-from-the-transaction.md) | Accepted |
 | 0139 | [The migration runner is goose, linked into the migrator, which configures and connects like every process](./data/0139-the-migration-runner-is-goose-linked-into-the-migrator.md) | Accepted |
 | 0140 | [Each migration declares the oldest chain whose binaries run on the schema it leaves, and a binary refuses a schema it cannot run on](./data/0140-each-migration-declares-the-oldest-chain-that-runs-on-it.md) | Accepted |
+| 0143 | [The programs connect as one application user beside the migrator's, and each program's import lists bound what its code can do in the database](./data/0143-the-programs-connect-as-one-application-user-beside-the-migrators.md) | Accepted |
 
 ## Mutation — `mutation/`
 
@@ -149,7 +150,7 @@ moves it. Records themselves link freely and deep, into
 | 0031 | [Every mutating operation is dry-runnable — a preflight that writes nothing](./mutation/0031-dry-run-on-mutating-operations.md) | Accepted |
 | 0032 | [All validation precedes the first write; saved plans validate at creation, re-validate at apply, and expire](./mutation/0032-whole-batch-validation.md) | Accepted |
 | 0084 | [The UI writes the database directly for two decisions, a rollback request, OAuth client setup, account setup and policy management, and seals credentials its code never opens](./mutation/0084-ui-writes-decisions-and-account-setup.md) | Accepted |
-| 0102 | [Every change to the policy is appended to a history no runtime role can rewrite](./mutation/0102-policy-changes-recorded-in-an-append-only-history.md) | Accepted |
+| 0102 | [Every change to the policy is appended to a history the application user cannot rewrite](./mutation/0102-policy-changes-recorded-in-an-append-only-history.md) | Accepted |
 | 0110 | [A policy file holds one scope's rules and imports into any scope, making that scope's rules equal to the file after a preview and one confirmation of every lift, and a rule's identifier is unique within its scope](./mutation/0110-a-policy-file-holds-one-scope-and-importing-it-replaces-that-scope.md) | Accepted |
 
 ## Operability — `operability/`
@@ -182,7 +183,7 @@ moves it. Records themselves link freely and deep, into
 | 0087 | [Each client operation declares its effect once, and its HTTP method, path shape and MCP annotations derive from it](./operability/0087-client-surface-derives-method-and-hints-from-each-operations-effect.md) | Accepted |
 | 0088 | [A credential is sealed with HPKE's X-Wing suite from Go's standard library, under a header naming its key](./operability/0088-credentials-sealed-with-hpke-x-wing.md) | Accepted |
 | 0089 | [A deployable writes a sealed value only if the stored bytes are still the ones it last knew](./operability/0089-sealed-values-written-by-compare-and-set.md) | Accepted |
-| 0090 | [A deployable takes its accounts and credentials as an account snapshot, loaded at start and reloaded on a schedule](./operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md) | Accepted |
+| 0090 | [A deployable takes its accounts as an account snapshot and their credentials into its connections, loaded at start and reloaded on a schedule](./operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md) | Accepted |
 | 0092 | [A key is replaced by delta sync re-sealing what it opens, and retires once a scan finds nothing left on it](./operability/0092-key-replacement-by-keyring-and-re-seal.md) | Accepted |
 | 0097 | [The adapter reports its latest authentication attempt, and the deployable records it at the end of each unit of work, the latest attempt winning](./operability/0097-authentication-outcome-reported-by-the-adapter-recorded-by-the-deployable.md) | Accepted |
 | 0101 | [Every failure on the client surface names its origin, and a gated body denial is a result, not a failure](./operability/0101-every-failure-names-its-origin-and-a-body-denial-is-a-result.md) | Accepted |
@@ -190,7 +191,7 @@ moves it. Records themselves link freely and deep, into
 | 0108 | [The index reads select messages by an index query of the client surface's own, never by the Provider Port's canonical query](./operability/0108-index-reads-select-by-an-index-query-of-the-surfaces-own.md) | Accepted |
 | 0109 | [The index is read through a search, a count that groups, and the sender listing](./operability/0109-the-index-is-read-through-search-count-and-the-sender-listing.md) | Accepted |
 | 0111 | [A consent attempt travels in a cookie the UI server seals, bound to the session that started it](./operability/0111-a-consent-attempt-travels-in-a-cookie-the-ui-server-seals.md) | Accepted |
-| 0117 | [One background worker runs every job kind, with each job kind's code, role and observability kept apart inside it](./operability/0117-one-background-worker-runs-every-job-kind.md) | Accepted |
+| 0117 | [One background worker runs every job kind, with each job kind's code and observability kept apart inside it](./operability/0117-one-background-worker-runs-every-job-kind.md) | Accepted |
 | 0119 | [The worker's jobs are scheduled by an in-process scheduler that stores nothing, from recorded state, with no messaging through PostgreSQL](./operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md) | Accepted |
 | 0127 | [The API server and the UI serve TLS when given a certificate and key, and plain HTTP when given neither](./operability/0127-tls-when-given-a-key-pair-plain-http-otherwise.md) | Accepted |
 | 0130 | [The API server bounds what one request can make it hold, with batches refused, cancellation followed, one deadline on a request's lease waits and limits on each connection](./operability/0130-the-api-server-bounds-what-one-request-can-make-it-hold.md) | Accepted |
@@ -229,8 +230,9 @@ moves it. Records themselves link freely and deep, into
 | 0086 | [The MCP root speaks the protocol through the official Go SDK, stateless and tools only](./engineering/0086-mcp-root-on-the-official-go-sdk.md) | Accepted |
 | 0099 | [A body request loads the policy before it decides, sharing a load only with the requests that arrived before it started](./engineering/0099-a-body-request-loads-the-policy-before-it-decides.md) | Accepted |
 | 0114 | [A policy reload whose accounts read different base rules reads them all once more, and fails only if they still disagree](./engineering/0114-a-torn-base-policy-read-is-read-again-before-it-fails-the-reload.md) | Accepted |
-| 0122 | [Every deployable logs through log/slog as JSON to standard output, at a configured level, through a logger its entry package hands its shells](./engineering/0122-logs-through-slog-at-a-configured-level-handed-to-shells.md) | Accepted |
+| 0122 | [Every deployable logs through log/slog as JSON to standard output, at a configured level, through a logger the process hands its shells](./engineering/0122-logs-through-slog-at-a-configured-level-handed-to-shells.md) | Accepted |
 | 0124 | [Each kind of test runs in a CI workflow of its own, selected by its file's kind, at triggers set by measurement](./engineering/0124-each-kind-of-test-runs-in-a-workflow-of-its-own.md) | Accepted |
 | 0125 | [Performance is measured once at each place a request or a job spends its time, each series naming the tuning question it answers](./engineering/0125-performance-is-measured-once-at-each-place-time-goes.md) | Accepted |
-| 0138 | [One host runs each process over the components its composition root hands it, and each component provides its parts without starting them](./engineering/0138-one-host-runs-each-process-and-each-component-provides-its-parts.md) | Accepted |
+| 0138 | [One host runs each process over the components its composition root hands it, and each component provides its parts without starting them](./engineering/0138-one-host-runs-each-process-and-each-component-provides-its-parts.md) | **Superseded** |
 | 0141 | [A commit header's type sizes the release and its scope names the maintenance surface, never the component](./engineering/0141-commit-header-type-sizes-release-scope-names-surface.md) | Accepted |
+| 0142 | [Each program is a spec that lists what it is made of, and one process runs it, keeping what its endpoints and jobs share](./engineering/0142-each-program-is-a-spec-that-one-process-runs.md) | Accepted |

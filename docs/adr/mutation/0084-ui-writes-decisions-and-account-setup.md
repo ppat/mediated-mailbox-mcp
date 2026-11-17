@@ -43,10 +43,10 @@ These constraints keep it safe to exist.
 
 - **Writes go directly to Postgres, never through the client surface**, preserving every client's
   structural inability to approve its own plans.
-- **Separate Deployment, ServiceAccount, and database role.** It is read-only on most tables. Its
-  read of `account_state` arrives with the statement that needs it and never covers `credential`
-  ([ADR-0091](../data/0091-accounts-listed-apart-from-their-state.md)). Beyond those reads, its
-  grant is exactly the following, and nothing else.
+- **A separate Deployment and ServiceAccount, and import lists of its own.** It is read-only on
+  most tables. Its read of `account_state` arrives with the statement that needs it and never
+  covers `credential` ([ADR-0091](../data/0091-accounts-listed-apart-from-their-state.md)). Beyond
+  those reads, its statements are exactly the following, and nothing else.
   - The columns each decision verb sets, `reorg_plans(status, approved_at, approved_by)` and
     `policy_candidates(status, reviewed_at, reviewed_by)`. The first also carries the rollback
     request, a plan status ([ADR-0020](./0020-reorg-plan-approve-apply-rollback.md)).
@@ -69,8 +69,15 @@ These constraints keep it safe to exist.
 
   The base policy's rules and history rows are written only in a transaction of the base policy's
   own ([ADR-0112](../data/0112-the-base-policy-is-written-and-read-in-a-transaction-of-its-own.md)).
-  The limit is enforced by database permissions, so a UI bug cannot become a mailbox mutation. A
-  write is made by the UI's own code in one transaction, with no database-resident code
+  The limit is enforced by the UI's exact import lists, which admit only the data-access
+  subsections whose statements make these writes and reads, and by the raw SQL analyser, which
+  refuses every other statement in the UI's code
+  ([ADR-0071](../engineering/0071-static-enforcement-toolchain.md)). It rests on the rule that the
+  subsections the UI's list admits hold no write outside this list and no read of an account's
+  stored credential
+  ([ADR-0143](../data/0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)).
+  So a UI bug cannot become a mailbox mutation. A write is made by the UI's own code in one
+  transaction, with no database-resident code
   ([ADR-0060](../engineering/0060-no-code-in-the-database.md)). The identity a decision records is
   the value of a header the deployment declares an authenticating proxy sets, else a configured
   operator name.
@@ -83,7 +90,11 @@ These constraints keep it safe to exist.
   calls a provider only to check a client, complete a consent, and confirm which mailbox granted it.
 - **While it completes a consent it is part of the trust anchor.** It holds a full-mailbox grant in
   plaintext until it seals it, so it runs under the same hardening as the deployables that call a
-  provider ([ADR-0028](../operability/0028-trust-anchor-hardening.md)).
+  provider ([ADR-0028](../operability/0028-trust-anchor-hardening.md)). It is a member at other
+  times too, since its process can read every stored credential through the application user and
+  holds the private key that opens them
+  ([ADR-0143](../data/0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)),
+  so the hardening applies whether or not a consent is under way.
 - **It never displays message bodies**, structurally, because it reads a database with no body
   columns ([ADR-0016](../data/0016-schema.md)). Stated here so nobody later adds a "preview"
   feature by proxying through the API server.
@@ -116,18 +127,21 @@ a rollback request, connecting accounts and keeping the policy. Its design is
 
 ## Consequences
 
-- Compromise of the UI yields two decision verbs, a rollback request, OAuth client setup, account
-  setup and policy management. An approved plan is still constrained by the Mutation Authorizer at
-  apply time. A confirmed candidate's rule insert can only add a restriction, and invalid rules
-  never take effect
+- Through its own code, a compromise of the UI yields two decision verbs, a rollback request,
+  OAuth client setup, account setup and policy management. An approved plan is still constrained
+  by the Mutation Authorizer at apply time. A confirmed candidate's rule insert can only add a
+  restriction, and invalid rules never take effect
   ([ADR-0041](../engineering/0041-policy-as-immutable-snapshots.md)). Policy management can lift
-  restrictions, every account's included, and each lift is recorded in a history no runtime role
-  can rewrite ([ADR-0102](./0102-policy-changes-recorded-in-an-append-only-history.md)), so the
-  evidence of it survives. Setup lets it replace a client or an account's credential, or capture
+  restrictions, every account's included, and each lift is recorded in a history the application
+  user cannot rewrite ([ADR-0102](./0102-policy-changes-recorded-in-an-append-only-history.md)), so
+  the evidence of it survives. Setup lets it replace a client or an account's credential, or capture
   a grant while a connection or re-authorization is under way. Its code cannot open a stored
-  credential, serve a body, or mutate mail directly. A compromised UI process holds the private key
-  that opens every stored credential, the cost
-  [ADR-0081](../operability/0081-credentials-sealed-to-a-public-key.md) states.
+  credential, serve a body, or mutate mail directly. A compromised UI process is not held to its
+  code. It holds the private key that opens every stored credential, the cost
+  [ADR-0081](../operability/0081-credentials-sealed-to-a-public-key.md) states, and can read every
+  stored credential through the application user, so it reaches what
+  [ADR-0143](../data/0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)
+  states.
 - With no authentication of the UI's own, anyone who reaches the UI can set up a client,
   connect an account or replace a credential. The request token of
   [ADR-0061](../operability/0061-ui-browser-security-posture.md) stops another site from forging
@@ -135,14 +149,18 @@ a rollback request, connecting accounts and keeping the policy. Its design is
 - The UI reaches the provider's token endpoint and the mailbox profile it checks a grant against,
   so its egress includes those endpoints.
 - A write that changed nothing must not reach the operator as a successful one. The two ways a write
-  can fail here behave oppositely. A grant the role does not hold raises, so it is visible on its
-  own. A predicate that matches no row, because the row is another account's, instead empties the
-  statement, which succeeds having changed nothing, and without care that reaches the operator as
-  the stale-status conflict the expected-status check produces, which is the wrong account of what
-  happened. Telling those apart is a mechanism question and belongs to
-  [ADR-0066](../data/0066-data-access-generated-from-sql.md). One consequence of the grant being the
-  control is that its refusal names the table and not the column, so it carries nothing the operator
-  could act on and maps to the internal-fault origin of the error contract rather than to a client
-  fault.
+  can fail here behave oppositely. A grant the application user does not hold raises, so it is
+  visible on its own. A predicate that matches no row, because the row is another account's,
+  instead empties the statement, which succeeds having changed nothing, and without care that
+  reaches the operator as the stale-status conflict the expected-status check produces, which is the
+  wrong account of what happened. Telling those apart is a mechanism question and belongs to
+  [ADR-0066](../data/0066-data-access-generated-from-sql.md). The import list is the control. A
+  write outside the UI's list is refused before the UI runs, by its import lists and the raw SQL
+  analyser, or, in a subsection its list admits, by review
+  ([ADR-0143](../data/0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)).
+  The grant check proves the application user's grants cover every statement the list admits. A
+  grant refusal that still reaches the UI at run time names the table and not the column, so it
+  carries nothing the operator could act on and maps to the internal-fault origin of the error
+  contract rather than to a client fault.
 - The UI is where the operator's standing duties live, plan review, candidate review, masking
   review and keeping accounts connected, so its legibility is a safety property, not a nicety.

@@ -37,7 +37,7 @@ than a preference.
 | R6 | A standard construction | Specified publicly with test vectors, so it is not the project's own cryptography | ADR-0081 |
 | R7 | Confidentiality against later decryption | A stolen database copy stays sealed against an attacker with a quantum computer | This record |
 | R8 | Keys from a standard tool | An operator can generate the key pair without project code | This record |
-| R9 | The sealing half importable alone | The UI's code outside its one opening part links no code that opens a value | ADR-0081, [executioncontext/README.md](../../../executioncontext/README.md#the-sealed-credentials-credential) |
+| R9 | The sealing half importable alone | The UI's code outside its one opening part links no code that opens a value | ADR-0081, [credential/README.md](../../../credential/README.md#the-sealed-credentials-seal-and-open) |
 | R10 | Maintained and current | Released recently and maintained | This record |
 
 R1 is a gate. R2, R4, R5, R6 and R7 order the field. R7 orders it because of the lifetime argument
@@ -102,7 +102,7 @@ The table below names what the ordinary path does that the design forbids, and w
 
 | Construction | Harm | What stops it |
 | --- | --- | --- |
-| The UI importing the opening subsection | A compromised UI reads every stored grant | The UI's import list and its violation file ([ADR-0071](../engineering/0071-static-enforcement-toolchain.md)) |
+| The UI importing the opening subsection | The UI's code outside its one opening part opens every stored grant | The UI's import list and its violation file ([ADR-0071](../engineering/0071-static-enforcement-toolchain.md)) |
 | A public key passed where the private key belongs | Code that compiles and opens nothing, or a confusing failure at runtime | Distinct key types, and a must-not-compile case |
 | Sealing without the context, or opening with a different one | A value moved between rows or purposes opens | A test of every context swap, and a mutation patch dropping the context |
 | An altered, truncated or wrong-version value | Garbage or a forged grant reaches a provider | Tests of every single-bit flip, every truncation and a wrong version |

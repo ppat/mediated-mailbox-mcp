@@ -79,7 +79,8 @@ whether to run the analysers individually or under one command. Everything else 
   and does not check a file that no list matches. The lists are these, and
   [CLAUDE.md](../../../CLAUDE.md#components) names the directories they match.
   - **Non-test files of every pure-core package, in any component.** A pure core may import other
-    pure-core packages and a named set of outside packages, and nothing else. An outside package
+    pure-core packages, apart from a pure core a fence below confines to other importers, and a
+    named set of outside packages, and nothing else. An outside package
     joins the set only when its code, and the code of every package it imports, meets all four of
     these conditions. Outside the test are the Go runtime, `unsafe`, the standard library's
     `internal/` packages, and `sync` and `io`, whose package state no caller can see. A choice
@@ -113,14 +114,54 @@ whether to run the analysers individually or under one command. Everything else 
     ([ADR-0117](../operability/0117-one-background-worker-runs-every-job-kind.md)), each job kind
     has a list of its own, inside the deployable's, so the isolation of one job kind's code from
     another's is checked rather than conventional. A job kind that needs no credential, no provider
-    and no account session imports none of them, and each job kind's list names the data-access
-    subsections its own role is granted
-    ([ADR-0118](../data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)).
-  - **Each shared library.** The data-access library, the provider library, the rate limiter and the
-    shared test support each have a list. A component's list names each data-access subsection it
-    may use, so the grant check of [ADR-0066](../data/0066-data-access-generated-from-sql.md) can
-    test the list against the role's grants, while the lists over code that never ships, and over
-    every component's files at once, admit the whole data-access library.
+    and no connection to a provider imports none of them. Each job kind's list names exactly the
+    data-access subsections its code may use, and with the raw SQL analyser below, that list bounds
+    what its code can do in the database
+    ([ADR-0143](../data/0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)).
+  - **Each shared library.** The data-access library, the content, credential and process
+    families, the provider library with its rate limiter, and the shared test support each have
+    lists of their own. A component's list names each data-access
+    subsection it may use, so the grant check of
+    [ADR-0066](../data/0066-data-access-generated-from-sql.md) can plan every statement the list
+    admits under the application user
+    ([ADR-0143](../data/0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)).
+    The lists over code that never ships, and over every component's files at once, admit the whole
+    data-access library.
+  - **The fences between packages.** Each package in the first column below is admitted by the
+    lists of the packages in the second column, and by every wider list that matches their files,
+    since a file two lists match must satisfy both. It is refused by every list over non-test code
+    that matches only files of other packages and does not admit it. So the fence holds only where
+    every non-test file outside the importers is matched by a list that leaves the importers' files
+    out and does not admit the package, as the UI's exact list leaves out the opener's directory
+    and names no opening code. The third column of the table names those lists for each fence.
+    Where no list of that layout exists yet, the code ticket that builds the fence writes one, laid
+    out as the opener's, a list over the component's non-test code that leaves the importers' files
+    out and names this project's packages by exact entries. The UI's list over its non-test code
+    outside its opening part, which matches `ui/internal/setup` beside the UI's other packages, and
+    the list over all non-test code are wider lists, and admit this project's packages by prefix,
+    the provider fake apart, which the list over all non-test code refuses. So a wider list refuses
+    no fenced package, even where it leaves the importers' files out. Each fence is proven by a
+    violation file. Every other list
+    of a component or a package names this project's packages by exact entries, with two
+    exceptions, each an entry by prefix that the build-graph check below covers. They are a
+    deployable's list admitting the deployable's own directory, and a list admitting the pure-core
+    `core/`. The lists over test files admit by prefix as well, among them the whole data-access
+    library, as the list over all non-test code does. The pure-core list does not admit the
+    standard library's `time` for `core/config`, the programs' configuration types, which use a
+    length-of-time type of their own.
+
+    | May import | Only | Refused outside them by |
+    | --- | --- | --- |
+    | An adapter, such as `provider/mail/gmail` | `provider` | The programs' lists, which name no adapter, a list over the provider library's non-test code that leaves `provider`'s files out, which the code ticket that builds the fence writes, and every other list of a component or a package, which names it nowhere |
+    | An adapter's pure core, such as `provider/mail/gmail/core` | That adapter | The pure-core list, for other pure cores, a list over the provider library's non-test code that leaves the adapter's files out, which the code ticket that builds the fence writes, and every other list of a component or a package, which names it nowhere |
+    | `provider/ratelimit` | `provider`, and `api/internal/registry` for the rate-state collector | A list over the provider library's non-test code that leaves `provider`'s files out, and the API server's one list over its non-test code that leaves `api/internal/bodies` and `api/internal/registry` out, each written by the code ticket that builds the fence, `api/internal/bodies`' own list, the other programs' lists, and every other list of a component or a package, each naming it nowhere |
+    | `provider/ratelimit/core`, the rate limiter's pure rules, reached only by the limiter and the caller that builds it | `provider` and `provider/ratelimit` | The pure-core list, for other pure cores, the programs' lists, a list over the provider library's non-test code that leaves the importers' files out, which the code ticket that builds the fence writes, and every other list of a component or a package, which names it nowhere |
+    | `credential/open` | `process/connections`, `ui/internal/setup/clientsecret`, and the test tool `testsupport/cmd/keypaircheck`. `ui/internal/setup` is refused it ([ADR-0081](../operability/0081-credentials-sealed-to-a-public-key.md), [ADR-0143](../data/0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)) | The UI's exact list over its non-test code, whose file patterns leave out the opener's directory, the test support's lists over its non-test code, which leave out `testsupport/cmd/keypaircheck`, the lists of the API server, the worker and the command-line program, which imports `credential/seal`, the lists of the process family's other packages, and every other list of a component or a package, each naming it nowhere. The UI's wider list outside its opening part admits it by prefix and refuses it nowhere |
+    | `process/connections` | `api/internal/bodies`, and the packages of a job kind that calls a provider | The API server's one list over its non-test code that leaves `api/internal/bodies` and `api/internal/registry` out, which the code ticket that builds the fence writes, `api/internal/registry`'s own list, the worker's list over its code outside its job kinds, which leaves them out, the list of each job kind that calls no provider, `process/sessions`' list, which keeps the Session from the connections, the lists of the UI, the migrator and the command-line program, and every other list of a component or a package, each naming it nowhere |
+    | `provider/consent` | `ui/internal/setup` | A list over the UI's non-test code that leaves `ui/internal/setup` out, which the code ticket that builds the fence writes, the other programs' lists, and every other list of a component or a package, each naming it nowhere |
+    | `net/http` and the MCP library, in the API server's code under `api/internal/` | The generator file of each root, `api.go` in `api/internal/api` and `mcp.go` in `api/internal/mcp`, each through a list of its own beside the rest of its package. The MCP library goes to `mcp.go` alone. `net/http` also goes to `api/internal/bearer`, which is no root, as a whole package. Bearer's list admits none of `api/internal/service`, `api/internal/registry` or `api/internal/bodies` and no data-access subsection, so the bearer-token check wraps a root's handler and reaches no operation ([ADR-0053](./0053-parity-by-construction.md), [ADR-0086](./0086-mcp-root-on-the-official-go-sdk.md)) | A list over the non-test code under `api/internal/` that leaves out the two roots and `api/internal/bearer`, which the code ticket that builds the fence writes, and each root's list over its files outside the generator file |
+    | `provider/mail/fake` | Test files | The list over all non-test code |
+
   - **The API server's two protocol roots**, each admitting the service layer and nothing below it
     ([ADR-0030](../operability/0030-api-core-mcp-thin-adapter.md)).
   - **The UI's non-test code outside its one opening part.** It admits the standard library and
@@ -130,8 +171,8 @@ whether to run the analysers individually or under one command. Everything else 
     `crypto/`, the public-key code an opening is built on, `crypto/hpke`, `crypto/mlkem` and
     `crypto/ecdh`, among them
     ([ADR-0081](../operability/0081-credentials-sealed-to-a-public-key.md)). The root `crypto`
-    package, which holds interfaces and the hash registry and no algorithm, stays admitted. Test files are
-    outside it, because a test opens what the UI sealed to check it and is never served.
+    package, which holds interfaces and the hash registry and no algorithm, stays admitted. Test
+    files are outside it, because a test opens what the UI sealed to check it and is never served.
   - **Non-test code everywhere.** It refuses the shared test support, the provider fake, the
     contract suite, the property-testing library and the comparison library, so none of them reaches
     code that ships.
@@ -154,7 +195,7 @@ whether to run the analysers individually or under one command. Everything else 
   is matched by some list, which the list over files outside every component keeps true for such
   files and review keeps true inside the components.
 - **A pure core holds no package-level state, and the project's own `go vet` analysers check it.**
-  The import lists cannot see this. A variable a composition root sets is a dependency no parameter
+  The import lists cannot see this. A variable a program's code sets is a dependency no parameter
   of [ADR-0040](./0040-pure-core-decisions-as-values.md)'s pure core shows, and an exported error
   value is such a variable too. Four rules carry it.
   - A non-test file of a pure-core package declares no package-level variable other than the blank
@@ -199,29 +240,53 @@ whether to run the analysers individually or under one command. Everything else 
   exempt, since a route a test registers is never served. The rule sits in its own analyser, run by
   the same program, and honours no suppression comment. The API server is outside its scope, for the
   reason the alternatives give.
-- **The UI runs a statement only through the data-access library, and the project's own `go vet`
-  analysers refuse the statements they can see.** The UI's role may read an OAuth client's sealed
-  secret for the UI's client-secret part alone
-  ([ADR-0081](../operability/0081-credentials-sealed-to-a-public-key.md)). The import lists confine
-  that read to the part by the subsection it sits in, while they admit the database driver to every
-  package of the UI, so a statement written by hand would read around them. The raw SQL analyser
-  reports, in a non-test file of a package under `ui/`, every use of a method that runs a
-  statement, matched by its name and by how its parameters open, the driver's parameters for it.
-  They are `Query`, `QueryRow`, `Exec` and `ExecParams` given a `context.Context` and a
-  statement's text, `Prepare` given a context, a name and a statement's text, `SendBatch` and
-  `ExecBatch` given the driver's batches, `CopyFrom` given the driver's table identifier or a reader
-  and a statement, `CopyTo` given a writer and a statement, and `StartPipeline` returning the
-  driver's pipeline. That covers the driver's connection, pool and transaction and its lower-level
-  connection, `*pgconn.PgConn`. It reports the driver's own types, an interface such as a generated
-  subsection's `DBTX`, and any other type alike, so a wrapper or an interface declared in the UI is
-  no way around it, and a parameter spelled through an alias counts as the type it stands for. A call and a method
-  value are reported alike. The generated statements sit under `db/`, outside its scope, so the UI's
-  code reaches the database only through them. Three paths stay with review. One is a statement run
-  through reflection. Another is one written to the wire through the raw network connection or the
-  protocol frontend the lower-level connection hands out. The third is a method one of whose
-  parameter types is a type parameter. Test files are exempt, since a statement a test runs is never
-  served. The rule sits in its own analyser, run by the same program, and honours no suppression
-  comment.
+- **The API server, the UI and the worker run a statement only through the data-access library,
+  and the project's own `go vet` analysers refuse the statements they can see.** The three connect
+  as the one application user, whose grants cannot tell one program's code from another's
+  ([ADR-0143](../data/0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)).
+  So what their code can do in the database is the statements of the data-access subsections their
+  import lists admit. In the UI an OAuth client's sealed secret is read by the UI's
+  client-secret part alone ([ADR-0081](../operability/0081-credentials-sealed-to-a-public-key.md)).
+  The import lists confine each read and write to the code whose list admits the subsection it sits
+  in, while they admit the database driver to every package of those programs, so a statement
+  written by hand would read around them. The raw SQL analyser reports, in a non-test file of a
+  package under `api/`, `ui/` or `worker/`, every use of a method that runs a statement, matched by
+  its name and by how its parameters open, the driver's parameters for it. They are `Query`,
+  `QueryRow`, `Exec` and `ExecParams` given a `context.Context` and a statement's text, `Prepare`
+  given a context, a name and a statement's text, `SendBatch` and `ExecBatch` given the driver's
+  batches, `CopyFrom` given the driver's table identifier or a reader and a statement, `CopyTo`
+  given a writer and a statement, and `StartPipeline` returning the driver's pipeline. That covers
+  the driver's connection, pool and transaction and its lower-level connection, `*pgconn.PgConn`.
+  It reports the driver's own types, an interface such as a generated subsection's `DBTX`, and any
+  other type alike, so a wrapper or an interface declared in one of those programs is no way around
+  it, and a parameter spelled through an alias counts as the type it stands for. A call and a method
+  value are reported alike. The generated statements sit under `db/`, outside its scope, so the
+  code of those three programs reaches the database only through them. Three paths stay with
+  review. One is a statement run through reflection. Another is one written to the wire through
+  the raw network connection or the protocol frontend the lower-level connection hands out. The
+  third is a method one of whose parameter types is a type parameter. Test files are exempt, since
+  a statement a test runs is never served. The rule sits in its own analyser, run by the same
+  program, and honours no suppression comment. Code outside those three directories runs
+  statements too. The process family's code runs as the application user in the API server, the UI
+  and the worker, and as the migrator's user in the migrator. Among it, the Session's packages run
+  in the API server and the worker, and so do the connections, the one part of it that reads the
+  stored credentials, and the provider library's rate limiter with its statements in
+  `db/ratestate/limiter`. The analyser does
+  not read that code, so a statement written by hand there is held by review, as a goroutine the
+  process family starts is ([ADR-0142](./0142-each-program-is-a-spec-that-one-process-runs.md)).
+- **Two calls of the connections are held to one package each, and the project's own `go vet`
+  analysers refuse any other caller.** The connections attach to the Session once, as its third
+  member. A second attach is refused, and the attach is called only from `process/connections`
+  itself. So code that holds the Session reaches the connections only through their own package,
+  which the list of a job kind that calls no provider refuses
+  ([ADR-0117](../operability/0117-one-background-worker-runs-every-job-kind.md),
+  [ADR-0142](./0142-each-program-is-a-spec-that-one-process-runs.md)). The re-sealing of the stored
+  credentials to a new key, the connections' `Reseal`, is called only from delta sync's package,
+  `worker/internal/deltasync`
+  ([ADR-0092](../operability/0092-key-replacement-by-keyring-and-re-seal.md)). Each rule is run by
+  the same program as the analysers above and is proven by a violation file. Each leaves to review
+  a call made through reflection, and any other form of call its package comment states it does
+  not match, which the code that builds the rule decides.
 - **Every package the build of `./...` reaches is one `./...` lists, and the ban-proof script checks
   it.** The aggregator, the `go vet` analysers and the grant check of
   [ADR-0066](../data/0066-data-access-generated-from-sql.md) read only the packages `./...` lists,
@@ -305,26 +370,32 @@ whether to run the analysers individually or under one command. Everything else 
   reports ill-formed or insufficient directives, so a well-formed directive naming a linter and
   carrying an explanation silences a ban while `nolintlint` at its strictest settings reports
   nothing. The aggregator offers no option to stop honouring the directives.
-- **Seven checks are written here, because no tool offers them.** The rules against package-level
+- **Eight checks are written here, because no tool offers them.** The rules against package-level
   state in a pure core above. The rule above against a route the UI registers other than through
-  its recording mux. The rule above against a statement the UI runs other than through the
-  data-access library. The check above that the build of `./...` reaches only packages `./...`
-  lists and compiles only files the lint reads. The suppression check above, written to follow the
-  aggregator's own reading of a directive so it refuses exactly what the aggregator would honour,
-  and refusing the spellings the aggregator ignores as well, so a later release honouring them
-  cannot admit one silently. A package that must not compile, loaded with
-  `golang.org/x/tools/go/packages` through one helper in the shared test support, which requires
-  the exact type error rather than the presence of one. And the ban-proof script, which runs the
-  analysers, the suppression check and the build-graph check against the checked-in files
+  its recording mux. The rule above against a statement the API server, the UI or the worker runs
+  other than through the data-access library. The rules above holding the connections' attach and
+  their re-sealing each to its one calling package. The check above that the build of `./...`
+  reaches only packages `./...` lists and compiles only files the lint reads. The suppression check
+  above, written to follow the aggregator's own reading of a directive so it refuses exactly what
+  the aggregator would honour, and refusing the spellings the aggregator ignores as well, so a
+  later release honouring them cannot admit one silently. A package that must not compile, loaded
+  with `golang.org/x/tools/go/packages` through one helper in the shared test support, which
+  requires the exact type error rather than the presence of one. And the ban-proof script, which
+  runs the analysers, the suppression check and the build-graph check against the checked-in files
   violating each ban and each list, requiring each expected finding and no other. The script also
   runs the project's `go vet` analysers against their violation files, for
   [ADR-0069](./0069-property-and-crash-sequences-from-rapid.md)'s placement rules, the rules above
-  against package-level state, against a route registered around the UI's recording mux and
-  against a statement the UI runs around the data-access library, the rule
+  against package-level state, against a route registered around the UI's recording mux, against a
+  statement the API server, the UI or the worker runs around the data-access library and against a
+  call of the connections' attach or re-sealing from another package, the rule
   [ADR-0078](./0078-configuration-layers-through-an-owned-library.md) sets against reading the
-  environment outside a deployable's `main.go`, and the rule
+  environment outside a deployable's or the migrator's `main.go`, the rule
   [ADR-0047](../data/0047-schema-first-data-access.md) sets that every generated data-access
-  function runs inside the transaction helper.
+  function runs inside the transaction helper, the goroutines rule of
+  [ADR-0119](../operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md) and
+  [ADR-0142](./0142-each-program-is-a-spec-that-one-process-runs.md), and the rule
+  [ADR-0117](../operability/0117-one-background-worker-runs-every-job-kind.md) sets against
+  importing `unsafe`.
 
 ### What each tool's ordinary path does that other records forbid
 
@@ -337,9 +408,13 @@ whether to run the analysers individually or under one command. Everything else 
 
 ### Anything deliberately left open
 
-Nothing in the import boundary. The boundary between database roles is a list per component naming
-its data-access subsections, which [ADR-0066](../data/0066-data-access-generated-from-sql.md)'s
-grant check tests against the grants.
+Nothing in the import boundary. What a component's code can do in the database is bounded by a
+list per component naming its data-access subsections, whose statements
+[ADR-0066](../data/0066-data-access-generated-from-sql.md)'s grant check plans under the
+application user
+([ADR-0143](../data/0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)).
+Beside it, a statement written by hand in the process family's code or the rate limiter's, which
+the raw SQL analyser does not read, is left to review, as the analyser's rule above states.
 
 ### How the decision meets each requirement
 
@@ -351,7 +426,7 @@ grant check tests against the grants.
 | A rule cannot be switched off quietly | The suppression check refuses every directive, ignore comment and configuration setting that can reach a linter standing in for a control, anywhere in the repository, and allows an ordinary linter's suppression only in a form naming it. Each refused directive is proven by a violation file, and each refused configuration setting by a case in the ban-proof script's own tests |
 | Configuration is checked in and readable | One file holding every rule and every setting |
 | Works on the Go version the project builds with | The aggregator is built with the current toolchain and rebuilds the analysers against it |
-| Footprint | One command. The analysers are inside it rather than beside it, apart from the project's `go vet` analysers, for [ADR-0069](./0069-property-and-crash-sequences-from-rapid.md)'s placement rules, this record's rules against package-level state in a pure core, against a route registered around the UI's recording mux and against a statement the UI runs around the data-access library, [ADR-0078](./0078-configuration-layers-through-an-owned-library.md)'s rule against reading the environment outside a deployable's `main.go` and [ADR-0047](../data/0047-schema-first-data-access.md)'s rule that every generated data-access function runs inside the transaction helper, which run beside it |
+| Footprint | One command. The analysers are inside it rather than beside it, apart from the project's `go vet` analysers, for [ADR-0069](./0069-property-and-crash-sequences-from-rapid.md)'s placement rules, this record's rules against package-level state in a pure core, against a route registered around the UI's recording mux, against a statement the API server, the UI or the worker runs around the data-access library and against a call of the connections' attach or re-sealing from another package, [ADR-0078](./0078-configuration-layers-through-an-owned-library.md)'s rule against reading the environment outside a deployable's or the migrator's `main.go`, [ADR-0047](../data/0047-schema-first-data-access.md)'s rule that every generated data-access function runs inside the transaction helper, the goroutines rule of [ADR-0119](../operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md) and [ADR-0142](./0142-each-program-is-a-spec-that-one-process-runs.md) and [ADR-0117](../operability/0117-one-background-worker-runs-every-job-kind.md)'s rule against importing `unsafe`, which run beside it |
 
 One analyser here serves no kind [ADR-0042](./0042-implementation-stack.md) names. `forbidigo`
 refuses a call to an identifier named in its configuration, and
@@ -424,9 +499,9 @@ reported an aliased import of the same function as well.
 - **A package `./...` does not list is built in when a file imports it, and no check reads it.** A
   package at `propose/internal/testdata/w` called the sealed credential's statements inside the
   transaction helper, and `propose/internal/leak` imported it. The build, the aggregator, the
-  `go vet` analysers and the grant check all passed with propose's list unchanged, so a role
-  [ADR-0118](../data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md) bars from the
-  credential reached its statements. The same held, measured, for these:
+  `go vet` analysers and the grant check all passed with propose's list unchanged, so code whose
+  list refuses the sealed credential's subsection reached its statements. The same held, measured,
+  for these:
   - A package at `propose/internal/_u`, one at `propose/internal/.d`, and one under
     `ui/browser/node_modules`, which `go.mod` ignores.
   - A symbolic link at `propose/internal/link` to a `testdata` directory.
@@ -559,8 +634,8 @@ denylist verb does not exist to reach for, and it names components once and decl
 graph between them rather than repeating globs. It is rejected on a single fact that no setting
 changes, which is that every standard-library import is allowed unconditionally, before any
 permission check runs. That was confirmed by reading the code that does it and by watching a core
-package import a networking package without being reported. Since
-the pure-core rule is almost entirely about standard-library packages, that is disqualifying here
+package import a networking package without being reported. Since the pure-core rule is almost
+entirely about standard-library packages, that is disqualifying here
 while leaving the tool perfectly good at the rule it does carry.
 
 **A check written here.** Its case is real and it is the reason this was close. It would walk
@@ -628,7 +703,7 @@ failing to passing in both directions.
 `reassign` is that both are off the shelf and run under the aggregator. `gochecknoglobals` reported
 thirty-seven legitimate package-level variables outside pure cores, so it would need scoping to
 pure-core files by an exclusion rule, and the ban-proof script refuses any exclusion rule naming a
-linter that stands in for a control. It also admits exported error values, which a composition root
+linter that stands in for a control. It also admits exported error values, which a program's code
 can overwrite, so `reassign` would run beside it over the whole repository, and neither refuses a
 pure core overwriting its own error value. The rules sit in the project's own `go vet` analysers
 instead, which need no carve-out and refuse that write too.
@@ -650,27 +725,31 @@ instead, which need no carve-out and refuse that write too.
   seconds across the four configurations. It needs no dependency beyond the go command.
 
 **How to refuse a route registered around the UI's recording mux, and where.** Three mechanisms
-were weighed, over the UI and over the API server, whose composition root mounts its two roots and
-its probe routes on muxes with nothing recording them.
+were weighed, over the UI and over the API server, whose two roots and probe routes are mounted on
+muxes with nothing recording them.
 
 - **A `go vet` analyser over the UI** was chosen. Run over the whole module with its one exemption,
   the recording mux's own `Handle`, it reported nothing under `ui/`, so it refuses no legitimate
   registration there. It is about a hundred and thirty lines with its comments.
-- **The same analyser over the API server** was rejected. There it reported six registrations and
-  all six are legitimate, the API root's generator registering each operation of the registry, and
-  the composition root mounting `/api/` and `/mcp` and serving its three probe routes. The import
-  lists already confine `net/http` in the API server's code to three files, the two roots'
-  generators and the composition root, so exempting those leaves the analyser refusing only a route
-  registered in the MCP root's generator, a case no record names. The case left to review there, a
-  route the composition root adds by hand, could be refused only by a list of the patterns the
-  composition root may mount, which would copy `api/app` into the analyser and drift from it, or by
-  exempting the functions that mount them, which lets a route added inside them through. The
-  API server's routes stay with review. The host that runs every process
-  ([ADR-0138](./0138-one-host-runs-each-process-and-each-component-provides-its-parts.md)) mounts
-  each component's handler at the patterns its root gives and serves the three probe routes, outside
-  `ui/`, and is left to review as the API server's mounting is. A component hands the host its
-  handler as a value and registers no route on a mux it is handed, so the UI's routes stay on its
-  recording mux whatever process hosts it.
+- **The same analyser over the API server** was rejected. Run over the API server's code while its
+  own composition root mounted its roots, it reported six registrations and all six were
+  legitimate, the API root's generator registering each operation of the registry, and the
+  mounting of `/api/` and `/mcp` and of the three probe routes. Under
+  [ADR-0142](./0142-each-program-is-a-spec-that-one-process-runs.md) that mounting is the
+  process's, outside `api/`, and the generator's registrations remain. The import lists confine
+  `net/http` in the API server's code to the two roots' generator files and the bearer-token
+  check's package, so exempting the registrations that are legitimate leaves the analyser refusing
+  only a route registered in the MCP root's generator or in the bearer-token check's package,
+  cases no record names. The case left to review there, a route added by hand, could be refused
+  only by a list of the patterns the API server's spec may name, which would copy `api/app` into the
+  analyser and drift from it, or by exempting the functions that mount them, which lets a route
+  added inside them through. The API server's routes stay with review. The process, which runs one
+  program's spec ([ADR-0142](./0142-each-program-is-a-spec-that-one-process-runs.md)), mounts each
+  endpoint's handler at the pattern its program's spec gives and serves the three probe routes,
+  outside `ui/`, so the analyser does not read it, and what it mounts is left to review with the
+  API server's routes. An endpoint's `Build`
+  returns its handler as a value and registers no route on a mux it is handed, so the UI's routes
+  stay on its recording mux whatever program serves them.
 - **Moving the recording mux into a package of its own** was rejected. The compiler would then
   refuse a call on the mux beneath the recorder from package `api`, with no analyser. It needs a new
   directory, and it leaves a registration on a second mux built in package `api` unrefused, which the
@@ -723,7 +802,7 @@ file globs where a graph of components would declare each once.
 ## Consequences
 
 - **What leaving these choices would cost.** A configuration file, in every case. The rules
-  themselves are stated in the records that require them and survive any change of tool. The seven
+  themselves are stated in the records that require them and survive any change of tool. The eight
   checks written here are each small enough to rewrite in an afternoon.
 - **What would re-argue this decision.** The aggregator's central argument is that it rebuilds
   analysers their own maintainers have not released against a current toolchain. If those projects
@@ -752,6 +831,6 @@ file globs where a graph of components would declare each once.
   [the selection at the regrouping](#the-inter-component-rules-selected-again-at-the-regrouping-into-families)
   states.
 - **Assumptions about other components.** Continuous integration can install a pinned command and
-  run it over the whole module whenever a change reaches Go code or the configuration. The packages
-  a pure core is permitted to import reach nothing of this project's, which is what makes checking
-  written imports enough.
+  run it over the whole module whenever a change reaches Go code or the configuration. The outside
+  packages a pure core is permitted to import reach nothing of this project's, and the other pure
+  cores it imports are held to the same rule, which is what makes checking written imports enough.

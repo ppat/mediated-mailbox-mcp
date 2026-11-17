@@ -56,9 +56,11 @@ operation one route, a structured read a `:search` route, and a read with only s
   its first and last message, the share of its messages carrying a `List-Id`, its label
   distribution, and its sampled display names and address local parts. Its sender class is the
   Redaction Gate's under the policy in force, decided from its domain as the classifier classifies
-  every address at that domain, restricted when the classifier cannot read the domain, and never
-  the class stored with the statistics. The prior scan hits are not served. The hits are a signal derived from bodies that no
-  outcome needs a client to read. The statistics hold no embedding
+  every address at that domain, restricted when the classifier cannot read the domain. The
+  statistics store no class
+  ([ADR-0136](../redaction/0136-the-index-stores-no-sender-class-and-every-reader-classifies-when-it-reads.md)).
+  The prior scan hits are not served. The hits are a signal derived from bodies that no outcome
+  needs a client to read. The statistics hold no embedding
   ([ADR-0016](../data/0016-schema.md)), and one the heuristics store later serves the heuristics
   alone, so it is not served either.
 - **Everything served is metadata the redaction matrix shows for every sensitivity state**
@@ -83,13 +85,16 @@ operation one route, a structured read a `:search` route, and a read with only s
   offset is refused ([ADR-0033](./0033-utc-only-timestamps.md)).
 - **The API server reads the statistics through the data-access subsection for senders, and the
   rebuild of the statistics and the counts of prior scan hits sit in a subsection below it**, which
-  only the deployables that build the statistics admit, as
-  [ADR-0066](../data/0066-data-access-generated-from-sql.md) places a statement a role admitted to
-  its table's subsection may not be granted. Delta sync's removal of the statistics of a sender with
-  no stored message sits in its own subsection for a message's changes, which the API server does
-  not admit either. The API server's role holds a read of the sender domain on messages and of the
-  statistics' columns, apart from the prior scan hits
-  ([ADR-0118](../data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)).
+  only the job kinds that build the statistics admit.
+  [ADR-0066](../data/0066-data-access-generated-from-sql.md) places a subsection below its table's
+  subsection where a record forbids its statements to code whose import list admits the table's
+  subsection, and this record keeps the rebuild and the prior scan hits from the API server. Delta
+  sync's removal of the statistics of a sender with no stored message sits in its own subsection for
+  a message's changes, which the API server does not admit either. The API server's statements read
+  the sender domain on messages and the statistics' columns, apart from the prior scan hits. Two
+  things keep it off them. Its import lists admit neither of those subsections, and the senders
+  subsection it does admit holds no statement reading them, which review holds
+  ([ADR-0143](../data/0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)).
 
 ## Alternatives considered
 
@@ -110,10 +115,13 @@ operation one route, a structured read a `:search` route, and a read with only s
   second place, and the table exists to keep those reads cheap
   ([ADR-0016](../data/0016-schema.md)). A grouping of a selection by sender domain is
   `count_messages`'s already.
-- **Sender statistics serving the stored class.** For it, the statistics read as one row each, with no
-  classification on the call. Rejected for the reason
-  [ADR-0108](./0108-index-reads-select-by-an-index-query-of-the-surfaces-own.md) rejects the stored
-  class as a term, a domain listed after its statistics were built would read as normal.
+- **Sender statistics serving a class stored with them**, which
+  [ADR-0136](../redaction/0136-the-index-stores-no-sender-class-and-every-reader-classifies-when-it-reads.md)
+  refuses. For it, the statistics read as one row each, with no classification on the call.
+  Rejected for the reason
+  [ADR-0108](./0108-index-reads-select-by-an-index-query-of-the-surfaces-own.md) rejects the sender
+  class term read from a class stored in the index, a domain listed after its statistics were built
+  would read as normal.
 - **Every group set paged by its statement.** For it, one paging mechanism. Against it, a label group
   comes from expanding each message's labels and a month group from truncating its date, and neither
   is a column a statement's sort can be shown to end with, which

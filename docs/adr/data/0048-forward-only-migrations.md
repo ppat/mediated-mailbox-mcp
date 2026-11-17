@@ -1,4 +1,4 @@
-# 0048. Migrations are hand-written SQL, forward-only, run under their own role
+# 0048. Migrations are hand-written SQL, forward-only, run as a database user of their own
 
 **Status:** Accepted ·
 **Serves:** [C2](../../../USE_CASES.md#c2--sensitive-sender-content-never-released)
@@ -48,9 +48,10 @@ append-only audit log ([ADR-0016](./0016-schema.md)).
   corpus's metadata again, since the first pass leaves a message it already holds as it is
   ([ADR-0133](./0133-backfill-is-full-history-and-two-pass.md)), so it is the expensive kind of
   rebuildable. A column derived from what is stored costs a statement.
-- **Migrations run as their own step, under their own database role that owns the DDL.** The
-  runtime roles hold no DDL rights. This is the same role discipline that scopes the approval
-  surface's grants ([ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)),
+- **Migrations run as their own step, as a database user of their own that owns the DDL**, the
+  migrator's user. The application user holds no DDL rights. This is the same discipline that
+  holds the application user's writes to what the data-access library's statements write
+  ([ADR-0143](./0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)),
   applied to schema change.
 
 ## Alternatives considered
@@ -79,15 +80,20 @@ append-only audit log ([ADR-0016](./0016-schema.md)).
   accepted, because this system's shape tolerates the pause.
 - Database extensions are versioned dependencies of the schema, with their upgrade cadence owned by
   the platform's database, not by this repository. The schema needs only trusted extensions, which
-  the migration role, owning the database, creates itself in the chain's first migration, so no
+  the migrator's user, owning the database, creates itself in the chain's first migration, so no
   step inside the application database needs a superuser. An extension that is not trusted would
   bring that step back, so a schema change that needs one is decided with that cost in view.
-- Grant statements in migrations name roles literally. goose's environment substitution would let
-  names vary, but the generator of [ADR-0066](./0066-data-access-generated-from-sql.md) reads the
-  migration files directly and cannot parse the substitution markers, and a grant to a role that
-  does not exist yet fails, which is why the roles are created before the chain runs.
-- Assumptions about other components: something outside the application creates the roles once per
-  cluster, which needs the privilege to create roles, creates the application database owned by the
-  migration role, grants the DDL-owning role to the migration step and withholds it from the runtime
-  roles, and backs up the database. The deployment runs the migration step before rolling the
-  deployables, whatever the deployment mechanism is.
+- Grant statements in migrations are made to the application user's name, which the migrator is
+  given as a required setting, since the project names no database user
+  ([ADR-0143](./0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)). How
+  the migrator hands that name to the migrations is not yet chosen, and the first change to the
+  chain's grants chooses it. Whatever it chooses keeps the migration files readable by the
+  generator of [ADR-0066](./0066-data-access-generated-from-sql.md), which reads them directly and
+  cannot parse goose's environment substitution markers. A grant to a user that does not exist yet
+  fails, which is why the users are created before the chain runs.
+- Assumptions about other components: something outside the application creates the two users once
+  per cluster, which needs the privilege to create roles, creates the application database owned by
+  the migrator's user, delivers the migrator's user's credential to the migration step alone and
+  never to a process that connects as the application user, and backs up the database. The
+  deployment runs the migration step before rolling the deployables, whatever the deployment
+  mechanism is.

@@ -23,11 +23,13 @@ The hardening is layered, each layer answering one of those three questions.
   beyond what it needs. Membership is by process, and everything a member process links is inside
   the anchor, the code of every job kind the worker runs included
   ([ADR-0117](./0117-one-background-worker-runs-every-job-kind.md)). Within the worker, each job
-  kind is held to the code and grants it needs by isolation per job kind, not by a process
-  boundary. The hardening is enforced by policy, and images are signed and verified before they
-  run. The UI runs under the same hardening, because it holds a fresh grant while it completes a
-  consent and holds the private key
-  ([ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)).
+  kind is held to the code and the data-access statements it needs by isolation per job kind, not
+  by a process boundary. The hardening is enforced by policy, and images are signed and verified
+  before they run. The UI runs under the same hardening, because it holds a fresh grant while it
+  completes a consent, holds the private key, and can read every stored credential through the
+  application user
+  ([ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md),
+  [ADR-0143](../data/0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)).
 - **Audit trail is maintained:** a record of changes is kept in the Metadata & State Store, and
   significant events or changes are logged at the log level that matches them.
 - **Recovery documented:** a credential-rotation runbook, so revoke-and-reissue follows a written
@@ -45,8 +47,9 @@ The hardening is layered, each layer answering one of those three questions.
 - Alerting on logs, and backups of the Metadata & State Store, are concerns of the deployment
   platform and environment.
 - Evidence written before a compromise survives it without depending on anything outside the
-  cluster, because the audit log is append-only to every runtime role
-  ([ADR-0016](../data/0016-schema.md)). That bounds the claim rather than absolutising it. An
-  attacker holding the process governs what is written from that moment on, and what happens to
-  the emitted rows and logs afterwards is the platform's
-  ([ADR-0051](../engineering/0051-environment-contract.md)), not this project's.
+  cluster, because the audit log is append-only to the application user, which the API server, the
+  UI and the worker connect as ([ADR-0016](../data/0016-schema.md),
+  [ADR-0143](../data/0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)).
+  That bounds the claim rather than absolutising it. An attacker holding the process governs what
+  is written from that moment on, and what happens to the emitted rows and logs afterwards is the
+  platform's ([ADR-0051](../engineering/0051-environment-contract.md)), not this project's.

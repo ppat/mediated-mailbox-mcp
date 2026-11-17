@@ -59,7 +59,9 @@ client's question, not the surface's.
   | `unread`, `starred`, `has_attachments` | Whose state equals the value given. A message not marked read is unread |
   | `sender_class` | Whose sender the Redaction Gate classifies `normal` or `restricted` under the policy the call took |
 
-- **No term reads a message's scan state, its content flags or the class the index stored.** A
+- **No term reads a message's scan state or its content flags**, and the index stores no sender
+  class for one to read
+  ([ADR-0136](../redaction/0136-the-index-stores-no-sender-class-and-every-reader-classifies-when-it-reads.md)). A
   message whose body is denied is selected like any other, which is
   [G1](../../../USE_CASES.md#g1--whole-mailbox-visibility)'s third falsifier held by the query's
   shape.
@@ -130,12 +132,12 @@ client's question, not the surface's.
 - **The restricted domains passed into the statement, every other domain counting as normal.** For
   it, the set passed is usually the smaller one. Against it, a domain the call did not classify,
   such as one first written after the classification read, counts as normal, which fails open.
-- **The sender class term read from the class the index stored.** For it, one column in the
+- **The sender class term read from a class stored in the index**, which
+  [ADR-0136](../redaction/0136-the-index-stores-no-sender-class-and-every-reader-classifies-when-it-reads.md)
+  refuses. For it, one column in the
   statement and no classification per call. Against it, a domain listed after its messages were
   stored would select as normal while the same message is served as restricted, the disagreement
-  [ADR-0002](../redaction/0002-fetch-time-re-evaluation.md) rules out, and the API server holds no
-  grant on that column
-  ([ADR-0118](../data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)).
+  [ADR-0002](../redaction/0002-fetch-time-re-evaluation.md) rules out.
 
 ## Consequences
 

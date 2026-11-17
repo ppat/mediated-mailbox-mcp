@@ -34,10 +34,9 @@ class AccountContext:
 ```
 
 The bundle is a concept, everything the system holds for one account and for no other. Its parts
-live in their own libraries, the account snapshot, the provider adapter's connection, the policy
-snapshot and the rate limiter, and the structure above illustrates what the bundle holds rather
-than prescribing one Go type
-([DESIGN.md's Glossary](../../../DESIGN.md#provider-abstraction-and-accounts)).
+live apart, the Session's accounts and policies, the connections and the rate limiter, each in its
+own package, and the structure above illustrates what the bundle holds rather than prescribing one
+Go type ([DESIGN.md's Glossary](../../../DESIGN.md#provider-abstraction-and-accounts)).
 
 These rules keep accounts from bleeding.
 
@@ -46,9 +45,9 @@ These rules keep accounts from bleeding.
 - **Every table is indexed on `account_id`**, with the exceptions [ADR-0016](../data/0016-schema.md)
   names (the op log, which carries no account column and is reached through its plan, the base
   policy rows every account inherits, and the OAuth clients, which belong to no account). The
-  accounts table is keyed on `account_id` too, and the roles that list accounts read all of its rows
-  ([ADR-0091](../data/0091-accounts-listed-apart-from-their-state.md)). All queries go through a
-  repository layer that requires the account, and every statement against an account-keyed table
+  accounts table is keyed on `account_id` too, and the code that lists accounts reads all of its
+  rows ([ADR-0091](../data/0091-accounts-listed-apart-from-their-state.md)). All queries go through
+  a repository layer that requires the account, and every statement against an account-keyed table
   compares its account with the transaction's ([ADR-0047](../data/0047-schema-first-data-access.md),
   [ADR-0135](../data/0135-every-statement-reads-its-account-from-the-transaction.md)).
 - **Per-account clients, never a shared pool.** A shared HTTP client with a mutable auth header is

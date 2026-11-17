@@ -1,4 +1,4 @@
-# 0102. Every change to the policy is appended to a history no runtime role can rewrite
+# 0102. Every change to the policy is appended to a history the application user cannot rewrite
 
 **Status:** Accepted ·
 **Pillar:** [An accepted risk that is not measured is an unmeasured risk](../../../DESIGN.md#an-accepted-risk-that-is-not-measured-is-an-unmeasured-risk) ·
@@ -29,8 +29,8 @@ past window.
   identifier, the rule's account or none for a base rule, and the rule's domain suffixes before and
   after. The actions are a rule added, a rule edited, a rule lifted, which is removed, and a rule
   inserted by confirming a candidate. A change that fails leaves neither row.
-- **No runtime role may update or delete a row of `policy_changes`**, as on the audit log. Evidence
-  of who lifted a restriction survives a compromise of the UI that made the change.
+- **The application user may not update or delete a row of `policy_changes`**, as on the audit
+  log. Evidence of who lifted a restriction survives a compromise of the UI that made the change.
 - **The UI shows the history** as a dataset on the policy screen, the base policy's changes and the
   account's own, and each rule's changes on its own screen ([docs/UI.md](../../UI.md#87-policy)).
 
@@ -44,8 +44,10 @@ past window.
 
 ## Consequences
 
-- The UI's grant holds insert on `policy_changes`, and only insert, as
-  [ADR-0084](./0084-ui-writes-decisions-and-account-setup.md) states it.
+- The UI's writes on `policy_changes` are insert, and only insert, as
+  [ADR-0084](./0084-ui-writes-decisions-and-account-setup.md) states them, and the application
+  user holds no update or delete on it
+  ([ADR-0143](../data/0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)).
 - Confirming a candidate inserts its rule and its history row in the one transaction that sets the
   candidate's status.
 - Importing a policy file
@@ -54,9 +56,12 @@ past window.
 - The history grows with every change, and like the audit log nothing in the running system trims
   it.
 - Assumptions about other components. Only the UI writes `policy_rules`, so only the UI writes the
-  history. A change written to `policy_rules` outside the UI, directly in the database, leaves no
-  history row, and nothing detects it. Every statement confines the reads of an account's history
-  rows to the transaction's account, with the base policy's rows readable by every account
+  history. No data-access subsection another program's import list admits writes either table, by
+  the rule of
+  [ADR-0143](../data/0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)
+  that review holds. A change written to `policy_rules` outside the UI, directly in the database,
+  leaves no history row, and nothing detects it. Every statement confines the reads of an account's
+  history rows to the transaction's account, with the base policy's rows readable by every account
   ([ADR-0135](../data/0135-every-statement-reads-its-account-from-the-transaction.md)). A base rule
   and its history row are written in a transaction of the base policy's own, which names no account
   ([ADR-0112](../data/0112-the-base-policy-is-written-and-read-in-a-transaction-of-its-own.md)).

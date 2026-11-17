@@ -12,20 +12,20 @@ that the platform scrapes the endpoint and owns collection, shipping and retenti
 app does not know its platform. [ADR-0040](./0040-pure-core-decisions-as-values.md) and
 [ADR-0071](./0071-static-enforcement-toolchain.md) keep every metric in shell code and out of a
 pure core. [ADR-0117](../operability/0117-one-background-worker-runs-every-job-kind.md) keeps
-every series a job kind of the worker produces attributable to its job kind. What is left is which performance measurements
-the code captures, where each is captured, and how each is exposed.
+every series a job kind of the worker produces attributable to its job kind. What is left is which
+performance measurements the code captures, where each is captured, and how each is exposed.
 
-The series emitted before this record answer correctness and liveness questions, such as the rate
-limiter's state, the provider cost against the hard cap, the scan backlog and each job's last
-success. None of them says where time goes. No series measured Gmail's latency, the rate lease's
-wait, conversion or scan cost, a statement's latency, a wait for a pooled connection, an operation
-of the client surface, or the Go runtime.
+The series that answer correctness and liveness questions, such as the rate limiter's state, the
+provider cost against the hard cap, the scan backlog and each job's last success, say nothing of
+where time goes. Without the series this record adds, nothing measures Gmail's latency, the rate
+lease's wait, conversion or scan cost, a statement's latency, a wait for a pooled connection, an
+operation of the client surface, or the Go runtime.
 
 When something in this system is slow, the time is in one of a handful of places.
 
 | Place | Why time goes there |
 | --- | --- |
-| The database pool | Every unit of work acquires a connection, and every pool is sized by its `pool_size`, the worker's set for each job kind and the API server's and the UI's defaulting to pgx's default of the larger of 4 and the processor count |
+| The database pool | Every request, page and tick acquires a connection, and every pool is sized by its `pool_size`, the worker's job kinds' pools at their default of 4 and the API server's and the UI's defaulting to pgx's default of the larger of 4 and the processor count ([ADR-0078](./0078-configuration-layers-through-an-owned-library.md)) |
 | A database statement | Every operation, page and tick runs statements, and [db/tx](../../../db/tx/tx.go) adds four round trips to each transaction to set and read back the account |
 | The policy load a body request waits on | [ADR-0099](./0099-a-body-request-loads-the-policy-before-it-decides.md) puts a coalesced load on the body request's path |
 | The rate lease | [ADR-0025](../operability/0025-priority-classes-and-leases.md)'s limiter makes a caller wait for its class, asking again at least every half second |
@@ -64,7 +64,7 @@ rather than followed as lists.
 | A reading that moves something | Each series kept has a reading that sends the reader to a setting or to a piece of code | The SRE book's removal test, and the operator's request that nothing be overkill |
 | Closed label sets | No label takes a value from a message, an SQL text, a path or any other unbounded set | [ADR-0009](../redaction/0009-scanner-verdicts-carry-no-content.md), [ADR-0076](./0076-metrics-emitted-through-client-golang.md) |
 | Nothing assumed of the platform | No measurement depends on a tracing backend, container metrics or a server-side extension | [ADR-0051](./0051-environment-contract.md) |
-| Shell code only | Capture sits in shells, entry packages and the host, and the API server's service layer takes no metrics import | [ADR-0040](./0040-pure-core-decisions-as-values.md), [ADR-0071](./0071-static-enforcement-toolchain.md) |
+| Shell code only | Capture sits in shells and the process, and the API server's service layer takes no metrics import | [ADR-0040](./0040-pure-core-decisions-as-values.md), [ADR-0071](./0071-static-enforcement-toolchain.md) |
 
 The reading requirement ordered the candidates, because a series no reading acts on is the
 overkill the operator ruled out. Closed labels and the platform gate any series whatever its
@@ -73,13 +73,16 @@ reading.
 ## Decision
 
 Eleven measurements are kept, each at the one place its time is spent. Every series is a counter, a
-gauge or a classic histogram on the process's registry. Every series a component registers carries
-`component`, through the registerer the host hands the component
-([ADR-0138](./0138-one-host-runs-each-process-and-each-component-provides-its-parts.md)), and the
-worker's carry `job_kind` too, through the registerer each job kind is handed, apart from the Go
-runtime's and the process's, which belong to the process rather than to a component or a job
-kind. The bucket boundaries are reasoned from the latencies the
-Context names, since no production run exists yet.
+gauge or a classic histogram on the process's registry. Every series apart from the Go runtime's
+and the process's carries `component`, the program's name, through the registerer the process
+hands what it builds
+([ADR-0142](./0142-each-program-is-a-spec-that-one-process-runs.md)). The worker's carry
+`job_kind` too, through the registerer each job kind is handed, apart from the series of what the
+process shares, such as its Session's K2 and K12, which carry the program's name and no job kind.
+The scheduler's K7 names the job kind in a label of its own. The Go runtime's and the process's
+series carry neither, since they belong to the process rather than to a program or a job kind.
+The bucket boundaries are reasoned from the latencies the Context names, since no production run
+exists yet.
 
 ### The client surface
 
@@ -91,11 +94,12 @@ labelled by `operation`, the name of each operation the registry holds, with buc
 - **Reading.** Read against K2, K3, K4, K5 and K8. A slow `get_message_body` breaks down into the
   policy load, the lease wait, Gmail, conversion and statements. A slow listing whose statements
   are fast spends its time in the process.
-- **Evidence.** RED's duration and the SRE book's latency signal. The UI's dataset reads already
-  carry one, and the API server carried none.
-- **Capture.** The API server's assembly, in its entry package, wraps each operation's handler
-  before the registry is built, so every call through either root is observed and the service layer is unchanged. It
-  observes the handler's run, after the registry's account check.
+- **Evidence.** RED's duration and the SRE book's latency signal. The UI's dataset reads carry one
+  of their own, and without this series the API server's operations carry none.
+- **Capture.** The owner of the API server's registry of operations, `api/internal/registry`,
+  wraps each operation's handler before the registry is built, so every call through either root
+  is observed and the service layer is unchanged. It observes the handler's run, after the
+  registry's account check.
 - **What it includes.** The registry refuses a call whose arguments are not one object, repeat a
   key, or name no account the API server serves before the handler runs, and that refusal is not
   timed. Each operation decodes and validates the rest of its arguments inside its handler, so an
@@ -111,14 +115,15 @@ with no label of its own, with buckets at 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1 
 - **Question.** How much of a body request is the coalesced policy load it waits for, and does it
   grow with the rules? Is the worker's reload cheap?
 - **Reading.** A large share of K1's body latency means per-request policy freshness is the cost,
-  and the fix is in `executioncontext/policyload` or its statements, which K8 names.
+  and the fix is in `process/policies` or its statements, which K8 names.
 - **Evidence.** The pipeline guidance on per-stage cost, and ADR-0099's placement of the load on
   the request path.
-- **Capture.** `(*policyload.Loader).Reload`, the one load every process uses, beside its
-  reload-failure gauge. It times one load, every one its caller did not cancel, succeeded or
-  failed, from its call to its outcome. An API server body request waits in the coalesced load for
-  the load already running, when one is, and then for the load that starts after it asked, so one
-  body request's policy wait is one or two of these observations.
+- **Capture.** The load of the Session's policies in `process/policies`, the one load every
+  process that holds a Session uses, beside its reload-failure gauge. It times one load, every one
+  its caller did not cancel, succeeded or failed, from its call to its outcome. An API server body
+  request waits in the coalesced load for the load already running, when one is, and then for the
+  load that starts after it asked, so one body request's policy wait is one or two of these
+  observations.
 
 ### Provider calls
 
@@ -153,8 +158,8 @@ the constructor of each request, and `outcome` is `ok`, `throttled` or `failed`.
   target.
 - **Evidence.** USE's saturation, and Envoy's split between time pending a local slot and the
   upstream's time.
-- **Capture.** `(*lease.Limiter).Acquire`, from its entry to a granted lease. A refused or
-  cancelled ask is not observed.
+- **Capture.** The limiter's acquire in `provider/ratelimit`, from its entry to a granted lease. A
+  refused or cancelled ask is not observed.
 - **No `account` label**, for K3's reason.
 
 ### Body processing
@@ -172,11 +177,16 @@ histogram labelled by `step`, `convert` or `scan`, with buckets at 0.0005, 0.001
   for offline processing. [ADR-0074](../redaction/0074-html-to-markdown-v2-converts-bodies.md)
   records that converters can blow up on nested input, and the chosen one's cost on real mail is
   unmeasured.
-- **Capture.** In the worker, each conversion and each scan of the second pass and of delta sync's
-  tick, the one series defined once for both job kinds. In the API server, the conversion the body
-  operation is handed, wrapped in the API server's assembly. The API server's serve-time pattern
-  check runs inside the release decision's pure core over a scanner value, so observing it would
-  need a hook in the service layer, and it is not observed. K1's body latency bounds it.
+- **Capture.** The series is defined once, by the scanner's owner, `process/scanner`, and each job
+  kind that converts and scans, and in the API server the package that wraps the body operation's
+  conversion, registers it on its own registerer
+  ([ADR-0142](./0142-each-program-is-a-spec-that-one-process-runs.md)). In the worker, each
+  conversion and each scan of the second pass and of delta sync's tick. In the API server, the
+  conversion the body operation is handed, wrapped with the histogram outside the service layer,
+  which takes no metrics import. Which package of the API server wraps it is decided where the API
+  server's spec is built. The API server's serve-time pattern check runs inside the release
+  decision's pure core over a scanner value, so observing it would need a hook in the service
+  layer, and it is not observed. K1's body latency bounds it.
 - **No body-derived label**, as everywhere ([ADR-0009](../redaction/0009-scanner-verdicts-carry-no-content.md)).
 
 ### Throughput of the index's passes
@@ -194,7 +204,7 @@ and a tick scanned and made durable.
   tick scans shows as the backlog rising, and the levers are `decisions_per_tick` and
   `sync_interval`.
 - **Evidence.** Prometheus's items in and out per stage of offline processing, and the pipeline
-  guidance on throughput. Before this record the second pass's rate could be read only from the
+  guidance on throughput. Without this series the second pass's rate can be read only from the
   backlog's slope, and the first pass's and the tick's not at all.
 - **Capture.** Where each step's or tick's counts are already added to the unclassified series,
   defined once for both job kinds. `account` follows the worker's per-account series.
@@ -207,17 +217,23 @@ job keyed by the kind alone and `account` for an account's job, and observes onl
 succeeded, failed or panicked. `mediated_mailbox_job_runs_finished_total` keeps counting every
 outcome, `not_due` and `cancelled` included.
 
-- **Question.** How long does a tick, a reload or a backfill run take, and is any creeping toward
+- **Question.** How long does a tick, a listing or a backfill run take, and is any creeping toward
   its interval?
 - **Reading.** A tick's tail approaching `sync_interval` means freshness will slip, so raise the
-  sync concurrency or find the slow stage. A job kind's reload adds and drops its jobs from what the
-  execution context last loaded, so its duration tracks the number of accounts it serves.
+  sync concurrency or find the slow stage. A job kind's listing, the job labelled `reload`, adds
+  and drops its jobs from what the Session last loaded, so its duration tracks the number of
+  accounts it serves.
 - **Evidence.** The pipeline guidance on historical runtimes. Labelled by the job kind alone and
-  observing every outcome, the series mixed a reload's duration with a tick's and drew instant
+  observing every outcome, the series would mix a listing's duration with a tick's and draw instant
   `not_due` runs into the distribution, so it could not answer its own question. No alerting rule
   reads it.
-- **The account and policy load is K12's**, since each process loads them once, in its execution
-  context's reload, a task of the process that no job runs.
+- **The account and policy load is K12's**, since each process loads them once, in its Session's
+  reload, which no job kind runs. The process's scheduler runs that reload as the Session's own
+  upkeep, and K7 and the finished-runs counter observe only the jobs of the job kinds' plans, so
+  their `job_kind` values stay the job kinds' names. K7's `job` values stay `reload` and `account`,
+  and the finished-runs counter keeps its labels, `job_kind` and `outcome`, with no `job`.
+  The reload carries neither series, and a process whose scheduler runs only that upkeep, as the
+  API server's does, registers neither.
 
 ### The database
 
@@ -236,12 +252,13 @@ by `statement`, with buckets at 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1 and 5 seco
   hook, and [sqlc-pgx-monitoring](https://github.com/amirsalarsafaei/sqlc-pgx-monitoring), a
   published tracer built for latency per sqlc name.
 - **Capture.** A `pgx.QueryTracer` on the connection configuration of every pool
-  `process/dbmetrics` opens, which the host calls to open every pool a composition root asks for. The label is the name in the `-- name:` comment the generated SQL
-  starts with. `db/tx`'s own statements carry such comments too. A statement with none is labelled
-  `begin`, `commit` or `rollback` by its first keyword, and `unnamed` otherwise, so the set is
-  closed. Every statement name in the data-access library is unique, which `db/check` holds, so a
-  label names one statement. A `Query`'s trace ends when its rows are closed, so its reading
-  includes the generated code's row scanning.
+  `process/database` opens, the one owner of every pool of the process
+  ([ADR-0142](./0142-each-program-is-a-spec-that-one-process-runs.md)). The label is the name in
+  the `-- name:` comment the generated SQL starts with. `db/tx`'s own statements carry such
+  comments too. A statement with none is labelled `begin`, `commit` or `rollback` by its first
+  keyword, and `unnamed` otherwise, so the set is closed. Every statement name in the data-access
+  library is unique, which `db/check` holds, so a label names one statement. A `Query`'s trace
+  ends when its rows are closed, so its reading includes the generated code's row scanning.
 - **No error label.** It would double the largest histogram, and errors are returned and logged.
 
 **K9. Pool statistics.** Seven series per pool, read from `pgxpool.Stat` when scraped.
@@ -270,8 +287,15 @@ by `statement`, with buckets at 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1 and 5 seco
   pool hurts. Sustained waits of that kind in the API server or the UI are the evidence for setting
   its `pool_size` above the default.
 - **Evidence.** USE, HikariCP's sizing and metrics, and the Buttondown and Val Town postmortems.
-- **Capture.** A collector over every pool `process/dbmetrics` opens, which reads the pool only
+- **Capture.** A collector over every pool `process/database` opens, which reads the pool only
   when scraped and adds nothing on the path of a statement.
+
+Every pool a process holds registers K8 and K9 on the process's one registry under the same label
+names, since within one registry a series name keeps one set of label names. That binds whatever
+pools a process holds beside its job kinds' own, which are decided where `process/database` is
+built ([ADR-0142](./0142-each-program-is-a-spec-that-one-process-runs.md)). For a pool's series,
+this invariant comes before the rule above that a shared thing's series carry no job kind, since
+the client library refuses a registration that breaks it.
 
 The tracer and the collector are written in this project rather than taken from a library.
 
@@ -307,8 +331,10 @@ without forking it. The tracer, the collector and the function opening a pool wi
 - **Evidence.** The Go GC guide and Uber's GC tuning, which tracked GC CPU and the live heap.
   client_golang [reverted](https://raw.githubusercontent.com/prometheus/client_golang/main/CHANGELOG.md)
   exposing every runtime metric by default, so the additions are named one by one.
-- **Capture.** The host has `process/runtimemetrics` register it once on the process's registry, with the four additions named in that one place. The default set carries `go_goroutines`, `go_threads` and the effective GOGC, memory limit and GOMAXPROCS, which
-  the rest are read against.
+- **Capture.** The process registers it once on its registry, with the four additions named in
+  that one place ([ADR-0142](./0142-each-program-is-a-spec-that-one-process-runs.md)). The default
+  set carries `go_goroutines`, `go_threads` and the effective GOGC, memory limit and GOMAXPROCS,
+  which the rest are read against.
 
 **K11. The process collector**, its resident memory, CPU seconds, open and maximum file
 descriptors and start time.
@@ -318,11 +344,11 @@ descriptors and start time.
   A start time that moves is a restart or an out-of-memory kill.
 - **Evidence.** The GC guide's advice to watch resident memory, and ADR-0051, under which container
   metrics cannot be assumed.
-- **Capture.** `process/runtimemetrics` registers it with K10, once on the process's registry.
+- **Capture.** The process registers it with K10, once on its registry.
 
-### The execution context
+### The Session
 
-**K12. Execution context reload duration.**
+**K12. Session reload duration.**
 `mediated_mailbox_executioncontext_reload_duration_seconds`, a histogram with no label of its own,
 with buckets at 0.01, 0.05, 0.1, 0.5, 1, 5, 10 and 30 seconds.
 
@@ -330,18 +356,21 @@ with buckets at 0.01, 0.05, 0.1, 0.5, 1, 5, 10 and 30 seconds.
   their lowered targets and load their policy, and is it creeping toward its reload interval?
 - **Reading.** Growth with the accounts listed is the snapshot's statements or the credentials'
   opening, which K8 names, and the share of it K2 shows is the policy's.
-- **Evidence.** The pipeline guidance on per-stage cost. The reload runs in a task of the process,
-  outside every job and every request, so no other series times it.
-- **Capture.** `(*assembly.Context).Reload`, on the registerer the composition root hands the
-  execution context, once per process, every reload its caller did not cancel, succeeded or failed.
+- **Evidence.** The pipeline guidance on per-stage cost. The reload is the Session's own upkeep,
+  which the process's scheduler runs outside every job of a job kind and every request, so no other
+  series times it, K7 included.
+- **Capture.** The Session's reload in `process/sessions`, on the process's own registerer, which
+  carries the program's name and no job kind
+  ([ADR-0142](./0142-each-program-is-a-spec-that-one-process-runs.md)), once per process, every
+  reload its caller did not cancel, succeeded or failed.
 
 ### Where each is registered
 
 | Process | Registers |
 | --- | --- |
-| The API server | K1, K2 and K12 from its execution context, K3, K4, K5's conversion step, K8 and K9 for its pool, K10 and K11 |
-| The UI | K8 and K9 for its pool, K10 and K11, beside the dataset read latency it already emits |
-| The worker | K10 and K11 once, and K2 and K12 once from its execution context. Per job kind, through the registerer that adds `job_kind`, K3, K4, K5, K6, and K8 and K9 for the kind's pool. K7 on the scheduler's series |
+| The API server | K1, K2 and K12 from its Session, K3, K4, K5's conversion step, K8 and K9 for each of its pools, K10 and K11. No K7, since its scheduler runs only the Session's upkeep |
+| The UI | K8 and K9 for each of its pools, K10 and K11, beside the dataset read latency it already emits |
+| The worker | K10 and K11 once, and K2 and K12 once from its Session. Per job kind, through the registerer that adds `job_kind`, K3, K4, K5, K6, and K8 and K9 for the kind's pool. K7 on the scheduler's series, for the jobs of its job kinds' plans |
 
 ## Alternatives considered
 
@@ -353,7 +382,7 @@ The candidates left out, each with the case for it and why it lost.
 | Client surface | HTTP middleware per route | It comes with client_golang | ADR-0076 rejected it, and K1 measures at the operation, which means more than a route |
 | Client surface | An outcome label on K1 | Errors read by latency | A denied body is a successful call that the body counters split, and an argument refusal costs what the operation's other calls cost and is logged |
 | Client surface | A count of MCP sessions | It is a count of what is held in memory | The MCP root is stateless, so nothing is held |
-| Client surface | The API server's account snapshot load time | It is a reload's cost | It runs on an interval off the request path, its statements are in K8, and no setting follows from it |
+| Client surface | The API server's account snapshot load time as a series of its own | It is a reload's cost | K12 times the Session's whole reload, the account snapshot's load among it, which runs on an interval off the request path, and its statements are in K8 |
 | Provider calls | The token refresh's latency | It is a provider call | It happens about once an hour per account |
 | Provider calls | An `account` label on K3 and K4 | Per-account attribution | One API and one budget mechanism serve every account alike, and the per-account counters stay |
 | Provider calls | Retry and backoff counters | They count trouble | Backfill records each retry and backoff as an event of its run, which the Jobs screen shows, and throttles are already counted |
@@ -369,8 +398,8 @@ The candidates left out, each with the case for it and why it lost.
 | Database | Connection hold time | HikariCP measures it | Little's law over held connections and the acquire rate gives the mean where it matters, and at idle there is nothing to find |
 | Database | Idle, total and constructing connection counts, and destroys by lifetime and idleness | They come with `pgxpool.Stat` | No setting here is tuned from them. The connections built, which tell construction waits from waits at the ceiling, are K9's |
 | Database | An error label on K8 | Errors by statement | It doubles the largest histogram, and errors are returned and logged |
-| Database | A timer around each transaction | A unit's whole cost | It is the sum of its statements, now including the setup rows, and no name is available where it runs |
-| In memory | Counts of the account snapshot, the policy snapshot, the sessions and the scheduler's jobs | The operator's example of counts held in memory | Each is bounded by the account count, which is single digits. What can grow, the UI's streams and running jobs, is already gauged, and the code holds no cache |
+| Database | A timer around each transaction | A unit's whole cost | It is the sum of its statements, the account setup's rows among them, and no name is available where it runs |
+| In memory | Counts of the account snapshot, the policy snapshot, the units of work and the scheduler's jobs | The operator's example of counts held in memory | Each is bounded by the account count, which is single digits. What can grow, the UI's streams and running jobs, is already gauged, and the code holds no cache |
 | Go runtime | Every runtime metric | The full picture | client_golang reverted it as a default, and most are allocator internals with no setting here |
 | Go runtime | Mutex wait time | Lock contention | No shell holds a hot shared mutex, and a mutex profile is the tool if one is suspected |
 | Go runtime | `go_gc_duration_seconds` read as GC cost | It is in the default set | It is pause time, while the cost is concurrent marking's CPU, hence K10's ratio. It stays in the default set |
@@ -396,11 +425,12 @@ The candidates left out, each with the case for it and why it lost.
   see. `pgxpool.Stat` keeps its acquire counters. A pgx major that moved any of these fails the
   build or the tracer's tests.
 - **What it adds to other code.** Each Gmail request constructor names its endpoint. The
-  scheduler's run duration series carries the job and observes fewer outcomes. The host opens every
-  pool through `process/dbmetrics` and registers the runtime and process collectors through
-  `process/runtimemetrics`, so the assembly is written once and the composition stays in each root
-  ([ADR-0050](./0050-shared-code-pure-or-narrow.md)). The worker opens its pools with each job
-  kind's registerer in hand.
+  scheduler's run duration series carries the job and observes only the outcomes K7 names.
+  `process/database` opens every pool with the tracer and the collector, and the process registers
+  the runtime and process collectors, so each is written once
+  ([ADR-0050](./0050-shared-code-pure-or-narrow.md),
+  [ADR-0142](./0142-each-program-is-a-spec-that-one-process-runs.md)). The pool of each of the
+  worker's job kinds registers its series under that job kind's label.
 - **A panic in a collector** runs on the scrape's goroutine, which the worker's scheduler does not
   own and [ADR-0119](../operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md)
   leaves to review. The tracer runs on the goroutine that runs the statement, so in the worker a

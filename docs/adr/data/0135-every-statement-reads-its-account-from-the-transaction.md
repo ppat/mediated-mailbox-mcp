@@ -6,38 +6,41 @@ convention](../../../DESIGN.md#accounts-are-isolated-by-structure-not-convention
 
 ## Context
 
-Three layers kept one account's rows from another. Every generated data-access function took the
-account, which the compiler checked. The statement check in `db/check` required every statement
-against an account-keyed table to compare `account_id` with a parameter
-([ADR-0047](./0047-schema-first-data-access.md),
-[ADR-0066](./0066-data-access-generated-from-sql.md)). And a row-level security policy on every
-account-keyed table filtered it to the transaction-local setting `app.account`, which the shared
-transaction helper sets and reads back ([ADR-0016](./0016-schema.md)).
+The design [ADR-0047](./0047-schema-first-data-access.md),
+[ADR-0066](./0066-data-access-generated-from-sql.md) and [ADR-0016](./0016-schema.md) decided kept
+one account's rows from another by three layers, and the measurements below were taken under it. Every generated data-access
+function took the account, which the compiler checked. The statement check in `db/check` required
+every statement against an account-keyed table to compare `account_id` with a parameter. And a
+row-level security policy on every account-keyed table filtered it to the transaction-local setting
+`app.account`, which the shared transaction helper sets and reads back
+([ADR-0016](./0016-schema.md)).
 
-The transaction helper took the account once, and each statement took it again as its own parameter.
-A statement bound to account B inside a transaction set to account A passed the compiler, the
-statement check and the txhelper analyser, and only the policy stopped it. That was the one case
-row-level security caught that nothing else did. It also stood behind a statement the check misread
-and SQL written by hand outside the data-access library.
+Under that design the transaction helper took the account once, and each statement took it again
+as its own parameter, so a statement bound to account B inside a transaction set to account A
+passed the compiler, the statement check and the txhelper analyser, and only the policy stopped it.
+That was the one case row-level security caught that nothing else did. It also stood behind a
+statement the check misread and SQL written by hand outside the data-access library.
 
-Row-level security bounds no compromised process. Roles and grants do that
-([ADR-0118](./0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)), and any role can call
-`set_config` itself. An account's credential is sealed with the account bound into its additional
-data, and the loader opens it naming the account it asked for, so a credential read from another
-account's row fails to open
+Row-level security bounds no compromised process, since any process can call `set_config` itself.
+Nor do the application user's grants bound one beyond what they withhold from every program, which
+is DDL and any rewrite of the append-only tables
+([ADR-0143](./0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)). An account's credential is sealed with the account bound into its
+additional data, and the connections open it naming the account they asked for, so a credential
+read from another account's row fails to open
 ([ADR-0088](../operability/0088-credentials-sealed-with-hpke-x-wing.md)). The audit log and the
 policy history are append-only by grants.
 
 Its cost was measured on PostgreSQL 18.6, the image the test substrate pins, with the repository's
 migrations and two accounts of 100,000 synthetic messages each, running the repository's own
-statements as the owning role and as the runtime roles, in custom and in forced generic plans.
+statements as the owning role and as roles the policies applied to, in custom and in forced generic
+plans.
 
 - **Query time was not a cost.** On every statement under 5 ms the difference with and without
   row-level security was under 0.6 ms, because the statement's own account comparison implies the
   policy, which then filters once.
 - **Indexes and statistics were.** PostgreSQL uses a condition as an index condition ahead of a
   policy only when its function is leakproof. Array operators (`@>`, `&&`, `<@`, `=`), `ILIKE`,
-  `citext` comparison, JSON field access and row comparison are not. Under the runtime roles a GIN
+  `citext` comparison, JSON field access and row comparison are not. Under those roles a GIN
   index on labels was ignored (a rare label took 17 ms against 0.16 ms as the owner), a trigram
   index on the subject was ignored (27 ms against 0.6 ms), and an index on `(account_id,
   from_email)` was ignored for filtering (24 ms against 0.8 ms). The policy also hid column
@@ -72,16 +75,24 @@ statements as the owning role and as the runtime roles, in custom and in forced 
   an insert taking its account from anything but that setting or a column it ties to it, with only
   the base policy's statements inserting the literal null, and any update of an account column, an
   upsert's included, whatever the value, since such a write moves a row to another account or
-  between the base policy and an account. No runtime role holds an update grant on an account column
-  either. Its stated exceptions are the accounts listing, the base policy's statements, which
+  between the base policy and an account. The application user holds no update grant on an account
+  column either. Its stated exceptions are the accounts listing, the base policy's statements, which
   compare the account `IS NULL`, and the operation log, which it requires to be reached through a
   join from its plan column to a plan tied to the transaction's account, and to be appended to from
   such a plan's row ([ADR-0066](./0066-data-access-generated-from-sql.md),
   [db/README.md](../../../db/README.md#the-checks)).
-- **No table carries a row-level security policy.** The accounts listing is held by its column
-  grants alone, the operation log by the statement check, and the base policy's writes by the
-  grants, the statement check and the base policy's own transaction
-  ([ADR-0112](./0112-the-base-policy-is-written-and-read-in-a-transaction-of-its-own.md)).
+- **No table carries a row-level security policy.** The three cases a policy would cover are held
+  by other means.
+  - The accounts listing, by the import lists alone.
+  - The operation log, by the statement check.
+  - The base policy's writes, by four things
+    ([ADR-0112](./0112-the-base-policy-is-written-and-read-in-a-transaction-of-its-own.md),
+    [ADR-0143](./0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)).
+    - The import lists.
+    - The rule that no data-access subsection another program's list admits writes the policy,
+      which review holds.
+    - The statement check.
+    - The base policy's own transaction.
 - **The transaction helper reads the account back.** A transaction that never set the setting
   reads it as the empty string on a connection that set it before, and the form then matches no row
   and raises nothing, exactly as a policy did. The read-back fails such a transaction before any
@@ -108,7 +119,7 @@ estimate. Only a plan with no index leading on the account pays about 35 ns per 
 ## Consequences
 
 - Indexes a filter over labels, the subject or a sender address would use, such as a GIN index on
-  labels or a trigram index on the subject, serve every runtime role. Which are added is decided
+  labels or a trigram index on the subject, serve the application user. Which are added is decided
   by the unit that makes those filters frequent ([ROADMAP.md](../../../ROADMAP.md)).
 - A write whose predicate matches no row succeeds having changed nothing, whether the row belongs to
   another account or its state moved on, so every such write keeps counting its rows
@@ -119,14 +130,17 @@ estimate. Only a plan with no index leading on the account pays about 35 ns per 
   ([ADR-0025](../operability/0025-priority-classes-and-leases.md)).
 - Assumptions about other components. Statement mode is refused for a pooler, since
   transaction-local settings need transactions. SQL a component writes by hand outside the
-  data-access library is held by the import lists, the UI's raw-SQL analyser and review, with no
-  database barrier behind them ([ADR-0071](../engineering/0071-static-enforcement-toolchain.md)). A
-  reference the check cannot show tied to the transaction's account, such as one tied only under
-  `OR`, through a subquery's comparison or through a common table expression's output, is refused
-  rather than accepted, and so is any statement of a kind the check does not read and any
-  account-keyed table the statement names in a clause the check does not read. SQL a function runs
-  from a string is review's.
+  data-access library is held by the import lists, the raw SQL analyser over the code of the API
+  server, the UI and the worker, and review, with no database barrier behind them
+  ([ADR-0071](../engineering/0071-static-enforcement-toolchain.md)). A reference the check cannot
+  show tied to the transaction's account, such as one tied only under `OR`, through a subquery's
+  comparison or through a common table expression's output, is refused rather than accepted, and so
+  is any statement of a kind the check does not read and any account-keyed table the statement
+  names in a clause the check does not read. SQL a function runs from a string is review's.
 - The statement check's transaction-form rule, its refusal of an update of an account column and its
-  operation-log rule are controls, and so are the grant confining the policy's writes to the UI's
-  role and the grants confining the accounts listing to the roles that list accounts. Their
-  violation injections are catalogued in [docs/VERIFICATIONS.md](../../VERIFICATIONS.md).
+  operation-log rule are controls. So are the import lists confining the accounts listing to the
+  code that lists accounts, and the import lists confining the policy's writes to the UI's code,
+  with review of the subsections each list admits under
+  [ADR-0143](./0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)'s rule.
+  Their violation injections, and the review's disposition, are catalogued in
+  [docs/VERIFICATIONS.md](../../VERIFICATIONS.md).

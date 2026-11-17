@@ -34,8 +34,10 @@ than the instance.
   decision exercised with a fault injected between its writes and required to leave nothing
   behind).
 - **A grant widens rather than a trigger appearing.** When a verb's effect needs a write the
-  role does not hold, the role gains that write and the record naming the grant says so
-  ([ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md) for the UI).
+  application user does not hold, that user gains the write and the record naming the program's
+  writes says so
+  ([ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md) for the UI,
+  [ADR-0143](../data/0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)).
 
 ## Alternatives considered
 
@@ -62,5 +64,5 @@ than the instance.
 - Assumptions about other components: every process that reads account-scoped rows sets the account
   for its transaction before reading, which every statement's account predicate reads
   ([ADR-0135](../data/0135-every-statement-reads-its-account-from-the-transaction.md)), and the
-  migration role of [ADR-0048](../data/0048-forward-only-migrations.md) owns the schema and has no
+  migrator's user of [ADR-0048](../data/0048-forward-only-migrations.md) owns the schema and has no
   functions to own.

@@ -94,7 +94,7 @@ it.
 | Typed tool registration | Arguments validated or reshaped in the frontend | A root that uses raw handlers only, reviewed in its one generator file |
 | The SDK imported outside the root's generator | Protocol code spread into the service layer | The import lists and their violation files ([ADR-0071](./0071-static-enforcement-toolchain.md)) |
 | A tool registered with a hint pointer left nil | The client reads the tool as destructive and open-world | A test asserting the literal annotations of one tool per effect class at both revisions, with mutations dropping each pointer |
-| `MCPGODEBUG` set in the API server's environment | SDK behaviour switched without a change here. `allowsessionsinstateless` puts sessions back into the stateless handler, and `hintomitempty` changes the annotation bytes the literal test pins, though not their meaning, since both hints it omits default to false | The API server refuses to start while it is set, even to an empty value, proven by a test with a mutation removing the refusal |
+| `MCPGODEBUG` set in the API server's environment | SDK behaviour switched without a change here. `allowsessionsinstateless` puts sessions back into the stateless handler, and `hintomitempty` changes the annotation bytes the literal test pins, though not their meaning, since both hints it omits default to false | The API server refuses to start while it is set, even to an empty value, through its spec's start check, `Init` ([ADR-0142](./0142-each-program-is-a-spec-that-one-process-runs.md)), proven by a test with a mutation removing the refusal |
 | The `x-mcp-header` keyword in a registry schema | The SDK binds a header to an argument, and the account's binding differs between revisions | A registry rule refuses it at generation, proven by a violation case |
 
 | Requirement | Met by |
@@ -110,7 +110,7 @@ it.
 | R9 Stateless | `Stateless` plus the capabilities option |
 | R10 Failures intact | Error results carrying the service layer's structured content |
 | R11 Mounting | The streamable HTTP handler is an `http.Handler` |
-| R12 Environment | The API server refuses to start while `MCPGODEBUG` is set |
+| R12 Environment | The API server refuses to start while `MCPGODEBUG` is set, through its spec's `Init` |
 | R13 Annotations | `ToolAnnotations` with all four hints set, and the literal annotation test |
 
 An implementer would otherwise pay to discover these.

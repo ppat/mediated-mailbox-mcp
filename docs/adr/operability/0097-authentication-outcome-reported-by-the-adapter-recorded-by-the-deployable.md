@@ -11,14 +11,14 @@ The system status operation returns each account's last provider authentication 
 ([ADR-0034](./0034-system-status-operation.md), [ADR-0016](../data/0016-schema.md)). The provider
 adapter is the code that sees each authentication attempt. It has no database access and is the
 only code that knows a provider's concepts ([ADR-0010](../provider/0010-one-provider-port.md)). The
-deployables that call a provider hold a database role and already read what the adapter holds at
-the end of each unit of work, to write back a rotated credential
+deployables that call a provider connect to the database and already read what the adapter holds
+at the end of each unit of work, to write back a rotated credential
 ([ADR-0082](./0082-rotation-writeback-to-the-database.md)). Several deployables, and several job
 kinds inside the worker that runs every background job
 ([ADR-0117](./0117-one-background-worker-runs-every-job-kind.md)), call a provider for the same
-account, so they all record the same two columns. The UI is a deployable too, and
-calls the provider's token endpoint while it completes a consent, exchanging the consent's code for
-the credential it stores
+account, so they all record the same two columns. The UI is a deployable too, and calls the
+provider's token endpoint while it completes a consent, exchanging the consent's code for the
+credential it stores
 ([ADR-0107](../provider/0107-gmail-through-an-installed-app-oauth-client-set-up-in-the-ui.md),
 [ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)).
 
@@ -43,9 +43,9 @@ the credential it stores
   and neither is a mailbox request the provider refuses while that access token is still valid. A
   request its caller cancelled before an answer arrived has no outcome and is not reported.
 - **The deployable records what the adapter holds at the end of each unit of work**, beside the
-  rotation hand-over of [ADR-0082](./0082-rotation-writeback-to-the-database.md), a unit that failed
-  included. In the worker, the job kind whose unit of work it was records it, under that job kind's
-  own role. An adapter that has made no attempt records nothing.
+  rotation write-back of [ADR-0082](./0082-rotation-writeback-to-the-database.md), a unit that
+  failed included, through the connections that began the unit of work. In the worker, the job kind
+  whose unit of work it was records it. An adapter that has made no attempt records nothing.
 - **The UI records the attempt its own code exchange made** when it completes a consent, connecting
   or re-authorizing an account, with the same statement, in the transaction that stores the
   credential. A completed consent's exchange is an attempt the provider answered with a credential,
@@ -59,8 +59,8 @@ the credential it stores
 ## Alternatives considered
 
 - **The adapter writes the row itself.** For it, every attempt recorded the moment it ends. Against
-  it, the adapter would need a database connection and the account's write grant, braiding storage
-  into the one component that should know only its provider.
+  it, the adapter would need a database connection and a write on the account's state, braiding
+  storage into the one component that should know only its provider.
 - **The deployable infers the outcome from the errors the port returns.** For it, no new surface on
   the adapter. Against it, the port's errors say whether a credential was refused but not whether
   the token endpoint refused it, since a mailbox request the provider refuses is the same error,
@@ -84,8 +84,8 @@ the credential it stores
 - A refused credential's outcome clears as soon as the operator re-authorizes the account, rather
   than when a workload next makes an attempt with the new credential.
 - Assumptions about other components. Each deployable that calls a provider reads its adapter's
-  latest attempt at the end of each unit of work. The UI's role holds the write grant on the two
-  columns ([ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)). The database, not
+  latest attempt at the end of each unit of work. The two columns are among the UI's listed writes
+  ([ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)). The database, not
   the deployable, decides which attempt is the latest, through the statement's predicate. The
   statement compares the account with the transaction's, so the write reaches only the account the
   transaction set

@@ -5,10 +5,10 @@
 
 ## Context
 
-The policy loader reads each account's rules and the base rules together, one account's
-transaction at a time, and refuses to compose accounts from different base policies, so a reload
-whose accounts read different base rules is a read it cannot trust
-([executioncontext/README.md](../../../executioncontext/README.md#the-policy-loader-policyload),
+The Session's policies, `process/policies`, read each account's rules and the base rules together,
+one account's transaction at a time, and refuse to compose accounts from different base policies,
+so a reload whose accounts read different base rules is a read they cannot trust
+([process/README.md](../../../process/README.md#the-policies-policies),
 [ADR-0041](./0041-policy-as-immutable-snapshots.md)). A reload that fails raises the reload-failure
 alarm, which pages at once and clears when a reload next succeeds
 ([ADR-0077](../operability/0077-conditions-raised-as-alerting-rules.md)).
@@ -32,9 +32,9 @@ nothing is wrong and the next reload succeeds. Whether that page stands is this 
 - **Accept the page.** For it, no change, and the alarm clears at the next reload. Against it, a
   page the operator learns to ignore teaches them to ignore the alarm that says an edit never took
   effect.
-- **The alerting rule waits before it pages.** For it, the loader stays as it is. Against it, every
-  real reload failure then pages late too, and ADR-0041 requires the failure to be loud and
-  immediate.
+- **The alerting rule waits before it pages.** For it, the policies' load stays as it is. Against
+  it, every real reload failure then pages late too, and ADR-0041 requires the failure to be loud
+  and immediate.
 - **Read the base rules once, in a base-policy transaction, and each account's own rules in its
   own.** For it, nothing to compare. Against it, moving a rule between scopes adds it to one scope
   and then lifts it from the other ([docs/UI.md section 8.7](../../UI.md#87-policy)), and reading the
@@ -42,7 +42,8 @@ nothing is wrong and the next reload succeeds. Whether that page stands is this 
   either state the operator left.
 - **Every account's read shares one exported snapshot of the database.** For it, every read sees one
   instant. Against it, each reload would hold a transaction open to export the snapshot and import it
-  into one transaction per account, which the pooled connections the loader is given do not provide.
+  into one transaction per account, which the pooled connections the policies are given do not
+  provide.
 
 ## Consequences
 

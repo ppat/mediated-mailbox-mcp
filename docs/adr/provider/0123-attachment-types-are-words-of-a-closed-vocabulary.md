@@ -10,9 +10,9 @@
 sensitivity state and its filename only where the body is visible, because filenames are
 body-derived and follow the body. Its example message carries `"attachment_types": ["pdf"]`, and
 the API server serves that field on every message. [ADR-0010](./0010-one-provider-port.md)'s
-canonical model carried each message's attachment names and no types, so every message was served
-with no types. The operator ruled on 2026-10-07 to give messages their attachment types before
-[production point 1](../../../ROADMAP.md#production-point-1--the-read-path), from the adapter
+canonical model, without this record, carries each message's attachment names and no types, so
+every message would be served with no types. The operator ruled on 2026-10-07 to give messages
+their attachment types before [production point 1](../../../ROADMAP.md#production-point-1--the-read-path), from the adapter
 through the canonical model, over dropping the field. That ruling left open what a type is and what
 is stored. Ingest at backfill's first pass is the first consumer.
 
@@ -131,9 +131,9 @@ extension, with no filename at rest.
   attachment is a part with a filename, as the adapters already counted it.
 - **The pairs are written once, when a message is first stored**, by backfill's first pass and by
   delta sync's insert of an added message, both through the decisions in `core/index`. A held
-  message's attachments do not change, so no runtime role may update or delete a pair. A message
-  delta sync removes takes its pairs with it, through the table's foreign key, since they are part
-  of the message's metadata as a column of it would be.
+  message's attachments do not change, so the application user may not update or delete a pair. A
+  message delta sync removes takes its pairs with it, through the table's foreign key, since they
+  are part of the message's metadata as a column of it would be.
 
 ## Alternatives considered
 
@@ -143,8 +143,8 @@ extension, with no filename at rest.
   refetch of the metadata of every message the change reaches, which for Gmail is 61 quota units
   for each three messages. The operator ruled it out on 2026-10-10 for the stored inputs.
 - **The full filename stored beside the media type.** The case for it is that a later mapping rule
-  could read any part of the name. ADR-0001 treats filenames as body-derived, and today they reach
-  a client only fetched from the provider with a released body, after the serve-time pattern check
+  could read any part of the name. ADR-0001 treats filenames as body-derived, and they reach a
+  client only fetched from the provider with a released body, after the serve-time pattern check
   reads them. Storing them would put every whole name at rest, unscanned, where this record keeps
   only each name's normalized extension. The operator ruled for the extension alone.
 - **A row per attachment, with its name's position.** The case for it is that a count of attachments
