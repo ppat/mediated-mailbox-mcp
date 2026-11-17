@@ -73,7 +73,7 @@ the start of each tick.
   would run the reopened pass.
 - **A separate scanning job kind.** For it, scanning would have a job kind of its own. Against it, a
   job kind beside those [ADR-0117](../operability/0117-one-background-worker-runs-every-job-kind.md)
-  names, with its own role and schedule, for work delta sync already runs on its cadence.
+  names, with its own pool and schedule, for work delta sync already runs on its cadence.
 - **Scanning every pending message in each tick, unbounded.** For it, the backlog empties at once.
   Against it, a large delisting would make one tick last as long as a backfill pass, against the
   short tick [ADR-0018](../data/0018-delta-sync-polls.md) describes.

@@ -1,4 +1,4 @@
-# 0117. One background worker runs every job kind, in one process, with each job kind's code, role and observability kept apart inside it
+# 0117. One background worker runs every job kind, in one process, with each job kind's code and observability kept apart inside it
 
 **Status:** Accepted (supersedes [ADR-0022](./0022-four-workloads.md)) ·
 **Pillar:** [Concerns stay un-braided; components know only their contracts](../../../DESIGN.md#concerns-stay-un-braided-components-know-only-their-contracts) ·
@@ -6,44 +6,47 @@
 
 ## Context
 
-[ADR-0022](./0022-four-workloads.md) split the background work into four workloads, backfill,
-delta sync, reorg apply and the heuristics run, because they differ on runtime, trigger,
-reversibility and whether they write to the provider. It named the settling row, that reorg apply
-is the only provider-mutating path and its approval and rollback machinery would burden the
-read-only paths. It rejected one process carrying all four.
+The background work is several kinds of job, backfill, delta sync, reorg apply and rollback, and
+the heuristics run, with many more to come, among them Google Drive's jobs and possibly the send of
+an approved email. They differ on runtime, trigger, reversibility and whether they write to the
+provider. Reorg apply is the only path that changes the mailbox at the provider, and its approval
+and rollback machinery must not burden the read-only paths. The case for a process per job kind
+is [ADR-0022](./0022-four-workloads.md)'s, which this record supersedes. It rests on those
+differences, with reorg apply as the settling row, and refuses one process carrying them all.
 
-Read guard by guard, the process boundary carries less of that reasoning than
-[ADR-0022](./0022-four-workloads.md) gives it, as the table shows.
+A process per job kind would guard several things. Read guard by guard, most of them do not depend
+on the process boundary, as the table shows.
 
-| What the four-way split guards | What carries it |
+| What a process per job kind guards | What carries it inside one process |
 | --- | --- |
 | Each job starts on its own condition | Conditions are independent of where the code runs |
 | Bulk mutation is reversible and checkpointed | The op log and the checkpoint in the database ([ADR-0020](../mutation/0020-reorg-plan-approve-apply-rollback.md)) |
 | Approval is in no client's vocabulary | The UI's direct database write and the client surface's registry ([ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md), [ADR-0087](./0087-client-surface-derives-method-and-hints-from-each-operations-effect.md)) |
-| Read-only paths carry no approval machinery | Apply's code is its own package that the read jobs never call. What the boundary adds is the binary linking it and the process holding it |
+| Read-only paths carry no approval machinery | Apply's code is its own package that the read jobs never call. The boundary would add only that no other binary links it and no other process holds it |
 | Every job is observable from recorded state | The run tables, which do not care which process writes them |
-| A process that calls no provider holds no credential | The process boundary, for the heuristics run |
-| One job's crash, leak or memory spike leaves the others running | The process boundary |
-| A compromised job's database reach is its own role's | One role's credential per process |
+| A process that calls no provider holds no credential | Only the process boundary, for the heuristics run. Inside one process it becomes code isolation per job kind, below |
+| One job's crash, leak or memory spike leaves the others running | Only the process boundary |
 
-Every process that calls a provider already holds the same `gmail.modify` grant and links the Gmail
-adapter, whose label and mutation calls are implemented, so what the boundary separates is the code
-path that calls them, not the capability.
+Every process that calls a provider holds the same `gmail.modify` grant and links the Gmail adapter,
+whose label and mutation calls are implemented, so a process boundary separates the code path that
+calls them, not the capability.
 
-The split also costs. Every change to delta sync touched backfill. Their composition roots repeat
-each other, and three roots carry identical copies of the account-handling rules, one of which
-drifted. The scanner's section and the scan gate's thresholds must agree between two processes or
-each reopens the other's work
-([ADR-0120](../redaction/0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md),
-[ADR-0098](../redaction/0098-every-backfill-run-decides-each-gate-skip-again.md)). The scanner's
-section is held equal only by the deployment giving both processes the same value, and the
-thresholds only by both composition roots passing
-[ADR-0093](../redaction/0093-composite-scan-gate.md)'s defaults. A newly connected account waits
-for a backfill started by hand.
+A process per job kind also costs.
 
-Many job kinds are still to come, among them Google Drive's jobs and possibly the send of an
-approved email, and a process per job kind would multiply deployables, images, chart objects and
-roles with each one.
+- Backfill and delta sync share most of their code and their account handling, so each process
+  would repeat the other's wiring, and each copy of the account-handling rules is a place one can
+  drift. While backfill and delta sync were separate processes, three programs carried identical
+  copies of those rules, and one copy drifted.
+- The scanner's section and the scan gate's thresholds must agree between the processes that scan,
+  or each reopens the other's work
+  ([ADR-0120](../redaction/0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md),
+  [ADR-0121](../redaction/0121-the-run-start-step-decides-each-gate-skip-again.md)). Across
+  processes the scanner's section is held equal only by the deployment giving each the same value,
+  and the thresholds only by each process's code passing
+  [ADR-0093](../redaction/0093-composite-scan-gate.md)'s defaults.
+- Backfill as a process that runs to its end starts only when something starts it, so a newly
+  connected account waits for a backfill started by hand.
+- Each job kind added would add a deployable, an image and chart objects.
 
 ## Decision
 
@@ -63,28 +66,43 @@ roles with each one.
   | Reversible | n/a (read-only) | n/a | **must be** | n/a |
   | Writes provider | no | no | **yes, bulk** | no |
 
-- **One process, with one database role per job kind.** Each job kind's code runs under its own
-  role, through its own connection pool
-  ([ADR-0118](../data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)). The roles
-  bound what a buggy job can do in the database. They do not bound a compromised process, which
-  holds every role's credential.
-- **The heuristics run is a job kind inside the worker.** The rule that a process which calls no
-  provider holds no credential, one of the four-way split's guards in the table above, becomes code
-  isolation per job kind, not process isolation. This is a trade, stated as one. The heuristics run
-  reads text any sender chooses, display names, domains and subjects, and inside the worker that
-  text reaches code running in a process that holds the private key and every opened credential. A
-  parsing or inference bug reachable from that text then pays off in credentials, where outside the
-  worker it paid off in
-  nothing. The anchor already parses attacker-chosen input on a larger scale, converting and
-  scanning hostile bodies, so the added surface is the heuristics run's own tokenizer and any model
-  runtime it brings.
+- **One process, with a connection pool per job kind.** Each job kind's code runs through its own
+  pool, so one job kind cannot starve another of connections
+  ([ADR-0119](./0119-the-workers-jobs-are-scheduled-from-recorded-state.md)). Every pool connects
+  as the one application user the API server, the UI and the worker share
+  ([ADR-0143](../data/0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)),
+  so what a buggy job can do in the database is bounded by its code, below.
+- **The heuristics run is a job kind inside the worker.** The guard that a process which calls no
+  provider holds no credential, in the table above, is carried by code isolation per job kind, not
+  by a process. This is a trade, stated as one. The heuristics run reads text any sender chooses,
+  display names, domains and subjects, and inside the worker that text reaches code running in a
+  process that holds the private key and every opened credential. A parsing or inference bug
+  reachable from that text then pays off in credentials, where in a process of its own it would
+  pay off in nothing. The anchor already parses attacker-chosen input on a larger scale,
+  converting and scanning hostile bodies, so the added surface is the heuristics run's own
+  tokenizer and any model runtime it brings.
 - **Code isolation per job kind is checkable, not conventional.** Each job kind has these four.
-  - Its own import list, so a job kind that needs no credential, no provider and no account session
-    imports none of them ([ADR-0071](../engineering/0071-static-enforcement-toolchain.md)).
-  - Its own role's grants
-    ([ADR-0118](../data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)).
-  - An entry constructor that takes only what the job needs, pinned by the parameter checks the
-    project already runs.
+  - Its own import list, so a job kind that needs no credential, no provider and no connection to
+    a provider imports none of them. A shared thing reaches its code only through an import of its
+    owner's package, which the list must admit
+    ([ADR-0071](../engineering/0071-static-enforcement-toolchain.md)). The Session, which every job
+    kind may hold, imports no credential and no provider code and reaches the connections only
+    through an interface that loads them and says whether an account has one, so no credential
+    crosses it ([ADR-0142](../engineering/0142-each-program-is-a-spec-that-one-process-runs.md)).
+  - The raw SQL analyser over the worker's code, so a job kind's own code runs only the statements
+    its admitted data-access subsections hold. The process family's code and the rate limiter's,
+    which a job kind calls and the analyser does not read, run no statement written by hand, which
+    review holds ([ADR-0071](../engineering/0071-static-enforcement-toolchain.md),
+    [ADR-0143](../data/0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)).
+  - A `Build` whose parameters the spec's type fixes, which are the build's context, the process's
+    capabilities and the worker's configuration. The compiler holds them, so no job kind can be
+    handed anything else. A job kind returns its plan rather than being handed the scheduler
+    ([ADR-0142](../engineering/0142-each-program-is-a-spec-that-one-process-runs.md)). The
+    configuration it receives is the worker's whole tree, the key files' paths among its settings,
+    and a setting confers nothing without the code that acts on it. The code that opens a key is
+    admitted in the worker only to the connections' package, which the list of a job kind that
+    calls no provider refuses. Code that reads the key file directly needs neither an import nor a
+    parameter, so it is left to review.
   - No cgo in the worker's build, and no `unsafe` in this project's own code or in any dependency
     added for a job. The standard library and the dependencies the module already holds import
     `unsafe`, so the rule applies to what gets added.
@@ -100,21 +118,23 @@ roles with each one.
   [ADR-0042](../engineering/0042-implementation-stack.md) already allows for an embedding service.
 - **Observability per job kind inside the worker.** Every shared metric series a job kind produces
   stays attributable to it, the library series for request cost, leases and throttles included, so
-  each job kind calls its provider through adapters of its own and spends through limiters of its
-  own over the account sessions the worker's one execution context holds. The policy reload is the
-  execution context's, one per process, and its series is the worker's
+  each job kind calls its provider through a caller of its own, its own adapter clients, limiter,
+  provider metrics, priority class and timeout. Each job kind builds its caller in its own `Build`,
+  on the registerer the process hands it, which carries the job kind's label, and calls through it
+  over the connections the worker's one Session holds. The reload of the accounts and their
+  policy is the Session's, one per process, and its series is the worker's
   ([ADR-0090](./0090-accounts-reach-deployables-as-reloaded-snapshots.md)). Logs carry the job kind
-  and the account. Liveness is reported per job,
-  and the worker reports ready once each job kind's pool answers as its role and each job kind's
-  reload has succeeded
-  ([ADR-0138](../engineering/0138-one-host-runs-each-process-and-each-component-provides-its-parts.md)).
-  Something alerts when the worker stops
+  and the account. Liveness is reported per job. The worker reports ready once each job kind's pool
+  answers, the Session has loaded the accounts, their connections and their policy once, and each
+  job kind's first listing of what it runs for has succeeded
+  ([ADR-0142](../engineering/0142-each-program-is-a-spec-that-one-process-runs.md)). Something
+  alerts when the worker stops
   ([ADR-0077](./0077-conditions-raised-as-alerting-rules.md)). A panic in one job does not take down
   the others.
 - **Code and configuration.** The worker holds shared code and code isolated per job kind. It reads
   one configuration tree with shared sections, such as the scanner and the credential keys, and a
-  section per job kind, and the per-job database users sit inside one `database` section, so no
-  value is spelled twice
+  section per job kind, and one `database` section names the one user every job kind's pool
+  connects as, so no value is spelled twice
   ([ADR-0078](../engineering/0078-configuration-layers-through-an-owned-library.md)).
 - **Every job records its runs.** Each run writes a `job_runs` row with its state, checkpoint,
   counters, and last error, timeline events (start, progress at every checkpoint, backoff, retry,
@@ -129,26 +149,24 @@ roles with each one.
 
 ## Alternatives considered
 
-- **Four separate workloads**, as [ADR-0022](./0022-four-workloads.md) decided. The case for it:
-  each job fails alone, the heuristics run sits outside the credential-holding processes, each
-  image holds only its own job's code, and a compromised job reaches only its own role. Not chosen,
-  because most of what it guards is carried by the database and the code rather than the process,
-  the guards that are the process's are replaced inside the worker by the isolation above, and a
-  process per job kind multiplies deployables, images, chart objects and roles with every job kind
-  growth brings.
-- **One process with one role holding every job kind's grants.** The case for it: one credential to
-  provision and one pool. Not chosen, because a bug in any job could then write what only another
-  job writes, a heuristics bug updating a stored credential and a backfill bug deleting messages,
-  and bugs are likelier than compromises.
+- **A process per job kind**, as [ADR-0022](./0022-four-workloads.md) decided for four workloads.
+  The case for it is that each job fails alone, the heuristics run sits outside the
+  credential-holding processes, and each image holds only its own job's code. Not chosen, because
+  most of what it guards is carried by the database and the code rather than the process, the
+  guards that are the process's are carried inside the worker by the isolation above,
+  and a process per job kind multiplies deployables, images and chart objects with every job kind
+  growth brings. It would not bound a compromised job's reach in the database either, since every
+  process would connect as the same application user
+  ([ADR-0143](../data/0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)).
 - **One container whose supervisor runs each job kind as a child process.** The case for it: a
   panic or a leak stays in its child, and each child keeps its own memory short of the container's
   limit. Not chosen. A supervisor and its children are new machinery to build, restart and observe,
   a child shares the container's filesystem and can read the key file, and an out-of-memory kill
   still depends on which process the kernel picks.
-- **A role per credential reach**, one for the job kinds that call a provider and one for the
-  heuristics run. The case for it: two credentials, with the heuristics run still held away from
-  stored credentials. Not chosen, because backfill, delta sync and apply would then share reach,
-  which the role per job kind keeps apart at no more than two extra credentials.
+- **The database users the job kinds connect as.** One user for the API server, the UI and the
+  worker, and the alternatives to it, a user per job kind, per credential reach or per group of job
+  kinds, are weighed in
+  [ADR-0143](../data/0143-the-programs-connect-as-one-application-user-beside-the-migrators.md).
 - **Several worker replicas.** The case for it: throughput across accounts and a shorter outage on
   a node loss. Not chosen. Each account has one rate budget
   ([ADR-0025](./0025-priority-classes-and-leases.md)), so replicas add throughput only across
@@ -183,14 +201,15 @@ roles with each one.
   without raising what any one yields
   ([ADR-0028](./0028-trust-anchor-hardening.md)).
 - **What the scanner and the thresholds must agree on is read once.** Backfill's and delta sync's
-  scanner section comes from one configuration load, both scan with the execution context's one
-  scanner built from it, and their gate thresholds are one value in one process, so both agree by
-  construction rather than by two processes being given the same.
+  scanner section comes from one configuration load, both scan with the process's one scanner
+  built from it ([ADR-0142](../engineering/0142-each-program-is-a-spec-that-one-process-runs.md)),
+  and their gate thresholds are one value in one process, so both agree by construction rather
+  than by two processes being given the same.
 - **Cross-job coordination of the rate budget stays.** The API server still spends from each
   account's budget, so leases stay in the database
   ([ADR-0025](./0025-priority-classes-and-leases.md)).
-- **Undoing it is a packaging change.** Each job kind keeps its own entry, so moving one out of the
-  worker later moves its wiring into a root of its own, and the role per job kind already exists.
+- **Undoing it is a packaging change.** Each job kind keeps its own entry in the worker's spec and
+  its own `Build`, so moving one out of the worker later moves its entry into a spec of its own.
   What cannot be undone is what a window records, which is series written without a job label, and
   a credential exposed while the heuristics run sat inside the anchor, whose remedy is revoke and
   reissue.
@@ -205,15 +224,15 @@ roles with each one.
   it. The harm that overlap can do is bounded as
   [ADR-0119](./0119-the-workers-jobs-are-scheduled-from-recorded-state.md) states, since every run
   reads recorded state and is idempotent or conditional, so the in-process exclusion is one layer of
-  several. It delivers
-  the credentials of every role the worker's job kinds run as, and the private key's file to the
-  worker. A job kind's code receives only its own pool and the worker's one execution context, built
-  over delta sync's pool, which the composition root wires, since the grant check sees which
-  statements a list admits and not which pool reaches the code
-  ([ADR-0066](../data/0066-data-access-generated-from-sql.md),
-  [ADR-0118](../data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)). A test of the
-  composition root holds the pools it opens, the pool it hands each job kind and the pool it builds
-  the context over, and review holds that its run passes the pools it opened on to the job kinds and
-  the context.
+  several. It delivers the application user's credential and the private key's file to the worker
+  ([ADR-0143](../data/0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)).
+  A job kind's `Build` is handed the build's context, the process's capabilities and the worker's
+  configuration, and nothing else, since the spec's type fixes its parameters
+  ([ADR-0142](../engineering/0142-each-program-is-a-spec-that-one-process-runs.md)). Through those
+  it may ask the owners for its own job kind's pool, which `process/database` keeps, the worker's
+  one Session, the connections and the scanner, each through an import of its owner's package that
+  its import list admits. What it can ask for is bounded by that list, so a job kind that calls no
+  provider cannot reach the connections. A test holds that each job kind's code runs on a pool of
+  its own.
 - The rules above that are enforced or checked are controls. Their injections are catalogued in
   [docs/VERIFICATIONS.md](../../VERIFICATIONS.md).

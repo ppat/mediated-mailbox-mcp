@@ -45,7 +45,7 @@ Each derives from a record that already binds, named beside it.
 | Drift is a build failure | Schema, statements and result types cannot disagree except as a failed build | [ADR-0047](./0047-schema-first-data-access.md) |
 | Schema authority | The migration set is the only authority on stored shape, and nothing derives it from code | [ADR-0047](./0047-schema-first-data-access.md), [ADR-0048](./0048-forward-only-migrations.md) |
 | Per-query result types | Each statement has its own result shape, with no type shared across statements and no field a body could occupy | [ADR-0047](./0047-schema-first-data-access.md) |
-| Role separation | Several database roles hold different grants, and a component cannot name an accessor its role has no grant for | [ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md) and [ADR-0048](./0048-forward-only-migrations.md) establish that the roles differ. This record adds that a component cannot name another role's accessor |
+| Component separation | Each component reaches only the statements its import list admits, and the database user it connects as holds the grants each of them needs | [ADR-0143](./0143-the-programs-connect-as-one-application-user-beside-the-migrators.md) establishes that one user's grants cannot tell programs apart, so a program's import lists are what hold its code to less than another's in the database, and [ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md) and [ADR-0048](./0048-forward-only-migrations.md) what the UI and the migrator's user may do. This record adds that a component cannot name an accessor its list does not admit |
 | Transaction-scoped account | Each transaction sets the account by an ordinary statement before reading, and this survives pooling and statement caching | [ADR-0016](./0016-schema.md), [ADR-0060](../engineering/0060-no-code-in-the-database.md) |
 | Batched writes | Several hundred to a thousand rows per batch without leaving the typed layer | [ADR-0025](../operability/0025-priority-classes-and-leases.md) |
 | Type coverage now | Case-insensitive text, text arrays, JSON, timestamps with zone, big serial | [ADR-0016](./0016-schema.md) |
@@ -81,7 +81,8 @@ throughput and latency, because the corpus assumption puts them out of reach of 
 - **The dataset endpoint is enumerated**, one statement per dataset and grouping dimension, plus a
   summary and a rows statement per dataset.
 - **The generator's defaults produce what these records forbid, and configuration declines only part
-  of it.** The configuration omits the table structs no statement uses. No setting stops the
+  of it.** The configuration omits the table structs no statement uses, and the interface the
+  generator can emit over a subsection's accessors, since nothing uses one. No setting stops the
   generator reusing a table's struct for a statement that selects all of that table's columns in
   table order, so the assertion that the generated table-struct file declares no types is the
   mechanism, and a statement it refuses reorders or aliases its columns.
@@ -108,29 +109,40 @@ throughput and latency, because the corpus assumption puts them out of reach of 
   names, for a rule [ADR-0016](./0016-schema.md) states
   ([db/README.md](../../../db/README.md#the-checks)).
 - **Generated code sits in the one data-access directory, in subsections organized by concern rather
-  than per role.** One generated package per subsection, all from the one schema. A statement may be
-  needed by more than one role, so grouping by role would duplicate it. The role boundary is held by
-  two checks instead. Each component's import list names exactly the subsections it may use
-  ([ADR-0071](../engineering/0071-static-enforcement-toolchain.md)), and a test runs every statement
-  of a subsection under the role of each component whose list admits it, planning each one with
-  `EXPLAIN (GENERIC_PLAN)` so nothing executes, so a list admitting a statement the role's grants do
-  not allow fails naming the list, the statement and the role. Which role each component connects as
-  is [ADR-0118](./0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)'s, as is the role an
-  execution context's statements run under, and the check reads both mappings from one place in
-  `db/check`, failing a deployable's list that names
-  subsections without a role and a role whose deployable's list reaches no subsection, directly or
-  through a shared library. Inside the worker, each job kind has a list and a role of its own, and
-  the mapping holds per job kind as it holds per deployable. A shared library connects as no role
-  of its own. Its statements run under the role of each deployable, or in the worker of each job
-  kind, whose list admits the library, and the check plans them under each of those roles, reading
-  which admit it from their lists. A table's statements sit in the table's subsection. A statement
-  that a role admitted to that subsection may not be granted under
-  [ADR-0118](./0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)'s three lines sits one
-  directory further down, in a subsection named for what it holds, which only the roles that may
-  run it admit. Three rules hold that layout, each checked in `db/check`. No package of the
-  data-access library imports a subsection unless it is itself a subsection. No hand-written
-  non-test Go file other than a `doc.go` sits in a subsection's directory, in a directory above one,
-  or in the library's root. No component's list admits the library's root package.
+  than per program.** One generated package per subsection, all from the one schema. A statement may
+  be needed by more than one program, so grouping by program would duplicate it. What a component's
+  code may run is held by two checks instead.
+  - Each component's import list names exactly the subsections it may use
+    ([ADR-0071](../engineering/0071-static-enforcement-toolchain.md)).
+  - A test runs every statement of every subsection a list admits under the application user,
+    the one database user the API server, the UI and the worker connect as
+    ([ADR-0143](./0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)). It
+    plans each one with `EXPLAIN (GENERIC_PLAN)` so nothing executes, and a list admitting a
+    statement the user's grants do not allow fails, naming the list, the statement and the user.
+    The check reads every list from one place in `db/check`, and plans the subsections each list
+    reaches, directly or through a shared library. Inside the worker each job kind has a list of
+    its own, and the check plans what it reaches as it plans a deployable's. The check proves the
+    grants are enough for every admitted statement. It does not tell one program's reach from
+    another's, which the import lists do.
+
+  A table's statements sit in the table's subsection. A subsection sits one directory further down,
+  named for what it holds, where a record forbids its statements to code whose import list, a job
+  kind's included, admits the table's subsection, since a list admits whole packages. The lower
+  subsection is then admitted only to the code the record allows. A subsection that existed only so
+  one database user could be granted fewer of the table's columns folds into its table's
+  subsection, since one application user has no use for that split. So the recording of an
+  authentication attempt sits in `db/accountstate` itself, the reads of a run's failures that join
+  each item's message in `db/jobruns`, and the reads of masking events counted under each message's
+  sender in `db/maskingevents`, since no record forbids their statements to code whose list admits
+  their table's subsection. The UI's reads of the sender statistics
+  stay below `db/senders`, since they read the prior scan hits, which
+  [ADR-0109](../operability/0109-the-index-is-read-through-search-count-and-the-sender-listing.md)
+  keeps from the API server, whose list admits `db/senders`.
+
+  Three rules hold that layout, each checked in `db/check`. No package of the data-access library
+  imports a subsection unless it is itself a subsection. No hand-written non-test Go file other
+  than a `doc.go` sits in a subsection's directory, in a directory above one, or in the library's
+  root. No component's list admits the library's root package.
 
 ### How the decision meets each requirement
 
@@ -141,14 +153,14 @@ throughput and latency, because the corpus assumption puts them out of reach of 
 | Drift is a build failure | Three mechanisms catching different things. Generation fails, naming the column, when a statement does not typecheck against the schema. Regenerate-and-diff catches what typechecking cannot, meaning generated code hand-edited or predating a schema change. A test catches a generated file left behind after its statement file is deleted, which neither regenerating nor the diff notices. None of them catches a configuration change, because generation runs from the configuration as checked in |
 | Schema authority | The generator reads the migration files, and nothing derives schema from code |
 | Per-query result types | One result struct per statement. The generated table-struct file declaring no types is asserted, because configuration omits only unused table structs and the generator reuses a table's struct for a statement selecting all its columns in table order |
-| Role separation | One generated package per subsection by concern, all from the one schema. Separate packages alone are a naming convenience rather than a boundary, since any import compiles cleanly, so each component's import list names its subsections and a test plans every admitted statement under the component's role |
+| Component separation | One generated package per subsection by concern, all from the one schema. Separate packages alone are a naming convenience rather than a boundary, since any import compiles cleanly, so each component's import list names its subsections and a test plans every admitted statement under the application user |
 | Transaction-scoped account | An ordinary `SET LOCAL` under the driver, whose isolation holds under forced generic plans and under the driver's statement caching |
 | Batched writes | One insert selecting from unnested array parameters, fully typed |
 | Type coverage now | All five map without custom overrides or type registration |
 | Trust-anchor footprint | The generator is a build-time binary contributing no run-time modules. Generated code imports the driver, not the generator |
 | Long-term fit | Abandonment costs a generator. The statement files are the authored artifact and the generated Go keeps compiling |
 | Vector column | Not a requirement, since the schema declares no vector column. As weighed, it was supported, conditional on the native driver target this record chooses, with three open defects, one of them to a nullable vector column |
-| Crash-harness fit | Accessors are callable with plain values, and an emitted interface gives the harness something to wrap |
+| Crash-harness fit | Accessors are callable with plain values. The generator can emit an interface that would give the harness something to wrap, and none is emitted while nothing uses one |
 | Idiom pull | Every default that breaks a record here is enumerable, and each is closed by a check rather than by memory |
 
 ### Implementation notes
@@ -164,7 +176,7 @@ from the generator's issue tracker rather than from having been run.
 | The natural multi-argument `unnest` form is refused by the generator's analyzer | Write it as a common table expression with parallel single-argument `unnest` calls |
 | Case-insensitive text needs no type registration and works in every driver mode | But a text cast on either side of a comparison between such a column and a parameter makes the same question return no rows or fewer, with no error, and the generated Go is identical either way |
 | The account setting's deny state is silent | Once a connection has set it, PostgreSQL resets it to the empty string between transactions rather than to unrecognised, so a statement omitting it returns no rows without error on a warm connection and raises on a fresh one. The shared transaction helper reads it back and fails the transaction when it is empty. [ADR-0016](./0016-schema.md) carries the schema half |
-| A grant refusal and a predicate that matches no row behave oppositely | A grant the role lacks raises, naming the table and not the column, so it carries nothing the operator can act on. A predicate matching no row, because the row is another account's or its state moved on, empties the statement, which succeeds having changed nothing |
+| A grant refusal and a predicate that matches no row behave oppositely | A grant the database user lacks raises, naming the table and not the column, so it carries nothing the operator can act on. A predicate matching no row, because the row is another account's or its state moved on, empties the statement, which succeeds having changed nothing |
 | The plain execute annotation discards the command tag | Every write whose predicate can match no row uses the row-counting annotation instead, and zero rows affected is a failure. The four decision writes behind [ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)'s two decision verbs are such statements |
 | If a connection pooler is placed in front of PostgreSQL | Statement mode is unusable because it forbids transaction blocks. Transaction and session modes both preserve isolation. The driver's prepared statements require the pooler to permit them, which is preferred over disabling them, because disabling them discards the cached plans the isolation result was measured under |
 
@@ -185,7 +197,7 @@ the field are unreleased since 2023 or pre-release. Its footprint figures are sq
 | Drift is a build failure | 4 | 3 | 3 | 1 | 3 |
 | Schema authority | 4 | 4 | 4 | 4 | 4 |
 | Per-query result types | 4 | 4 | 3 | 4 | 3 |
-| Role separation | 4 | 3 | 3 | 3 | 4 |
+| Component separation | 4 | 3 | 3 | 3 | 4 |
 | Transaction-scoped account | 4 | 4 | 3 | 3 | 3 |
 | Batched writes | 4 | 4 | 4 | 4 | 4 |
 | Type coverage now | 4 | 4 | 3 | 2 | 3 |
@@ -208,10 +220,10 @@ those same per-table structs, so reaching for it undoes the arrangement. That is
 carried by discipline rather than by the tool, which is what its 3 records.
 
 Four rows were measured rather than read, for four of the five candidates. They are the account
-predicate, measured by writing the check and taking it from passing to failing, role separation,
-by building the generated packages and attempting a cross-role import, trust-anchor footprint, by
-building identical minimal programs and comparing them, and batched writes. The struct-scanning
-candidate was not built at any point, so its column rests on documented behaviour throughout, as
+predicate, measured by writing the check and taking it from passing to failing, component
+separation, by building the generated packages and attempting an import the importing component's
+list does not admit, trust-anchor footprint, by building identical minimal programs and comparing
+them, and batched writes. The struct-scanning candidate was not built at any point, so its column rests on documented behaviour throughout, as
 do the remaining rows for every candidate. The chosen candidate stands alone at the ceiling on
 three rows, the account predicate, fenced composition and drift, and the account predicate is the
 one among them whose failure is silent.
@@ -252,8 +264,8 @@ case-insensitive columns are confinable nowhere.
 - **Hand-written statements with hand-written result types over the same driver.**
   [ADR-0047](./0047-schema-first-data-access.md) leaves this open deliberately, and it is the
   closest alternative. The case for it is stronger than it first appears. The driver's
-  row-scanning helpers have absorbed the boilerplate generation used to be worth, and preparing
-  every declared statement against the migrated schema reproduces most of the drift catch,
+  row-scanning helpers have absorbed the boilerplate that generation would otherwise save, and
+  preparing every declared statement against the migrated schema reproduces most of the drift catch,
   including the body-column case, using the fresh database
   [ADR-0043](../engineering/0043-no-mocking.md) already requires on every test run. Rejected
   because the helpers match by run-time reflection, so a struct disagreeing with its statement is
@@ -284,10 +296,14 @@ case-insensitive columns are confinable nowhere.
 
 ### Where generated code sits
 
-- **Each role's generated package under its owning deployable's `internal/`.** The case for it is
-  that the compiler holds the role boundary, so no import check is needed. Not chosen, because the
-  shared transaction helper would be copied into each deployable or split into a library of its own,
-  and a statement several roles need would be duplicated.
+- **Each role's generated package under its owning deployable's `internal/`**, weighed while each
+  deployable connected as a database role of its own. The case for it is that the compiler holds
+  the role boundary, so no import check is needed. Not chosen, because the shared transaction helper
+  would be copied into each deployable or split into a library of its own, and a statement several
+  roles need would be duplicated. Under
+  [ADR-0143](./0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)'s one
+  application user the same placement by program would hold the boundary between programs, and
+  would cost the same.
 
 ## Consequences
 

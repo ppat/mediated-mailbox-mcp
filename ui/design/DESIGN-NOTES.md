@@ -95,8 +95,9 @@ chart series, and update docs/UI.md §14 from the report. ADR-0059 records the d
 
 ## What must not change without a record
 
-- The two decision verbs, OAuth client setup, account setup and policy management, and their
-  database grant (ADR-0084). No third verb, no "retry", no "rollback", however small.
+- The two decision verbs, OAuth client setup, account setup and policy management, and the
+  database writes they are held to (ADR-0084). No third verb, no "retry", no "rollback", however
+  small.
 - Per account, never aggregated across accounts (the operator's ruling, ADR-0056). The
   installation screens show no account's state (ADR-0056).
 - Every policy write appends its history row (ADR-0102).

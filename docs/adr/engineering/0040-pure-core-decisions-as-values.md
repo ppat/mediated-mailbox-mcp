@@ -72,8 +72,13 @@ exercises, be provable exhaustively and cheaply.
   - Fail-closed paths are exercised by feeding error states in and asserting deny-verdicts out,
     as plain data against pure functions.
 - Composition happens in each component's own shell, and a deployable's composition is never
-  shared with another deployable. Its choice of pieces and how they connect, which pool and role
-  each uses and the order they start are its own, written by hand in its composition root.
+  shared with another deployable. Its choice of pieces and how they connect are its own, written by
+  hand in its composition root. Which database user a piece connects as is
+  [ADR-0143](../data/0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)'s,
+  each job kind has a pool of its own
+  ([ADR-0119](../operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md)), and the
+  order the pieces start in is
+  [ADR-0142](./0142-each-program-is-a-spec-that-one-process-runs.md)'s.
   Reusable assembly, logic several roots would otherwise repeat because it encodes a rule each of
   them applies, is library code that each root calls explicitly, so nothing resolves it at run
   time and the question this record keeps answerable by reading the root stays answerable. A

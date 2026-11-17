@@ -58,9 +58,9 @@ surface, applied to the UI's read API.
   [ADR-0053](../engineering/0053-parity-by-construction.md). The generator's tools are
   [ADR-0065](../engineering/0065-contract-built-from-registry-consumed-as-generated-types.md)'s.
 - Assumptions about other components: the datasets are the tables of
-  [ADR-0016](../data/0016-schema.md). The UI's database role reads them under
-  [ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)'s grants. The account
-  identifier is mandatory on every request, as
+  [ADR-0016](../data/0016-schema.md). The UI reads them through the data-access subsections its
+  import lists admit ([ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)). The
+  account identifier is mandatory on every request, as
   [ADR-0047](../data/0047-schema-first-data-access.md) already requires of every data-access
   function.
 - The registry's refusal of an undeclared dataset or dimension is a control. Its violation

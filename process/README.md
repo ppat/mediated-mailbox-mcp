@@ -6,55 +6,106 @@ own case ([ADR-0050](../docs/adr/engineering/0050-shared-code-pure-or-narrow.md)
 case. The conventions it shares with every component are
 [CLAUDE.md](../CLAUDE.md#code-layout-and-conventions)'s.
 
-Its concept is the [process](../DESIGN.md#glossary), what every deployable needs to run as a
-process under the environment contract
-([ADR-0051](../docs/adr/engineering/0051-environment-contract.md)), which is its configuration
-layered from defaults, a file, the environment and flags, its database connection and what it
-measures of that connection, what it measures of its runtime, its operations endpoints, its logs,
-the release version it reports, and the host that runs it over the components it hosts. The decision it hides is
-how a process meets that contract, which changes only when the contract or the platform under it
-does, and never with what the process runs.
+## What it is for
+
+Its concept is the [process](../DESIGN.md#glossary), one running program, and what that process
+holds. It does two jobs.
+
+1. **It runs a program as a process.** Every program but the command-line program runs under the
+   environment contract ([ADR-0051](../docs/adr/engineering/0051-environment-contract.md)). For
+   that it needs its configuration, layered from defaults, a file, the environment and flags, its
+   database pools and what it measures of them, what it measures of its runtime, its operations
+   endpoints, its logs, the release version it reports, and the spec and the process that run it
+   ([ADR-0142](../docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md)).
+2. **It holds what a process's endpoints and job kinds share**, one scheduler, one scanner and one
+   [Session](../DESIGN.md#glossary), beside the database pools above. The Session is all the user
+   state a process holds, which is the accounts, each account's policy and each account's
+   connection to its provider.
+
+It hides two decisions.
+
+- **How a process meets the environment contract.** That changes only when the contract or the
+  platform under it changes, never with what the process runs.
+- **How a process builds, holds and reloads what its endpoints and job kinds share.** Each shared
+  thing is built once, by one owner, in one way, whichever program asks. A read the process cannot
+  trust never replaces what it holds. The credentials inside are opened, rotated and written back
+  by one set of rules.
+
+The Session's members sit together because they change together. The policies are loaded, held
+and reloaded exactly as the accounts are, in the one reload the Session owns. The unit of work is
+the one place the steps around an account's credential are written, which every program that calls
+a provider would otherwise write for itself.
 
 | Package | Holds |
 | --- | --- |
-| `settings/` | The layering of defaults, one optional configuration file, environment variables and flags into each deployable's configuration |
-| `dbconnect/` | A deployable's database section of its configuration, in `dbconnect/core`, and the connection built from it |
-| `dbmetrics/` | The opening of a deployable's measured pool, the latency of every statement a connection runs, by the statement's name, and the statistics of each connection pool |
-| `runtimemetrics/` | The registration of the Go runtime's and the process's series, once per process |
-| `probes/` | The operations endpoints of every process that runs until it is told to stop, the health and readiness probes and the metrics endpoint |
-| `host/` | The host, which runs one process over the components a composition root hands it ([ADR-0138](../docs/adr/engineering/0138-one-host-runs-each-process-and-each-component-provides-its-parts.md)) |
-| `logging/` | The logger every deployable writes its JSON records to standard output through, and the reading of its `log_level` |
-| `version/` | The release version every binary reports through `--version` and every deployable's start banner shows |
+| `process` itself | The spec and the process, `Spec`, `Endpoint`, `Job`, `Task`, `Capabilities`, `Process` and `OnePerProcess`, the build and the run, the servers, the operations endpoints, the runtime series, the stop order and the readiness reports ([ADR-0142](../docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md)) |
+| `settings/` | The layering of defaults, one optional configuration file, environment variables and flags into the configuration type of each program that runs as a process, and the reading of a `config.Duration` |
+| `database/` | The connection a pool is opened over, every pool, the latency of every statement a connection runs, by the statement's name, the statistics of each pool, and the schema check, through `database.Get` and, for the migrator, `database.ForMigration` |
+| `schedule/` | The scheduler, which runs each job kind's plan, adding and dropping its jobs by key, and the helper job code starts a goroutine through ([ADR-0119](../docs/adr/operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md)) |
+| `sessions/` | The Session, its three members, the reload, the order of the reload, its failure rules, and who is told after it |
+| `accounts/` | The reading of the list of accounts |
+| `policies/` | Each account's policy, the base policy included, the load concurrent body requests share, and the reload-failure alarm |
+| `connections/` | Each account's connection to its provider, one record per account, the unit of work, the compare-and-set write-back of a rotated credential, and delta sync's re-seal |
+| `scanner/` | The scanner, built once per process, and the body-processing histogram |
+| `logging/` | The logger every program that runs as a process writes its JSON records to standard output through, and the reading of its `log_level` |
+| `version/` | The release version every binary reports through `--version` and every process's start banner shows |
 
 Each package is admitted to each component by its own entry in that component's import list, and
-each has a list of its own in `.golangci.yaml`. A package added here without a list of its own falls
-under the list over files outside every component, which admits only the standard library.
+each has a list of its own in `.golangci.yaml`, so joining this family never widens what any
+component may import. A package added here without a list of its own falls under the list over
+files outside every component, which admits only the standard library.
 
-**What does not belong.** A concern's own configuration section stays with its concern
-([ADR-0050](../docs/adr/engineering/0050-shared-code-pure-or-narrow.md)), so the credential section
-is the execution context family's and the scanner's section is `core/scan`'s, while this family
-holds only the layering mechanism and the database section, whose whole concern is running as a
-process. Nothing here reads an account, a policy or a message, and nothing here runs a statement.
-The schema check's statement is the data-access library's and its comparison sits beside the
-migration chain, so the host runs a check its root hands it and knows neither. Readiness is a
-component's, because each component answers it from state only it holds, so a
-component hands the host its readiness checks and the host serves `/readyz` over them. No component
-is imported here, and the host knows a component only by the parts it is handed. The execution
-context a process's components share is the execution context family's, which the composition root
-builds once and whose reload it hands the host as a task, so the host holds no account, no policy
-and no credential.
+## What does not belong
+
+- **The shape of the configuration.** The configuration type of each program that runs as a
+  process, with its defaults and its checks, is `core/config`'s. This family holds the loader and
+  no configuration type.
+- **Any one program.** The `process` package itself knows nothing of accounts, providers, policies
+  or any one program. No program is imported here, and the process knows an endpoint, a job kind or
+  a task only by the function that builds it.
+- **Reading a message.** Nothing here reads one.
+- **The schema check's statement and comparison.** The statement is the data-access library's, and
+  the comparison sits beside the migration chain. `database` runs the two on each pool.
+- **Deciding readiness.** Readiness is reported, through `Report`, by what holds the state it
+  answers from, so the probes answer from what was reported and run nothing.
+- **A credential in the Session.** The Session's package imports no credential and no provider
+  code. The connections attach to it as its third member, so code that holds the Session and not
+  the connections cannot reach a credential.
+- **Sealing and opening a credential.** Those are `credential/`'s.
+- **Calling a provider and spending from the rate budget.** Those are the provider library's, which
+  the connections reach through its calling side, `provider`. The rate limiter's leases are shared
+  across processes, and it changes for different reasons, so it is the provider library's
+  `provider/ratelimit`, never this family's.
+- **Editing or importing the policy.** That is the UI's and `db/policyrules`', never `policies`',
+  which only holds what was loaded.
+- **Scanning.** That is `core/scan`'s, and `scanner` only builds the scanner.
+
+The failure to watch for is the Session growing policy, scanning or leasing code, the connections
+growing an adapter's or the rate limiter's code, or `policies` growing behaviour unrelated to
+holding what was loaded. Each shows first as an entry its import list does not hold.
+
+The statements of `accounts`, `policies` and `connections` run under the application user, in the
+API server and the worker, which hold the Session
+([ADR-0143](../docs/adr/data/0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)),
+and the grant check plans each of them under it
+([ADR-0066](../docs/adr/data/0066-data-access-generated-from-sql.md)). When a process reloads, and
+what is put in force after a reload, are the Session's. Each member loads when asked, and tells a
+read it cannot trust from one that found nothing.
 
 ## The configuration library, `settings`
 
-Every deployable, and the migrator, takes its configuration the same way
+Every deployable and the migrator take their configuration the same way
 ([ADR-0078](../docs/adr/engineering/0078-configuration-layers-through-an-owned-library.md)).
 Defaults, one optional YAML file, environment variables under `MEDIATED_MAILBOX_` and command-line
-flags layer per value in that order, each value named once by its YAML key path, and every mistake
-in any layer is refused at start. This package is that mechanism, and nothing else. Each concern's
-configuration type, its defaults and its validation stay with the concern, and the host hands the
-package the arguments, the environment and the root type a composition root hands it. A root type is
-composed from sections, a section embedded inline sitting beside the embedding section's own values,
-so a root keeps the process's keys and its component's at the top of its tree.
+flags layer per value in that order. Each value is named once, by its YAML key path, and every
+mistake in any layer is refused at start. This package is that mechanism, and nothing else.
+
+Each of their configuration types, its defaults and its checks are `core/config`'s. The process
+hands this package the arguments, the environment and the configuration type its program's spec is
+typed on. A program's type is composed of the shared parts it has and its own keys. A part embedded
+inline sits beside the embedding part's own values, so a program keeps the process's keys and its
+own at the top of its tree. A length of time is a `config.Duration`, a number of nanoseconds this
+package fills from text such as `5m` and writes back as such text in the help and the start banner.
 
 The case for one package over per-deployable glue is the refusals. Configuration that is misspelled,
 duplicated, case-changed, of the wrong type or aimed at a key that does not exist has to stop the
@@ -62,50 +113,69 @@ process, because a setting that silently falls back to its default is the failur
 pillar forbids. The refusals are the rules glue gets wrong. Copies in each deployable would drift,
 and one copy that forgot to refuse unknown keys or to match environment names exactly would fail
 open. Written once, with a test per refusal and a mutation patch for each refusal the package's own
-code carries, they hold in every deployable.
+code carries, they hold in every program that runs as a process.
 
-The package is passed the arguments and the environment, and reads the one file they name. It returns the decoded configuration, each value's source and a revision
-per concern, or an error naming the file and line, the environment variable or the flag at fault.
-It holds no package-level state, and it holds no secret, since a value concerning a secret names a
-mounted file.
+The package is passed the arguments and the environment, and reads the one file they name. It
+returns the decoded configuration, each value's source and a revision per top-level key, or an
+error naming the file and line, the environment variable or the flag at fault. It holds no
+package-level state, and it holds no secret, since a value concerning a secret names a mounted
+file.
 
-## The database connection, `dbconnect`
+## The database, `database`
 
 Every process that connects to the database, every deployable and the migrator, takes its
-connection settings as one `database` section of its configuration, and connects the same way
+connection settings as one `database` section of its configuration, `config.Database` in
+`core/config`, and connects the same way
 ([ADR-0078](../docs/adr/engineering/0078-configuration-layers-through-an-owned-library.md)). This
-package is that section and that connection. The section's type and its validation are pure and sit
-in `dbconnect/core`. The shell renders every connection setting into the connection string, caps the
-pool at the section's pool size, reads the password from the mounted password file
-([ADR-0079](../docs/adr/operability/0079-secrets-arrive-as-mounted-files.md)) and refuses a start
-while `PGPASSWORD` or `PGSSLPASSWORD` is set. Each deployable supplies its own defaults, the user
-being its own runtime role, and the API server and the UI take the pool size the shell gives as the
-driver's own default, as does the migrator, whose user is the migration role
-([ADR-0139](../docs/adr/data/0139-the-migration-runner-is-goose-linked-into-the-migrator.md)). The
-worker names the server once and gives each job kind a user of its own, its job kind's runtime
-role, with a password file and a pool size of its own
-([ADR-0118](../docs/adr/data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)).
+package is the connection built from that section, the pools opened over it, their measurement and
+the schema check.
+
+| Function | What it returns |
+| --- | --- |
+| `database.Get` | A pool for the part that asks, opened the first time that pool is asked for and kept in the process. In a process that runs until it is told to stop, it runs the schema check on the pool before returning it, so a schema the process cannot run on stops the start before anything serves ([ADR-0140](../docs/adr/data/0140-each-migration-declares-the-oldest-chain-that-runs-on-it.md)) |
+| `database.ForMigration` | The migrator's pool, with no schema check. It is the migrator's alone ([ADR-0142](../docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md)) |
+
+A process holds one or more pools, and every one of them is this package's. In the worker each job
+kind has a pool of its own, built for it and labelled with it, so one job kind cannot starve
+another of connections
+([ADR-0119](../docs/adr/operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md)).
+Every other pool is built from the process, with the process's own logger and registerer, as a
+shared thing is, and keeps the label names every pool of the process registers its series under,
+which [ADR-0125](../docs/adr/engineering/0125-performance-is-measured-once-at-each-place-time-goes.md)
+puts before a shared thing's rule of no job kind.
+
+The connection renders every connection setting into the connection string, caps each pool at the
+section's pool size, which in the worker sizes each job kind's pool alike
+([ADR-0078](../docs/adr/engineering/0078-configuration-layers-through-an-owned-library.md)), and
+reads the password from the mounted password file
+([ADR-0079](../docs/adr/operability/0079-secrets-arrive-as-mounted-files.md)). The API server, the
+UI and the worker connect as the application user, and the migrator as the migrator's user. Each
+connects under the name its required `database.user` gives, which the deployment platform provides
+([ADR-0143](../docs/adr/data/0143-the-programs-connect-as-one-application-user-beside-the-migrators.md),
+[ADR-0139](../docs/adr/data/0139-the-migration-runner-is-goose-linked-into-the-migrator.md)). The
+worker names one database user, which every job kind's pool connects as. The API server, the UI
+and the migrator take the pool size the connection gives as the driver's own default, and each of
+the worker's job kind pools defaults to 4 connections
+([ADR-0078](../docs/adr/engineering/0078-configuration-layers-through-an-owned-library.md)).
 
 The case for one package over per-deployable glue is the database driver's fallbacks. pgx reads its
 `PG*` environment variables on every parse, with no option to stop it. A copy that left a setting
 out of the connection string, an empty `sslrootcert` included, would take that setting from the
-environment. A copy that did not refuse `PGPASSWORD` would let a stray one win over the mounted
-password file, and one that trimmed the file's text differently would connect with a different
-password. A copy that validated less would let the driver substitute a default the operator never
-chose, such as its socket directory for an empty host. Each of these fails silently. Written once,
-with a test and a mutation patch for each rule, they hold in every deployable that connects.
+environment, and one that trimmed the password file's text differently would connect with a
+different password. A copy that validated less would let the driver substitute a default the
+operator never chose, such as its socket directory for an empty host. Each of these fails silently.
+Written once, with a test and a mutation patch for each rule, they hold in every deployable that
+connects. The refusal of `PGPASSWORD` and `PGSSLPASSWORD` is not this package's but the process's,
+before the configuration is read
+([ADR-0142](../docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md)).
 
-The package connects as no role of its own and runs no statement. It returns the connection's
-configuration, and the host opens the pool.
-
-## The database measurements, `dbmetrics`
+### The database measurements
 
 Every deployable that connects measures its statements and its pools the same way
 ([ADR-0125](../docs/adr/engineering/0125-performance-is-measured-once-at-each-place-time-goes.md)).
-This package holds a pgx query tracer, a collector over a pool, which reads the pool's statistics
-when it is scraped, and the function that opens a pool from its configuration with both, which the
-host calls to open every pool a composition root asks for. Both register on the registerer they
-are handed, which carries the component's name and, in the worker, the job kind.
+This package holds a pgx query tracer, and a collector over a pool that reads the pool's statistics
+when it is scraped, and opens every pool with both. Both register on a registerer that carries the
+component's name and, for a job kind's pool in the worker, the job kind.
 
 | Series | Kind and labels | Value |
 | --- | --- | --- |
@@ -120,66 +190,411 @@ are handed, which carries the component's name and, in the worker, the job kind.
 
 The case for one package over per-deployable glue is the statement label. It is the name in the
 `-- name:` comment the statement's SQL starts with, `begin`, `commit` or `rollback` for a statement
-without one that starts with that keyword, and `unnamed` for every other, so the label never takes
-a value from the SQL's text and its values stay a closed set. A copy that labelled by the text, or
+without one that starts with that keyword, and `unnamed` for every other. So the label never takes
+a value from the SQL's text, and its values stay a closed set. A copy that labelled by the text, or
 that read the name differently, would grow a series per distinct statement text or split one
 statement's series in two, and either fails silently. Written once, with a test per rule, the label
-means the same in every deployable. Opening the pool here, rather than in each root, keeps every
-pool traced and collected alike, which a root that set the tracer and forgot the collector would
-not be.
+means the same in every deployable. Opening the pools here, rather than in each program, keeps every
+pool traced and collected alike, which a program that set the tracer and forgot the collector would
+not do.
 
-## The runtime measurements, `runtimemetrics`
+## The spec and the process, `process`
+
+This package holds the types
+[ADR-0142](../docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md) defines,
+`Spec`, `Endpoint`, `Job`, `Task`, `Capabilities`, `Process` and `OnePerProcess`, and
+`process.Run`, which runs one spec. What a spec lists, what the process hands each part it builds,
+and what the process does from start to stop are that record's. The process serves the application
+server and the operations endpoints under one set of connection limits
+([ADR-0130](../docs/adr/operability/0130-the-api-server-bounds-what-one-request-can-make-it-hold.md)).
+The shared parts of the configuration it reads, `config.Process` and `config.Serving`, are
+`core/config`'s.
+
+A test or a harness runs a program through its spec and `process.Run`, as `main.go` does, and
+substitutes a shared thing as
+[ADR-0142](../docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md) states.
+
+The case for one package over the same work written in each program is that each copy drifts on its
+own. A copy can answer its probes its own way or answer no readiness, load the key pair twice, start
+a goroutine it neither recovers nor joins, or build a shared thing its own way and at its own depth.
+A harness that puts a program together by hand can run it without the limits the program serves
+under. Written once, with a test per responsibility and a mutation patch for each rule it carries,
+a probe, a limit, a stop order or a refusal holds in every process, including a program whose spec
+joins several programs' specs.
+
+### The operations endpoints
+
+Every process that runs until it is told to stop serves its health and readiness probes and its
+metrics endpoint on a listener of its own while it runs
+([ADR-0051](../docs/adr/engineering/0051-environment-contract.md)).
+
+| Path | Answers |
+| --- | --- |
+| `/healthz` | 200 while the process runs |
+| `/readyz` | 200 only while the process serves and everything that reports is ready, and otherwise 503 with a line naming the first that is not |
+| `/metrics` | The process's registry, so every series a process registers reaches its scrape, between units of work as during them |
+
+The probes answer from what was reported and run nothing. Every answer is plain text for a
+platform's healthcheck and scraper. The endpoints the platform reads are the contract a copy could
+quietly break, by renaming a path or serving a registry other than the process's own. Written once,
+the endpoints are the same in every process that serves them.
+
+### The runtime measurements
 
 Every deployable registers the Go collector's default set with four runtime metrics added to it,
 the live heap, the garbage collector's and the process's CPU time and the scheduling latency, and
 the process collector, once on its process's registry
 ([ADR-0125](../docs/adr/engineering/0125-performance-is-measured-once-at-each-place-time-goes.md)).
-The host calls this package to do it, on the process's own registry, not a component's or a job
-kind's, so these series carry neither a component nor a job kind.
+The process registers them on its registry itself, which carries no label, rather than through a
+registerer, which adds the program's name and for a job kind the job kind. So these series carry
+neither a component nor a job kind.
 
 The case for one package over per-deployable glue is the set of runtime metrics. It is named by one
-expression, and a copy in each root whose expression drifted would serve a different set from one
-deployable with every gate green. Written once, with the test that pins which runtime metrics are
-added and which are left out, the set is the same in every deployable.
+expression, and a copy in each program whose expression drifted would serve a different set from
+one deployable with every gate green. Written once, with the test that pins which runtime metrics
+are added and which are left out, the set is the same in every deployable.
 
-## The operations endpoints, `probes`
+## The scheduler, `schedule`
 
-Every process that runs until it is told to stop serves its health and readiness probes and its
-metrics endpoint on a listener of its own while it runs
-([ADR-0051](../docs/adr/engineering/0051-environment-contract.md)). `/healthz` answers 200 while
-the process runs, `/readyz` answers 200 only while the readiness it is handed holds and 503 with a
-line saying why otherwise, and `/metrics` serves the registry it is handed, so every series a
-process registers reaches its scrape, between units of work as during them. Every answer is plain
-text for a platform's healthcheck and scraper. The endpoints the platform reads are the contract a
-copy could quietly break, a path renamed or a registry other than the process's own served. Written
-once, the endpoints are the same in every process that serves them. The host serves them.
+The process holds one scheduler. It runs every job kind the spec lists, and an owner uses it for
+its own upkeep, as the Session runs its reload on it
+([ADR-0119](../docs/adr/operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md),
+[ADR-0142](../docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md)).
 
-## The host, `host`
+A job kind's `Build` returns its plan, `schedule.Plan`.
 
-The host runs one process over the components a composition root hands it
-([ADR-0138](../docs/adr/engineering/0138-one-host-runs-each-process-and-each-component-provides-its-parts.md)).
-It refuses the environment, loads the configuration and logs it, sets the level, writes the start
-banner, builds the one registry and the runtime series, opens every pool a root asks for, runs the
-schema check a root whose process runs until it is told to stop hands it on each of those pools
-before the component that asked for it receives it, so a schema the binary cannot run on stops the
-start ([ADR-0140](../docs/adr/data/0140-each-migration-declares-the-oldest-chain-that-runs-on-it.md)), assembles
-each component with a logger and a registerer carrying its name, serves the application server and
-the operations endpoints under one set of connection limits, starts and recovers each component's
-background tasks and every goroutine a component asks its starter for while it runs, and stops in
-order, joining every task and goroutine before the pools close. Its sections of the configuration
-are `host.Process`, every process's, `host.Operations`, a process's that runs until it is told to
-stop, and `host.Serving`, a process's whose components serve requests. `New`, `Add` and `Serve`
-are its lifecycle without the configuration, which a test or a harness that composes a component
-itself serves through. `RunOnce` runs a process that does one piece of work and exits, as the
-migrator does, with the same start, registry and pools, and no servers or tasks, since nothing
-probes, scrapes or calls a process that exits on its own ([ADR-0139](../docs/adr/data/0139-the-migration-runner-is-goose-linked-into-the-migrator.md)).
+```go
+schedule.Plan{
+    Keys    func(ctx context.Context) ([]string, error) // the accounts, or the plans, to run for now
+    Recheck time.Duration                               // how often Keys is read again
+    Job     func(key string) (schedule.Job, error)      // the job for one key
+    Dropped func(key string)                            // what follows when a key is no longer listed
+}
+```
 
-The case for one package over the same work written in each root is that each copy drifts on its
-own. A copy can answer its probes its own way or answer no readiness, load the key pair twice,
-start a goroutine it neither recovers nor joins, and a harness composing a component by hand can run
-it without the limits its root serves it under. Written once, with a test per responsibility and a
-mutation patch for each rule it carries, a probe, a limit, a stop order or a refusal holds in every
-process, a process hosting several components among them.
+A key is an account for backfill and delta sync, and a plan for apply and rollback. A job kind that
+calls a provider lists the accounts the Session holds workable. The scheduler keeps one job per key
+the plan lists, adds and drops jobs as the list changes, and reports the job kind not ready until
+its first listing has succeeded. How a job is woken, run, backed off and stopped is
+[ADR-0119](../docs/adr/operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md)'s.
+
+The worker's job code starts a goroutine only through the scheduler's helper, `schedule.Go`, which
+recovers a panic on it and returns it as the run's error, so it fails that run and stops nothing
+else. The API server's and the UI's code, and a thing the process shares, start one only through
+the process's `Go`, whose panic fails what started it and stops the process in order
+([ADR-0142](../docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md)). The
+`go vet` goroutines analyser refuses, in the non-test code under `api/`, `ui/` and `worker/`, a
+`go` statement and any use of a function that starts a goroutine running what it is given, so that
+code starts one only through one of the two helpers. It refuses a call of neither, and a job kind's
+`Build` is handed the process's `Go` too, so which helper code uses is held by review, as is a
+goroutine a shared thing starts, since the analyser does not read this family's code.
+
+The case for one package over each job kind's own code is that adding and dropping jobs as the list
+changes, and reporting a first listing, would otherwise be written once per job kind, each copy
+drifting on its own.
+
+## The Session, `sessions`
+
+A process holds one Session, which every endpoint and job kind of the process may ask for through
+`sessions.Get`. The UI never holds it, since the UI's configuration type has no accounts part
+([ADR-0090](../docs/adr/operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md),
+[ADR-0081](../docs/adr/operability/0081-credentials-sealed-to-a-public-key.md),
+[ADR-0084](../docs/adr/mutation/0084-ui-writes-decisions-and-account-setup.md),
+[ADR-0142](../docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md)). It is
+built from the process, with the process's own logger and registerer, and holds three members.
+
+| Member | Held by |
+| --- | --- |
+| The accounts in force | [`accounts`](#the-accounts-accounts), which reads them |
+| Each account's policy, the base policy included | [`policies`](#the-policies-policies) |
+| Each account's connection to its provider | [`connections`](#the-connections-connections), which attach to the Session once, when they are built, and read each connected account's lowered rate target at each reload |
+
+What a change in one member means for the others is the Session's to say.
+
+- An account no longer listed loses its connection and its policy, and its jobs stop.
+- No unit of work begins on an account the list in force does not hold.
+- An account is workable only once it is listed, connected and its policy loaded, so no newly
+  listed account is worked before its policy has loaded.
+- A job kind that calls a provider works on the accounts the Session holds workable, and one that
+  calls no provider on the accounts that have a policy.
+
+Its reload is the Session's own upkeep, run on the process's scheduler on the schedule
+[ADR-0090](../docs/adr/operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md) states,
+at the interval `account_reload_interval` sets in the API server and in the worker. Each reload its
+caller did not cancel is timed on one series per process
+([ADR-0125](../docs/adr/engineering/0125-performance-is-measured-once-at-each-place-time-goes.md)).
+Its order is written once.
+
+1. Read the list of accounts.
+2. Load the connections for it.
+3. Put the list in force.
+4. Load the policy for it.
+5. Tell those who asked, the scheduler's plans and the API server's registry of operations among
+   them.
+
+| What fails | What happens |
+| --- | --- |
+| The read of the list | What is in force stays. Nothing loads and no one is told, and the reload returns the error |
+| The connections' read of the credentials or the clients | What is in force stays, the list included. Nothing more loads and no one is told, and the reload returns the error |
+| One credential or client secret that does not open | That account has no connection, and the others load ([ADR-0091](../docs/adr/data/0091-accounts-listed-apart-from-their-state.md), [ADR-0106](../docs/adr/provider/0106-accounts-of-a-provider-connect-through-any-of-its-oauth-clients.md)) |
+| One account's lowered rate target that cannot be read, or lies outside the range [ADR-0024](../docs/adr/operability/0024-conservative-target-aimd.md) allows | No unit of work begins on that account, so its work stops while every other account's goes on |
+| The policy's load | The accounts and the connections are in force all the same, the policy keeps what it had, and the reload returns an error that says so ([ADR-0041](../docs/adr/engineering/0041-policy-as-immutable-snapshots.md)) |
+
+The first reload does not hold up the start. Until a reload has loaded the list, the connections
+and the policy, the Session reports not ready and the reload is tried again. So the API server and
+the worker each start, and report not ready until one has. A later reload whose policy fails leaves
+the Session ready. A body request has the policy loaded before it decides, through the load
+concurrent body requests share, which is `policies`'
+([ADR-0099](../docs/adr/engineering/0099-a-body-request-loads-the-policy-before-it-decides.md)).
+
+The case for one package over per-program code is that the sequence of loading the accounts, their
+credentials and their policy would otherwise be written once in each program that loads them, and
+each copy is a place a rule can be left out
+([ADR-0142](../docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md)). Written
+once, the order and the failure rules hold in every process that holds a Session.
+
+Its package imports `accounts` and `policies`, and no credential and no provider code. It reaches
+the connections only through a small interface, which loads the connections of the accounts it
+names and says whether an account has one. The only way to the connections is their own package.
+So a job kind that calls no provider, such as the heuristics run, holds the Session and cannot reach
+a credential, since its import list refuses that package, as
+[ADR-0119](../docs/adr/operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md)
+requires. A second attach is refused, and an analyser rule holds the callers of the attach to the
+connections' package ([ADR-0071](../docs/adr/engineering/0071-static-enforcement-toolchain.md)).
+
+## The accounts, `accounts`
+
+Each process that holds a Session holds its accounts, each with its provider and the name of the
+OAuth client it connects through where its provider has one
+([ADR-0106](../docs/adr/provider/0106-accounts-of-a-provider-connect-through-any-of-its-oauth-clients.md)),
+as one read of the `accounts` table gives them. This package is that reading, from `db/accounts`
+([ADR-0091](../docs/adr/data/0091-accounts-listed-apart-from-their-state.md)), and it holds no
+credential.
+
+The case for one package over per-program code is a rule a copy could get wrong without anyone
+noticing. A read that fails is reported as a failure, never as a list with no account, so the
+Session keeps the list in force, while a read that succeeds with no account is the empty list,
+which serves none. A copy that treated a failed read as an empty list, or an empty list as a
+failure, would serve the wrong set.
+
+## The connections, `connections`
+
+Each process that calls a provider, the API server and the worker, holds each account's connection
+to its provider as one record per account. None of a record is exported
+([ADR-0090](../docs/adr/operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md),
+[ADR-0089](../docs/adr/operability/0089-sealed-values-written-by-compare-and-set.md)).
+
+| A record holds | Why |
+| --- | --- |
+| The stored credential | The bytes a write-back compares against |
+| The opened credential | What the token is made from |
+| The adoption stamp | Keeps a credential the operator replaced from being overwritten |
+| The token made from the credential | What a unit of work calls the provider with |
+| The account's lowered rate target | What the account's calls lease at |
+
+A process gets the connections through `connections.Of`, given the Session, and they attach to it
+as its third member. They open each stored credential with the keys they hold, and seal a rotated
+one before writing it back
+([ADR-0082](../docs/adr/operability/0082-rotation-writeback-to-the-database.md)). At each reload
+they make a token, through the provider library's calling side, `provider`, for each account that
+is new or whose credential changed. They keep a token across reloads while its own current
+credential equals the stored one, so a refresh that was written back is not thrown away. Delta sync
+re-seals what they open with a key that is not the current one, and reports the scan the key's
+retirement waits on, through `Reseal`, which an analyser rule holds to delta sync's package
+([ADR-0092](../docs/adr/operability/0092-key-replacement-by-keyring-and-re-seal.md),
+[ADR-0071](../docs/adr/engineering/0071-static-enforcement-toolchain.md)). The sealing and opening
+themselves are [`credential/`'s](../credential/README.md#the-sealed-credentials-seal-and-open).
+
+The case for one package over per-program code is rules a copy could get wrong without anyone
+noticing.
+
+- **A write-back never puts back a value someone else replaced.** Every write of a sealed value is
+  a compare-and-set on the bytes the process last read or wrote. A reload keeps a rotated
+  credential whose write-back failed only while the stored bytes are still those. A unit of work
+  that began before the connections adopted a value someone else stored, by a reload or a re-read,
+  never writes the older credential back. It carries no stamp of its own, and writes back under the
+  stamp of the record's token, as [the unit of work](#the-unit-of-work) states. The process's own
+  write-backs never stop one another, so overlapping rotations each land. A copy that wrote
+  unconditionally, or that read the stamp apart from the token it writes back, would put a revoked
+  grant back after the operator re-authorized the account. One that refused a write-back after its
+  own earlier write-back would lose a live rotation.
+- **An OAuth client is optional per provider, and required where the provider uses one.** An
+  account whose provider authenticates without one loads without one, and nothing looks for a
+  client that does not exist. Which providers authenticate through a client is one of the provider
+  library's facts about each provider, so the connections stay blind to which they are. An account
+  of such a provider that names no client, or whose client's secret did not open, loads as not
+  connected. A copy that assumed every provider has a client would refuse an account that needs
+  none. One that left the refusal to each program would serve such an account wherever a program
+  forgot it.
+- **An account reaches only the client it names.** Each account carries the client its row in
+  `accounts` names, and the connections offer no lookup of a client by provider or by name. A copy
+  that took a provider's first or only client would pair an account with a client its grant was
+  never issued to, and would look right for as long as each provider had one client. A re-read
+  after a refusal pairs the credential with the client the account names at the time of the
+  re-read.
+- **Only delta sync re-seals, and its scan never passes on silence.** It reports a series for every
+  account and every stored client secret, and a missing series never reads as done.
+
+Copies of these rules in each program would drift, and one that got any of them wrong would fail
+silently. Written once, they hold in every program that calls a provider.
+
+Each account's credential comes from `db/accountstate/credential`
+([ADR-0091](../docs/adr/data/0091-accounts-listed-apart-from-their-state.md)). The re-seal of an
+OAuth client's secret is written back by the connections through a compare-and-set, as every
+sealed value is
+([ADR-0089](../docs/adr/operability/0089-sealed-values-written-by-compare-and-set.md)). Only delta
+sync re-seals, the one writer of a client secret beside the UI's setup
+([ADR-0016](../docs/adr/data/0016-schema.md)).
+
+### The unit of work
+
+The API server, backfill and delta sync each call a provider for an account in units of work. A unit
+is a body request, a page of a pass, or a tick, and each is begun through the connections with the
+[caller](../DESIGN.md#provider-abstraction-and-accounts) that makes it. Each job kind, and the API
+server's body operation, builds its caller in its own `Build`, through the connections, so its
+provider calls are counted on its own series
+([ADR-0117](../docs/adr/operability/0117-one-background-worker-runs-every-job-kind.md)).
+
+| When | What happens |
+| --- | --- |
+| A unit begins | The connections find the account's record and hand the caller the account's connection as the provider library needs it. The unit's mailbox is what the program calls |
+| During the unit | Each call takes a lease, calls the provider, tells the limiter how it went, and tries once more on a refused credential |
+| The unit ends | It writes a refreshed credential back under the adoption stamp of the record it began on ([ADR-0089](../docs/adr/operability/0089-sealed-values-written-by-compare-and-set.md)), and records the latest authentication attempt ([ADR-0097](../docs/adr/operability/0097-authentication-outcome-reported-by-the-adapter-recorded-by-the-deployable.md)) |
+
+`connections` writes these steps once, because they hide a decision of the same concept, how a
+process holds an account's credential while it uses it. A copy in each program that calls a
+provider would drift on its own, for example one that writes a credential back naming no adoption
+stamp while every other copy names one.
+
+The unit of work never branches on which caller holds it, and decides two things alike for every
+caller.
+
+- **How long a token lives.** Across units of work, while the stored credential is the one the
+  token was made from or the one it rotated to. The connections hold across units, so an access
+  token the provider issued serves the units after it, the API server's requests, backfill's pages
+  and delta sync's ticks alike. A token per tick would cost a token refresh on every tick.
+- **Which units run concurrently.** The API server runs concurrent units for one account, and in
+  the worker backfill's and delta sync's do, so each record takes a lock around what it holds.
+
+Every caller begins its units of work through the one connections of its process, so it shares
+their records, while its calls go through its own caller.
+
+These are the rules a copy could get wrong without anyone noticing.
+
+- **A write-back names the stamp of the credential its token was made from.** A unit of work
+  carries no stamp of its own. Its end reads the token and the adoption stamp together from the
+  record it began on, under the record's lock, and writes the token's current credential back by
+  compare-and-set under that stamp. The write-back lands only while the record's stamp is still the
+  one read, and is discarded when the connections adopted another value in between. A copy that
+  named no stamp, or read the stamp apart from the token, would let a unit that started before the
+  operator re-authorized put the revoked grant back.
+- **A refused credential is read again before the refusal stands, and the call is made once more
+  only over a different credential**, paired with the client the account names at the time of the
+  re-read. The re-read reads the account's row once more. When the row names another client or
+  holds another credential, the re-read makes the token again from the pair
+  ([ADR-0106](../docs/adr/provider/0106-accounts-of-a-provider-connect-through-any-of-its-oauth-clients.md)),
+  changing the account's record in place, so another unit of work on the same account follows it. A
+  re-read that finds the refused credential, or none, returns the refusal. A copy that retried over
+  the same credential would spend a call the provider refuses, and one that kept the old client
+  would make a token the new grant was never issued to.
+- **A token and its stamp change only together.** When the token cannot be made over a re-read
+  credential, the record keeps the token, the stored bytes and the stamp it had. The account's row
+  then holds the re-read credential, which differs from the bytes the record holds, so a unit's
+  write-back fails its compare-and-set and the refused credential is never written back.
+- **Only a recorded attempt is recorded.** A token that made no attempt records nothing, and the
+  statement keeps a later attempt another program recorded.
+
+What the connections leave to others.
+
+- When the accounts reload is the Session's
+  ([ADR-0090](../docs/adr/operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md)).
+- Which adapters ship is the provider library's list of shipped adapters, so no program names an
+  adapter ([ADR-0010](../docs/adr/provider/0010-one-provider-port.md)). The connections make each
+  token from plain values, the provider's name, the client's identifier and secret and the
+  credential, so no adapter learns what an account is. An account whose provider no shipped adapter
+  serves has no connection, and is logged in one place.
+- Each call through a unit of work's mailbox leases inside the caller, at the account's lowered
+  target, which the unit of work hands the caller's mailbox, so the connections never see the rate
+  limiter's code.
+
+Its import list admits the Session's package, the provider library's calling side, `provider`, the
+credential family's packages and the data-access subsections its statements need. No adapter, no
+rate limiter, no policy and no scanner belong in it.
+
+## The policies, `policies`
+
+Each process's Session holds the active policy as one immutable snapshot, and replaces it only with
+an update that validates
+([ADR-0041](../docs/adr/engineering/0041-policy-as-immutable-snapshots.md)). The API server,
+backfill and delta sync decide under it, as the reorg job kind and the heuristics job kind do.
+
+The validation, the composition of the base policy with an account's overlay and the atomic swap
+are pure, and sit in `core/policy`. What is left is impure and the same in every process. This
+package reads the base rows and each account's overlay rows from the policy tables, hands them to
+the pure half, and raises the reload-failure alarm when a reload fails, whether in the read or in
+the validation.
+
+The reload that swaps a snapshot in also prepares each account's policy for the sender classifier,
+through `classify.Prepare`, which converts every rule's suffixes once. The snapshot holds the
+prepared policies, so they are swapped with it and never outlive it. A prepared policy also holds
+the lookups its suffixes were converted with, which the classifier normalizes the sender with. A
+classification then converts only the sender, however many suffixes the policy holds.
+
+The package also holds the load concurrent body requests share, which a body request calls before
+it decides
+([ADR-0099](../docs/adr/engineering/0099-a-body-request-loads-the-policy-before-it-decides.md)),
+and which runs on a goroutine started through the process's `Go`.
+
+The case for one package over per-program glue is one rule the glue could get wrong. The pure half
+accepts a policy with no rules as valid. A read of the tables that failed, or returned nothing
+because of a fault, looks like that empty policy. Treated as one, it would classify the senders the
+active policy lists as normal, and release content the previous snapshot withheld. So the package
+tells a read it cannot trust apart from a policy that is empty, and a read it cannot trust never
+replaces the active snapshot. Written once, that rule holds in every program that loads policy.
+Written in each program, one copy that gets it wrong fails open.
+
+The alarm is the other shared part. Each loading process emits the same series, and one alerting
+rule reads it ([ADR-0077](../docs/adr/operability/0077-conditions-raised-as-alerting-rules.md)), so
+the series is defined once, in this package.
+
+| Series | Kind | Emitted by | Read by |
+| --- | --- | --- | --- |
+| `mediated_mailbox_policyload_reload_failed` | Gauge, 1 while the latest reload failed and 0 once one succeeds | Each process, once, from its Session's policies, on the process's own registerer, which labels it with `component` ([ADR-0142](../docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md)) | `MediatedMailboxPolicyReloadFailed` in `packaging/chart/rules/alerting-rules.yaml`, whose promtool tests sit in `policies/testdata/` |
+
+The package also times one load per reload, every one its caller did not cancel, succeeded or
+failed, as `mediated_mailbox_policyload_reload_duration_seconds`, a histogram on the same registry
+that no rule reads
+([ADR-0125](../docs/adr/engineering/0125-performance-is-measured-once-at-each-place-time-goes.md)).
+
+The reload-failure series is a gauge rather than a counter because a process first loads policy as
+it starts, usually before its first scrape, and a rule over a counter whose first sample is already
+1 sees no increase.
+
+Its statements are in `db/policyrules`. Which accounts it reads is the Session's, which loads the
+policy for the list it has just put in force, so a process whose accounts change reads the new ones
+at the next reload
+([ADR-0090](../docs/adr/operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md)).
+It reads each account's own rules and the base rules in one statement. A reload whose accounts read
+different base rules reads every account once more, and only when the second read's accounts
+disagree too is the read one it cannot trust. So an edit to the base policy landing midway never
+composes accounts from two versions of it, and raises the alarm only when edits keep landing
+through both reads
+([ADR-0114](../docs/adr/engineering/0114-a-torn-base-policy-read-is-read-again-before-it-fails-the-reload.md)).
+A reload stopped because its caller cancelled it keeps the active policy and raises no alarm, and
+one that ran out of time is a failed read like any other.
+
+## The scanner, `scanner`
+
+A process holds one scanner, which `scanner.Get` builds from its settings and their revision, so
+every verdict, mask and serve-time check in the process carries one revision
+([ADR-0120](../docs/adr/redaction/0120-a-scanner-change-re-masks-stored-subjects-from-the-store.md),
+[ADR-0142](../docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md)). Its
+settings are `config.Scanner` in `core/config`, and what it decides is `core/scan`'s. This package
+also defines the body-processing histogram once, and each job kind or operation that converts and
+scans registers it on its own registerer
+([ADR-0125](../docs/adr/engineering/0125-performance-is-measured-once-at-each-place-time-goes.md)).
+Written once, the scanner is built the same way in every program that scans, and the histogram
+means the same in each.
 
 ## The logs, `logging`
 
@@ -187,8 +602,10 @@ Every deployable, and the migrator, writes its logs as JSON to standard output a
 `log_level` sets
 ([ADR-0122](../docs/adr/engineering/0122-logs-through-slog-at-a-configured-level-handed-to-shells.md)).
 This package builds that logger over a level variable, reads the level's name, and makes the error
-log a shell gives an `http.Server` from the logger it was handed. A deployable's `main.go`, and the
-migrator's, builds the logger, and the host sets the level once the configuration has loaded.
+log a shell gives an `http.Server` from the logger it was handed. The process builds the logger
+before the configuration exists, so a start that fails before its level is read still reports its
+error as JSON, and sets the level once the configuration has loaded
+([ADR-0142](../docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md)).
 
 The case for one package over per-deployable glue is that the format and the level names are the
 contract. A copy that wrote text rather than JSON, wrote to standard error, or accepted `warning`
@@ -201,7 +618,7 @@ It holds no logger of its own and no package-level state, and it logs nothing.
 ## The release version, `version`
 
 Every binary the project publishes reports the release it was built for through its `--version`
-flag, every deployable names it in its start banner, and the API server's MCP server reports it as
+flag, every process names it in its start banner, and the API server's MCP server reports it as
 its version
 ([ADR-0078](../docs/adr/engineering/0078-configuration-layers-through-an-owned-library.md),
 [ADR-0122](../docs/adr/engineering/0122-logs-through-slog-at-a-configured-level-handed-to-shells.md)).

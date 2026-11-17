@@ -62,9 +62,9 @@ message removed while the feed was not read. The feed never names it again and b
 nothing, so the recovery is the one point at which it can leave the index. A message missing from
 the listing is removed only once the provider does not return it by its identifier, because the
 listing selects through the provider's search, and whether Gmail's search compares the date the
-model maps or the message's own Date header is unverified
-([provider/gmail/doc.go](../../../provider/gmail/doc.go)). A listing that leaves out a message the
-mailbox holds then removes nothing from the index.
+model maps or the message's own Date header is unverified (the package comment of the Gmail
+adapter, `provider/mail/gmail`). A listing that leaves out a message the mailbox holds then removes
+nothing from the index.
 
 ## Alternatives considered
 
@@ -114,11 +114,11 @@ mailbox holds then removes nothing from the index.
   hour of when the provider received the message, and lists the trash and spam like any other mail.
   The Gmail adapter keeps only messages whose receipt instant the window holds, but whether Gmail's
   search, which it narrows by first, compares that instant or the message's own Date header is
-  unverified ([provider/gmail/doc.go](../../../provider/gmail/doc.go)). If it compares the header, a
-  message received during the gap whose Date header is older than the window is never listed, so
-  the recovery never adds it, and a reconciliation of the index's counts against the provider is
-  what shows that. The metadata read returns every message the mailbox holds, the trash and spam
-  included, and leaves out one it no longer holds
+  unverified (the package comment of the Gmail adapter, `provider/mail/gmail`). If it compares the
+  header, a message received during the gap whose Date header is older than the window is never
+  listed, so the recovery never adds it, and a reconciliation of the index's counts against the
+  provider is what shows that. The metadata read returns every message the mailbox holds, the trash
+  and spam included, and leaves out one it no longer holds
   ([ADR-0010](../provider/0010-one-provider-port.md)).
 - The rules above are controls. Their injections are catalogued in
   [docs/VERIFICATIONS.md](../../VERIFICATIONS.md).

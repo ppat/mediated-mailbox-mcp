@@ -9,11 +9,11 @@
 The body fetch is the port's one body-returning operation
 ([ADR-0010](./0010-one-provider-port.md)), and the gate guards every call to it
 ([ADR-0002](../redaction/0002-fetch-time-re-evaluation.md)). Peak memory per body is the one
-resource term of the API server and the worker that needs bounding, and the body fetch had no
-bound of its own. The conversion refused HTML above 512 KiB
-([ADR-0074](../redaction/0074-html-to-markdown-v2-converts-bodies.md)), but only after the fetch had
-read and decoded it, under a response cap of 64 MiB, and a text-only body was released and scanned
-at any size.
+resource term of the API server and the worker that needs bounding. Without a bound of the fetch's
+own, the conversion's refusal of HTML above 512 KiB
+([ADR-0074](../redaction/0074-html-to-markdown-v2-converts-bodies.md)) comes only after the fetch
+has read and decoded it, under a response cap of 64 MiB, and a text-only body is released and
+scanned at any size.
 
 What Gmail does, read from Google's reference pages on 2026-10-12, sets what an adapter can know
 before it downloads a part.
@@ -34,12 +34,12 @@ before it downloads a part.
   part's declared charset, while inline data comes transcoded to UTF-8, by the same observer, and
   decoding it is [ADR-0134](./0134-a-held-apart-part-is-decoded-by-the-whatwg-label-table.md)'s.
 
-The adapter decoded the first text part and the first HTML part without a file name, and a part
-held by reference made the whole body fail as the provider's failure, even with the other part
-inline. That failure reached the rate controller as a server error in the API server and in the
-worker, which multiplies the account's shared rate by 0.8 per attempt
-([ADR-0024](../operability/0024-conservative-target-aimd.md)), and it repeated on every attempt,
-since the message never changes.
+An adapter that decodes the first text part and the first HTML part without a file name, and
+fails the whole body as the provider's failure when a part is held by reference, even with the
+other part inline, sends that failure to the rate controller as a server error in the API server
+and in the worker. The controller multiplies the account's shared rate by 0.8 per attempt
+([ADR-0024](../operability/0024-conservative-target-aimd.md)), and the failure repeats on every
+attempt, since the message never changes.
 
 Only the part a client receives can leak. A body with an HTML part is released as that part's
 conversion and its text part is not released
@@ -61,30 +61,38 @@ conversion refuses is denied, never served as its text part instead.
   receive. What [C3](../../../USE_CASES.md#c3--content-based-secrets-caught) falsifies still holds:
   a code or a login link in the released part denies the body, since the released part is the part
   scanned.
-- **One size constant bounds the rendered part, 512 KiB, `MaxBodyBytes` in the port's own package.**
-  The conversion's input limit and the literal form's limit are that constant, so the three cannot
-  drift. A text part above it is refused as an HTML part above it is, in the API server's release
-  and in the worker's scan. It bounds the rendered part alone. The snippet and attachment filenames
-  are metadata fields the literal form renders unbounded, and no attachment ever takes this bound.
+- **One size constant bounds the rendered part, 512 KiB, `MaxBodyBytes` in `core/mail`, with the
+  canonical model.** The conversion in `content/markdown` reads it, and the layers bar `content/`
+  from the provider library, whose `provider/mail` holds the port's interface (CLAUDE.md,
+  Components). The conversion's input limit and the literal form's limit are
+  that constant, so the three cannot drift. A text part above it is refused as an HTML part above
+  it is, in the API server's release and in the worker's scan. It bounds the rendered part alone.
+  The snippet and attachment filenames are metadata fields the literal form renders unbounded, and
+  no attachment ever takes this bound.
   The value stays 512 KiB until [production point 1](../../../ROADMAP.md#production-point-1--the-read-path)'s
   size data, since raising it later is a constant change that fails safe.
 - **A body above the bound, or one in a form the adapter cannot decode, is refused, not failed.**
-  The port returns its own error for it, `ErrRefused`, which wraps no other port error. The rate
-  controller counts only a provider failure as a server error, so a refusal never moves the rate.
+  The port returns its own error for it, `ErrRefused`, which `core/mail` declares with the port's
+  other errors, since `core/index` and the API server's service layer read them, and which wraps
+  no other port error. The rate controller counts only a provider failure as a server error, so a
+  refusal never moves the rate.
   The API server answers a refusal at serve time as a denial with the reason `body_refused`, audited
   and counted like every denial
   ([ADR-0101](../operability/0101-every-failure-names-its-origin-and-a-body-denial-is-a-result.md)),
   not as a failure of any origin, since nothing failed. A worker records the message as refused
   ([ADR-0132](../redaction/0132-a-body-refused-for-good-is-recorded-as-refused-not-left-pending.md)).
 - **A part held apart from the message takes a second call of the same operation.**
-  `GetMessageBody` takes the part to fetch. Called with the empty part it chooses the rendered
-  part. A part that came inline is in hand and returned. A part held by reference whose declared
-  size is above the bound is refused with no download. One within the bound is answered with a
-  typed error, `HeldApartError`, naming the part, and no body, so no field of the body ever carries
-  a reference. A pure decision in the port's package, `NextBodyPart`, says from the first call's
-  answer whether a second call is due and which part it names, and nothing else is followed, so a
-  body takes at most two calls. The shells that lease make the calls and drive that one decision,
-  `ratelimit/lease` beside `Call` for the worker and the API server's own leased path.
+  `GetMessageBody`, the body operation of `mail.Mailbox` in `provider/mail`, takes the part to
+  fetch, a `BodyPart`. Called with the empty part it chooses the rendered part. A part that came
+  inline is in hand and returned. A part held by reference whose declared size is above the bound
+  is refused with no download. One within the bound is answered with a typed error,
+  `HeldApartError`, naming the part, and no body, so no field of the body ever carries a reference.
+  A pure decision, `NextBodyPart`, says from the first call's answer whether a second call is due
+  and which part it names, and nothing else is followed, so a body takes at most two calls. Being
+  pure, it sits in `core/mail`, with `BodyPart` and `HeldApartError`, which it reads. The shell
+  that leases makes the calls and drives that one decision. It is the provider library's one
+  wrapper of the port's operations, which leases every call of the mailbox a unit of work holds,
+  for the worker and the API server alike.
 - **Each body call declares 20 units, with or without a part.** Gmail charges `messages.get` and
   `messages.attachments.get` 20 units each, and each call sends one of them, so each call's declared
   cost is its worst case ([ADR-0023](../operability/0023-adapter-declares-cost.md)). An inline body
@@ -102,7 +110,7 @@ conversion refuses is denied, never served as its text part instead.
   new reference on every read of the message, each of which keeps working for a while, which is
   harmless, since the second call follows the first. Which part is rendered, whether it is
   returned, fetched or refused, the decoding of a part's data, each read's cap and the refusal of an
-  answer past it are the Gmail adapter's pure core, `provider/gmail/core`, which returns each
+  answer past it are the Gmail adapter's pure core, `provider/mail/gmail/core`, which returns each
   decision as a value. The adapter enacts it with its requests, its reads up to the cap the core
   gives, the part it names and the port's errors
   ([ADR-0040](../engineering/0040-pure-core-decisions-as-values.md)).
@@ -119,13 +127,13 @@ conversion refuses is denied, never served as its text part instead.
 
 ## Alternatives considered
 
-- **Both parts of a body are scanned**, which [ADR-0017](../data/0017-two-pass-backfill.md) decided
-  before this record took the rule from it. The case made for it was that the verdict clears the
-  body for release, so it covers whichever part release serves, and that a body whose text part
-  differs from its HTML part would otherwise be cleared without its released part scanned. Not
-  chosen, because release serves exactly one part, the HTML part's conversion when there is one, so
-  the part scanned is the part served, and the other part costs a fetch, memory and scanning for
-  nothing a client can receive.
+- **Both parts of a body are scanned**, the rule of
+  [ADR-0017](../data/0017-two-pass-backfill.md), which this record supersedes. The case made for
+  it there is that the verdict clears the body for release, so it covers whichever part release
+  serves, and that a body whose text part differs from its HTML part would otherwise be cleared
+  without its released part scanned. Not chosen, because release serves exactly one part, the HTML part's conversion when
+  there is one, so the part scanned is the part served, and the other part costs a fetch, memory
+  and scanning for nothing a client can receive.
 - **Scanning only the HTML part's Markdown**, which ADR-0017 weighed and rejected. Its case is that
   the scanner reads Markdown, which is what the converter produces. ADR-0017 rejected it because a
   body with no HTML part would be cleared for release without its released part ever scanned. That
@@ -148,7 +156,7 @@ conversion refuses is denied, never served as its text part instead.
   every caller would have to know to look at.
 - **A field mask naming no headers.** The case for it is a smaller response. Not chosen, because a
   referenced part's charset is in its headers.
-- **A provider error for a body above the bound**, as before. The case for it is no new port error.
+- **A provider error for a body above the bound.** The case for it is no new port error.
   Not chosen, because it cuts the rate on every attempt and names the provider as the origin of
   something the provider did right.
 - **A release rule in the adapter, its size and which part is released.** The case for it is one

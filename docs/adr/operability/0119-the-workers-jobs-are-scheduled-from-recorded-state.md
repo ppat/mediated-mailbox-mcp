@@ -31,8 +31,8 @@ API server's decision at fetch time ([ADR-0002](../redaction/0002-fetch-time-re-
 
 A backfill run that loads the policy once at its start and holds it for every page of both passes,
 for hours, lets a restriction the operator adds during the run reach its second pass's check only
-at the next run. The second pass can then fetch and scan the body
-of a sender the operator just restricted, which
+at the next run. The second pass can then fetch and scan the body of a sender the operator just
+restricted, which
 [ADR-0008](../redaction/0008-restricted-senders-are-never-scanned.md) and
 [ADR-0041](../engineering/0041-policy-as-immutable-snapshots.md) intend never to happen.
 
@@ -56,7 +56,7 @@ This record also decides that nothing messages through PostgreSQL.
 
 | Wake | What it runs |
 | --- | --- |
-| The worker starting, or an account appearing in a job kind's reload | The full run-start step, then whatever pass is not ended. Backfill's run-start comparisons are due once per process and account, because their inputs, the scanner and the thresholds, change only across a restart |
+| The worker starting, or an account appearing in a job kind's listing | The full run-start step, then whatever pass is not ended. Backfill's run-start comparisons are due once per process and account, because their inputs, the scanner and the thresholds, change only across a restart |
 | Each job's own timer, and a slow reconciliation timer every job kind has | The due decision only. For backfill that is two one-row reads. A lost wake costs at most one reconciliation interval |
 | A policy change during a running second pass | The delisting comparison again inside the running run, at its next page boundary, where "changed" means the rules differ by value, not that a reload built a new snapshot ([ADR-0037](../redaction/0037-delisting-transition.md)) |
 | Pass 1 ending | Pass 2 |
@@ -68,13 +68,15 @@ own. A job's own timer asks on its interval's phase, as a ticker ticks, and each
 latest time on the ticker's phase at or before the ask. Delta sync measures its interval from that
 time for its last tick, so a tick at the end of a backoff keeps the phase. Nothing wakes the worker
 from outside it. It serves the health and readiness probes and the metrics endpoint and nothing
-else, through the host that runs its process
+else, through the process that runs it
 ([ADR-0051](../engineering/0051-environment-contract.md),
-[ADR-0138](../engineering/0138-one-host-runs-each-process-and-each-component-provides-its-parts.md)).
-The scheduler runs as the worker's one background task, which the host starts and joins.
+[ADR-0142](../engineering/0142-each-program-is-a-spec-that-one-process-runs.md)).
+The scheduler is the process's, `process/schedule`, which runs the plan each of the worker's job
+kinds returns once the process serves, and which the process starts and joins.
 
-**Units of work take the active snapshots.** Each job kind's unit of work takes its kind's active
-account snapshot and policy snapshot at its entry
+**Units of work take the active snapshots.** Each job kind's unit of work takes the Session's
+active account snapshot, the immutable list of accounts in force, and its active policy snapshot
+at its entry
 ([ADR-0041](../engineering/0041-policy-as-immutable-snapshots.md),
 [ADR-0090](./0090-accounts-reach-deployables-as-reloaded-snapshots.md)). The unit is a tick for
 delta sync, a page of each pass for backfill, and for apply the whole plan for policy and a batch
@@ -89,63 +91,94 @@ comparison inside the run.
 - **Apply starts from APPROVED by a compare-and-set on the plan's status**, so no two runs start one
   plan whatever the platform does
   ([ADR-0020](../mutation/0020-reorg-plan-approve-apply-rollback.md)). A rollback request is a plan
-  status, written under the UI's existing grant
+  status, one of the writes the UI already makes
   ([ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)).
 - **A concurrency limit per job kind**, which bounds the bodies held in memory at once.
-- **A connection pool per job kind, under its own role**
-  ([ADR-0118](../data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)), so one job's
-  transactions never starve another of connections.
+- **A connection pool per job kind**, kept by `process/database` and connected as the one
+  application user the API server, the UI and the worker share
+  ([ADR-0142](../engineering/0142-each-program-is-a-spec-that-one-process-runs.md),
+  [ADR-0143](../data/0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)), so
+  one job's transactions never starve another of connections.
 - **Capped exponential backoff on failure, reset on success.** A wake during a job's backoff waits
   for the backoff to end. A failing job never retries in a tight loop and never holds up another.
 - **A panic is recovered within the run that raised it**, recorded as that run's failure with its
   stack, and stops nothing else. Go cannot recover a panic in a goroutine the run did not start
-  itself, so job code starts no goroutine outside a helper that recovers. The goroutines analyser
-  holds the worker's code outside its scheduler to this, refusing a `go` statement and any use of
-  a function that starts a goroutine running what it is given, the standard library's and those of
-  `golang.org/x/sync`. Left to review are such a function reached through an interface value or
-  reflection, a dependency that calls a function or value it was given on a goroutine of its own,
-  such as a metrics collector gathered concurrently, a connection pool's hook or a reader that
-  `os/exec` copies, and a function of any other module that starts a goroutine.
+  itself, so job code starts a goroutine only through the scheduler's helper, `schedule.Go`, which
+  recovers a panic on it as the run's failure. The goroutines analyser refuses, in a non-test file
+  under `worker/`, a `go` statement and any use of a function that starts a goroutine running what
+  it is given, the standard library's and those of `golang.org/x/sync`. The scheduler and its
+  helper sit outside the worker, in `process/schedule`, so the analyser's scope does not reach
+  them. A job kind's `Build` is also handed the process's `Go`, whose panic stops the process
+  ([ADR-0142](../engineering/0142-each-program-is-a-spec-that-one-process-runs.md)), and the
+  analyser refuses no call of either helper, so job code using `schedule.Go` and not the process's
+  `Go` is held by review. So is a goroutine a thing the process shares starts through the process's
+  `Go`, since the analyser does not read the process family's code. Left to review are such a
+  function reached through an interface value or reflection, a dependency that calls a function or value it was given on a
+  goroutine of its own, such as a metrics collector gathered concurrently, a connection pool's hook
+  or a reader that `os/exec` copies, and a function of any other module that starts a goroutine.
 - **Stopping.** Shutdown and an account dropped from a reload cancel the run's context, and the run
   stops at its next unit boundary with its checkpoint durable. A later interrupt is a cancelled
   context. A later pause is a decision recorded through the UI that the due decision reads.
 - **A stuck run is not killed.** Its running time and its job's last success make it visible, and
   the timeouts its own calls carry bound it. Each provider call a job kind makes through its lease
-  has 30 seconds to answer once the lease is issued, a constant of the rate limiter's leased call,
-  as the API server's default provider timeout is 30 seconds. A call cut off while its run still
+  has 30 seconds to answer once the lease is issued, a fixed timeout of the job kind's caller, as
+  the API server's default provider timeout is 30 seconds. A call cut off while its run still
   waits is the provider's failure, which the rate controller counts as a server error
   ([ADR-0101](./0101-every-failure-names-its-origin-and-a-body-denial-is-a-result.md)).
 
-**Loaders.** The worker holds one execution context, built over delta sync's pool and so under
-delta sync's role, with one account loader and one policy loader, which it reloads about every
-minute in a task of the process, and which writes back each credential the worker rotated through
-one source per account, as each deployable does
+**The Session.** The worker holds one Session, `process/sessions`, with the accounts, their policy
+and their connections. Its package reloads them about every minute, on the interval the worker's
+`account_reload_interval` sets, as its own upkeep on the process's scheduler. Its connections
+hold one record per account, and write back through it each credential any of the worker's job
+kinds rotated, as in each deployable that calls a provider
 ([ADR-0082](./0082-rotation-writeback-to-the-database.md),
 [ADR-0089](./0089-sealed-values-written-by-compare-and-set.md),
 [ADR-0090](./0090-accounts-reach-deployables-as-reloaded-snapshots.md),
-[ADR-0118](../data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)). Each job kind
-that holds credentials adds and drops its own jobs from what the context's latest reload left in
-force, in a reload that is itself a job of the kind, asked on the reload interval and woken by each
-reload of the context, so the reload is asked, backed off and watched as every job is. A job kind's
-reload asked before the context's first load answers that it is not due, which is neither a success
-nor a failure, so a normal start logs no error and the worker is ready only once the context's first
-load has woken each job kind's reload. One asked while the context's latest read of the accounts
-failed fails. One whose latest policy load failed adds no job and still drops the jobs of the accounts it no longer lists,
-because an account whose rules were never read would be decided as if every sender were restricted.
-The heuristics run holds no credential loader. It reads the list of account identifiers under its
-own role if the heuristics unit decides it reads `accounts`, which is not decided here and is
-tracked in [ROADMAP.md's open decisions](../../../ROADMAP.md#open-decisions)
-([ADR-0091](../data/0091-accounts-listed-apart-from-their-state.md)). Backfill's role holds no
-grant on a sealed credential, since backfill reaches the account snapshot only through the context.
+[ADR-0142](../engineering/0142-each-program-is-a-spec-that-one-process-runs.md)).
+
+**Each job kind's listing.** The scheduler adds and drops each job kind's jobs from the keys the
+kind's plan lists. It runs that listing as a job of the kind, asked on the worker's
+`reload_interval` and after each of the Session's reloads whose accounts loaded, so the listing is
+asked, backed off and watched as every job is.
+
+- A job kind that calls a provider lists the accounts the Session holds as workable, each listed,
+  connected and with its policy loaded.
+- A listing asked before the Session's first load answers that it is not due, which is neither a
+  success nor a failure. So a normal start logs no error, and the worker is ready only once the
+  Session's first load has woken each job kind's listing and that listing has succeeded.
+- A listing asked while the Session's latest read of the accounts failed fails.
+- An account whose policy has not loaded is not listed and gets no job, while the jobs of the
+  accounts the Session no longer lists are still dropped. An account whose rules were never read
+  would be decided as if every sender were restricted.
+
+**What a job kind reaches of the accounts.** The heuristics run holds no connections. It may hold
+the Session, whose package imports no credential and no provider code, and its import list refuses
+the connections' package
+([ADR-0142](../engineering/0142-each-program-is-a-spec-that-one-process-runs.md),
+[ADR-0143](../data/0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)).
+It reads the list of account identifiers itself if the heuristics unit decides it reads
+`accounts`, which is not decided here and is tracked in
+[ROADMAP.md's open decisions](../../../ROADMAP.md#open-decisions)
+([ADR-0091](../data/0091-accounts-listed-apart-from-their-state.md)). Backfill reads and opens a
+sealed credential only through the connections. Two things hold that. One is its own import list,
+which admits no opening code and no data-access subsection that reads a stored credential, since
+in the worker only the connections' package may import the opening code
+([ADR-0143](../data/0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)).
+The other is the raw SQL analyser, which refuses any other statement in the worker's code
+([ADR-0071](../engineering/0071-static-enforcement-toolchain.md)).
 
 **Observability.** Series per job kind and a time of last success per job, on the registry the
-worker builds ([ADR-0076](../engineering/0076-metrics-emitted-through-client-golang.md)). The shared
-library series a job kind registers carry the job kind, the execution context's policy reload series
-being the process's own, and the scheduler gives each job its identity as a constructor
-parameter, never through ambient context. Logs carry the job kind and the account. An alert fires
-when the worker stops, and one fires for each job of every job kind whose last success grows too
-old, which for delta sync is how [G4](../../../USE_CASES.md#g4--the-index-tracks-the-live-mailbox)'s "a chronically
-stuck sync job looks healthy" is caught ([ADR-0077](./0077-conditions-raised-as-alerting-rules.md)).
+worker's process builds ([ADR-0076](../engineering/0076-metrics-emitted-through-client-golang.md)).
+The shared library series a job kind registers carry the job kind. The Session's reload is not a
+job of a job kind, so it has none of a job's series, its run duration, finished runs and last
+success among them, and its duration and its policy load's are the process's own series
+([ADR-0125](../engineering/0125-performance-is-measured-once-at-each-place-time-goes.md)). The
+scheduler gives each job its identity as a parameter, the key its
+job kind's plan builds it for, never through ambient context. Logs carry the job kind and the
+account. An alert fires when the worker stops, and one fires for each job of every job kind whose
+last success grows too old, which for delta sync is how
+[G4](../../../USE_CASES.md#g4--the-index-tracks-the-live-mailbox)'s "a chronically stuck sync job
+looks healthy" is caught ([ADR-0077](./0077-conditions-raised-as-alerting-rules.md)).
 
 - **A job's success is a run that succeeds or a unit of work a run makes durable**, such as a page
   of backfill. A pass that runs for hours therefore stays silent while its pages land, and a run
@@ -178,7 +211,7 @@ stuck sync job looks healthy" is caught ([ADR-0077](./0077-conditions-raised-as-
     worker in a crash loop is still loud, through the backfill job of any account with work
     outstanding, whose latest success stops moving, and through every account's delta sync job,
     whose ticks stop.
-  - A job kind's reload job takes the ensure.
+  - A job kind's listing takes the ensure.
   - A failed read of what the runs record is logged as a warning, and the job counts from the ensure.
 
   After real downtime, delta sync's jobs fire the rule until their first ticks land, seconds after
@@ -204,18 +237,20 @@ replicas, only the claim step changes. Its candidates are a lease row in Postgre
 expiry renewed while the job runs, or an expiring key in a platform-supplied Redis or Dragonfly. A
 session advisory lock is not one, since it fails behind a transaction-mode pooler, and a
 transaction-scoped lock lasts one transaction. A single binary that also holds the API server
-and the UI composes the same scheduler, from the worker's entry package, and needs no external
-store. It lacks the platform's guarantee of a
-single copy, so a guard against two copies is that build shape's choice.
+and the UI runs the same scheduler, through a spec of its own that joins the worker's job kinds
+([ADR-0142](../engineering/0142-each-program-is-a-spec-that-one-process-runs.md)), and needs no
+external store. It lacks the platform's guarantee of a single copy, so a guard against two copies
+is that build shape's choice.
 
 **No framework.** The scheduler is hand-written on Go's standard library, behind four calls,
 `Ensure`, `Remove`, `Wake` and `Stop`, and coalescing and one run per job are pinned by mutation
 patches. Its fallback, taken only if production shows missed or doubled runs, is
 `k8s.io/client-go/util/workqueue`. Scheduler timing tests use `testing/synctest`, kept free of
 network calls, and a test against real PostgreSQL keeps its own real-time bound. Due decisions take
-the time as a value. A job is a plain, typed Go function or value built in the hand-written
-composition root, so the compiler checks its signature. Nothing is resolved by name, registry,
-reflection or annotation ([ADR-0040](../engineering/0040-pure-core-decisions-as-values.md)).
+the time as a value. A job is a plain, typed Go function or value, built by the plan its job
+kind's `Build` returns, which the worker's spec lists, so the compiler checks its signature.
+Nothing is resolved by name, registry, reflection or annotation
+([ADR-0040](../engineering/0040-pure-core-decisions-as-values.md)).
 
 ## Alternatives considered
 

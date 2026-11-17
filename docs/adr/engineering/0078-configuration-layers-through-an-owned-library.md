@@ -77,10 +77,29 @@ calls for one and the second because policy lives in the database.
   embedded struct tagged `yaml:",inline"` is a section whose values sit beside the embedding
   section's own, at the same paths, as the YAML decoder reads it, and every refusal applies to
   them as to the section's own, a name both declare included. It is the only tag that is not a
-  name. So each deployable's root embeds the process's sections and its component's own section
-  inline, keeping their keys at the top of its tree, and declares the sections it shares with the
-  other deployables by name
-  ([ADR-0138](./0138-one-host-runs-each-process-and-each-component-provides-its-parts.md)).
+  name. So each program's configuration type embeds inline the process's sections, its own section
+  and each shared part whose keys sit at the top of its tree, as `config.Accounts`'s one key does,
+  and declares the other sections it shares with the other programs by name
+  ([ADR-0142](./0142-each-program-is-a-spec-that-one-process-runs.md)).
+- **The configuration types are `core/config`'s.** Every program's configuration type, with each
+  section's defaults and checks, sits in `core/config`, a package of the shared pure library
+  ([ADR-0050](./0050-shared-code-pure-or-narrow.md)), apart from the library that layers the values.
+  The shared parts are the sections every program that has them reads under the same keys.
+
+  - `config.Process`
+  - `config.Serving`
+  - `config.Database`
+  - `config.Keys`, which is the `credential` section
+  - `config.Accounts`, which is the accounts' reload interval, embedded inline so that its key,
+    `account_reload_interval`, sits at the top of the tree
+  - `config.Scanner`
+
+  Each program's type, `config.API`, `config.UI`, `config.Worker` and `config.Migrator`, holds the
+  shared parts it has and its own keys, so the worker reads `account_reload_interval` as the API
+  server does. A length of time is `config.Duration`, a number of nanoseconds the library fills from
+  text such as `5m` and writes back as such text in the help and the start banner. Its reader
+  converts it where it is used, so `core/config` imports no clock, and no import list is widened for
+  it ([ADR-0071](./0071-static-enforcement-toolchain.md)).
 - **Keyed values.** Per-language word lists are a map keyed by language, so a flag or an
   environment variable can override one language's list or add a language. Map keys are runs of
   `[a-z0-9]` joined by single underscores, with none leading or trailing, because a key becomes a
@@ -105,39 +124,39 @@ calls for one and the second because policy lives in the database.
   refuses to start while `PGPASSWORD` or `PGSSLPASSWORD` is set.
   - The connection settings of every process that connects, every deployable and the migrator
     ([ADR-0139](../data/0139-the-migration-runner-is-goose-linked-into-the-migrator.md)), are one
-    `database` section. `host`, `name` and `password_file` are required. `port` defaults to 5432,
-    `user` to the deployable's own runtime role
-    ([ADR-0118](../data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)) and to the
-    migration role for the migrator, and `sslmode` to `verify-full`. `sslrootcert` is optional and
-    holds the path of a mounted CA file. `pool_size` is the most connections the process's pool
-    opens, a positive number. The API server, the UI and the migrator default it to the driver's
-    own default, the larger of 4 and the processor count, and the worker's job kinds keep their own
-    default of 4.
-  - The worker connects as one runtime role per job kind
-    ([ADR-0118](../data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)), so its one
-    `database` section holds, beside the settings every job kind shares, each job kind's user and
-    password file, and each job kind's user defaults to that job kind's own role. No value is
-    spelled twice. The shared settings are `host`, `port`, `name`, `sslmode` and `sslrootcert`, and
-    each job kind's are a block under the job kind's name, `backfill` and `sync`, holding `user`,
-    `password_file`, required, and `pool_size`, the most connections the job kind's pool opens. So
-    backfill's user and password file sit in the `backfill` block and delta sync's in the `sync`
-    block, and the server they connect to is named once.
+    `database` section. `host`, `name`, `user` and `password_file` are required. `user` has no
+    default because a database user's name is configuration the deployment platform provides
+    ([ADR-0143](../data/0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)).
+    The API server, the UI and the worker name the application user there. The migrator names its
+    own, and also takes the application user's name as a required setting, to which the chain's
+    grants are made. `port` defaults to 5432, and `sslmode` to `verify-full`. `sslrootcert` is
+    optional and holds the path of a mounted CA file. `pool_size` is the most connections a pool of
+    the process opens, a positive number. The API server, the UI and the migrator default it to the
+    driver's own default, the larger of 4 and the processor count. In the worker the one
+    `pool_size` sizes each job kind's pool alike, and defaults to 4 connections.
+  - Every job kind of the worker connects as the one application user
+    ([ADR-0143](../data/0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)),
+    so the worker's `database` section names one user and one password file, as the API server's,
+    the UI's and the migrator's do, while each job kind opens a pool of its own
+    ([ADR-0119](../operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md)). No
+    value is spelled twice, and the server every pool connects to is named once.
   - The file `password_file` names holds the password alone, not a libpq password file. One
     trailing newline, written `\n` or `\r\n`, is trimmed from it, because files written by editors
     and by `kubectl create secret --from-file` commonly end in one. A file holding no password once
     that newline is trimmed refuses the start.
-- **Read once, at start, by the library.** The host passes the library the arguments, the
-  environment and the root configuration type a composition root hands it
-  ([ADR-0138](./0138-one-host-runs-each-process-and-each-component-provides-its-parts.md)). The library reads the file those name, layers the
-  values, and returns them with each value's source and a revision per top-level concern, or an
-  error. A pure validation per concern then checks the merged value before anything else starts
-  ([ADR-0040](./0040-pure-core-decisions-as-values.md)). A change takes a restart. The effective
-  configuration is logged at start with each value's source. The scanner's revision stamped on every
-  verdict is the library's revision of the scanner's section, so a change in any layer changes it.
+- **Read once, at start, by the library.** The process passes the library the arguments, the
+  environment and the configuration type the program's spec is typed on
+  ([ADR-0142](./0142-each-program-is-a-spec-that-one-process-runs.md)). The library reads the file
+  those name, layers the values, and returns them with each value's source and a revision per
+  top-level concern, or an error. A pure validation per concern then checks the merged value
+  before anything else starts ([ADR-0040](./0040-pure-core-decisions-as-values.md)). A change
+  takes a restart. The effective configuration is logged at start with each value's source. The
+  scanner's revision stamped on every verdict is the library's revision of the scanner's section,
+  so a change in any layer changes it.
 - **The environment is read in one place.** In the deployables, the migrator and the shared
   libraries, outside test files and the test tooling, the environment is read only by a
-  deployable's or the migrator's `main.go`, and handed through its composition root and the host to
-  the library from there.
+  deployable's or the migrator's `main.go`, and handed through `process.Run` to the library from
+  there.
 - **The library is the project's own**, `process/settings/`, about five hundred lines on
   `go.yaml.in/yaml/v3` and the standard library. The grid below does not separate it from the
   flag-layer koanf column on any gate, so this is a preference. It adds no module beyond the YAML
@@ -145,15 +164,14 @@ calls for one and the second because policy lives in the database.
   refusal is its own code rather than a library default that fails open when an override is lost,
   at the cost of about two hundred more owned lines. A reader who weighs owned code above those
   modules lands on the koanf column. `Load` holds no package-level state, and it holds no concern's
-  schema and no validation, which stay with each concern.
+  schema and no validation, which sit with each section's type in `core/config`.
 - **No command-line framework**, because no deployable has a mode.
 - **`--help` and `--version` are not modes.** `Load` recognizes each before it reads any layer.
-  `--help` returns the generated help, and `--version` returns a request the host answers by
-  printing the release version on the standard output it is handed and returning, with no
-  configuration read. The version is
-  one constant in `process/version`, which the release cut writes into the repository as it writes
-  the chart's `version` and `appVersion`, so every binary reports the release it was built for
-  ([ADR-0049](./0049-image-per-component-lockstep.md)). A binary built between releases, such as a
+  `--help` returns the generated help, and `--version` returns a request the process answers by
+  printing the release version on standard output and returning, with no configuration read. The
+  version is one constant in `process/version`, which the release cut writes into the repository
+  as it writes the chart's `version` and `appVersion`, so every binary reports the release it was
+  built for ([ADR-0049](./0049-image-per-component-lockstep.md)). A binary built between releases, such as a
   `latest` image ([ADR-0052](./0052-kubernetes-deployment-helm-chart.md)), reports the version of
   the newest release at or before the commit it was built from. The command-line program reads no
   configuration, and takes the same flag in its own flag set, as its key-generation subcommand does
@@ -176,7 +194,7 @@ The table gives what the ordinary path of the libraries measured does that this 
 | An unknown file key accepted and zero-valued | A misspelled setting silently takes its default | The strict decode, with a test and a mutation patch |
 | A case-insensitive key match | `Triggers` and `triggers` race | Exact matching, with a test |
 | A stray `PGPASSWORD` | It overrides the mounted password file | The refusal at start, with a test and a mutation patch |
-| A standard-library function that returns an environment variable's value by a name its caller gives, or the environment as a whole, which is `os.Getenv`, `os.LookupEnv`, `os.Environ`, `os.ExpandEnv`, `syscall.Getenv`, `syscall.Environ` or `(*exec.Cmd).Environ`, used in a deployable or a shared library outside a deployable's `main.go` | A setting bypasses the layers and their refusals | A `go vet` analyser under [ADR-0071](./0071-static-enforcement-toolchain.md), scoped by path to the deployables and the shared libraries outside each deployable's `main.go`, test files and the test tooling, proven by a violation file. A `forbidigo` rule cannot carry that scope, because exempting files from it takes an exclusion naming a linter that stands in for a control, which ADR-0071 refuses. Functions that read fixed platform variables for their own purpose, such as `os.UserHomeDir`, `os.TempDir` and `http.ProxyFromEnvironment`, carry no setting and stay allowed |
+| A standard-library function that returns an environment variable's value by a name its caller gives, or the environment as a whole, which is `os.Getenv`, `os.LookupEnv`, `os.Environ`, `os.ExpandEnv`, `syscall.Getenv`, `syscall.Environ` or `(*exec.Cmd).Environ`, used in any package of the module outside a deployable's or the migrator's `main.go` | A setting bypasses the layers and their refusals | A `go vet` analyser under [ADR-0071](./0071-static-enforcement-toolchain.md), scoped by path to every package of the module outside a deployable's or the migrator's `main.go`, test files and the test tooling, proven by a violation file. A `forbidigo` rule cannot carry that scope, because exempting files from it takes an exclusion naming a linter that stands in for a control, which ADR-0071 refuses. Functions that read fixed platform variables for their own purpose, such as `os.UserHomeDir`, `os.TempDir` and `http.ProxyFromEnvironment`, carry no setting and stay allowed |
 
 | Requirement | Met by |
 | --- | --- |
@@ -334,11 +352,12 @@ and observability, so the preference holds there by a smaller margin.
   needs, where policy, which does change while the system runs, already has its own reload
   ([ADR-0041](./0041-policy-as-immutable-snapshots.md)). A file watch re-running `Load` can be added
   if a need appears.
-- **Each component's keys nested under its name**, such as `api.token_file`, with no inline
-  section. For it, the library needs no inline section, and a process hosting several components
-  keeps their keys apart by construction. Against it, every key a deployable reads would sit under
-  a new parent and the chart with it, for a process that hosts one component, while a root hosting several can
-  still name each component's section rather than inline it.
+- **Each program's keys nested under its name**, such as `api.token_file`, with no inline
+  section. For it, the library needs no inline section, and a program joining several programs'
+  endpoints and job kinds keeps their keys apart by construction. Against it, every key a
+  deployable reads would sit under a new parent and the chart with it, for a process that runs one
+  program, while a program joining several can still name each one's section rather than inline
+  it.
 - **A revision derived from a section's values rather than its rendering**, its keys sorted and its
   defaults omitted. For it, a field added with a default that keeps today's behaviour would leave
   the revision unchanged, so it would not re-mask and re-scan the index. Not taken, because the
@@ -349,16 +368,19 @@ and observability, so the preference holds there by a smaller margin.
 ## Consequences
 
 - `process/settings/` is a package of the process family, a narrow shared library under
-  [ADR-0050](./0050-shared-code-pure-or-narrow.md) arguing its case in its README. Every deployable
-  that reads configuration imports it.
+  [ADR-0050](./0050-shared-code-pure-or-narrow.md) arguing its case in its README. The process
+  loads every program's configuration through it
+  ([ADR-0142](./0142-each-program-is-a-spec-that-one-process-runs.md)).
 - A configuration change takes a restart. A pod of an older version refuses a value it does not
   know, so a value a release adds is set only once no pod of an older version will start again.
 - Every refusal the library carries lands with a test and a mutation patch, and each concern's
   configuration type is pinned field by field, so a new value is a visible change.
 - pgx still reads `PG*` variables for any connection setting the project does not render.
 - The scanner's configuration type carries no revision an operator sets. The revision it stamps
-  is the library's revision of its section, handed in by the composition root as a string, so the
-  scanner refuses an empty revision.
+  is the library's revision of its section, which the scanner's owner, `process/scanner`, reads
+  from the process and hands the scanner as a string
+  ([ADR-0142](./0142-each-program-is-a-spec-that-one-process-runs.md)), so the scanner refuses an
+  empty revision.
 - A section's revision hashes its YAML rendering, not its settings as such. So a field added with a
   default that keeps today's behaviour, fields reordered, a field's YAML name changed, a change in
   how the YAML library renders a value, or a change to the revision algorithm each changes the

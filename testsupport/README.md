@@ -35,15 +35,30 @@ an image, because only test files and the tooling programs import it. Its packag
   parameters named, that an interface has exactly the methods named with exactly their
   signatures, and that exactly the named methods of an interface return a given type, with exactly
   the results named.
-- `analysis`, the `go vet` analysers, for ADR-0069's placement rules, ADR-0071's rules against
-  package-level state in a pure core, against a route the UI registers other than through its
-  recording mux and against a statement the UI runs other than through the data-access library,
-  ADR-0078's rule against reading the environment outside a deployable's `main.go`, ADR-0047's
-  rule that every generated data-access function runs inside the transaction helper, and
-  ADR-0119's rule that the worker's job code starts a goroutine only through its scheduler's
-  helper, ADR-0138's rule that the API server's and the UI's code start a goroutine only through
-  the host's starter, and ADR-0117's rule that no code of this project imports `unsafe` or takes an unsafe
-  pointer from `reflect`.
+- `analysis`, the `go vet` analysers, for these rules.
+  - [ADR-0069](../docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md)'s placement
+    rules.
+  - [ADR-0071](../docs/adr/engineering/0071-static-enforcement-toolchain.md)'s rules against
+    package-level state in a pure core, against a route the UI registers other than through its
+    recording mux, against a statement the API server, the UI or the worker runs other than through
+    the data-access library, against a call of the connections' attach to the Session outside the
+    connections' package, and against a call of the connections' re-seal outside delta sync's
+    package.
+  - [ADR-0078](../docs/adr/engineering/0078-configuration-layers-through-an-owned-library.md)'s
+    rule against reading the environment outside a deployable's or the migrator's `main.go`.
+  - [ADR-0047](../docs/adr/data/0047-schema-first-data-access.md)'s rule that every generated
+    data-access function runs inside the transaction helper.
+  - The goroutines rule, which refuses, in the non-test code under `api/`, `ui/` and `worker/`, a
+    `go` statement and any use of a function that starts a goroutine running what it is given, so
+    that code starts one only through a helper that recovers it. It refuses a call of neither
+    helper, so which one code uses, `schedule.Go` in the worker's job code and the process's `Go`
+    in the API server's and the UI's, is held by review. So is a goroutine a thing the process
+    shares starts, which goes through the process's `Go`, since the rule does not read the process
+    family's code
+    ([ADR-0119](../docs/adr/operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md),
+    [ADR-0142](../docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md)).
+  - [ADR-0117](../docs/adr/operability/0117-one-background-worker-runs-every-job-kind.md)'s rule
+    that no code of this project imports `unsafe` or takes an unsafe pointer from `reflect`.
 - `helmchart`, the render of the chart under `packaging/chart` with the pinned `helm` and the chart's
   required values, which the chart's own tests and each deployable's test of the file the chart
   renders for it share, with the reads of the values schema's keys and a configuration type's keys
@@ -60,10 +75,10 @@ an image, because only test files and the tooling programs import it. Its packag
   check that every test runs in its kind's workflows and no other, of
   [ADR-0124](../docs/adr/engineering/0124-each-kind-of-test-runs-in-a-workflow-of-its-own.md)),
   and `cmd/keypaircheck` (the check that a key pair a released key-generation binary writes is one
-  the credential library seals to and opens with, which the release workflow runs, of
+  the credential family seals to and opens with, which the release workflow runs, of
   [ADR-0088](../docs/adr/operability/0088-credentials-sealed-with-hpke-x-wing.md)), each run
   through `go tool`. `cmd/keypaircheck` is the one part of this library that links the credential
-  library, and its import list admits that library to it alone.
+  family, `credential/`, and its import list admits that family to it alone.
 
 The import rules are written per file, so packages importing the property-testing library and
 packages every test may import sit in the one library without one reaching the other.

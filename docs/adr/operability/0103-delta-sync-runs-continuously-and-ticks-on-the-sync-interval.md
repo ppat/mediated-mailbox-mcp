@@ -41,14 +41,16 @@ platform runs ([ADR-0051](../engineering/0051-environment-contract.md)).
   emits stays in the scrape between ticks. The request cost and the hard cap of
   [ADR-0077](./0077-conditions-raised-as-alerting-rules.md) are counted on one registry for the
   process, and a counter keeps its value from one tick to the next.
-- **Each tick takes the latest account snapshot**, the one the worker's execution context holds,
-  reloaded on its schedule ([ADR-0090](./0090-accounts-reach-deployables-as-reloaded-snapshots.md)).
-  Each of delta sync's reloads re-seals what the context's load opened with a key that is not the
-  current one and sets the key-scan series from what it found, whether or not the context lists an
-  account, so an OAuth client's secret is re-sealed in an installation with no account
-  ([ADR-0092](./0092-key-replacement-by-keyring-and-re-seal.md)). A tick also takes the latest policy
-  snapshot the context holds for the accounts the snapshot lists, and builds the rate limiter under
-  the target each account's state row set when the context last reloaded.
+- **Each tick takes the latest account snapshot**, the one the worker's Session holds, reloaded on
+  its schedule ([ADR-0090](./0090-accounts-reach-deployables-as-reloaded-snapshots.md)). Each time
+  delta sync lists its accounts, it re-seals, through the connections, what the Session's load
+  opened with a key that is not the current one, and sets the key-scan series from what it found.
+  It does so whether or not the Session lists an account, so an OAuth client's secret is re-sealed
+  in an installation with no account
+  ([ADR-0092](./0092-key-replacement-by-keyring-and-re-seal.md)). A tick also takes the latest
+  policy snapshot the Session holds for the accounts the snapshot lists. Each account's rate target
+  is the one its state row held when the Session last reloaded, and the tick's unit of work for the
+  account hands that target to delta sync's mailbox, which leases each call at it.
 - **The key-scan series are two gauges.** `mediated_mailbox_credential_on_old_key` carries one
   series per account `accounts` lists, labelled by the account, and
   `mediated_mailbox_client_secret_on_old_key` one series per row of `oauth_clients`, labelled by
@@ -79,8 +81,8 @@ assumption about the platform's scrape interval and no component the chart does 
 
 ## Consequences
 
-- Delta sync holds a database connection and its keyring for as long as it runs, as the API server
-  does. A crash between ticks loses nothing, since every tick's writes are durable before it ends.
+- Delta sync holds its pool, and the worker's connections their keyring, for as long as the worker
+  runs, as the API server's do. A crash between ticks loses nothing, since every tick's writes are durable before it ends.
   A crash during a tick leaves its run, and a recovery it started, recorded as running until the
   account's next tick records them failed.
 - A runaway spread across delta sync's ticks reaches the runaway rule, since its count is scraped

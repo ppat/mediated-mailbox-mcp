@@ -28,9 +28,9 @@ is [ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)'s.
 - **No other setting chooses the transport.** There is no flag declaring an ingress, no flag
   asking for plain HTTP, and no build of the binary that serves differently from another.
 - **Serving TLS, the key pair is read from its files on each handshake**, so a renewed certificate
-  serves without a restart. The host that runs the process loads it before it serves anything, so a
-  key pair that does not load refuses the start
-  ([ADR-0138](../engineering/0138-one-host-runs-each-process-and-each-component-provides-its-parts.md)).
+  serves without a restart. The process loads it before it serves anything, so a key pair that
+  does not load refuses the start
+  ([ADR-0142](../engineering/0142-each-program-is-a-spec-that-one-process-runs.md)).
   Serving plain HTTP, neither reads a key file.
 - **Each deployable's start log records which transport it serves**, as an info record, beside the
   TLS file paths the effective configuration logs. Neither deployable warns when it serves plain

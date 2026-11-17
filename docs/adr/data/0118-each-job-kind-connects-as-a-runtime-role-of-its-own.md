@@ -1,6 +1,7 @@
 # 0118. Each deployable, and inside the worker each job kind, connects to the database as a runtime role of its own, and inside one process the roles bound a buggy job, not a compromised process
 
-**Status:** Accepted (supersedes [ADR-0075](./0075-one-runtime-role-per-deployable.md)) ·
+**Status:** Superseded (supersedes [ADR-0075](./0075-one-runtime-role-per-deployable.md)) — **Superseded by:**
+[ADR-0143](./0143-the-programs-connect-as-one-application-user-beside-the-migrators.md) ·
 **Pillar:** [The mediation layer is the irreducible trust anchor](../../../DESIGN.md#the-mediation-layer-is-the-irreducible-trust-anchor) ·
 **Serves:** [O3](../../../USE_CASES.md#o3--survives-its-failure-modes)
 

@@ -18,7 +18,7 @@ neither record names.
   the newer schema. Down migrations could not run there either, since the older release's image was
   built before the newer migrations existed.
 
-Nothing checks the schema's version today. No binary reads what the database has applied, and an
+Without a check of the schema's version, no binary reads what the database has applied, and an
 older migrator run on a newer database applies nothing and reports success. What older binaries
 tolerate depends on the change. An added column, table or index leaves their statements working,
 since the generator expands every column list when it generates. A dropped or renamed column or
@@ -36,8 +36,10 @@ newer release migrated. Beyond that, each falls back to restoring a backup.
 - **A compatibility floor lives in the database.** `schema_compatibility` holds one row, the oldest
   chain version whose binaries may run on the schema, starting at 0
   ([ADR-0016](./0016-schema.md)), a chain version as the
-  [Glossary](../../../DESIGN.md#glossary) defines it. Every role a deployable connects as reads the floor and the newest migration goose records, and
-  only a migration writes the floor.
+  [Glossary](../../../DESIGN.md#glossary) defines it. The application user, which every
+  deployable connects as
+  ([ADR-0143](./0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)), reads
+  the floor and the newest migration goose records, and only a migration writes the floor.
 - **Each migration after the baseline declares which binaries run on the schema it leaves.** A
   migration that every chain at or above the current floor runs on, because none of those chains'
   binaries depends on what it removes or changes, says so in the marker line
@@ -57,10 +59,9 @@ newer release migrated. Beyond that, each falls back to restoring a backup.
   The check over the library's migration files refuses a migration after the baseline that holds
   neither declaration. It admits a statement that names the floor's table only when the statement is
   that one form with E from 1 up to the migration's own version, a read, or a grant or a revoke of
-  `SELECT` alone, so a role that opens its first pool gains the read in a migration of its own and
-  no runtime role gains a write. Every other statement naming the table is refused, whatever its
-  kind. The baseline builds the schema from empty, so no older chain
-  runs on what it builds and it declares nothing. Expand and contract stays the default, and a
+  `SELECT` alone, so the application user gains no write. Every other statement naming the table is
+  refused, whatever its kind. The baseline builds the schema from empty, so no older chain runs on
+  what it builds and it declares nothing. Expand and contract stays the default, and a
   declared floor is the exit when a change cannot be staged.
 - **E is a version, not a yes or no.** A rollback goes to the previously deployed release, which
   may be older than the previous release when one was skipped. A flag saying "the previous release
@@ -68,21 +69,25 @@ newer release migrated. Beyond that, each falls back to restoring a backup.
   reads. With a version the check is exact for a binary of any age.
 - **Every process that runs until it is told to stop checks the schema before it serves.** The
   binary knows K, its own chain version, read from the chain its build embeds rather than kept by
-  hand. On each pool the process opens, before any component uses the pool and so before readiness,
-  it reads the floor F and the database's newest applied migration V under the pool's own role, and
-  refuses to start with a named error when K is below F, meaning a migration it cannot run on has
-  been applied, or when V is below K, meaning the migration step has not run for its release. A
-  newer schema whose floor K meets is accepted, which is what makes a rollback across compatible
-  migrations serve. The host runs the check its composition root hands it on each pool it opens
-  ([ADR-0138](../engineering/0138-one-host-runs-each-process-and-each-component-provides-its-parts.md)),
-  and refuses a root that hands none, so no deployable can leave it out. The comparison is one
-  function beside the embedded chain, the statement a data-access subsection of its own
-  ([ADR-0066](./0066-data-access-generated-from-sql.md)), and each root's check reads the one
-  through the other. The migrator, which moves V, does not check.
+  hand. On each pool the process opens, before any endpoint or job kind uses the pool and so before
+  readiness, it reads the floor F and the database's newest applied migration V under the user the
+  pool connects as, and refuses to start with a named error when K is below F, meaning a migration
+  it cannot run on has been applied, or when V is below K, meaning the migration step has not run
+  for its release. A newer schema whose floor K meets is accepted, which is what makes a rollback
+  across compatible migrations serve. `database.Get`, through which a process that runs until it is
+  told to stop opens each pool, runs the check on the pool before returning it
+  ([ADR-0142](../engineering/0142-each-program-is-a-spec-that-one-process-runs.md)), so a
+  deployable that opens its pools through it cannot leave the check out. The same package's
+  `database.ForMigration`, which opens a pool with no check, is the migrator's alone, and what holds
+  it there keeps a deployable from opening a pool without the check. Whether that is the compiler or
+  a check is not yet chosen, and the code that builds `process/database` chooses it. The
+  comparison is one function beside the embedded chain, the statement a data-access subsection of
+  its own ([ADR-0066](./0066-data-access-generated-from-sql.md)), and `process/database`'s check reads the
+  one through the other. The migrator, which moves V, does not check.
 
 ## Alternatives considered
 
-- **Forbid rollback and retry instead, as the chart's guide said.** The case for it is that nothing
+- **Forbid rollback, and retry a failed upgrade instead.** The case for it is that nothing
   is built. Rejected: it departs from the ordinary remediation a deployment uses, retries a failed
   upgrade forever, and does not stop a rollback by hand. Older binaries run on the newer schema in
   every rolling upgrade anyway, so forbidding rollback does not remove the hazard.
@@ -120,17 +125,16 @@ newer release migrated. Beyond that, each falls back to restoring a backup.
 - The floor turns a declared break into a refusal rather than wrong behaviour. A break the author
   did not declare, a dropped column the marker wrongly calls compatible, is left to the declaration
   the check forces into every migration's review, and to a check that the newest release's
-  generated statements still plan, as their roles, on the new chain. A rollback end to end, from
-  the newest release to the one under test and back, is proven by deploying both.
+  generated statements still plan, as the application user, on the new chain. A rollback end to
+  end, from the newest release to the one under test and back, is proven by deploying both.
 - A pod already running when a migration raises the floor keeps running until it is replaced, since
   the floor is read at start. A structural break there produces errors, the brief unavailability
   [ADR-0048](./0048-forward-only-migrations.md) accepts.
-- The check needs the database at start. The UI and the worker, which waited for the database in
-  their readiness, now fail their start when it does not answer, as the API server already did, and
-  the platform restarts them.
+- The check needs the database at start. The API server, the UI and the worker each fail their
+  start when it does not answer, and the platform restarts them.
 - Assumptions about other components. goose records each applied migration's version in
   `goose_db_version`, before the chain runs, and the chain declares that table to the generator only
-  so the statement can read it. The roles of the worker's job kinds that open no pool yet gain the
-  read with their pools. A binary's chain is the chain the migrator of the same release applies,
-  which lockstep versioning guarantees
+  so the statement can read it. Every pool a checking process opens, each job kind's among them,
+  connects as the application user, which holds the read. A binary's chain is the chain the
+  migrator of the same release applies, which lockstep versioning guarantees
   ([ADR-0049](../engineering/0049-image-per-component-lockstep.md)).

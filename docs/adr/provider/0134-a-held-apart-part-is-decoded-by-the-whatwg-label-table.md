@@ -53,8 +53,8 @@ mojibake from text. Labels mail declares broke the tie between the candidates th
   the adapter's import list admits this package and `golang.org/x/text/encoding`, the encoding
   interface it returns. The table's package imports `fmt`, which imports `os`, so it fails the first
   of [ADR-0071](../engineering/0071-static-enforcement-toolchain.md)'s conditions for a pure core's
-  imports. The adapter passes the table to its pure core, `provider/gmail/core`, which decides on
-  the label and decodes through the encoding interface, a package that meets the conditions.
+  imports. The adapter passes the table to its pure core, `provider/mail/gmail/core`, which decides
+  on the label and decodes through the encoding interface, a package that meets the conditions.
 - **A label the table does not name is refused**, with the port's refusal, and so is a label the
   table maps to the `replacement` encoding, which decodes any input to a single replacement
   character. A missing label, a part with no `Content-Type` or one naming no charset, is read as

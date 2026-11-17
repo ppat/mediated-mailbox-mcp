@@ -18,7 +18,7 @@ account.
 the session that started it, one per session with a newer one replacing it, across a reload of the
 page and whichever replica answers. The UI may run more than one replica, which is why its request
 token key can come from a mounted file
-([ADR-0061](./0061-ui-browser-security-posture.md)). Its database grant is closed to the writes
+([ADR-0061](./0061-ui-browser-security-posture.md)). Its database writes are closed to those
 [ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md) names.
 
 ## Decision
@@ -49,9 +49,9 @@ account.
 ## Alternatives considered
 
 - **A table the replicas share.** For it, the browser carries nothing but its session. Against it,
-  [ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)'s grant names no such write,
-  so the record would widen it, and a table needs expiry and a cleanup of attempts abandoned
-  mid-way.
+  [ADR-0084](../mutation/0084-ui-writes-decisions-and-account-setup.md)'s list of the UI's writes
+  names no such write, so the record would widen it, and a table needs expiry and a cleanup of
+  attempts abandoned mid-way.
 - **Each replica's process memory.** For it, nothing is written anywhere. Against it, a paste
   answered by another replica than the one that started the attempt finds nothing, which the
   design's "whichever replica answers" refuses.

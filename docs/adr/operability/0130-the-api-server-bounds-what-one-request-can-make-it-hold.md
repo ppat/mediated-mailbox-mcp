@@ -73,7 +73,7 @@ Some of the terms are a client's to choose.
 - **A body request waits for its leases until one deadline, 45 seconds after the request
   arrives**, whatever revision its client speaks. The request arrives when the service layer starts
   the operation, once the root has read it, so the policy load and the gate's read before the
-  provider session opens count against the deadline, as they count against the client's own
+  unit of work begins count against the deadline, as they count against the client's own
   timer. A wait cut off by it fails the request as the API server's, since the rate limiter is
   inside the system
   ([ADR-0101](./0101-every-failure-names-its-origin-and-a-body-denial-is-a-result.md)), and the
@@ -87,7 +87,7 @@ Some of the terms are a client's to choose.
 - **The deadline bounds the waits and not the provider calls after them.** A call granted its lease
   before the deadline runs for up to the provider timeout
   ([ADR-0101](./0101-every-failure-names-its-origin-and-a-body-denial-is-a-result.md)), 30 seconds
-  by default and at most 5 minutes as configured. The account session calls the provider once more
+  by default and at most 5 minutes as configured. The unit of work calls the provider once more
   after re-reading a credential the provider refused, and that call waits for its own lease under
   the same deadline and runs with a provider timeout of its own. No lease is granted after the
   deadline, so a request is answered within about 45 seconds and one provider timeout of its
@@ -100,9 +100,9 @@ Some of the terms are a client's to choose.
   agent's connection open between the calls of one task and releases a connection its client
   abandoned. Nothing bounds writing the answer, since a request legitimately waits for its leases
   and its provider calls. The limits apply to the client surface's server and the probes' server
-  alike, which the host that runs the process builds, so every process it runs, the UI's included,
-  serves under them
-  ([ADR-0138](../engineering/0138-one-host-runs-each-process-and-each-component-provides-its-parts.md)).
+  alike, which the process builds for whichever program it runs, so every program, the UI
+  included, serves under them
+  ([ADR-0142](../engineering/0142-each-program-is-a-spec-that-one-process-runs.md)).
 - **The lease-wait deadline and the connection limits are constants in code, not settings.** Each
   bounds what a client can make the API server hold, so no deployment has a reason of its own to
   tune it, and a setting would need a range a start refuses outside of. A change to one is a change
@@ -128,10 +128,11 @@ Some of the terms are a client's to choose.
 - **A deadline on each lease wait rather than one for the request.** The case for it is that each
   call gets the same wait. It loses because a request makes two calls, so its whole wait would be
   twice the deadline.
-- **The deadline counted from the provider session's opening.** The case for it is that it counts
-  only the time spent waiting for leases. It loses because the client's timer runs from when it
-  sent the request, so the policy load and the gate's read before the session opens are time the
-  client has already waited, and a deadline that leaves them out fires after the client has gone.
+- **The deadline counted from the beginning of the unit of work.** The case for it is that it
+  counts only the time spent waiting for leases. It loses because the client's timer runs from when
+  it sent the request, so the policy load and the gate's read before the unit of work begins are
+  time the client has already waited, and a deadline that leaves them out fires after the client
+  has gone.
 - **A deadline of a minute.** The case for it is more room for a throttle's backoff to clear. It
   loses because Claude Code has given up on the request by then, so the API server's failure
   reaches nobody and only the API server's own work is bounded.

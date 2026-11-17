@@ -72,9 +72,8 @@ These are the decisions inside the cycle, each with its reason.
   ([ADR-0119](../operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md)). The
   same job finds a plan still recorded as APPLYING after a crash and resumes it from its checkpoint.
 - **A rollback is requested as a plan status.** The operator requests it in the UI, which writes
-  the status within the grant it already holds on a plan's status
-  ([ADR-0084](./0084-ui-writes-decisions-and-account-setup.md)), and the worker's apply job reads it
-  as it reads an approval. No client operation writes it, as none writes an approval.
+  the status within the UI's writes that [ADR-0084](./0084-ui-writes-decisions-and-account-setup.md)
+  lists, and the worker's apply job reads it as it reads an approval. No client operation writes it, as none writes an approval.
 - **Never delete a label that still has messages in it.** Remove associations first, because a
   provider-side cascade can destroy state the rollback log assumed restorable.
 - **A scale cap:** a plan touching more than a quarter of the corpus requires a second explicit

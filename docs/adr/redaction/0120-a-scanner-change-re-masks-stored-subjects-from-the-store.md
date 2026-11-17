@@ -27,13 +27,13 @@ masks a subject as it adds the message and leaves a message it already holds as 
 message whose subject was masked ([ADR-0093](./0093-composite-scan-gate.md)), so a skip decided
 before a better scanner masked the subject was decided without a signal the message now carries.
 
-[ADR-0096](./0096-a-scanner-change-reopens-backfill.md) re-masks every stale subject by enumerating
-the whole mailbox again, on the premise that a subject cannot be masked again from what is stored.
-That premise holds only for the masked minority. Under it each change of scanner costs about a day
-of over-redaction, about twelve hours of it the re-enumeration, and the scanner is tuned against
-real codes more than once, so the cost recurs. Measured for this decision on a seeded corpus where
-1% of subjects are masked, re-masking the other 99% from the store took about 0.3 s of scanner
-time and a 3.9 s update, and fetching the masked ones again by identifier took about 7 minutes,
+Re-masking every stale subject by enumerating the whole mailbox again, the decision of
+[ADR-0096](./0096-a-scanner-change-reopens-backfill.md), which this record supersedes, rests on the
+premise that a subject cannot be masked again from what is stored. That premise holds only for the
+masked minority. Under it each change of scanner costs about a day of over-redaction, about twelve
+hours of it the re-enumeration, and the scanner is tuned against real codes more than once, so the
+cost recurs. Measured for this decision on a seeded corpus where 1% of subjects are masked,
+re-masking the other 99% from the store took about 0.3 s of scanner time and a 3.9 s update, and fetching the masked ones again by identifier took about 7 minutes,
 and about 34 at 5%.
 
 A new version ships between production points with no manual step, so the read path must re-scan on
@@ -153,10 +153,11 @@ configuration change, either of which restarts the worker
   pass.
 - **Starting an enumeration not yet ended over from its first page when the run resuming it masks
   under another pair.** The case for it is that every enumeration that ends was then made under one
-  pair from its first page, which [ADR-0096](./0096-a-scanner-change-reopens-backfill.md) needed to
-  infer the messages gone from it, and that the pages taken again mask again early the subjects the
-  pages before the change stored masked, since a page masks again each message it already holds
-  whose subject was masked under another pair. Not chosen. A message gone is known exactly here,
+  pair from its first page, which a re-mask by enumeration, as in
+  [ADR-0096](./0096-a-scanner-change-reopens-backfill.md), needs to infer the messages gone from
+  it, and that the pages taken again mask again early the subjects the pages before the change
+  stored masked, since a page masks again each message it already holds whose subject was masked
+  under another pair. Not chosen. A message gone is known exactly here,
   since the provider leaves it out of the metadata read's answer, and fetching the stale subjects by
   identifier before the enumeration continues masks them again as early without reading those pages
   again. The start over costs up to a whole enumeration of pages already read, about twelve hours of
@@ -244,12 +245,13 @@ configuration change, either of which restarts the worker
   version and the same scanner section, which one configuration load in the worker gives by
   construction ([ADR-0117](../operability/0117-one-background-worker-runs-every-job-kind.md)). Every
   verdict, mask and serve-time check in a process carries one scanner revision by construction,
-  since the process's one execution context holds the one scanner every component in it scans with
-  ([ADR-0090](../operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md)). Ingest
-  stores a subject in no form other than the provider's, so an unmasked stored subject is the
-  subject as fetched, and a subject does not change at the provider after it is stored. A provider
-  fetching messages by identifier reports a message it no longer has as gone by leaving it out of
-  the result, as the Provider Port's contract for the metadata read states in `core/mail/port.go`
+  since the process holds one scanner, built once from the process by `process/scanner`, which
+  every endpoint and job kind in it scans with
+  ([ADR-0142](../engineering/0142-each-program-is-a-spec-that-one-process-runs.md)). Ingest stores
+  a subject in no form other than the provider's, so an unmasked stored subject is the subject as
+  fetched, and a subject does not change at the provider after it is stored. A provider fetching
+  messages by identifier reports a message it no longer has as gone by leaving it out of
+  the result, as the Provider Port's contract for the metadata read states in `provider/mail`
   ([ADR-0010](../provider/0010-one-provider-port.md)). Every job kind that masks a subject records
   the pair it masked under.
 - The rules above are controls. Their injections are catalogued in

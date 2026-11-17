@@ -14,10 +14,13 @@ and the migrator's is [CLAUDE.md](../../CLAUDE.md#code-layout-and-conventions), 
 and Images. These are the tripwires:
 
 - **Migrations are hand-written, forward-only SQL** (ADR-0048), and no migration creates a trigger,
-  a procedure or a function (ADR-0060). Grants name roles literally. The roles come from the
-  bootstrap before the chain, and the chain's first migration creates the one extension the schema
-  needs, which is trusted, so nothing runs as a superuser inside the application database
-  (ADR-0048).
+  a procedure or a function (ADR-0060). The project names no database user. The two users, the
+  application user and the migrator's user, are created by the deployment platform before the
+  chain, under names the deployment chooses (ADR-0143). The chain makes every grant to the
+  application user's name, which the migrator is given as a required setting. How the migrator
+  hands that name to the migrations is not yet chosen, and the first change to the chain's grants
+  chooses it. The chain's first migration creates the one extension the schema needs, which is
+  trusted, so nothing runs as a superuser inside the application database (ADR-0048).
 - **Every migration after the baseline declares which binaries run on the schema it leaves**, the
   line `-- compatibility: every chain the floor admits runs on this migration`, which says no
   binary whose chain is at or above the current floor depends on what it removes or changes, or a
@@ -36,14 +39,23 @@ and Images. These are the tripwires:
 - **Generated code is never edited by hand.** Regenerate it, and the drift checks compare it.
 - **Where a generated function may be called** is the txhelper analyser's rule, in
   [CLAUDE.md](../../CLAUDE.md#go) under Static analysis and formatting.
-- **A component's import list names each subsection it uses**, and the grant check tests that list
-  against the component's role (ADR-0066, ADR-0071). A shared library has no role of its own, so
-  its list is tested against the role of each deployable or job kind whose list admits the library,
-  and each of those roles is granted what the library's statements need (ADR-0118).
-- **Each deployable, and inside the worker each job kind, connects as a runtime role of its own,
-  whose grants stay within ADR-0118's three lines.** Nothing automated refuses a grant beyond them,
-  so review each migration that grants a privilege against the three lines. A statement reaching the
-  operation log reads its plan's account through its join, so its role reads those plan columns too.
+- **A component's import list names each subsection it uses**, and the grant check plans every
+  statement of every subsection a list admits, a shared library's list included, under the
+  application user (ADR-0066, ADR-0071, ADR-0143). One user's grants cannot tell programs apart, so
+  the list is what holds one program's code to less than another's, and the raw SQL analyser
+  refuses any other statement in the code of the API server, the UI and the worker.
+- **The API server, the UI and the worker connect as the one application user, whose grants stay
+  within ADR-0143's line**, its writes exactly what the data-access library's statements write, no
+  DDL right, and no update or delete on the audit log or the policy history.
+  Nothing automated refuses a grant beyond it, so review each migration that grants a privilege
+  against it.
+- **The subsections the UI's import list admits hold no write outside ADR-0084's list of the UI's
+  writes and no read of an account's stored credential** (ADR-0143). Nothing in the database holds
+  it, so review each statement added to or changed in such a subsection against it.
+- **No subsection another program's import list admits writes `policy_rules` or `policy_changes`,
+  or reads a stored credential beyond what that program's opener needs**, so only the UI's code
+  writes the policy (ADR-0143). Nothing in the database holds it either, so review each statement
+  added to or changed in such a subsection against it.
 - **goose is linked as a library into `db/migrate` alone**, the one package whose own import list
   admits it. It applies the chain `db/migrations` embeds under goose's advisory lock, for the
   migrator and for the integration runs alike, and `db/migrations` holds the SQL files, the Go

@@ -28,7 +28,7 @@ base rules and their history with no account named
 - **The transaction helper has a second entry point, for the base policy.** It sets the account to
   the empty string, transaction-local, reads it back, and fails the transaction before any data
   access unless it reads so.
-- **Only the base policy's statements write a row with a null account, and only the UI's role writes
+- **Only the base policy's statements write a row with a null account, and only the UI's code writes
   the policy.** Every other statement against `policy_rules` or `policy_changes` compares its
   account with the transaction's, inserts the transaction's account, and reads a base row only
   through the account-or-null form, which no write may take, so an account's transaction writes no
@@ -36,10 +36,12 @@ base rules and their history with no account named
   null, so a base-policy transaction reads and writes no account's row. No statement updates an
   account column, so no write moves a rule or a history row between the base policy and an account.
   The statement check holds each of these forms, and refuses any statement of a kind it does not
-  read ([ADR-0135](./0135-every-statement-reads-its-account-from-the-transaction.md)), and no
-  runtime role holds an update grant on either table's account column. The grants give a write of
-  either table to the UI's role alone, and only the UI's import list admits the base policy's
-  subsection. Every account reads the base rules and the base history. One transaction is one scope.
+  read ([ADR-0135](./0135-every-statement-reads-its-account-from-the-transaction.md)), and the
+  application user holds no update grant on either table's account column. No data-access
+  subsection another program's import list admits writes either table, by the rule of
+  [ADR-0143](./0143-the-programs-connect-as-one-application-user-beside-the-migrators.md) that
+  review holds, and only the UI's import list admits the base policy's subsection. Every account
+  reads the base rules and the base history. One transaction is one scope.
 - **A base-policy transaction runs only the base policy's statements, and they run in no other
   transaction.** They sit in a data-access subsection of their own, `db/policyrules/base`, and the
   check that holds every data-access call to the transaction helper
@@ -63,15 +65,18 @@ base rules and their history with no account named
 
 ## Consequences
 
-- The base rules are written by the UI's role in a base-policy transaction and by nothing else, and
-  the only transaction that runs with the account empty is a base-policy transaction, which reaches
-  only the base policy's statements.
-- The policy loader reads the base rules inside each account's transaction
+- The base rules are written by the UI's code in a base-policy transaction and by no other code,
+  and the only transaction that runs with the account empty is a base-policy transaction, which
+  reaches only the base policy's statements.
+- The Session's policies, `process/policies`, read the base rules inside each account's transaction
   ([ADR-0114](../engineering/0114-a-torn-base-policy-read-is-read-again-before-it-fails-the-reload.md)).
   A base-policy transaction is the UI's alone.
 - Assumptions about other components. The setting is transaction-local, so a pooled connection
   carries the empty account into no later transaction. A statement written by hand outside the
-  data-access library could write a base row in any transaction, and the UI's raw-SQL check refuses
-  such statements in the UI ([ADR-0071](../engineering/0071-static-enforcement-toolchain.md)).
+  data-access library could write a base row in any transaction. The raw SQL analyser refuses such
+  statements in the code of the API server, the UI and the worker, and review holds the code it
+  does not read, `process/policies` among it
+  ([ADR-0071](../engineering/0071-static-enforcement-toolchain.md),
+  [ADR-0143](./0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)).
 - The scope rule and the check confining the base subsection are controls. Their violation
   injections are catalogued in [docs/VERIFICATIONS.md](../../VERIFICATIONS.md).

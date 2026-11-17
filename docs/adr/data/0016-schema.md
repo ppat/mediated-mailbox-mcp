@@ -192,7 +192,7 @@ CREATE TABLE policy_candidates (          -- heuristic review queue (ADR-0004)
     CHECK (status IN ('pending', 'confirmed', 'dismissed')),
   created_at   timestamptz NOT NULL DEFAULT now(),
   reviewed_at  timestamptz,
-  reviewed_by  text,                      -- human only; in the UI's write grant (ADR-0084)
+  reviewed_by  text,                      -- human only; among the UI's writes (ADR-0084)
   PRIMARY KEY (account_id, domain)
 );
 
@@ -204,7 +204,7 @@ CREATE TABLE policy_rules (               -- the sender policy as rows (ADR-0004
   domain_suffix  text[] NOT NULL,
   source         text NOT NULL CHECK (source IN ('operator', 'candidate')),
   created_at     timestamptz NOT NULL DEFAULT now(),
-  created_by     text NOT NULL,           -- the operator identity; in the UI's write grant (ADR-0084)
+  created_by     text NOT NULL,           -- the operator identity; among the UI's writes (ADR-0084)
   UNIQUE NULLS NOT DISTINCT (account_id, rule_id)  -- the base policy is one scope, each account another
 );
 CREATE INDEX ON policy_rules (account_id);
@@ -220,7 +220,7 @@ CREATE TABLE policy_changes (             -- every change to policy_rules, appen
   suffixes_after  text[] NOT NULL DEFAULT '{}'   -- empty for lifted
 );
 CREATE INDEX ON policy_changes (account_id, ts DESC);
--- No runtime role holds UPDATE or DELETE here, as on audit_log.
+-- The application user holds no UPDATE or DELETE here, as on audit_log.
 
 CREATE TABLE masking_events (
   id          bigserial PRIMARY KEY,
@@ -251,7 +251,7 @@ CREATE TABLE reorg_plans (
   refusal_reason   text,                  -- set with APPLY_REFUSED
   created_at  timestamptz NOT NULL DEFAULT now(),
   approved_at timestamptz,                -- the decision time, for REJECTED as well
-  approved_by text                        -- human only; in the UI's write grant (ADR-0084)
+  approved_by text                        -- human only; among the UI's writes (ADR-0084)
 );
 CREATE INDEX ON reorg_plans (account_id, created_at DESC);
 
@@ -282,7 +282,7 @@ CREATE TABLE job_runs (                   -- every background job kind's runs (A
   run_id        text NOT NULL,            -- short opaque string
   workload      text NOT NULL,            -- the job kind: backfill | sync | apply | heuristics
   pass          text NOT NULL,            -- pass1 | pass2 | tick | gap_recovery | apply | rollback, and the
-                                          --   one heuristics names in the migration that brings its role
+                                          --   one heuristics names in the migration that brings it
   state         text NOT NULL CHECK (state IN ('running', 'succeeded', 'failed')),
   plan_id       uuid REFERENCES reorg_plans,  -- apply and rollback runs
   resumed_from  text,                     -- the run this one resumed
@@ -309,7 +309,7 @@ CREATE TABLE job_runs (                   -- every background job kind's runs (A
   CHECK ((workload, pass) IN (('backfill', 'pass1'), ('backfill', 'pass2'),
                               ('sync', 'tick'), ('sync', 'gap_recovery')))
                                           -- a closed set; each job kind adds its own pairs
-                                          --   in the migration that brings its role
+                                          --   in the migration that brings it
 );
 CREATE INDEX ON job_runs (account_id, workload, pass, started_at DESC, run_id);
 CREATE INDEX ON job_runs (account_id) WHERE state = 'running';
@@ -375,7 +375,7 @@ CREATE TABLE audit_log (
          OR (reason IS NOT NULL AND sender_class IS NOT NULL AND scan_state IS NOT NULL)),
   CHECK ((class_rule_id IS NULL) = (class_rule_scope IS NULL))
 );
--- No runtime role holds UPDATE or DELETE here. Append-only is the grant, not a convention.
+-- The application user holds no UPDATE or DELETE here. Append-only is the grant, not a convention.
 -- A mutation's own columns are added in the migration that brings mutation, and rows written before keep their meaning.
 CREATE INDEX ON audit_log (account_id, ts DESC);
 CREATE INDEX ON audit_log (account_id, message_id, ts DESC);
@@ -407,18 +407,21 @@ The shape enforces these properties.
   ([ADR-0060](../engineering/0060-no-code-in-the-database.md)). No table carries a row-level
   security policy. Five exceptions are stated.
   - `accounts` holds only each account's identifier, provider and the OAuth client it connects
-    through, and is read in full by the roles that list accounts, while its writes stay confined to
+    through, and is read in full by the code that lists accounts, while its writes stay confined to
     the transaction's account ([ADR-0091](./0091-accounts-listed-apart-from-their-state.md)).
-  - `oauth_clients` belongs to no account and carries no account column, so grants alone decide
-    who reaches it. The roles the account snapshot's statements run under, the API server's and
-    delta sync's, read it in full, and no other job kind's role reads it, since a job kind reaches
-    it only through the worker's execution context
-    ([ADR-0118](./0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)). The
-    UI's role reads it in full too, its `name`, `provider`, `client_id` and `project_id` since it
-    runs the consent with a client, sets a client up again and shows where each client lives, and
-    its sealed `client_secret` for the one part of the UI that opens it, for a consent's code
-    exchange ([ADR-0081](../operability/0081-credentials-sealed-to-a-public-key.md)). Only the UI's
-    role, when a client is set up, and delta sync's, when it re-seals a secret, write it
+  - `oauth_clients` belongs to no account and carries no account column, so the import lists
+    decide which code reaches it. An analyser rule also holds the callers of the connections'
+    re-seal, which writes it, to delta sync's package
+    ([ADR-0071](../engineering/0071-static-enforcement-toolchain.md)). The connections'
+    statements, which load the clients for the accounts of the account snapshot, read it in full,
+    in the API server and the worker. No job kind's own code reads it, since a job kind reaches it
+    only through the connections
+    ([ADR-0143](./0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)). The
+    UI reads it in full too, its `name`, `provider`, `client_id` and `project_id` since it runs the
+    consent with a client, sets a client up again and shows where each client lives, and its sealed
+    `client_secret` for the one part of the UI that opens it, for a consent's code exchange
+    ([ADR-0081](../operability/0081-credentials-sealed-to-a-public-key.md)). Only the UI, when a
+    client is set up, and delta sync, when it re-seals a secret through the connections, write it
     ([ADR-0080](./0080-accounts-and-credentials-live-in-the-database.md),
     [ADR-0106](../provider/0106-accounts-of-a-provider-connect-through-any-of-its-oauth-clients.md),
     [ADR-0107](../provider/0107-gmail-through-an-installed-app-oauth-client-set-up-in-the-ui.md),
@@ -428,14 +431,15 @@ The shape enforces these properties.
     ([ADR-0004](../classification/0004-sender-list-decides.md)), and `policy_changes` rows with a
     null account are the changes to it
     ([ADR-0102](../mutation/0102-policy-changes-recorded-in-an-append-only-history.md)). Every
-    account reads them, and only the UI's role writes them, in a transaction that names no account
+    account reads them, and only the UI's code writes them, in a transaction that names no account
     ([ADR-0112](./0112-the-base-policy-is-written-and-read-in-a-transaction-of-its-own.md)).
   - `reorg_op_log` carries no account column at all and is reached only through its plan, by a join
     to a plan the statement ties to the transaction's account
     ([ADR-0135](./0135-every-statement-reads-its-account-from-the-transaction.md)).
   - `schema_compatibility` belongs to no account and describes the schema, not any account's data.
-    Every role a deployable connects as reads it in full, with the newest migration the chain's
-    runner records, and only a migration writes it ([ADR-0140](./0140-each-migration-declares-the-oldest-chain-that-runs-on-it.md)).
+    The application user, which every deployable connects as, reads it in full, with the newest
+    migration the chain's runner records, and only a migration writes it
+    ([ADR-0140](./0140-each-migration-declares-the-oldest-chain-that-runs-on-it.md)).
 - **An unset account is silent, and the application compensates.** Once a connection has set
   `app.account`, Postgres keeps the parameter known and resets it to the empty string between
   transactions rather than to unrecognised. A statement that then reads the setting without setting
@@ -469,7 +473,7 @@ The shape enforces these properties.
     token costs one migration that replaces the constraint in the token's own release, written as
     `NOT VALID` then `VALIDATE` so inserts keep flowing, and widening a set never fails validation.
   - *Asked for by a reader*: `job_runs`' job kind and pass as a closed set of pairs, and its state.
-    A job kind arrives with a role and grants anyway, so extending the check rides that migration.
+    A job kind's pairs are added to the check in the migration that brings the job kind.
   - *Cheap, next to safety*: the scan state and content flags of `messages`, the gate's decision,
     the last authentication outcome, a rule's class and source, a candidate's and a plan's status,
     a grant's class and a masking event's field.
@@ -483,10 +487,10 @@ The shape enforces these properties.
     kinds grow on rebuildable rows an update can fix, the gate decision's reason, a run event's
     kind, a failure's class, item kind and disposition, and a masking event's tier.
 - **Sender domains are stored as lowercase `text`.** Every stored domain is written through one
-  normalizer in Go, `index.StoredDomain`, and every caller that binds a domain to a statement binds
-  its output. The normalizer applies Go's simple lowercase mapping, with U+0130 (`İ`) taken to `i`
-  followed by U+0307 as Unicode's SpecialCasing.txt does, the one unconditional entry there whose
-  lowercase differs from the simple mapping's `i`. It applies none of that file's conditional
+  normalizer in Go, `classify.StoredDomain`, and every caller that binds a domain to a statement
+  binds its output. The normalizer applies Go's simple lowercase mapping, with U+0130 (`İ`) taken
+  to `i` followed by U+0307 as Unicode's SpecialCasing.txt does, the one unconditional entry there
+  whose lowercase differs from the simple mapping's `i`. It applies none of that file's conditional
   entries, such as the final sigma, because the sender classifier's UTS #46 mapping
   ([ADR-0004](../classification/0004-sender-list-decides.md)) maps each character the same wherever
   it stands and takes no language, and takes U+0130 the same way. So a stored domain classifies as
@@ -506,9 +510,9 @@ The shape enforces these properties.
 - **The audit row records what a body decision rests on, in typed columns**: the stage that
   decided, the reason, the sender class with the rule behind it and that rule's scope, the content
   flags with the scanner rules behind them kept apart from the serve-time check's, the scan state,
-  and the scanner the serve-time check ran under. On evidence no runtime role can ever correct, a
-  closed vocabulary fails at insert, and a check reads a column plainly. The API server writes the
-  audit row before it releases anything, so a token the check does not know fails the request
+  and the scanner the serve-time check ran under. On evidence the application user can never
+  correct, a closed vocabulary fails at insert, and a check reads a column plainly. The API server
+  writes the audit row before it releases anything, so a token the check does not know fails the request
   closed and loudly and never serves a body without its record. The reason is the token the client
   surface returns
   ([ADR-0101](../operability/0101-every-failure-names-its-origin-and-a-body-denial-is-a-result.md)).
@@ -550,14 +554,14 @@ The shape enforces these properties.
   latest run per job kind and pass, the event stream, the runs dataset, and the job mechanism's due
   decisions, and the audit index serves a message's audit rows. `job_runs.pass` is never null, so
   the latest-run reads compare it by equality, which an index serves.
-- **The policy history is append-only to every runtime role**, for the same reason as the audit
+- **The policy history is append-only to the application user**, for the same reason as the audit
   log below, so who lifted a restriction and when survives the UI's compromise
   ([ADR-0102](../mutation/0102-policy-changes-recorded-in-an-append-only-history.md)).
-- **The audit log is append-only to every runtime role.** No runtime role holds update or delete
-  on it, whichever component writes it. This is a property of the table's grants rather than of
-  any one role, so it keeps holding as components are added, and it is what makes evidence written
-  before a compromise survive that compromise without depending on anything outside the cluster
-  ([ADR-0028](../operability/0028-trust-anchor-hardening.md)). It bounds rather than absolutises
+- **The audit log is append-only to the application user.** The application user holds no update
+  or delete on it, whichever component writes it. This is a property of the table's grants rather
+  than of any one component, so it keeps holding as components are added, and it is what makes
+  evidence written before a compromise survive that compromise without depending on anything
+  outside the cluster ([ADR-0028](../operability/0028-trust-anchor-hardening.md)). It bounds rather than absolutises
   the claim, because an attacker holding the process governs what is written from that moment on.
 
 ## Alternatives considered
@@ -586,13 +590,15 @@ The shape enforces these properties.
   enumerated statement shape of [ADR-0066](./0066-data-access-generated-from-sql.md) stop being
   free. That assumption is recorded as a known limit in
   [DESIGN.md](../../../DESIGN.md#3-known-limits).
-- Retention of the audit log has no owner while no runtime role can delete from it. Nothing in the
-  running system trims the table, and whether it is ever trimmed is an open decision in
-  [ROADMAP.md](../../../ROADMAP.md).
+- Retention of the audit log has no owner while the application user cannot delete from it.
+  Nothing in the running system trims the table, and whether it is ever trimmed is an open decision
+  in [ROADMAP.md](../../../ROADMAP.md).
 - Schema evolution is by migration, and the DDL's no-body comment binds every future one.
 - **No index over labels or the subject exists yet.** Reads over them filter after the account
   index, which serves while no read filters on them often. The unit that makes such a filter
   frequent adds the index it needs ([ROADMAP.md](../../../ROADMAP.md)).
 - **A new account-keyed table** leads its key with `account_id text NOT NULL REFERENCES accounts`,
-  or references the row it is a part of, checks its closed vocabularies, has its grants per role in
-  the migration that creates it, and holds no body column.
+  or references the row it is a part of, checks its closed vocabularies, has the application user's
+  grants on it in the migration that creates it
+  ([ADR-0143](./0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)), and
+  holds no body column.
