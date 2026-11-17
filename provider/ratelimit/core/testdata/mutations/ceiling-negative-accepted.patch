@@ -1,0 +1,18 @@
+control: A ceiling that is not a finite positive number fixes no budget
+removes: a negative ceiling fixes negative limits rather than none
+packages: ./provider/ratelimit/core
+tests: TestLimitsFor TestNoBudgetHoldsTheRateAtZero
+scheduled-count: no
+
+diff --git a/provider/ratelimit/core/limits.go b/provider/ratelimit/core/limits.go
+--- a/provider/ratelimit/core/limits.go
++++ b/provider/ratelimit/core/limits.go
+@@ -64,7 +64,7 @@ func LimitsWithTarget(ceiling, target float64) (Limits, error) {
+ // checked, or the zero Limits for a ceiling that fixes no budget.
+ func limitsAt(ceiling, target float64) Limits {
+ 	floor := ceiling * floorFraction
+-	if !(floor > 0) || math.IsInf(ceiling, 1) {
++	if floor == 0 || math.IsNaN(floor) || math.IsInf(ceiling, 1) {
+ 		return Limits{}
+ 	}
+ 	return Limits{

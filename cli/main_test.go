@@ -7,15 +7,15 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/open"
-	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal"
+	"github.com/ppat/mediated-mailbox-mcp/credential/open"
+	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
 	"github.com/ppat/mediated-mailbox-mcp/process/version"
 )
 
 // F6's part of VERIFICATIONS' row for the key-generation command. The program's main function runs
 // its keygen subcommand to write a key pair into a temporary directory,
-// executioncontext/credential/seal seals a value to the public key file and
-// executioncontext/credential/open opens it with a keyring loaded from both files (ADR-0088).
+// credential/seal seals a value to the public key file and
+// credential/open opens it with a keyring loaded from both files (ADR-0088).
 func TestTheCommandWritesAPairTheLibrarySealsToAndOpensWith(t *testing.T) {
 	dir := t.TempDir()
 	privatePath, publicPath := filepath.Join(dir, "credential.key"), filepath.Join(dir, "credential.pub")

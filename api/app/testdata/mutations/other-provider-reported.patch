@@ -7,16 +7,15 @@ integration: yes
 
 
 diff --git a/api/app/app.go b/api/app/app.go
-index 7ad0edd..2d8742d 100644
 --- a/api/app/app.go
 +++ b/api/app/app.go
-@@ -454,9 +454,6 @@ func (s *serving) policy(account string) classify.Policy {
- func (s *serving) rateAccounts(context.Context) ([]lease.Account, error) {
- 	var out []lease.Account
+@@ -476,9 +476,6 @@ func (s *serving) policy(account string) classify.Policy {
+ func (s *serving) rateAccounts(context.Context) ([]ratelimit.Account, error) {
+ 	var out []ratelimit.Account
  	for _, a := range s.context.Snapshot().Accounts() {
 -		if a.Provider() != gmailProvider {
 -			continue
 -		}
- 		out = append(out, lease.Account{ID: a.ID(), Ceiling: gmail.Profile{}.BudgetPerSecond()})
+ 		out = append(out, ratelimit.Account{ID: a.ID(), Ceiling: gmail.Profile{}.BudgetPerSecond()})
  	}
  	return out, nil

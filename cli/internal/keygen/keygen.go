@@ -19,7 +19,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal"
+	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
 	"github.com/ppat/mediated-mailbox-mcp/process/version"
 )
 

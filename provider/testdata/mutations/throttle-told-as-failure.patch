@@ -1,0 +1,20 @@
+control: A call through the provider library's mailbox tells the rate limiter how it went
+removes: a throttle is told to the controller as a server error, so the rate falls to 80% with no backoff rather than halving
+packages: ./provider
+tests: TestEachCallTellsTheLimiterHowItWent
+scheduled-count: no
+integration: yes
+
+diff --git a/provider/ratelimit/leased.go b/provider/ratelimit/leased.go
+--- a/provider/ratelimit/leased.go
++++ b/provider/ratelimit/leased.go
+@@ -61,7 +61,8 @@ func Leased[T any](ctx context.Context, limiter *Limiter, s Spend, call func(con
+ 	case err == nil:
+ 		told = limiter.Succeeded(ctx, s.Account, s.Cost, time.Since(start))
+ 	case throttled:
+-		told = limiter.Throttled(ctx, s.Account, signal)
++		_ = signal
++		told = limiter.ServerErrored(ctx, s.Account)
+ 	case errors.Is(err, mail.ErrProvider):
+ 		told = limiter.ServerErrored(ctx, s.Account)
+ 	}

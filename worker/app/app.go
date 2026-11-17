@@ -35,11 +35,11 @@ import (
 
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
+	"github.com/ppat/mediated-mailbox-mcp/credential/open"
 	"github.com/ppat/mediated-mailbox-mcp/db/migrations"
 	"github.com/ppat/mediated-mailbox-mcp/db/schemacompatibility"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/assembly"
 	credentialcore "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/core"
-	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/open"
 	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core"
 	"github.com/ppat/mediated-mailbox-mcp/process/host"
 	"github.com/ppat/mediated-mailbox-mcp/process/settings"

@@ -8,7 +8,7 @@
 //
 // A fixture is a value of this package's own Message type, not of the canonical mail model in
 // core/mail. A Message holds what a message says about itself, its headers and its body. The
-// contract suite in provider/contract turns the fixtures into the canonical messages of the mailbox
+// contract suite in provider/mail/contract turns the fixtures into the canonical messages of the mailbox
 // every port implementation is tested against, adding what the mailbox holds about each message
 // rather than the message itself, its identifiers, thread, date, labels and flags.
 package fixture

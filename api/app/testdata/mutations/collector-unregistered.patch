@@ -6,17 +6,16 @@ scheduled-count: no
 integration: yes
 
 diff --git a/api/app/app.go b/api/app/app.go
-index 7ad0edd..ed22930 100644
 --- a/api/app/app.go
 +++ b/api/app/app.go
-@@ -395,9 +395,7 @@ type serving struct {
+@@ -417,9 +417,7 @@ type serving struct {
  func newServing(start host.Starter, pool *pgxpool.Pool, ec *assembly.Context, metrics prometheus.Registerer, logger *slog.Logger) (*serving, error) {
  	s := &serving{context: ec, pool: pool, logger: logger}
  	s.fresh = reload.New(reload.Starter(start), ec.ReloadPolicy)
--	if err := metrics.Register(lease.NewCollector(pool, s.rateAccounts)); err != nil {
+-	if err := metrics.Register(ratelimit.NewCollector(pool, s.rateAccounts)); err != nil {
 -		return nil, err
 -	}
-+	_ = lease.NewCollector(pool, s.rateAccounts)
++	_ = ratelimit.NewCollector(pool, s.rateAccounts)
  	return s, nil
  }
  

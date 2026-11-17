@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/ppat/mediated-mailbox-mcp/cli/internal/keygen"
-	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal"
+	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
 	"github.com/ppat/mediated-mailbox-mcp/process/version"
 )
 

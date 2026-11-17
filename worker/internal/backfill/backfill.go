@@ -36,9 +36,11 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/assembly"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/session"
-	"github.com/ppat/mediated-mailbox-mcp/provider/gmail"
-	ratecore "github.com/ppat/mediated-mailbox-mcp/ratelimit/core"
-	"github.com/ppat/mediated-mailbox-mcp/ratelimit/lease"
+	providerlib "github.com/ppat/mediated-mailbox-mcp/provider"
+	"github.com/ppat/mediated-mailbox-mcp/provider/google"
+	"github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail"
+	"github.com/ppat/mediated-mailbox-mcp/provider/ratelimit"
+	ratecore "github.com/ppat/mediated-mailbox-mcp/provider/ratelimit/core"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/pass1"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/pass2"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/core/backfill/due"
@@ -118,7 +120,7 @@ type Backfill struct {
 	second   pass2.Store
 	first    *pass1.Metrics
 	backlog  *pass2.Metrics
-	leases   *lease.Metrics
+	leases   *ratelimit.Metrics
 	// processing times each body's conversion and scan in the second pass (ADR-0125).
 	processing *series.Processing
 	// port builds an account's Gmail adapter in a kind New built, over the series New registered, so
@@ -146,7 +148,7 @@ func New(c Config) (*Backfill, error) {
 
 // build returns the job kind with the connectors its account sessions build sources and ports with.
 func build(c Config, connectors map[string]session.Connector) (*Backfill, error) {
-	leases, err := lease.NewMetrics(c.Registry)
+	leases, err := ratelimit.NewMetrics(c.Registry)
 	if err != nil {
 		return nil, err
 	}
@@ -409,7 +411,7 @@ func (u *unit) end(ctx context.Context) error {
 // fetch returns the first pass's enumeration over the unit's session, under a lease (ADR-0025). A
 // refused credential is read again and the call made once more as session.Call says, a new lease
 // included.
-func (u *unit) fetch(limiter *lease.Limiter) pass1.Fetch {
+func (u *unit) fetch(limiter *ratelimit.Limiter) pass1.Fetch {
 	return func(ctx context.Context, token mail.PageToken) (mail.Page[mail.MessageMetadata], error) {
 		return session.Call(ctx, u.current, func(ctx context.Context, port mail.Port[context.Context]) (mail.Page[mail.MessageMetadata], error) {
 			return pass1.Leased(limiter, port, u.account)(ctx, token)
@@ -419,7 +421,7 @@ func (u *unit) fetch(limiter *lease.Limiter) pass1.Fetch {
 
 // metadata returns the first pass's fetch of stale subjects again by identifier over the unit's
 // session, under a lease (ADR-0025, ADR-0120), reading a refused credential again as fetch does.
-func (u *unit) metadata(limiter *lease.Limiter) pass1.Metadata {
+func (u *unit) metadata(limiter *ratelimit.Limiter) pass1.Metadata {
 	return func(ctx context.Context, ids []string) ([]mail.MessageMetadata, error) {
 		return session.Call(ctx, u.current, func(ctx context.Context, port mail.Port[context.Context]) ([]mail.MessageMetadata, error) {
 			return pass1.LeasedMetadata(limiter, port, u.account)(ctx, ids)
@@ -429,7 +431,7 @@ func (u *unit) metadata(limiter *lease.Limiter) pass1.Metadata {
 
 // body returns the second pass's body fetch over the unit's session, under a lease (ADR-0025),
 // reading a refused credential again as fetch does.
-func (u *unit) body(limiter *lease.Limiter) pass2.Body {
+func (u *unit) body(limiter *ratelimit.Limiter) pass2.Body {
 	return func(ctx context.Context, id string) (mail.MessageBody, error) {
 		return session.Call(ctx, u.current, func(ctx context.Context, port mail.Port[context.Context]) (mail.MessageBody, error) {
 			return leasedBody(limiter, port, u.account)(ctx, id)
@@ -439,9 +441,9 @@ func (u *unit) body(limiter *lease.Limiter) pass2.Body {
 
 // gmailSource builds the Gmail token source of an account from its credentials, the OAuth client the
 // account connects through and its refresh token (ADR-0106).
-func gmailSource(client *http.Client) func(session.Credentials) *gmail.TokenSource {
-	return func(c session.Credentials) *gmail.TokenSource {
-		return gmail.NewTokenSource(client, gmail.NewCredentials(c.ClientID, c.ClientSecret, c.Credential))
+func gmailSource(client *http.Client) func(session.Credentials) *google.TokenSource {
+	return func(c session.Credentials) *google.TokenSource {
+		return google.NewTokenSource(client, google.NewCredentials(c.ClientID, c.ClientSecret, c.Credential))
 	}
 }
 
@@ -449,14 +451,18 @@ func gmailSource(client *http.Client) func(session.Credentials) *gmail.TokenSour
 // adapter over it, both calling through client, counting its requests on series registry serves, which
 // every adapter it builds shares. It also returns the builder of the adapter over an account's tokens.
 func gmailConnector(registry prometheus.Registerer, client *http.Client) (session.Connector, func(string, gmail.Tokens) (mail.Port[context.Context], error), error) {
-	metrics, err := gmail.NewMetrics(registry)
+	shared, err := providerlib.NewMetrics(registry)
+	if err != nil {
+		return session.Connector{}, nil, err
+	}
+	metrics, err := shared.For(gmailProvider)
 	if err != nil {
 		return session.Connector{}, nil, err
 	}
 	port := func(account string, tokens gmail.Tokens) (mail.Port[context.Context], error) {
 		return gmail.New(gmail.Config{Account: account, Client: client, Tokens: tokens, Metrics: metrics})
 	}
-	return session.Connect(gmailSource(client), func(account string, source *gmail.TokenSource) (mail.Port[context.Context], error) {
+	return session.Connect(gmailSource(client), func(account string, source *google.TokenSource) (mail.Port[context.Context], error) {
 		return port(account, source)
 	}), port, nil
 }
@@ -550,9 +556,9 @@ func passAccount(ctx context.Context, deps pass1.Deps, account string, metrics *
 
 // leasedBody returns the body fetch the second pass uses, port's body read under leases in the batch
 // class, a second call naming a part held apart (ADR-0025, ADR-0131).
-func leasedBody(limiter *lease.Limiter, port mail.Port[context.Context], account string) pass2.Body {
+func leasedBody(limiter *ratelimit.Limiter, port mail.Port[context.Context], account string) pass2.Body {
 	return func(ctx context.Context, id string) (mail.MessageBody, error) {
-		return lease.Body(ctx, limiter, port, account, ratecore.Batch, id)
+		return ratelimit.Body(ctx, limiter, port, account, ratecore.Batch, id)
 	}
 }
 

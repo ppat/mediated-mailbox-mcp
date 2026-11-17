@@ -8,12 +8,12 @@ integration: yes
 diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/deltasync.go
 --- a/worker/internal/deltasync/deltasync.go
 +++ b/worker/internal/deltasync/deltasync.go
-@@ -164,7 +164,7 @@
+@@ -169,7 +169,7 @@ func build(c Config, connectors map[string]session.Connector) (*DeltaSync, error
  	if err != nil {
  		return nil, err
  	}
--	leases, err := lease.NewMetrics(c.Registry)
-+	leases, err := lease.NewMetrics(prometheus.NewRegistry())
+-	leases, err := ratelimit.NewMetrics(c.Registry)
++	leases, err := ratelimit.NewMetrics(prometheus.NewRegistry())
  	if err != nil {
  		return nil, err
  	}

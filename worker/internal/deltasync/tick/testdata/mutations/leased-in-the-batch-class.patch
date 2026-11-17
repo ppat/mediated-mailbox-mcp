@@ -6,15 +6,14 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/deltasync/tick/provider.go b/worker/internal/deltasync/tick/provider.go
-index 8d27af8..e170087 100644
 --- a/worker/internal/deltasync/tick/provider.go
 +++ b/worker/internal/deltasync/tick/provider.go
-@@ -30,7 +30,7 @@ type Leased struct {
+@@ -29,7 +29,7 @@ type Leased struct {
  var _ Provider = Leased{}
  
  func call[T any](ctx context.Context, l Leased, op mail.ProviderOp, do func(context.Context) (T, error)) (T, error) {
--	return lease.Call(ctx, l.Limiter, l.Port, l.Account, ratecore.Sync, op, do)
-+	return lease.Call(ctx, l.Limiter, l.Port, l.Account, ratecore.Batch, op, do)
+-	return ratelimit.Call(ctx, l.Limiter, l.Port, l.Account, ratecore.Sync, op, do)
++	return ratelimit.Call(ctx, l.Limiter, l.Port, l.Account, ratecore.Batch, op, do)
  }
  
  // CurrentCursor implements Provider.

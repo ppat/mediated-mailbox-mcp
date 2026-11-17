@@ -1,0 +1,19 @@
+control: Every call the Gmail rate profile sizes fits one second's worth at the hard cap, read from the hard-cap fraction
+removes: the hard-cap fraction falls to 0.60 while the Gmail pages stay sized for 0.80, so an enumeration page no longer fits
+packages: ./provider/mail/gmail
+tests: TestTheProfileMeetsTheContract TestTheProfileMeetsTheContract/every_call_the_rate_profile_sizes_fits_one_second_at_the_hard_cap
+scheduled-count: no
+
+diff --git a/core/mail/rate.go b/core/mail/rate.go
+index 5f7796ec..168f7943 100644
+--- a/core/mail/rate.go
++++ b/core/mail/rate.go
+@@ -100,7 +100,7 @@ func Throttled(err error) (ThrottleSignal, bool) {
+ // one second's worth at the hard cap is refused, so whatever sizes a call sizes it within this
+ // fraction of BudgetPerSecond (ADR-0023). It sits beside the profile because the rate limiter, the
+ // adapters and the contract suite all read it, and the adapters cannot import the rate limiter.
+-const HardCapFraction = 0.80
++const HardCapFraction = 0.60
+ 
+ // CallSize returns how many identifiers one call of an operation priced per message names, the most
+ // whose cost fits one second's worth at the hard cap, ceiling times HardCapFraction, and at least one,

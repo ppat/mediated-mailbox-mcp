@@ -32,7 +32,7 @@ import (
 
 	"github.com/ppat/mediated-mailbox-mcp/api/internal/service"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
-	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal"
+	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
 	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core"
 	"github.com/ppat/mediated-mailbox-mcp/process/host"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"

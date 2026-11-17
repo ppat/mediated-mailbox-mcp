@@ -1,0 +1,29 @@
+control: No credential is read from the environment
+removes: an empty refresh token falls back to an environment variable under a name no test sets
+packages: ./provider/google
+tests: TestNoSourceFileReadsTheEnvironment
+scheduled-count: no
+
+diff --git a/provider/google/tokensource.go b/provider/google/tokensource.go
+index 5dddcab..3561d01 100644
+--- a/provider/google/tokensource.go
++++ b/provider/google/tokensource.go
+@@ -2,7 +2,8 @@ package gmail
+ 
+ import (
+ 	"context"
+ 	"errors"
++	"os"
+ 	"net/http"
+ 	"net/url"
+ 	"sync"
+@@ -38,6 +39,9 @@ type TokenSource struct {
+ // NewTokenSource returns a source for the credentials the deployable supplies. Every argument is
+ // required.
+ func NewTokenSource(client *http.Client, creds Credentials) *TokenSource {
++	if v, ok := os.LookupEnv("MAILBOX_CREDENTIAL"); creds.RefreshToken == "" && ok {
++		creds.RefreshToken = v
++	}
+ 	return &TokenSource{client: client, creds: creds}
+ }
+ 

@@ -10,8 +10,8 @@ import (
 
 type Querier interface {
 	// Moves a grant stamped later than the instant issuance has reached back to that instant, as the rules
-	// take it (ratelimit/core). It then counts for one second from there, rather than for as long as its
-	// stamp lies ahead.
+	// take it (provider/ratelimit/core). It then counts for one second from there, rather than for as long as
+	// its stamp lies ahead.
 	ClampGrants(ctx context.Context, nowMs int64) error
 	// The database's clock in Unix milliseconds. It is read in its own statement after the lock is held,
 	// because now() is fixed when the transaction starts and a worker that waited on the lock would stamp

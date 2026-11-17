@@ -1,0 +1,21 @@
+control: A call through the provider library's mailbox leases its cost in its caller's class at the account's target
+removes: a mutation reaches the provider with no lease, so it spends nothing and tells the limiter nothing
+packages: ./provider
+tests: TestEveryOperationIsLeasedAtItsCostReportedAndTriedOnceMore TestEveryOperationIsLeasedAtItsCostReportedAndTriedOnceMore/Mutate
+scheduled-count: no
+integration: yes
+
+diff --git a/provider/mailbox.go b/provider/mailbox.go
+--- a/provider/mailbox.go
++++ b/provider/mailbox.go
+@@ -114,9 +114,7 @@ func (m *mailbox) EnsureLabel(ctx context.Context, path string) (coremail.Label,
+ 
+ // Mutate implements mail.Mailbox, priced for the number of ops it carries.
+ func (m *mailbox) Mutate(ctx context.Context, ops []coremail.MutationOp) (coremail.MutationResult, error) {
+-	return call(ctx, m, coremail.ProviderOp{Operation: coremail.OpMutate, Messages: len(ops)}, func(ctx context.Context, p adapterMailbox) (coremail.MutationResult, error) {
+-		return p.Mutate(ctx, ops)
+-	})
++	return m.current().Mutate(ctx, ops)
+ }
+ 
+ // CurrentCursor implements mail.Mailbox.

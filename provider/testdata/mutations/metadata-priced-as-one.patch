@@ -1,0 +1,19 @@
+control: A call through the provider library's mailbox leases its cost in its caller's class at the account's target
+removes: a metadata fetch is leased at the cost of a call naming no message, whatever the identifiers it names
+packages: ./provider
+tests: TestEachCallLeasesItsCostInTheCallersClassAtTheAccountsTarget TestEachCallLeasesItsCostInTheCallersClassAtTheAccountsTarget/batch_at_the_default_target TestEachCallLeasesItsCostInTheCallersClassAtTheAccountsTarget/interactive_at_a_lowered_target TestEachCallLeasesItsCostInTheCallersClassAtTheAccountsTarget/sync_at_the_default_target
+scheduled-count: no
+integration: yes
+
+diff --git a/provider/mailbox.go b/provider/mailbox.go
+--- a/provider/mailbox.go
++++ b/provider/mailbox.go
+@@ -85,7 +85,7 @@ func (m *mailbox) GetThreadMetadata(ctx context.Context, threadID string) (corem
+ 
+ // GetMessageMetadata implements mail.Mailbox, priced for the number of identifiers ids names.
+ func (m *mailbox) GetMessageMetadata(ctx context.Context, ids []string) ([]coremail.MessageMetadata, error) {
+-	return call(ctx, m, coremail.ProviderOp{Operation: coremail.OpGetMessageMetadata, Messages: len(ids)}, func(ctx context.Context, p adapterMailbox) ([]coremail.MessageMetadata, error) {
++	return call(ctx, m, coremail.ProviderOp{Operation: coremail.OpGetMessageMetadata}, func(ctx context.Context, p adapterMailbox) ([]coremail.MessageMetadata, error) {
+ 		return p.GetMessageMetadata(ctx, ids)
+ 	})
+ }

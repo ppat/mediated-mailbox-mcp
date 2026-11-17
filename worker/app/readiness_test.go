@@ -13,9 +13,9 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
+	"github.com/ppat/mediated-mailbox-mcp/credential/open"
+	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/assembly"
-	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/open"
-	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal"
 )
 
 // A job kind whose reloads find no accounts loaded never reports itself reloaded, so a worker that

@@ -16,12 +16,12 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
+	"github.com/ppat/mediated-mailbox-mcp/credential/open"
+	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
 	"github.com/ppat/mediated-mailbox-mcp/db/accounts"
 	"github.com/ppat/mediated-mailbox-mcp/db/accountstate/credential"
 	"github.com/ppat/mediated-mailbox-mcp/db/oauthclients"
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
-	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/open"
-	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal"
 )
 
 // DB is what the loader reads and writes through, a pool in a deployable. The listing and the OAuth

@@ -1,0 +1,19 @@
+control: A call through the provider library's mailbox leases its cost in its caller's class at the account's target
+removes: a change listing is leased at the price of a label listing
+packages: ./provider
+tests: TestEveryOperationIsLeasedAtItsCostReportedAndTriedOnceMore TestEveryOperationIsLeasedAtItsCostReportedAndTriedOnceMore/ChangesSince
+scheduled-count: no
+integration: yes
+
+diff --git a/provider/mailbox.go b/provider/mailbox.go
+--- a/provider/mailbox.go
++++ b/provider/mailbox.go
+@@ -128,7 +128,7 @@ func (m *mailbox) CurrentCursor(ctx context.Context) (coremail.Cursor, error) {
+ 
+ // ChangesSince implements mail.Mailbox.
+ func (m *mailbox) ChangesSince(ctx context.Context, cursor coremail.Cursor) (coremail.ChangeSet, error) {
+-	return call(ctx, m, coremail.ProviderOp{Operation: coremail.OpChangesSince}, func(ctx context.Context, p adapterMailbox) (coremail.ChangeSet, error) {
++	return call(ctx, m, coremail.ProviderOp{Operation: coremail.OpListLabels}, func(ctx context.Context, p adapterMailbox) (coremail.ChangeSet, error) {
+ 		return p.ChangesSince(ctx, cursor)
+ 	})
+ }

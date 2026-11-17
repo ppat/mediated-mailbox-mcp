@@ -1,0 +1,20 @@
+control: Every ask records its class's ask instant, and a waiting worker asks again within each lease period
+removes: a request left waiting stores nothing, so its ask is never recorded
+packages: ./provider/ratelimit
+tests: TestAnAskIsRecordedAndRenewedUntilTheWorkerStops
+scheduled-count: no
+integration: yes
+
+diff --git a/provider/ratelimit/lease.go b/provider/ratelimit/lease.go
+--- a/provider/ratelimit/lease.go
++++ b/provider/ratelimit/lease.go
+@@ -156,6 +156,9 @@ func (l *Limiter) issue(ctx context.Context, account string, req core.Request) (
+ 			return nil
+ 		}
+ 		wait = waitFor(limits, st, next, req, now)
++		if d.Outcome != core.Granted {
++			return nil
++		}
+ 		return l.storeIssuance(ctx, q, account, st, next, grantLeases, d, now)
+ 	})
+ 	if err != nil {

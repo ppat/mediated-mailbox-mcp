@@ -1,0 +1,18 @@
+control: The tokens issued inside any one-second window sum to at most the hard cap, and over a longer window stay within the hard cap plus the target times its length, while the stored state is kept whole and current, and the clock does not step forward
+removes: the bucket holds two seconds' worth at the hard cap rather than one
+packages: ./provider/ratelimit/core
+tests: TestNoRunIssuesPastTheHardCap TestIssue
+scheduled-count: no
+
+diff --git a/provider/ratelimit/core/lease.go b/provider/ratelimit/core/lease.go
+--- a/provider/ratelimit/core/lease.go
++++ b/provider/ratelimit/core/lease.go
+@@ -75,7 +75,7 @@ type Decision struct {
+ // period has still to draw of its share. A class that did not ask within that period is idle, and
+ // its share is lent. A lease counts against its class's share until it expires.
+ func Issue(l Limits, s State, is Issuance, leases []Lease, req Request, now int64) (Issuance, Decision) {
+-	capacity := l.hardCap
++	capacity := 2 * l.hardCap
+ 	if !req.Class.named() || !(req.Tokens > 0) || req.Tokens > capacity {
+ 		return is, Decision{}
+ 	}

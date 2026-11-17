@@ -1,0 +1,18 @@
+control: The controller keeps the rate between the floor and the target
+removes: additive increase is no longer held at the target
+packages: ./provider/ratelimit/core
+tests: TestSucceeded TestNoRunIssuesPastTheHardCap
+scheduled-count: no
+
+diff --git a/provider/ratelimit/core/controller.go b/provider/ratelimit/core/controller.go
+--- a/provider/ratelimit/core/controller.go
++++ b/provider/ratelimit/core/controller.go
+@@ -38,7 +38,7 @@ type State struct {
+ func Succeeded(s State, l Limits, cost mail.OpCost) State {
+ 	rate := l.bounded(s.Rate)
+ 	if w := cost.Weight; w > 0 && !math.IsInf(w, 1) && rate > 0 {
+-		rate = min(rate+stepFraction*l.target*w/rate, l.target)
++		rate += stepFraction * l.target * w / rate
+ 	}
+ 	return State{Rate: rate, BackoffUntil: s.BackoffUntil}
+ }

@@ -18,8 +18,8 @@ WHERE
 `
 
 // Moves a grant stamped later than the instant issuance has reached back to that instant, as the rules
-// take it (ratelimit/core). It then counts for one second from there, rather than for as long as its
-// stamp lies ahead.
+// take it (provider/ratelimit/core). It then counts for one second from there, rather than for as long as
+// its stamp lies ahead.
 func (q *Queries) ClampGrants(ctx context.Context, nowMs int64) error {
 	_, err := q.db.Exec(ctx, clampGrants, nowMs)
 	return err

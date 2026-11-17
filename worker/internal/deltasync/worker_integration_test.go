@@ -18,11 +18,11 @@ import (
 
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
-	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/open"
-	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal"
+	"github.com/ppat/mediated-mailbox-mcp/credential/open"
+	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/session"
-	"github.com/ppat/mediated-mailbox-mcp/provider/fake"
-	"github.com/ppat/mediated-mailbox-mcp/provider/gmail"
+	"github.com/ppat/mediated-mailbox-mcp/provider/google"
+	"github.com/ppat/mediated-mailbox-mcp/provider/mail/fake"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/schedule"
 )
@@ -324,7 +324,7 @@ func TestAFailedWriteBackFailsTheTick(t *testing.T) {
 	account(t, conn, "personal", gmailProvider, sealed(t, public, "first-token", seal.AccountCredential("personal")), false)
 	must(t, conn, "UPDATE account_state SET backfill_pass1_complete = true, backfill_pass2_complete = true WHERE account_id = 'personal'")
 	client(t, conn, public)
-	rotated := func(c session.Credentials) *gmail.TokenSource {
+	rotated := func(c session.Credentials) *google.TokenSource {
 		if string(c.Credential) == "first-token" {
 			c.Credential = []byte("second-token")
 		}
@@ -444,7 +444,7 @@ func TestATickTakesTheActiveAccountSnapshot(t *testing.T) {
 	must(t, conn, "UPDATE account_state SET backfill_pass1_complete = true, backfill_pass2_complete = true WHERE account_id = 'personal'")
 	client(t, conn, public)
 	var built []string
-	source := func(c session.Credentials) *gmail.TokenSource {
+	source := func(c session.Credentials) *google.TokenSource {
 		built = append(built, string(c.Credential))
 		return gmailSource(http.DefaultClient)(c)
 	}

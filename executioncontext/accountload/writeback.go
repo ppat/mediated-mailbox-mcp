@@ -9,11 +9,11 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
+	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
 	"github.com/ppat/mediated-mailbox-mcp/db/accounts"
 	"github.com/ppat/mediated-mailbox-mcp/db/accountstate/credential"
 	"github.com/ppat/mediated-mailbox-mcp/db/oauthclients"
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
-	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal"
 )
 
 // ErrNotConnected is returned for an account the loader holds no stored credential for, so there are

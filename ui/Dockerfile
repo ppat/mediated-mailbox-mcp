@@ -18,11 +18,11 @@ WORKDIR /src
 COPY go.mod go.sum ./
 COPY content content
 COPY core core
+COPY credential credential
 COPY db db
 COPY executioncontext executioncontext
 COPY process process
 COPY provider provider
-COPY ratelimit ratelimit
 COPY ui/main.go ui/main.go
 COPY ui/app ui/app
 COPY ui/internal ui/internal

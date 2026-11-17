@@ -24,14 +24,14 @@ import (
 
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
+	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
 	"github.com/ppat/mediated-mailbox-mcp/db/migrations"
 	"github.com/ppat/mediated-mailbox-mcp/db/schemacompatibility"
 	credentialcore "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/core"
-	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal"
 	"github.com/ppat/mediated-mailbox-mcp/process/dbconnect"
 	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core"
 	"github.com/ppat/mediated-mailbox-mcp/process/host"
-	"github.com/ppat/mediated-mailbox-mcp/provider/gmail/consent"
+	"github.com/ppat/mediated-mailbox-mcp/provider/consent"
 	"github.com/ppat/mediated-mailbox-mcp/ui/browser"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/api"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/clientsecret"
@@ -239,6 +239,10 @@ func Assemble(n Needs) (host.Parts, error) {
 		return host.Parts{}, fmt.Errorf("loading the keyring: %w", err)
 	}
 	s := n.Section
+	gmailConsent, err := consent.For("gmail", &http.Client{Timeout: providerTimeout}, s.ConsentRedirect)
+	if err != nil {
+		return host.Parts{}, err
+	}
 	server, err := api.New(api.Options{
 		Bundle:         n.Bundle,
 		Database:       n.Pool,
@@ -260,7 +264,7 @@ func Assemble(n Needs) (host.Parts, error) {
 		TokenKey: tokenKey,
 		Seal:     n.SealKey,
 		Consents: map[string]mail.Consent[context.Context]{
-			"gmail": consent.New(&http.Client{Timeout: providerTimeout}, s.ConsentRedirect),
+			"gmail": gmailConsent,
 		},
 		ClientSecrets: secrets,
 		Lookups:       lookups,

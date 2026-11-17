@@ -30,15 +30,15 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/core/policy"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
+	"github.com/ppat/mediated-mailbox-mcp/credential/open"
+	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
 	"github.com/ppat/mediated-mailbox-mcp/db/accountstate"
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/accountload"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/assembly"
-	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/open"
-	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/session"
-	"github.com/ppat/mediated-mailbox-mcp/provider/fake"
-	"github.com/ppat/mediated-mailbox-mcp/provider/gmail"
+	"github.com/ppat/mediated-mailbox-mcp/provider/google"
+	"github.com/ppat/mediated-mailbox-mcp/provider/mail/fake"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/marker"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/postgres"
@@ -474,10 +474,10 @@ var quiet = connector(gmailSource(http.DefaultClient))
 // rotation itself is out of reach without a stand-in for its endpoint (ADR-0043). A source built this
 // way still names the stored credential it was built from, so the adoption stamp it hands over is the
 // one that credential came with.
-func rotating(rotations map[string]string, built *[]gmail.Credentials) func(session.Credentials) *gmail.TokenSource {
-	return func(c session.Credentials) *gmail.TokenSource {
+func rotating(rotations map[string]string, built *[]google.Credentials) func(session.Credentials) *google.TokenSource {
+	return func(c session.Credentials) *google.TokenSource {
 		if built != nil {
-			*built = append(*built, gmail.NewCredentials(c.ClientID, c.ClientSecret, c.Credential))
+			*built = append(*built, google.NewCredentials(c.ClientID, c.ClientSecret, c.Credential))
 		}
 		if to, ok := rotations[string(c.Credential)]; ok {
 			c.Credential = []byte(to)
@@ -598,14 +598,14 @@ func TestTheCredentialsAreTheClientAndTheAccountsToken(t *testing.T) {
 	account(t, conn, "personal", gmailProvider, sealed(t, public, "personal-token", seal.AccountCredential("personal")), false)
 	account(t, conn, "work", gmailProvider, sealed(t, public, "work-token", seal.AccountCredential("work")), false)
 	must(t, conn, "UPDATE accounts SET oauth_client = 'employer' WHERE account_id = 'work'")
-	var built []gmail.Credentials
+	var built []google.Credentials
 	j := newJobs()
 
 	if err := runAll(t, kind(t, backfillPool(t), ring, slog.New(slog.DiscardHandler), connector(rotating(nil, &built)), j), j); err != nil {
 		t.Fatal(err)
 	}
 
-	want := []gmail.Credentials{
+	want := []google.Credentials{
 		{ClientID: "client-id", ClientSecret: "client-secret", RefreshToken: "personal-token"},
 		{ClientID: "employer-id", ClientSecret: "employer-secret", RefreshToken: "work-token"},
 	}
@@ -628,7 +628,7 @@ func TestARunHandsEachAccountOverWhenItsUnitEnds(t *testing.T) {
 	account(t, conn, "work", gmailProvider, sealed(t, public, "work-token", seal.AccountCredential("work")), false)
 	client(t, conn, public)
 	failed := errors.New("the unit of work failed")
-	var built []gmail.Credentials
+	var built []google.Credentials
 	rotations := map[string]string{"personal-token": "personal-rotated", "work-token": "work-rotated"}
 	j := newJobs()
 
@@ -940,9 +940,9 @@ func unreachable() *http.Client {
 
 // attempting returns a source builder whose sources are the Gmail token sources the run builds, each
 // holding a failed authentication attempt, made through unreachable.
-func attempting(t *testing.T) func(session.Credentials) *gmail.TokenSource {
-	return func(c session.Credentials) *gmail.TokenSource {
-		source := gmail.NewTokenSource(unreachable(), gmail.NewCredentials(c.ClientID, c.ClientSecret, c.Credential))
+func attempting(t *testing.T) func(session.Credentials) *google.TokenSource {
+	return func(c session.Credentials) *google.TokenSource {
+		source := google.NewTokenSource(unreachable(), google.NewCredentials(c.ClientID, c.ClientSecret, c.Credential))
 		if _, err := source.AccessToken(t.Context()); err == nil {
 			t.Fatal("a refresh through an unreachable proxy returned an access token")
 		}
@@ -992,7 +992,7 @@ func TestARunRecordsEachAccountsAttemptWhenItsUnitEnds(t *testing.T) {
 	failed := errors.New("the unit of work failed")
 	var attempt mail.AuthAttempt
 	attempted := attempting(t)
-	source := func(c session.Credentials) *gmail.TokenSource {
+	source := func(c session.Credentials) *google.TokenSource {
 		if string(c.Credential) != "personal-token" {
 			return gmailSource(http.DefaultClient)(c)
 		}

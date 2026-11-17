@@ -16,8 +16,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
-	"github.com/ppat/mediated-mailbox-mcp/provider/fake"
-	"github.com/ppat/mediated-mailbox-mcp/ratelimit/lease"
+	"github.com/ppat/mediated-mailbox-mcp/provider/mail/fake"
+	"github.com/ppat/mediated-mailbox-mcp/provider/ratelimit"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/marker"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/postgres"
@@ -657,11 +657,11 @@ func TestATickSpendsInTheSyncClass(t *testing.T) {
 	account := newAccount(t, conn, true)
 	f := mailbox(t, account, waiting("m1", "orders@shop.example", false))
 	reg := prometheus.NewRegistry()
-	metrics, err := lease.NewMetrics(reg)
+	metrics, err := ratelimit.NewMetrics(reg)
 	if err != nil {
 		t.Fatal(err)
 	}
-	limiter := lease.New(syncPool(t), f.RateProfile().BudgetPerSecond(), metrics)
+	limiter := ratelimit.New(syncPool(t), f.RateProfile().BudgetPerSecond(), metrics)
 	d := deps(t, syncPool(t), tick.Leased{Limiter: limiter, Port: f, Account: account}, listing(t), account)
 
 	mustTick(t, d, account)

@@ -1,0 +1,24 @@
+control: Every request the Gmail adapter sends is counted at its cost where it is sent, failed requests included
+removes: a call is counted at the cost it declares when it begins, what its lease covers, rather than each request at what it costs when it is sent
+packages: ./provider/mail/gmail
+tests: TestEveryRequestSentIsCounted TestARequestNeverSentIsNotCounted
+scheduled-count: no
+diff --git a/provider/mail/gmail/adapter.go b/provider/mail/gmail/adapter.go
+--- a/provider/mail/gmail/adapter.go
++++ b/provider/mail/gmail/adapter.go
+@@ -85,6 +85,7 @@ type call struct {
+ // begin starts a port call naming messages messages, as the rate profile counts them.
+ func (a *Adapter) begin(op mail.Operation, messages int) *call {
+ 	cost := Profile{}.Cost(mail.ProviderOp{Operation: op, Messages: messages})
++	a.metrics.Sent(a.account, int(cost.Weight))
+ 	return &call{adapter: a, declared: int(cost.Weight)}
+ }
+ 
+@@ -126,7 +127,6 @@ func (a *Adapter) send(ctx context.Context, r request) ([]byte, error) {
+ 	if body != nil {
+ 		req.Header.Set("Content-Type", "application/json")
+ 	}
+-	a.metrics.Sent(a.account, r.Units)
+ 	start := time.Now()
+ 	data, err := a.exchange(ctx, req)
+ 	a.metrics.Answered(r.Endpoint, outcomeOf(err), time.Since(start).Seconds())

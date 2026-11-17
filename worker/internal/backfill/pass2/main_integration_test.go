@@ -25,9 +25,9 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/core/redact"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/core/scangate"
-	"github.com/ppat/mediated-mailbox-mcp/provider/fake"
-	ratecore "github.com/ppat/mediated-mailbox-mcp/ratelimit/core"
-	"github.com/ppat/mediated-mailbox-mcp/ratelimit/lease"
+	"github.com/ppat/mediated-mailbox-mcp/provider/mail/fake"
+	"github.com/ppat/mediated-mailbox-mcp/provider/ratelimit"
+	ratecore "github.com/ppat/mediated-mailbox-mcp/provider/ratelimit/core"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/marker"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/postgres"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/pass1"
@@ -1097,12 +1097,12 @@ func realWorldOf(t testing.TB, pageSize int, messages []fake.Message) *world {
 	}
 	seedPostgres(t, account, f)
 	pool := backfillPool(t)
-	limiter := lease.New(pool, 10_000, nil)
+	limiter := ratelimit.New(pool, 10_000, nil)
 	url := postgres.URL(t)
 	return newWorld(t, s, account, messages, pass2.NewPostgres(pool), func(t tb) state { return inspectPostgres(t, url, account) },
 		func(p mail.Port[context.Context]) pass2.Body {
 			return func(ctx context.Context, id string) (mail.MessageBody, error) {
-				return lease.Body(ctx, limiter, p, account, ratecore.Batch, id)
+				return ratelimit.Body(ctx, limiter, p, account, ratecore.Batch, id)
 			}
 		})
 }

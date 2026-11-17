@@ -1,0 +1,19 @@
+control: A call through the provider library's mailbox waits for its lease no later than its unit's deadline
+removes: a lease cut off by the unit's deadline is reported as the provider failing the call
+packages: ./provider
+tests: TestALeaseIsWaitedForNoLaterThanTheUnitsDeadline
+scheduled-count: no
+integration: yes
+
+diff --git a/provider/ratelimit/leased.go b/provider/ratelimit/leased.go
+--- a/provider/ratelimit/leased.go
++++ b/provider/ratelimit/leased.go
+@@ -44,7 +44,7 @@ func Leased[T any](ctx context.Context, limiter *Limiter, s Spend, call func(con
+ 	cutOff := errors.Is(waiting.Err(), context.DeadlineExceeded) && ctx.Err() == nil
+ 	stopWaiting()
+ 	if err != nil && cutOff {
+-		return zero, fmt.Errorf("leasing the call: no lease by the deadline for its leases: %w", err)
++		return zero, fmt.Errorf("%w: leasing the call: no lease by the deadline for its leases: %w", mail.ErrProvider, err)
+ 	}
+ 	if err != nil {
+ 		return zero, fmt.Errorf("leasing the call: %w", err)

@@ -1,6 +1,6 @@
 control: The port returns a body's rendered part alone, and a part the provider holds apart takes exactly one more call
 removes: an answer that the rendered part is held apart is never followed by a call naming it, so such a body fails
-packages: ./core/mail ./provider/fake
+packages: ./core/mail ./provider/mail/fake
 tests: TestNextBodyPart TestTheFakePassesTheContract
 scheduled-count: no
 

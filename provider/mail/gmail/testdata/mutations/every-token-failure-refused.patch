@@ -1,0 +1,18 @@
+control: A token request the provider refuses surfaces as a refused credential, and one that fails any other way before the call is cancelled or its deadline passes as a provider failure
+removes: every failure to obtain an access token is a refused credential, whatever its outcome
+packages: ./provider/mail/gmail
+tests: TestATokenFailureIsThePortErrorItsOutcomeNames TestATokenRequestThatGetsNoAnswerIsAProviderError
+scheduled-count: no
+
+diff --git a/provider/mail/gmail/adapter.go b/provider/mail/gmail/adapter.go
+--- a/provider/mail/gmail/adapter.go
++++ b/provider/mail/gmail/adapter.go
+@@ -228,7 +228,7 @@ func tokenError(err error) error {
+ 	if google.Outcome(err) == mail.AuthRefused {
+ 		return errors.Join(mail.ErrAuthentication, err)
+ 	}
+-	return errors.Join(mail.ErrProvider, err)
++	return errors.Join(mail.ErrAuthentication, err)
+ }
+ 
+ // labels reads the account's labels.

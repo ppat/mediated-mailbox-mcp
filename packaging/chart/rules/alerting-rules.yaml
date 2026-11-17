@@ -4,16 +4,16 @@
 # forces it, and a platform without the Prometheus Operator loads it its own way. Routing a firing rule to a person
 # is the platform's.
 #
-# ratelimit/lease/testdata/alerting-rules-test.yaml holds the promtool tests of the rate limiter's rules,
+# provider/ratelimit/testdata/alerting-rules-test.yaml holds the promtool tests of the rate limiter's rules,
 # executioncontext/policyload/testdata/alerting-rules-test.yaml those of the policy reload rule,
 # worker/internal/deltasync/tick/testdata/alerting-rules-test.yaml those of the cursor gap rule, and
 # worker/internal/schedule/testdata/alerting-rules-test.yaml those of the worker's rules, each run from a Go test in its
 # package.
-# ratelimit/README.md lists the rate limiter's series and the rules that read them. The runaway rule and the rule for
+# provider/README.md lists the rate limiter's series and the rules that read them. The runaway rule and the rule for
 # its missing threshold read none of them. They read two series every spending process emits through its provider
 # adapter, labelled by account and by provider. mediated_mailbox_provider_request_cost_total counts the cost, in the
 # provider's units, of every request the process sends. mediated_mailbox_provider_hard_cap is the account's hard cap
-# in the provider's units per second, from the ceiling the adapter declares. provider/README.md lists both.
+# in the provider's units per second, from the ceiling the adapter declares. The same README lists both.
 groups:
 - name: mediated-mailbox-rate-limiter
   rules:
