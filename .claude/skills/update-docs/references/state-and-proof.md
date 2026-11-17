@@ -62,9 +62,10 @@ Used by nearly every ticket's pull request. Touches `ROADMAP.md` and the ticket 
 ## Mutation-ledger rows
 
 - The ledger's own preamble, in `docs/MUTATIONS.md`, is the format authority. A row names the
-  control, how the mechanism was broken both ways, the tests that went red, the date, and an
-  evidence pointer, in the form `go tool mutproof` prints, and sits in the file under
-  `docs/mutations/` that the preamble names for the component holding the control's patches.
+  control, how the mechanism was broken both ways, the tests that went red, and the date and
+  evidence pointer of the run that last demonstrated each break, in the form `docs/MUTATIONS.md`
+  states, which `go tool mutproof` prints for one run, and sits in the file under `docs/mutations/`
+  that the preamble names for the component holding the control's patches.
 - A row is written at implementation time, when its control lands, and rewritten only when the
   control, its tests, or a generator its tests draw from changes.
 - A surviving mutant keeps its row open as a defect until the tests are fixed or the mechanism

@@ -11,12 +11,21 @@ tests go red. The ledger is docs/MUTATIONS.md and the files under docs/mutations
 docs/MUTATIONS.md states a row's form and which file holds it. ADR-0046 holds the decision.
 Scenario rows belong to docs/VERIFICATIONS.md, and only demonstrations belong here.
 
-- **No row exists before implementation.** A row names the control, how its mechanism was
-  broken, once so it does less and once so it does the wrong thing, the tests that went red, the
-  date, and an evidence pointer. The rows are the whole artifact, never a pass rate or a score.
+- **No row exists before implementation.** A row names the control, how its mechanism was broken,
+  once so it does less and once so it does the wrong thing, the tests that went red, and the date
+  and evidence pointer of the run that last demonstrated each break. The rows are the whole
+  artifact, never a pass rate or a score.
 - **A surviving mutant keeps its row open as a defect.** The row closes when the tests are
   fixed or the mechanism is deliberately deleted as redundant, and never by being dropped
   quietly.
+- **A rewritten row holds no history.** A row is rewritten into the form docs/MUTATIONS.md states
+  only when its mutations change or need to change, meaning its control, its tests or a generator
+  they draw from changes. In that form every statement in it is true of the code as it stands. Its
+  date line gives, for the row's current patches, the date of their latest demonstration and its
+  evidence pointer, one per run when the breaks were last demonstrated in different runs, and
+  nothing about earlier runs or why the row was demonstrated again. Reproducing a row rewrites its
+  date line, and a retired patch's break leaves the row. A row not yet rewritten keeps the date line
+  it has.
 - **Rows are written on change only.** A row is written when the control, its tests, or a
   generator its tests draw from changes. The `mutation-demonstrations` workflow also runs every
   demonstration on a schedule and on demand, and that run writes no row. A demonstration that fails

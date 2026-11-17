@@ -1,44 +1,52 @@
 # Mutations
 
-The mutation ledger. A row here records one demonstration, that breaking a control's mechanism
-made its tests go red. This ledger and [VERIFICATIONS.md](./VERIFICATIONS.md) are companions
-split by authoring moment. Deciding a control mints its verification row at design time. A
-demonstration can happen only at implementation time, once there is a mechanism to remove and
-tests to fail. A control with no standing automated test never appears here, since nothing
-exists to demand red from, and proof only by drill or by manual exercise is that case. The
-decision is [ADR-0046](./adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md)'s.
+The mutation ledger. A row here records the latest demonstration of each of a control's breaks, that
+breaking its mechanism made its tests go red. This ledger and [VERIFICATIONS.md](./VERIFICATIONS.md)
+are companions split by authoring moment. Deciding a control mints its verification row at design
+time. A demonstration can happen only at implementation time, once there is a mechanism to remove
+and tests to fail. A control with no standing automated test never appears here, since nothing
+exists to demand red from, and proof only by drill or by manual exercise is that case. The decision
+is [ADR-0046](./adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md)'s.
 
 The ledger is this file and the files under [mutations/](./mutations/) it lists in
 [Where the rows are](#where-the-rows-are). This file holds what a row is and where it goes, and
 those files hold the rows.
 
-**A row.** One control, one demonstration. It names how the mechanism was broken, the tests that
-went red, the date, and an evidence pointer. The rows are the whole artifact, never a pass rate.
-Every mechanism is broken at least both ways, once so it does less and once so it does the wrong
-thing, one patch per break, and the row numbers each break and names the tests each turned red. A
-surviving mutant holds its row open as a defect until the tests are fixed or the mechanism is
-deliberately deleted as redundant, and the row says so beside its date. The runner that applies a
+**A row.** One control, the latest demonstration of each of its current breaks. It names how the
+mechanism was broken, the tests that went red, and the date and evidence pointer of the run that
+last demonstrated each break. The rows are the whole artifact, never a pass rate. Every mechanism is
+broken at least both ways, once so it does less and once so it does the wrong thing, one patch per
+break, and the row numbers each break and names the tests each turned red. A surviving mutant holds
+its row open as a defect until the tests are fixed or the mechanism is deliberately deleted as
+redundant, and the row says so beside the date of the run it survived. The runner that applies a
 demonstration's patches, `go tool mutproof` ([testsupport/README.md](../testsupport/README.md)),
-prints each row in this shape.
+prints one run's row in this shape, and the author places that run's breaks into the row, joining
+the date lines of breaks last demonstrated in different runs as the table below states.
 
 **A row's form.** A row is a section whose heading is the control, so each control has an anchor
 of its own. Each field sits on a line of its own, so reproducing a row edits only the lines whose
-content changed.
+content changed. The table below is the form a row takes when it is written or rewritten, as
+Lifecycle below states.
 
 | Line | Holds |
 | --- | --- |
 | `## <control>` | The control |
-| `- **Date · evidence:** <date> · <evidence>` | The date of the demonstration and its evidence pointer, with any later reproduction of some or all breaks and its own pointer after it, and `· open, a surviving mutant` while a mutant survives |
-| `- **Break (<n>):** <how the mechanism was broken>` | One line per break, numbered from 1 in the order the patches were run. A control broken by one patch alone has `- **Break:**` |
+| `- **Date · evidence:** <date> · <evidence>` | For the row's current patches, the date of their latest demonstration and its evidence pointer, followed by the seed when the run fixed one, and `· open, a surviving mutant` after the date and evidence of the run a mutant survived, while it survives. When the breaks were last demonstrated in different runs, it holds one `<date> · <evidence> for <breaks>` per run, in the order of the breaks, joined by `, and`. It says nothing about earlier runs or why a row was demonstrated again |
+| `- **Break (<n>):** <how the mechanism was broken>` | One line per break, numbered from 1. A break keeps its number when a later run demonstrates it again, and a new break takes the next number. `go tool mutproof` numbers one run's breaks from 1 in the order its patches were run, and the author places them into the row under the row's numbers. A control broken by one patch alone has `- **Break:**` |
 | `- **Went red in <package>:** <tests>` | Nested under its break, one line per package whose tests went red, with the tests by the names the test runner reports. A surviving mutant has the nested line `- **Went red:** none, a surviving mutant` instead |
 
-**Lifecycle.** A row is produced when its control lands and reproduced when the control, its
-tests, or a generator its tests draw from changes. Between those events it is a claim about its
-date, while the permanent CI tests keep the control's green continuously earned. Each
-demonstration is recorded with the implementation work that touches the surface area its control
-interacts with. Apart from those events, the `mutation-demonstrations` workflow runs every
-demonstration weekly and when started by hand, and fails when one no longer holds, which writes no
-row ([ADR-0124](./adr/engineering/0124-each-kind-of-test-runs-in-a-workflow-of-its-own.md)). Whether
+**Lifecycle.** A row is produced when its control lands and reproduced when the control, its tests,
+or a generator its tests draw from changes, which is when its mutations change or need to change,
+and only then is it rewritten into the form this file states. A row in that form holds no history.
+Every statement in it is true of the code as it stands, so reproducing a row rewrites its date line
+for the breaks run again, and a break whose patch is retired leaves the row with it. A row not yet
+rewritten keeps the date line it has until its mutations next change or need to change. Between
+those events the date line is a claim about the dates it names, while the permanent CI tests keep
+the control's green continuously earned. Each demonstration is recorded with the implementation work
+that touches the surface area its control interacts with. Apart from those events, the
+`mutation-demonstrations` workflow runs every demonstration weekly and when started by hand, and
+fails when one no longer holds, which writes no row
+([ADR-0124](./adr/engineering/0124-each-kind-of-test-runs-in-a-workflow-of-its-own.md)). Whether
 each demonstration's patch still applies, and applies at one place only, is checked on every pull
 request by the `mutation-patches` workflow ([CLAUDE.md](../CLAUDE.md#ci-workflows)).
 
