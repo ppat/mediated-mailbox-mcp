@@ -1,4 +1,4 @@
-package app
+package app_test
 
 import (
 	"os"
@@ -39,7 +39,7 @@ func TestTheChartRendersAFileTheAPIServerStartsWith(t *testing.T) {
 	if err := loaded.Config.Check(); err != nil {
 		t.Fatalf("the API server's validation refuses the chart's file: %v", err)
 	}
-	if _, err := scan.New(loaded.Config.Scanner, loaded.Revisions[scannerSection]); err != nil {
+	if _, err := scan.New(loaded.Config.Scanner, loaded.Revisions["scanner"]); err != nil {
 		t.Fatalf("the scanner refuses the chart's scanner section: %v", err)
 	}
 	mounted := "/etc/mediated-mailbox/secrets/"

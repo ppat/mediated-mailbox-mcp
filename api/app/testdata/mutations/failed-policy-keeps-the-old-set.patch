@@ -1,20 +1,20 @@
-control: The API server serves the accounts each account snapshot it reloads lists, and keeps them when a reload's read fails
-removes: a reload whose policy load fails returns before serving its snapshot, so an account it dropped stays served
+control: The API server serves the accounts each reload of its Session puts in force, and keeps them when a reload's read fails
+removes: a reload whose policy load fails returns before telling the registry, so an account it dropped stays served
 packages: ./api/app
-tests: TestAFailedPolicyLoadStillFollowsTheSnapshot
+tests: TestAFailedPolicyLoadStillFollowsTheList
 scheduled-count: no
 integration: yes
 
-diff --git a/executioncontext/assembly/assembly.go b/executioncontext/assembly/assembly.go
-index d74efe4..f717588 100644
---- a/executioncontext/assembly/assembly.go
-+++ b/executioncontext/assembly/assembly.go
-@@ -170,7 +170,7 @@ func (c *Context) Reload(ctx context.Context) error {
- 	targets := c.readTargets(ctx, snapshot)
- 	var err error
- 	if policyErr := c.loadPolicy(ctx, idsOf(snapshot)); policyErr != nil {
--		err = fmt.Errorf("%w: %w", ErrPolicyNotLoaded, policyErr)
-+		return fmt.Errorf("%w: %w", ErrPolicyNotLoaded, policyErr)
+diff --git a/process/sessions/sessions.go b/process/sessions/sessions.go
+index 0d04cbc6..43ffce01 100644
+--- a/process/sessions/sessions.go
++++ b/process/sessions/sessions.go
+@@ -217,7 +217,7 @@ func (s *Session) reload(ctx context.Context) error {
+ 	s.inForce.Store(&listed)
+ 	s.failed.Store(nil)
+ 	if err = s.policies.Load(ctx, ids(listed)); err != nil {
+-		err = fmt.Errorf("%w: %w", ErrPolicyNotLoaded, err)
++		return fmt.Errorf("%w: %w", ErrPolicyNotLoaded, err)
+ 	} else if !s.loaded.Swap(true) {
+ 		s.report(process.Ready, "")
  	}
- 	c.latest.Store(&Reloaded{snapshot: snapshot, targets: targets, loaded: true, err: err})
- 	c.observersMu.Lock()

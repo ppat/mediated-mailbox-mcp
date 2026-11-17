@@ -1,0 +1,19 @@
+control: The API server serves the accounts each reload of its Session puts in force, and keeps them when a reload's read fails
+removes: a reload puts its accounts in force and never hands them to the registry
+packages: ./api/app
+tests: TestTheAPIServerServesTheAccountsEachReloadLists
+scheduled-count: no
+integration: yes
+
+diff --git a/api/internal/registry/registry.go b/api/internal/registry/registry.go
+index 12eaa003..ce23ab55 100644
+--- a/api/internal/registry/registry.go
++++ b/api/internal/registry/registry.go
+@@ -97,7 +97,6 @@ func build(ctx context.Context, p process.Capabilities, c config.API) (service.R
+ 	logger := p.Logger()
+ 	s.AfterReload(func() {
+ 		ids := ids(s)
+-		registry.Serve(ids)
+ 		logger.Info("accounts served", "accounts", len(ids))
+ 	})
+ 	return registry, nil

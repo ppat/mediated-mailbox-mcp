@@ -1,0 +1,19 @@
+control: Every response of the client surface is uncacheable, and HEAD is refused
+removes: each endpoint's handler is wrapped in the bearer check without the no-store wrapper
+packages: ./api/internal/bearer
+tests: TestEveryResponseIsUncacheable
+scheduled-count: no
+
+diff --git a/api/internal/bearer/bearer.go b/api/internal/bearer/bearer.go
+index 4577e197..9238bb29 100644
+--- a/api/internal/bearer/bearer.go
++++ b/api/internal/bearer/bearer.go
+@@ -58,7 +58,7 @@ func Wrap(ctx context.Context, p process.Capabilities, c config.API, next http.H
+ 	}); err != nil {
+ 		return nil, err
+ 	}
+-	return noStore(p.Logger(), check(c.TokenFile, p.Logger(), next)), nil
++	return check(c.TokenFile, p.Logger(), next), nil
+ }
+ 
+ // run reads the token file at once and then every readInterval until ctx ends, and reports each

@@ -1,0 +1,18 @@
+control: The API server is ready only while its bearer token file holds a token
+removes: the report is not made until the first read returns, so a process whose first read has not returned is ready
+packages: ./api/internal/bearer
+tests: TestTheReportIsNotReadyUntilItReadsTheFile
+scheduled-count: no
+
+diff --git a/api/internal/bearer/bearer.go b/api/internal/bearer/bearer.go
+index 4577e197..f043c8ea 100644
+--- a/api/internal/bearer/bearer.go
++++ b/api/internal/bearer/bearer.go
+@@ -52,7 +52,6 @@ func Wrap(ctx context.Context, p process.Capabilities, c config.API, next http.H
+ 			return nil, nil, err
+ 		}
+ 		r := &report{tokenFile: c.TokenFile}
+-		shared.Report(process.NotReady, notReadYet)
+ 		shared.Go("bearer token read", func(ctx context.Context) { r.run(ctx, shared) })
+ 		return r, nil, nil
+ 	}); err != nil {

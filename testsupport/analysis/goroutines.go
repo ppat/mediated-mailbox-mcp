@@ -16,9 +16,9 @@ import (
 // rule covers every package under worker/ and exempts test files. The scheduler and schedule.Go sit in
 // the process family's process/schedule, outside the worker, which the analyser does not read.
 //
-// It holds the API server's and the UI's code, every package under api/ and ui/, to the rule ADR-0138
-// sets, that a component starts a goroutine only through the starter the host hands its assembly,
-// which recovers a panic on it as the component's failure and waits for it before the pools close.
+// It holds the API server's and the UI's code, every package under api/ and ui/, to the rule ADR-0142
+// sets, that their code starts a goroutine only through the process's Go, which recovers a panic on
+// it as the failure of what started it and waits for it before the process closes its slots.
 //
 // It refuses a go statement, and any use of a function that runs a function it is given on a
 // goroutine of its own, a call, a method value and a method expression alike. They are the ones in
@@ -59,7 +59,7 @@ var goroutineStarters = map[string]bool{
 
 const goroutinesMessage = "starts a goroutine outside schedule.Go, so a panic in it would stop the worker rather than fail the run that raised it. Start it through schedule.Go (ADR-0119)"
 
-const componentGoroutinesMessage = "starts a goroutine outside the host's starter, so the host neither recovers a panic in it nor waits for it before the pools close. Start it through the starter the host hands the assembly (ADR-0138)"
+const componentGoroutinesMessage = "starts a goroutine outside the process's Go, so the process neither recovers a panic in it nor waits for it before it closes its slots. Start it through the Go of the capabilities the part was built with (ADR-0142)"
 
 // within reports whether path is the package at dir or one under it.
 func within(path, dir string) bool {

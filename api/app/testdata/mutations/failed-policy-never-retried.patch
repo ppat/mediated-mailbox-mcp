@@ -1,41 +1,31 @@
-control: The API server serves the accounts each account snapshot it reloads lists, and keeps them when a reload's read fails
+control: The API server serves the accounts each reload of its Session puts in force, and keeps them when a reload's read fails
 removes: a reload loads the policy only when its accounts differ from the ones the last load was tried for, so a load that failed is never retried and a policy edit never reaches the metadata reads
 packages: ./api/app
-tests: TestAFailedPolicyLoadStillFollowsTheSnapshot TestEveryReloadLoadsThePolicy
+tests: TestAFailedPolicyLoadStillFollowsTheList TestEveryReloadLoadsThePolicy
 scheduled-count: no
 integration: yes
 
-diff --git a/executioncontext/assembly/assembly.go b/executioncontext/assembly/assembly.go
-index d74efe4..839cd83 100644
---- a/executioncontext/assembly/assembly.go
-+++ b/executioncontext/assembly/assembly.go
-@@ -15,6 +15,7 @@ import (
- 	"errors"
- 	"fmt"
- 	"log/slog"
-+	"slices"
- 	"sync"
- 	"sync/atomic"
- 	"time"
-@@ -75,6 +76,7 @@ type Context struct {
- 	// reloading makes reloads take turns.
- 	reloading sync.Mutex
- 	latest    atomic.Pointer[Reloaded]
-+	tried     []string
+diff --git a/process/sessions/sessions.go b/process/sessions/sessions.go
+index 0d04cbc6..d0594325 100644
+--- a/process/sessions/sessions.go
++++ b/process/sessions/sessions.go
+@@ -85,6 +85,7 @@ type Session struct {
+ 	// when they succeeded.
+ 	failed atomic.Pointer[error]
  
- 	observersMu sync.Mutex
- 	observers   []func(context.Context)
-@@ -169,8 +171,11 @@ func (c *Context) Reload(ctx context.Context) error {
- 	snapshot := c.loader.Snapshot()
- 	targets := c.readTargets(ctx, snapshot)
- 	var err error
--	if policyErr := c.loadPolicy(ctx, idsOf(snapshot)); policyErr != nil {
--		err = fmt.Errorf("%w: %w", ErrPolicyNotLoaded, policyErr)
-+	if ids := idsOf(snapshot); !slices.Equal(ids, c.tried) {
-+		c.tried = ids
-+		if policyErr := c.loadPolicy(ctx, ids); policyErr != nil {
-+			err = fmt.Errorf("%w: %w", ErrPolicyNotLoaded, policyErr)
-+		}
++	tried       []string
+ 	membersMu   sync.Mutex
+ 	connections Connections
+ 	after       []func()
+@@ -216,7 +217,10 @@ func (s *Session) reload(ctx context.Context) error {
  	}
- 	c.latest.Store(&Reloaded{snapshot: snapshot, targets: targets, loaded: true, err: err})
- 	c.observersMu.Lock()
+ 	s.inForce.Store(&listed)
+ 	s.failed.Store(nil)
+-	if err = s.policies.Load(ctx, ids(listed)); err != nil {
++	if slices.Equal(ids(listed), s.tried) {
++		err = nil
++	} else if s.tried = ids(listed); false {
++	} else if err = s.policies.Load(ctx, ids(listed)); err != nil {
+ 		err = fmt.Errorf("%w: %w", ErrPolicyNotLoaded, err)
+ 	} else if !s.loaded.Swap(true) {
+ 		s.report(process.Ready, "")

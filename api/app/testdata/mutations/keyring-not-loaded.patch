@@ -1,20 +1,21 @@
 control: A deployable that opens credentials refuses to start unless its public key matches one of its private keys
-removes: the start builds no keyring from the key files, so a public key matching none of the private keys goes unnoticed
+removes: the connections build no keyring from the key files, so a public key matching none of the private keys goes unnoticed
 packages: ./api/app
-tests: TestThePublicKeyMustMatchAPrivateKey/a_public_key_matching_no_private_key
+tests: TestTheAPIServersPublicKeyMustMatchAPrivateKey/a_public_key_matching_no_private_key
 scheduled-count: no
+integration: yes
 
-
-diff --git a/api/app/app.go b/api/app/app.go
-index 843a78ed..fc52b028 100644
---- a/api/app/app.go
-+++ b/api/app/app.go
-@@ -192,7 +192,7 @@ func fromConfiguration(ctx context.Context, env host.Env[Configuration]) (host.P
- 	if err != nil {
- 		return host.Parts{}, fmt.Errorf("validating the configuration: scanner: %w", err)
- 	}
--	keys, err := open.Load(c.Credential.PublicKeyFile, c.Credential.PrivateKeyFiles...)
-+	keys, err := (*open.Keyring)(nil), error(nil)
- 	if err != nil {
- 		return host.Parts{}, fmt.Errorf("loading the keyring: %w", err)
- 	}
+diff --git a/process/connections/connections.go b/process/connections/connections.go
+index 72d60326..d5abcd11 100644
+--- a/process/connections/connections.go
++++ b/process/connections/connections.go
+@@ -133,7 +133,8 @@ func Of(ctx context.Context, p process.Capabilities, c config.HasConnections, s
+ 			return nil, nil, err
+ 		}
+ 		k := c.KeysPart()
+-		keys, err := open.Load(k.PublicKeyFile, k.PrivateKeyFiles...)
++		keys, err := (*open.Keyring)(nil), error(nil)
++		_ = k
+ 		if err != nil {
+ 			return nil, nil, fmt.Errorf("loading the keyring: %w", err)
+ 		}

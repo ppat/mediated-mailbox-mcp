@@ -1,0 +1,19 @@
+control: A body request is decided under the policy loaded after it arrived, so a newly listed domain is denied on the next call
+removes: a request whose policy load fails is decided under the policy that restricts every sender rather than the one in force
+packages: ./api/app
+tests: TestANewlyListedDomainIsDeniedOnTheNextCall
+scheduled-count: no
+integration: yes
+
+diff --git a/api/internal/bodies/bodies.go b/api/internal/bodies/bodies.go
+index 3fdfd4b2..3e96d07e 100644
+--- a/api/internal/bodies/bodies.go
++++ b/api/internal/bodies/bodies.go
+@@ -73,6 +73,7 @@ func (b *Bodies) Policy(ctx context.Context, account string) classify.Policy {
+ 			return classify.Policy{}
+ 		}
+ 		b.logger.Error("the policy was not loaded, so the active policy decides", "error", err)
++		return classify.Policy{}
+ 	}
+ 	return b.session.Policy(account)
+ }

@@ -1,0 +1,20 @@
+control: A provider call that does not answer within the provider timeout is the provider's failure
+removes: a call whose deadline passed is returned as the context's error, which reads as the API server's failure
+packages: ./api/app
+tests: TestAProviderThatDoesNotAnswerIsTheProvidersFailure
+scheduled-count: no
+integration: yes
+
+diff --git a/provider/ratelimit/leased.go b/provider/ratelimit/leased.go
+index 51f7daf9..d66ef967 100644
+--- a/provider/ratelimit/leased.go
++++ b/provider/ratelimit/leased.go
+@@ -52,7 +52,7 @@ func Leased[T any](ctx context.Context, limiter *Limiter, s Spend, call func(con
+ 	start := time.Now()
+ 	bounded, cancel := context.WithTimeout(ctx, s.Timeout)
+ 	out, err := call(bounded)
+-	if err != nil && errors.Is(bounded.Err(), context.DeadlineExceeded) && ctx.Err() == nil {
++	if err != nil && errors.Is(bounded.Err(), context.DeadlineExceeded) && ctx.Err() == nil && false {
+ 		err = fmt.Errorf("%w: no answer within %s: %w", mail.ErrProvider, s.Timeout, err)
+ 	}
+ 	cancel()

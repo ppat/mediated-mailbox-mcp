@@ -12,9 +12,9 @@ import (
 // process would neither recover a panic on them nor wait for them before it closes its slots, so the
 // UI's code starts one only through the process's Go (ADR-0142).
 func startsAGoroutine(done chan struct{}, f func()) {
-	go close(done) // want vetcheck "starts a goroutine outside the host's starter"
+	go close(done) // want vetcheck "starts a goroutine outside the process's Go"
 	p := new(int)
-	runtime.SetFinalizer(p, func(*int) { f() }) // want vetcheck "starts a goroutine outside the host's starter"
+	runtime.SetFinalizer(p, func(*int) { f() }) // want vetcheck "starts a goroutine outside the process's Go"
 	var server http.Server
-	server.RegisterOnShutdown(f) // want vetcheck "starts a goroutine outside the host's starter"
+	server.RegisterOnShutdown(f) // want vetcheck "starts a goroutine outside the process's Go"
 }

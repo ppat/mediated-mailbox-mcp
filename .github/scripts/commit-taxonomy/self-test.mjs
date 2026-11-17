@@ -285,15 +285,15 @@ const CASES = [
     id: 'I14c', check: 'empty-scope', guard: true,
     defect: 'a claim type over a file of a binary\'s build graph, a file of a deleted package directory\'s Go code, and a browser source the image copies in must NOT fire',
     overrides: { commits: () => [
-      commit('feat: rework the account snapshot\n', ['executioncontext/accountload/load.go']),
-      commit('refactor: drop a helper\n', ['executioncontext/accountload/removed.go']),
+      commit('feat: rework the Session\n', ['process/sessions/sessions.go']),
+      commit('refactor: drop a helper\n', ['process/sessions/removed.go']),
       commit('fix: correct a screen\n', ['ui/browser/src/app.tsx']),
     ] },
   },
   {
     id: 'I14d', check: 'empty-scope', expect: /threw: the build graph of .* holds no file of this module/,
     defect: 'a build graph read as empty, which would leave every Go change unshipped',
-    overrides: { goBuildGraph: () => ({ files: new Set(), dirs: new Set() }), commits: () => [commit('feat: anything\n', ['executioncontext/accountload/load.go'])] },
+    overrides: { goBuildGraph: () => ({ files: new Set(), dirs: new Set() }), commits: () => [commit('feat: anything\n', ['process/sessions/sessions.go'])] },
   },
   {
     id: 'I15', check: 'named-scope', expect: /scope 'agents' does not cover README\.md, and no changed path is in its footprint/,

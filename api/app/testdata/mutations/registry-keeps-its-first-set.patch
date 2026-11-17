@@ -1,4 +1,4 @@
-control: The API server serves the accounts each account snapshot it reloads lists, and keeps them when a reload's read fails
+control: The API server serves the accounts each reload of its Session puts in force, and keeps them when a reload's read fails
 removes: the registry keeps the first set of accounts it was given, whatever a reload serves
 packages: ./api/app
 tests: TestTheAPIServerServesTheAccountsEachReloadLists

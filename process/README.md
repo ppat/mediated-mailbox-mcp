@@ -49,8 +49,8 @@ a provider would otherwise write for itself.
 | `scanner/` | The scanner, built once per process, and the body-processing histogram |
 | `logging/` | The logger every program that runs as a process writes its JSON records to standard output through, and the reading of its `log_level` |
 | `version/` | The release version every binary reports through `--version` and every process's start banner shows |
-| `host/` | The host the API server runs on until it is on its spec ([ADR-0138](../docs/adr/engineering/0138-one-host-runs-each-process-and-each-component-provides-its-parts.md)). It opens its pools through `database` and refuses the database driver's password variables through `process`, so neither is written twice |
-| `probes/`, `runtimemetrics/` | The operations endpoints' handler and the registration of the runtime series, which `process` and `host/` share while both run programs |
+| `host/` | The host each program ran on before it was on its spec, which no program runs on now ([ADR-0138](../docs/adr/engineering/0138-one-host-runs-each-process-and-each-component-provides-its-parts.md)). It opens its pools through `database` and refuses the database driver's password variables through `process`, so neither is written twice |
+| `probes/`, `runtimemetrics/` | The operations endpoints' handler and the registration of the runtime series, which `process` and `host/` share until the host is deleted |
 
 Each package is admitted to each component by its own entry in that component's import list, and
 each has a list of its own in `.golangci.yaml`, so joining this family never widens what any
@@ -334,9 +334,8 @@ drifting on its own.
 ## The Session, `sessions`
 
 A process holds one Session, which every endpoint and job kind of the process may ask for through
-`sessions.Get`. Until the worker and the API server are each on its spec, they hold the execution
-context of `executioncontext/` and reload it themselves, and `sessions`, `accounts`, `policies`,
-`connections` and `scanner` are built and tested beside it and used by no program. The UI never holds it, since the UI's configuration type has no accounts part
+`sessions.Get`. The API server and the worker, each on its spec, hold it, with the connections, the
+policies and the scanner. The UI never holds it, since the UI's configuration type has no accounts part
 ([ADR-0090](../docs/adr/operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md),
 [ADR-0081](../docs/adr/operability/0081-credentials-sealed-to-a-public-key.md),
 [ADR-0084](../docs/adr/mutation/0084-ui-writes-decisions-and-account-setup.md),

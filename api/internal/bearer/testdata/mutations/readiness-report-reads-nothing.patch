@@ -1,0 +1,19 @@
+control: The API server is ready only while its bearer token file holds a token
+removes: the readiness report reports ready without reading the token file, so an API server whose token file was emptied or removed stays ready
+packages: ./api/internal/bearer
+tests: TestTheReportFollowsTheTokenFile
+scheduled-count: no
+
+diff --git a/api/internal/bearer/bearer.go b/api/internal/bearer/bearer.go
+index 4577e197..64d5e016 100644
+--- a/api/internal/bearer/bearer.go
++++ b/api/internal/bearer/bearer.go
+@@ -67,7 +67,7 @@ func (r *report) run(ctx context.Context, reporter process.Capabilities) {
+ 	ticker := time.NewTicker(readInterval)
+ 	defer ticker.Stop()
+ 	for {
+-		err := readable(r.tokenFile)
++		err := error(nil)
+ 		switch {
+ 		case ctx.Err() != nil:
+ 			return

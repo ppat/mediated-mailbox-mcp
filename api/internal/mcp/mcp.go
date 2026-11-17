@@ -14,8 +14,37 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/jsonrpc"
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 
+	"github.com/ppat/mediated-mailbox-mcp/api/internal/bearer"
+	"github.com/ppat/mediated-mailbox-mcp/api/internal/registry"
 	"github.com/ppat/mediated-mailbox-mcp/api/internal/service"
+	"github.com/ppat/mediated-mailbox-mcp/core/config"
+	"github.com/ppat/mediated-mailbox-mcp/process"
+	"github.com/ppat/mediated-mailbox-mcp/process/version"
 )
+
+// Init is the API server's start check. It refuses to start while MCPGODEBUG is set, even to an empty
+// value, since the MCP SDK reads it when the process starts to switch behaviour the API server relies
+// on, sessions in a stateless server among them, so whatever shares the API server's process would
+// run under it too (ADR-0086). It reads nothing else and builds nothing (ADR-0142).
+func Init(_, environ []string, _ config.API) error {
+	for _, entry := range environ {
+		if name, _, _ := strings.Cut(entry, "="); name == "MCPGODEBUG" {
+			return errors.New("MCPGODEBUG is set, and the API server runs the MCP SDK only as it ships (ADR-0086)")
+		}
+	}
+	return nil
+}
+
+// Build builds the API server's MCP endpoint, the MCP root generated from the process's one registry
+// of operations, reporting the release version, behind the bearer check and the no-store header
+// (ADR-0030, ADR-0086, ADR-0142).
+func Build(ctx context.Context, p process.Capabilities, c config.API) (http.Handler, error) {
+	reg, err := registry.Get(ctx, p, c)
+	if err != nil {
+		return nil, err
+	}
+	return bearer.Wrap(ctx, p, c, Handler(reg, version.Number, p.Logger()))
+}
 
 // Handler returns the MCP root generated from reg, served over the streamable HTTP transport with no
 // session kept between requests (ADR-0086). version is the API server's version, which the server

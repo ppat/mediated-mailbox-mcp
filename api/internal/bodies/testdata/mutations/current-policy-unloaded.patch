@@ -1,0 +1,20 @@
+control: A body request is decided under the policy loaded after it arrived, so a newly listed domain is denied on the next call
+removes: the body operation is handed the policy in force and nothing is loaded for the request
+packages: ./api/app
+tests: TestANewlyListedDomainIsDeniedOnTheNextCall
+scheduled-count: no
+integration: yes
+
+diff --git a/api/internal/bodies/bodies.go b/api/internal/bodies/bodies.go
+index 3fdfd4b2..894c8d67 100644
+--- a/api/internal/bodies/bodies.go
++++ b/api/internal/bodies/bodies.go
+@@ -68,7 +68,7 @@ func New(ctx context.Context, p process.Capabilities, c config.API) (*Bodies, er
+ // whose failure the policies alarm on (ADR-0041). A caller that stops waiting gets the policy that
+ // restricts every sender, so a decision is never made against a policy the load did not reach.
+ func (b *Bodies) Policy(ctx context.Context, account string) classify.Policy {
+-	if err := b.session.FreshPolicy(ctx); err != nil {
++	if err := error(nil); err != nil {
+ 		if ctx.Err() != nil {
+ 			return classify.Policy{}
+ 		}

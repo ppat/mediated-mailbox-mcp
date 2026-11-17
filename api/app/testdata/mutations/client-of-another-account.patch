@@ -1,21 +1,23 @@
-control: The API server's token source is built from the OAuth client the account connects through and the account's stored credential, and from nothing else
-removes: every account is served with the OAuth client of the snapshot's first account rather than its own
+control: The API server's token is made from the OAuth client the account connects through and the account's stored credential, and from nothing else
+removes: every account is served with the OAuth client of the lowest identifier among those that opened rather than its own
 packages: ./api/app
 tests: TestTheCredentialsAreTheClientAndTheAccountsToken
 scheduled-count: no
 integration: yes
 
-diff --git a/executioncontext/session/session.go b/executioncontext/session/session.go
-index bd3fc28..8cfd8e3 100644
---- a/executioncontext/session/session.go
-+++ b/executioncontext/session/session.go
-@@ -179,6 +179,9 @@ func (h *Holder) Open(snapshot *accountload.Snapshot, account string) (*Session,
- 		return nil, ErrNotConnected
- 	}
- 	creds := credentials(a)
-+	if first, fok := snapshot.Accounts()[0].Client(); fok {
-+		creds.ClientID, creds.ClientSecret = first.ID(), first.Secret()
+diff --git a/process/connections/connections.go b/process/connections/connections.go
+index 72d60326..ac2e4ec2 100644
+--- a/process/connections/connections.go
++++ b/process/connections/connections.go
+@@ -307,6 +307,11 @@ func (c *Connections) adopt(rec *record, a accounts.Account, opened map[string]c
+ 	rec.mu.Lock()
+ 	defer rec.mu.Unlock()
+ 	client, hasClient := pair(a.Client, opened)
++	for _, first := range opened {
++		if hasClient && first.ID < client.ID {
++			client = first
++		}
 +	}
- 	source := h.source(account, connector, creds)
- 	port, err := connector.port(account, source)
- 	if err != nil {
+ 	clientChanged := rec.hasClient != hasClient || rec.client != client
+ 	rec.provider, rec.clientName, rec.client, rec.hasClient = a.Provider, a.Client, client, hasClient
+ 	if stored == nil {

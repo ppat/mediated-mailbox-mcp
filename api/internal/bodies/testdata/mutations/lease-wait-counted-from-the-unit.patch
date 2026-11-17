@@ -1,0 +1,20 @@
+control: A body request waits for its leases no longer than its deadline for them, and a wait cut off by it is the API server's failure
+removes: the deadline is counted from the unit of work's beginning rather than the request's arrival, so the policy load and the gate's read before it lengthen the wait
+packages: ./api/app
+tests: TestARequestWaitsForItsLeasesNoLongerThanItsDeadline
+scheduled-count: no
+integration: yes
+
+diff --git a/api/internal/bodies/bodies.go b/api/internal/bodies/bodies.go
+index 3fdfd4b2..30e58b04 100644
+--- a/api/internal/bodies/bodies.go
++++ b/api/internal/bodies/bodies.go
+@@ -81,7 +81,7 @@ func (b *Bodies) Policy(ctx context.Context, account string) classify.Policy {
+ // whose leases wait no later than 45 seconds after the request arrived (ADR-0130). It refuses an
+ // account the Session's list in force does not hold or that has no connection.
+ func (b *Bodies) Open(_ context.Context, account string, arrived time.Time) (service.Provider, error) {
+-	work, err := b.conns.Begin(account, b.caller, arrived.Add(leaseWait))
++	work, err := b.conns.Begin(account, b.caller, time.Now().Add(leaseWait))
+ 	if err != nil {
+ 		return nil, err
+ 	}

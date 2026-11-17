@@ -1,0 +1,20 @@
+control: The read operations read the accounts and the policy the Session holds in force, and a clock within thirty seconds of the real one when the read is made
+removes: the read operations are given an accounts listing that lists none
+packages: ./api/app
+tests: TestTheReadOperationsReadTheSession
+scheduled-count: no
+integration: yes
+
+diff --git a/api/internal/registry/registry.go b/api/internal/registry/registry.go
+index 12eaa003..9a7a488f 100644
+--- a/api/internal/registry/registry.go
++++ b/api/internal/registry/registry.go
+@@ -72,7 +72,7 @@ func build(ctx context.Context, p process.Capabilities, c config.API) (service.R
+ 	}
+ 	ops, err := timed(service.Operations(service.Sources{
+ 		DB:       pool,
+-		Accounts: accounts(s),
++		Accounts: func() []service.Account { return nil },
+ 		Policy:   s.Policy,
+ 		Now:      time.Now,
+ 		Bodies: service.Bodies{

@@ -1,20 +1,20 @@
 control: The API server loads the policy of the accounts it serves, and of none when it serves none
-removes: the policy loader's reload-failure series is registered on a registry the API server does not serve, so its metrics endpoint never carries the alarm's series
+removes: the policies' reload-failure series is registered on a registry the API server does not serve, so its metrics endpoint never carries the alarm's series
 packages: ./api/app
-tests: TestAFailedPolicyLoadStillFollowsTheSnapshot
+tests: TestAFailedPolicyLoadStillFollowsTheList
 scheduled-count: no
 integration: yes
 
-diff --git a/executioncontext/assembly/assembly.go b/executioncontext/assembly/assembly.go
-index d74efe4..cb63c67 100644
---- a/executioncontext/assembly/assembly.go
-+++ b/executioncontext/assembly/assembly.go
-@@ -221,7 +221,7 @@ func (c *Context) loadPolicy(ctx context.Context, accounts []string) error {
- 	}
- 	policies := c.policies.Load()
- 	if policies == nil {
--		built, err := policyload.New(c.n.Pool, accounts, c.n.Registerer, c.n.Lookups)
-+		built, err := policyload.New(c.n.Pool, accounts, prometheus.NewRegistry(), c.n.Lookups)
- 		if err != nil {
- 			return err
+diff --git a/process/sessions/sessions.go b/process/sessions/sessions.go
+index 60398e3d..92e16608 100644
+--- a/process/sessions/sessions.go
++++ b/process/sessions/sessions.go
+@@ -94,7 +94,7 @@ func Get(ctx context.Context, p process.Capabilities, c config.HasAccounts) (*Se
  		}
+ 		s := &Session{
+ 			pool: pool, logger: shared.Logger(), report: shared.Report,
+-			policies: policies.New(pool, shared.Metrics(), shared.Go),
++			policies: policies.New(pool, prometheus.NewRegistry(), shared.Go),
+ 			took: prometheus.NewHistogram(prometheus.HistogramOpts{
+ 				Name:    reloadDurationName,
+ 				Help:    "How long each reload of the process's Session took, its accounts, their connections, their lowered targets and their policy, succeeded or failed.",

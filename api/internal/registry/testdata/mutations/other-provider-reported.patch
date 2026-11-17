@@ -1,0 +1,23 @@
+control: The API server's metrics endpoint carries F3's rate-state series for each account it serves through the Gmail adapter
+removes: an account of a provider no shipped adapter serves is reported, with no ceiling
+packages: ./api/app
+tests: TestTheMetricsEndpointCarriesEachServedAccountsRateState
+scheduled-count: no
+integration: yes
+
+diff --git a/api/internal/registry/registry.go b/api/internal/registry/registry.go
+index 12eaa003..858ef5e3 100644
+--- a/api/internal/registry/registry.go
++++ b/api/internal/registry/registry.go
+@@ -131,10 +131,7 @@ func rateAccounts(s *sessions.Session) func(context.Context) ([]ratelimit.Accoun
+ 	return func(context.Context) ([]ratelimit.Account, error) {
+ 		var out []ratelimit.Account
+ 		for _, a := range s.Accounts() {
+-			facts, ok := provider.FactsOf(a.Provider)
+-			if !ok {
+-				continue
+-			}
++			facts, _ := provider.FactsOf(a.Provider)
+ 			out = append(out, ratelimit.Account{ID: a.ID, Ceiling: facts.Ceiling})
+ 		}
+ 		return out, nil

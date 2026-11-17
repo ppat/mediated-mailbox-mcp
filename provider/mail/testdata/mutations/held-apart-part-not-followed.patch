@@ -1,8 +1,9 @@
 control: The port returns a body's rendered part alone, and a part the provider holds apart takes exactly one more call
 removes: the body fetch returns its first answer, so a part the provider holds apart is never asked for
-packages: ./provider/mail
-tests: TestABodyTakesOneCallOrOneMoreForAPartHeldApart
+packages: ./provider/mail ./api/app
+tests: TestABodyTakesOneCallOrOneMoreForAPartHeldApart TestABodyPastTheBoundIsDeniedAsRefused
 scheduled-count: no
+integration: yes
 
 diff --git a/provider/mail/body.go b/provider/mail/body.go
 --- a/provider/mail/body.go

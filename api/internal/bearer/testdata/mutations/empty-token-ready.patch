@@ -1,0 +1,19 @@
+control: The API server is ready only while its bearer token file holds a token
+removes: a token file holding no token counts as holding one, at the start and in the readiness report
+packages: ./api/internal/bearer
+tests: TestATokenFileThatAdmitsNoClientRefusesTheStart/holding_no_token TestTheReportFollowsTheTokenFile
+scheduled-count: no
+
+diff --git a/api/internal/bearer/bearer.go b/api/internal/bearer/bearer.go
+index 4577e197..3d304bf7 100644
+--- a/api/internal/bearer/bearer.go
++++ b/api/internal/bearer/bearer.go
+@@ -96,7 +96,7 @@ func readable(tokenFile string) error {
+ 	if err != nil {
+ 		return fmt.Errorf("reading the bearer token: %w", err)
+ 	}
+-	if strings.TrimSpace(string(token)) == "" {
++	if false && strings.TrimSpace(string(token)) == "" {
+ 		return errNoToken
+ 	}
+ 	return nil
