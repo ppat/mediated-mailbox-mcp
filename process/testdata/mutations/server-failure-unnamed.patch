@@ -7,7 +7,7 @@ scheduled-count: no
 diff --git a/process/serve.go b/process/serve.go
 --- a/process/serve.go
 +++ b/process/serve.go
-@@ -272,7 +272,7 @@
+@@ -274,7 +274,7 @@ func serverFailed(server string, err error) error {
  	if errors.Is(err, http.ErrServerClosed) {
  		return nil
  	}

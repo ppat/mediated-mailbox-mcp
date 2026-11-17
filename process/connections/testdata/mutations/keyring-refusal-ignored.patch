@@ -1,0 +1,19 @@
+control: The connections load the keys that open credentials while the process is built, so a public key matching none of the private keys stops the start
+removes: a keyring that cannot be loaded is logged and the build goes on, so a process whose public key matches no private key starts
+packages: ./process/connections
+tests: TestAPublicKeyMatchingNoPrivateKeyStopsTheStart
+scheduled-count: no
+integration: yes
+
+diff --git a/process/connections/connections.go b/process/connections/connections.go
+--- a/process/connections/connections.go
++++ b/process/connections/connections.go
+@@ -128,7 +128,7 @@ func Of(ctx context.Context, p process.Capabilities, c config.HasConnections, s
+ 		k := c.KeysPart()
+ 		keys, err := open.Load(k.PublicKeyFile, k.PrivateKeyFiles...)
+ 		if err != nil {
+-			return nil, nil, fmt.Errorf("loading the keyring: %w", err)
++			shared.Logger().Error("loading the keyring", "error", err)
+ 		}
+ 		conns := &Connections{
+ 			db: pool, keys: keys, adapters: list, session: s, log: shared.Logger(),

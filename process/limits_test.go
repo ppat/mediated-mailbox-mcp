@@ -86,7 +86,7 @@ func dial(t *testing.T, addr string) net.Conn {
 // event stream, is never cut (ADR-0130).
 func TestTheServersCloseIdleAndSlowConnectionsAndNeverCutAnAnswer(t *testing.T) {
 	l := shortLimits(t)
-	p, err := newProcess("test", slog.New(slog.DiscardHandler))
+	p, err := newProcess("test", slog.New(slog.DiscardHandler), nil)
 	if err != nil {
 		t.Fatal(err)
 	}

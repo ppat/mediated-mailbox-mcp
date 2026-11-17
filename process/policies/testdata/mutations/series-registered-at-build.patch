@@ -1,0 +1,20 @@
+control: The policies register their series at the first load that names an account, so a process that holds none carries none
+removes: the series are registered when the policies are built, so a process holding no account serves them
+packages: ./process/policies
+tests: TestEachReloadItsCallerDidNotCancelIsTimed
+scheduled-count: no
+integration: yes
+
+diff --git a/process/policies/policies.go b/process/policies/policies.go
+--- a/process/policies/policies.go
++++ b/process/policies/policies.go
+@@ -70,6 +70,9 @@ func New(db tx.Beginner, reg prometheus.Registerer, start Starter) *Policies {
+ 		lookups: classify.Lookups{ToUnicode: idna.Lookup.ToUnicode, ToASCII: idna.Lookup.ToASCII, Registrable: publicsuffix.EffectiveTLDPlusOne},
+ 	}
+ 	p.fresh = newShared(start, p.reloadCurrent)
++	if l, err := newLoader(db, []string{"none"}, reg, p.lookups); err == nil {
++		p.loader.Store(l)
++	}
+ 	return p
+ }
+ 

@@ -1,0 +1,17 @@
+control: The body-processing histogram is defined once, under its name, labelled by step
+removes: every step is observed under one label value, so a conversion and a scan cannot be told apart
+packages: ./process/scanner
+tests: TestTheBodyProcessingHistogramIsDefinedOnce
+scheduled-count: no
+
+diff --git a/process/scanner/scanner.go b/process/scanner/scanner.go
+--- a/process/scanner/scanner.go
++++ b/process/scanner/scanner.go
+@@ -66,6 +66,6 @@ func NewProcessing(reg prometheus.Registerer) (*Processing, error) {
+ // Since observes a step that started at start.
+ func (p *Processing) Since(step string, start time.Time) {
+ 	if p != nil {
+-		p.duration.WithLabelValues(step).Observe(time.Since(start).Seconds())
++		p.duration.WithLabelValues("body").Observe(time.Since(start).Seconds())
+ 	}
+ }

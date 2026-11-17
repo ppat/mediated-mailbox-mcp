@@ -1,0 +1,18 @@
+control: The body-processing histogram is defined once, under its name, labelled by step
+removes: the histogram is registered under another name than the one the job kinds and the API server time bodies under
+packages: ./process/scanner
+tests: TestTheBodyProcessingHistogramIsDefinedOnce
+scheduled-count: no
+
+diff --git a/process/scanner/scanner.go b/process/scanner/scanner.go
+--- a/process/scanner/scanner.go
++++ b/process/scanner/scanner.go
+@@ -34,7 +34,7 @@ func Get(ctx context.Context, p process.Capabilities, c config.HasScanner) (scan
+ 
+ // ProcessingName is the series timing each body's conversion to Markdown and its scan, by step, which
+ // no rule reads (ADR-0125).
+-const ProcessingName = "mediated_mailbox_body_processing_duration_seconds"
++const ProcessingName = "mediated_mailbox_body_duration_seconds"
+ 
+ // The steps ProcessingName times, a body's conversion to Markdown and its scan.
+ const (

@@ -31,6 +31,7 @@ registers metrics through client_golang, on a registerer its caller passes in
 | `mail/` | The Provider Port's interface for mail, `mail.Mailbox`, with its ten operations, the consent contract and the call sizes a caller needs, which backfill and delta sync's tick read. Each is what `core/mail`'s `CallSize` gives within the hard-cap fraction `core/mail` holds ([ADR-0010](../docs/adr/provider/0010-one-provider-port.md)). The port's errors, the part of a body a call names, the decision on a second body call, the size bound, `CallSize` and the types the rate profiles are stated in are `core/mail`'s, for the reasons [CLAUDE.md](../CLAUDE.md#what-coremail-holds) gives for each |
 | `mail/gmail/`, `mail/gmail/core/` | The Gmail adapter, and its pure decisions on a body, which the adapter alone imports |
 | `mail/jmap/` | The JMAP adapter |
+| `internal/adapters/` | The representation of the list of adapters and of a token, each adapter's facts, how it makes a token and builds a mailbox, which `provider` exports as `provider.Adapters` and `provider.Token`. Go admits a package under `internal/` to the provider library alone |
 | `mail/fake/` | The provider fake |
 | `mail/contract/` | The contract suite every implementation passes |
 | `google/` | Google's grant, its token source and token endpoint, its consent, and the consent command under `google/cmd/consent` |
@@ -75,6 +76,19 @@ read's cap and the refusal of an answer past it
 It returns each decision as a value, and the adapter makes the requests, reads each answer up to
 the cap the core gives it and builds the port's errors. The media-type parser and the charset label
 table reach the operating system through what they import, so the adapter passes them in.
+
+Only the provider library builds a list holding an adapter. Code outside it can name the empty list
+and nothing more. `provider.Shipped` builds the shipped list, and the fake's `fake.Adapters` builds
+one over the fake for a test, through `internal/adapters`, which no package outside the library can
+import. A list and a token expose no field, so code that
+holds one cannot add an adapter or reach a token's source. A test hands such a list to the
+connections through their one option for a test, `connections.WithAdapters`, so a process it runs
+calls the fake wherever the program calls its provider, and nothing that ships can select the fake,
+since only test files may import it
+([ADR-0142](../docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md)). Each
+adapter of a list declares the facts about its provider, so a caller builds an account's limits
+from the facts of the list it was built over. `provider.FactsOf` gives code that holds no list the
+facts the shipped list declares, read from that list, so each provider's facts have one home.
 
 The fake keeps a mailbox in memory. Its throttle is a wrapper around any mailbox that applies a
 schedule, so the rate limiter's tests can meet throttling without the fake's storage knowing of it,

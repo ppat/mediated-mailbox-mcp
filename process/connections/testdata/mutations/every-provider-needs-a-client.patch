@@ -1,0 +1,19 @@
+control: An account of a provider that authenticates through an OAuth client is not connected without one, and one whose provider needs none is
+removes: every provider is taken to authenticate through a client, so an account whose provider needs none is not connected
+packages: ./process/connections
+tests: TestAnOAuthClientIsLoadedOnlyForAProviderThatHasOne TestAnAccountOfAClientProviderWithoutItsClientIsNotConnected
+scheduled-count: no
+integration: yes
+
+diff --git a/process/connections/connections.go b/process/connections/connections.go
+--- a/process/connections/connections.go
++++ b/process/connections/connections.go
+@@ -347,7 +347,7 @@ func (c *Connections) servable(account string, rec *record) bool {
+ 	case !ok:
+ 		c.log.Warn("there is no adapter for an account's provider, so it is not connected", slog.String("account", account), slog.String("provider", rec.provider))
+ 		return false
+-	case facts.UsesClient && !rec.hasClient:
++	case (facts.UsesClient || true) && !rec.hasClient:
+ 		c.log.Warn("an account's provider authenticates through an OAuth client and the account has none that opened, so it is not connected",
+ 			slog.String("account", account), slog.String("provider", rec.provider), slog.String("client", rec.clientName))
+ 		return false

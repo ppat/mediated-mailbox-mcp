@@ -1,0 +1,19 @@
+control: A refused credential is read again, and the call is made once more only over another credential, through the client the account's row names, with the record changed in place
+removes: a token made over a credential read again serves the unit alone, so the units after it call with the refused one
+packages: ./process/connections
+tests: TestAStoredCredentialSomeoneElseReplacedWins TestAReadAgainMakesTheTokenFromTheClientTheAccountMovedTo
+scheduled-count: no
+integration: yes
+
+diff --git a/process/connections/work.go b/process/connections/work.go
+--- a/process/connections/work.go
++++ b/process/connections/work.go
+@@ -156,8 +156,6 @@ func (w *Work) again(ctx context.Context) (*provider.Token, error) {
+ 	if err != nil {
+ 		return nil, err
+ 	}
+-	c.adopted(rec, same)
+-	rec.stored, rec.baseline, rec.token, rec.connected = stored, plaintext, token, true
+ 	w.token, w.client = token, client
+ 	return token, nil
+ }

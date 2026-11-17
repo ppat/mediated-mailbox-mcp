@@ -7,7 +7,7 @@ scheduled-count: no
 diff --git a/process/serve.go b/process/serve.go
 --- a/process/serve.go
 +++ b/process/serve.go
-@@ -29,6 +29,7 @@
+@@ -32,6 +32,7 @@ func runTask[C any](ctx context.Context, p *proc, spec Spec[C], c C) error {
  		return errors.Join(err, p.stop())
  	}
  	err = work(ctx)

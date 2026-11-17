@@ -38,7 +38,7 @@ a provider would otherwise write for itself.
 
 | Package | Holds |
 | --- | --- |
-| `process` itself | The spec and the process, `Spec`, `Endpoint`, `Job`, `Task`, `Capabilities`, `State` and `OnePerProcess`, `process.Run` and `process.RunContext`, the build and the run, the servers, the operations endpoints, the runtime series, the stop order and the readiness reports ([ADR-0142](../docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md)) |
+| `process` itself | The spec and the process, `Spec`, `Endpoint`, `Job`, `Task`, `Capabilities`, `State` and `OnePerProcess`, `process.Run` and `process.RunContext`, the option a test substitutes a shared thing through, the revision of a top-level key read from the process, and an owner's upkeep on the scheduler, the build and the run, the servers, the operations endpoints, the runtime series, the stop order and the readiness reports ([ADR-0142](../docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md)) |
 | `settings/` | The layering of defaults, one optional configuration file, environment variables and flags into the configuration type of each program that runs as a process, and the reading of a `config.Duration` |
 | `database/` | The connection a pool is opened over, every pool, the latency of every statement a connection runs, by the statement's name, which its pure core `database/core` gives, the statistics of each pool, and the schema check, through `database.Get` and, for the migrator, `database.ForMigration` |
 | `schedule/` | The scheduler, which runs each job kind's plan, adding and dropping its jobs by key, and the helper job code starts a goroutine through ([ADR-0119](../docs/adr/operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md)) |
@@ -219,7 +219,21 @@ The shared parts of the configuration it reads, `config.Process`, `config.Operat
 A test or a harness runs a program through its spec and `process.RunContext`, which runs it as
 `process.Run` does until a context it is given ends, with the writers it is given, and returns the
 run's error rather than exiting. It substitutes a shared thing as
-[ADR-0142](../docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md) states.
+[ADR-0142](../docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md) states,
+through the options it is handed. The one kind of option fills an owner's slot before anything
+asks, and an owner exports one function returning it, built by its slot's `Substitute`.
+`process.Run` takes no option, so a `main.go` cannot substitute.
+
+Two more things a shared thing reads from the process rather than from whoever asked.
+`process.Revision` gives the revision the configuration library computed for a top-level key, which
+the scanner is built under. `process.Upkeep` has the process's scheduler run a job as the shared
+thing's own upkeep, asked for from the build of its slot while the process is built, such as the
+Session's reload. An upkeep job belongs to no job kind, so the scheduler's series observe none of it,
+and a process whose scheduler runs only upkeep registers none of them
+([ADR-0125](../docs/adr/engineering/0125-performance-is-measured-once-at-each-place-time-goes.md)).
+A program that does one piece of work runs no scheduler, so upkeep is refused there, as are a second
+upkeep for one shared thing and one asked for once the process has been built. A job kind may not
+share its name with an upkeep, since the two would be one job.
 
 The case for one package over the same work written in each program is that each copy drifts on its
 own. A copy can answer its probes its own way or answer no readiness, load the key pair twice, start
@@ -264,7 +278,7 @@ are added and which are left out, the set is the same in every deployable.
 ## The scheduler, `schedule`
 
 The process holds one scheduler. It runs every job kind the spec lists, and an owner uses it for
-its own upkeep, as the Session runs its reload on it
+its own upkeep through `process.Upkeep`, as the Session runs its reload on it
 ([ADR-0119](../docs/adr/operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md),
 [ADR-0142](../docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md)).
 
@@ -315,7 +329,9 @@ drifting on its own.
 ## The Session, `sessions`
 
 A process holds one Session, which every endpoint and job kind of the process may ask for through
-`sessions.Get`. The UI never holds it, since the UI's configuration type has no accounts part
+`sessions.Get`. Until the worker and the API server are each on its spec, they hold the execution
+context of `executioncontext/` and reload it themselves, and `sessions`, `accounts`, `policies`,
+`connections` and `scanner` are built and tested beside it and used by no program. The UI never holds it, since the UI's configuration type has no accounts part
 ([ADR-0090](../docs/adr/operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md),
 [ADR-0081](../docs/adr/operability/0081-credentials-sealed-to-a-public-key.md),
 [ADR-0084](../docs/adr/mutation/0084-ui-writes-decisions-and-account-setup.md),
@@ -338,9 +354,12 @@ What a change in one member means for the others is the Session's to say.
   calls no provider on the accounts that have a policy.
 
 Its reload is the Session's own upkeep, run on the process's scheduler on the schedule
-[ADR-0090](../docs/adr/operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md) states,
-at the interval `account_reload_interval` sets in the API server and in the worker. Each reload its
-caller did not cancel is timed on one series per process
+[ADR-0090](../docs/adr/operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md)
+states, at the interval `account_reload_interval` sets in the API server and in the worker. It runs
+at once when the process serves, and every five seconds, or the interval when it is shorter, while
+no reload has loaded everything. Once one has, a reload that fails is logged by the Session and
+answered to the scheduler as not due, so it is tried again at the next interval rather than after
+the scheduler's backoff. Each reload its caller did not cancel is timed on one series per process
 ([ADR-0125](../docs/adr/engineering/0125-performance-is-measured-once-at-each-place-time-goes.md)).
 Its order is written once.
 
@@ -412,7 +431,12 @@ to its provider as one record per account. None of a record is exported
 | The account's lowered rate target | What the account's calls lease at |
 
 A process gets the connections through `connections.Of`, given the Session, and they attach to it
-as its third member. They open each stored credential with the keys they hold, and seal a rotated
+as its third member. They make every token and mailbox through the provider library's list of
+shipped adapters. Their one option for a test, `connections.WithAdapters`, hands a process another
+list, such as the provider fake's, which only the provider library can build
+([provider/README.md](../provider/README.md)), and fills the slot the connections keep the list
+in before anything asks
+([ADR-0142](../docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md)). They open each stored credential with the keys they hold, and seal a rotated
 one before writing it back
 ([ADR-0082](../docs/adr/operability/0082-rotation-writeback-to-the-database.md)). At each reload
 they make a token, through the provider library's calling side, `provider`, for each account that
@@ -470,15 +494,16 @@ sync re-seals, the one writer of a client secret beside the UI's setup
 The API server, backfill and delta sync each call a provider for an account in units of work. A unit
 is a body request, a page of a pass, or a tick, and each is begun through the connections with the
 [caller](../DESIGN.md#provider-abstraction-and-accounts) that makes it. Each job kind, and the API
-server's body operation, builds its caller in its own `Build`, through the connections, so its
-provider calls are counted on its own series
+server's body operation, builds its caller in its own `Build`, through the connections' `Caller`,
+given its own capabilities and its own pool, the one `database.Get` gives it, so its provider calls
+are counted on its own series and its leases, write-backs and recorded attempts run on its own pool
 ([ADR-0117](../docs/adr/operability/0117-one-background-worker-runs-every-job-kind.md)).
 
 | When | What happens |
 | --- | --- |
-| A unit begins | The connections find the account's record and hand the caller the account's connection as the provider library needs it. The unit's mailbox is what the program calls |
+| A unit begins | `conns.Begin` finds the account's record and hands the caller the account's connection as the provider library needs it. It refuses an account the list in force does not hold, one with no connection and one whose lowered target could not be read. The unit's mailbox is what the program calls |
 | During the unit | Each call takes a lease, calls the provider, tells the limiter how it went, and tries once more on a refused credential |
-| The unit ends | It writes a refreshed credential back under the adoption stamp of the record it began on ([ADR-0089](../docs/adr/operability/0089-sealed-values-written-by-compare-and-set.md)), and records the latest authentication attempt ([ADR-0097](../docs/adr/operability/0097-authentication-outcome-reported-by-the-adapter-recorded-by-the-deployable.md)) |
+| The unit ends | `End` writes a refreshed credential back under the adoption stamp of the record it began on ([ADR-0089](../docs/adr/operability/0089-sealed-values-written-by-compare-and-set.md)), and records the latest authentication attempt, both on the pool of the caller the unit began through ([ADR-0097](../docs/adr/operability/0097-authentication-outcome-reported-by-the-adapter-recorded-by-the-deployable.md)) |
 
 `connections` writes these steps once, because they hide a decision of the same concept, how a
 process holds an account's credential while it uses it. A copy in each program that calls a
@@ -494,6 +519,13 @@ caller.
   and delta sync's ticks alike. A token per tick would cost a token refresh on every tick.
 - **Which units run concurrently.** The API server runs concurrent units for one account, and in
   the worker backfill's and delta sync's do, so each record takes a lock around what it holds.
+  Every path that writes a sealed value or adopts one read from a row takes turns with every other
+  under one lock of the connections: a reload's read and adoption, a re-read after a refusal, a
+  write-back from its stamp check through its compare-and-set and its re-read to the record's
+  update, and the re-seal. So a later write-back compares against the earlier's bytes and both land,
+  and no read takes the process's own write for someone else's. Beginning a unit of work and its
+  calls read a record under its own lock. Beginning never waits on the connections' lock, and a
+  call waits on it only for the re-read a refused call makes.
 
 Every caller begins its units of work through the one connections of its process, so it shares
 their records, while its calls go through its own caller.

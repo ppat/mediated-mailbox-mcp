@@ -1,0 +1,19 @@
+control: The Session's reload is tried again within seconds while no reload has loaded everything, and at the next interval once one has
+removes: a reload that fails before any has loaded everything is tried again only at the next interval
+packages: ./process/sessions
+tests: TestTheSessionIsReadyOnceAReloadHasLoadedEverything TestTheSessionIsReadyOnceAReloadHasLoadedEverything/the_list TestTheSessionIsReadyOnceAReloadHasLoadedEverything/the_policy
+scheduled-count: no
+integration: yes
+
+diff --git a/process/sessions/sessions.go b/process/sessions/sessions.go
+--- a/process/sessions/sessions.go
++++ b/process/sessions/sessions.go
+@@ -120,7 +120,7 @@ func Get(ctx context.Context, p process.Capabilities, c config.HasAccounts) (*Se
+ // in force what was, is logged, and is tried again at the next interval, so it is answered as not due
+ // rather than failed, whose backoff would try it sooner (ADR-0090).
+ func (s *Session) upkeep() schedule.Job {
+-	retry := min(firstRetry, s.interval)
++	retry := s.interval
+ 	return schedule.Job{
+ 		Interval: s.interval,
+ 		Backoff:  schedule.Backoff{Base: retry, Max: retry},

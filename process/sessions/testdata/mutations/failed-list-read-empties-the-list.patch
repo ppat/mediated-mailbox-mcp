@@ -1,0 +1,19 @@
+control: The Session reloads in one order, and keeps in force what a failed read could not read
+removes: a reload whose read of the accounts fails puts an empty list in force, as if no account were listed
+packages: ./process/sessions
+tests: TestAFailedReloadKeepsWhatItCouldNotRead
+scheduled-count: no
+integration: yes
+
+diff --git a/process/sessions/sessions.go b/process/sessions/sessions.go
+--- a/process/sessions/sessions.go
++++ b/process/sessions/sessions.go
+@@ -198,6 +198,8 @@ func (s *Session) Reload(ctx context.Context) error {
+ func (s *Session) reload(ctx context.Context) error {
+ 	listed, err := accounts.Read(ctx, s.pool)
+ 	if err != nil {
++		listed = []accounts.Account{}
++		s.inForce.Store(&listed)
+ 		return fmt.Errorf("reading the accounts: %w", err)
+ 	}
+ 	connections, after := s.members()

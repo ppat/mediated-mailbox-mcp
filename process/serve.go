@@ -22,6 +22,9 @@ import (
 // goroutine the work started has returned and the slots are closed. It serves nothing and runs no
 // job, since nothing probes, scrapes or calls a program that exits on its own (ADR-0139, ADR-0142).
 func runTask[C any](ctx context.Context, p *proc, spec Spec[C], c C) error {
+	p.upkeepMu.Lock()
+	p.task = true
+	p.upkeepMu.Unlock()
 	stopBuild := context.AfterFunc(ctx, p.stopRun)
 	work, err := spec.Task.Build(p.run, p.part(spec.Name, ""), c)
 	stopBuild()
@@ -36,6 +39,7 @@ func runTask[C any](ctx context.Context, p *proc, spec Spec[C], c C) error {
 type built struct {
 	handlers []mounted
 	plans    []listed
+	upkeep   []upkeepJob
 }
 
 type mounted struct {
@@ -68,6 +72,7 @@ func build[C any](p *proc, spec Spec[C], c C) (built, error) {
 		}
 		b.plans = append(b.plans, listed{kind: j.Name, plan: plan, p: caps})
 	}
+	b.upkeep = p.builtUpkeep()
 	return b, nil
 }
 
@@ -123,14 +128,11 @@ func (p *proc) serveOn(ctx context.Context, app, probeListener net.Listener, s c
 		tlsConf = tlsConfig(s.TLSCert, s.TLSKey)
 	}
 	var scheduler *schedule.Scheduler
-	if len(b.plans) > 0 {
-		// The scheduler is the process's, its series labelled with the program's name and no job kind,
-		// each job's series carrying its own job kind (ADR-0119, ADR-0142).
-		metrics, err := schedule.NewMetrics(p.part("scheduler", "").Metrics())
-		if err != nil {
+	if len(b.plans) > 0 || len(b.upkeep) > 0 {
+		var err error
+		if scheduler, err = p.newScheduler(b); err != nil {
 			return errors.Join(err, closeListeners(app, probeListener), p.stop())
 		}
-		scheduler = schedule.New(p.run, metrics)
 		for _, l := range b.plans {
 			name := l.kind + " listing"
 			p.report(name, NotReady, "no listing has succeeded yet")

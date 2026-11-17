@@ -1,0 +1,18 @@
+control: The option an owner exports for a test fills its slot before anything asks, and a run without it builds
+removes: the option fills the slot as not built, so the first part that asks builds over the test's thing
+packages: ./process
+tests: TestASubstituteFillsTheSlotBeforeAnythingAsks
+scheduled-count: no
+
+diff --git a/process/option.go b/process/option.go
+--- a/process/option.go
++++ b/process/option.go
+@@ -15,7 +15,7 @@ func (s *OnePerProcess[T]) Substitute(v T) Option {
+ 	return Option{fill: func(p *proc) {
+ 		p.slotsMu.Lock()
+ 		defer p.slotsMu.Unlock()
+-		p.slots[s] = &slot{built: true, value: v}
++		p.slots[s] = &slot{value: v}
+ 	}}
+ }
+ 

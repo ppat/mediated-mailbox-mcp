@@ -7,7 +7,7 @@ scheduled-count: no
 diff --git a/process/serve.go b/process/serve.go
 --- a/process/serve.go
 +++ b/process/serve.go
-@@ -117,9 +117,6 @@
+@@ -122,9 +122,6 @@ const drainTimeout = 10 * time.Second
  func (p *proc) serveOn(ctx context.Context, app, probeListener net.Listener, s config.Serving, b built) error {
  	var tlsConf *tls.Config
  	if app != nil && s.ServesTLS() {

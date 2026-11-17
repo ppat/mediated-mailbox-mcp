@@ -5,10 +5,9 @@ tests: TestPlacement
 scheduled-count: no
 
 diff --git a/testsupport/analysis/analysis.go b/testsupport/analysis/analysis.go
-index 956525cb..21d5ce09 100644
 --- a/testsupport/analysis/analysis.go
 +++ b/testsupport/analysis/analysis.go
-@@ -160,7 +160,7 @@ func (w *walker) propertyBodies(call *ast.CallExpr) []ast.Node {
+@@ -166,7 +166,7 @@ func (w *walker) propertyBodies(call *ast.CallExpr) []ast.Node {
  	switch {
  	case isFunc(fn, rapidPath, "Check"), isFunc(fn, rapidPath, "MakeCheck"), isFunc(fn, rapidPath, "Custom"),
  		isFunc(fn, rapidPath, "Map"), isFunc(fn, rapidPath, "Deferred"), isMethod(fn, "Filter"),

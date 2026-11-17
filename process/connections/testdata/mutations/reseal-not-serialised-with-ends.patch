@@ -1,0 +1,20 @@
+control: Write-backs, reloads, re-reads and the re-seal take turns under one lock of the connections, so the process's own writes each land and none is read back as someone else's
+removes: the re-seal of the accounts runs outside the connections' lock, so an end whose compare-and-set waits behind the re-seal adopts the re-sealed bytes and loses its rotation
+packages: ./process/connections
+tests: TestAReSealAndAnEndWhoseWritesInterleaveBothLand
+scheduled-count: no
+integration: yes
+
+diff --git a/process/connections/reseal.go b/process/connections/reseal.go
+--- a/process/connections/reseal.go
++++ b/process/connections/reseal.go
+@@ -39,7 +39,9 @@ func (s Scan) clone() Scan {
+ func (c *Connections) Reseal(ctx context.Context) Scan {
+ 	c.mu.Lock()
+ 	defer c.mu.Unlock()
++	c.mu.Unlock()
+ 	c.resealAccounts(ctx)
++	c.mu.Lock()
+ 	c.resealClients(ctx)
+ 	return c.scan.clone()
+ }

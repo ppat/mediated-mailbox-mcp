@@ -1,0 +1,19 @@
+control: The connections attach to the Session once, and a second attach is refused
+removes: a second attach keeps the connections attached first and reports no error
+packages: ./process/connections
+tests: TestASecondAttachIsRefused
+scheduled-count: no
+integration: yes
+
+diff --git a/process/sessions/sessions.go b/process/sessions/sessions.go
+--- a/process/sessions/sessions.go
++++ b/process/sessions/sessions.go
+@@ -147,7 +147,7 @@ func (s *Session) Attach(c Connections) error {
+ 	case c == nil:
+ 		return errors.New("no connections to attach")
+ 	case s.connections != nil:
+-		return errors.New("connections are attached to the Session already")
++		return nil
+ 	}
+ 	s.connections = c
+ 	return nil

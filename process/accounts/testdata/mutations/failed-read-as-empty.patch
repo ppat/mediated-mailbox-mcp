@@ -1,0 +1,20 @@
+control: A read of the list of accounts that fails is a failure, never a list with no account
+removes: a read that fails returns the empty list and no error, so the Session would put no account in force
+packages: ./process/accounts
+tests: TestAReadThatFailsIsNeverAListWithNoAccount
+scheduled-count: no
+integration: yes
+
+diff --git a/process/accounts/accounts.go b/process/accounts/accounts.go
+--- a/process/accounts/accounts.go
++++ b/process/accounts/accounts.go
+@@ -33,7 +33,8 @@ var ErrUntrustedRead = errors.New("the read of the accounts failed, so the list
+ func Read(ctx context.Context, db accounts.DBTX) ([]Account, error) {
+ 	rows, err := accounts.New(db).Accounts(ctx)
+ 	if err != nil {
+-		return nil, fmt.Errorf("%w: listing the accounts: %w", ErrUntrustedRead, err)
++		_ = fmt.Sprint(err)
++		return []Account{}, nil
+ 	}
+ 	listed := make([]Account, 0, len(rows))
+ 	for _, r := range rows {

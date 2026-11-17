@@ -1,0 +1,20 @@
+control: A load of the policies its caller cancelled keeps the active policy and raises no alarm
+removes: a reload its caller cancelled is counted as a failed read, so a process shutting down mid-reload raises the alarm
+packages: ./process/policies
+tests: TestAReloadItsCallerCancelledRaisesNoAlarm
+scheduled-count: no
+integration: yes
+
+diff --git a/process/policies/loader.go b/process/policies/loader.go
+--- a/process/policies/loader.go
++++ b/process/policies/loader.go
+@@ -131,9 +131,6 @@ func (l *loader) swap(ctx context.Context) error {
+ 	if errors.Is(err, errTornBase) {
+ 		rows, err = l.read(ctx)
+ 	}
+-	if err != nil && errors.Is(ctx.Err(), context.Canceled) {
+-		return fmt.Errorf("the policy reload was cancelled before it finished, so the active policy stays: %w", ctx.Err())
+-	}
+ 	if err != nil {
+ 		l.metrics.failed()
+ 		return fmt.Errorf("%w: %w", ErrUntrustedRead, err)

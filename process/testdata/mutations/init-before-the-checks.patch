@@ -7,7 +7,7 @@ scheduled-count: no
 diff --git a/process/run.go b/process/run.go
 --- a/process/run.go
 +++ b/process/run.go
-@@ -133,14 +133,14 @@
+@@ -138,14 +138,14 @@ func start[C config.Program[C]](args, environ []string, stdout, stderr io.Writer
  		return l, false, fmt.Errorf("validating the configuration: %w", err)
  	}
  	level.Set(lv)

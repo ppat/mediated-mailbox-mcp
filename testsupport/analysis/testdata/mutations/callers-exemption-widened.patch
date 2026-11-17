@@ -1,0 +1,18 @@
+control: The connections' attach is called only from their own package and their re-seal only from delta sync's
+removes: every package of the process family may attach the connections, as may delta sync's whole job kind
+packages: ./testsupport/analysis
+tests: TestCallers
+scheduled-count: no
+
+diff --git a/testsupport/analysis/callers.go b/testsupport/analysis/callers.go
+--- a/testsupport/analysis/callers.go
++++ b/testsupport/analysis/callers.go
+@@ -80,7 +80,7 @@ func runCallers(pass *analysis.Pass) (any, error) {
+ 				return true
+ 			}
+ 			for _, h := range heldMethods {
+-				if path != h.only && (fn.FullName() == h.name || sameInterfaceMethod(fn, h)) {
++				if !within(path, h.only) && !within(path, modulePath+"/process") && !within(path, modulePath+"/worker/internal") && (fn.FullName() == h.name || sameInterfaceMethod(fn, h)) {
+ 					pass.Reportf(id.Pos(), "%s", h.message)
+ 				}
+ 			}

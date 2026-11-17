@@ -74,3 +74,37 @@ func (Worker) Defaults(int) Worker { return DefaultWorker() }
 
 // Defaults returns the migrator's defaults on a node with processors processors.
 func (Migrator) Defaults(processors int) Migrator { return DefaultMigrator(processors) }
+
+// HasAccounts is a configuration that holds the accounts part, which the Session reloads on, and the
+// database part it reads the accounts from. The UI's type has no accounts part, so the UI cannot ask
+// for the Session (ADR-0090, ADR-0142).
+type HasAccounts interface {
+	HasDatabase
+	AccountsPart() Accounts
+}
+
+// HasConnections is a configuration that holds the accounts part and the credential part, which the
+// connections open each stored credential with. The UI's type holds the credential part and no
+// accounts part, so the UI cannot ask for the connections (ADR-0081, ADR-0142).
+type HasConnections interface {
+	HasAccounts
+	KeysPart() Keys
+}
+
+// HasScanner is a configuration that holds the scanner part, which the process's one scanner is built
+// from (ADR-0120, ADR-0142).
+type HasScanner interface {
+	ScannerPart() Scanner
+}
+
+// AccountsPart returns the accounts part. It is promoted to every type that embeds the part.
+func (a Accounts) AccountsPart() Accounts { return a }
+
+// KeysPart returns the API server's credential part.
+func (c API) KeysPart() Keys { return c.Credential }
+
+// ScannerPart returns the API server's scanner part.
+func (c API) ScannerPart() Scanner { return c.Scanner }
+
+// ScannerPart returns the worker's one scanner part, which every job kind that masks or scans reads.
+func (c Worker) ScannerPart() Scanner { return c.Scanner }

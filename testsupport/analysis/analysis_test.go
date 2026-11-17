@@ -81,3 +81,12 @@ func TestUnsafeImport(t *testing.T) {
 	analysistest.Run(t, analysistest.TestData(), analysis.UnsafeImport,
 		"github.com/ppat/mediated-mailbox-mcp/worker/internal/unsafeuser", "example.com/other")
 }
+
+// The cases under testdata/src/github.com/ppat/mediated-mailbox-mcp stand for the Session, the
+// connections, which alone may attach to it, delta sync's package, which alone may re-seal, and a
+// package outside both reaching each held method in every form, beside lookalikes and a test file.
+func TestCallers(t *testing.T) {
+	const m = "github.com/ppat/mediated-mailbox-mcp"
+	analysistest.Run(t, analysistest.TestData(), analysis.Callers,
+		m+"/process/sessions", m+"/process/connections", m+"/worker/internal/deltasync", m+"/worker/internal/heldcalls")
+}

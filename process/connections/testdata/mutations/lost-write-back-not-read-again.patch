@@ -1,0 +1,23 @@
+control: At the end of a unit of work a rotated credential is written back by compare-and-set on the stored bytes the record knew, and an unchanged one is not
+removes: a write-back whose compare-and-set finds other bytes keeps the record's credential rather than reading the stored one again
+packages: ./process/connections
+tests: TestAStaleWriteBackIsRefusedAndTheStoredCredentialUsed
+scheduled-count: no
+integration: yes
+
+diff --git a/process/connections/work.go b/process/connections/work.go
+--- a/process/connections/work.go
++++ b/process/connections/work.go
+@@ -257,11 +257,7 @@ func (w *Work) writeBack(ctx context.Context, stamp uint64, current []byte) erro
+ 	if err != nil {
+ 		return c.failed(account, err)
+ 	}
+-	rec.mu.Lock()
+-	defer rec.mu.Unlock()
+-	if rec.stamp == stamp {
+-		c.readAgain(account, rec, read)
+-	}
++	_ = read
+ 	return nil
+ }
+ 

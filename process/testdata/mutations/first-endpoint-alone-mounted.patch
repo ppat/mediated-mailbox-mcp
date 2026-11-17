@@ -7,7 +7,7 @@ scheduled-count: no
 diff --git a/process/serve.go b/process/serve.go
 --- a/process/serve.go
 +++ b/process/serve.go
-@@ -154,7 +154,7 @@
+@@ -157,7 +157,7 @@ func (p *proc) serveOn(ctx context.Context, app, probeListener net.Listener, s c
  	var appServer *http.Server
  	if app != nil {
  		mux := http.NewServeMux()

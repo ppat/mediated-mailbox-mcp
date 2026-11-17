@@ -1,0 +1,16 @@
+control: The connections' attach is called only from their own package and their re-seal only from delta sync's
+removes: any interface method named like a held method is reported, whatever its signature
+packages: ./testsupport/analysis
+tests: TestCallers
+scheduled-count: no
+
+diff --git a/testsupport/analysis/callers.go b/testsupport/analysis/callers.go
+--- a/testsupport/analysis/callers.go
++++ b/testsupport/analysis/callers.go
+@@ -99,5 +99,5 @@ func sameInterfaceMethod(fn *types.Func, h heldMethod) bool {
+ 	if fn.Name() != h.method || sig.Recv() == nil || !types.IsInterface(sig.Recv().Type()) || sig.Variadic() {
+ 		return false
+ 	}
+-	return unaliasedParams(sig.Params()) == h.params && unaliasedParams(sig.Results()) == h.results
++	return true
+ }

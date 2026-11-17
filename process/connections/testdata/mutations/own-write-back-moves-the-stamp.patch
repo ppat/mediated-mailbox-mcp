@@ -1,0 +1,18 @@
+control: A unit of work's end writes back only while the record's adoption stamp is the one it read with the credential, and the process's own write-back leaves the stamp as it is
+removes: the process's own write-back gives the record a new stamp, so an end that overlapped another's is discarded and its rotation lost
+packages: ./process/connections
+tests: TestOverlappingRotationsEachLand
+scheduled-count: no
+integration: yes
+
+diff --git a/process/connections/work.go b/process/connections/work.go
+--- a/process/connections/work.go
++++ b/process/connections/work.go
+@@ -249,6 +249,7 @@ func (w *Work) writeBack(ctx context.Context, stamp uint64, current []byte) erro
+ 		rec.mu.Lock()
+ 		if rec.stamp == stamp && bytes.Equal(rec.stored, known) {
+ 			rec.stored, rec.baseline = sealed, current
++			rec.stamp = c.adoptions.Add(1)
+ 		}
+ 		rec.mu.Unlock()
+ 		return nil

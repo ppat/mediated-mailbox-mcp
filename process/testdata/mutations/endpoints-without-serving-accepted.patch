@@ -7,7 +7,7 @@ scheduled-count: no
 diff --git a/process/run.go b/process/run.go
 --- a/process/run.go
 +++ b/process/run.go
-@@ -165,11 +165,9 @@
+@@ -170,11 +170,9 @@ func partsOf[C any](spec Spec[C], c C) (parts, []string, error) {
  	p.operations = ops.OperationsPart()
  	var lines []string
  	if len(spec.Endpoints) > 0 {

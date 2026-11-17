@@ -1,0 +1,18 @@
+control: The process's one scanner is built from its scanner section under the revision the process holds of that section
+removes: the scanner is built from the default scanner section rather than the configured one, under the configured revision
+packages: ./process/scanner
+tests: TestTheRevisionFollowsTheScannerSectionAlone
+scheduled-count: no
+
+diff --git a/process/scanner/scanner.go b/process/scanner/scanner.go
+--- a/process/scanner/scanner.go
++++ b/process/scanner/scanner.go
+@@ -27,7 +27,7 @@ var held = process.NewOnePerProcess[scan.Scanner]("scanner")
+ // fails its check, or a configuration whose scanner part has no revision, refuses the build.
+ func Get(ctx context.Context, p process.Capabilities, c config.HasScanner) (scan.Scanner, error) {
+ 	return held.Get(ctx, p, func(_ context.Context, shared process.Capabilities) (scan.Scanner, func(), error) {
+-		s, err := scan.New(c.ScannerPart(), process.Revision(shared, key))
++		s, err := scan.New(config.DefaultScanner(), "")
+ 		return s, nil, err
+ 	})
+ }

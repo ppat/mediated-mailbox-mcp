@@ -1,5 +1,5 @@
 // Command vetcheck runs the project's go vet analysers, placement, globals, environment, txhelper, routes, rawsql,
-// goroutines and unsafeimport.
+// goroutines, unsafeimport and callers.
 //
 //	go vet -vettool="$(go tool -n vetcheck)" ./...
 package main
@@ -11,5 +11,5 @@ import (
 )
 
 func main() {
-	unitchecker.Main(analysis.Placement, analysis.Globals, analysis.Environment, analysis.TxHelper, analysis.Routes, analysis.RawSQL, analysis.Goroutines, analysis.UnsafeImport)
+	unitchecker.Main(analysis.Placement, analysis.Globals, analysis.Environment, analysis.TxHelper, analysis.Routes, analysis.RawSQL, analysis.Goroutines, analysis.UnsafeImport, analysis.Callers)
 }

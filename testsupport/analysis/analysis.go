@@ -8,7 +8,9 @@
 // worker's code starts a goroutine only through its scheduler's helper and the rule ADR-0138 sets
 // that the API server's and the UI's code start one only through the host's starter, and
 // UnsafeImport the rule ADR-0117 sets that no code of this project imports unsafe or takes an unsafe
-// pointer from reflect. The program under testsupport/cmd/vetcheck runs them through go vet, beside
+// pointer from reflect, and Callers the rules ADR-0071 sets that the connections' attach to the
+// Session is called only from process/connections and their re-seal only from delta sync's package.
+// The program under testsupport/cmd/vetcheck runs them through go vet, beside
 // golangci-lint.
 //
 // The analysers honour no suppression comment, which is why they run under go vet rather than as

@@ -1,0 +1,19 @@
+control: The policies' shared load answers a caller only with a load that started after it asked, shared with the callers waiting when it started
+removes: each caller runs a load of its own, so a burst of callers runs a burst of loads
+packages: ./process/policies
+tests: TestCallersWaitingTogetherShareOneLoad TestLoadsRunOneAtATime
+scheduled-count: no
+
+diff --git a/process/policies/shared.go b/process/policies/shared.go
+--- a/process/policies/shared.go
++++ b/process/policies/shared.go
+@@ -51,6 +51,9 @@ const loadName = "shared policy load"
+ // when ctx ends first. The load goes on for the other callers waiting on it. A load the starter does
+ // not start returns ErrNotStarted.
+ func (c *shared) load(ctx context.Context) error {
++	if ctx != nil {
++		return c.loadFunc(ctx)
++	}
+ 	c.mu.Lock()
+ 	r := c.next
+ 	if r == nil {

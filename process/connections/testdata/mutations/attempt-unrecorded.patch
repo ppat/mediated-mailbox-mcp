@@ -1,0 +1,20 @@
+control: The end of a unit of work records the token's latest attempt, and nothing for a token that made none
+removes: the end records no attempt
+packages: ./process/connections
+tests: TestTheEndRecordsTheTokensLatestAttempt
+scheduled-count: no
+integration: yes
+
+diff --git a/process/connections/work.go b/process/connections/work.go
+--- a/process/connections/work.go
++++ b/process/connections/work.go
+@@ -218,7 +218,8 @@ func (w *Work) End(ctx context.Context) (writeBack, record error) {
+ 		return fmt.Errorf("account %s: %w", w.account, ErrNotConnected), nil
+ 	}
+ 	attempt := token.LastAttempt()
+-	return w.writeBack(ctx, stamp, current), recordAttempt(ctx, w.pool, w.account, attempt)
++	_ = attempt
++	return w.writeBack(ctx, stamp, current), nil
+ }
+ 
+ // writeBack writes current back, as End states, under the stamp End read with it.

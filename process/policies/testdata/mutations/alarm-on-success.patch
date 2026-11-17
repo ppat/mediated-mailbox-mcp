@@ -1,0 +1,17 @@
+control: The policies' reload-failure series reads 1 while their latest load failed and 0 once one succeeds
+removes: a reload that succeeds sets the series to 1, as a failure does
+packages: ./process/policies
+tests: TestAFailedReadNeverReplacesTheActivePolicy/the_first_account's_read_fails_before_any_row TestAFailedReadNeverReplacesTheActivePolicy/the_first_account's_read_fails_after_one_row TestAFailedReadNeverReplacesTheActivePolicy/the_second_account's_read_fails_before_any_row TestAFailedReadNeverReplacesTheActivePolicy/the_second_account's_read_fails_after_one_row TestAFailedReadNeverReplacesTheActivePolicy/a_base_rule_is_added_between_two_accounts'_reads,_twice TestAFailedReadNeverReplacesTheActivePolicy/the_role_cannot_read_the_table TestAFailedReadNeverReplacesTheActivePolicy/an_account's_rule_cannot_be_decoded,_after_its_other_rules TestAnEmptyPolicyReadWholeIsAccepted TestAnInvalidUpdateNeverDisplacesTheActivePolicy TestAReloadItsCallerCancelledRaisesNoAlarm
+scheduled-count: no
+integration: yes
+
+
+diff --git a/process/policies/metrics.go b/process/policies/metrics.go
+--- a/process/policies/metrics.go
++++ b/process/policies/metrics.go
+@@ -49,4 +49,4 @@ func (m *metrics) took(start time.Time) { m.reloadDuration.Observe(time.Since(st
+ 
+ func (m *metrics) failed() { m.reloadFailed.Set(1) }
+ 
+-func (m *metrics) succeeded() { m.reloadFailed.Set(0) }
++func (m *metrics) succeeded() { m.reloadFailed.Set(1) }

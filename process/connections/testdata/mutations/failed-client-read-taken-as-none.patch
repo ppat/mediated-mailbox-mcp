@@ -1,0 +1,22 @@
+control: A read the connections cannot trust never replaces what is in force
+removes: a read of the OAuth clients that fails is taken as a read that found none, so the reload goes on and puts its list in force
+packages: ./process/connections
+tests: TestAReloadConnectsWhatItReadAndKeepsWhatWasOnAFailedRead
+scheduled-count: no
+integration: yes
+
+diff --git a/process/connections/connections.go b/process/connections/connections.go
+--- a/process/connections/connections.go
++++ b/process/connections/connections.go
+@@ -222,10 +222,7 @@ func (c *Connections) Load(ctx context.Context, listed []accounts.Account) error
+ // read reads the OAuth clients and each listed account's stored credential. It returns nothing with
+ // any error.
+ func (c *Connections) read(ctx context.Context, listed []accounts.Account) ([]row, []oauthclients.OAuthClientsRow, error) {
+-	clients, err := c.readClients(ctx)
+-	if err != nil {
+-		return nil, nil, err
+-	}
++	clients, _ := c.readClients(ctx)
+ 	rows := make([]row, 0, len(listed))
+ 	for _, a := range listed {
+ 		stored, err := c.stored(ctx, a.ID)

@@ -7,19 +7,16 @@ scheduled-count: no
 diff --git a/process/serve.go b/process/serve.go
 --- a/process/serve.go
 +++ b/process/serve.go
-@@ -122,26 +122,6 @@
+@@ -127,23 +127,6 @@ func (p *proc) serveOn(ctx context.Context, app, probeListener net.Listener, s c
  		}
  		tlsConf = tlsConfig(s.TLSCert, s.TLSKey)
  	}
 -	var scheduler *schedule.Scheduler
--	if len(b.plans) > 0 {
--		// The scheduler is the process's, its series labelled with the program's name and no job kind,
--		// each job's series carrying its own job kind (ADR-0119, ADR-0142).
--		metrics, err := schedule.NewMetrics(p.part("scheduler", "").Metrics())
--		if err != nil {
+-	if len(b.plans) > 0 || len(b.upkeep) > 0 {
+-		var err error
+-		if scheduler, err = p.newScheduler(b); err != nil {
 -			return errors.Join(err, closeListeners(app, probeListener), p.stop())
 -		}
--		scheduler = schedule.New(p.run, metrics)
 -		for _, l := range b.plans {
 -			name := l.kind + " listing"
 -			p.report(name, NotReady, "no listing has succeeded yet")
@@ -34,19 +31,16 @@ diff --git a/process/serve.go b/process/serve.go
  
  	var serving atomic.Bool
  	ready := func(*http.Request) (bool, string) {
-@@ -179,6 +159,26 @@
+@@ -181,6 +164,23 @@ func (p *proc) serveOn(ctx context.Context, app, probeListener net.Listener, s c
  	}
  	serving.Store(true)
  	p.logger.Info("serving", "listen", address(app), "probe_listen", probeListener.Addr().String(), "tls", tlsConf != nil)
 +	var scheduler *schedule.Scheduler
-+	if len(b.plans) > 0 {
-+		// The scheduler is the process's, its series labelled with the program's name and no job kind,
-+		// each job's series carrying its own job kind (ADR-0119, ADR-0142).
-+		metrics, err := schedule.NewMetrics(p.part("scheduler", "").Metrics())
-+		if err != nil {
++	if len(b.plans) > 0 || len(b.upkeep) > 0 {
++		var err error
++		if scheduler, err = p.newScheduler(b); err != nil {
 +			return errors.Join(err, closeListeners(app, probeListener), p.stop())
 +		}
-+		scheduler = schedule.New(p.run, metrics)
 +		for _, l := range b.plans {
 +			name := l.kind + " listing"
 +			p.report(name, NotReady, "no listing has succeeded yet")

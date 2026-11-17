@@ -7,7 +7,7 @@ scheduled-count: no
 diff --git a/core/config/program.go b/core/config/program.go
 --- a/core/config/program.go
 +++ b/core/config/program.go
-@@ -63,6 +63,8 @@
+@@ -63,6 +63,8 @@ func (c Migrator) DatabasePart() Database { return c.Database }
  
  func (Migrator) migrator() {}
  

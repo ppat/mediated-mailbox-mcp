@@ -1,0 +1,22 @@
+control: Each account's units of work lease under the lowered target its state row held at the latest reload
+removes: an account's lowered target is read at the first reload alone, so one the operator changes never applies
+packages: ./process/connections
+tests: TestEachAccountLeasesUnderItsLoweredTarget
+scheduled-count: no
+integration: yes
+
+diff --git a/process/connections/connections.go b/process/connections/connections.go
+--- a/process/connections/connections.go
++++ b/process/connections/connections.go
+@@ -388,7 +388,10 @@ func (c *Connections) readTarget(ctx context.Context, account string, rec *recor
+ 	rec.mu.Lock()
+ 	connected := rec.connected
+ 	rec.mu.Unlock()
+-	if !connected {
++	rec.mu.Lock()
++	once := rec.targetRead
++	rec.mu.Unlock()
++	if !connected || once {
+ 		return
+ 	}
+ 	var fraction float64

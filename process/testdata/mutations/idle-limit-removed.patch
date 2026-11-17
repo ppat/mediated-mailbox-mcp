@@ -7,7 +7,7 @@ scheduled-count: no
 diff --git a/process/serve.go b/process/serve.go
 --- a/process/serve.go
 +++ b/process/serve.go
-@@ -260,7 +260,6 @@
+@@ -263,7 +263,6 @@ func newServer(h http.Handler, logger *slog.Logger) *http.Server {
  		Handler:           h,
  		ReadHeaderTimeout: connectionLimits.Header,
  		ReadTimeout:       connectionLimits.Read,

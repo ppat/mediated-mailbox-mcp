@@ -1,0 +1,19 @@
+control: A process holds one Session, built from the process with its own capabilities, its reload unobserved by the scheduler's series
+removes: the Session is built with the capabilities of the part that asked first, so its series carry that part's job kind
+packages: ./process/sessions
+tests: TestTheSessionIsOnePerProcessBuiltFromTheProcess
+scheduled-count: no
+integration: yes
+
+diff --git a/process/sessions/sessions.go b/process/sessions/sessions.go
+--- a/process/sessions/sessions.go
++++ b/process/sessions/sessions.go
+@@ -102,7 +102,7 @@ func Get(ctx context.Context, p process.Capabilities, c config.HasAccounts) (*Se
+ 			}),
+ 			interval: time.Duration(c.AccountsPart().AccountReloadInterval),
+ 		}
+-		if err := shared.Metrics().Register(s.took); err != nil {
++		if err := p.Metrics().Register(s.took); err != nil {
+ 			return nil, nil, err
+ 		}
+ 		if err := process.Upkeep(shared, s.upkeep()); err != nil {

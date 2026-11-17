@@ -1,0 +1,20 @@
+control: The Session is ready once a reload has loaded the list, the connections and the policy, and stays ready after a later reload whose policy fails
+removes: the Session reports ready once a reload has read the list, whether or not its policy loaded
+packages: ./process/sessions
+tests: TestTheSessionIsReadyOnceAReloadHasLoadedEverything TestTheSessionIsReadyOnceAReloadHasLoadedEverything/the_policy
+scheduled-count: no
+integration: yes
+
+diff --git a/process/sessions/sessions.go b/process/sessions/sessions.go
+--- a/process/sessions/sessions.go
++++ b/process/sessions/sessions.go
+@@ -207,6 +207,9 @@ func (s *Session) reload(ctx context.Context) error {
+ 		}
+ 	}
+ 	s.inForce.Store(&listed)
++	if !s.loaded.Swap(true) {
++		s.report(process.Ready, "")
++	}
+ 	if err = s.policies.Load(ctx, ids(listed)); err != nil {
+ 		err = fmt.Errorf("%w: %w", ErrPolicyNotLoaded, err)
+ 	} else if !s.loaded.Swap(true) {

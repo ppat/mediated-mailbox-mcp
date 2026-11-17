@@ -1,0 +1,19 @@
+control: A reload keeps an account's token while its own current credential equals the stored one and its client is unchanged
+removes: every reload makes each account's token again, so a token the provider refreshed is thrown away
+packages: ./process/connections
+tests: TestOverlappingRotationsEachLand TestATokenServesItsAccountUntilItsCredentialOrClientChanges
+scheduled-count: no
+integration: yes
+
+diff --git a/process/connections/connections.go b/process/connections/connections.go
+--- a/process/connections/connections.go
++++ b/process/connections/connections.go
+@@ -328,7 +328,7 @@ func (c *Connections) adopt(rec *record, a accounts.Account, opened map[string]c
+ 		rec.stored, rec.baseline, rec.token, rec.connected = stored, baselineOf(rec, same, plaintext), nil, false
+ 		return true
+ 	}
+-	if !clientChanged && rec.token != nil && (same || bytes.Equal(plaintext, rec.token.Credential())) {
++	if !clientChanged && rec.token != nil && (same || bytes.Equal(plaintext, rec.token.Credential())) && false {
+ 		rec.stored, rec.baseline, rec.connected = stored, baselineOf(rec, same, plaintext), true
+ 		return true
+ 	}

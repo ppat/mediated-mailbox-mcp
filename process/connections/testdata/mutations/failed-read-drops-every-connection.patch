@@ -1,0 +1,18 @@
+control: A read the connections cannot trust never replaces what is in force
+removes: a read that fails drops every connection, as if none had ever loaded
+packages: ./process/connections
+tests: TestAReloadConnectsWhatItReadAndKeepsWhatWasOnAFailedRead
+scheduled-count: no
+integration: yes
+
+diff --git a/process/connections/connections.go b/process/connections/connections.go
+--- a/process/connections/connections.go
++++ b/process/connections/connections.go
+@@ -186,6 +186,7 @@ func (c *Connections) Load(ctx context.Context, listed []accounts.Account) error
+ 	rows, clients, err := c.read(ctx, listed)
+ 	if err != nil {
+ 		c.log.Error("the connections were not reloaded, so the previous ones stay", slog.Any("error", err))
++		c.records.Store(&map[string]*record{})
+ 		return fmt.Errorf("%w: %w", ErrUntrustedRead, err)
+ 	}
+ 	opened := map[string]coremail.OAuthClient{}

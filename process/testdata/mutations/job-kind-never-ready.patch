@@ -7,7 +7,7 @@ scheduled-count: no
 diff --git a/process/serve.go b/process/serve.go
 --- a/process/serve.go
 +++ b/process/serve.go
-@@ -134,7 +134,7 @@
+@@ -136,7 +136,7 @@ func (p *proc) serveOn(ctx context.Context, app, probeListener net.Listener, s c
  		for _, l := range b.plans {
  			name := l.kind + " listing"
  			p.report(name, NotReady, "no listing has succeeded yet")

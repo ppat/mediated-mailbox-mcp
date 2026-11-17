@@ -7,7 +7,7 @@ scheduled-count: no
 diff --git a/provider/metrics.go b/provider/metrics.go
 --- a/provider/metrics.go
 +++ b/provider/metrics.go
-@@ -79,7 +79,7 @@ type Requests struct {
+@@ -85,7 +85,7 @@ type Requests struct {
  // compares the one against the other, so it holds no provider's number of its own.
  func (r Requests) Sent(account string, units int) {
  	r.metrics.hardCap.WithLabelValues(account, r.provider).Set(mail.HardCapFraction * r.ceiling)

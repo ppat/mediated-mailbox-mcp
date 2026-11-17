@@ -8,7 +8,7 @@ integration: yes
 diff --git a/provider/caller.go b/provider/caller.go
 --- a/provider/caller.go
 +++ b/provider/caller.go
-@@ -51,7 +51,7 @@ func NewCaller(adapters Adapters, reg prometheus.Registerer, pool tx.Beginner, o
+@@ -52,7 +52,7 @@ func NewCaller(adapters Adapters, reg prometheus.Registerer, pool tx.Beginner, o
  	if err != nil {
  		return nil, err
  	}

@@ -5,10 +5,9 @@ tests: TestPlacement
 scheduled-count: no
 
 diff --git a/testsupport/analysis/analysis.go b/testsupport/analysis/analysis.go
-index c3c36a0..fd8c7b6 100644
 --- a/testsupport/analysis/analysis.go
 +++ b/testsupport/analysis/analysis.go
-@@ -217,7 +217,7 @@ func (w *walker) walk(body ast.Node) {
+@@ -243,7 +243,7 @@ func (w *walker) walk(body ast.Node) {
  		}
  		if fn != nil {
  			if fd := w.decls[fn]; fd != nil {

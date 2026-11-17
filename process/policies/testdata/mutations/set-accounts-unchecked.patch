@@ -1,0 +1,22 @@
+control: The policies read the accounts each load names, and refuse an empty name
+removes: a load takes an empty account name, which no account's transaction can set
+packages: ./process/policies
+tests: TestEachLoadReadsTheAccountsItNames
+scheduled-count: no
+integration: yes
+
+diff --git a/process/policies/loader.go b/process/policies/loader.go
+--- a/process/policies/loader.go
++++ b/process/policies/loader.go
+@@ -82,10 +82,7 @@ func newLoader(db tx.Beginner, accounts []string, reg prometheus.Registerer, loo
+ // read for until then, so an account added here gets the policy that restricts every sender until a
+ // load reads its rules.
+ func (l *loader) setAccounts(accounts []string) error {
+-	read, err := readable(accounts)
+-	if err != nil {
+-		return err
+-	}
++	read := accounts
+ 	l.mu.Lock()
+ 	defer l.mu.Unlock()
+ 	l.accounts = read

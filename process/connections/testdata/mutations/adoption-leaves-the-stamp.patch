@@ -1,0 +1,21 @@
+control: A unit of work's end writes back only while the record's adoption stamp is the one it read with the credential, and the process's own write-back leaves the stamp as it is
+removes: an adopted value leaves the record's stamp as it was, so an end that read before the adoption writes its credential over the operator's
+packages: ./process/connections
+tests: TestAnAdoptionBetweenAnEndsReadAndItsWriteDiscardsTheWriteBack
+scheduled-count: no
+integration: yes
+
+diff --git a/process/connections/connections.go b/process/connections/connections.go
+--- a/process/connections/connections.go
++++ b/process/connections/connections.go
+@@ -343,9 +343,7 @@ func (c *Connections) adopt(rec *record, a accounts.Account, opened map[string]c
+ // adopted gives the record a new stamp for a value adopted from the account's row, when it is not
+ // the value the record already held. The caller holds the record's lock.
+ func (c *Connections) adopted(rec *record, same bool) {
+-	if !same {
+-		rec.stamp = c.adoptions.Add(1)
+-	}
++	_ = same
+ }
+ 
+ // baselineOf returns the plaintext of the stored bytes, which a value the record already knew keeps

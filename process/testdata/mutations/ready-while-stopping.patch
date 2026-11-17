@@ -7,7 +7,7 @@ scheduled-count: no
 diff --git a/process/serve.go b/process/serve.go
 --- a/process/serve.go
 +++ b/process/serve.go
-@@ -185,7 +185,6 @@
+@@ -188,7 +188,6 @@ func (p *proc) serveOn(ctx context.Context, app, probeListener net.Listener, s c
  	case <-p.failed:
  	case <-ctx.Done():
  	}

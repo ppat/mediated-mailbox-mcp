@@ -1,0 +1,18 @@
+control: Upkeep is asked for once per shared thing, while the process is built, and never by a program that runs one piece of work
+removes: a second upkeep for one shared thing is taken, so its first is never run
+packages: ./process
+tests: TestUpkeepIsRefusedOutsideABuildOfAProcessThatServes
+scheduled-count: no
+
+diff --git a/process/upkeep.go b/process/upkeep.go
+--- a/process/upkeep.go
++++ b/process/upkeep.go
+@@ -35,7 +35,7 @@ func Upkeep(p Capabilities, job schedule.Job) error {
+ 	case pr.built:
+ 		return fmt.Errorf("%s asked for upkeep once the process was built, and upkeep is asked for while it is built", c.name)
+ 	}
+-	for _, u := range pr.upkeep {
++	for _, u := range pr.upkeep[:0] {
+ 		if u.name == c.name {
+ 			return fmt.Errorf("%s asked for upkeep a second time", c.name)
+ 		}

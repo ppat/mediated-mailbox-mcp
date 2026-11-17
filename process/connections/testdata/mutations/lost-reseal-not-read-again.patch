@@ -1,0 +1,18 @@
+control: Delta sync's re-seal moves each credential and client secret to the current key by compare-and-set, and a value someone replaced is read again
+removes: a re-seal that lost to a replacement keeps the record's old value rather than reading the stored one again
+packages: ./process/connections
+tests: TestAStaleReSealIsRefused
+scheduled-count: no
+integration: yes
+
+diff --git a/process/connections/reseal.go b/process/connections/reseal.go
+--- a/process/connections/reseal.go
++++ b/process/connections/reseal.go
+@@ -77,7 +77,6 @@ func (c *Connections) resealAccount(ctx context.Context, account string, rec *re
+ 			stored, readErr := c.stored(ctx, account)
+ 			if readErr == nil {
+ 				rec.mu.Lock()
+-				c.readAgain(account, rec, stored)
+ 				adopted := rec.stored != nil
+ 				rec.mu.Unlock()
+ 				c.scan.Accounts[account] = stored != nil && (!adopted || c.onOldKey(stored))

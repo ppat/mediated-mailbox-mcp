@@ -1,0 +1,18 @@
+control: The policies' reload-failure series reads 1 while their latest load failed and 0 once one succeeds
+removes: a reload whose rows do not validate leaves the series as it was
+packages: ./process/policies
+tests: TestAnInvalidUpdateNeverDisplacesTheActivePolicy
+scheduled-count: no
+integration: yes
+
+diff --git a/process/policies/loader.go b/process/policies/loader.go
+--- a/process/policies/loader.go
++++ b/process/policies/loader.go
+@@ -140,7 +140,6 @@ func (l *loader) swap(ctx context.Context) error {
+ 	}
+ 	next, outcome := policy.Swap(l.active.Load().policy, rows)
+ 	if !outcome.Accepted() {
+-		l.metrics.failed()
+ 		return fmt.Errorf("%w: %s", ErrInvalidUpdate, strings.Join(outcome.Problems(), "; "))
+ 	}
+ 	prepared := make(map[string]classify.Policy, len(l.accounts))

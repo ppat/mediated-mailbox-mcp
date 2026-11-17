@@ -124,7 +124,7 @@ The demonstrations of the controls whose patches sit in `testsupport/`. [MUTATIO
 
 ## The analyser refuses a failing-case store write from inside a property
 
-- **Date · evidence:** 2026-09-22 · [pull request #142](https://github.com/ppat/mediated-mailbox-mcp/pull/142), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-11 under seeds the runner chose, after the analyser's rules came to cover `property.ReportReach`, with break (2)'s patch regenerated for the changed context · [pull request #345](https://github.com/ppat/mediated-mailbox-mcp/pull/345), and every break again on 2026-10-13 at RAPID_SEED=1, after the rename of the API server and the migrator moved the code, tests or patches the row rests on · [pull request #376](https://github.com/ppat/mediated-mailbox-mcp/pull/376), in run [38440944897](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/38440944897) of the `mutation-demonstrations` workflow
+- **Date · evidence:** 2026-09-22 · [pull request #142](https://github.com/ppat/mediated-mailbox-mcp/pull/142), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-11 under seeds the runner chose, after the analyser's rules came to cover `property.ReportReach`, with break (2)'s patch regenerated for the changed context · [pull request #345](https://github.com/ppat/mediated-mailbox-mcp/pull/345), and every break again on 2026-10-13 at RAPID_SEED=1, after the rename of the API server and the migrator moved the code, tests or patches the row rests on · [pull request #376](https://github.com/ppat/mediated-mailbox-mcp/pull/376), in run [38440944897](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/38440944897) of the `mutation-demonstrations` workflow, and every break again on 2026-11-17 at RAPID_SEED=1, after the Session, the connections and the unit of work in the process family changed the code, tests or patches the row rests on · [pull request #455](https://github.com/ppat/mediated-mailbox-mcp/pull/455)
 - **Break (1):** the store rule also fires on property.Report
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestPlacement`
 - **Break (2):** the store rule is removed
@@ -132,7 +132,7 @@ The demonstrations of the controls whose patches sit in `testsupport/`. [MUTATIO
 
 ## The analyser refuses a generator report reachable from a property
 
-- **Date · evidence:** 2026-09-22 · [pull request #142](https://github.com/ppat/mediated-mailbox-mcp/pull/142), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-11, breaks (5) to (7) added, under seeds the runner chose, after the report rule came to cover `property.ReportReach`, with break (4)'s patch regenerated for the changed context · [pull request #345](https://github.com/ppat/mediated-mailbox-mcp/pull/345), and every break again on 2026-10-13 at RAPID_SEED=1, after the rename of the API server and the migrator moved the code, tests or patches the row rests on · [pull request #376](https://github.com/ppat/mediated-mailbox-mcp/pull/376), in run [38440944897](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/38440944897) of the `mutation-demonstrations` workflow
+- **Date · evidence:** 2026-09-22 · [pull request #142](https://github.com/ppat/mediated-mailbox-mcp/pull/142), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-11, breaks (5) to (7) added, under seeds the runner chose, after the report rule came to cover `property.ReportReach`, with break (4)'s patch regenerated for the changed context · [pull request #345](https://github.com/ppat/mediated-mailbox-mcp/pull/345), and every break again on 2026-10-13 at RAPID_SEED=1, after the rename of the API server and the migrator moved the code, tests or patches the row rests on · [pull request #376](https://github.com/ppat/mediated-mailbox-mcp/pull/376), in run [38440944897](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/38440944897) of the `mutation-demonstrations` workflow, and every break again on 2026-11-17 at RAPID_SEED=1, after the Session, the connections and the unit of work in the process family changed the code, tests or patches the row rests on · [pull request #455](https://github.com/ppat/mediated-mailbox-mcp/pull/455)
 - **Break (1):** function literals assigned to variables are no longer followed, so a property held in a variable escapes
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestPlacement`
 - **Break (2):** calls to this package's own functions are no longer followed, so a report call inside a helper escapes
@@ -327,6 +327,22 @@ The demonstrations of the controls whose patches sit in `testsupport/`. [MUTATIO
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/postgres`:** `TestTheChainAppliesWithNoSuperuserStep`
 - **Break (2):** the chain runs as the superuser rather than the migration role
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/postgres`:** `TestTheChainAppliesWithNoSuperuserStep`, `TestTheChainFailsFromEmptyOnAMigrationOnlyTheCurrentShapeAccepts`, `TestTheChainFailsFromEmptyOnAMigrationOnlyTheCurrentShapeAccepts/current_shape`, `TestTheChainFailsFromEmptyOnAMigrationOnlyTheCurrentShapeAccepts/from_empty`
+
+## The connections' attach is called only from their own package and their re-seal only from delta sync's
+
+- **Date · evidence:** 2026-11-17 · [pull request #455](https://github.com/ppat/mediated-mailbox-mcp/pull/455), at RAPID_SEED=1
+- **Break (1):** the rule on the attach's callers is removed
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestCallers`
+- **Break (2):** every package of the process family may attach the connections, as may delta sync's whole job kind
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestCallers`
+- **Break (3):** a held method reached through an interface or a type parameter of its signature is not reported
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestCallers`
+- **Break (4):** any interface method named like a held method is reported, whatever its signature
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestCallers`
+- **Break (5):** the rule on the re-seal's callers is removed
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestCallers`
+- **Break (6):** test files are read too, so a test of the connections that re-seals is reported
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestCallers`
 
 ## The crash harness checks persistence after every crash, and replays the reduced sequence against PostgreSQL
 

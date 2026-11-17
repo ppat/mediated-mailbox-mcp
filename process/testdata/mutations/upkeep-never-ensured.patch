@@ -1,0 +1,18 @@
+control: A shared thing's upkeep runs on the process's scheduler, and the scheduler's series observe none of it
+removes: the scheduler is built and the upkeep jobs are never ensured, so no upkeep runs
+packages: ./process
+tests: TestAnOwnersUpkeepRunsOnTheSchedulerUnobserved TestAnOwnersUpkeepRunsOnTheSchedulerUnobserved/endpoints_alone TestAnOwnersUpkeepRunsOnTheSchedulerUnobserved/beside_a_job_kind
+scheduled-count: no
+
+diff --git a/process/upkeep.go b/process/upkeep.go
+--- a/process/upkeep.go
++++ b/process/upkeep.go
+@@ -137,7 +137,7 @@ func (p *proc) newScheduler(b built) (*schedule.Scheduler, error) {
+ 		observer.series = series
+ 	}
+ 	scheduler := schedule.New(p.run, observer)
+-	for _, u := range b.upkeep {
++	for _, u := range b.upkeep[:0] {
+ 		if err := scheduler.Ensure(schedule.Key{Kind: u.name}, u.job); err != nil {
+ 			scheduler.Stop()
+ 			return nil, err
