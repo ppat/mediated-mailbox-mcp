@@ -1,0 +1,18 @@
+control: The process's one scanner is built from its scanner section under the revision the process holds of that section
+removes: the scanner is built under the revision of the database section, so a change to the scanner leaves its revision as it was
+packages: ./process/scanner
+tests: TestTheScannerIsOnePerProcessUnderItsSectionsRevision TestTheRevisionFollowsTheScannerSectionAlone TestTheRevisionFollowsTheScannerSectionAlone/a_flag_changing_the_scanner TestTheRevisionFollowsTheScannerSectionAlone/a_flag_changing_a_job_kind's_section
+scheduled-count: no
+
+diff --git a/process/scanner/scanner.go b/process/scanner/scanner.go
+--- a/process/scanner/scanner.go
++++ b/process/scanner/scanner.go
+@@ -17,7 +17,7 @@ import (
+ )
+ 
+ // key is the top-level key the scanner part sits under, whose revision every verdict records.
+-const key = "scanner"
++const key = "sync"
+ 
+ // held is the slot the process keeps its one scanner in.
+ var held = process.NewOnePerProcess[scan.Scanner]("scanner")

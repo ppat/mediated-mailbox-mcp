@@ -63,7 +63,13 @@ func (m *Metrics) For(name string) (Requests, error) {
 	if !ok {
 		return Requests{}, fmt.Errorf("there is no adapter for provider %q", name)
 	}
-	return Requests{metrics: m, provider: name, ceiling: facts.Ceiling}, nil
+	return m.of(name, facts), nil
+}
+
+// of returns the series the adapter of the provider name counts and times its requests on, with the
+// account's hard cap set from the ceiling facts give.
+func (m *Metrics) of(name string, facts Facts) Requests {
+	return Requests{metrics: m, provider: name, ceiling: facts.Ceiling}
 }
 
 // Requests are one provider's view of the shared provider series, which its adapter reports every

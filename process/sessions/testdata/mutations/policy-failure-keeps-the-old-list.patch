@@ -1,0 +1,25 @@
+control: The Session reloads in one order, and keeps in force what a failed read could not read
+removes: a reload whose policy load fails keeps the list of the reload before it in force and tells no one, so an account no longer listed stays held
+packages: ./process/sessions
+tests: TestAFailedReloadKeepsWhatItCouldNotRead
+scheduled-count: no
+integration: yes
+
+diff --git a/process/sessions/sessions.go b/process/sessions/sessions.go
+--- a/process/sessions/sessions.go
++++ b/process/sessions/sessions.go
+@@ -206,10 +206,11 @@ func (s *Session) reload(ctx context.Context) error {
+ 			return fmt.Errorf("loading the connections: %w", err)
+ 		}
+ 	}
+-	s.inForce.Store(&listed)
+ 	if err = s.policies.Load(ctx, ids(listed)); err != nil {
+-		err = fmt.Errorf("%w: %w", ErrPolicyNotLoaded, err)
+-	} else if !s.loaded.Swap(true) {
++		return fmt.Errorf("%w: %w", ErrPolicyNotLoaded, err)
++	}
++	s.inForce.Store(&listed)
++	if !s.loaded.Swap(true) {
+ 		s.report(process.Ready, "")
+ 	}
+ 	for _, tell := range after {

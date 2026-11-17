@@ -9,6 +9,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
+	"github.com/ppat/mediated-mailbox-mcp/provider/internal/adapters"
 	"github.com/ppat/mediated-mailbox-mcp/provider/mail"
 	"github.com/ppat/mediated-mailbox-mcp/provider/ratelimit"
 	ratecore "github.com/ppat/mediated-mailbox-mcp/provider/ratelimit/core"
@@ -82,11 +83,11 @@ type Connection struct {
 // Mailbox returns the account's mailbox for one unit of work over conn. It is built over the
 // account's own rate limits, at its lowered target where it has one.
 func (c *Caller) Mailbox(conn Connection) (mail.Mailbox, error) {
-	facts, ok := FactsOf(conn.Provider)
-	entry, shipped := c.adapters.byName[conn.Provider]
-	if !ok || !shipped {
+	entry, ok := adapters.Lookup(c.adapters, conn.Provider)
+	if !ok {
 		return nil, fmt.Errorf("there is no adapter for provider %q", conn.Provider)
 	}
+	facts := entry.Facts
 	if conn.Token == nil {
 		return nil, errNoToken
 	}
@@ -98,15 +99,12 @@ func (c *Caller) Mailbox(conn Connection) (mail.Mailbox, error) {
 	if err != nil {
 		return nil, fmt.Errorf("building the rate limiter: %w", err)
 	}
-	requests, err := c.requests.For(conn.Provider)
-	if err != nil {
-		return nil, err
-	}
+	requests := c.requests.of(conn.Provider, facts)
 	build := func(t *Token) (adapterMailbox, error) {
-		if t.provider != conn.Provider {
-			return nil, fmt.Errorf("a token made for provider %q cannot call provider %q", t.provider, conn.Provider)
+		if made := adapters.ProviderOf(t); made != conn.Provider {
+			return nil, fmt.Errorf("a token made for provider %q cannot call provider %q", made, conn.Provider)
 		}
-		return entry.mailbox(conn.Account, t.source, requests)
+		return entry.Mailbox(conn.Account, adapters.SourceOf(t), requests)
 	}
 	port, err := build(conn.Token)
 	if err != nil {

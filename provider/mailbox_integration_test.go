@@ -15,6 +15,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 
 	coremail "github.com/ppat/mediated-mailbox-mcp/core/mail"
+	"github.com/ppat/mediated-mailbox-mcp/provider/internal/adapters"
 	"github.com/ppat/mediated-mailbox-mcp/provider/mail"
 	"github.com/ppat/mediated-mailbox-mcp/provider/mail/fake"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
@@ -63,9 +64,10 @@ func (p *provider) called(credential string) int {
 // name, whose facts the caller reads, calling p. As a real adapter does, it reports each call that
 // reaches the provider to the series the caller hands it, at the call's cost.
 func (p *provider) adapters() Adapters {
-	return Adapters{byName: map[string]adapter{gmailName: {
-		token: func(_ coremail.OAuthClient, credential []byte) tokenSource { return testToken(credential) },
-		mailbox: func(account string, source tokenSource, requests Requests) (adapterMailbox, error) {
+	return adapters.New(map[string]adapters.Adapter{gmailName: {
+		Facts: gmailFacts(),
+		Token: func(_ coremail.OAuthClient, credential []byte) tokenSource { return testToken(credential) },
+		Mailbox: func(account string, source tokenSource, requests adapters.Requests) (adapterMailbox, error) {
 			credential := string(source.Credential())
 			return fake.Throttle(p.fake, func(c fake.Call) error {
 				p.mu.Lock()
@@ -78,7 +80,7 @@ func (p *provider) adapters() Adapters {
 				return p.schedule(c)
 			}, time.Now), nil
 		},
-	}}}
+	}})
 }
 
 // token makes a token holding credential through the adapters.
@@ -303,10 +305,11 @@ func TestACallIsCutOffAtTheCallersTimeoutAsTheProvidersFailure(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	a := Adapters{byName: map[string]adapter{gmailName: {
-		token:   func(_ coremail.OAuthClient, credential []byte) tokenSource { return testToken(credential) },
-		mailbox: func(string, tokenSource, Requests) (adapterMailbox, error) { return hanging{f}, nil },
-	}}}
+	a := adapters.New(map[string]adapters.Adapter{gmailName: {
+		Facts:   gmailFacts(),
+		Token:   func(_ coremail.OAuthClient, credential []byte) tokenSource { return testToken(credential) },
+		Mailbox: func(string, tokenSource, adapters.Requests) (adapterMailbox, error) { return hanging{f}, nil },
+	}})
 	m := open(t, caller(t, a, Batch, 300*time.Millisecond), Connection{Account: account, Token: token(t, a, "good")})
 	if _, err := m.ListThreads(t.Context(), coremail.All(), ""); err != nil {
 		t.Fatal(err)
@@ -594,10 +597,12 @@ func TestEveryOperationIsLeasedAtItsCostReportedAndTriedOnceMore(t *testing.T) {
 				fake.Message{Metadata: coremail.MessageMetadata{ID: "a", ThreadID: "t1"}, Body: coremail.MessageBody{HTML: "<p>a</p>"}},
 				fake.Message{Metadata: coremail.MessageMetadata{ID: "b", ThreadID: "t1"}, Body: coremail.MessageBody{HTML: "<p>b</p>"}})
 			base := p.adapters()
-			a := Adapters{byName: map[string]adapter{gmailName: {
-				token: base.byName[gmailName].token,
-				mailbox: func(account string, source tokenSource, requests Requests) (adapterMailbox, error) {
-					inner, err := base.byName[gmailName].mailbox(account, source, requests)
+			shipped, _ := adapters.Lookup(base, gmailName)
+			a := adapters.New(map[string]adapters.Adapter{gmailName: {
+				Facts: shipped.Facts,
+				Token: shipped.Token,
+				Mailbox: func(account string, source tokenSource, requests adapters.Requests) (adapterMailbox, error) {
+					inner, err := shipped.Mailbox(account, source, requests)
 					if err != nil {
 						return nil, err
 					}
@@ -607,7 +612,7 @@ func TestEveryOperationIsLeasedAtItsCostReportedAndTriedOnceMore(t *testing.T) {
 					}
 					return priced{throttled}, nil
 				},
-			}}}
+			}})
 			again := func(context.Context) (*Token, error) { return token(t, a, "good"), nil }
 			c := caller(t, a, Batch, time.Minute)
 

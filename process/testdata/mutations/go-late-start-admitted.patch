@@ -7,7 +7,7 @@ scheduled-count: no
 diff --git a/process/process.go b/process/process.go
 --- a/process/process.go
 +++ b/process/process.go
-@@ -144,9 +144,6 @@
+@@ -154,9 +154,6 @@ func (p *proc) notReady() (string, bool) {
  func (p *proc) goroutine(owner, name string, run func(context.Context)) bool {
  	p.goMu.Lock()
  	defer p.goMu.Unlock()

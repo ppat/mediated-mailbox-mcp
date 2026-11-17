@@ -1,0 +1,19 @@
+control: No unit of work begins on an account the list in force does not hold, that has no connection, or whose lowered target could not be read
+removes: a unit of work begins on any account the connections loaded, the list in force not consulted
+packages: ./process/connections
+tests: TestNoUnitOfWorkBeginsOnAnAccountNotInForce
+scheduled-count: no
+integration: yes
+
+diff --git a/process/connections/work.go b/process/connections/work.go
+--- a/process/connections/work.go
++++ b/process/connections/work.go
+@@ -48,7 +48,7 @@ type Work struct {
+ // error an account whose lowered target could not be read, so no unit of work begins on it while every
+ // other account's go on (ADR-0024, ADR-0090).
+ func (c *Connections) Begin(account string, caller *Caller, until time.Time) (*Work, error) {
+-	if _, listed := c.session.Listed(account); !listed {
++	if _, listed := c.session.Listed(account); !listed && false {
+ 		return nil, fmt.Errorf("account %s is not in the list in force: %w", account, ErrNotConnected)
+ 	}
+ 	rec, ok := (*c.records.Load())[account]

@@ -1,0 +1,18 @@
+control: The policies' shared load answers a caller only with a load that started after it asked, shared with the callers waiting when it started
+removes: a load runs under the context of the caller that started it, so a caller that stops waiting cancels the load the others wait on
+packages: ./process/policies
+tests: TestACallerThatStopsWaitingLeavesTheLoadRunning
+scheduled-count: no
+
+diff --git a/process/policies/shared.go b/process/policies/shared.go
+--- a/process/policies/shared.go
++++ b/process/policies/shared.go
+@@ -57,7 +57,7 @@ func (c *shared) load(ctx context.Context) error {
+ 		r = &round{done: make(chan struct{})}
+ 		c.next = r
+ 		if !c.running {
+-			if c.start(loadName, c.run) {
++			if c.start(loadName, func(context.Context) { c.run(ctx) }) {
+ 				c.running = true
+ 			} else {
+ 				c.next = nil

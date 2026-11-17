@@ -1,0 +1,19 @@
+control: Each reload of the Session its caller did not cancel is timed
+removes: a reload that fails is not timed
+packages: ./process/sessions
+tests: TestEachReloadItsCallerDidNotCancelIsTimed
+scheduled-count: no
+integration: yes
+
+diff --git a/process/sessions/sessions.go b/process/sessions/sessions.go
+--- a/process/sessions/sessions.go
++++ b/process/sessions/sessions.go
+@@ -188,7 +188,7 @@ func (s *Session) Reload(ctx context.Context) error {
+ 	defer s.reloading.Unlock()
+ 	start := time.Now()
+ 	err := s.reload(ctx)
+-	if !errors.Is(err, context.Canceled) {
++	if err == nil {
+ 		s.took.Observe(time.Since(start).Seconds())
+ 	}
+ 	return err

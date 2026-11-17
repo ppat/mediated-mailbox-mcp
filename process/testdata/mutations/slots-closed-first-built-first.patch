@@ -7,7 +7,7 @@ scheduled-count: no
 diff --git a/process/process.go b/process/process.go
 --- a/process/process.go
 +++ b/process/process.go
-@@ -184,7 +184,7 @@
+@@ -194,7 +194,7 @@ func (p *proc) closeSlots() {
  	closers := p.closers
  	p.closers = nil
  	p.slotsMu.Unlock()

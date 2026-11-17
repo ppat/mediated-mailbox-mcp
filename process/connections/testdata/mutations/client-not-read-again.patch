@@ -1,0 +1,19 @@
+control: An account is connected through the OAuth client it names, and an account that names none through none
+removes: a credential read again after a refusal is paired with the client the record held, not the one the account's row names now
+packages: ./process/connections
+tests: TestAReadAgainMakesTheTokenFromTheClientTheAccountMovedTo
+scheduled-count: no
+integration: yes
+
+diff --git a/process/connections/work.go b/process/connections/work.go
+--- a/process/connections/work.go
++++ b/process/connections/work.go
+@@ -109,7 +109,7 @@ func (w *Work) again(ctx context.Context) (*provider.Token, error) {
+ 	defer rec.mu.Unlock()
+ 	name := rec.clientName
+ 	if listed != nil {
+-		rec.provider, name = listed.AccountProvider, listed.OauthClient.String
++		rec.provider = listed.AccountProvider
+ 	}
+ 	opened := map[string]coremail.OAuthClient{}
+ 	for _, cl := range rows {

@@ -1,0 +1,29 @@
+control: A process holds one Session, built from the process with its own capabilities, its reload unobserved by the scheduler's series
+removes: each part that asks gets a Session built for it, so the process holds more than one
+packages: ./process/sessions
+tests: TestTheSessionIsOnePerProcessBuiltFromTheProcess
+scheduled-count: no
+integration: yes
+
+diff --git a/process/sessions/sessions.go b/process/sessions/sessions.go
+--- a/process/sessions/sessions.go
++++ b/process/sessions/sessions.go
+@@ -60,6 +60,9 @@ type Connections interface {
+ // held is the slot the process keeps its one Session in.
+ var held = process.NewOnePerProcess[*Session]("session")
+ 
++// fresh holds nothing across calls.
++func fresh() *process.OnePerProcess[*Session] { return process.NewOnePerProcess[*Session]("session") }
++
+ // Session is all the user state one process holds. It is safe for concurrent use.
+ type Session struct {
+ 	pool     *pgxpool.Pool
+@@ -87,7 +90,7 @@ type Session struct {
+ // first reload runs once the process serves, on the process's scheduler, and then on the interval c's
+ // accounts part sets. It reports not ready until a reload has loaded everything once.
+ func Get(ctx context.Context, p process.Capabilities, c config.HasAccounts) (*Session, error) {
+-	return held.Get(ctx, p, func(ctx context.Context, shared process.Capabilities) (*Session, func(), error) {
++	return fresh().Get(ctx, p, func(ctx context.Context, shared process.Capabilities) (*Session, func(), error) {
+ 		pool, err := database.Get(ctx, shared, c)
+ 		if err != nil {
+ 			return nil, nil, err

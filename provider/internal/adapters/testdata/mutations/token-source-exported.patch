@@ -1,0 +1,42 @@
+control: A list of adapters and a token expose nothing a program could add an adapter or reach a token's source through
+removes: a token's source is an exported field, so code holding a token reaches the adapter's source
+packages: ./provider/internal/adapters
+tests: TestAListAndATokenExposeNoField
+scheduled-count: no
+
+diff --git a/provider/internal/adapters/adapters.go b/provider/internal/adapters/adapters.go
+--- a/provider/internal/adapters/adapters.go
++++ b/provider/internal/adapters/adapters.go
+@@ -91,7 +91,7 @@ func (l List) Facts(name string) (Facts, bool) {
+ // the connections read at the end of each unit of work. It writes nothing (ADR-0082, ADR-0097).
+ type Token struct {
+ 	provider string
+-	source   TokenSource
++	Source   TokenSource
+ }
+ 
+ // NewToken makes the token of an account of the provider name, from the OAuth client the account
+@@ -102,19 +102,19 @@ func (l List) NewToken(name string, client coremail.OAuthClient, credential []by
+ 	if !ok {
+ 		return nil, fmt.Errorf("there is no adapter for provider %q", name)
+ 	}
+-	return &Token{provider: name, source: a.Token(client, credential)}, nil
++	return &Token{provider: name, Source: a.Token(client, credential)}, nil
+ }
+ 
+ // Credential returns the credential the token holds now.
+-func (t *Token) Credential() []byte { return t.source.Credential() }
++func (t *Token) Credential() []byte { return t.Source.Credential() }
+ 
+ // LastAttempt returns the token's latest attempt at its provider's authentication endpoint and its
+ // outcome, or the zero value when it has made none (ADR-0097).
+-func (t *Token) LastAttempt() coremail.AuthAttempt { return t.source.LastAttempt() }
++func (t *Token) LastAttempt() coremail.AuthAttempt { return t.Source.LastAttempt() }
+ 
+ // ProviderOf returns the provider the token was made for.
+ func ProviderOf(t *Token) string { return t.provider }
+ 
+ // SourceOf returns the adapter's token source the token holds, which the adapter's mailbox is built
+ // over.
+-func SourceOf(t *Token) TokenSource { return t.source }
++func SourceOf(t *Token) TokenSource { return t.Source }

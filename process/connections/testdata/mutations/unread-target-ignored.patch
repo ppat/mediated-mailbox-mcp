@@ -1,0 +1,19 @@
+control: No unit of work begins on an account the list in force does not hold, that has no connection, or whose lowered target could not be read
+removes: a unit of work begins on an account whose lowered target could not be read, at the default target
+packages: ./process/connections
+tests: TestEachAccountLeasesUnderItsLoweredTarget
+scheduled-count: no
+integration: yes
+
+diff --git a/process/connections/work.go b/process/connections/work.go
+--- a/process/connections/work.go
++++ b/process/connections/work.go
+@@ -64,7 +64,7 @@ func (c *Connections) Begin(account string, caller *Caller, until time.Time) (*W
+ 		return nil, fmt.Errorf("account %s: %w", account, ErrNotConnected)
+ 	case !read:
+ 		return nil, fmt.Errorf("no lowered target was read for account %s, since no reload found it connected", account)
+-	case targetErr != nil:
++	case targetErr != nil && false:
+ 		return nil, targetErr
+ 	}
+ 	w := &Work{conns: c, account: account, record: rec, pool: caller.pool, token: token, client: client}

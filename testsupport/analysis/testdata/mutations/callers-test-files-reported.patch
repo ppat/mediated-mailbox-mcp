@@ -1,0 +1,18 @@
+control: The connections' attach is called only from their own package and their re-seal only from delta sync's
+removes: test files are read too, so a test of the connections that re-seals is reported
+packages: ./testsupport/analysis
+tests: TestCallers
+scheduled-count: no
+
+diff --git a/testsupport/analysis/callers.go b/testsupport/analysis/callers.go
+--- a/testsupport/analysis/callers.go
++++ b/testsupport/analysis/callers.go
+@@ -67,7 +67,7 @@ func runCallers(pass *analysis.Pass) (any, error) {
+ 	for _, file := range pass.Files {
+ 		// A file not named .go is one the go command generates, such as a test binary's main.
+ 		base := filepath.Base(pass.Fset.File(file.Pos()).Name())
+-		if !strings.HasSuffix(base, ".go") || strings.HasSuffix(base, "_test.go") {
++		if !strings.HasSuffix(base, ".go") {
+ 			continue
+ 		}
+ 		ast.Inspect(file, func(n ast.Node) bool {

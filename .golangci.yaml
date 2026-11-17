@@ -467,6 +467,131 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
           - "github.com/prometheus/client_golang/prometheus$"
 
+        # The reading of the list of accounts, every file, a package of the process family. It reads the listing,
+        # which belongs to no account, and holds no credential. db/check plans its statement under the application
+        # user, as it does every list's (ADR-0066, ADR-0091, ADR-0143). Its tests read through a pool as that user.
+        accounts:
+          list-mode: strict
+          files:
+          - "${base-path}/process/accounts/**.go"
+          allow:
+          - "$gostd"
+          - "github.com/google/go-cmp/cmp$"
+          - "github.com/jackc/pgx/v5$"
+          - "github.com/jackc/pgx/v5/"
+          - "github.com/ppat/mediated-mailbox-mcp/db/accounts$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/accounts$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
+
+        # Each account's policy, every file, a package of the process family. It reads the policy tables through
+        # core/policy and prepares each account's policy for the classifier with the IDNA conversions and the
+        # public suffix list. client_golang is admitted for the reload-failure series and the load's duration
+        # (ADR-0041, ADR-0076, ADR-0077, ADR-0125). db/check plans the statements of the subsection it names under
+        # the application user (ADR-0066, ADR-0143).
+        policies:
+          list-mode: strict
+          files:
+          - "${base-path}/process/policies/**.go"
+          allow:
+          - "$gostd"
+          - "github.com/google/go-cmp/cmp$"
+          - "github.com/jackc/pgx/v5$"
+          - "github.com/jackc/pgx/v5/"
+          - "github.com/ppat/mediated-mailbox-mcp/core/classify$"
+          - "github.com/ppat/mediated-mailbox-mcp/core/policy$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/policyrules$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/policies$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
+          - "github.com/prometheus/client_golang/prometheus$"
+          - "golang.org/x/net/idna$"
+          - "golang.org/x/net/publicsuffix$"
+
+        # The Session, every file, a package of the process family. It imports the reading of the list and the
+        # policies, and no credential and no provider code, and never the connections, which attach to it through a
+        # small interface, so code that holds the Session reaches a credential only through the connections' own
+        # package (ADR-0117, ADR-0142). It reloads on the process's scheduler and opens the process's pool. Its tests
+        # run it in a process over the test database.
+        sessions:
+          list-mode: strict
+          files:
+          - "${base-path}/process/sessions/**.go"
+          allow:
+          - "$gostd"
+          - "github.com/google/go-cmp/cmp$"
+          - "github.com/jackc/pgx/v5$"
+          - "github.com/jackc/pgx/v5/pgxpool$"
+          - "github.com/ppat/mediated-mailbox-mcp/core/classify$"
+          - "github.com/ppat/mediated-mailbox-mcp/core/config$"
+          - "github.com/ppat/mediated-mailbox-mcp/process$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/accounts$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/database$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/policies$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/schedule$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/sessions$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
+          - "github.com/prometheus/client_golang/prometheus$"
+
+        # Each account's connection to its provider, every file, a package of the process family, and the one package
+        # of the family admitted the opening half of the credential family. It opens each stored credential and
+        # client secret, makes each account's token and each unit's mailbox through the provider library's calling
+        # side, and writes a rotated credential and a re-sealed value back, as the application user, which db/check
+        # plans its statements under (ADR-0066, ADR-0081, ADR-0089, ADR-0092, ADR-0143). It admits no adapter and no
+        # rate limiter. Its tests run it in a process over the provider fake and the test database.
+        connections:
+          list-mode: strict
+          files:
+          - "${base-path}/process/connections/**.go"
+          allow:
+          - "$gostd"
+          - "github.com/google/go-cmp/cmp$"
+          - "github.com/jackc/pgx/v5$"
+          - "github.com/jackc/pgx/v5/"
+          - "github.com/ppat/mediated-mailbox-mcp/core/config$"
+          - "github.com/ppat/mediated-mailbox-mcp/core/mail$"
+          - "github.com/ppat/mediated-mailbox-mcp/credential/open$"
+          - "github.com/ppat/mediated-mailbox-mcp/credential/seal$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/accounts$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/accountstate$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/accountstate/credential$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/oauthclients$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/oauthclients/secret$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
+          - "github.com/ppat/mediated-mailbox-mcp/process$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/accounts$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/connections$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/database$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/schedule$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/sessions$"
+          - "github.com/ppat/mediated-mailbox-mcp/provider$"
+          - "github.com/ppat/mediated-mailbox-mcp/provider/mail$"
+          - "github.com/ppat/mediated-mailbox-mcp/provider/mail/fake$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
+
+        # The process's one scanner and the body-processing histogram, every file, a package of the process family.
+        # It builds the scanner through core/scan from the scanner part under the revision the process holds
+        # (ADR-0120, ADR-0125). Its tests run it in a process.
+        scanner:
+          list-mode: strict
+          files:
+          - "${base-path}/process/scanner/**.go"
+          allow:
+          - "$gostd"
+          - "github.com/google/go-cmp/cmp$"
+          - "github.com/ppat/mediated-mailbox-mcp/core/config$"
+          - "github.com/ppat/mediated-mailbox-mcp/core/scan$"
+          - "github.com/ppat/mediated-mailbox-mcp/process$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/schedule$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/scanner$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
+          - "github.com/prometheus/client_golang/prometheus$"
+
         # The runtime measurements, every file, a package of the process family. It registers the Go collector with
         # the runtime metrics ADR-0125 adds, and the process collector, on the registry a composition root passes in.
         runtimemetrics:
@@ -623,6 +748,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/core/"
           - "github.com/ppat/mediated-mailbox-mcp/provider/consent$"
           - "github.com/ppat/mediated-mailbox-mcp/provider/google$"
+          - "github.com/ppat/mediated-mailbox-mcp/provider/internal/adapters$"
           - "github.com/ppat/mediated-mailbox-mcp/provider/mail$"
           - "github.com/ppat/mediated-mailbox-mcp/provider/mail/contract$"
           - "github.com/ppat/mediated-mailbox-mcp/provider/mail/fake$"
@@ -649,6 +775,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
           - "github.com/ppat/mediated-mailbox-mcp/provider$"
           - "github.com/ppat/mediated-mailbox-mcp/provider/google$"
+          - "github.com/ppat/mediated-mailbox-mcp/provider/internal/adapters$"
           - "github.com/ppat/mediated-mailbox-mcp/provider/mail$"
           - "github.com/ppat/mediated-mailbox-mcp/provider/mail/fake$"
           - "github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail$"
@@ -695,6 +822,7 @@ linters:
           - "github.com/google/go-cmp/cmp$"
           - "github.com/ppat/mediated-mailbox-mcp/core/"
           - "github.com/ppat/mediated-mailbox-mcp/provider/google$"
+          - "github.com/ppat/mediated-mailbox-mcp/provider/internal/adapters$"
           - "github.com/ppat/mediated-mailbox-mcp/provider/mail$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
@@ -1357,19 +1485,25 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/api/"
           - "github.com/ppat/mediated-mailbox-mcp/migrator/"
           - "github.com/ppat/mediated-mailbox-mcp/process$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/accounts$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/connections$"
           - "github.com/ppat/mediated-mailbox-mcp/process/database$"
           - "github.com/ppat/mediated-mailbox-mcp/process/database/core$"
           - "github.com/ppat/mediated-mailbox-mcp/process/host$"
           - "github.com/ppat/mediated-mailbox-mcp/process/logging$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/policies$"
           - "github.com/ppat/mediated-mailbox-mcp/process/probes$"
           - "github.com/ppat/mediated-mailbox-mcp/process/runtimemetrics$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/scanner$"
           - "github.com/ppat/mediated-mailbox-mcp/process/schedule$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/sessions$"
           - "github.com/ppat/mediated-mailbox-mcp/process/settings$"
           - "github.com/ppat/mediated-mailbox-mcp/process/version$"
           - "github.com/ppat/mediated-mailbox-mcp/provider$"
           - "github.com/ppat/mediated-mailbox-mcp/provider/calendar/caldav$"
           - "github.com/ppat/mediated-mailbox-mcp/provider/calendar/google$"
           - "github.com/ppat/mediated-mailbox-mcp/provider/consent$"
+          - "github.com/ppat/mediated-mailbox-mcp/provider/internal/adapters$"
           - "github.com/ppat/mediated-mailbox-mcp/provider/mail$"
           - "github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail$"
           - "github.com/ppat/mediated-mailbox-mcp/provider/google$"
@@ -1429,13 +1563,18 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/api/"
           - "github.com/ppat/mediated-mailbox-mcp/migrator/"
           - "github.com/ppat/mediated-mailbox-mcp/process$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/accounts$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/connections$"
           - "github.com/ppat/mediated-mailbox-mcp/process/database$"
           - "github.com/ppat/mediated-mailbox-mcp/process/database/core$"
           - "github.com/ppat/mediated-mailbox-mcp/process/host$"
           - "github.com/ppat/mediated-mailbox-mcp/process/logging$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/policies$"
           - "github.com/ppat/mediated-mailbox-mcp/process/probes$"
           - "github.com/ppat/mediated-mailbox-mcp/process/runtimemetrics$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/scanner$"
           - "github.com/ppat/mediated-mailbox-mcp/process/schedule$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/sessions$"
           - "github.com/ppat/mediated-mailbox-mcp/process/settings$"
           - "github.com/ppat/mediated-mailbox-mcp/process/version$"
           - "github.com/ppat/mediated-mailbox-mcp/provider$"
@@ -1483,12 +1622,17 @@ linters:
           - "!${base-path}/migrator/**"
           - "!${base-path}/packaging/**"
           - "!${base-path}/process/*.go"
+          - "!${base-path}/process/accounts/**"
+          - "!${base-path}/process/connections/**"
           - "!${base-path}/process/database/**"
           - "!${base-path}/process/host/**"
           - "!${base-path}/process/logging/**"
+          - "!${base-path}/process/policies/**"
           - "!${base-path}/process/probes/**"
           - "!${base-path}/process/runtimemetrics/**"
+          - "!${base-path}/process/scanner/**"
           - "!${base-path}/process/schedule/**"
+          - "!${base-path}/process/sessions/**"
           - "!${base-path}/process/settings/**"
           - "!${base-path}/process/version/**"
           - "!${base-path}/provider/**"

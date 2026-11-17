@@ -1,0 +1,19 @@
+control: The Session's reload is tried again within seconds while no reload has loaded everything, and at the next interval once one has
+removes: a reload that fails once one has loaded everything is answered as failed, so the scheduler tries it again after its backoff rather than at the next interval
+packages: ./process/sessions
+tests: TestOnceLoadedAFailedReloadWaitsForTheNextInterval
+scheduled-count: no
+integration: yes
+
+diff --git a/process/sessions/sessions.go b/process/sessions/sessions.go
+--- a/process/sessions/sessions.go
++++ b/process/sessions/sessions.go
+@@ -127,7 +127,7 @@ func (s *Session) upkeep() schedule.Job {
+ 		Logger:   s.logger,
+ 		Run: func(ctx context.Context, _ schedule.Ask) error {
+ 			err := s.Reload(ctx)
+-			if err == nil || ctx.Err() != nil || !s.loaded.Load() {
++			if err == nil || ctx.Err() != nil || s.loaded.Load() || true {
+ 				return err
+ 			}
+ 			s.logger.Error("the Session was not reloaded in full, so what it held stays in force", "error", err)

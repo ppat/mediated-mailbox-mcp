@@ -7,7 +7,7 @@ scheduled-count: no
 diff --git a/process/process.go b/process/process.go
 --- a/process/process.go
 +++ b/process/process.go
-@@ -172,7 +172,6 @@
+@@ -182,7 +182,6 @@ func (p *proc) joinGoroutines() error {
  	p.goMu.Lock()
  	p.joining = true
  	p.goMu.Unlock()

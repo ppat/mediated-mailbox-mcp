@@ -1,0 +1,23 @@
+control: The load concurrent body requests share runs on the process's goroutines, and a load that cannot run fails its callers
+removes: a load that panics answers none of its callers, so each waits for an answer that never comes
+packages: ./process/policies
+tests: TestAPanickedLoadFailsItsCallers
+scheduled-count: no
+
+diff --git a/process/policies/shared.go b/process/policies/shared.go
+--- a/process/policies/shared.go
++++ b/process/policies/shared.go
+@@ -90,12 +90,7 @@ func (c *shared) run(ctx context.Context) {
+ 		c.next = nil
+ 		c.running = false
+ 		c.mu.Unlock()
+-		for _, w := range []*round{r, waiting} {
+-			if w != nil {
+-				w.err = ErrPanicked
+-				close(w.done)
+-			}
+-		}
++		_ = waiting
+ 		panic(p)
+ 	}()
+ 	for {

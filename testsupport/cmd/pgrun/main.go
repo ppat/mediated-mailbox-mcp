@@ -1,7 +1,8 @@
 // Command pgrun runs a command against one PostgreSQL container started for it.
 //
 // It starts the container with the ordinary docker command (ADR-0068), creates the roles with
-// db/bootstrap as the superuser, applies the migration chain the migrator's binary embeds from empty
+// db/bootstrap as the superuser, gives the migration role and the application user the superuser's
+// password, applies the migration chain the migrator's binary embeds from empty
 // as the migration role, through the code the migrator applies it with (ADR-0139), into a template
 // database with nothing run in it before the chain, runs the command with the connection details
 // exported, and removes the container. Each integration test package then creates its own database
@@ -186,9 +187,13 @@ func prepareTemplate(ctx context.Context, admin, migrate, password string) error
 	if err := postgres.ExecFile(ctx, conn, "db/bootstrap/roles.sql"); err != nil {
 		return err
 	}
-	// The bootstrap sets no credentials, so the test run gives the migration role its own.
+	// The bootstrap sets no credentials, so the test run gives the migration role and the application
+	// user the superuser's password, once for the whole run, since a role belongs to the cluster.
 	if _, err := conn.Exec(ctx, "ALTER ROLE "+pgx.Identifier{postgres.MigrationRole}.Sanitize()+" PASSWORD '"+password+"'"); err != nil {
 		return fmt.Errorf("the bootstrap must create the migration role %s: %w", postgres.MigrationRole, err)
+	}
+	if _, err := conn.Exec(ctx, "ALTER ROLE "+pgx.Identifier{postgres.ApplicationUser}.Sanitize()+" PASSWORD '"+password+"'"); err != nil {
+		return fmt.Errorf("the bootstrap must create the application user %s: %w", postgres.ApplicationUser, err)
 	}
 	if _, err := conn.Exec(ctx, "CREATE TABLE "+postgres.RegistryTable+" (package_dir text NOT NULL, database text PRIMARY KEY, created_at timestamptz NOT NULL DEFAULT clock_timestamp())"); err != nil {
 		return err

@@ -1,0 +1,21 @@
+control: Write-backs, reloads, re-reads and the re-seal take turns under one lock of the connections, so the process's own writes each land and none is read back as someone else's
+removes: a reload reads the rows before it takes the connections' lock, so a read made while a write-back waits at the database is adopted after it as someone else's value and the token is made again
+packages: ./process/connections
+tests: TestAReloadDuringAWriteBackWaitsForIt
+scheduled-count: no
+integration: yes
+
+diff --git a/process/connections/connections.go b/process/connections/connections.go
+--- a/process/connections/connections.go
++++ b/process/connections/connections.go
+@@ -200,9 +200,9 @@ type row struct {
+ // Each connected account's lowered rate target is read again, and one that cannot be read is logged and
+ // kept, so no unit of work begins on that account until a load reads it (ADR-0024).
+ func (c *Connections) Load(ctx context.Context, listed []accounts.Account) error {
++	rows, clients, err := c.read(ctx, listed)
+ 	c.mu.Lock()
+ 	defer c.mu.Unlock()
+-	rows, clients, err := c.read(ctx, listed)
+ 	if err != nil {
+ 		c.log.Error("the connections were not reloaded, so the previous ones stay", slog.Any("error", err))
+ 		return fmt.Errorf("%w: %w", ErrUntrustedRead, err)

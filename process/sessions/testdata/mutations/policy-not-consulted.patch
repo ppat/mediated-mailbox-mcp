@@ -1,0 +1,19 @@
+control: An account is workable only once it is listed, connected and its policy loaded
+removes: an account in force is held as having a policy whether or not a load read its rules
+packages: ./process/sessions
+tests: TestAFailedReloadKeepsWhatItCouldNotRead
+scheduled-count: no
+integration: yes
+
+diff --git a/process/sessions/sessions.go b/process/sessions/sessions.go
+--- a/process/sessions/sessions.go
++++ b/process/sessions/sessions.go
+@@ -293,7 +293,7 @@ func (s *Session) with(also func(string) bool) []string {
+ 	snapshot := s.policies.Snapshot()
+ 	var out []string
+ 	for _, a := range s.Accounts() {
+-		if snapshot.Has(a.ID) && also(a.ID) {
++		if (snapshot.Has(a.ID) || true) && also(a.ID) {
+ 			out = append(out, a.ID)
+ 		}
+ 	}

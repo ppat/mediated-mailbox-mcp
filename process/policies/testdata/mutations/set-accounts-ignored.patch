@@ -1,0 +1,20 @@
+control: The policies read the accounts each load names, and refuse an empty name
+removes: a load leaves the accounts the policies read as they were, so a load naming other accounts reads the old ones
+packages: ./process/policies
+tests: TestEachLoadReadsTheAccountsItNames
+scheduled-count: no
+integration: yes
+
+
+diff --git a/process/policies/loader.go b/process/policies/loader.go
+--- a/process/policies/loader.go
++++ b/process/policies/loader.go
+@@ -88,7 +88,7 @@ func (l *loader) setAccounts(accounts []string) error {
+ 	}
+ 	l.mu.Lock()
+ 	defer l.mu.Unlock()
+-	l.accounts = read
++	_ = read
+ 	return nil
+ }
+ 

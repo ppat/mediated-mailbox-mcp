@@ -1,0 +1,19 @@
+control: An account whose own rules the policies did not read is held to the policy that restricts every sender
+removes: the accounts the policies read are held to the policy that restricts every sender
+packages: ./process/policies
+tests: TestTheLoaderComposesEachAccountsPolicy TestAnEmptyPolicyReadWholeIsAccepted TestAnInvalidUpdateNeverDisplacesTheActivePolicy TestAReloadItsCallerCancelledRaisesNoAlarm TestAFailedReadNeverReplacesTheActivePolicy/the_first_account's_read_fails_before_any_row TestAFailedReadNeverReplacesTheActivePolicy/the_first_account's_read_fails_after_one_row TestAFailedReadNeverReplacesTheActivePolicy/the_second_account's_read_fails_before_any_row TestAFailedReadNeverReplacesTheActivePolicy/the_second_account's_read_fails_after_one_row TestAFailedReadNeverReplacesTheActivePolicy/a_base_rule_is_added_between_two_accounts'_reads,_twice TestAFailedReadNeverReplacesTheActivePolicy/the_role_cannot_read_the_table TestAFailedReadNeverReplacesTheActivePolicy/an_account's_rule_cannot_be_decoded,_after_its_other_rules
+scheduled-count: no
+integration: yes
+
+diff --git a/process/policies/loader.go b/process/policies/loader.go
+--- a/process/policies/loader.go
++++ b/process/policies/loader.go
+@@ -145,7 +145,7 @@ func (l *loader) swap(ctx context.Context) error {
+ 	}
+ 	prepared := make(map[string]classify.Policy, len(l.accounts))
+ 	for _, account := range l.accounts {
+-		prepared[account] = classify.Prepare(next.For(account), l.lookups)
++		prepared[account] = classify.Policy{}
+ 	}
+ 	l.active.Store(&Snapshot{policy: next, prepared: prepared})
+ 	l.metrics.succeeded()

@@ -42,6 +42,16 @@ type proc struct {
 	slots   map[any]*slot
 	closers []func()
 
+	// revisions are the configuration library's revision of each top-level key (ADR-0078).
+	revisions map[string]string
+	// upkeepMu guards the upkeep owners asked for while the process was built, which the scheduler
+	// runs once the process serves. built is set once the builds have returned, and task when the
+	// process runs a task, which runs no upkeep.
+	upkeepMu sync.Mutex
+	upkeep   []upkeepJob
+	built    bool
+	task     bool
+
 	// goMu guards the goroutines Go starts. joining is set once the process waits for them, after
 	// which nothing starts. failures are their panics, and failed closes on the first.
 	goMu     sync.Mutex
@@ -58,7 +68,7 @@ type report struct {
 	reason string
 }
 
-func newProcess(name string, logger *slog.Logger) (*proc, error) {
+func newProcess(name string, logger *slog.Logger, revisions map[string]string) (*proc, error) {
 	registry := prometheus.NewRegistry()
 	// The runtime series are the process's, registered on the registry itself, so they carry no
 	// component and no job kind (ADR-0125).
@@ -66,7 +76,7 @@ func newProcess(name string, logger *slog.Logger) (*proc, error) {
 		return nil, err
 	}
 	p := &proc{
-		name: name, logger: logger, registry: registry,
+		name: name, logger: logger, registry: registry, revisions: revisions,
 		slots: map[any]*slot{}, failed: make(chan struct{}),
 	}
 	p.run, p.stopRun = context.WithCancel(context.Background())

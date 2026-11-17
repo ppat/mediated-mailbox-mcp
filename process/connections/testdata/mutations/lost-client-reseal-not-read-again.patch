@@ -1,0 +1,19 @@
+control: Delta sync's re-seal moves each credential and client secret to the current key by compare-and-set, and a value someone replaced is read again
+removes: a client secret's re-seal that lost to a replacement keeps the old secret in every account's token
+packages: ./process/connections
+tests: TestAReSealNeverPutsBackAReplacedSecret
+scheduled-count: no
+integration: yes
+
+diff --git a/process/connections/reseal.go b/process/connections/reseal.go
+--- a/process/connections/reseal.go
++++ b/process/connections/reseal.go
+@@ -160,7 +160,7 @@ func (c *Connections) readClientAgain(ctx context.Context, name string) error {
+ 	for _, account := range slices.Sorted(maps.Keys(records)) {
+ 		rec := records[account]
+ 		rec.mu.Lock()
+-		if rec.clientName == name {
++		if rec.clientName == name && false {
+ 			c.repair(account, rec)
+ 		}
+ 		rec.mu.Unlock()

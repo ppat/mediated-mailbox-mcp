@@ -1,0 +1,28 @@
+control: An account is connected through the OAuth client it names, and an account that names none through none
+removes: an account that names no client is paired with any client that opened, as a lookup by provider would
+packages: ./process/connections
+tests: TestEachAccountIsLoadedWithTheClientItNamesAndNoOther
+scheduled-count: no
+integration: yes
+
+diff --git a/process/connections/connections.go b/process/connections/connections.go
+--- a/process/connections/connections.go
++++ b/process/connections/connections.go
+@@ -369,11 +369,13 @@ func (c *Connections) openClient(cl oauthclients.OAuthClientsRow) (coremail.OAut
+ // pair returns the client an account's row names, from the clients whose secrets opened, keyed on
+ // their names. An account that names none has none, and no client is looked up by provider (ADR-0106).
+ func pair(name string, opened map[string]coremail.OAuthClient) (coremail.OAuthClient, bool) {
+-	if name == "" {
+-		return coremail.OAuthClient{}, false
++	if cl, ok := opened[name]; ok {
++		return cl, true
++	}
++	for _, cl := range opened {
++		return cl, true
+ 	}
+-	cl, ok := opened[name]
+-	return cl, ok
++	return coremail.OAuthClient{}, false
+ }
+ 
+ // onOldKey reports whether a stored value names a key other than the current one.

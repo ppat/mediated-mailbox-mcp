@@ -5,10 +5,9 @@ tests: TestPlacement
 scheduled-count: no
 
 diff --git a/testsupport/analysis/analysis.go b/testsupport/analysis/analysis.go
-index 956525cb..ea2572ee 100644
 --- a/testsupport/analysis/analysis.go
 +++ b/testsupport/analysis/analysis.go
-@@ -54,7 +54,6 @@ var Placement = &analysis.Analyzer{
+@@ -60,7 +60,6 @@ var Placement = &analysis.Analyzer{
  
  // messages are the findings, one per call that must not run inside a property.
  var messages = map[string]string{

@@ -1,0 +1,18 @@
+control: A shared thing's upkeep runs on the process's scheduler, and the scheduler's series observe none of it
+removes: a process whose scheduler runs only upkeep registers the scheduler's series
+packages: ./process
+tests: TestAnOwnersUpkeepRunsOnTheSchedulerUnobserved TestAnOwnersUpkeepRunsOnTheSchedulerUnobserved/endpoints_alone
+scheduled-count: no
+
+diff --git a/process/upkeep.go b/process/upkeep.go
+--- a/process/upkeep.go
++++ b/process/upkeep.go
+@@ -129,7 +129,7 @@ func (p *proc) newScheduler(b built) (*schedule.Scheduler, error) {
+ 			return nil, fmt.Errorf("the job kind %s shares its name with the upkeep of a shared thing", l.kind)
+ 		}
+ 	}
+-	if len(b.plans) > 0 {
++	if len(b.plans) > 0 || len(b.upkeep) > 0 {
+ 		series, err := schedule.NewMetrics(p.part("scheduler", "").Metrics())
+ 		if err != nil {
+ 			return nil, err

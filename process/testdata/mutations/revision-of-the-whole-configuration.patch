@@ -1,0 +1,16 @@
+control: A shared thing reads the revision of its settings from the process
+removes: the revision read is the process part's whatever key is asked for, so a change to the key's own value leaves it as it was
+packages: ./process
+tests: TestARevisionIsReadFromTheProcess
+scheduled-count: no
+
+diff --git a/process/option.go b/process/option.go
+--- a/process/option.go
++++ b/process/option.go
+@@ -28,5 +28,5 @@ func Revision(p Capabilities, key string) string {
+ 	if !ok {
+ 		return ""
+ 	}
+-	return c.proc.revisions[key]
++	return c.proc.revisions["log_level"]
+ }

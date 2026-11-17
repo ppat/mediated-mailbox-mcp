@@ -1,0 +1,18 @@
+control: The load concurrent body requests share runs on the process's goroutines, and a load that cannot run fails its callers
+removes: the load starts on a goroutine of its own rather than through the starter, so the process neither recovers it nor waits for it
+packages: ./process/policies
+tests: TestEveryLoadRunsThroughTheStarter
+scheduled-count: no
+
+diff --git a/process/policies/shared.go b/process/policies/shared.go
+--- a/process/policies/shared.go
++++ b/process/policies/shared.go
+@@ -57,7 +57,7 @@ func (c *shared) load(ctx context.Context) error {
+ 		r = &round{done: make(chan struct{})}
+ 		c.next = r
+ 		if !c.running {
+-			if c.start(loadName, c.run) {
++			if go1 := func() bool { go c.run(context.Background()); return true }; go1() {
+ 				c.running = true
+ 			} else {
+ 				c.next = nil

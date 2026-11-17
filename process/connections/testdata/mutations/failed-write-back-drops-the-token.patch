@@ -1,0 +1,20 @@
+control: A failed write-back is held in the record's token and logged
+removes: a write-back that failed drops the record's token, so a reload makes it again from the stored credential and the rotation is lost
+packages: ./process/connections
+tests: TestAFailedWriteBackIsHeldLoggedAndKeptByAReload
+scheduled-count: no
+integration: yes
+
+diff --git a/process/connections/work.go b/process/connections/work.go
+--- a/process/connections/work.go
++++ b/process/connections/work.go
+@@ -243,6 +243,9 @@ func (w *Work) writeBack(ctx context.Context, stamp uint64, current []byte) erro
+ 	}
+ 	landed, err := replace(ctx, w.pool, account, known, sealed)
+ 	if err != nil {
++		rec.mu.Lock()
++		rec.token = nil
++		rec.mu.Unlock()
+ 		return c.failed(account, err)
+ 	}
+ 	if landed {

@@ -1,0 +1,51 @@
+control: A list of adapters and a token expose nothing a program could add an adapter or reach a token's source through
+removes: the list's adapters are an exported field, which any code holding a list can add to
+packages: ./provider/internal/adapters
+tests: TestAListAndATokenExposeNoField
+scheduled-count: no
+
+diff --git a/provider/internal/adapters/adapters.go b/provider/internal/adapters/adapters.go
+--- a/provider/internal/adapters/adapters.go
++++ b/provider/internal/adapters/adapters.go
+@@ -59,7 +59,7 @@ type Adapter struct {
+ 
+ // List is a list of adapters, each named as an account names its provider. Its zero value holds none.
+ type List struct {
+-	byName map[string]Adapter
++	ByName map[string]Adapter
+ }
+ 
+ // New returns the list holding each adapter under its name.
+@@ -68,20 +68,20 @@ func New(byName map[string]Adapter) List {
+ 	for name, a := range byName {
+ 		held[name] = a
+ 	}
+-	return List{byName: held}
++	return List{ByName: held}
+ }
+ 
+ // Lookup returns the adapter named name in l, and whether l holds one. It is a function rather than
+ // a method, so only the provider library can call it.
+ func Lookup(l List, name string) (Adapter, bool) {
+-	a, ok := l.byName[name]
++	a, ok := l.ByName[name]
+ 	return a, ok
+ }
+ 
+ // Facts returns the facts about the provider name as the list's adapter for it declares them, and
+ // whether the list holds one.
+ func (l List) Facts(name string) (Facts, bool) {
+-	a, ok := l.byName[name]
++	a, ok := l.ByName[name]
+ 	return a.Facts, ok
+ }
+ 
+@@ -98,7 +98,7 @@ type Token struct {
+ // connects through, the zero client for a provider that uses none, and the account's credential, as
+ // plain values the connections opened.
+ func (l List) NewToken(name string, client coremail.OAuthClient, credential []byte) (*Token, error) {
+-	a, ok := l.byName[name]
++	a, ok := l.ByName[name]
+ 	if !ok {
+ 		return nil, fmt.Errorf("there is no adapter for provider %q", name)
+ 	}

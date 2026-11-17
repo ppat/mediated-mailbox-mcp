@@ -1,0 +1,18 @@
+control: The connections' attach is called only from their own package and their re-seal only from delta sync's
+removes: the rule on the attach's callers is removed
+packages: ./testsupport/analysis
+tests: TestCallers
+scheduled-count: no
+
+diff --git a/testsupport/analysis/callers.go b/testsupport/analysis/callers.go
+--- a/testsupport/analysis/callers.go
++++ b/testsupport/analysis/callers.go
+@@ -46,7 +46,7 @@ type heldMethod struct {
+ 
+ var heldMethods = []heldMethod{
+ 	{
+-		name: "(*" + modulePath + "/process/sessions.Session).Attach", method: "Attach",
++		name: "(*" + modulePath + "/process/sessions.Session).Attachment", method: "Attachment",
+ 		params: modulePath + "/process/sessions.Connections", results: "error",
+ 		only:    modulePath + "/process/connections",
+ 		message: "uses the Session's Attach outside process/connections, so code holding the Session could attach connections of its own. The connections attach themselves when they are built (ADR-0071, ADR-0142)",

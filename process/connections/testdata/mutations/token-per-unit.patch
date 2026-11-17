@@ -1,0 +1,20 @@
+control: Units of work begun through every caller of a process share each account's token
+removes: each unit of work makes a token of its own from the record's credential, so a rotation one unit sees is lost to the others
+packages: ./process/connections
+tests: TestUnitsOfWorkThroughTwoCallersShareTheAccountsToken TestOverlappingRotationsEachLand TestATokenServesItsAccountUntilItsCredentialOrClientChanges
+scheduled-count: no
+integration: yes
+
+diff --git a/process/connections/work.go b/process/connections/work.go
+--- a/process/connections/work.go
++++ b/process/connections/work.go
+@@ -67,6 +67,9 @@ func (c *Connections) Begin(account string, caller *Caller, until time.Time) (*W
+ 	case targetErr != nil:
+ 		return nil, targetErr
+ 	}
++	if fresh, err := c.adapters.NewToken(name, client, token.Credential()); err == nil {
++		token = fresh
++	}
+ 	w := &Work{conns: c, account: account, record: rec, pool: caller.pool, token: token, client: client}
+ 	m, err := caller.calls.Mailbox(provider.Connection{
+ 		Provider: name, Account: account, Token: token, Target: target, Lowered: lowered, WaitUntil: until,

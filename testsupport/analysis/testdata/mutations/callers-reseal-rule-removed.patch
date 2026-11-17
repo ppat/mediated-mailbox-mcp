@@ -1,0 +1,18 @@
+control: The connections' attach is called only from their own package and their re-seal only from delta sync's
+removes: the rule on the re-seal's callers is removed
+packages: ./testsupport/analysis
+tests: TestCallers
+scheduled-count: no
+
+diff --git a/testsupport/analysis/callers.go b/testsupport/analysis/callers.go
+--- a/testsupport/analysis/callers.go
++++ b/testsupport/analysis/callers.go
+@@ -52,7 +52,7 @@ var heldMethods = []heldMethod{
+ 		message: "uses the Session's Attach outside process/connections, so code holding the Session could attach connections of its own. The connections attach themselves when they are built (ADR-0071, ADR-0142)",
+ 	},
+ 	{
+-		name: "(*" + modulePath + "/process/connections.Connections).Reseal", method: "Reseal",
++		name: "(*" + modulePath + "/process/connections.Connections).Resealed", method: "Resealed",
+ 		params: "context.Context", results: modulePath + "/process/connections.Scan",
+ 		only:    modulePath + "/worker/internal/deltasync",
+ 		message: "uses the connections' Reseal outside delta sync's package, and only delta sync re-seals the stored credentials (ADR-0071, ADR-0092)",

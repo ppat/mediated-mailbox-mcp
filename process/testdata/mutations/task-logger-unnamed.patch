@@ -7,9 +7,9 @@ scheduled-count: no
 diff --git a/process/serve.go b/process/serve.go
 --- a/process/serve.go
 +++ b/process/serve.go
-@@ -23,7 +23,7 @@
- // job, since nothing probes, scrapes or calls a program that exits on its own (ADR-0139, ADR-0142).
- func runTask[C any](ctx context.Context, p *proc, spec Spec[C], c C) error {
+@@ -26,7 +26,7 @@ func runTask[C any](ctx context.Context, p *proc, spec Spec[C], c C) error {
+ 	p.task = true
+ 	p.upkeepMu.Unlock()
  	stopBuild := context.AfterFunc(ctx, p.stopRun)
 -	work, err := spec.Task.Build(p.run, p.part(spec.Name, ""), c)
 +	work, err := spec.Task.Build(p.run, &capabilities{proc: p, name: spec.Name, logger: p.logger, metrics: p.registry}, c)

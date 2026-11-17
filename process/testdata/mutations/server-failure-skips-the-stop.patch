@@ -7,7 +7,7 @@ scheduled-count: no
 diff --git a/process/serve.go b/process/serve.go
 --- a/process/serve.go
 +++ b/process/serve.go
-@@ -183,6 +183,7 @@
+@@ -185,6 +185,7 @@ func (p *proc) serveOn(ctx context.Context, app, probeListener net.Listener, s c
  	var err error
  	select {
  	case err = <-failed:

@@ -1,0 +1,19 @@
+control: Write-backs, reloads, re-reads and the re-seal take turns under one lock of the connections, so the process's own writes each land and none is read back as someone else's
+removes: a write-back no longer takes the connections' lock, so one whose compare-and-set waits behind another's reads the other's bytes back as someone else's and its rotation is lost
+packages: ./process/connections
+tests: TestTwoEndsWhoseWritesInterleaveBothLand
+scheduled-count: no
+integration: yes
+
+diff --git a/process/connections/work.go b/process/connections/work.go
+--- a/process/connections/work.go
++++ b/process/connections/work.go
+@@ -230,8 +230,6 @@ func (w *Work) writeBack(ctx context.Context, stamp uint64, current []byte) erro
+ 	if len(current) == 0 {
+ 		return fmt.Errorf("account %s: the adapter holds an empty credential", account)
+ 	}
+-	c.mu.Lock()
+-	defer c.mu.Unlock()
+ 	rec.mu.Lock()
+ 	if rec.stamp != stamp {
+ 		rec.mu.Unlock()

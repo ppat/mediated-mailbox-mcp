@@ -1,0 +1,19 @@
+control: The end of a unit of work records the token's latest attempt, and nothing for a token that made none
+removes: a token that made no attempt records one at the epoch
+packages: ./process/connections
+tests: TestTheEndRecordsTheTokensLatestAttempt
+scheduled-count: no
+integration: yes
+
+diff --git a/process/connections/work.go b/process/connections/work.go
+--- a/process/connections/work.go
++++ b/process/connections/work.go
+@@ -305,7 +305,7 @@ func (c *Connections) readAgain(account string, rec *record, stored []byte) {
+ // returned, and the next unit of work records the attempt again.
+ func recordAttempt(ctx context.Context, db tx.Beginner, account string, attempt coremail.AuthAttempt) error {
+ 	if attempt == (coremail.AuthAttempt{}) {
+-		return nil
++		attempt.Outcome = coremail.AuthSucceeded
+ 	}
+ 	err := tx.Run(ctx, db, account, func(t pgx.Tx) error {
+ 		return accountstate.New(t).RecordAuthentication(ctx, accountstate.RecordAuthenticationParams{

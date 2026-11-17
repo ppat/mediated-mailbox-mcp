@@ -1,0 +1,19 @@
+control: At the end of a unit of work a rotated credential is written back by compare-and-set on the stored bytes the record knew, and an unchanged one is not
+removes: the end writes back the token the unit began with under the bytes the record now holds, so a unit begun before an adoption puts its credential back over the operator's
+packages: ./process/connections
+tests: TestAnEndAfterAnAdoptionLeavesTheOperatorsCredential
+scheduled-count: no
+integration: yes
+
+diff --git a/process/connections/work.go b/process/connections/work.go
+--- a/process/connections/work.go
++++ b/process/connections/work.go
+@@ -208,7 +208,7 @@ func (c *Connections) readClientOf(ctx context.Context, account string) (*accoun
+ func (w *Work) End(ctx context.Context) (writeBack, record error) {
+ 	rec := w.record
+ 	rec.mu.Lock()
+-	token, stamp := rec.token, rec.stamp
++	token, stamp := w.token, rec.stamp
+ 	var current []byte
+ 	if token != nil {
+ 		current = token.Credential()

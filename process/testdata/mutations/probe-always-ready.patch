@@ -7,7 +7,7 @@ scheduled-count: no
 diff --git a/process/process.go b/process/process.go
 --- a/process/process.go
 +++ b/process/process.go
-@@ -126,7 +126,7 @@
+@@ -136,7 +136,7 @@ func (p *proc) report(name string, state State, reason string) {
  func (p *proc) notReady() (string, bool) {
  	p.reportsMu.Lock()
  	defer p.reportsMu.Unlock()

@@ -20,7 +20,7 @@ import (
 func TestAServerThatFailsWhileServingStopsTheProcessInOrder(t *testing.T) {
 	for _, failing := range []string{"the application server", "the operations server"} {
 		t.Run(failing, func(t *testing.T) {
-			p, err := newProcess("test", slog.New(slog.DiscardHandler))
+			p, err := newProcess("test", slog.New(slog.DiscardHandler), nil)
 			if err != nil {
 				t.Fatal(err)
 			}

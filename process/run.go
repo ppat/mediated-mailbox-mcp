@@ -27,7 +27,7 @@ func Run[C config.Program[C]](args, environ []string, spec Spec[C]) {
 	logger := logging.New(os.Stdout, level)
 	slog.SetDefault(logger)
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	err := run(ctx, args, environ, os.Stdout, os.Stderr, logger, level, spec)
+	err := run(ctx, args, environ, os.Stdout, os.Stderr, logger, level, spec, nil)
 	stop()
 	if err != nil {
 		os.Exit(1)
@@ -37,23 +37,24 @@ func Run[C config.Program[C]](args, environ []string, spec Spec[C]) {
 // RunContext runs spec as Run does, until ctx ends or its task is done, writing its log records and
 // its answers to --help and --version to stdout and its start banner to stderr, and returns the run's
 // error rather than exiting. A test or a harness runs a program through it, so what it runs is what
-// the program's main.go runs.
-func RunContext[C config.Program[C]](ctx context.Context, args, environ []string, stdout, stderr io.Writer, spec Spec[C]) error {
+// the program's main.go runs, apart from the shared things the options substitute, which Run never
+// does (ADR-0142).
+func RunContext[C config.Program[C]](ctx context.Context, args, environ []string, stdout, stderr io.Writer, spec Spec[C], options ...Option) error {
 	level := new(slog.LevelVar)
-	return run(ctx, args, environ, stdout, stderr, logging.New(stdout, level), level, spec)
+	return run(ctx, args, environ, stdout, stderr, logging.New(stdout, level), level, spec, options)
 }
 
 // run is the whole process. Its error is logged before it is returned, so a start that fails before
 // the level is read still reports it as JSON (ADR-0122).
-func run[C config.Program[C]](ctx context.Context, args, environ []string, stdout, stderr io.Writer, logger *slog.Logger, level *slog.LevelVar, spec Spec[C]) error {
-	err := runSpec(ctx, args, environ, stdout, stderr, logger, level, spec)
+func run[C config.Program[C]](ctx context.Context, args, environ []string, stdout, stderr io.Writer, logger *slog.Logger, level *slog.LevelVar, spec Spec[C], options []Option) error {
+	err := runSpec(ctx, args, environ, stdout, stderr, logger, level, spec, options)
 	if err != nil {
 		logger.Error("the process failed", "error", err)
 	}
 	return err
 }
 
-func runSpec[C config.Program[C]](ctx context.Context, args, environ []string, stdout, stderr io.Writer, logger *slog.Logger, level *slog.LevelVar, spec Spec[C]) error {
+func runSpec[C config.Program[C]](ctx context.Context, args, environ []string, stdout, stderr io.Writer, logger *slog.Logger, level *slog.LevelVar, spec Spec[C], options []Option) error {
 	if err := refuseSpec(spec); err != nil {
 		return err
 	}
@@ -61,9 +62,12 @@ func runSpec[C config.Program[C]](ctx context.Context, args, environ []string, s
 	if !started {
 		return err
 	}
-	pr, err := newProcess(spec.Name, logger)
+	pr, err := newProcess(spec.Name, logger, c.revisions)
 	if err != nil {
 		return err
+	}
+	for _, o := range options {
+		o.fill(pr)
 	}
 	if spec.Task != nil {
 		return runTask(ctx, pr, spec, c.config)
@@ -89,8 +93,9 @@ func refuseSpec[C any](spec Spec[C]) error {
 // loaded is the loaded configuration, and the process's parts of it a program that runs until it is
 // told to stop serves from.
 type loaded[C any] struct {
-	config C
-	parts  parts
+	config    C
+	parts     parts
+	revisions map[string]string
 }
 
 // parts are the operations part, and the serving part of a spec that lists endpoints.
@@ -146,7 +151,7 @@ func start[C config.Program[C]](args, environ []string, stdout, stderr io.Writer
 		return l, false, err
 	}
 	writeBanner(stderr, banner("mediated-mailbox-"+spec.Name, lines), logger)
-	return loaded[C]{config: c, parts: served}, true, nil
+	return loaded[C]{config: c, parts: served, revisions: got.Revisions}, true, nil
 }
 
 // partsOf returns the parts the process serves from and the banner's lines below the one naming the

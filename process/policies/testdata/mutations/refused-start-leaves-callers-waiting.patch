@@ -1,0 +1,20 @@
+control: The load concurrent body requests share runs on the process's goroutines, and a load that cannot run fails its callers
+removes: a load the starter refuses leaves its callers waiting for an answer that never comes
+packages: ./process/policies
+tests: TestARefusedStartFailsItsCallers
+scheduled-count: no
+
+diff --git a/process/policies/shared.go b/process/policies/shared.go
+--- a/process/policies/shared.go
++++ b/process/policies/shared.go
+@@ -59,10 +59,6 @@ func (c *shared) load(ctx context.Context) error {
+ 		if !c.running {
+ 			if c.start(loadName, c.run) {
+ 				c.running = true
+-			} else {
+-				c.next = nil
+-				r.err = ErrNotStarted
+-				close(r.done)
+ 			}
+ 		}
+ 	}

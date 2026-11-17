@@ -1,0 +1,19 @@
+control: The policies register their series at the first load that names an account, so a process that holds none carries none
+removes: every load builds the loader again, so the second load fails registering series the first registered
+packages: ./process/policies
+tests: TestEachReloadItsCallerDidNotCancelIsTimed TestTheLoaderComposesEachAccountsPolicy
+scheduled-count: no
+integration: yes
+
+diff --git a/process/policies/policies.go b/process/policies/policies.go
+--- a/process/policies/policies.go
++++ b/process/policies/policies.go
+@@ -82,7 +82,7 @@ func (p *Policies) Load(ctx context.Context, accounts []string) error {
+ 		return nil
+ 	}
+ 	l := p.loader.Load()
+-	if l == nil {
++	if l == nil || true {
+ 		built, err := newLoader(p.db, accounts, p.reg, p.lookups)
+ 		if err != nil {
+ 			return err

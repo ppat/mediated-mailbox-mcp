@@ -1,0 +1,19 @@
+control: At the end of a unit of work a rotated credential is written back by compare-and-set on the stored bytes the record knew, and an unchanged one is not
+removes: a credential equal to the one last read or written is written back too
+packages: ./process/connections
+tests: TestARotatedCredentialSurvivesARestart
+scheduled-count: no
+integration: yes
+
+diff --git a/process/connections/work.go b/process/connections/work.go
+--- a/process/connections/work.go
++++ b/process/connections/work.go
+@@ -234,7 +234,7 @@ func (w *Work) writeBack(ctx context.Context, stamp uint64, current []byte) erro
+ 	}
+ 	known, baseline := rec.stored, rec.baseline
+ 	rec.mu.Unlock()
+-	if bytes.Equal(current, baseline) {
++	if bytes.Equal(current, baseline) && false {
+ 		return nil
+ 	}
+ 	sealed, err := c.keys.Seal(current, seal.AccountCredential(account))

@@ -7,7 +7,7 @@ scheduled-count: no
 diff --git a/process/serve.go b/process/serve.go
 --- a/process/serve.go
 +++ b/process/serve.go
-@@ -276,10 +276,11 @@
+@@ -280,10 +280,11 @@ func serverFailed(server string, err error) error {
  // tlsConfig reads the key pair from its mounted files on each handshake, so a renewed certificate
  // serves without a restart (ADR-0127).
  func tlsConfig(certFile, keyFile string) *tls.Config {

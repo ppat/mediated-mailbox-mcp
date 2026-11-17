@@ -1,0 +1,21 @@
+control: The Session reloads in one order, and keeps in force what a failed read could not read
+removes: a reload whose load of the connections fails puts its list in force all the same, so an account whose credential was never read is held
+packages: ./process/connections
+tests: TestAReloadConnectsWhatItReadAndKeepsWhatWasOnAFailedRead
+scheduled-count: no
+integration: yes
+
+diff --git a/process/sessions/sessions.go b/process/sessions/sessions.go
+--- a/process/sessions/sessions.go
++++ b/process/sessions/sessions.go
+@@ -202,9 +202,7 @@ func (s *Session) reload(ctx context.Context) error {
+ 	}
+ 	connections, after := s.members()
+ 	if connections != nil {
+-		if err := connections.Load(ctx, listed); err != nil {
+-			return fmt.Errorf("loading the connections: %w", err)
+-		}
++		_ = connections.Load(ctx, listed)
+ 	}
+ 	s.inForce.Store(&listed)
+ 	if err = s.policies.Load(ctx, ids(listed)); err != nil {

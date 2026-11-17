@@ -117,7 +117,8 @@ list names it.
 | `provider/mail` | What any mail provider can do, `mail.Mailbox`, the Provider Port's interface for mail, with its consent contract and the call sizes a caller needs, which backfill and delta sync's tick read. Each is what `core/mail`'s `CallSize` gives within the hard-cap fraction `core/mail` holds. The port's errors, the body's part and the canonical model it speaks are `core/mail`'s | |
 | `provider/mail/gmail` | The Gmail adapter and its rate profile | `provider` |
 | `provider/mail/gmail/core` | The Gmail adapter's pure core of body decisions | `provider/mail/gmail` |
-| `provider/mail/fake` | The provider fake | Test files |
+| `provider/internal/adapters` | The representation of the list of adapters and of a token, which `provider` exports as `provider.Adapters` and `provider.Token`, so only the provider library builds a list holding an adapter, `provider.Shipped` and, for a test, the provider fake's `fake.Adapters` | The provider library, by Go's rule for an `internal` directory |
+| `provider/mail/fake` | The provider fake, and the list of adapters over it a test hands the connections through `connections.WithAdapters` | Test files |
 | `provider/mail/contract` | The contract suite | |
 | `provider/google` | Google's grant, its token source and token endpoint and its consent, with the one-time Gmail consent command | |
 | `provider/consent` | Each provider's consent by name | `ui/internal/setup` |
@@ -333,10 +334,14 @@ file's import target described under Violation files.
   review. So is a statement written by hand in code outside those three directories, since the
   analyser does not read it. The process family's code runs as the application user in the API
   server, the UI and the worker, and as the migrator's user in the migrator, and the Session, the
-  connections and the provider library's rate limiter run in the API server and the worker. Two
-  analyser rules hold a method of the connections to the callers of one package each. The attach
-  of the connections to the Session is called only from `process/connections`, and the re-seal to
-  a new key, `conns.Reseal`, only from delta sync's package, `worker/internal/deltasync`
+  connections and the provider library's rate limiter run in the API server and the worker. The
+  callers analyser's two rules hold a method of the connections to the callers of one package each.
+  The attach of the connections to the Session, `(*sessions.Session).Attach`, is used only in
+  `process/connections`, and the re-seal to a new key, `conns.Reseal`, only in delta sync's
+  package, `worker/internal/deltasync`. Each rule reports any use, a call, a method value or a
+  method expression, in a non-test file of any package of the module, and a use of a method of the
+  same name and signature on an interface or a type parameter. A call through reflection, or through
+  an interface method whose name or signature differs, is left to review
   ([ADR-0071](./docs/adr/engineering/0071-static-enforcement-toolchain.md),
   [ADR-0092](./docs/adr/operability/0092-key-replacement-by-keyring-and-re-seal.md),
   [ADR-0142](./docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md)). The

@@ -1,0 +1,20 @@
+control: Each load of the policies prepares the policy it swaps in for the classifier
+removes: a reload keeps the prepared policies of the snapshot it replaces, so an edit it loads never reaches the classifier
+packages: ./process/policies
+tests: TestEachReloadPreparesThePolicyItSwapsIn
+scheduled-count: no
+integration: yes
+
+diff --git a/process/policies/loader.go b/process/policies/loader.go
+--- a/process/policies/loader.go
++++ b/process/policies/loader.go
+@@ -147,6 +147,9 @@ func (l *loader) swap(ctx context.Context) error {
+ 	for _, account := range l.accounts {
+ 		prepared[account] = classify.Prepare(next.For(account), l.lookups)
+ 	}
++	if kept := l.active.Load().prepared; kept != nil {
++		prepared = kept
++	}
+ 	l.active.Store(&Snapshot{policy: next, prepared: prepared})
+ 	l.metrics.succeeded()
+ 	return nil

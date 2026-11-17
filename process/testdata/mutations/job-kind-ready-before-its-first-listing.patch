@@ -7,8 +7,8 @@ scheduled-count: no
 diff --git a/process/serve.go b/process/serve.go
 --- a/process/serve.go
 +++ b/process/serve.go
-@@ -133,7 +133,6 @@
- 		scheduler = schedule.New(p.run, metrics)
+@@ -135,7 +135,6 @@ func (p *proc) serveOn(ctx context.Context, app, probeListener net.Listener, s c
+ 		}
  		for _, l := range b.plans {
  			name := l.kind + " listing"
 -			p.report(name, NotReady, "no listing has succeeded yet")

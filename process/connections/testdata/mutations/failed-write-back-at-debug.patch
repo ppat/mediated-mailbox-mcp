@@ -1,0 +1,19 @@
+control: A failed write-back is held in the record's token and logged
+removes: a write-back that failed is logged at debug level, which a process does not emit
+packages: ./process/connections
+tests: TestAFailedWriteBackIsHeldLoggedAndKeptByAReload
+scheduled-count: no
+integration: yes
+
+diff --git a/process/connections/work.go b/process/connections/work.go
+--- a/process/connections/work.go
++++ b/process/connections/work.go
+@@ -249,7 +249,7 @@ func (c *Connections) writeBack(ctx context.Context, account string, rec *record
+ 
+ // failed logs a write-back that did not land, without the credential, and returns its error.
+ func (c *Connections) failed(account string, err error) error {
+-	c.log.Error("a rotated credential was not written back, so a restart before a later write-back lands loses the account's access",
++	c.log.Debug("a rotated credential was not written back, so a restart before a later write-back lands loses the account's access",
+ 		slog.String("account", account), slog.Any("error", err))
+ 	return fmt.Errorf("account %s: writing back the rotated credential: %w", account, err)
+ }

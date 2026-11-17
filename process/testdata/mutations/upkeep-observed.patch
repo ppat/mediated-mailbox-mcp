@@ -1,0 +1,18 @@
+control: A shared thing's upkeep runs on the process's scheduler, and the scheduler's series observe none of it
+removes: the scheduler's series observe an upkeep job as a job kind of its owner's name
+packages: ./process
+tests: TestAnOwnersUpkeepRunsOnTheSchedulerUnobserved TestAnOwnersUpkeepRunsOnTheSchedulerUnobserved/beside_a_job_kind
+scheduled-count: no
+
+diff --git a/process/upkeep.go b/process/upkeep.go
+--- a/process/upkeep.go
++++ b/process/upkeep.go
+@@ -63,7 +63,7 @@ type jobKindsOnly struct {
+ var _ schedule.Observer = jobKindsOnly{}
+ 
+ func (o jobKindsOnly) observed(key schedule.Key) bool {
+-	return o.series != nil && (key.ID != "" || !o.upkeep[key.Kind])
++	return o.series != nil
+ }
+ 
+ func (o jobKindsOnly) Ensured(key schedule.Key, late time.Duration, at time.Time) {
