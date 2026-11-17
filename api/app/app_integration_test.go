@@ -20,7 +20,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prometheus/client_golang/prometheus"
 
@@ -39,7 +38,7 @@ func TestMain(m *testing.M) {
 	postgres.Main(m)
 }
 
-// apiServer returns a pool connecting as the API server's role, under which its grants apply as they do
+// apiServer returns a pool connecting as the application user, under which its grants apply as they do
 // in production.
 func apiServer(t *testing.T) *pgxpool.Pool {
 	t.Helper()
@@ -47,7 +46,7 @@ func apiServer(t *testing.T) *pgxpool.Pool {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cfg.ConnConfig.RuntimeParams["options"] = "-c role=mediated_mailbox_api"
+	cfg.ConnConfig.RuntimeParams["options"] = "-c role=" + postgres.ApplicationUser
 	pool, err := pgxpool.NewWithConfig(t.Context(), cfg)
 	if err != nil {
 		t.Fatal(err)
@@ -89,38 +88,6 @@ func newAccounts(t *testing.T, conn *pgx.Conn) []string {
 		must(t, conn, "INSERT INTO accounts (account_id, provider) VALUES ($1, 'gmail')", account)
 	}
 	return accounts
-}
-
-// The draft-to-approved transition is not the API server's to make. Its role can neither write a plan's
-// status or its approval nor insert a plan already approved, so no operation added to the client
-// surface could perform it (ADR-0020, ADR-0021, ADR-0030).
-func TestTheAPIServerCannotApproveAPlan(t *testing.T) {
-	conn := superuser(t)
-	accounts := newAccounts(t, conn)
-	must(t, conn, `INSERT INTO reorg_plans (plan_id, account_id, status, plan) VALUES (gen_random_uuid(), $1, 'DRAFT', '{}')`, accounts[0])
-	statements := []string{
-		"UPDATE reorg_plans SET status = 'APPROVED'",
-		"UPDATE reorg_plans SET approved_at = now(), approved_by = 'api'",
-		"INSERT INTO reorg_plans (plan_id, account_id, status, plan) VALUES (gen_random_uuid(), current_setting('app.account'), 'APPROVED', '{}')",
-	}
-	for _, sql := range statements {
-		err := func() (err error) {
-			tx, err := apiServer(t).Begin(t.Context())
-			if err != nil {
-				return err
-			}
-			defer func() { err = errors.Join(err, tx.Rollback(context.Background())) }()
-			if _, err := tx.Exec(t.Context(), "SELECT set_config('app.account', $1, true)", accounts[0]); err != nil {
-				return err
-			}
-			_, err = tx.Exec(t.Context(), sql)
-			return err
-		}()
-		var pgErr *pgconn.PgError
-		if !errors.As(err, &pgErr) || pgErr.Code != "42501" {
-			t.Errorf("%s as the API server: %v, want permission denied", sql, err)
-		}
-	}
 }
 
 // scanner returns the scanner the application ships.
@@ -417,10 +384,10 @@ func reset(t *testing.T, conn *pgx.Conn) {
 	}
 }
 
-// revoke revokes a grant of the API server's role until grantBack or the end of the test.
+// revoke revokes a grant of the application user until grantBack or the end of the test.
 func revoke(t *testing.T, conn *pgx.Conn, privilege string) {
 	t.Helper()
-	must(t, conn, "REVOKE "+privilege+" FROM mediated_mailbox_api")
+	must(t, conn, "REVOKE "+privilege+" FROM "+postgres.ApplicationUser)
 	url := postgres.URL(t)
 	t.Cleanup(func() {
 		ctx := context.Background()
@@ -434,7 +401,7 @@ func revoke(t *testing.T, conn *pgx.Conn, privilege string) {
 				t.Error(err)
 			}
 		}()
-		if _, err := c.Exec(ctx, "GRANT "+privilege+" TO mediated_mailbox_api"); err != nil {
+		if _, err := c.Exec(ctx, "GRANT "+privilege+" TO "+postgres.ApplicationUser); err != nil {
 			t.Error(err)
 		}
 	})
@@ -443,7 +410,7 @@ func revoke(t *testing.T, conn *pgx.Conn, privilege string) {
 // grantBack restores a grant revoke took.
 func grantBack(t *testing.T, conn *pgx.Conn, privilege string) {
 	t.Helper()
-	must(t, conn, "GRANT "+privilege+" TO mediated_mailbox_api")
+	must(t, conn, "GRANT "+privilege+" TO "+postgres.ApplicationUser)
 }
 
 // reloadFailed returns the values of the policy loader's reload-failure series on the registry the
@@ -498,7 +465,7 @@ func TestAFailedPolicyLoadStillFollowsTheSnapshot(t *testing.T) {
 		t.Errorf("after a policy load that succeeded, the reload-failure series reads %v, want one series at 0", got)
 	}
 
-	const policyRead = "SELECT (account_id, rule_id, class, domain_suffix) ON policy_rules"
+	const policyRead = "SELECT ON policy_rules"
 	revoke(t, conn, policyRead)
 	must(t, conn, "DELETE FROM account_state WHERE account_id = $1", dropped)
 	must(t, conn, "DELETE FROM accounts WHERE account_id = $1", dropped)

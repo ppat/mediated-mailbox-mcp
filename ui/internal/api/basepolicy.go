@@ -14,7 +14,6 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/db/accounts"
 	"github.com/ppat/mediated-mailbox-mcp/db/auditlog"
 	"github.com/ppat/mediated-mailbox-mcp/db/jobruns"
-	runclassification "github.com/ppat/mediated-mailbox-mcp/db/jobruns/classification"
 	"github.com/ppat/mediated-mailbox-mcp/db/policycandidates"
 	"github.com/ppat/mediated-mailbox-mcp/db/policychanges"
 	"github.com/ppat/mediated-mailbox-mcp/db/policyrules/base"
@@ -35,7 +34,7 @@ func (s *Server) inAccount(ctx context.Context, account string, fn func(q regist
 		// The statements are built here, from the transaction that set the account (ADR-0047).
 		return fn(registry.Queries{
 			Plans: reorgplans.New(t), Candidates: policycandidates.New(t),
-			Runs: jobruns.New(t), Failures: runclassification.New(t), Audit: auditlog.New(t),
+			Runs: jobruns.New(t), Failures: jobruns.New(t), Audit: auditlog.New(t),
 			Rules: manage.New(t), Changes: policychanges.New(t), Senders: senderclassification.New(t), Accounts: accounts.New(t),
 		})
 	})

@@ -113,7 +113,7 @@ func DefaultSection() Section {
 	}
 }
 
-// defaults are the UI's defaults. The user is the UI's own runtime role (ADR-0118), the TLS mode is
+// defaults are the UI's defaults. The user is the test harness's application user (ADR-0143), the TLS mode is
 // the one that fails closed, and the pool size is the driver's own default.
 func defaults() Configuration {
 	return Configuration{
@@ -121,7 +121,7 @@ func defaults() Configuration {
 		Operations: host.DefaultOperations(),
 		Serving:    host.DefaultServing(),
 		Section:    DefaultSection(),
-		Database:   dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_ui", SSLMode: "verify-full", PoolSize: dbconnect.DefaultPoolSize()},
+		Database:   dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_app", SSLMode: "verify-full", PoolSize: dbconnect.DefaultPoolSize()},
 	}
 }
 
@@ -166,7 +166,7 @@ func Run(ctx context.Context, args, environ []string, stdout, stderr io.Writer, 
 }
 
 // checkSchema refuses a schema this binary's migration chain cannot run on, read through pool under
-// the role pool connects as. The host runs it on each pool it opens, before the pool is used
+// the user pool connects as. The host runs it on each pool it opens, before the pool is used
 // (ADR-0140).
 func checkSchema(ctx context.Context, pool *pgxpool.Pool) error {
 	v, err := schemacompatibility.New(pool).SchemaVersions(ctx)
@@ -177,7 +177,7 @@ func checkSchema(ctx context.Context, pool *pgxpool.Pool) error {
 }
 
 // fromConfiguration loads the public key the UI seals to and logs its identifier, then opens the pool
-// connecting as the UI's role, whose schema the host checks as it opens it, so the key the UI would
+// connecting as the application user, whose schema the host checks as it opens it, so the key the UI would
 // seal to is in the log before the start needs the database, and assembles the UI over the embedded
 // bundle (ADR-0092, ADR-0140).
 func fromConfiguration(ctx context.Context, provided host.Provided[Configuration]) (host.Parts, error) {
@@ -209,7 +209,7 @@ type Needs struct {
 	Credential credentialcore.Config
 	// SealKey is the public key the UI seals to, loaded from the file Credential names.
 	SealKey seal.PublicKey
-	// Pool connects as the UI's runtime role (ADR-0118).
+	// Pool connects as the application user (ADR-0143).
 	Pool *pgxpool.Pool
 	// Bundle is the browser bundle, rooted at its top level.
 	Bundle fs.FS
@@ -224,7 +224,7 @@ type Needs struct {
 }
 
 // Assemble builds the UI from n and returns its parts, the UI's handler and its readiness check, the
-// database answering as the UI's role. It loads the request token's key and the client-secret opener,
+// database answering as the application user. It loads the request token's key and the client-secret opener,
 // and starts nothing.
 func Assemble(n Needs) (host.Parts, error) {
 	tokenKey, err := loadTokenKey(n.Section.TokenKeyFile)

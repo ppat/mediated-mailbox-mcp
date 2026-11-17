@@ -107,11 +107,12 @@ func secretFiles(spec map[string]any) []string {
 	return files
 }
 
-// TestEveryPodReadsOnlyTheSecretsItsProcessUses renders the chart with every optional secret input set and lists,
-// for each pod, every secret key it can read by any means. Each process gets exactly the keys it reads (ADR-0079):
-// the key pair reaches the API server, the worker and the UI and nothing else (ADR-0081), the migration role's
-// password reaches only the migration step (ADR-0129), each runtime role's password only its own process, and
-// the Helm test reads no secret at all. The expected lists are written out here, not derived from the chart.
+// TestEveryPodReadsOnlyTheSecretsItsProcessUses renders the chart with every optional secret input set and lists, for
+// each pod, every secret key it can read by any means. Each process gets exactly the keys it reads (ADR-0079): the key
+// pair reaches the API server, the worker and the UI and nothing else (ADR-0081), the migrator's user's password
+// reaches only the migration step (ADR-0129), the application user's password only the API server, the worker and the
+// UI (ADR-0143), and the Helm test reads no secret at all. The expected lists are written out here, not derived from
+// the chart.
 func TestEveryPodReadsOnlyTheSecretsItsProcessUses(t *testing.T) {
 	keyPair := []string{
 		"sealing-keys/credential.pub -> credential-sealing-key-pair/credential.pub",
@@ -121,16 +122,16 @@ func TestEveryPodReadsOnlyTheSecretsItsProcessUses(t *testing.T) {
 	ca := "database-ca/ca.crt -> ca/ca.crt"
 	want := map[string][]string{
 		"Deployment/release-mediated-mailbox-api": append([]string{
-			ca, "api-db/password -> database/password",
+			ca, "app-db/password -> database/password",
 			"api-tls/tls.crt -> tls/tls.crt", "api-tls/tls.key -> tls/tls.key",
 			"release-mediated-mailbox-access-credentials/api-bearer-token -> bearer-token",
 		}, keyPair...),
 		"Deployment/release-mediated-mailbox-ui": append([]string{
 			ca, "release-mediated-mailbox-access-credentials/ui-request-token-key -> request-token-key",
-			"ui-db/password -> database/password", "ui-tls/tls.crt -> tls/tls.crt", "ui-tls/tls.key -> tls/tls.key",
+			"app-db/password -> database/password", "ui-tls/tls.crt -> tls/tls.crt", "ui-tls/tls.key -> tls/tls.key",
 		}, keyPair...),
 		"Deployment/release-mediated-mailbox-worker": append([]string{
-			"backfill-db/password -> database/backfill/password", ca, "sync-db/password -> database/sync/password",
+			"app-db/password -> database/password", ca,
 		}, keyPair...),
 		"Job/release-mediated-mailbox-migration": {ca, "migrator-db/password -> database/password"},
 		"Pod/release-mediated-mailbox-test":      nil,
@@ -397,7 +398,8 @@ func TestTheMigrationStepIsAHookThatReadsNothingTheChartRenders(t *testing.T) {
 		"MEDIATED_MAILBOX_DATABASE__HOST":          "db.example",
 		"MEDIATED_MAILBOX_DATABASE__PORT":          "5432",
 		"MEDIATED_MAILBOX_DATABASE__NAME":          "mediated_mailbox",
-		"MEDIATED_MAILBOX_DATABASE__USER":          "mediated_mailbox_migrator",
+		"MEDIATED_MAILBOX_DATABASE__USER":          "mailbox_migrator",
+		"MEDIATED_MAILBOX_APPLICATION_USER":        "mailbox_app",
 		"MEDIATED_MAILBOX_DATABASE__SSLMODE":       "verify-full",
 		"MEDIATED_MAILBOX_DATABASE__SSLROOTCERT":   "/etc/mediated-mailbox/secrets/ca/ca.crt",
 		"MEDIATED_MAILBOX_DATABASE__PASSWORD_FILE": "/etc/mediated-mailbox/secrets/database/password",
@@ -619,9 +621,11 @@ func TestTheSchemaRefusesWhatHelmOrTheProcessesWouldChange(t *testing.T) {
 		{"the database in the worker's own block", "worker:\n  config:\n    database: {host: other}\n", "additional properties 'database' not allowed"},
 		{"the database in the migrator's own block", "migration:\n  config:\n    database: {host: other}\n", "additional properties 'database' not allowed"},
 		{"the sync interval in delta sync's own section", "worker:\n  jobKinds:\n    sync:\n      config:\n        sync_interval: 1m\n", "additional properties 'sync_interval' not allowed"},
-		{"a password file in a role's block", "api:\n  database:\n    password_file: /x\n", "additional properties 'password_file' not allowed"},
-		{"a job kind the worker does not run", "worker:\n  jobKinds:\n    organize:\n      database: {user: x}\n", "additional properties 'organize' not allowed"},
-		{"a password for a job kind the worker does not run", "secrets:\n  databasePasswords:\n    worker:\n      organize: {existingSecret: x}\n", "additional properties 'organize' not allowed"},
+		{"a password file in a process's database block", "api:\n  database:\n    password_file: /x\n", "additional properties 'password_file' not allowed"},
+		{"a user in a process's database block", "ui:\n  database:\n    user: x\n", "additional properties 'user' not allowed"},
+		{"a database block in a job kind", "worker:\n  jobKinds:\n    backfill:\n      database: {poolSize: 2}\n", "additional properties 'database' not allowed"},
+		{"a job kind the worker does not run", "worker:\n  jobKinds:\n    organize:\n      config: {}\n", "additional properties 'organize' not allowed"},
+		{"a password for a user the chart does not hold", "secrets:\n  databasePasswords:\n    worker:\n      existingSecret: x\n", "additional properties 'worker' not allowed"},
 		{"a misspelled key", "api:\n  config:\n    provider_timout: 1m\n", "additional properties 'provider_timout' not allowed"},
 		{"a Kubernetes quantity as a Go soft memory limit", "api:\n  goSoftMemoryLimit: 460Mi\n", "does not match pattern"},
 		{"a number as a Go soft memory limit", "worker:\n  goSoftMemoryLimit: 1073741824\n", "got number, want string"},
@@ -643,6 +647,45 @@ func TestTheSchemaRefusesWhatHelmOrTheProcessesWouldChange(t *testing.T) {
 	}
 	if out, err := helmchart.Template(t, chartDir, "-f", path); err != nil {
 		t.Errorf("the quoted no and yes are refused: %v\n%s", err, out)
+	}
+}
+
+// TestTheChartNamesNoDatabaseUser renders the chart without the application user's name, and separately without the
+// migrator's user's, and requires the values schema to refuse each by the missing value, so a deployment that leaves
+// out either name fails before anything starts rather than connecting under a name the project chose (ADR-0143). It
+// then renders both names and requires every process to connect as the one it is given, and the migration step to grant
+// to the application user.
+func TestTheChartNamesNoDatabaseUser(t *testing.T) {
+	for _, missing := range []string{"applicationUser", "migrationUser"} {
+		out, err := helmchart.Template(t, chartDir, "--set", "database."+missing+"=null")
+		if err == nil || !strings.Contains(out, "values don't meet the specifications of the schema") || !strings.Contains(out, "missing property '"+missing+"'") {
+			t.Errorf("a render without database.%s is not refused for its absence: %v\n%s", missing, err, out)
+		}
+	}
+	files := map[string]string{}
+	var job map[string]any
+	for _, o := range helmchart.Render(t, chartDir, "--set", "database.applicationUser=the-app", "--set", "database.migrationUser=the-owner") {
+		switch dig[string](o, "kind") {
+		case "ConfigMap":
+			for name, text := range dig[map[string]any](o, "data") {
+				files[name] = fmt.Sprint(text)
+			}
+		case "Job":
+			job = o
+		}
+	}
+	for _, name := range []string{"api.yaml", "ui.yaml", "worker.yaml"} {
+		// The database section is the file's one block holding a user, at the block's indentation.
+		if got := regexp.MustCompile(`(?m)^  user: (.*)$`).FindAllStringSubmatch(files[name], -1); len(got) != 1 || got[0][1] != "the-app" {
+			t.Errorf("%s connects as %v, want the application user the-app alone", name, got)
+		}
+	}
+	env := map[string]string{}
+	for _, e := range list(dig[any](list(dig[any](job, "spec", "template", "spec", "containers"))[0], "env")) {
+		env[dig[string](e, "name")] = dig[string](e, "value")
+	}
+	if env["MEDIATED_MAILBOX_DATABASE__USER"] != "the-owner" || env["MEDIATED_MAILBOX_APPLICATION_USER"] != "the-app" {
+		t.Errorf("the migration step connects as %q and grants to %q, want the-owner and the-app", env["MEDIATED_MAILBOX_DATABASE__USER"], env["MEDIATED_MAILBOX_APPLICATION_USER"])
 	}
 }
 

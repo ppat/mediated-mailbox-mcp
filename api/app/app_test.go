@@ -484,7 +484,7 @@ func starter(t *testing.T) host.Starter {
 }
 
 // The API server's defaults are the process's, its two listeners and the info level, a reload each
-// minute, the port, its own runtime role, the TLS mode that fails closed, the driver's own pool size,
+// minute, the port, the test harness's application user, the TLS mode that fails closed, the driver's own pool size,
 // the larger of 4 and the processor count, the scanner configuration the application ships and a
 // provider timeout of thirty seconds. The token file, the database host, name and password file and
 // the key files are required.
@@ -494,7 +494,7 @@ func TestTheDefaults(t *testing.T) {
 		Operations: host.Operations{ProbeListen: ":8080"},
 		Serving:    host.Serving{Listen: ":8443"},
 		Section:    Section{AccountReloadInterval: time.Minute, ProviderTimeout: 30 * time.Second},
-		Database:   dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_api", SSLMode: "verify-full", PoolSize: max(4, runtime.NumCPU())},
+		Database:   dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_app", SSLMode: "verify-full", PoolSize: max(4, runtime.NumCPU())},
 		Scanner:    scan.DefaultConfig(),
 	}
 	if diff := cmp.Diff(want, defaults(), compare.Options); diff != "" {
@@ -611,7 +611,7 @@ func TestTheEffectiveConfigurationIsLogged(t *testing.T) {
 		`level=INFO msg=configuration path=database.port source=default value=5432`,
 		`level=INFO msg=configuration path=database.sslmode source=default value=verify-full`,
 		`level=INFO msg=configuration path=database.sslrootcert source=default value=""`,
-		`level=INFO msg=configuration path=database.user source=default value=mediated_mailbox_api`,
+		`level=INFO msg=configuration path=database.user source=default value=mediated_mailbox_app`,
 		`level=INFO msg=configuration path=listen source=default value=:8443`,
 		`level=INFO msg=configuration path=log_level source=default value=info`,
 		`level=INFO msg=configuration path=probe_listen source=default value=:8080`,
@@ -736,7 +736,7 @@ func TestThePublicKeyMustMatchAPrivateKey(t *testing.T) {
 		keys := []string{"--credential.public_key_file=" + public, "--credential.private_key_files=[" + strings.Join(privates, ", ") + "]"}
 		return Run(t.Context(), args(servingArgs, database, keys), nil, io.Discard, io.Discard, discard(), new(slog.LevelVar))
 	}
-	pastTheKeyring := "configuring the database connection of mediated_mailbox_api: reading the password file: "
+	pastTheKeyring := "configuring the database connection of mediated_mailbox_app: reading the password file: "
 	for _, c := range []struct {
 		name     string
 		public   string

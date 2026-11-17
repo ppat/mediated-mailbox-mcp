@@ -41,11 +41,11 @@ global:
       drop:
       - ALL
 
-# The PostgreSQL server every process and the migration step connect to, which the user supplies (ADR-0052). Each
-# role's password is under secrets.databasePasswords.
+# The PostgreSQL server every process and the migration step connect to, which the user supplies (ADR-0052), and the
+# two database users' names. Each user's password is under secrets.databasePasswords.
 database:
   # -- The server's host name. Required. With sslmode verify-full it must be a name the server's certificate
-  # carries, and for the migration step it must match the host field of the migration role's password file.
+  # carries.
   host: ""
   # -- The server's port.
   port: 5432
@@ -53,6 +53,12 @@ database:
   name: ""
   # -- The TLS mode, one of disable, allow, prefer, require, verify-ca and verify-full.
   sslmode: verify-full
+  # -- The name of the application user, which the API server, the UI and the worker connect as and every grant of
+  # the migration chain is made to. Required. The system names no database user, so it has no default (ADR-0143).
+  applicationUser: ""
+  # -- The name of the migrator's user, which owns the database and applies the migration chain (ADR-0048). Required,
+  # with no default.
+  migrationUser: ""
 
 # Every Secret the chart reads, each entry named for what it holds. global.imagePullSecrets and the tls entries of
 # api.ingress and ui.ingress keep Kubernetes' own shape outside secrets, because the chart never reads those
@@ -62,36 +68,18 @@ database:
 # or changes a Secret it is given, reads only the keys it names, and mounts each of them only into the pods whose
 # process reads it.
 secrets:
-  # Each database role's password, one entry per role, mounted only into the process that connects as it.
+  # Each database user's password, mounted only into the pods whose process connects as it.
   databasePasswords:
-    api:
-      # -- The Secret holding the API server role's password. Required.
+    application:
+      # -- The Secret holding the application user's password, mounted into the API server, the worker and the UI.
+      # Required.
       existingSecret: ""
       secretKeys:
         # -- The key holding the password alone.
         password: password
-    ui:
-      # -- The Secret holding the UI role's password. Required.
-      existingSecret: ""
-      secretKeys:
-        # -- The key holding the password alone.
-        password: password
-    # One entry per job kind the worker runs, matching worker.jobKinds.
-    worker:
-      backfill:
-        # -- The Secret holding backfill's role password. Required.
-        existingSecret: ""
-        secretKeys:
-          # -- The key holding the password alone.
-          password: password
-      sync:
-        # -- The Secret holding delta sync's role password. Required.
-        existingSecret: ""
-        secretKeys:
-          # -- The key holding the password alone.
-          password: password
     migration:
-      # -- The Secret holding the migration role's password, such as CloudNativePG's <cluster>-app Secret. Required.
+      # -- The Secret holding the migrator's user's password, such as CloudNativePG's <cluster>-app Secret, mounted into
+      # the migration Job alone. Required.
       existingSecret: ""
       secretKeys:
         # -- The key holding the password alone.
@@ -180,10 +168,9 @@ api:
     tag: ""
     # -- A digest that pins the image whatever the tag.
     digest: ""
-  # The API server's connection to the database server above. Its password is secrets.databasePasswords.api.
+  # The API server's connection to the database server above, as database.applicationUser. Its password is
+  # secrets.databasePasswords.application.
   database:
-    # -- The role it connects as, mediated_mailbox_api when empty.
-    user: ""
     # -- The most connections its pool opens, the API server's default when empty, the larger of 4 and the node's
     # processor count.
     poolSize: null
@@ -271,10 +258,9 @@ ui:
     tag: ""
     # -- A digest that pins the image whatever the tag.
     digest: ""
-  # The UI's connection to the database server above. Its password is secrets.databasePasswords.ui.
+  # The UI's connection to the database server above, as database.applicationUser. Its password is
+  # secrets.databasePasswords.application.
   database:
-    # -- The role it connects as, mediated_mailbox_ui when empty.
-    user: ""
     # -- The most connections its pool opens, the UI's default when empty, the larger of 4 and the node's processor
     # count.
     poolSize: null
@@ -367,22 +353,18 @@ worker:
     tag: ""
     # -- A digest that pins the image whatever the tag.
     digest: ""
-  # Each job kind the worker runs, keyed by its name, each connecting as a runtime role of its own (ADR-0118).
+  # The worker's connection to the database server above, as database.applicationUser. Its password is
+  # secrets.databasePasswords.application. Each job kind has a pool of its own (ADR-0119).
+  database:
+    # -- The most connections each job kind's pool opens, the same for every job kind, the worker's default of 4 when
+    # empty.
+    poolSize: null
+  # Each job kind the worker runs, keyed by its name.
   jobKinds:
     backfill:
-      database:
-        # -- The role it connects as, mediated_mailbox_backfill when empty.
-        user: ""
-        # -- The most connections its pool opens, the worker's default when empty.
-        poolSize: null
       # -- Backfill's own section, concurrency.
       config: {}
     sync:
-      database:
-        # -- The role it connects as, mediated_mailbox_sync when empty.
-        user: ""
-        # -- The most connections its pool opens, the worker's default when empty.
-        poolSize: null
       # -- Delta sync's own section, first_window, decisions_per_tick and concurrency. The sync interval is
       # sharedConfig.sync_interval.
       config: {}
@@ -434,13 +416,9 @@ migration:
     tag: ""
     # -- A digest that pins the image whatever the tag.
     digest: ""
-  database:
-    # -- The migration role, which owns the schema (ADR-0048). Its password file is
-    # secrets.databasePasswords.migration.
-    user: mediated_mailbox_migrator
   # -- The migrator's own configuration keys: log_level.
   config: {}
-  # -- How many times a failed run is retried, enough to outlast roles created within the release's timeout. Helm
+  # -- How many times a failed run is retried, enough to outlast users created within the release's timeout. Helm
   # waits on the migration only up to that timeout, five minutes unless --timeout says otherwise.
   backoffLimit: 10
   # -- How long the Job may run in all before it fails.

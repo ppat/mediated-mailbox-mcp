@@ -1,0 +1,19 @@
+control: The chart renders the worker a file it starts with, holding every worker key the chart admits
+removes: the chart leaves the worker's pool size out of its file though the values set one
+packages: ./worker/app
+tests: TestTheChartRendersAFileTheWorkerStartsWith
+scheduled-count: no
+
+diff --git a/packaging/chart/templates/_config.tpl b/packaging/chart/templates/_config.tpl
+index b8bf7d3b..fd111d8b 100644
+--- a/packaging/chart/templates/_config.tpl
++++ b/packaging/chart/templates/_config.tpl
+@@ -106,7 +106,7 @@ file, since no ConfigMap of the release exists at pre-install (ADR-0129, ADR-013
+ {{- $_ := set $c $kind $section }}
+ {{- end }}
+ {{- end }}
+-{{- $_ := set $c "database" (include "mm.config.database" (list . (include "mm.applicationUser" .) .Values.worker.database) | fromYaml) }}
++{{- $_ := set $c "database" (include "mm.config.database" (list . (include "mm.applicationUser" .) (dict)) | fromYaml) }}
+ {{- $_ := set $c "credential" (include "mm.config.credential" . | fromYaml) }}
+ {{- $_ := set $c "probe_listen" (printf ":%s" (include "mm.port.metrics" .)) }}
+ {{- toYaml $c }}

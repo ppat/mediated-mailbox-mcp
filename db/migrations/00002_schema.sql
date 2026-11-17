@@ -260,7 +260,7 @@ CREATE TABLE policy_rules (
 CREATE INDEX ON policy_rules (account_id);
 
 -- Every change to policy_rules, appended in the same transaction (ADR-0102). A base rule's change has
--- a null account. No runtime role holds UPDATE or DELETE here, as on audit_log.
+-- a null account. The application user holds no UPDATE or DELETE here, as on audit_log.
 CREATE TABLE policy_changes (
     id bigserial PRIMARY KEY,
     -- NULL for a base rule's change. An overlay rule's names its account.
@@ -370,7 +370,7 @@ CREATE TABLE job_runs (
     last_error text,
     PRIMARY KEY (account_id, run_id),
     -- A closed set of the pairs the built job kinds record. Each job kind adds its own pairs in the
-    -- migration that brings its role.
+    -- migration that brings its statements.
     CONSTRAINT job_runs_workload_pass_check CHECK (
         (workload, pass) IN (('backfill', 'pass1'), ('backfill', 'pass2'), ('sync', 'tick'), ('sync', 'gap_recovery'))
     )
@@ -420,7 +420,7 @@ CREATE TABLE job_run_failures (
     FOREIGN KEY (account_id, run_id) REFERENCES job_runs ON DELETE CASCADE
 );
 
--- No runtime role holds UPDATE or DELETE here. Append-only is the grant, not a convention. Evidence
+-- The application user holds no UPDATE or DELETE here. Append-only is the grant, not a convention. Evidence
 -- outlives everything, so an account with audit rows cannot be deleted (ADR-0016).
 -- A body decision's row records what the decision rests on in typed columns, each closed vocabulary
 -- checked, since a wrong spelling written here stays for good (ADR-0016).

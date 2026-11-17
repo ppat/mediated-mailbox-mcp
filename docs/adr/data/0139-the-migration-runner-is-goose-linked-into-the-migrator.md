@@ -92,12 +92,12 @@ its grid and reading carry over unchanged.
     section, `database.ForMigration`, with the password from the mounted file the section names. It
     applies the chain the binary embeds through `db/migrate`.
   - The section's `user`, the migrator's user, is a required setting with no default. The
-    migrator also takes the application user's name as a required setting, to which the chain's
-    grants are made
+    migrator also takes the application user's name as a required setting with no default,
+    `application_user`, beside the `database` section, to which the chain's grants are made
     ([ADR-0143](./0143-the-programs-connect-as-one-application-user-beside-the-migrators.md),
-    [ADR-0078](../engineering/0078-configuration-layers-through-an-owned-library.md)). How the
-    migrator hands that name to the migrations is not yet chosen, and the first change to the
-    chain's grants chooses it.
+    [ADR-0078](../engineering/0078-configuration-layers-through-an-owned-library.md)). The task
+    hands the name to `db/migrate`, which puts it in place of the placeholder the chain's grants
+    name ([ADR-0048](./0048-forward-only-migrations.md)).
   - The process serves no operations endpoints and no application server, since nothing probes,
     scrapes or calls a Job that exits on its own.
 - **The integration runs apply the chain through `db/migrate`**, the embedded chain for the

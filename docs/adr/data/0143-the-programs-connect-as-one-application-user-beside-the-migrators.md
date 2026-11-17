@@ -57,8 +57,8 @@ are enough for them.
 - **Every grant the chain makes is made to the application user's name.** The chain's grants file
   holds one section, for that one user, and a migration that creates a table grants on it to the
   same name. A grant names its grantee, so the migrator takes the application user's name as a
-  required setting and makes the chain's grants to it. How the migrator hands that name to the
-  migrations is not yet chosen, and the first change to the chain's grants chooses it.
+  required setting and makes the chain's grants to it, in place of the placeholder the migration
+  files name ([ADR-0048](./0048-forward-only-migrations.md)).
 - **The application user's line.** Its writes are exactly what the data-access library's
   statements write. It holds no DDL right ([ADR-0048](./0048-forward-only-migrations.md)), and no
   update or delete on the audit log or the policy history ([ADR-0016](./0016-schema.md),

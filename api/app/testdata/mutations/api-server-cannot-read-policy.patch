@@ -1,20 +1,19 @@
 control: The API server loads the policy of the accounts it serves, and of none when it serves none
-removes: the API server's role is not granted the policy rules' columns
+removes: the application user, which the API server connects as, is not granted the read of the policy rules
 packages: ./api/app
 tests: TestTheAPIServerServesTheAccountsEachReloadLists
 scheduled-count: no
 integration: yes
 
 diff --git a/db/migrations/00003_grants.sql b/db/migrations/00003_grants.sql
-index 1c11b3a..b19c3ae 100644
+index 809f1022..08c798ea 100644
 --- a/db/migrations/00003_grants.sql
 +++ b/db/migrations/00003_grants.sql
-@@ -540,7 +540,7 @@ TO mediated_mailbox_api, mediated_mailbox_backfill, mediated_mailbox_sync, media
- -- exactly those columns. Who created a rule and when stay out of their reach. The statement reads the
- -- base rules and the rules of the transaction's account alone (ADR-0135).
- GRANT SELECT (account_id, rule_id, class, domain_suffix) ON policy_rules
--TO mediated_mailbox_api, mediated_mailbox_backfill, mediated_mailbox_sync;
-+TO mediated_mailbox_backfill, mediated_mailbox_sync;
- 
- -- The account snapshot's statements in db/accounts, db/accountstate/credential and db/oauthclients run
- -- under the role of each process's execution context (ADR-0118, ADR-0090), the API server's and delta
+@@ -25,7 +25,6 @@ messages,
+ attachment_media,
+ scan_gate_decisions,
+ policy_candidates,
+-policy_rules,
+ policy_changes,
+ masking_events,
+ reorg_plans,

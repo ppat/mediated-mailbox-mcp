@@ -19,15 +19,15 @@ func TestMain(m *testing.M) {
 	postgres.Main(m)
 }
 
-// spenders returns a pool connecting as backfill's role, one whose list admits the rate limiter, so
-// its grants apply to the leases as they do in production.
+// spenders returns a pool connecting as the application user, as every program that spends from the
+// budget does, so its grants apply to the leases as they do in production.
 func spenders(t *testing.T) *pgxpool.Pool {
 	t.Helper()
 	cfg, err := pgxpool.ParseConfig(postgres.URL(t))
 	if err != nil {
 		t.Fatal(err)
 	}
-	cfg.ConnConfig.RuntimeParams["options"] = "-c role=mediated_mailbox_backfill"
+	cfg.ConnConfig.RuntimeParams["options"] = "-c role=" + postgres.ApplicationUser
 	pool, err := pgxpool.NewWithConfig(t.Context(), cfg)
 	if err != nil {
 		t.Fatal(err)

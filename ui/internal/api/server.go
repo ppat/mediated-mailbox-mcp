@@ -24,7 +24,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/registry"
 )
 
-// Database is the UI's connection pool, connected as the UI's own role (ADR-0084). Account-scoped
+// Database is the UI's connection pool, connected as the application user (ADR-0143). Account-scoped
 // reads run through the transaction helper, which sets and verifies the account (ADR-0047), and a
 // read that classifies senders runs over its repeatable-read snapshot, so one response sees one state
 // of the policy and the index (ADR-0136). The accounts listing runs on it directly, because the
@@ -269,7 +269,7 @@ func (s *Server) Served() []string {
 // Handler serves the UI, the entry document, the bundle and the read API.
 func (s *Server) Handler() http.Handler { return s.handler }
 
-// Ready returns nil only while the database answers as the UI's role, since every screen reads it.
+// Ready returns nil only while the database answers as the application user, since every screen reads it.
 // It is the UI's readiness check.
 func (s *Server) Ready(ctx context.Context) error {
 	if err := s.opts.Database.Ping(ctx); err != nil {

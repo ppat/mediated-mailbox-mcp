@@ -9,8 +9,9 @@ name: images
 #
 # On a push to main whose changes match the publish list below, or a run by hand on main, the same job also signs and
 # pushes each image and tags its digest latest, so the chainsaw suite on a pull request deploys main's images
-# (ADR-0052). It is one of latest's two writers. The other is the release workflow, whose image builds tag the
-# release's images latest as they push them.
+# (ADR-0052), once its pull-request trigger, off while the refactor ROADMAP.md records is under way, is back. It is one
+# of latest's two writers. The other is the release workflow, whose image builds tag the release's images latest as they
+# push them.
 #
 # The publish list names what the images are built from: the directories of the shipped components each Dockerfile
 # copies and its binary links, go.mod and go.sum, every Dockerfile, the browser bundle's sources, and this workflow. It

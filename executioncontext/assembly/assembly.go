@@ -2,10 +2,10 @@
 // that calls a provider executes with, and runs its one reload. It holds the keyring, the account
 // snapshot and its loader, the sources of the account sessions, so an account has one token source
 // and one rotation write-back in the process, the policy snapshot and its loader, each account's
-// lowered rate target, and the scanner. Its statements run under the role of the pool its composition
-// root hands it, the API server's own in the API server and delta sync's in the worker (ADR-0090,
-// ADR-0118). Each component sees the sessions through a holder of its own, with its own provider
-// adapters and the role its own attempts are recorded under, and builds each unit's rate limiter on
+// lowered rate target, and the scanner. Its statements run on the pool its composition root hands it,
+// the API server's own in the API server and delta sync's in the worker, as the application user
+// (ADR-0090, ADR-0143). Each component sees the sessions through a holder of its own, with its own
+// provider adapters and the pool its own attempts are recorded on, and builds each unit's rate limiter on
 // its own pool, so its series of provider calls and leases stay its own (ADR-0117). The UI never
 // receives it. Its case is argued in executioncontext/README.md.
 package assembly
@@ -44,7 +44,7 @@ var ErrNotLoaded = errors.New("the execution context has not loaded its accounts
 
 // Needs are what the execution context is built from.
 type Needs struct {
-	// Pool connects as the role the context's statements run under.
+	// Pool is the pool the context's statements run on.
 	Pool *pgxpool.Pool
 	// Keys open the accounts' sealed credentials and the OAuth clients' secrets (ADR-0081).
 	Keys *open.Keyring
@@ -132,7 +132,7 @@ func New(n Needs) (*Context, error) {
 }
 
 // Pool returns the pool the context's statements run on, which a composition root's test holds to
-// the role the root chose for them (ADR-0118).
+// the pool the root chose for them.
 func (c *Context) Pool() *pgxpool.Pool { return c.n.Pool }
 
 // Scanner returns the process's one scanner.

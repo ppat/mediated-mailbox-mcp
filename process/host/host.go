@@ -504,8 +504,8 @@ func (h *Host) Logger(name string) *slog.Logger {
 	return h.logger.With(componentLabel, name)
 }
 
-// OpenPool opens a pool from c, connecting as c's role, measured on reg, which the host closes once
-// every task has returned. A pool opens no connection until its first use (ADR-0118, ADR-0125), apart
+// OpenPool opens a pool from c, connecting as c's user, measured on reg, which the host closes once
+// every task has returned. A pool opens no connection until its first use (ADR-0125), apart
 // from the schema check of a host that Run built, which runs on the pool before OpenPool returns it
 // and refuses the pool when it refuses the schema (ADR-0140).
 func (h *Host) OpenPool(ctx context.Context, c dbconnectcore.Config, reg prometheus.Registerer) (*pgxpool.Pool, error) {

@@ -43,7 +43,7 @@ const (
 	spareSecret     = "spare-secret"
 )
 
-// rig is the UI's server over the seeded database as the UI's role, with the provider fake's consent
+// rig is the UI's server over the seeded database as the application user, with the provider fake's consent
 // standing for Gmail's, a public key whose private key the test holds, a clock the test moves, and the
 // superuser's connection the test reads and writes the stored rows through.
 type rig struct {
@@ -131,7 +131,7 @@ func (r *rig) server(key []byte) *api.Server {
 // serverOver is server with the database the server reads through wrapped by over.
 func (r *rig) serverOver(key []byte, over func(*pgxpool.Pool) api.Database) *api.Server {
 	r.t.Helper()
-	pool := uiPool(r.t, "mediated_mailbox_ui")
+	pool := uiPool(r.t, postgres.ApplicationUser)
 	secrets, err := clientsecret.Load(r.publicFile, []string{r.privateFile}, pool)
 	if err != nil {
 		r.t.Fatal(err)

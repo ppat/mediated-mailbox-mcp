@@ -33,13 +33,9 @@ type library struct {
 	libraryWide []string
 	// crossCutting names the import lists that cut across what the component lists govern, such as the
 	// lists over every pure core or over files outside every component, and the list holding the UI's
-	// shipped code to the cryptography packages it uses. None is a deployable's, so none runs a library's
-	// statements under a role, and admitting a library's code through one is not a deployable
-	// admitting the library.
+	// shipped code to the cryptography packages it uses. Each may admit the library's root package by a
+	// wide prefix, since every file it governs is also held to its component's own list.
 	crossCutting []string
-	// root is the directory the module's import paths are read from, the repository's root for the
-	// real library, where a library list's globs name the directories its packages sit in.
-	root string
 	// components names the directories under dir that hold a component rather than a package of the
 	// library. The test library keeps the components its checks read beside its subsections. The real
 	// library holds none, since every directory under db/ is part of it. The set is fixed here and never
@@ -57,7 +53,6 @@ var (
 		// lists over all non-test code and all ordinary tests, which leave each component to its own list.
 		libraryWide:  []string{"db", "db-migrate", "non-test-code", "ordinary-tests", "testsupport", "testsupport-without-rapid"},
 		crossCutting: []string{"provider-test-code", "pure-core", "pure-core-tests", "residual", "ui-shipped-crypto"},
-		root:         "../..",
 	}
 	testLibrary = library{
 		dir:          "testdata",
@@ -67,8 +62,7 @@ var (
 		importLists:  "testdata/golangci.yaml",
 		libraryWide:  []string{"db"},
 		crossCutting: []string{"everything"},
-		root:         "testdata",
-		components:   []string{"testdata/callinglib", "testdata/chainlib", "testdata/fixturelib"},
+		components:   []string{"testdata/chainlib", "testdata/fixturelib"},
 	}
 	// layoutLibrary holds only a sqlc.yaml whose blocks break the layout the checks rely on, and one
 	// block that follows it and was never generated. sqlc never runs over it.

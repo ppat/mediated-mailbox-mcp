@@ -1,0 +1,20 @@
+control: The chain's grants are made to the application user's name the migrator is configured with
+removes: the chain's SQL files are read as they are, so every grant names the placeholder rather than the configured user
+packages: ./db/migrate
+tests: TestTheApplicationUserTakesThePlaceholdersPlace
+scheduled-count: no
+integration: no
+
+diff --git a/db/migrate/migrate.go b/db/migrate/migrate.go
+index 9b266009..1517c3d0 100644
+--- a/db/migrate/migrate.go
++++ b/db/migrate/migrate.go
+@@ -78,7 +78,7 @@ func (g granting) Open(name string) (fs.File, error) {
+ 	if err = errors.Join(err, f.Close()); err != nil {
+ 		return nil, fmt.Errorf("reading %s: %w", name, err)
+ 	}
+-	replaced := replace(text, g.grantee)
++	replaced := text
+ 	return &grantedFile{Reader: bytes.NewReader(replaced), info: grantedInfo{FileInfo: info, size: int64(len(replaced))}}, nil
+ }
+ 

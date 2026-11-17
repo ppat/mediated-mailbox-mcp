@@ -3,14 +3,12 @@
 name: chainsaw
 
 # The chainsaw suite deploys the chart onto an ephemeral kind cluster through flux, with images already published,
-# and builds no image (ADR-0052). A pull request changing the chart, the suite or this workflow tests it with main's
-# latest images, which the images workflow and each release publish, so a deployable's change does not run it. A dispatch names a
-# release version and tests it with that release's images.
+# and builds no image (ADR-0052). A dispatch names a release version and tests it with that release's images. Its
+# pull-request trigger, under which a pull request changing the chart, the suite or this workflow tests it with main's
+# latest images, which the images workflow and each release publish, is off while the refactor ROADMAP.md records is
+# under way, since a pull request in it can change the chart and what a binary expects of it at once. The jobs keep
+# reading the pull request's event, so restoring the trigger restores the run.
 on:
-  pull_request:
-    paths:
-    - .github/workflows/chainsaw.yaml
-    - packaging/**
   workflow_dispatch:
     inputs:
       version:

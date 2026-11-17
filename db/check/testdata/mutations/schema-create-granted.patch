@@ -1,19 +1,16 @@
-control: Schema change is confined to the migration role
-removes: the chain grants a runtime role the right to create objects in the schema
+control: Schema change is confined to the migrator's user
+removes: the chain grants the application user the right to create objects in the schema
 packages: ./db/check
-tests: TestRuntimeRolesCannotChangeTheSchema TestRuntimeRolesCannotChangeTheSchema/mediated_mailbox_backfill/create_a_table TestRuntimeRolesCannotChangeTheSchema/mediated_mailbox_backfill/create_a_function
+tests: TestTheApplicationUserCannotChangeTheSchema TestTheApplicationUserCannotChangeTheSchema/create_a_table TestTheApplicationUserCannotChangeTheSchema/create_a_function
 scheduled-count: no
 integration: yes
 
 diff --git a/db/migrations/00003_grants.sql b/db/migrations/00003_grants.sql
-index d8815de2..ef042b98 100644
+index 809f1022..a4961c0a 100644
 --- a/db/migrations/00003_grants.sql
 +++ b/db/migrations/00003_grants.sql
-@@ -558,6 +558,7 @@ GRANT SELECT (account_id, credential), UPDATE (credential) ON account_state
- TO mediated_mailbox_api, mediated_mailbox_sync;
- GRANT SELECT (name, provider, client_id, client_secret) ON oauth_clients
- TO mediated_mailbox_api, mediated_mailbox_sync;
-+GRANT CREATE ON SCHEMA public TO mediated_mailbox_backfill;
- 
- -- The start check's statement, in db/schemacompatibility, runs under every role a deployable connects
- -- as, on each pool its process opens, before the pool is used (ADR-0140). It reads the newest
+@@ -232,3 +232,4 @@ GRANT USAGE ON SEQUENCE audit_log_id_seq TO application_user;
+ -- which describe the schema and no account.
+ GRANT SELECT (version_id) ON goose_db_version TO application_user;
+ GRANT SELECT (oldest_chain_version) ON schema_compatibility TO application_user;
++GRANT CREATE ON SCHEMA public TO application_user;

@@ -152,7 +152,7 @@ The demonstrations of the controls whose patches sit in `executioncontext/`. [MU
 
 ## Holders seen through one holder share its sources, each opening sessions with its own ports
 
-- **Date · evidence:** 2026-10-15 · [pull request #394](https://github.com/ppat/mediated-mailbox-mcp/pull/394), at RAPID_SEED=1
+- **Date · evidence:** 2026-10-15 · [pull request #394](https://github.com/ppat/mediated-mailbox-mcp/pull/394), at RAPID_SEED=1 · and break (2) again on 2026-11-17 at RAPID_SEED=1, after the two database users changed the code, tests or patches the row rests on · [pull request #451](https://github.com/ppat/mediated-mailbox-mcp/pull/451)
 - **Break (1):** a holder seen through another keeps sources of its own, so two callers of one account build two sources and the provider issues a token to each
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/executioncontext/session`:** `TestHoldersThroughOneHolderShareItsSources`
 - **Break (2):** every holder seen through one holder opens its sessions with the connectors of the first seen through it, so a later component's units call through the first component's ports

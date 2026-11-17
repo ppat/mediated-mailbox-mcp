@@ -54,12 +54,14 @@ func TestRoutes(t *testing.T) {
 
 // The cases under testdata/src/github.com/ppat/mediated-mailbox-mcp stand for a UI package running
 // statements through the driver, a generated subsection's handle, an interface embedding it, a
-// wrapper and an interface it declares, with lookalikes and a test file, a subsection under db running
-// one, and a directory whose name only starts with ui.
+// wrapper and an interface it declares, with lookalikes and a test file, a package of the API server and
+// one of the worker each running one with a test file that runs one too, a subsection under db running
+// one, and directories whose names only start with ui, api and worker.
 func TestRawSQL(t *testing.T) {
 	const m = "github.com/ppat/mediated-mailbox-mcp"
 	analysistest.Run(t, analysistest.TestData(), analysis.RawSQL,
-		m+"/ui/internal/store", m+"/db/statements", m+"/uix/lookalike")
+		m+"/ui/internal/store", m+"/api/internal/statements", m+"/worker/internal/statements", m+"/db/statements",
+		m+"/uix/lookalike", m+"/apix/lookalike", m+"/workerx/lookalike")
 }
 
 // The cases under testdata/src/github.com/ppat/mediated-mailbox-mcp stand for a job kind's code in the

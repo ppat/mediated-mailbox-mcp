@@ -18,8 +18,8 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 )
 
-// grantRead is backfill's grant on the policy rules, as the migration chain gives it.
-const grantRead = "GRANT SELECT (account_id, rule_id, class, domain_suffix) ON policy_rules TO mediated_mailbox_backfill"
+// grantRead is the application user's grant on the policy rules, as the migration chain gives it.
+const grantRead = "GRANT SELECT ON policy_rules TO mediated_mailbox_app"
 
 // newLoader returns a loader for accounts over db and the registry its series is on.
 func newLoader(t *testing.T, db *faulty, accounts []string) (*policyload.Loader, *prometheus.Registry) {
@@ -137,7 +137,7 @@ func TestAFailedReadNeverReplacesTheActivePolicy(t *testing.T) {
 		{
 			name: "the role cannot read the table",
 			breakRead: func(t *testing.T, conn *pgx.Conn, _ *faulty, _ []string) func() int64 {
-				must(t, conn, "REVOKE SELECT ON policy_rules FROM mediated_mailbox_backfill")
+				must(t, conn, "REVOKE SELECT ON policy_rules FROM mediated_mailbox_app")
 				t.Cleanup(func() {
 					if _, err := conn.Exec(context.Background(), grantRead); err != nil {
 						t.Error(err)

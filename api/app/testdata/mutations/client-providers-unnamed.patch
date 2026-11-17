@@ -6,11 +6,11 @@ scheduled-count: no
 integration: yes
 
 diff --git a/api/app/app.go b/api/app/app.go
-index 8e847ec..c5207f2 100644
+index e77b5a29..a888fc7d 100644
 --- a/api/app/app.go
 +++ b/api/app/app.go
-@@ -219,7 +219,7 @@ func fromConfiguration(ctx context.Context, provided host.Provided[Configuration
- // ADR-0118).
+@@ -235,7 +235,7 @@ func fromConfiguration(ctx context.Context, provided host.Provided[Configuration
+ // API server's pool, reloading on its account reload interval (ADR-0090).
  func newContext(pool *pgxpool.Pool, keys *open.Keyring, scanner scan.Scanner, s Section, reg prometheus.Registerer, logger *slog.Logger) (*assembly.Context, error) {
  	return assembly.New(assembly.Needs{
 -		Pool: pool, Keys: keys, ThroughClient: []string{gmailProvider}, Scanner: scanner, Lookups: lookups(),

@@ -27,8 +27,8 @@ type AccountsRow struct {
 }
 
 // Every account's identifier, provider and the OAuth client it connects through, NULL for a provider
-// without one, the one statement left without an account predicate. The roles that list accounts
-// read every row of the table (ADR-0091, ADR-0106).
+// without one, the one statement left without an account predicate. The code that lists accounts
+// reads every row of the table (ADR-0091, ADR-0106).
 func (q *Queries) Accounts(ctx context.Context) ([]AccountsRow, error) {
 	rows, err := q.db.Query(ctx, accounts)
 	if err != nil {

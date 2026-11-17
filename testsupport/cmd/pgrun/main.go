@@ -193,7 +193,7 @@ func prepareTemplate(ctx context.Context, admin, migrate, password string) error
 	if _, err := conn.Exec(ctx, "CREATE TABLE "+postgres.RegistryTable+" (package_dir text NOT NULL, database text PRIMARY KEY, created_at timestamptz NOT NULL DEFAULT clock_timestamp())"); err != nil {
 		return err
 	}
-	if err := postgres.ApplyChain(ctx, admin, migrate, template, migrations.Chain()); err != nil {
+	if err := postgres.ApplyChain(ctx, admin, migrate, template, migrations.Chain(), postgres.ApplicationUser); err != nil {
 		return err
 	}
 	_, err = conn.Exec(ctx, "ALTER DATABASE "+template+" WITH IS_TEMPLATE true ALLOW_CONNECTIONS false")

@@ -23,11 +23,11 @@ func TestMain(m *testing.M) {
 	postgres.Main(m)
 }
 
-// The role the loader connects as in these tests. Delta sync's role reads and writes everything the
-// library's statements reach, as the API server's and the worker's other job kinds' do (ADR-0118).
-const role = "mediated_mailbox_sync"
+// The user the loader connects as in these tests, the application user every program connects as
+// (ADR-0143).
+const role = postgres.ApplicationUser
 
-// pool returns a pool connecting as role, so the role's grants apply as they do in production.
+// pool returns a pool connecting as role, so the user's grants apply as they do in production.
 func pool(t *testing.T) *pgxpool.Pool {
 	t.Helper()
 	cfg, err := pgxpool.ParseConfig(postgres.URL(t))

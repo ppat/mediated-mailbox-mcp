@@ -12,7 +12,7 @@ import (
 
 func valid() core.Config {
 	//nolint:gosec // A mounted file's path, not a credential.
-	return core.Config{Host: "db.example", Port: 5432, Name: "mailbox", User: "mediated_mailbox_backfill", SSLMode: "verify-full", PasswordFile: "/run/secrets/password", PoolSize: 4}
+	return core.Config{Host: "db.example", Port: 5432, Name: "mailbox", User: "mediated_mailbox_app", SSLMode: "verify-full", PasswordFile: "/run/secrets/password", PoolSize: 4}
 }
 
 // A value that would let the driver substitute a default the operator never chose is refused.

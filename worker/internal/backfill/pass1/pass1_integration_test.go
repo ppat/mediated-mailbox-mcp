@@ -424,7 +424,7 @@ func TestAPageThatFailsToCommitLeavesNothing(t *testing.T) {
 	}
 }
 
-// revoke revokes a grant of backfill's role for the rest of the test, and grants it again when the test
+// revoke revokes a grant of the application user for the rest of the test, and grants it again when the test
 // ends, so the tests after it see the role as the migration chain made it.
 func revoke(t *testing.T, privilege string) {
 	t.Helper()

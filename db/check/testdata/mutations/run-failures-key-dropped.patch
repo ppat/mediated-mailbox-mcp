@@ -6,11 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/db/migrations/00002_schema.sql b/db/migrations/00002_schema.sql
-index 16df97b3..c4d36389 100644
+index d1041389..4a2c02db 100644
 --- a/db/migrations/00002_schema.sql
 +++ b/db/migrations/00002_schema.sql
-@@ -407,10 +407,9 @@ CREATE TABLE job_run_failures (
-     -- recovered | pending | gone | abandoned
+@@ -416,8 +416,7 @@ CREATE TABLE job_run_failures (
      disposition text NOT NULL DEFAULT 'pending',
      -- The recovering run.
      recovered_by text,
@@ -19,5 +18,4 @@ index 16df97b3..c4d36389 100644
 +    PRIMARY KEY (account_id, run_id, seq)
  );
  
- -- No runtime role holds UPDATE or DELETE here. Append-only is the grant, not a convention. Evidence
- -- outlives everything, so an account with audit rows cannot be deleted (ADR-0016).
+ -- The application user holds no UPDATE or DELETE here. Append-only is the grant, not a convention. Evidence

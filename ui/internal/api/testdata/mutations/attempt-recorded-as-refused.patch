@@ -6,12 +6,12 @@ scheduled-count: no
 integration: yes
 
 diff --git a/ui/internal/api/connect.go b/ui/internal/api/connect.go
-index abb882f5..b108035f 100644
+index ad38e0a1..5d410168 100644
 --- a/ui/internal/api/connect.go
 +++ b/ui/internal/api/connect.go
 @@ -485,7 +485,7 @@ func (s *Server) store(ctx context.Context, clients *clientsetup.Queries, q *acc
  	}
- 	return auth.RecordAuthentication(ctx, authentication.RecordAuthenticationParams{
+ 	return auth.RecordAuthentication(ctx, accountstate.RecordAuthenticationParams{
  		AttemptedAt: pgtype.Timestamptz{Time: started, Valid: true},
 -		Outcome:     pgtype.Text{String: string(mail.AuthSucceeded), Valid: true},
 +		Outcome:     pgtype.Text{String: string(mail.AuthRefused), Valid: true},

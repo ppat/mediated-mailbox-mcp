@@ -1,20 +1,20 @@
 control: The database section is validated before anything else starts
-removes: the start configures each job kind's connection without validating the database section
+removes: the start opens the job kinds' pools without validating the database section
 packages: ./worker/app
 tests: TestAnEmptyHostRefusesTheStart
 scheduled-count: no
 
 diff --git a/worker/app/app.go b/worker/app/app.go
-index 809f079e..4b393895 100644
+index 4b236336..4c4803de 100644
 --- a/worker/app/app.go
 +++ b/worker/app/app.go
-@@ -166,9 +166,6 @@ func validate(c Configuration) error {
- 		case kind.role.PoolSize <= 0:
- 			return fmt.Errorf("database.%s.pool_size %d is not positive", kind.name, kind.role.PoolSize)
- 		}
--		if err := dbconnectcore.Validate(c.Database.connection(kind.role)); err != nil {
--			return err
--		}
- 	}
+@@ -131,9 +131,6 @@ func defaults() Configuration {
+ // host validates. The database section passes its validation, every interval, window and bound is
+ // positive, and the credential section names its key files.
+ func validate(c Configuration) error {
+-	if err := dbconnectcore.Validate(c.Database); err != nil {
+-		return err
+-	}
  	if err := ValidateSection(c.Section); err != nil {
  		return err
+ 	}

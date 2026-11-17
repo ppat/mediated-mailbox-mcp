@@ -5,13 +5,13 @@ tests: TestEachJobKindsConstructorTakesOnlyWhatItNeeds
 scheduled-count: no
 
 diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/deltasync.go
-index 5a7ea58..ec39a78 100644
+index b7bf1ad1..d5e6a20a 100644
 --- a/worker/internal/deltasync/deltasync.go
 +++ b/worker/internal/deltasync/deltasync.go
 @@ -78,7 +78,8 @@ type Config struct {
- 	// Pool is delta sync's own pool, which connects as delta sync's runtime role, and which its own
- 	// statements, its leases, its recording of authentication attempts and its re-seal of the OAuth
- 	// clients' secrets run under (ADR-0118, ADR-0092).
+ 	// Pool is delta sync's own pool, which its own statements, its leases, its recording of
+ 	// authentication attempts and its re-seal of the OAuth clients' secrets run on (ADR-0119,
+ 	// ADR-0092).
 -	Pool *pgxpool.Pool
 +	Pool     *pgxpool.Pool
 +	Backfill *pgxpool.Pool

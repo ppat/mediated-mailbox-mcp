@@ -1,0 +1,20 @@
+control: The chain's grants are made to the application user's name the migrator is configured with
+removes: the configured name takes the placeholder's place as written rather than quoted as an identifier, so a name holding a space, a capital or a quote is not the user's
+packages: ./db/check
+tests: TestTheChainGrantsTheNameTheMigratorIsGiven
+scheduled-count: no
+integration: yes
+
+diff --git a/db/migrate/migrate.go b/db/migrate/migrate.go
+index 9b266009..2caf4af9 100644
+--- a/db/migrate/migrate.go
++++ b/db/migrate/migrate.go
+@@ -42,7 +42,7 @@ func Apply(ctx context.Context, db *sql.DB, chain fs.FS, applicationUser string,
+ 	if err != nil {
+ 		return fmt.Errorf("building the migration lock: %w", err)
+ 	}
+-	provider, err := goose.NewProvider(goose.DialectPostgres, db, granting{chain: chain, grantee: pgx.Identifier{applicationUser}.Sanitize()},
++	provider, err := goose.NewProvider(goose.DialectPostgres, db, granting{chain: chain, grantee: pgx.Identifier{applicationUser}[0]},
+ 		goose.WithSessionLocker(locker),
+ 		goose.WithSlog(logger),
+ 		goose.WithDisableGlobalRegistry(true),

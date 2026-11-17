@@ -1,5 +1,5 @@
 // Package backfill is backfill's job kind in the worker (ADR-0117, ADR-0119). It runs its own
-// statements on backfill's own connection pool under its own runtime role (ADR-0118), and works from
+// statements on backfill's own connection pool, as the application user (ADR-0119, ADR-0143), and works from
 // the worker's one execution context, its account snapshot, its sessions' sources and its policy,
 // through account sessions of its own that call Gmail through backfill's own adapter series. Its
 // reload adds and drops one job per account the context's latest reload lists. Each job runs the
@@ -85,8 +85,8 @@ type Jobs interface {
 
 // Config is what backfill's job kind is built from, and nothing more.
 type Config struct {
-	// Pool is backfill's own pool, which connects as backfill's runtime role, and which its own
-	// statements, its leases and its recording of authentication attempts run under (ADR-0118).
+	// Pool is backfill's own pool, which its own statements, its leases and its recording of
+	// authentication attempts run on (ADR-0119).
 	Pool *pgxpool.Pool
 	// Context is the worker's execution context, whose scanner masks subjects and scans bodies
 	// (ADR-0090, ADR-0120).

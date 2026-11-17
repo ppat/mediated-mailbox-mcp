@@ -8,6 +8,8 @@ import (
 
 	pg "github.com/pganalyze/pg_query_go/v6"
 	"google.golang.org/protobuf/reflect/protoreflect"
+
+	"github.com/ppat/mediated-mailbox-mcp/db/migrate"
 )
 
 // checkDatabaseCode is the migration lint of ADR-0060, named as a violation file's want annotation
@@ -204,4 +206,105 @@ func raisesFloor(stmt *pg.Node, version int64) bool {
 	}
 	e := int64(value.GetIval().GetIval())
 	return e >= 1 && e <= version
+}
+
+// checkGrantee is a role the migration chain names other than the placeholder as a grantee, or the
+// placeholder standing anywhere but as a grantee, named as a violation file's want annotation states
+// it.
+const checkGrantee = "grantee"
+
+// checkGrantees holds a migration of the chain to the placeholder db/migrate replaces with the
+// application user's name, since the project names no database user (ADR-0048, ADR-0143). Every
+// grantee of a grant or a revoke, a default privilege's included, is the placeholder spelled exactly as
+// db/migrate matches it, so every grant reaches the configured user and no other. A grant of one role
+// to another is refused, since it would make a user act with another role's privileges. Every other
+// role a statement names by name is refused, the placeholder's included, such as a new owner, the role
+// whose default privileges change, a policy's roles and a schema's authorization, since a name the
+// chain fixed would hold only under the test harness's names, and the application user owns nothing
+// and runs no DDL. A statement that creates or renames a role, or sets or resets the session's role or
+// authorization, is refused whatever it names, a role given as a string included, since the
+// deployment creates and names both users and the chain runs as the migrator's user. A role name a
+// function reads from a string, such as set_config's, is left to review. A role named by a
+// keyword, such as PUBLIC or CURRENT_USER, is refused as a grantee
+// and left alone elsewhere, since it names no user the deployment chooses. The placeholder appears in
+// the file's text only as such a grantee, in no comment, string, quoted name or other identifier, so
+// the replacement changes nothing but a grantee. An occurrence is matched as db/migrate matches it, the
+// placeholder bounded by characters that cannot continue an unquoted identifier, and here in any ASCII
+// letter case, so a spelling the replacement would miss is refused too.
+func checkGrantees(f sqlFile) []finding {
+	var out []finding
+	grantees := map[int]bool{}
+	for _, raw := range f.stmts {
+		// A default privilege's grant is a GrantStmt message the statement holds directly rather than a
+		// node, so every message of the tree is read, not only the nodes.
+		granted := map[*pg.RoleSpec]bool{}
+		var named []*pg.RoleSpec
+		eachMessage(raw.GetStmt().ProtoReflect(), func(m protoreflect.Message) {
+			switch x := m.Interface().(type) {
+			case *pg.GrantRoleStmt:
+				out = append(out, f.at(raw, -1, checkGrantee, "a grant of a role to another makes a user act with that role's privileges, and the chain grants privileges to %s alone (ADR-0143)", migrate.Placeholder))
+			case *pg.GrantStmt:
+				for _, grantee := range x.GetGrantees() {
+					granted[grantee.GetRoleSpec()] = true
+				}
+			case *pg.RoleSpec:
+				named = append(named, x)
+			case *pg.CreateRoleStmt:
+				out = append(out, f.at(raw, -1, checkGrantee, "a migration creates no role, since the deployment creates and names both users before the chain runs (ADR-0143)"))
+			case *pg.RenameStmt:
+				if x.GetRenameType() == pg.ObjectType_OBJECT_ROLE {
+					out = append(out, f.at(raw, -1, checkGrantee, "a migration renames no role, since the deployment names both users (ADR-0143)"))
+				}
+			case *pg.VariableSetStmt:
+				if name := strings.ToLower(x.GetName()); name == "role" || name == "session_authorization" {
+					out = append(out, f.at(raw, -1, checkGrantee, "a migration sets no session role or authorization, since it runs as the migrator's user, whose name the deployment chooses (ADR-0143)"))
+				}
+			}
+		})
+		for _, r := range named {
+			at := int(r.GetLocation())
+			name := r.GetRoletype() == pg.RoleSpecType_ROLESPEC_CSTRING
+			switch {
+			case granted[r] && name && r.GetRolename() == migrate.Placeholder && at >= 0 && strings.HasPrefix(f.src[at:], migrate.Placeholder):
+				grantees[at] = true
+			case granted[r]:
+				out = append(out, f.at(raw, r.GetLocation(), checkGrantee, "a grant or a revoke names a grantee other than %s, which db/migrate replaces with the application user's name (ADR-0048)", migrate.Placeholder))
+			case name:
+				out = append(out, f.at(raw, r.GetLocation(), checkGrantee, "a statement names the role %q, and the chain names a role only as %s in a grant or a revoke, since the project names no database user (ADR-0048, ADR-0143)", r.GetRolename(), migrate.Placeholder))
+			}
+		}
+	}
+	// Letters are folded byte for byte, so each offset stays the source's.
+	folded := []byte(f.src)
+	for i, c := range folded {
+		if c >= 'A' && c <= 'Z' {
+			folded[i] = c + 'a' - 'A'
+		}
+	}
+	for _, at := range migrate.Occurrences(folded) {
+		if !grantees[at] {
+			out = append(out, finding{
+				file: f.path, line: strings.Count(f.src[:at], "\n") + 1, check: checkGrantee,
+				text: fmt.Sprintf("%s stands only as a grantee, since db/migrate replaces it wherever it stands as a word (ADR-0048)", migrate.Placeholder),
+			})
+		}
+	}
+	return out
+}
+
+// eachMessage visits m and every message under it, whether or not it is a node.
+func eachMessage(m protoreflect.Message, visit func(protoreflect.Message)) {
+	visit(m)
+	m.Range(func(fd protoreflect.FieldDescriptor, v protoreflect.Value) bool {
+		switch {
+		case fd.IsMap() || fd.Message() == nil:
+		case fd.IsList():
+			for i := range v.List().Len() {
+				eachMessage(v.List().Get(i).Message(), visit)
+			}
+		default:
+			eachMessage(v.Message(), visit)
+		}
+		return true
+	})
 }

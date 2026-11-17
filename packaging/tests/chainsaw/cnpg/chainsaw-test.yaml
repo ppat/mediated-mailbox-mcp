@@ -1,6 +1,6 @@
 ---
 # The chart installed against a PostgreSQL cluster CloudNativePG creates, the README's worked example, then upgraded
-# by a configuration change. CloudNativePG's generated Secrets give the CA certificate and the migration role's
+# by a configuration change. CloudNativePG's generated Secrets give the CA certificate and the migrator's user's
 # password, every process, the migration step included, addresses the server by its Service's fully qualified name,
 # and the server is checked with verify-full. To the chart a CloudNativePG database is a user-supplied PostgreSQL like
 # any other, a host, password files and a CA certificate, so this one database stands for every server a user
@@ -46,10 +46,10 @@ spec:
           kubectl apply --server-side --force-conflicts --filename "$manifest"
           kubectl --namespace cnpg-system rollout status deployment/cnpg-controller-manager --timeout=5m
 
-  - name: Create the key pair and the role passwords
+  - name: Create the key pair and the application user's password
     description: >-
-      The key pair comes from the keygen subcommand of the repository's command-line program. Each runtime role's
-      password is a basic-auth Secret CloudNativePG sets the role's password from.
+      The key pair comes from the keygen subcommand of the repository's command-line program. The application user's
+      password is a basic-auth Secret CloudNativePG sets the user's password from.
     try:
     - script:
         content: ../keypair.sh

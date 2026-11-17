@@ -1,20 +1,19 @@
-control: The listing roles read every account's identifier, provider and client, and the heuristics job's role reads none
-removes: backfill's role loses the accounts listing
+control: The application user lists every account and reads one account's state in the statements' form
+removes: the application user loses the accounts listing
 packages: ./db/check
-tests: TestTheListingRolesReadEveryAccount TestTheListingRolesReadEveryAccount/mediated_mailbox_backfill
+tests: TestTheApplicationUserListsEveryAccountAndReadsOneState TestTheApplicationUserListsEveryAccountAndReadsOneState/the_listing TestGrantsCoverAdmittedSubsections
 scheduled-count: no
 integration: yes
 
 diff --git a/db/migrations/00003_grants.sql b/db/migrations/00003_grants.sql
-index 5a8ad6f..104fdb4 100644
+index 809f1022..4c2c9121 100644
 --- a/db/migrations/00003_grants.sql
 +++ b/db/migrations/00003_grants.sql
-@@ -553,7 +553,7 @@ TO mediated_mailbox_api, mediated_mailbox_backfill, mediated_mailbox_sync;
- -- so backfill's role and mediated_mailbox_organize, the role of reorg apply and rollback, keep the
- -- listing and hold no grant on a sealed credential or an OAuth client.
- GRANT SELECT (account_id, provider, oauth_client) ON accounts
--TO mediated_mailbox_api, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
-+TO mediated_mailbox_api, mediated_mailbox_sync, mediated_mailbox_organize;
- GRANT SELECT (account_id, credential), UPDATE (credential) ON account_state
- TO mediated_mailbox_api, mediated_mailbox_sync;
- GRANT SELECT (name, provider, client_id, client_secret) ON oauth_clients
+@@ -16,7 +16,6 @@
+ 
+ GRANT SELECT ON
+ oauth_clients,
+-accounts,
+ account_state,
+ rate_state,
+ rate_grants,

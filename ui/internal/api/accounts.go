@@ -25,7 +25,7 @@ func accountsType() schema.Type {
 
 // listAccounts is the one unscoped read, every account's identifier and provider, which the account
 // selector and the entry redirect are built from (docs/UI.md section 17). It reads the accounts
-// listing, which the UI's role reads in full and which holds nothing else (ADR-0091).
+// listing, which the application user reads in full and which holds nothing else (ADR-0091).
 func (s *Server) listAccounts(w http.ResponseWriter, r *http.Request) {
 	rows, err := accounts.New(s.opts.Database).Accounts(r.Context())
 	if err != nil {

@@ -187,3 +187,42 @@ func wants(src string) []string {
 	}
 	return out
 }
+
+// placedWants returns each of f's want annotations as the statement it stands in, as statementAt
+// names it, and the check it names, so a violation file's findings are matched statement by statement
+// and a finding missed in one statement cannot be made up by a spurious one in another.
+func placedWants(f sqlFile) []string {
+	var out []string
+	for _, m := range wantPattern.FindAllStringSubmatchIndex(f.src, -1) {
+		line := strings.Count(f.src[:m[0]], "\n") + 1
+		out = append(out, fmt.Sprintf("%s %s", f.statementAt(line), f.src[m[2]:m[3]]))
+	}
+	return out
+}
+
+// statementAt names the statement a line of f falls in, the comments and blank lines before it
+// included, since a statement's span starts where the one before it ends. A line after the last
+// statement falls in the file's trailing text.
+func (f sqlFile) statementAt(line int) string {
+	at := 0
+	for range line - 1 {
+		next := strings.IndexByte(f.src[at:], '\n')
+		if next < 0 {
+			break
+		}
+		at += next + 1
+	}
+	index := -1
+	for i, st := range f.stmts {
+		if int(st.GetStmtLocation()) <= at {
+			index = i
+		}
+	}
+	if last := len(f.stmts) - 1; index == last && last >= 0 {
+		st := f.stmts[last]
+		if end := int(st.GetStmtLocation() + st.GetStmtLen()); st.GetStmtLen() > 0 && at > end {
+			return "trailing text"
+		}
+	}
+	return fmt.Sprintf("statement %d", index+1)
+}

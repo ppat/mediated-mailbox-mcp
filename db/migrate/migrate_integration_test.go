@@ -75,7 +75,7 @@ func TestTwoRunsAtOnceApplyAMigrationOnce(t *testing.T) {
 				}
 			}()
 			<-start
-			errs[i] = migrate.Apply(ctx, db, chain, slog.New(slog.NewTextHandler(os.Stderr, nil)))
+			errs[i] = migrate.Apply(ctx, db, chain, postgres.ApplicationUser, slog.New(slog.NewTextHandler(os.Stderr, nil)))
 		})
 	}
 	close(start)

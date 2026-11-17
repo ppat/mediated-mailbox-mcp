@@ -5,12 +5,10 @@ tests: TestTheChartSetsAConfigurationTheMigratorStartsWith
 scheduled-count: no
 
 diff --git a/packaging/chart/templates/migration/job.yaml b/packaging/chart/templates/migration/job.yaml
-index 982bfc6a..bd745a8f 100644
+index 4d7284d3..b02f02f4 100644
 --- a/packaging/chart/templates/migration/job.yaml
 +++ b/packaging/chart/templates/migration/job.yaml
-@@ -49,12 +49,10 @@ spec:
-       containers:
-       - name: migration
+@@ -52,8 +52,6 @@ spec:
          image: {{ include "mm.image" (list $ $v.image) }}
          imagePullPolicy: {{ .Values.global.image.pullPolicy }}
          env:
@@ -19,5 +17,3 @@ index 982bfc6a..bd745a8f 100644
          {{- range $key, $value := $c.database }}
          - name: {{ printf "MEDIATED_MAILBOX_DATABASE__%s" (upper $key) }}
            value: {{ $value | toString | quote }}
-         {{- end }}
-         {{- with $v.goSoftMemoryLimit }}

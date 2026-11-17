@@ -23,7 +23,8 @@ import (
 // TestTheMigratorAppliesTheChainItCarries runs the migrator as the migration step runs it, configured
 // through the environment layer alone, with the password in a mounted file and the driver's own
 // variables naming another server. Against an empty database it applies every migration of the chain
-// its binary carries, and run again it applies nothing and succeeds (ADR-0078, ADR-0079, ADR-0139).
+// its binary carries, its grants made to the application user it is given, and run again it applies
+// nothing and succeeds (ADR-0078, ADR-0079, ADR-0139, ADR-0143).
 func TestTheMigratorAppliesTheChainItCarries(t *testing.T) {
 	ctx := t.Context()
 	admin := os.Getenv(postgres.EnvAdminURL)
@@ -63,6 +64,7 @@ func TestTheMigratorAppliesTheChainItCarries(t *testing.T) {
 		"MEDIATED_MAILBOX_DATABASE__USER=" + u.User.Username(),
 		"MEDIATED_MAILBOX_DATABASE__SSLMODE=disable",
 		"MEDIATED_MAILBOX_DATABASE__PASSWORD_FILE=" + path,
+		"MEDIATED_MAILBOX_APPLICATION_USER=" + postgres.ApplicationUser,
 		"PGHOST=elsewhere.invalid",
 		"PGDATABASE=elsewhere",
 	}
@@ -103,5 +105,10 @@ func TestTheMigratorAppliesTheChainItCarries(t *testing.T) {
 	}
 	if files, err := fs.Glob(migrations.Chain(), "*.sql"); err != nil || applied != want || recorded != int64(len(files)) {
 		t.Errorf("the database stands at version %d with %d migrations recorded, want %d with each of the chain's %d recorded once (%v)", applied, recorded, want, len(files), err)
+	}
+	// The grants are made to the application user the configuration names.
+	var granted bool
+	if err := migrated.QueryRow(ctx, "SELECT has_any_column_privilege($1, 'audit_log', 'INSERT')", postgres.ApplicationUser).Scan(&granted); err != nil || !granted {
+		t.Errorf("the application user %s holds the audit log's insert %t, error %v, want the chain's grant", postgres.ApplicationUser, granted, err)
 	}
 }

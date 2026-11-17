@@ -1,455 +1,32 @@
 -- +goose Up
--- The runtime roles' grants (ADR-0118), one section per runtime role in the order db/bootstrap creates
--- the roles, then one section per shared library whose statements run under the role of each
--- deployable or job kind that imports it, naming every role it covers. Each role gets only what its own
--- statements need, under ADR-0118's three lines. Nothing automated refuses a grant beyond what a
--- role's statements need, so a migration that grants is reviewed against the statements it serves.
+-- The application user's grants (ADR-0143), the one user the API server, the UI and every job kind of
+-- the worker connect as. Every grantee is the placeholder the migrator replaces with the application
+-- user's configured name, since the project names no database user (ADR-0048).
 --
--- No runtime role holds UPDATE, DELETE or TRUNCATE on audit_log or policy_changes (ADR-0016, ADR-0102).
--- A grant that writes either is INSERT alone.
+-- The grants hold ADR-0143's line. The user's writes are exactly what the data-access library's
+-- statements write, and it holds no DDL right, since the migrator's user owns every table (ADR-0048).
+-- It holds no UPDATE, DELETE or TRUNCATE on audit_log or policy_changes, so a grant that writes either
+-- is INSERT alone (ADR-0016, ADR-0102). Reads beyond what the statements read are acceptable, so every
+-- table but the schema's own bookkeeping is readable whole. Nothing automated refuses a grant beyond
+-- the line, so a migration that grants is reviewed against the statements it serves. One user's
+-- grants cannot tell one program's code from another's, which the import lists do (ADR-0071).
 --
--- The migration role owns every table, so no runtime role can change the schema (ADR-0048).
+-- The tables are in ADR-0016's order, each with the writes its statements make and the subsections
+-- holding them.
 
--- The API server (ADR-0118).
---
--- Its read operations and its system status read the index and the recorded state through the
--- subsections its list admits, db/messages, db/maskingevents, db/senders, db/jobruns and
--- db/accountstate. The API server writes none of these tables and holds no grant on the sealed
--- credential. The index stores no sender class, so nothing the API server reads can stand in for the
--- class the Redaction Gate decides at fetch time (ADR-0002, ADR-0136).
---
--- The sender domain term, the grouping by sender domain and the read of the distinct senders the
--- service layer classifies read messages.from_domain (ADR-0108, ADR-0109). The gate's read in
--- db/messages names the content rules that set a message's flags, which the body request's audit row
--- records (ADR-0002). Its message reads read each message's attachment media, from which the service
--- layer derives the types it serves (ADR-0123).
-GRANT SELECT (
-    account_id,
-    message_id,
-    thread_id,
-    from_email,
-    from_domain,
-    from_name,
-    subject,
-    sent_at,
-    labels,
-    flags,
-    has_attachments,
-    content_flags,
-    rule_ids,
-    scan_state
-) ON messages TO mediated_mailbox_api;
-GRANT SELECT (account_id, message_id, media_type, extension) ON attachment_media TO mediated_mailbox_api;
-GRANT SELECT (id, account_id, message_id, field, rule_id, tier, masked_at) ON masking_events
-TO mediated_mailbox_api;
--- The sender listing reads every column of the sender statistics but the prior scan hits, which no
--- read serves (ADR-0118). The rebuild of the statistics and the counts of prior scan hits sit in
--- db/senders/statistics, which the API server's list does not admit.
-GRANT SELECT (
-    account_id,
-    domain,
-    local_part_sample,
-    display_names,
-    message_count,
-    first_seen,
-    last_seen,
-    has_list_id_ratio,
-    label_distribution
-) ON senders TO mediated_mailbox_api;
--- The account's progress for the system status, and the lowered target it will spend under. At the end
--- of each body request the API server records the authentication attempt its adapter reports, only over
--- an older one, through db/accountstate/authentication (ADR-0097).
-GRANT SELECT (
-    account_id,
-    backfill_pass1_complete,
-    backfill_pass2_complete,
-    sync_cursor_at,
-    last_auth_at,
-    last_auth_outcome,
-    lowered_target_rate
-),
-UPDATE (last_auth_at, last_auth_outcome) ON account_state TO mediated_mailbox_api;
--- The runs, their timelines and their failures' dispositions, which the system status and the UI's
--- reads in db/jobruns, the tables' own subsection, read. Reads beyond the API server's own need are
--- accepted by ADR-0118's three lines, and none of these columns is one a record forbids it.
-GRANT SELECT (
-    account_id,
-    run_id,
-    workload,
-    pass,
-    state,
-    plan_id,
-    resumed_from,
-    started_at,
-    finished_at,
-    heartbeat_at,
-    checkpoint,
-    counters,
-    last_error
-) ON job_runs TO mediated_mailbox_api;
-GRANT SELECT (account_id, run_id, seq, kind, at, page, detail) ON job_run_events TO mediated_mailbox_api;
-GRANT SELECT (account_id, run_id, disposition, recovered_by) ON job_run_failures TO mediated_mailbox_api;
-GRANT SELECT (account_id, plan_id, description, status) ON reorg_plans TO mediated_mailbox_api;
--- Each serve and each denial of a body is recorded through db/auditlog/record, which only the
--- API server's list admits, as an insert and nothing else (ADR-0002, ADR-0016).
-GRANT INSERT (
-    account_id, actor, action, message_id, stage, reason, sender_class, class_rule_id, class_rule_scope, content_flags,
-    content_rule_ids, serve_rule_ids, scan_state, scanner_version, scanner_revision
-) ON audit_log TO mediated_mailbox_api;
-GRANT USAGE ON SEQUENCE audit_log_id_seq TO mediated_mailbox_api;
-
--- Backfill (ADR-0118, ADR-0133).
---
--- Its statements sit in db/messages/ingest, db/messages/scan, db/maskingevents/record,
--- db/senders/statistics, db/scangatedecisions/record, db/jobruns/record, db/accountstate/completion
--- and db/accountstate/authentication, and in db/accountstate, whose read of the lowered target every
--- role admitted there runs.
---
--- Pass 1 adds each message's metadata to the index with the pair its subject was masked under and its
--- attachments' media, which never change once stored, so no role updates or deletes them
--- (ADR-0123), and records the masks applied to its subject. It finds whether any stored subject carries another pair,
--- masks such a subject again, and masks whole the stored subject of a message the provider no longer
--- has, reading it first (ADR-0096). Pass 2 reads the messages waiting for a scan with the inputs the
--- scan gate reads and records each message's scan verdict or skip state. The delisting transition
--- reads the domains of the messages skipped as restricted, and returns those messages of a domain the
--- policy now classifies normal to pending scan (ADR-0037). Backfill's run-start step, before the first
--- pass, returns each scanned message whose verdict carries another pair to pending with its verdict
--- cleared, and each body refused under another size bound to pending with its bound cleared, and
--- pass 2 records a refused body with the bound it was refused under (ADR-0132).
-GRANT SELECT (
-    account_id,
-    message_id,
-    from_email,
-    from_domain,
-    from_name,
-    subject,
-    subject_masked,
-    subject_scanner_version,
-    subject_scanner_revision,
-    sent_at,
-    labels,
-    list_id,
-    size_bytes,
-    content_flags,
-    scan_state,
-    scanner_version,
-    scanner_revision,
-    refused_bound
-),
-INSERT (
-    account_id,
-    message_id,
-    thread_id,
-    from_email,
-    from_domain,
-    from_name,
-    subject,
-    subject_masked,
-    subject_scanner_version,
-    subject_scanner_revision,
-    sent_at,
-    labels,
-    flags,
-    has_attachments,
-    list_id,
-    size_bytes,
-    auth_results
-),
-UPDATE (
-    subject,
-    subject_masked,
-    subject_scanner_version,
-    subject_scanner_revision,
-    scan_state,
-    content_flags,
-    rule_ids,
-    scanned_at,
-    scanner_version,
-    scanner_revision,
-    refused_bound
-) ON messages TO mediated_mailbox_backfill;
-GRANT INSERT (account_id, message_id, media_type, extension) ON attachment_media TO mediated_mailbox_backfill;
-GRANT INSERT (account_id, message_id, field, rule_id, tier, scanner_version, scanner_revision) ON masking_events
-TO mediated_mailbox_backfill;
-GRANT USAGE ON SEQUENCE masking_events_id_seq TO mediated_mailbox_backfill;
--- Pass 1 rebuilds the statistics of each sender it saw from the messages the index holds. A verdict
--- carrying a content flag adds to its sender's prior hits, which the gate reads, and a run counts them
--- again from the flagged verdicts the index holds (ADR-0093, ADR-0096).
-GRANT SELECT (
-    account_id,
-    domain,
-    local_part_sample,
-    display_names,
-    message_count,
-    first_seen,
-    last_seen,
-    has_list_id_ratio,
-    label_distribution,
-    scan_hit_count
-),
-INSERT (
-    account_id,
-    domain,
-    local_part_sample,
-    display_names,
-    message_count,
-    first_seen,
-    last_seen,
-    has_list_id_ratio,
-    label_distribution
-),
-UPDATE (
-    local_part_sample,
-    display_names,
-    message_count,
-    first_seen,
-    last_seen,
-    has_list_id_ratio,
-    label_distribution,
-    scan_hit_count
-) ON senders TO mediated_mailbox_backfill;
--- Every gate decision is recorded with its reason, and a message decided again after the delisting
--- transition has its decision replaced (ADR-0093). The upsert reads the conflict columns and the
--- values it replaces them with.
-GRANT SELECT (account_id, message_id, decision, reason),
-INSERT (account_id, message_id, decision, reason),
-UPDATE (decision, reason, decided_at) ON scan_gate_decisions TO mediated_mailbox_backfill;
--- Every run is recorded with its checkpoint, counters, timeline and failed items (ADR-0117). A run
--- reads the latest run of its pass to resume from it. Each account's job, at every ensure, reads its
--- latest success from its runs' ends, starts and progress events (ADR-0119).
-GRANT SELECT (account_id, run_id, workload, pass, state, started_at, finished_at, checkpoint, counters),
-INSERT (
-    account_id, run_id, workload, pass, state, resumed_from, started_at, heartbeat_at, checkpoint, counters
-),
-UPDATE (state, finished_at, heartbeat_at, checkpoint, counters, last_error) ON job_runs
-TO mediated_mailbox_backfill;
-GRANT SELECT (account_id, run_id, kind, at),
-INSERT (account_id, run_id, kind, page, detail) ON job_run_events TO mediated_mailbox_backfill;
-GRANT USAGE ON SEQUENCE job_run_events_seq_seq TO mediated_mailbox_backfill;
-GRANT INSERT (
-    account_id,
-    run_id,
-    item_kind,
-    item_id,
-    page,
-    error_class,
-    error_summary,
-    attempts,
-    first_at,
-    last_at,
-    disposition
-) ON job_run_failures TO mediated_mailbox_backfill;
-GRANT USAGE ON SEQUENCE job_run_failures_seq_seq TO mediated_mailbox_backfill;
--- Each pass reads its completion flag through the account's progress and sets it when it ends. The
--- run-start step that returns stale verdicts to pending marks the second pass to start over, and the
--- second pass run that starts clears the mark (ADR-0096). Backfill records the authentication attempt
--- its adapter reports at the end of each unit of work, only over an older one (ADR-0097). It holds
--- the read of the lowered target because db/accountstate, whose progress reads its list admits, also
--- holds the statement that reads the target, which the grant check plans under backfill's role. The
--- worker's execution context runs that statement for every job kind, under delta sync's role
--- (ADR-0118).
-GRANT SELECT (
-    account_id,
-    backfill_pass1_complete,
-    backfill_pass2_complete,
-    backfill_pass2_restart,
-    sync_cursor_at,
-    last_auth_at,
-    last_auth_outcome,
-    lowered_target_rate
-),
-UPDATE (
-    backfill_pass1_complete,
-    backfill_pass2_complete,
-    backfill_pass2_restart,
-    last_auth_at,
-    last_auth_outcome
-) ON account_state TO mediated_mailbox_backfill;
-
--- Delta sync (ADR-0118, ADR-0018).
---
--- Its statements sit in the subsections its list admits. db/messages/ingest, db/maskingevents/record,
--- db/senders/statistics, db/jobruns/record, db/messages/scan, db/scangatedecisions/record and
--- db/accountstate/authentication it shares with backfill, since a tick adds and masks mail as
--- backfill's first pass does and decides and scans what waits as its second pass does (ADR-0104).
--- db/messages/change, db/accountstate/cursor and db/oauthclients/secret only its list admits.
--- db/accountstate it reads.
---
--- A tick adds each message's metadata to the index with its attachments' media, which it never
--- updates (ADR-0123), masks its subject and records the masks, and
--- rebuilds the statistics of each sender it saw from the messages the index holds. It sets a stored
--- message's labels and flags to the ones the provider reports, removes a message the provider no
--- longer holds, and removes a sender's statistics once none of its messages is stored (ADR-0018).
--- Admitted to db/messages/ingest, it can also mask a stored subject again under another scanner.
--- It records a refused body with the bound it was refused under, and holds the read of that bound
--- because db/messages/scan, which it shares, holds the run-start step's comparison (ADR-0132).
-GRANT SELECT (
-    account_id,
-    message_id,
-    from_email,
-    from_domain,
-    from_name,
-    subject,
-    subject_masked,
-    subject_scanner_version,
-    subject_scanner_revision,
-    sent_at,
-    labels,
-    flags,
-    list_id,
-    size_bytes,
-    content_flags,
-    scan_state,
-    scanner_version,
-    scanner_revision,
-    refused_bound
-),
-INSERT (
-    account_id,
-    message_id,
-    thread_id,
-    from_email,
-    from_domain,
-    from_name,
-    subject,
-    subject_masked,
-    subject_scanner_version,
-    subject_scanner_revision,
-    sent_at,
-    labels,
-    flags,
-    has_attachments,
-    list_id,
-    size_bytes,
-    auth_results
-),
-UPDATE (
-    subject,
-    subject_masked,
-    subject_scanner_version,
-    subject_scanner_revision,
-    labels,
-    flags,
-    scan_state,
-    content_flags,
-    rule_ids,
-    scanned_at,
-    scanner_version,
-    scanner_revision,
-    refused_bound
-),
-DELETE ON messages TO mediated_mailbox_sync;
--- A message the tick removes takes its attachment media with it through their foreign key, which runs
--- as the tables' owner, so delta sync's role needs no delete on them (ADR-0123).
-GRANT INSERT (account_id, message_id, media_type, extension) ON attachment_media TO mediated_mailbox_sync;
-GRANT INSERT (account_id, message_id, field, rule_id, tier, scanner_version, scanner_revision) ON masking_events
-TO mediated_mailbox_sync;
-GRANT USAGE ON SEQUENCE masking_events_id_seq TO mediated_mailbox_sync;
-GRANT SELECT (
-    account_id,
-    domain,
-    local_part_sample,
-    display_names,
-    message_count,
-    first_seen,
-    last_seen,
-    has_list_id_ratio,
-    label_distribution,
-    scan_hit_count
-),
-INSERT (
-    account_id,
-    domain,
-    local_part_sample,
-    display_names,
-    message_count,
-    first_seen,
-    last_seen,
-    has_list_id_ratio,
-    label_distribution
-),
-UPDATE (
-    local_part_sample,
-    display_names,
-    message_count,
-    first_seen,
-    last_seen,
-    has_list_id_ratio,
-    label_distribution,
-    scan_hit_count
-),
-DELETE ON senders TO mediated_mailbox_sync;
--- Once backfill's second pass has ended, a tick runs the delisting transition, records the gate's
--- decision on each message it decides with its reason, records each verdict or skip, and adds each
--- flagged verdict to its sender's prior hits (ADR-0037, ADR-0093, ADR-0104).
-GRANT SELECT (account_id, message_id, decision, reason),
-INSERT (account_id, message_id, decision, reason),
-UPDATE (decision, reason, decided_at) ON scan_gate_decisions TO mediated_mailbox_sync;
--- Every tick and every gap recovery is recorded with its checkpoint, counters, timeline and failed
--- items (ADR-0117). A tick reads the latest tick's checkpoint to continue its scanning from there.
--- Each account's job, at every ensure, reads its latest success from its ticks' ends, starts and
--- progress events (ADR-0119).
-GRANT SELECT (account_id, run_id, workload, pass, state, started_at, finished_at, checkpoint, counters),
-INSERT (
-    account_id, run_id, workload, pass, state, resumed_from, started_at, heartbeat_at, checkpoint, counters
-),
-UPDATE (state, finished_at, heartbeat_at, checkpoint, counters, last_error) ON job_runs
-TO mediated_mailbox_sync;
-GRANT SELECT (account_id, run_id, kind, at),
-INSERT (account_id, run_id, kind, page, detail) ON job_run_events TO mediated_mailbox_sync;
-GRANT USAGE ON SEQUENCE job_run_events_seq_seq TO mediated_mailbox_sync;
-GRANT INSERT (
-    account_id,
-    run_id,
-    item_kind,
-    item_id,
-    page,
-    error_class,
-    error_summary,
-    attempts,
-    first_at,
-    last_at,
-    disposition
-) ON job_run_failures TO mediated_mailbox_sync;
-GRANT USAGE ON SEQUENCE job_run_failures_seq_seq TO mediated_mailbox_sync;
--- A tick reads the account's progress, which tells it whether backfill's second pass has ended, and
--- the lowered target it spends under. It reads and writes the change cursor with its write time, and
--- records the latest authentication attempt its adapter reports, only over an older one (ADR-0097).
-GRANT SELECT (
-    account_id,
-    backfill_pass1_complete,
-    backfill_pass2_complete,
-    sync_cursor,
-    sync_cursor_at,
-    last_auth_at,
-    last_auth_outcome,
-    lowered_target_rate
-),
-UPDATE (sync_cursor, sync_cursor_at, last_auth_at, last_auth_outcome) ON account_state
-TO mediated_mailbox_sync;
--- Delta sync re-seals an OAuth client's secret by compare-and-set on the stored bytes, the one write
--- of oauth_clients beside the UI's setup (ADR-0089, ADR-0092, ADR-0016).
-GRANT UPDATE (client_secret) ON oauth_clients TO mediated_mailbox_sync;
-
--- The reorganization workload (ADR-0118). Its own grants arrive with its statements. It spends from the
--- budget and holds an account snapshot, through the shared libraries' sections below.
-
--- The heuristics workload (ADR-0118). Its grants arrive with its statements, so it holds none.
-
--- The UI (ADR-0084, ADR-0021).
---
--- It reads the tables its screens and endpoints read (docs/UI.md). Its write grant is the columns its
--- two decision verbs set and the rule a confirmation inserts. Its list admits db/messages, whose
--- message reads read the attachment media beside the messages (ADR-0123).
 GRANT SELECT ON
+oauth_clients,
 accounts,
+account_state,
 rate_state,
+rate_grants,
 senders,
 messages,
 attachment_media,
 scan_gate_decisions,
 policy_candidates,
 policy_rules,
+policy_changes,
 masking_events,
 reorg_plans,
 reorg_plan_ops,
@@ -458,61 +35,45 @@ job_runs,
 job_run_events,
 job_run_failures,
 audit_log
-TO mediated_mailbox_ui;
-GRANT UPDATE (status, approved_at, approved_by) ON reorg_plans TO mediated_mailbox_ui;
-GRANT UPDATE (status, reviewed_at, reviewed_by) ON policy_candidates TO mediated_mailbox_ui;
--- Account setup writes an account's listing row, with the client it connects through, and moves an
--- account to another client of its provider (ADR-0091, ADR-0106). Each statement takes the account
--- from the transaction (ADR-0135). Its statements sit in db/accounts/setup.
-GRANT INSERT (account_id, provider, oauth_client), UPDATE (oauth_client) ON accounts TO mediated_mailbox_ui;
--- The UI's system endpoint and jobs cards show an account's progress (ADR-0084, ADR-0091). Account
--- setup writes the account's state row, its sealed credential, the mailbox it remembers and its
--- lowered target, replaces the credential on a re-authorization, and records the code exchange's
--- authentication attempt through db/accountstate/authentication's latest-wins statement (ADR-0097).
--- Account settings reads the mailbox and the lowered target and writes the target. The grant never
--- covers reading credential, so the UI cannot read back what it sealed (ADR-0081, ADR-0084).
-GRANT SELECT (
-    account_id,
+TO application_user;
+
+-- The UI's client setup in db/oauthclients/setup adds a client, replaces a client's identifier, secret
+-- and project ID, and removes a client no account connects through. The connections' re-seal in
+-- db/oauthclients/secret rewrites a client's secret by compare-and-set on the stored bytes. No
+-- statement changes a client's name or provider (ADR-0016, ADR-0084, ADR-0092, ADR-0106).
+GRANT INSERT (name, provider, client_id, client_secret, project_id),
+UPDATE (client_id, client_secret, project_id),
+DELETE ON oauth_clients TO application_user;
+
+-- The UI's account setup in db/accounts/setup writes an account's listing row with the client it
+-- connects through, and moves an account to another client of its provider (ADR-0091, ADR-0106).
+GRANT INSERT (account_id, provider, oauth_client), UPDATE (oauth_client) ON accounts TO application_user;
+
+-- Account setup writes an account's state row with its sealed credential, the mailbox it remembers and
+-- its lowered target, replaces the credential on a re-authorization, and account settings writes the
+-- target. The connections write a rotated credential back by compare-and-set in
+-- db/accountstate/credential (ADR-0082, ADR-0089). Backfill sets and clears its completion flags and
+-- the mark that starts its second pass over in db/accountstate/completion (ADR-0096), delta sync
+-- writes its change cursor in db/accountstate/cursor, and every program records the latest
+-- authentication attempt, only over an older one, in db/accountstate (ADR-0097).
+GRANT INSERT (account_id, credential, mailbox, lowered_target_rate),
+UPDATE (
+    credential,
     mailbox,
     lowered_target_rate,
     backfill_pass1_complete,
     backfill_pass2_complete,
+    backfill_pass2_restart,
+    sync_cursor,
     sync_cursor_at,
     last_auth_at,
     last_auth_outcome
-),
-INSERT (account_id, credential, mailbox, lowered_target_rate),
-UPDATE (credential, mailbox, lowered_target_rate, last_auth_at, last_auth_outcome)
-ON account_state TO mediated_mailbox_ui;
--- The UI's client setup lists each client's identity, adds a client, replaces a client's identifier,
--- secret and project ID, and removes a client no account connects through. Its statements sit in
--- db/oauthclients/setup and read no secret. The one part of the UI that opens a client's secret, for a
--- consent's code exchange, reads the sealed secret through db/oauthclients, which only that part's list
--- admits, and the raw SQL analyser refuses a statement the UI's shipped code runs by hand (ADR-0071,
--- ADR-0081). Code written to get around both, such as a statement run through reflection, stays
--- with review. The table carries no account, so the grant is the whole database barrier (ADR-0016,
--- ADR-0084, ADR-0106).
-GRANT SELECT (name, provider, client_id, client_secret, project_id),
-INSERT (name, provider, client_id, client_secret, project_id),
-UPDATE (client_id, client_secret, project_id),
-DELETE ON oauth_clients TO mediated_mailbox_ui;
--- Policy management adds, edits and lifts rules, and an import does all three (ADR-0084, ADR-0110).
--- An edit changes a rule's domain suffixes alone, since its scope and identifier never change. Its
--- statements sit in db/policyrules/manage for an account's rules and db/policyrules/base for the base
--- policy's, which only the UI's list admits. A confirmation of a candidate inserts its rule.
-GRANT INSERT, UPDATE (domain_suffix), DELETE ON policy_rules TO mediated_mailbox_ui;
--- Each policy write appends its history row, and the policy screens read the history. Insert alone,
--- so evidence of who lifted a restriction survives the UI's compromise (ADR-0102).
-GRANT SELECT, INSERT ON policy_changes TO mediated_mailbox_ui;
-GRANT USAGE ON SEQUENCE policy_changes_id_seq TO mediated_mailbox_ui;
+) ON account_state TO application_user;
 
--- The rate limiter's statements, in db/ratestate, run under the role of each deployable or job kind
--- that spends from the budget (ADR-0118), the API server, backfill and delta sync. The grants also name
--- mediated_mailbox_organize, the role of reorg apply and rollback (ADR-0118), a job kind that spends
--- from the budget. They insert the account's rate state when it has none, read it, and update every
--- column but the account. They read, insert and delete grants, and move a grant stamped ahead of the
--- clock back to it.
-GRANT SELECT, INSERT (account_id, current_rate, target_rate, hard_cap),
+-- The rate limiter's statements in db/ratestate/limiter insert the account's rate state when it has
+-- none and update every column but the account. They insert and delete grants, and move a grant
+-- stamped ahead of the clock back to it (ADR-0024, ADR-0025).
+GRANT INSERT (account_id, current_rate, target_rate, hard_cap),
 UPDATE (
     current_rate,
     target_rate,
@@ -530,41 +91,144 @@ UPDATE (
     latency_medians,
     classes,
     updated_at
-) ON rate_state
-TO mediated_mailbox_api, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
-GRANT SELECT, INSERT (account_id, class, tokens, issued_at), UPDATE (issued_at), DELETE ON rate_grants
-TO mediated_mailbox_api, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
+) ON rate_state TO application_user;
+GRANT INSERT (account_id, class, tokens, issued_at), UPDATE (issued_at), DELETE ON rate_grants
+TO application_user;
 
--- The policy loader's statement, in db/policyrules, runs under the role of each process's execution context
--- (ADR-0118), the API server's and delta sync's. Backfill's role keeps the read, which its job kind
--- reaches only through the worker's context. It reads the account, the identifier, the
--- class and the domain suffixes of the base rules and the account's own, so the roles get SELECT on
--- exactly those columns. Who created a rule and when stay out of their reach. The statement reads the
--- base rules and the rules of the transaction's account alone (ADR-0135).
-GRANT SELECT (account_id, rule_id, class, domain_suffix) ON policy_rules
-TO mediated_mailbox_api, mediated_mailbox_backfill, mediated_mailbox_sync;
+-- Backfill and delta sync rebuild the statistics of each sender they saw from the messages the index
+-- holds, and add a flagged verdict to its sender's prior hits, in db/senders/statistics (ADR-0093,
+-- ADR-0096). Delta sync removes a sender's statistics once none of its messages is stored, in
+-- db/messages/change (ADR-0018).
+GRANT INSERT (
+    account_id,
+    domain,
+    local_part_sample,
+    display_names,
+    message_count,
+    first_seen,
+    last_seen,
+    has_list_id_ratio,
+    label_distribution
+),
+UPDATE (
+    local_part_sample,
+    display_names,
+    message_count,
+    first_seen,
+    last_seen,
+    has_list_id_ratio,
+    label_distribution,
+    scan_hit_count
+),
+DELETE ON senders TO application_user;
 
--- The account snapshot's statements in db/accounts, db/accountstate/credential and db/oauthclients run
--- under the role of each process's execution context (ADR-0118, ADR-0090), the API server's and delta
--- sync's, which are exactly the roles that hold a grant on a sealed credential or an OAuth client.
--- Each lists the accounts with the client each names, reads an account's sealed credential, writes a
--- rotated credential back by compare-and-set on the bytes it last knew (ADR-0082, ADR-0089), and
--- reads every OAuth client. A job kind of the worker reaches them only through the worker's context,
--- so backfill's role and mediated_mailbox_organize, the role of reorg apply and rollback, keep the
--- listing and hold no grant on a sealed credential or an OAuth client.
-GRANT SELECT (account_id, provider, oauth_client) ON accounts
-TO mediated_mailbox_api, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
-GRANT SELECT (account_id, credential), UPDATE (credential) ON account_state
-TO mediated_mailbox_api, mediated_mailbox_sync;
-GRANT SELECT (name, provider, client_id, client_secret) ON oauth_clients
-TO mediated_mailbox_api, mediated_mailbox_sync;
+-- Adding a message's metadata to the index, with the pair its subject was masked under, and masking a
+-- stored subject again sit in db/messages/ingest (ADR-0096, ADR-0133). A scan verdict, a skip, a
+-- refused body with its bound, the delisting transition and the returns to pending sit in
+-- db/messages/scan (ADR-0037, ADR-0132). Delta sync sets a stored message's labels and flags to the
+-- ones the provider reports and removes a message the provider no longer holds, in db/messages/change
+-- (ADR-0018). A message's attachment media are inserted with it and never change, and a removed
+-- message takes them with it through their foreign key, which runs as the tables' owner (ADR-0123).
+GRANT INSERT (
+    account_id,
+    message_id,
+    thread_id,
+    from_email,
+    from_domain,
+    from_name,
+    subject,
+    subject_masked,
+    subject_scanner_version,
+    subject_scanner_revision,
+    sent_at,
+    labels,
+    flags,
+    has_attachments,
+    list_id,
+    size_bytes,
+    auth_results
+),
+UPDATE (
+    subject,
+    subject_masked,
+    subject_scanner_version,
+    subject_scanner_revision,
+    labels,
+    flags,
+    scan_state,
+    content_flags,
+    rule_ids,
+    scanned_at,
+    scanner_version,
+    scanner_revision,
+    refused_bound
+),
+DELETE ON messages TO application_user;
+GRANT INSERT (account_id, message_id, media_type, extension) ON attachment_media TO application_user;
 
--- The start check's statement, in db/schemacompatibility, runs under every role a deployable connects
--- as, on each pool its process opens, before the pool is used (ADR-0140). It reads the newest
--- migration goose records and the compatibility floor, which describe the schema and no account. The
--- roles of the job kinds that open no pool yet, reorg apply and rollback's and the heuristics run's,
--- gain the grant with their pools.
-GRANT SELECT (version_id) ON goose_db_version
-TO mediated_mailbox_api, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_ui;
-GRANT SELECT (oldest_chain_version) ON schema_compatibility
-TO mediated_mailbox_api, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_ui;
+-- Every gate decision is recorded with its reason, and a message decided again after the delisting
+-- transition has its decision replaced, in db/scangatedecisions/record (ADR-0093).
+GRANT INSERT (account_id, message_id, decision, reason),
+UPDATE (decision, reason, decided_at) ON scan_gate_decisions TO application_user;
+
+-- The UI's review of a candidate sets its status, and a confirmation inserts its rule (ADR-0084,
+-- ADR-0021).
+GRANT UPDATE (status, reviewed_at, reviewed_by) ON policy_candidates TO application_user;
+
+-- Policy management adds, edits and lifts rules, and an import does all three, in
+-- db/policyrules/manage for an account's rules and db/policyrules/base for the base policy's (ADR-0084,
+-- ADR-0110, ADR-0112). An edit changes a rule's domain suffixes alone, since its scope and identifier
+-- never change.
+GRANT INSERT, UPDATE (domain_suffix), DELETE ON policy_rules TO application_user;
+
+-- Each policy write appends its history row. Insert alone, so the history survives a compromise of
+-- the process that wrote it (ADR-0102).
+GRANT INSERT ON policy_changes TO application_user;
+GRANT USAGE ON SEQUENCE policy_changes_id_seq TO application_user;
+
+-- Each subject mask applied is recorded in db/maskingevents/record (ADR-0003).
+GRANT INSERT (account_id, message_id, field, rule_id, tier, scanner_version, scanner_revision) ON masking_events
+TO application_user;
+GRANT USAGE ON SEQUENCE masking_events_id_seq TO application_user;
+
+-- The UI's approval of a plan sets its status (ADR-0020, ADR-0084). The API server's code is held from
+-- this write by its import lists and the raw SQL analyser, not by a grant (ADR-0143).
+GRANT UPDATE (status, approved_at, approved_by) ON reorg_plans TO application_user;
+
+-- Every run is recorded with its checkpoint, counters, timeline and failed items, in
+-- db/jobruns/record (ADR-0117, ADR-0119).
+GRANT INSERT (
+    account_id, run_id, workload, pass, state, resumed_from, started_at, heartbeat_at, checkpoint, counters
+),
+UPDATE (state, finished_at, heartbeat_at, checkpoint, counters, last_error) ON job_runs
+TO application_user;
+GRANT INSERT (account_id, run_id, kind, page, detail) ON job_run_events TO application_user;
+GRANT USAGE ON SEQUENCE job_run_events_seq_seq TO application_user;
+GRANT INSERT (
+    account_id,
+    run_id,
+    item_kind,
+    item_id,
+    page,
+    error_class,
+    error_summary,
+    attempts,
+    first_at,
+    last_at,
+    disposition
+) ON job_run_failures TO application_user;
+GRANT USAGE ON SEQUENCE job_run_failures_seq_seq TO application_user;
+
+-- Each serve and each denial of a body is recorded through db/auditlog/record, as an insert and nothing
+-- else (ADR-0002, ADR-0016).
+GRANT INSERT (
+    account_id, actor, action, message_id, stage, reason, sender_class, class_rule_id, class_rule_scope, content_flags,
+    content_rule_ids, serve_rule_ids, scan_state, scanner_version, scanner_revision
+) ON audit_log TO application_user;
+GRANT USAGE ON SEQUENCE audit_log_id_seq TO application_user;
+
+-- The start check's statement in db/schemacompatibility runs on each pool a process opens, before the
+-- pool is used (ADR-0140). It reads the newest migration goose records and the compatibility floor,
+-- which describe the schema and no account.
+GRANT SELECT (version_id) ON goose_db_version TO application_user;
+GRANT SELECT (oldest_chain_version) ON schema_compatibility TO application_user;

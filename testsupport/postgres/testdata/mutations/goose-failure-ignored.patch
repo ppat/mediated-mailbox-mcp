@@ -6,22 +6,18 @@ scheduled-count: no
 integration: yes
 
 diff --git a/testsupport/postgres/chain.go b/testsupport/postgres/chain.go
-index bf1546e3..9dfbc182 100644
+index 22db7774..bf3e756b 100644
 --- a/testsupport/postgres/chain.go
 +++ b/testsupport/postgres/chain.go
-@@ -135,11 +135,14 @@ func up(ctx context.Context, chain fs.FS, url string) (err error) {
- 	if err != nil {
- 		return err
+@@ -166,7 +166,10 @@ func up(ctx context.Context, chain fs.FS, url, applicationUser string) (err erro
  	}
  	db := stdlib.OpenDB(*config)
  	defer func() { err = errors.Join(err, db.Close()) }()
--	return migrate.Apply(ctx, db, chain, slog.New(slog.NewTextHandler(os.Stderr, nil)))
-+	if err := migrate.Apply(ctx, db, chain, slog.New(slog.NewTextHandler(os.Stderr, nil))); err != nil {
+-	return migrate.Apply(ctx, db, chain, applicationUser, slog.New(slog.NewTextHandler(os.Stderr, nil)))
++	if err := migrate.Apply(ctx, db, chain, applicationUser, slog.New(slog.NewTextHandler(os.Stderr, nil))); err != nil {
 +		slog.New(slog.NewTextHandler(os.Stderr, nil)).Error("applying the chain", "error", err)
 +	}
 +	return nil
  }
  
  // ExecFile runs a SQL file through the simple protocol, which accepts several statements at once.
- func ExecFile(ctx context.Context, conn *pgx.Conn, path string) error {
- 	sql, err := os.ReadFile(path)

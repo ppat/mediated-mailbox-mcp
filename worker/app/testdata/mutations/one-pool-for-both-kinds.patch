@@ -1,0 +1,22 @@
+control: Each job kind runs through a pool of its own, every pool connected as the one application user
+removes: the start opens one pool and hands it to both job kinds, so one job kind can starve the other of connections
+packages: ./worker/app
+tests: TestEachJobKindIsHandedAPoolOfItsOwn
+scheduled-count: no
+
+diff --git a/worker/app/app.go b/worker/app/app.go
+index 4b236336..c4c47de0 100644
+--- a/worker/app/app.go
++++ b/worker/app/app.go
+@@ -253,10 +253,7 @@ func openPools(ctx context.Context, d dbconnectcore.Config, open opener, registr
+ 	if err != nil {
+ 		return Pools{}, err
+ 	}
+-	syncPool, err := open(ctx, d, labelled(registry, deltasync.Kind))
+-	if err != nil {
+-		return Pools{}, err
+-	}
++	syncPool := backfillPool
+ 	return Pools{Backfill: backfillPool, Sync: syncPool}, nil
+ }
+ 

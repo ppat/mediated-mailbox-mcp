@@ -5,12 +5,10 @@ tests: TestTheChartRendersAFileTheAPIServerStartsWith
 scheduled-count: no
 
 diff --git a/packaging/chart/templates/_config.tpl b/packaging/chart/templates/_config.tpl
-index 02c2add5..fb8f1287 100644
+index b8bf7d3b..3534100d 100644
 --- a/packaging/chart/templates/_config.tpl
 +++ b/packaging/chart/templates/_config.tpl
-@@ -47,10 +47,12 @@ so no key is written twice.
- {{- $_ := set $c "database" (include "mm.config.database" (list . $v.database) | fromYaml) }}
- {{- $_ := set $c "credential" (include "mm.config.credential" . | fromYaml) }}
+@@ -66,6 +66,8 @@ file, since no ConfigMap of the release exists at pre-install (ADR-0129, ADR-013
  {{- $_ := set $c "listen" (printf ":%s" (include "mm.port.http" .)) }}
  {{- $_ := set $c "probe_listen" (printf ":%s" (include "mm.port.metrics" .)) }}
  {{- $_ := set $c "token_file" (printf "%s/bearer-token" (include "mm.secretsDir" .)) }}
@@ -19,5 +17,3 @@ index 02c2add5..fb8f1287 100644
  {{- if .Values.secrets.apiTls.existingSecret }}
  {{- $_ := set $c "tls_cert" (printf "%s/tls/tls.crt" (include "mm.secretsDir" .)) }}
  {{- $_ := set $c "tls_key" (printf "%s/tls/tls.key" (include "mm.secretsDir" .)) }}
- {{- end }}
- {{- toYaml $c }}

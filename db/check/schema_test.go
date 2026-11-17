@@ -29,7 +29,7 @@ var predicateExceptions = map[string]predicateException{
 	"accounts": {
 		subsection: "accounts",
 		statement:  "Accounts",
-		reason:     "the accounts listing, which the roles that list accounts run with no account set (ADR-0047, ADR-0091)",
+		reason:     "the accounts listing, which the code that lists accounts runs with no account set (ADR-0047, ADR-0091)",
 	},
 }
 

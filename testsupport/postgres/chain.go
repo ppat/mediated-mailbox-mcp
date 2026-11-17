@@ -18,17 +18,24 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/db/migrate"
 )
 
-// MigrationRole is the role db/bootstrap/roles.sql creates to own the schema and run the chain.
+// MigrationRole is the user db/bootstrap/roles.sql creates to own the schema and run the chain.
 const MigrationRole = "mediated_mailbox_migrator"
 
+// ApplicationUser is the user db/bootstrap/roles.sql creates for the API server, the UI and the
+// worker to connect as, and the name every test run gives the migrator for the chain's grants. It is
+// not the placeholder the chain's grants name, so a chain applied without the migrator's replacement
+// fails (ADR-0048, ADR-0143).
+const ApplicationUser = "mediated_mailbox_app"
+
 // ApplyChain applies a migration chain from an empty database, as pgrun does for every test run
-// (ADR-0048). It creates the database name owned by the migration role and applies chain as the
-// migration role through db/migrate, the code the migrator applies the chain with (ADR-0139). Nothing
-// runs in the database before the chain, since the schema needs only trusted extensions, which the
-// chain's first migration creates as the migration role. admin is a superuser URL and migrator a URL
-// connecting as the migration role, and ApplyChain points both at name. goose logs its progress to
-// stderr, and a migration that fails fails the whole application.
-func ApplyChain(ctx context.Context, admin, migrator, name string, chain fs.FS) (err error) {
+// (ADR-0048). It creates the database name owned by the migrator's user and applies chain as the
+// migrator's user through db/migrate, the code the migrator applies the chain with, its grants made
+// to applicationUser (ADR-0139, ADR-0143). Nothing runs in the database before the chain, since the
+// schema needs only trusted extensions, which the chain's first migration creates as the migrator's
+// user. admin is a superuser URL and migrator a URL connecting as the migrator's user, and
+// ApplyChain points both at name. goose logs its progress to stderr, and a migration that fails
+// fails the whole application.
+func ApplyChain(ctx context.Context, admin, migrator, name string, chain fs.FS, applicationUser string) (err error) {
 	conn, err := pgx.Connect(ctx, admin)
 	if err != nil {
 		return err
@@ -42,7 +49,7 @@ func ApplyChain(ctx context.Context, admin, migrator, name string, chain fs.FS) 
 	if err != nil {
 		return err
 	}
-	return up(ctx, chain, url)
+	return up(ctx, chain, url, applicationUser)
 }
 
 // Upgrade is a database the migration chain was applied to from empty, up to and not including one
@@ -91,6 +98,32 @@ func ChainBefore(tb testing.TB, dir string, version int64) *Upgrade {
 		tb.Fatalf("no migration numbered %d in %s", version, dir)
 	}
 
+	name := fmt.Sprintf("upgrade_%d_%d", version, os.Getpid())
+	url, err := applyInto(tb, admin, name, os.DirFS(before), ApplicationUser)
+	if err != nil {
+		tb.Fatal(err)
+	}
+	return &Upgrade{URL: url, chain: os.DirFS(dir)}
+}
+
+// ChainFor applies chain from empty into a database of the test's own named for name, as ApplyChain
+// does, with its grants made to applicationUser, and drops the database when the test ends. It returns
+// a URL connecting to the database as the migrator's user and the error that stopped the chain, so a
+// test can apply the chain under a name of its own choosing and require what follows. It needs the
+// variables pgrun sets.
+func ChainFor(tb testing.TB, name string, chain fs.FS, applicationUser string) (string, error) {
+	tb.Helper()
+	admin := os.Getenv(EnvAdminURL)
+	if admin == "" {
+		tb.Fatalf("run under pgrun, which sets %s", EnvAdminURL)
+	}
+	return applyInto(tb, admin, fmt.Sprintf("%s_%d", name, os.Getpid()), chain, applicationUser)
+}
+
+// applyInto applies chain into a new database name, as the migrator's user through the superuser
+// connection admin, and drops the database when the test ends.
+func applyInto(tb testing.TB, admin, name string, chain fs.FS, applicationUser string) (string, error) {
+	tb.Helper()
 	migrator, err := neturl.Parse(admin)
 	if err != nil {
 		tb.Fatal(err)
@@ -98,7 +131,6 @@ func ChainBefore(tb testing.TB, dir string, version int64) *Upgrade {
 	// The superuser connection acting as the migration role, whose password pgrun does not export. A
 	// space encoded as a plus sign reaches the server as a plus sign.
 	migrator.RawQuery += "&options=" + strings.ReplaceAll(neturl.QueryEscape("-c role="+MigrationRole), "+", "%20")
-	name := fmt.Sprintf("upgrade_%d_%d", version, os.Getpid())
 	tb.Cleanup(func() {
 		conn, err := pgx.Connect(context.Background(), admin)
 		if err != nil {
@@ -112,32 +144,29 @@ func ChainBefore(tb testing.TB, dir string, version int64) *Upgrade {
 			tb.Error(err)
 		}
 	})
-	if err := ApplyChain(tb.Context(), admin, migrator.String(), name, os.DirFS(before)); err != nil {
-		tb.Fatal(err)
-	}
 	url, err := inDatabase(migrator.String(), name)
 	if err != nil {
 		tb.Fatal(err)
 	}
-	return &Upgrade{URL: url, chain: os.DirFS(dir)}
+	return url, ApplyChain(tb.Context(), admin, migrator.String(), name, chain, applicationUser)
 }
 
 // Up applies the whole chain to the database, every migration not yet applied, and returns the error
 // that stopped it, which names the migration and the database's error, so a test can require a
 // migration to stop and on what.
 func (u *Upgrade) Up(ctx context.Context) error {
-	return up(ctx, u.chain, u.URL)
+	return up(ctx, u.chain, u.URL, ApplicationUser)
 }
 
-// up applies chain to the database url names, through db/migrate.
-func up(ctx context.Context, chain fs.FS, url string) (err error) {
+// up applies chain to the database url names, through db/migrate, its grants made to applicationUser.
+func up(ctx context.Context, chain fs.FS, url, applicationUser string) (err error) {
 	config, err := pgx.ParseConfig(url)
 	if err != nil {
 		return err
 	}
 	db := stdlib.OpenDB(*config)
 	defer func() { err = errors.Join(err, db.Close()) }()
-	return migrate.Apply(ctx, db, chain, slog.New(slog.NewTextHandler(os.Stderr, nil)))
+	return migrate.Apply(ctx, db, chain, applicationUser, slog.New(slog.NewTextHandler(os.Stderr, nil)))
 }
 
 // ExecFile runs a SQL file through the simple protocol, which accepts several statements at once.

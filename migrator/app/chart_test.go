@@ -72,6 +72,7 @@ func TestTheChartSetsAConfigurationTheMigratorStartsWith(t *testing.T) {
 			Host: "db.example", Port: 6432, Name: "mediated_mailbox", User: "mailbox_migrator", SSLMode: "verify-ca",
 			SSLRootCert: mounted + "ca/ca.crt", PasswordFile: mounted + "database/password", PoolSize: defaults().Database.PoolSize,
 		},
+		ApplicationUser: "mailbox_app",
 	}
 	if diff := cmp.Diff(want, loaded.Config, compare.Options); diff != "" {
 		t.Errorf("the migrator's configuration from the Job's environment (-want +got):\n%s", diff)
@@ -82,7 +83,7 @@ func TestTheChartSetsAConfigurationTheMigratorStartsWith(t *testing.T) {
 // with the keys the chart sets itself, it names exactly the keys of the migrator's configuration type. A key the
 // migrator gains that the schema does not admit, or one the schema admits that the migrator would refuse, fails here.
 func TestTheChartAdmitsEveryMigratorKeyItDoesNotRender(t *testing.T) {
-	chartOwned := []string{"database"}
+	chartOwned := []string{"application_user", "database"}
 	got := append(helmchart.SchemaKeys(t, chartDir, "migration", "config"), chartOwned...)
 	slices.Sort(got)
 	if diff := cmp.Diff(helmchart.YAMLKeys(reflect.TypeFor[Configuration]()), got); diff != "" {

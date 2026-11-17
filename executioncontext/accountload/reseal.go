@@ -80,8 +80,8 @@ func (l *Loader) Reseal(ctx context.Context) Scan {
 
 // ClientWriter writes the secret of the client with the name sealed again, only if the stored bytes
 // are still known, and reports whether the write landed (ADR-0089). Delta sync supplies it, through
-// the one statement that writes a client secret, which only its role is granted (ADR-0092,
-// ADR-0016).
+// the one statement that writes a client secret, which only delta sync's list admits (ADR-0092,
+// ADR-0016, ADR-0143).
 type ClientWriter func(ctx context.Context, name string, known, sealed []byte) (bool, error)
 
 // ResealClients seals every OAuth client secret the last load opened with a key that is not the

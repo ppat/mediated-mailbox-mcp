@@ -25,7 +25,7 @@ func passwordFile(t *testing.T, text string) string {
 
 func config(t *testing.T, password string) core.Config {
 	t.Helper()
-	return core.Config{Host: "db.example", Port: 5433, Name: "mailbox", User: "mediated_mailbox_backfill", SSLMode: "verify-full", PasswordFile: passwordFile(t, password), PoolSize: 7}
+	return core.Config{Host: "db.example", Port: 5433, Name: "mailbox", User: "mediated_mailbox_app", SSLMode: "verify-full", PasswordFile: passwordFile(t, password), PoolSize: 7}
 }
 
 // A start refuses while PGPASSWORD or PGSSLPASSWORD is set, an empty value included.
@@ -77,7 +77,7 @@ func TestTheConnectionIsTheConfigurations(t *testing.T) {
 	if conn.TLSConfig != nil {
 		got.ServerName = conn.TLSConfig.ServerName
 	}
-	want := settings{Host: "db.example", Port: 5433, Database: "mailbox", User: "mediated_mailbox_backfill", Password: "secret", ServerName: "db.example", MaxConns: 7}
+	want := settings{Host: "db.example", Port: 5433, Database: "mailbox", User: "mediated_mailbox_app", Password: "secret", ServerName: "db.example", MaxConns: 7}
 	if diff := cmp.Diff(want, got, compare.Options); diff != "" {
 		t.Errorf("connection (-want +got):\n%s", diff)
 	}

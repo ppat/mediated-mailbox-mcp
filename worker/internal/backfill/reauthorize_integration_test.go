@@ -164,7 +164,7 @@ func TestAFailedReadOfTheRefusedCredentialIsReported(t *testing.T) {
 	p, run, _ := refusedRun(t)
 	conn := superuser(t)
 	p.honoured, p.at = "nothing-honoured", mail.OpEnumerateAll
-	p.operator = func() { revokeFrom(t, conn, contextRole, "SELECT (credential) ON account_state") }
+	p.operator = func() { revokeFrom(t, conn, role, "SELECT ON account_state") }
 
 	err := run(t)
 

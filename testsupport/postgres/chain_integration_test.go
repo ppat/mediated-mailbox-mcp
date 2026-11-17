@@ -109,7 +109,7 @@ func TestTheChainFailsFromEmptyOnAMigrationOnlyTheCurrentShapeAccepts(t *testing
 			t.Fatal(err)
 		}
 		db := stdlib.OpenDB(*config)
-		err = migrate.Apply(ctx, db, os.DirFS(chain), slog.New(slog.NewTextHandler(os.Stderr, nil)))
+		err = migrate.Apply(ctx, db, os.DirFS(chain), postgres.ApplicationUser, slog.New(slog.NewTextHandler(os.Stderr, nil)))
 		if closeErr := db.Close(); err == nil {
 			err = closeErr
 		}
@@ -121,7 +121,7 @@ func TestTheChainFailsFromEmptyOnAMigrationOnlyTheCurrentShapeAccepts(t *testing
 	t.Run("from empty", func(t *testing.T) {
 		name := "chain_empty_" + suffix
 		url := database(name)
-		if err := postgres.ApplyChain(ctx, admin, migrator.String(), name, os.DirFS(chain)); err == nil {
+		if err := postgres.ApplyChain(ctx, admin, migrator.String(), name, os.DirFS(chain), postgres.ApplicationUser); err == nil {
 			t.Fatal("the chain applied from empty with a migration that needs a table no migration creates")
 		}
 		empty, err := pgx.Connect(ctx, url)
@@ -170,7 +170,7 @@ func TestTheChainAppliesWithNoSuperuserStep(t *testing.T) {
 	// The superuser connection acting as the migration role, whose password pgrun does not export. A
 	// space encoded as a plus sign reaches the server as a plus sign.
 	migrator.RawQuery += "&options=" + strings.ReplaceAll(neturl.QueryEscape("-c role="+postgres.MigrationRole), "+", "%20")
-	if err := postgres.ApplyChain(ctx, admin, migrator.String(), name, os.DirFS(filepath.Join("..", "..", "db", "migrations"))); err != nil {
+	if err := postgres.ApplyChain(ctx, admin, migrator.String(), name, os.DirFS(filepath.Join("..", "..", "db", "migrations")), postgres.ApplicationUser); err != nil {
 		t.Fatalf("the chain did not apply from empty as the migration role: %v", err)
 	}
 

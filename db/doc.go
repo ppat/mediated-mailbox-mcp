@@ -2,7 +2,7 @@
 // exception to the rule that shared code is pure.
 //
 // It holds the whole database concern in one directory. The goose migration chain, the application of
-// that chain, the bootstrap that creates the roles, the subsections, the shared transaction helper,
+// that chain, the test harness's bootstrap that creates the two users, the subsections, the shared transaction helper,
 // and the checks over statement and migration files each have a subdirectory. A subsection is one
 // concern's statement files beside the package sqlc generates from them, and other components import
 // only the subsections their import lists admit. Nothing belongs in this package itself.

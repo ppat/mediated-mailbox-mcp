@@ -1,0 +1,18 @@
+control: The chain's grants are made to the application user's name the migrator is configured with
+removes: the migrator makes the chain's grants to the placeholder's own name whatever application user it is configured with
+packages: ./migrator/app
+tests: TestTheMigratorAppliesTheChainItCarries
+scheduled-count: no
+integration: yes
+
+diff --git a/migrator/app/app.go b/migrator/app/app.go
+index 71d734d7..e9f67be4 100644
+--- a/migrator/app/app.go
++++ b/migrator/app/app.go
+@@ -85,5 +85,5 @@ func apply(ctx context.Context, provided host.Provided[Configuration]) (err erro
+ 	}
+ 	db := stdlib.OpenDBFromPool(pool)
+ 	defer func() { err = errors.Join(err, db.Close()) }()
+-	return migrate.Apply(ctx, db, migrations.Chain(), provided.Loaded.Config.ApplicationUser, provided.Logger)
++	return migrate.Apply(ctx, db, migrations.Chain(), migrate.Placeholder, provided.Logger)
+ }

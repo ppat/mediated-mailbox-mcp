@@ -51,8 +51,8 @@ func TestMain(m *testing.M) {
 	postgres.Main(m)
 }
 
-// The role backfill connects as, so its grants apply as in production.
-const role = "mediated_mailbox_backfill"
+// The user backfill connects as, the application user, so its grants apply as in production.
+const role = postgres.ApplicationUser
 
 // backfillPool returns a pool connecting as role.
 func backfillPool(t *testing.T) *pgxpool.Pool {
@@ -70,18 +70,14 @@ func backfillPool(t *testing.T) *pgxpool.Pool {
 	return p
 }
 
-// contextRole is the role the worker's execution context connects as, delta sync's, which holds the
-// grants on the sealed credentials backfill's role does not (ADR-0118).
-const contextRole = "mediated_mailbox_sync"
-
-// contextPool returns a pool connecting as contextRole.
+// contextPool returns a pool connecting as role.
 func contextPool(t *testing.T) *pgxpool.Pool {
 	t.Helper()
 	cfg, err := pgxpool.ParseConfig(postgres.URL(t))
 	if err != nil {
 		t.Fatal(err)
 	}
-	cfg.ConnConfig.RuntimeParams["options"] = "-c role=" + contextRole
+	cfg.ConnConfig.RuntimeParams["options"] = "-c role=" + role
 	p, err := pgxpool.NewWithConfig(t.Context(), cfg)
 	if err != nil {
 		t.Fatal(err)
@@ -138,7 +134,7 @@ func must(t *testing.T, conn *pgx.Conn, sql string, args ...any) {
 	}
 }
 
-// revoke revokes a grant of backfill's role for the rest of the test, and grants it again when the
+// revoke revokes a grant of the application user for the rest of the test, and grants it again when the
 // test ends, so the tests after it see the role as the migration chain made it.
 func revoke(t *testing.T, conn *pgx.Conn, privilege string) {
 	t.Helper()
@@ -427,7 +423,7 @@ func TestAFailedSnapshotReadKeepsThePreviousSnapshot(t *testing.T) {
 	}
 	account(t, conn, "work", gmailProvider, sealed(t, public, "work-token", seal.AccountCredential("work")), false)
 	must(t, conn, "UPDATE account_state SET credential = NULL WHERE account_id = 'personal'")
-	revokeFrom(t, conn, contextRole, "SELECT ON accounts")
+	revokeFrom(t, conn, role, "SELECT ON accounts")
 
 	err := b.reloadWithContext(t.Context())
 
@@ -528,7 +524,7 @@ func counter(ends *int, first mail.AuthAttempt) func(session.Credentials) counti
 }
 
 // opened opens the account's session over the snapshot ec holds, building its source with source,
-// and recording through backfill's role.
+// and recording through the application user.
 func opened[S session.Source](t *testing.T, ec *assembly.Context, account string, source func(session.Credentials) S) *session.Session {
 	t.Helper()
 	h := ec.Sessions(map[string]session.Connector{gmailProvider: connector(source)}, backfillPool(t))
@@ -700,7 +696,7 @@ func TestAFailedWriteBackEndsTheRunInError(t *testing.T) {
 	client(t, conn, public)
 	var log logBuffer
 	loader := loaded(t, ring, log.logger())
-	revokeFrom(t, conn, contextRole, "UPDATE (credential) ON account_state")
+	revokeFrom(t, conn, role, "UPDATE (credential) ON account_state")
 	personal := unitOver(t, loader, "personal", rotating(map[string]string{"first-token": "second-token"}, nil))
 	work := unitOver(t, loader, "work", rotating(nil, nil))
 	for _, u := range []*unit{personal, work} {
@@ -954,7 +950,7 @@ func attempting(t *testing.T) func(session.Credentials) *google.TokenSource {
 }
 
 // lastAuthentication reads the account's last authentication through the statement the system
-// status operation reads it with, as backfill's role (ADR-0034).
+// status operation reads it with, as the application user (ADR-0034).
 func lastAuthentication(t *testing.T, pool *pgxpool.Pool, account string) (*time.Time, *string) {
 	t.Helper()
 	var at *time.Time

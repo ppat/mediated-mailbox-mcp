@@ -119,7 +119,7 @@ func DefaultSection() Section {
 	return Section{AccountReloadInterval: time.Minute, ProviderTimeout: 30 * time.Second}
 }
 
-// defaults are the API server's defaults. The user is the API server's own runtime role (ADR-0118), and
+// defaults are the API server's defaults. The user is the test harness's application user (ADR-0143),
 // the TLS mode is the one that fails closed, and the pool size is the driver's own default. The key
 // files have no default, since a default path assumes the environment.
 func defaults() Configuration {
@@ -128,7 +128,7 @@ func defaults() Configuration {
 		Operations: host.DefaultOperations(),
 		Serving:    host.DefaultServing(),
 		Section:    DefaultSection(),
-		Database:   dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_api", SSLMode: "verify-full", PoolSize: dbconnect.DefaultPoolSize()},
+		Database:   dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_app", SSLMode: "verify-full", PoolSize: dbconnect.DefaultPoolSize()},
 		Scanner:    scan.DefaultConfig(),
 	}
 }
@@ -190,7 +190,7 @@ func Run(ctx context.Context, args, environ []string, stdout, stderr io.Writer, 
 }
 
 // checkSchema refuses a schema this binary's migration chain cannot run on, read through pool under
-// the role pool connects as. The host runs it on each pool it opens, before the pool is used
+// the user pool connects as. The host runs it on each pool it opens, before the pool is used
 // (ADR-0140).
 func checkSchema(ctx context.Context, pool *pgxpool.Pool) error {
 	v, err := schemacompatibility.New(pool).SchemaVersions(ctx)
@@ -201,7 +201,7 @@ func checkSchema(ctx context.Context, pool *pgxpool.Pool) error {
 }
 
 // fromConfiguration builds what the API server needs from the configuration, the scanner from its
-// section under the section's revision, the keyring, the pool connecting as the API server's role and
+// section under the section's revision, the keyring, the pool connecting as the application user and
 // the process's execution context over that pool, and assembles the API server from them. The
 // context's reload is the process's task.
 func fromConfiguration(ctx context.Context, provided host.Provided[Configuration]) (host.Parts, error) {
@@ -234,8 +234,7 @@ func fromConfiguration(ctx context.Context, provided host.Provided[Configuration
 }
 
 // newContext returns the execution context of a process that hosts the API server alone, over the
-// API server's pool and so under its role, reloading on its account reload interval (ADR-0090,
-// ADR-0118).
+// API server's pool, reloading on its account reload interval (ADR-0090).
 func newContext(pool *pgxpool.Pool, keys *open.Keyring, scanner scan.Scanner, s Section, reg prometheus.Registerer, logger *slog.Logger) (*assembly.Context, error) {
 	return assembly.New(assembly.Needs{
 		Pool: pool, Keys: keys, ThroughClient: []string{gmailProvider}, Scanner: scanner, Lookups: lookups(),
@@ -252,8 +251,8 @@ func ContextTask(ec *assembly.Context) host.Task {
 // Needs are what the API server is assembled from.
 type Needs struct {
 	Section Section
-	// Pool connects as the API server's runtime role, which its own statements, its leases and its
-	// recording of authentication attempts run under (ADR-0118).
+	// Pool connects as the application user, which its own statements, its leases and its recording
+	// of authentication attempts run under (ADR-0143).
 	Pool *pgxpool.Pool
 	// Context is the process's execution context, its accounts, their sessions' sources, their policy
 	// and the scanner the serve-time pattern check runs (ADR-0005, ADR-0090).

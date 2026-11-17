@@ -24,14 +24,14 @@ func TestMain(m *testing.M) {
 	postgres.Main(m)
 }
 
-// syncPool returns a pool connecting as delta sync's role, so its grants apply as in production.
+// syncPool returns a pool connecting as the application user, so its grants apply as in production.
 func syncPool(t *testing.T) *pgxpool.Pool {
 	t.Helper()
 	cfg, err := pgxpool.ParseConfig(postgres.URL(t))
 	if err != nil {
 		t.Fatal(err)
 	}
-	cfg.ConnConfig.RuntimeParams["options"] = "-c role=mediated_mailbox_sync"
+	cfg.ConnConfig.RuntimeParams["options"] = "-c role=" + postgres.ApplicationUser
 	p, err := pgxpool.NewWithConfig(t.Context(), cfg)
 	if err != nil {
 		t.Fatal(err)

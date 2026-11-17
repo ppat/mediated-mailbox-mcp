@@ -1,6 +1,6 @@
 // Package reseal is delta sync's part of key replacement. It writes an OAuth client's re-sealed
-// secret through the one statement that writes a client secret, which only delta sync's role is
-// granted, and it emits the scan series key replacement waits on (ADR-0092, ADR-0103). The re-seal
+// secret through the one statement that writes a client secret, which only delta sync's list admits
+// (ADR-0143), and it emits the scan series key replacement waits on (ADR-0092, ADR-0103). The re-seal
 // itself is accountload's.
 package reseal
 

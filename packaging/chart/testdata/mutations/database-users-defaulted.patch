@@ -1,0 +1,44 @@
+control: The chart names no database user
+removes: the chart defaults both users' names and the values schema no longer requires them, so a deployment that leaves either out connects under a name the project chose
+packages: ./packaging/chart
+tests: TestTheChartNamesNoDatabaseUser
+scheduled-count: no
+integration: no
+
+diff --git a/packaging/chart/templates/_config.tpl b/packaging/chart/templates/_config.tpl
+index b8bf7d3b..c6062bf4 100644
+--- a/packaging/chart/templates/_config.tpl
++++ b/packaging/chart/templates/_config.tpl
+@@ -29,7 +29,7 @@ so no key is written twice.
+ {{/* The application user's name, which the API server, the UI and the worker connect as and the migration step grants
+ to. The project names no database user, so the value has no default (ADR-0143). */}}
+ {{- define "mm.applicationUser" -}}
+-{{- required "database.applicationUser is required" .Values.database.applicationUser }}
++{{- default "mediated_mailbox_app" .Values.database.applicationUser }}
+ {{- end }}
+ 
+ {{/* A process's database section: the server, the user it connects as, its pool size when set, and its password
+@@ -50,7 +50,7 @@ application user's name its grants are made to, which the Job sets through the e
+ file, since no ConfigMap of the release exists at pre-install (ADR-0129, ADR-0139). */}}
+ {{- define "mm.config.migration" -}}
+ {{- $v := .Values.migration }}
+-{{- $user := required "database.migrationUser is required" .Values.database.migrationUser }}
++{{- $user := default "mediated_mailbox_migrator" .Values.database.migrationUser }}
+ {{- toYaml (dict "log_level" (default .Values.sharedConfig.log_level (index $v.config "log_level")) "database" (include "mm.config.database" (list . $user (dict)) | fromYaml) "application_user" (include "mm.applicationUser" .)) }}
+ {{- end }}
+ 
+diff --git a/packaging/chart/values.schema.json b/packaging/chart/values.schema.json
+index 3149dd4c..570492b5 100644
+--- a/packaging/chart/values.schema.json
++++ b/packaging/chart/values.schema.json
+@@ -103,9 +103,7 @@
+       "additionalProperties": false,
+       "required": [
+         "host",
+-        "name",
+-        "applicationUser",
+-        "migrationUser"
++        "name"
+       ]
+     },
+     "secrets": {

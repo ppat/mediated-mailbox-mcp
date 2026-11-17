@@ -87,7 +87,7 @@ func TestTheRecordedFixturesMatchTheServer(t *testing.T) {
 	// Home's as-of line must show the corpus read's time when that read is the older, so the corpus
 	// answer is recorded once more from a server whose clock reads a minute earlier (docs/UI.md
 	// section 8.1).
-	earlier, _ := serverAt(t, uiPool(t, "mediated_mailbox_ui"), starting(), now.Add(-time.Minute))
+	earlier, _ := serverAt(t, uiPool(t, postgres.ApplicationUser), starting(), now.Add(-time.Minute))
 	record(t, earlier, doc, map[string]string{"corpus-earlier.json": "/ui/api/accounts/personal/corpus"})
 	// The live screens' tests read some paths again after the recorded state has moved on, so those
 	// paths are recorded a second time after it moves (docs/UI.md sections 8.3 and 9).

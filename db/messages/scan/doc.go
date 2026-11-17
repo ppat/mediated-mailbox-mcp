@@ -4,6 +4,6 @@
 // restricted (ADR-0037), the return to pending of what another scanner decided (ADR-0120), the read
 // of the stored gate skips and the return to pending of those the gate no longer decides as the same
 // skip (ADR-0121), and the backlog count a scanning workload emits. They sit apart from the reads in
-// db/messages, so the roles admitted there are never planned against a statement that writes
-// messages.
+// db/messages, which the API server's list admits, so the API server's code reaches no statement
+// that writes messages (ADR-0066, ADR-0143).
 package scan

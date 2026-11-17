@@ -10,9 +10,10 @@ import (
 )
 
 // This file reads a client's sealed secret through the database handle, through the driver's
-// lower-level connection, and through an interface declared over that connection, on purpose. The UI's role may read the column for ui/internal/clientsecret
-// alone, and the import lists confine that read only while every statement the UI runs is one the
-// data-access library generated (ADR-0071, ADR-0081).
+// lower-level connection, and through an interface declared over that connection, on purpose. The UI's
+// code may read the column in ui/internal/clientsecret alone, and the import lists confine that read
+// only while every statement the UI runs is one the data-access library generated (ADR-0071, ADR-0081,
+// ADR-0143).
 func secretByHand(ctx context.Context, s *Server) {
 	row := s.opts.Database.QueryRow(ctx, "SELECT client_secret FROM oauth_clients") // want vetcheck "The method QueryRow runs a statement the data-access library did not generate"
 	_ = row

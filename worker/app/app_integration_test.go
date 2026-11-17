@@ -37,7 +37,7 @@ func TestMain(m *testing.M) {
 	postgres.Main(m)
 }
 
-// measuredPool returns a pool of four connections connecting as the runtime role, measured on registry
+// measuredPool returns a pool of four connections connecting as role, measured on registry
 // as the worker's composition root measures each job kind's pool (ADR-0125).
 func measuredPool(t *testing.T, role string, registry prometheus.Registerer) *pgxpool.Pool {
 	t.Helper()
@@ -172,8 +172,8 @@ func scrape(t *testing.T, want []string) {
 	}
 	registry := h.Registerer("worker")
 	pools := Pools{
-		Backfill: measuredPool(t, "mediated_mailbox_backfill", labelled(registry, backfill.Kind)),
-		Sync:     measuredPool(t, "mediated_mailbox_sync", labelled(registry, deltasync.Kind)),
+		Backfill: measuredPool(t, postgres.ApplicationUser, labelled(registry, backfill.Kind)),
+		Sync:     measuredPool(t, postgres.ApplicationUser, labelled(registry, deltasync.Kind)),
 	}
 	ec := mustContext(t, pools, ring, scanner, defaults().Section, registry, slog.New(slog.DiscardHandler))
 	parts, err := Assemble(h.Context(), Needs{
@@ -225,7 +225,7 @@ func scrape(t *testing.T, want []string) {
 		t.Errorf("/metrics does not serve %s:\n%s", line, body)
 	}
 	// Each job kind's first reload has run by the time its series are served, so the worker is ready:
-	// both pools answer as their roles and both reloads succeeded.
+	// both pools answer and both reloads succeeded.
 	for deadline := time.Now().Add(5 * time.Second); ; time.Sleep(50 * time.Millisecond) {
 		code, body := probe(t, ln.Addr().String(), "/readyz")
 		if code == http.StatusOK {
@@ -294,7 +294,7 @@ func TestTheProbesServeThePerformanceSeries(t *testing.T) {
 	})
 }
 
-// Each job kind's database check answers whether its own pool reaches the database as its role, so
+// Each job kind's database check answers whether its own pool reaches the database, so
 // the worker stops reporting ready when either job kind's pool cannot answer, and a pool that answers
 // leaves its own check passing (ADR-0138).
 func TestEachJobKindsDatabaseCheckFollowsItsPool(t *testing.T) {
@@ -304,8 +304,8 @@ func TestEachJobKindsDatabaseCheckFollowsItsPool(t *testing.T) {
 	}
 	registry := prometheus.NewRegistry()
 	pools := Pools{
-		Backfill: measuredPool(t, "mediated_mailbox_backfill", labelled(registry, backfill.Kind)),
-		Sync:     measuredPool(t, "mediated_mailbox_sync", labelled(registry, deltasync.Kind)),
+		Backfill: measuredPool(t, postgres.ApplicationUser, labelled(registry, backfill.Kind)),
+		Sync:     measuredPool(t, postgres.ApplicationUser, labelled(registry, deltasync.Kind)),
 	}
 	parts, err := Assemble(t.Context(), Needs{
 		Section: defaults().Section, Pools: pools, Client: unreachable(t),
@@ -358,7 +358,7 @@ func TestAGmailAccountNamingNoClientIsNotConnected(t *testing.T) {
 		t.Fatal(err)
 	}
 	registry := prometheus.NewRegistry()
-	pools := Pools{Sync: measuredPool(t, "mediated_mailbox_sync", registry)}
+	pools := Pools{Sync: measuredPool(t, postgres.ApplicationUser, registry)}
 	ec := mustContext(t, pools, ring, scanner, defaults().Section, registry, slog.New(slog.DiscardHandler))
 	if err := ec.Reload(t.Context()); err != nil {
 		t.Fatal(err)
@@ -379,8 +379,8 @@ func TestEachContextReloadWakesTheJobKinds(t *testing.T) {
 	}
 	registry := prometheus.NewRegistry()
 	pools := Pools{
-		Backfill: measuredPool(t, "mediated_mailbox_backfill", labelled(registry, backfill.Kind)),
-		Sync:     measuredPool(t, "mediated_mailbox_sync", labelled(registry, deltasync.Kind)),
+		Backfill: measuredPool(t, postgres.ApplicationUser, labelled(registry, backfill.Kind)),
+		Sync:     measuredPool(t, postgres.ApplicationUser, labelled(registry, deltasync.Kind)),
 	}
 	section := defaults().Section
 	section.ReloadInterval = time.Hour
@@ -500,8 +500,8 @@ func TestAStartLogsNoErrorAndIsReadyOnlyOnceTheContextLoads(t *testing.T) {
 	var log lockedBuffer
 	logger := slog.New(slog.NewJSONHandler(&log, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	pools := Pools{
-		Backfill: measuredPool(t, "mediated_mailbox_backfill", labelled(registry, backfill.Kind)),
-		Sync:     measuredPool(t, "mediated_mailbox_sync", labelled(registry, deltasync.Kind)),
+		Backfill: measuredPool(t, postgres.ApplicationUser, labelled(registry, backfill.Kind)),
+		Sync:     measuredPool(t, postgres.ApplicationUser, labelled(registry, deltasync.Kind)),
 	}
 	section := defaults().Section
 	section.ReloadInterval = time.Hour

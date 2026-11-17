@@ -47,7 +47,7 @@ func TestTheChartRendersAFileTheUIStartsWith(t *testing.T) {
 		Operations: host.Operations{ProbeListen: ":8080"},
 		Serving:    host.Serving{Listen: ":8443", TLSCert: mounted + "tls/tls.crt", TLSKey: mounted + "tls/tls.key"},
 		Database: dbconnectcore.Config{
-			Host: "db.example", Port: 6432, Name: "mediated_mailbox", User: "mailbox_ui", SSLMode: "verify-ca",
+			Host: "db.example", Port: 6432, Name: "mediated_mailbox", User: "mailbox_app", SSLMode: "verify-ca",
 			SSLRootCert: mounted + "ca/ca.crt", PasswordFile: mounted + "database/password", PoolSize: 11,
 		},
 		Credential: credentialcore.Config{

@@ -6,13 +6,13 @@ scheduled-count: no
 integration: yes
 
 diff --git a/executioncontext/session/session.go b/executioncontext/session/session.go
-index 4a1c137e..cae739d9 100644
+index 7dd94aa5..5f0493bc 100644
 --- a/executioncontext/session/session.go
 +++ b/executioncontext/session/session.go
-@@ -264,7 +264,7 @@ func recordAttempt(ctx context.Context, db tx.Beginner, account string, attempt
+@@ -286,7 +286,7 @@ func recordAttempt(ctx context.Context, db tx.Beginner, account string, attempt
  	}
  	err := tx.Run(ctx, db, account, func(t pgx.Tx) error {
- 		return authentication.New(t).RecordAuthentication(ctx, authentication.RecordAuthenticationParams{
+ 		return accountstate.New(t).RecordAuthentication(ctx, accountstate.RecordAuthenticationParams{
 -			AttemptedAt: pgtype.Timestamptz{Time: time.UnixMilli(int64(attempt.At)).UTC(), Valid: true},
 +			AttemptedAt: pgtype.Timestamptz{Time: time.Now().UTC(), Valid: true},
  			Outcome:     pgtype.Text{String: string(attempt.Outcome), Valid: true},

@@ -1,20 +1,20 @@
-control: The UI's role writes exactly the policy writes policy management makes, each with its history row
-removes: the UI's role loses the delete on policy_rules, so lifting a rule is refused
+control: The grant check plans every statement an import list admits under the application user
+removes: the application user loses the delete on policy_rules, so policy management's lift of a rule, which the UI's list admits, is refused
 packages: ./db/check
-tests: TestTheUIWritesOnlyItsDecisionColumnsAndPolicyRules TestTheUIWritesOnlyItsDecisionColumnsAndPolicyRules/add,_edit_and_lift_an_account's_rule_with_its_history TestOnlyTheUIWritesThePolicy TestOnlyTheUIWritesThePolicy/mediated_mailbox_ui/lift_a_base_rule
+tests: TestGrantsCoverAdmittedSubsections
 scheduled-count: no
 integration: yes
 
 diff --git a/db/migrations/00003_grants.sql b/db/migrations/00003_grants.sql
-index eba1d5bc..67ddd013 100644
+index 809f1022..6bd8ef1c 100644
 --- a/db/migrations/00003_grants.sql
 +++ b/db/migrations/00003_grants.sql
-@@ -492,7 +492,7 @@ DELETE ON oauth_clients TO mediated_mailbox_ui;
- -- An edit changes a rule's domain suffixes alone, since its scope and identifier never change. Its
- -- statements sit in db/policyrules/manage for an account's rules and db/policyrules/base for the base
- -- policy's, which only the UI's list admits. A confirmation of a candidate inserts its rule.
--GRANT INSERT, UPDATE (domain_suffix), DELETE ON policy_rules TO mediated_mailbox_ui;
-+GRANT INSERT, UPDATE (domain_suffix) ON policy_rules TO mediated_mailbox_ui;
- -- Each policy write appends its history row, and the policy screens read the history. Insert alone,
- -- so evidence of who lifted a restriction survives the UI's compromise (ADR-0102).
- GRANT SELECT, INSERT ON policy_changes TO mediated_mailbox_ui;
+@@ -179,7 +179,7 @@ GRANT UPDATE (status, reviewed_at, reviewed_by) ON policy_candidates TO applicat
+ -- db/policyrules/manage for an account's rules and db/policyrules/base for the base policy's (ADR-0084,
+ -- ADR-0110, ADR-0112). An edit changes a rule's domain suffixes alone, since its scope and identifier
+ -- never change.
+-GRANT INSERT, UPDATE (domain_suffix), DELETE ON policy_rules TO application_user;
++GRANT INSERT, UPDATE (domain_suffix) ON policy_rules TO application_user;
+ 
+ -- Each policy write appends its history row. Insert alone, so the history survives a compromise of
+ -- the process that wrote it (ADR-0102).

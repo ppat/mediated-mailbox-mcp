@@ -1,18 +1,27 @@
-control: Only the roles that call a provider read oauth_clients and their own account's state, and the UI reads its account's progress and never a credential
-removes: the roles the account snapshot's statements run under lose the read of each client's name
+control: The application user reads every OAuth client and writes what the client setup and the re-seal write
+removes: the application user loses the read of each client's name
 packages: ./db/check
-tests: TestOnlyTheProviderCallingRolesReadTheOAuthClients TestOnlyTheProviderCallingRolesReadTheOAuthClients/mediated_mailbox_api/reads_every_client TestOnlyTheProviderCallingRolesReadTheOAuthClients/mediated_mailbox_sync/reads_every_client
+tests: TestTheApplicationUserReadsAndWritesTheOAuthClients TestTheApplicationUserReadsAndWritesTheOAuthClients/reads_every_client TestGrantsCoverAdmittedSubsections
 scheduled-count: no
 integration: yes
 
 diff --git a/db/migrations/00003_grants.sql b/db/migrations/00003_grants.sql
-index 5a8ad6f..14a52ff 100644
+index 809f1022..05d8814c 100644
 --- a/db/migrations/00003_grants.sql
 +++ b/db/migrations/00003_grants.sql
-@@ -556,5 +556,5 @@ GRANT SELECT (account_id, provider, oauth_client) ON accounts
- TO mediated_mailbox_api, mediated_mailbox_backfill, mediated_mailbox_sync, mediated_mailbox_organize;
- GRANT SELECT (account_id, credential), UPDATE (credential) ON account_state
- TO mediated_mailbox_api, mediated_mailbox_sync;
--GRANT SELECT (name, provider, client_id, client_secret) ON oauth_clients
-+GRANT SELECT (provider, client_id, client_secret) ON oauth_clients
- TO mediated_mailbox_api, mediated_mailbox_sync;
+@@ -15,7 +15,6 @@
+ -- holding them.
+ 
+ GRANT SELECT ON
+-oauth_clients,
+ accounts,
+ account_state,
+ rate_state,
+@@ -36,6 +35,7 @@ job_run_events,
+ job_run_failures,
+ audit_log
+ TO application_user;
++GRANT SELECT (provider, client_id, client_secret, project_id) ON oauth_clients TO application_user;
+ 
+ -- The UI's client setup in db/oauthclients/setup adds a client, replaces a client's identifier, secret
+ -- and project ID, and removes a client no account connects through. The connections' re-seal in

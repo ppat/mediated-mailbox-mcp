@@ -26,25 +26,32 @@ so no key is written twice.
 {{- toYaml (dict "public_key_file" (printf "%s/credential-sealing-key-pair/%s" (include "mm.secretsDir" .) $k.secretKeys.publicKey) "private_key_files" $files) }}
 {{- end }}
 
-{{/* A process's database section: the server, its role and pool size when set, and its password file. Takes (list $ .Values.<proc>.database). */}}
+{{/* The application user's name, which the API server, the UI and the worker connect as and the migration step grants
+to. The project names no database user, so the value has no default (ADR-0143). */}}
+{{- define "mm.applicationUser" -}}
+{{- required "database.applicationUser is required" .Values.database.applicationUser }}
+{{- end }}
+
+{{/* A process's database section: the server, the user it connects as, its pool size when set, and its password
+file. Takes (list $ user .Values.<proc>.database). */}}
 {{- define "mm.config.database" -}}
 {{- $ := index . 0 }}
 {{- $db := include "mm.config.databaseServer" $ | fromYaml }}
-{{- with (index . 1).user }}
-{{- $_ := set $db "user" . }}
-{{- end }}
-{{- with (index . 1).poolSize }}
+{{- $_ := set $db "user" (index . 1) }}
+{{- with (index . 2).poolSize }}
 {{- $_ := set $db "pool_size" . }}
 {{- end }}
 {{- $_ := set $db "password_file" (printf "%s/database/password" (include "mm.secretsDir" $)) }}
 {{- toYaml $db }}
 {{- end }}
 
-{{/* The migration step's configuration, its log level and its database section, which the Job sets through the
-environment layer rather than a file, since no ConfigMap of the release exists at pre-install (ADR-0129). */}}
+{{/* The migration step's configuration, its log level, its database section as the migrator's user and the
+application user's name its grants are made to, which the Job sets through the environment layer rather than a
+file, since no ConfigMap of the release exists at pre-install (ADR-0129, ADR-0139). */}}
 {{- define "mm.config.migration" -}}
 {{- $v := .Values.migration }}
-{{- toYaml (dict "log_level" (default .Values.sharedConfig.log_level (index $v.config "log_level")) "database" (include "mm.config.database" (list . $v.database) | fromYaml)) }}
+{{- $user := required "database.migrationUser is required" .Values.database.migrationUser }}
+{{- toYaml (dict "log_level" (default .Values.sharedConfig.log_level (index $v.config "log_level")) "database" (include "mm.config.database" (list . $user (dict)) | fromYaml) "application_user" (include "mm.applicationUser" .)) }}
 {{- end }}
 
 {{- define "mm.config.api" -}}
@@ -54,7 +61,7 @@ environment layer rather than a file, since no ConfigMap of the release exists a
 {{- if .Values.sharedConfig.scanner }}
 {{- $_ := set $c "scanner" .Values.sharedConfig.scanner }}
 {{- end }}
-{{- $_ := set $c "database" (include "mm.config.database" (list . $v.database) | fromYaml) }}
+{{- $_ := set $c "database" (include "mm.config.database" (list . (include "mm.applicationUser" .) $v.database) | fromYaml) }}
 {{- $_ := set $c "credential" (include "mm.config.credential" . | fromYaml) }}
 {{- $_ := set $c "listen" (printf ":%s" (include "mm.port.http" .)) }}
 {{- $_ := set $c "probe_listen" (printf ":%s" (include "mm.port.metrics" .)) }}
@@ -71,7 +78,7 @@ environment layer rather than a file, since no ConfigMap of the release exists a
 {{- $c := deepCopy $v.config }}
 {{- $_ := set $c "log_level" (default .Values.sharedConfig.log_level (index $v.config "log_level")) }}
 {{- $_ := set $c "sync_interval" .Values.sharedConfig.sync_interval }}
-{{- $_ := set $c "database" (include "mm.config.database" (list . $v.database) | fromYaml) }}
+{{- $_ := set $c "database" (include "mm.config.database" (list . (include "mm.applicationUser" .) $v.database) | fromYaml) }}
 {{- $_ := set $c "credential" (include "mm.config.credential" . | fromYaml) }}
 {{- $_ := set $c "listen" (printf ":%s" (include "mm.port.http" .)) }}
 {{- $_ := set $c "probe_listen" (printf ":%s" (include "mm.port.metrics" .)) }}
@@ -83,23 +90,14 @@ environment layer rather than a file, since no ConfigMap of the release exists a
 {{- toYaml $c }}
 {{- end }}
 
-{{/* The worker's file: the server once, and under database a block per job kind with its role, pool and password file. */}}
+{{/* The worker's file. Its one database section's pool size sizes each job kind's pool alike (ADR-0078). */}}
 {{- define "mm.config.worker" -}}
 {{- $c := deepCopy .Values.worker.config }}
 {{- $_ := set $c "log_level" (default .Values.sharedConfig.log_level (index .Values.worker.config "log_level")) }}
 {{- if .Values.sharedConfig.scanner }}
 {{- $_ := set $c "scanner" .Values.sharedConfig.scanner }}
 {{- end }}
-{{- $db := include "mm.config.databaseServer" . | fromYaml }}
 {{- range $kind, $jk := .Values.worker.jobKinds }}
-{{- $role := dict "password_file" (printf "%s/database/%s/password" (include "mm.secretsDir" $) $kind) }}
-{{- with $jk.database.user }}
-{{- $_ := set $role "user" . }}
-{{- end }}
-{{- with $jk.database.poolSize }}
-{{- $_ := set $role "pool_size" . }}
-{{- end }}
-{{- $_ := set $db $kind $role }}
 {{- $section := deepCopy $jk.config }}
 {{- if eq $kind "sync" }}
 {{- $_ := set $section "sync_interval" $.Values.sharedConfig.sync_interval }}
@@ -108,7 +106,7 @@ environment layer rather than a file, since no ConfigMap of the release exists a
 {{- $_ := set $c $kind $section }}
 {{- end }}
 {{- end }}
-{{- $_ := set $c "database" $db }}
+{{- $_ := set $c "database" (include "mm.config.database" (list . (include "mm.applicationUser" .) .Values.worker.database) | fromYaml) }}
 {{- $_ := set $c "credential" (include "mm.config.credential" . | fromYaml) }}
 {{- $_ := set $c "probe_listen" (printf ":%s" (include "mm.port.metrics" .)) }}
 {{- toYaml $c }}

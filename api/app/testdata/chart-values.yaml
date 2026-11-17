@@ -30,7 +30,6 @@ sharedConfig:
     subject_threshold: 0.65
 api:
   database:
-    user: mailbox_api
     poolSize: 9
   config:
     account_reload_interval: 2m

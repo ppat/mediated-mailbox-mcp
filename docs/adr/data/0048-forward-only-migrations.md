@@ -53,6 +53,24 @@ append-only audit log ([ADR-0016](./0016-schema.md)).
   holds the application user's writes to what the data-access library's statements write
   ([ADR-0143](./0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)),
   applied to schema change.
+- **A migration grants to a placeholder, and the migrator puts the application user's name in its
+  place.** The project names no database user, so the migrator is given the application user's name
+  as a required setting
+  ([ADR-0143](./0143-the-programs-connect-as-one-application-user-beside-the-migrators.md),
+  [ADR-0139](./0139-the-migration-runner-is-goose-linked-into-the-migrator.md)). Every grantee of a
+  grant or a revoke in the chain is written as the placeholder `application_user`, an ordinary
+  unquoted role name the code generator and sqlfluff read like any other. `db/migrate` replaces
+  every occurrence of the placeholder in the chain's SQL files with the configured name, quoted as
+  an identifier, as goose reads each file, and refuses an empty name. `db/check` refuses a migration
+  of the chain that grants to or revokes from any other name, a default privilege's grant included,
+  that names a role by name anywhere else, such as a new owner, a policy's roles or a schema's
+  authorization, the placeholder's included, or that names the placeholder anywhere but as a
+  grantee. It also refuses a statement that creates, renames or drops a role, or that sets the
+  session's role or authorization, since the deployment creates and names both users. So the
+  replacement can change nothing but a grantee, and the chain names no user as a role, creates none
+  and switches the session to none. A role name inside a string a function reads, such as
+  `set_config`'s, is left to review. The test harness creates the application user under a name
+  other than the placeholder, so a chain applied without the replacement fails at its first grant.
 
 ## Alternatives considered
 
@@ -66,6 +84,21 @@ append-only audit log ([ADR-0016](./0016-schema.md)).
   forward anyway. A Helm rollback could not run them either. It runs the hooks of the release it
   rolls back to, whose image was built before the newer migrations existed and so carries no down
   step for them.
+
+How the migrator hands the application user's name to the migrations had alternatives of its own.
+
+- **goose's environment substitution.** The case for it is that goose offers it, marked per file.
+  Rejected: the code generator reads the migration files directly as its schema
+  ([ADR-0066](./0066-data-access-generated-from-sql.md)) and cannot parse goose's substitution
+  markers.
+- **A migration written in Go that builds its grants from the name.** The case for it is that goose
+  runs Go migrations beside SQL ones. Rejected: it puts SQL outside the statement and migration
+  files ([ADR-0047](./0047-schema-first-data-access.md),
+  [ADR-0066](./0066-data-access-generated-from-sql.md)), where neither the generator nor the
+  migration checks read it.
+- **A DO block, function or procedure that grants by a name it reads from a setting.** The case for
+  it is that the files stay plain SQL. Rejected: the chain runs no code inside the database
+  ([ADR-0060](../engineering/0060-no-code-in-the-database.md)), and the migration lint refuses each.
 
 ## Consequences
 
@@ -83,14 +116,13 @@ append-only audit log ([ADR-0016](./0016-schema.md)).
   the migrator's user, owning the database, creates itself in the chain's first migration, so no
   step inside the application database needs a superuser. An extension that is not trusted would
   bring that step back, so a schema change that needs one is decided with that cost in view.
-- Grant statements in migrations are made to the application user's name, which the migrator is
-  given as a required setting, since the project names no database user
-  ([ADR-0143](./0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)). How
-  the migrator hands that name to the migrations is not yet chosen, and the first change to the
-  chain's grants chooses it. Whatever it chooses keeps the migration files readable by the
-  generator of [ADR-0066](./0066-data-access-generated-from-sql.md), which reads them directly and
-  cannot parse goose's environment substitution markers. A grant to a user that does not exist yet
-  fails, which is why the users are created before the chain runs.
+- Grant statements in migrations are made to the application user's name through the placeholder,
+  so the migration files stay readable by the generator of
+  [ADR-0066](./0066-data-access-generated-from-sql.md), and a migration's author writes the
+  placeholder wherever a grant names the application user. The placeholder never names a user, so
+  a deployment may name its application user anything, the placeholder's own spelling included. A
+  grant to a user that does not exist yet fails, which is why the users are created before the chain
+  runs.
 - Assumptions about other components: something outside the application creates the two users once
   per cluster, which needs the privilege to create roles, creates the application database owned by
   the migrator's user, delivers the migrator's user's credential to the migration step alone and
