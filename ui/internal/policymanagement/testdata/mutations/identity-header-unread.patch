@@ -1,0 +1,20 @@
+control: A policy write records only a declared identity, never an empty one
+removes: the declared identity header is never read, so every write, one without the header included, is recorded under the operator name
+packages: ./ui/internal/api
+tests: TestAPolicyWriteRecordsTheDeclaredIdentity
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/policymanagement/identity.go b/ui/internal/policymanagement/identity.go
+index 38b8e5fc..4e1f9f6f 100644
+--- a/ui/internal/policymanagement/identity.go
++++ b/ui/internal/policymanagement/identity.go
+@@ -20,7 +20,7 @@ type Identity struct {
+ // is empty, the declared header missing or the operator name configured empty.
+ func (s *handlers) identity(w http.ResponseWriter, r *http.Request) (string, bool) {
+ 	v := s.opts.Identity.Operator
+-	if s.opts.Identity.Header != "" {
++	if false {
+ 		v = r.Header.Get(s.opts.Identity.Header)
+ 	}
+ 	// A write always records who made it, so an identity that resolves empty, a missing header or an

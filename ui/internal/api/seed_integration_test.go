@@ -20,7 +20,9 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/postgres"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/api"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/attention"
-	"github.com/ppat/mediated-mailbox-mcp/ui/internal/registry"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/policymanagement"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/reads"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/setup"
 )
 
 func TestMain(m *testing.M) {
@@ -292,15 +294,14 @@ func countingPool(t *testing.T, role string) (*pgxpool.Pool, *statements) {
 	return pool, counter
 }
 
-// server is the read API's server over the seeded database, as the application user, with the fixed
-// clock.
-func server(t *testing.T) (*api.Server, *prometheus.Registry) {
+// server is the read API over the seeded database, as the application user, with the fixed clock.
+func server(t *testing.T) (*api.Endpoint, *prometheus.Registry) {
 	t.Helper()
 	seed(t)
 	return serverAs(t, uiPool(t, postgres.ApplicationUser))
 }
 
-func serverAs(t *testing.T, pool *pgxpool.Pool) (*api.Server, *prometheus.Registry) {
+func serverAs(t *testing.T, pool *pgxpool.Pool) (*api.Endpoint, *prometheus.Registry) {
 	t.Helper()
 	return serverWith(t, pool, starting())
 }
@@ -312,28 +313,21 @@ func starting() attention.Thresholds {
 }
 
 // serverWith is serverAs with the worth-a-look rules' thresholds given.
-func serverWith(t *testing.T, pool *pgxpool.Pool, thresholds attention.Thresholds) (*api.Server, *prometheus.Registry) {
+func serverWith(t *testing.T, pool *pgxpool.Pool, thresholds attention.Thresholds) (*api.Endpoint, *prometheus.Registry) {
 	t.Helper()
 	return serverAt(t, pool, thresholds, now)
 }
 
 // serverAt is serverWith with the server's clock reading at, for a recording made before now.
-func serverAt(t *testing.T, pool *pgxpool.Pool, thresholds attention.Thresholds, at time.Time) (*api.Server, *prometheus.Registry) {
+func serverAt(t *testing.T, pool *pgxpool.Pool, thresholds attention.Thresholds, at time.Time) (*api.Endpoint, *prometheus.Registry) {
 	t.Helper()
 	reg := prometheus.NewRegistry()
-	s, err := api.NewServer(api.Options{
-		Database:       pool,
-		Datasets:       registry.Datasets(lookups),
-		Lookups:        lookups,
-		Checks:         newChecks(t, tokenKey, slog.New(slog.NewJSONHandler(io.Discard, nil))),
+	e := readAPI(t, pool, newChecks(t, tokenKey, slog.New(slog.NewJSONHandler(io.Discard, nil))), reads.Options{
 		Metrics:        reg,
 		Clock:          func() time.Time { return at },
-		Cadences:       api.Cadences{Sync: 5 * time.Minute, Heuristics: 24 * time.Hour},
+		Cadences:       reads.Cadences{Sync: 5 * time.Minute, Heuristics: 24 * time.Hour},
 		StreamInterval: 50 * time.Millisecond,
 		Attention:      thresholds,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	return s, reg
+	}, setup.Options{}, policymanagement.Options{})
+	return e, reg
 }

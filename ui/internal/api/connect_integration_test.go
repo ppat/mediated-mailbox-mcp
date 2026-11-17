@@ -12,7 +12,6 @@ import (
 
 	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
 	"github.com/ppat/mediated-mailbox-mcp/provider/google"
-	"github.com/ppat/mediated-mailbox-mcp/ui/internal/api"
 )
 
 // finish pastes an address into the connect page of a session.
@@ -255,10 +254,10 @@ func TestAConnectionFailedBetweenItsWritesStoresNeitherRow(t *testing.T) {
 	b.addClient(household, householdID, householdSecret)
 	before := r.stored()
 	var faults []string
-	api.SetFault(r.s, func(at string) error {
+	r.fault = func(at string) error {
 		faults = append(faults, at)
 		return errors.New("a fault injected between the writes")
-	})
+	}
 	a := b.connect("jo", household, "jo@gmail.com")
 	refused(t, b.finish(r.grant(a, "jo@gmail.com")), http.StatusServiceUnavailable, "database")
 	if len(faults) != 1 {
@@ -368,12 +367,12 @@ func TestAMoveWritesTheClientAndTheCredentialTogether(t *testing.T) {
 	if got := r.stored(); got != before {
 		t.Fatalf("a refused move changed:\nbefore %s\nafter  %s", before, got)
 	}
-	api.SetFault(r.s, func(string) error { return errors.New("a fault injected between the writes") })
+	r.fault = func(string) error { return errors.New("a fault injected between the writes") }
 	refused(t, b.post("/ui/api/accounts/jo/account/reauthorize/finish", map[string]any{"address": r.grant(a, "jo@gmail.com")}), http.StatusServiceUnavailable, "database")
 	if got := r.stored(); got != before {
 		t.Fatalf("a move failed between its writes changed:\nbefore %s\nafter  %s", before, got)
 	}
-	api.SetFault(r.s, nil)
+	r.fault = nil
 	decode[map[string]any](t, b.post("/ui/api/accounts/jo/account/reauthorize/finish", map[string]any{"address": r.grant(a, "jo@gmail.com")}))
 	if n := r.count("SELECT 1 FROM accounts WHERE account_id = 'jo' AND oauth_client = $1", spare); n != 1 {
 		t.Errorf("the moved account reads:\n%s", r.stored())

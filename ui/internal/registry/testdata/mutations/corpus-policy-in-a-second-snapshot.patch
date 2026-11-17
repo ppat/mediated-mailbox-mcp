@@ -5,11 +5,11 @@ tests: TestEveryClassifyingResponseBeginsOneSnapshot/corpus
 scheduled-count: no
 integration: yes
 
-diff --git a/ui/internal/api/corpus.go b/ui/internal/api/corpus.go
-index 51263619..fa0bc7a2 100644
---- a/ui/internal/api/corpus.go
-+++ b/ui/internal/api/corpus.go
-@@ -71,15 +71,21 @@ func (s *Server) getCorpus(w http.ResponseWriter, r *http.Request) {
+diff --git a/ui/internal/reads/corpus.go b/ui/internal/reads/corpus.go
+index 88eb8753..48656c8d 100644
+--- a/ui/internal/reads/corpus.go
++++ b/ui/internal/reads/corpus.go
+@@ -72,15 +72,21 @@ func (s *handlers) getCorpus(w http.ResponseWriter, r *http.Request) {
  			return err
  		}
  		out.Messages, out.Threads, out.Unfiled = corpus.Messages, corpus.Threads, corpus.Unfiled

@@ -5,10 +5,10 @@ tests: TestTheRecordingMuxEmbedsNothing
 scheduled-count: no
 
 diff --git a/ui/internal/api/server.go b/ui/internal/api/server.go
-index c238c693..7958efd5 100644
+index b3fad150..4eaca56d 100644
 --- a/ui/internal/api/server.go
 +++ b/ui/internal/api/server.go
-@@ -115,7 +115,7 @@ type recordingMux struct {
+@@ -50,7 +50,7 @@ type recordingMux struct {
  	// a //nolint:govet directive with a reason passes, because govet is an ordinary linter, and is left
  	// to review.
  	noCopy   noCopy
@@ -17,7 +17,7 @@ index c238c693..7958efd5 100644
  	patterns []string
  }
  
-@@ -127,11 +127,11 @@ func (*noCopy) Unlock() {}
+@@ -62,11 +62,11 @@ func (*noCopy) Unlock() {}
  
  func (m *recordingMux) Handle(pattern string, h http.Handler) {
  	m.patterns = append(m.patterns, pattern)
@@ -30,13 +30,13 @@ index c238c693..7958efd5 100644
 +	m.ServeMux.ServeHTTP(w, r)
  }
  
- // newServer builds the server. It refuses a bespoke route without a handler and a handler without a
-@@ -198,7 +198,7 @@ func newServer(opts Options) (*Server, error) {
- 			handlers[RowOperation(d.Name)] = s.rowDetail(d)
- 		}
+ // mount mounts routes, those of reads, setup and policymanagement in the order the read API serves
+@@ -93,7 +93,7 @@ func mount(db accounts.DBTX, checks *server.Checks, datasets []registry.Dataset,
+ 	if checks == nil {
+ 		return nil, errors.New("the read API was given no checks to sit behind")
  	}
 -	mux := &recordingMux{mux: http.NewServeMux()}
 +	mux := &recordingMux{ServeMux: http.NewServeMux()}
- 	for _, route := range apiRoutes(opts.Datasets) {
- 		h, ok := handlers[route.Operation]
- 		if !ok {
+ 	for _, route := range all {
+ 		h := route.Handler
+ 		if h == nil {

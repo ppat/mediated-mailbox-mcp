@@ -5,12 +5,12 @@ tests: TestEveryClassifyingResponseBeginsOneSnapshot/corpus
 scheduled-count: no
 integration: yes
 
-diff --git a/ui/internal/api/corpus.go b/ui/internal/api/corpus.go
-index 51263619..6bf1ac88 100644
---- a/ui/internal/api/corpus.go
-+++ b/ui/internal/api/corpus.go
-@@ -59,7 +59,7 @@ func corpusType() schema.Type {
- func (s *Server) getCorpus(w http.ResponseWriter, r *http.Request) {
+diff --git a/ui/internal/reads/corpus.go b/ui/internal/reads/corpus.go
+index 88eb8753..5ca6ac92 100644
+--- a/ui/internal/reads/corpus.go
++++ b/ui/internal/reads/corpus.go
+@@ -60,7 +60,7 @@ func corpusType() schema.Type {
+ func (s *handlers) getCorpus(w http.ResponseWriter, r *http.Request) {
  	account := r.PathValue("account")
  	out := corpusResponse{Account: account, Audit24h: map[string]int64{}}
 -	err := tx.Run(r.Context(), s.snapshot(), account, func(t pgx.Tx) error {

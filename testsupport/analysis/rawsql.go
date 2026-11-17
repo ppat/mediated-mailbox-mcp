@@ -15,9 +15,9 @@ import (
 // subsections its exact import list admits. The three connect as one application user, whose grants
 // cannot tell one program's code from another's, so the lists are what bound what each program's code
 // can do in the database (ADR-0143), and in the UI they keep the read of an OAuth client's sealed
-// secret with ui/internal/clientsecret, the one package its import lists admit that read's subsection
-// to (ADR-0081). It covers every package under api/, ui/ and worker/ and exempts test files, since a
-// statement a test runs is never served.
+// secret with ui/internal/setup/clientsecret, the one package its import lists admit that read's
+// subsection to (ADR-0081). It covers every package under api/, ui/ and worker/ and exempts test
+// files, since a statement a test runs is never served.
 //
 // Any use of a method that runs a statement is reported, a call or a method value alike, whatever
 // type declares it, matched by its name and by how its parameters open. Those are Query, QueryRow,

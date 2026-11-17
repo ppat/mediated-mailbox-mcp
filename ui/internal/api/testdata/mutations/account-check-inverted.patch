@@ -6,11 +6,11 @@ scheduled-count: no
 integration: yes
 
 diff --git a/ui/internal/api/server.go b/ui/internal/api/server.go
-index c238c693..e361935e 100644
+index b3fad150..20e5c845 100644
 --- a/ui/internal/api/server.go
 +++ b/ui/internal/api/server.go
-@@ -296,7 +296,7 @@ func (s *Server) admit(w http.ResponseWriter, r *http.Request) bool {
- 		s.databaseFailure(w, r, err)
+@@ -162,7 +162,7 @@ func admit(db accounts.DBTX, w http.ResponseWriter, r *http.Request) bool {
+ 		server.DatabaseFailure(w, r, err)
  		return false
  	}
 -	if !slices.ContainsFunc(listed, func(a accounts.AccountsRow) bool { return a.AccountID == account }) {

@@ -1,18 +1,21 @@
 control: every route registered through the recording mux's Handle is compared with the contract document
-removes: a route the contract document lacks is registered through the recording mux's Handle after newServer stores the mux
+removes: a route the contract document lacks is registered through the recording mux's Handle after mount stores the mux
 packages: ./ui/internal/api
 tests: TestTheServerServesExactlyTheDocumentsRoutes
 scheduled-count: no
 
 diff --git a/ui/internal/api/server.go b/ui/internal/api/server.go
-index c238c693..22a7922a 100644
+index b3fad150..775e7827 100644
 --- a/ui/internal/api/server.go
 +++ b/ui/internal/api/server.go
-@@ -228,6 +228,7 @@ func newServer(opts Options) (*Server, error) {
+@@ -117,7 +117,9 @@ func mount(db accounts.DBTX, checks *server.Checks, datasets []registry.Dataset,
+ 	}))
  	// Every request is given its session, and every request whose method is not GET or HEAD is refused
  	// before it is routed unless it carries the session's request token (ADR-0061).
- 	s.handler = opts.Checks.Wrap(mux)
-+	mux.Handle("GET /export", named("/export", s.getSystem))
- 	return s, nil
+-	return &endpoint{uiMux: mux, handler: checks.Wrap(mux)}, nil
++	e := &endpoint{uiMux: mux, handler: checks.Wrap(mux)}
++	mux.Handle("GET /export", named("/export", http.NotFound))
++	return e, nil
  }
  
+ // Served is every pattern registered through the read API's recording mux, in registration order.

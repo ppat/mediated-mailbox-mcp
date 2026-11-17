@@ -6,13 +6,13 @@ scheduled-count: no
 integration: yes
 
 diff --git a/ui/internal/api/endpoint.go b/ui/internal/api/endpoint.go
-index 0b44a252..36f7868e 100644
+index 77ea4293..6eea035f 100644
 --- a/ui/internal/api/endpoint.go
 +++ b/ui/internal/api/endpoint.go
-@@ -85,5 +85,5 @@ func New(ctx context.Context, p process.Capabilities, c config.UI) (http.Handler
+@@ -76,5 +76,5 @@ func New(ctx context.Context, p process.Capabilities, c config.UI) (http.Handler
  	if err != nil {
  		return nil, err
  	}
--	return s.handler, nil
-+	return s.uiMux, nil
+-	return e.handler, nil
++	return e.uiMux, nil
  }

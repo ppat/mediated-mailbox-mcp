@@ -5,10 +5,10 @@ tests: TestTheRecordingMuxRefusesACopy
 scheduled-count: no
 
 diff --git a/ui/internal/api/server.go b/ui/internal/api/server.go
-index 5ec1aa06..ffa78659 100644
+index b3fad150..d88fe58e 100644
 --- a/ui/internal/api/server.go
 +++ b/ui/internal/api/server.go
-@@ -116,11 +116,6 @@ type Server struct {
+@@ -45,11 +45,6 @@ type endpoint struct {
  // mux sits in an unexported field and is embedded nowhere, so no promoted method registers a route
  // unrecorded.
  type recordingMux struct {

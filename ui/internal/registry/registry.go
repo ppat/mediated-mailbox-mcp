@@ -54,6 +54,38 @@ type Bounds struct {
 	End   *time.Time
 }
 
+// BoundsOf turns a range into instants against now. A preset ends at no bound, since nothing is
+// recorded after now, and two dates run from the first's midnight to the midnight after the second,
+// in UTC. The dataset endpoint and the base policy's history read their range through it.
+func BoundsOf(r lens.Range, now time.Time) Bounds {
+	ago := func(d time.Duration) Bounds {
+		start := now.Add(-d)
+		return Bounds{Start: &start}
+	}
+	switch r.Preset {
+	case "24h":
+		return ago(24 * time.Hour)
+	case "7d":
+		return ago(7 * 24 * time.Hour)
+	case "30d":
+		return ago(30 * 24 * time.Hour)
+	case "90d":
+		return ago(90 * 24 * time.Hour)
+	case "all", "":
+		if r.From == "" {
+			return Bounds{}
+		}
+	}
+	from, errFrom := time.Parse(time.DateOnly, r.From)
+	to, errTo := time.Parse(time.DateOnly, r.To)
+	if errFrom != nil || errTo != nil {
+		// The pure core admits only calendar dates, so both parse.
+		return Bounds{}
+	}
+	end := to.AddDate(0, 0, 1)
+	return Bounds{Start: &from, End: &end}
+}
+
 // Read is one dataset read, for one account, inside a transaction that set it.
 type Read struct {
 	Account string

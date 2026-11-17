@@ -5,10 +5,10 @@ tests: TestTheStatementSetCheckReportsEachMismatch
 scheduled-count: no
 
 diff --git a/ui/internal/registry/registry.go b/ui/internal/registry/registry.go
-index 1ba4aee..3c79419 100644
+index 8c05f069..d24609d1 100644
 --- a/ui/internal/registry/registry.go
 +++ b/ui/internal/registry/registry.go
-@@ -197,7 +197,7 @@ func Check(datasets []Dataset) []string {
+@@ -241,7 +241,7 @@ func Check(datasets []Dataset) []string {
  		if d.Identity != nil && d.Detail == nil {
  			problems = append(problems, fmt.Sprintf("%s: a row identity with no provenance query", d.Name))
  		}

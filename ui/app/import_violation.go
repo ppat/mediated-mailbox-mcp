@@ -9,7 +9,7 @@ package app
 import (
 	_ "github.com/ppat/mediated-mailbox-mcp/db/accounts" // want depguard "list 'ui-app'"
 	_ "github.com/ppat/mediated-mailbox-mcp/ui/internal/api"
-	_ "github.com/ppat/mediated-mailbox-mcp/ui/internal/clientsecret" // want depguard "list 'ui-app'"
 	_ "github.com/ppat/mediated-mailbox-mcp/ui/internal/pages"
-	_ "github.com/ppat/mediated-mailbox-mcp/ui/internal/server" // want depguard "list 'ui-app'"
+	_ "github.com/ppat/mediated-mailbox-mcp/ui/internal/server"             // want depguard "list 'ui-app'"
+	_ "github.com/ppat/mediated-mailbox-mcp/ui/internal/setup/clientsecret" // want depguard "list 'ui-app'" depguard "list 'ui-outside-setup'"
 )

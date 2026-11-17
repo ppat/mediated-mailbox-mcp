@@ -1,0 +1,20 @@
+control: Every account-scoped route refuses all and an unknown account
+removes: the export route admits any account, all and an unknown one included
+packages: ./ui/internal/api
+tests: TestThePolicyRoutesAreScoped
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/policymanagement/routes.go b/ui/internal/policymanagement/routes.go
+index b53cf855..d7bbf698 100644
+--- a/ui/internal/policymanagement/routes.go
++++ b/ui/internal/policymanagement/routes.go
+@@ -85,7 +85,7 @@ func Routes(o Options) []server.Route {
+ 			Request: new(liftRequestType(true, "LiftRule")), Response: ruleAnswerType(), Handler: s.postAccountLift,
+ 		},
+ 		{
+-			Pattern: paths.Accounts + "/{account}/policy/export", Operation: "exportPolicy", Scoped: true, Download: policyFileType,
++			Pattern: paths.Accounts + "/{account}/policy/export", Operation: "exportPolicy", Download: policyFileType,
+ 			Summary: "Downloads the account's own rules as a policy file", Handler: s.getAccountExport,
+ 		},
+ 		{

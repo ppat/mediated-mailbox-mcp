@@ -1,0 +1,20 @@
+control: A write that reaches no row because the rule is another account's is reported as a rule the account does not hold
+removes: a rule the account does not hold is reported as the database failing rather than as unknown
+packages: ./ui/internal/api
+tests: TestAnotherAccountsRuleIsUnknown
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/policymanagement/rules.go b/ui/internal/policymanagement/rules.go
+index e7c377d0..33f0ca33 100644
+--- a/ui/internal/policymanagement/rules.go
++++ b/ui/internal/policymanagement/rules.go
+@@ -191,7 +191,7 @@ func (s *handlers) answerWrite(w http.ResponseWriter, r *http.Request, rule stri
+ 		writeRefusal(w, r, "rule_refused", "the rule fails the policy's checks", out)
+ 	case errors.Is(err, errIdentifierTaken):
+ 		server.WriteFailure(w, r, server.ClientFault(http.StatusConflict, "identifier_taken", "the scope already holds a rule of this identifier"))
+-	case errors.Is(err, errUnknownRule):
++	case errors.Is(err, errUnknownRule) && false:
+ 		server.WriteFailure(w, r, server.ClientFault(http.StatusNotFound, "unknown_rule", "the policy holds no rule of this identifier in this scope"))
+ 	case errors.Is(err, errStaleRule):
+ 		server.WriteFailure(w, r, server.ClientFault(http.StatusConflict, "stale_rule", "the rule changed since the page read it"))

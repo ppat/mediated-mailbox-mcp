@@ -1,0 +1,22 @@
+control: a consent attempt that expired finishes nothing
+removes: a finish never checks the attempt's expiry
+packages: ./ui/internal/api
+tests: TestAPastedAddressIsRefusedForItsCause
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/setup/connect.go b/ui/internal/setup/connect.go
+index 2b6d3f2f..33f7a954 100644
+--- a/ui/internal/setup/connect.go
++++ b/ui/internal/setup/connect.go
+@@ -317,10 +317,6 @@ func (s *handlers) finish(w http.ResponseWriter, r *http.Request, mine func(atte
+ 		server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, "no_attempt", "no connection is in progress in this browser session"))
+ 		return
+ 	}
+-	if refusal := setup.Expired(a.Expires, s.opts.Clock().UnixMilli()); refusal != setup.None {
+-		server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, string(refusal), "the attempt expired"))
+-		return
+-	}
+ 	redirect, err := consent.ReadRedirect(body.Address)
+ 	if err != nil {
+ 		server.RequestLogOf(r.Context()).Err = err

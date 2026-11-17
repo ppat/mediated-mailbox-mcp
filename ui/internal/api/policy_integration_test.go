@@ -15,7 +15,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
-	"github.com/ppat/mediated-mailbox-mcp/ui/internal/api"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/policymanagement"
 )
 
 // seedPolicy writes the policy the policy tests start from, as the superuser. The base policy holds
@@ -183,7 +183,7 @@ func TestAPolicyWriteLeavesItsHistoryRowOrNothing(t *testing.T) {
 		}
 		return nil
 	}
-	api.SetFault(r.s, failing)
+	r.fault = failing
 	stored := r.stored()
 	for name, res := range map[string]response{
 		"add":      b.post("/ui/api/accounts/personal/policy/rules", map[string]any{"scope": "account", "rule_id": "operator.shop.example", "suffixes": []string{"shop.example"}}),
@@ -198,7 +198,7 @@ func TestAPolicyWriteLeavesItsHistoryRowOrNothing(t *testing.T) {
 	if got := r.stored(); got != stored {
 		t.Fatalf("a write failed between its rule and its history row left:\nbefore %s\nafter  %s", stored, got)
 	}
-	api.SetFault(r.s, nil)
+	r.fault = nil
 
 	decode[map[string]any](t, b.post("/ui/api/accounts/personal/policy/rules", map[string]any{"scope": "account", "rule_id": "operator.shop.example", "suffixes": []string{"shop.example"}}))
 	decode[map[string]any](t, b.post("/ui/api/accounts/personal/policy/rules/operator.shop.example", map[string]any{"scope": "account", "suffixes_before": []string{"shop.example"}, "suffixes": []string{"shop.example", "store.example"}, "confirmation": nil}))
@@ -414,16 +414,16 @@ func TestAnImportIsAppliedWholeOrNotAtAll(t *testing.T) {
 	file := policyFile([]string{"operator.lender.example", "lender.example", "loans.example"}, []string{"operator.shop.example", "shop.example"}, []string{"operator.store.example", "store.example"})
 	p := decode[preview](t, b.post("/ui/api/accounts/personal/policy/import/preview", map[string]any{"file": file}))
 	stored := r.stored()
-	api.SetFault(r.s, func(at string) error {
+	r.fault = func(at string) error {
 		if at == "after an import's first change" {
 			return errors.New("an injected fault")
 		}
 		return nil
-	})
+	}
 	if res := b.post("/ui/api/accounts/personal/policy/import", map[string]any{"file": file, "computed_against": p.ComputedAgainst, "confirmation": nil}); res.status != http.StatusServiceUnavailable {
 		t.Errorf("the import failed after its first change answered %d:\n%s", res.status, res.body)
 	}
-	api.SetFault(r.s, nil)
+	r.fault = nil
 	if got := r.stored(); got != stored {
 		t.Fatalf("a failed import left:\nbefore %s\nafter  %s", stored, got)
 	}
@@ -538,7 +538,7 @@ func TestAPreviewCarriesTheAccountsNumbers(t *testing.T) {
 // VERIFICATIONS, the request token and identity row).
 func TestAPolicyWriteRecordsTheDeclaredIdentity(t *testing.T) {
 	r := newRig(t)
-	r.identity = api.Identity{Header: "X-Forwarded-User", Operator: "operator"}
+	r.identity = policymanagement.Identity{Header: "X-Forwarded-User", Operator: "operator"}
 	r.s = r.server(tokenKey)
 	r.seedPolicy()
 	b := r.browser()
@@ -722,7 +722,7 @@ func TestAReleaseCountsTheSetOfSuffixesRemoved(t *testing.T) {
 // starts (ADR-0084, docs/UI.md section 17.4).
 func TestAPolicyWriteWithAnEmptyIdentityIsRefused(t *testing.T) {
 	r := newRig(t)
-	r.identity = api.Identity{Operator: " "}
+	r.identity = policymanagement.Identity{Operator: " "}
 	r.s = r.server(tokenKey)
 	r.seedPolicy()
 	b := r.browser()

@@ -1,0 +1,20 @@
+control: a grant for a mailbox other than the one named, or on re-authorization the one the account remembers, is refused
+removes: a grant is stored whatever mailbox it belongs to
+packages: ./ui/internal/api
+tests: TestTheMailboxIsComparedAsGoogleIdentifiesIt TestReauthorizingCannotChangeTheMailbox
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/setup/connect.go b/ui/internal/setup/connect.go
+index 2b6d3f2f..0310bca0 100644
+--- a/ui/internal/setup/connect.go
++++ b/ui/internal/setup/connect.go
+@@ -345,7 +345,7 @@ func (s *handlers) finish(w http.ResponseWriter, r *http.Request, mine func(atte
+ 		s.consentFailure(w, r, a, err)
+ 		return
+ 	}
+-	if !consent.SameMailbox(grant.Mailbox, a.Mailbox) {
++	if !consent.SameMailbox(grant.Mailbox, grant.Mailbox) {
+ 		server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, "wrong_mailbox", "Google granted access to "+grant.Mailbox+", not "+a.Mailbox+"."))
+ 		return
+ 	}

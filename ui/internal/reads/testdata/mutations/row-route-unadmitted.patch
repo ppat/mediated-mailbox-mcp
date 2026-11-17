@@ -1,0 +1,21 @@
+control: every account-scoped read refuses a request with no account, with the value meaning every account, or with an unknown account
+removes: the row detail reads its row without checking its account
+packages: ./ui/internal/api
+tests: TestEveryReadIsPerAccount
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/reads/lens.go b/ui/internal/reads/lens.go
+index a9b157ef..e3ce1bc3 100644
+--- a/ui/internal/reads/lens.go
++++ b/ui/internal/reads/lens.go
+@@ -290,9 +290,6 @@ func (s *handlers) rowDetail(dataset registry.Dataset) func(http.ResponseWriter,
+ 			server.WriteFailure(w, r, server.UIFault())
+ 			return
+ 		}
+-		if !s.opts.Admit(w, r) {
+-			return
+-		}
+ 		started := time.Now()
+ 		var body any
+ 		err = tx.Run(r.Context(), s.snapshot(), account, func(t pgx.Tx) error {

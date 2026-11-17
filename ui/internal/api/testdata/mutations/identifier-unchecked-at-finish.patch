@@ -25,16 +25,16 @@ index b44af62f..079a0771 100644
  `
  
  type AddStateParams struct {
-diff --git a/ui/internal/api/connect.go b/ui/internal/api/connect.go
-index abb882f5..7e44c455 100644
---- a/ui/internal/api/connect.go
-+++ b/ui/internal/api/connect.go
-@@ -386,7 +386,7 @@ func (s *Server) finish(w http.ResponseWriter, r *http.Request, mine func(attemp
+diff --git a/ui/internal/setup/connect.go b/ui/internal/setup/connect.go
+index 2b6d3f2f..b3fd4fbc 100644
+--- a/ui/internal/setup/connect.go
++++ b/ui/internal/setup/connect.go
+@@ -371,7 +371,7 @@ func (s *handlers) finish(w http.ResponseWriter, r *http.Request, mine func(atte
  // attempt started and a client replaced or removed since any attempt started. The transaction that
  // writes checks both again.
- func (s *Server) stillFree(w http.ResponseWriter, r *http.Request, a attempt) bool {
+ func (s *handlers) stillFree(w http.ResponseWriter, r *http.Request, a attempt) bool {
 -	if a.Kind == attemptConnect {
 +	if a.Kind == attemptConnect && false {
  		listed, err := accounts.New(s.opts.Database).Accounts(r.Context())
  		if err != nil {
- 			s.databaseFailure(w, r, err)
+ 			server.DatabaseFailure(w, r, err)

@@ -5,16 +5,29 @@ tests: TestOneResponseClassifiesUnderOnePolicy
 scheduled-count: no
 integration: yes
 
-diff --git a/ui/internal/api/server.go b/ui/internal/api/server.go
-index fdeb15f1..5432ace1 100644
---- a/ui/internal/api/server.go
-+++ b/ui/internal/api/server.go
-@@ -39,7 +39,7 @@ type Database interface {
+diff --git a/ui/internal/policymanagement/routes.go b/ui/internal/policymanagement/routes.go
+index b53cf855..144ad29d 100644
+--- a/ui/internal/policymanagement/routes.go
++++ b/ui/internal/policymanagement/routes.go
+@@ -47,7 +47,7 @@ type handlers struct {
+ 
+ // snapshot is the database as a source of repeatable-read, read-only transactions, over which every
+ // read that classifies a sender runs (ADR-0136).
+-func (s *handlers) snapshot() tx.Beginner { return tx.Snapshot(s.opts.Database) }
++func (s *handlers) snapshot() tx.Beginner { return s.opts.Database }
+ 
+ // Routes are the policy routes, each carrying its handler, in the order the read API mounts them: an
+ // account's policy reads, writes, export and import, then the base policy's.
+diff --git a/ui/internal/reads/routes.go b/ui/internal/reads/routes.go
+index caa6ab37..055be71e 100644
+--- a/ui/internal/reads/routes.go
++++ b/ui/internal/reads/routes.go
+@@ -70,7 +70,7 @@ type handlers struct {
  // snapshot is the database as a source of repeatable-read, read-only transactions, over which every
  // read that classifies a sender runs, so each statement of one response reads one state and its
  // figures and rows agree about every sender's class (ADR-0136).
--func (s *Server) snapshot() tx.Beginner { return tx.Snapshot(s.opts.Database) }
-+func (s *Server) snapshot() tx.Beginner { return s.opts.Database }
+-func (s *handlers) snapshot() tx.Beginner { return tx.Snapshot(s.opts.Database) }
++func (s *handlers) snapshot() tx.Beginner { return s.opts.Database }
  
- // Cadences are the workload intervals the jobs cards display. They are configuration shown, not
- // recorded state (docs/UI.md section 8.3).
+ // draining returns what ends when the process begins to stop serving requests, or nil, which never
+ // ends, when the reads were given nothing.

@@ -1,11 +1,28 @@
 package api
 
-// NewServer builds the read API's server from opts, as New builds it from the configuration and the
-// process, so the package's tests can hand it a fixed clock, the provider fake's consents and a fault
-// between a setup's writes, which no configuration carries. It exists only in this package's test
-// binary.
-var NewServer = newServer
+import (
+	"net/http"
 
-// SetFault makes the server fail at the named point between a setup's writes, so a test proves the
-// writes land together or not at all (ADR-0060). It exists only in this package's test binary.
-func SetFault(s *Server, fault func(at string) error) { s.between = fault }
+	"github.com/ppat/mediated-mailbox-mcp/db/accounts"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/registry"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/server"
+)
+
+// Endpoint is the mounted read API, which the package's tests serve and whose registered patterns they
+// read. It exists only in this package's test binary.
+type Endpoint = endpoint
+
+// Handler serves the read API behind the checks. It exists only in this package's test binary.
+func (e *endpoint) Handler() http.Handler { return e.handler }
+
+// Mount mounts routes behind checks as New does, so the package's tests can build the routes of reads,
+// setup and policymanagement from options holding a fixed clock, the provider fake's consents and a
+// fault between a write's statements, which no configuration carries. It exists only in this
+// package's test binary.
+func Mount(db accounts.DBTX, checks *server.Checks, datasets []registry.Dataset, routes ...[]server.Route) (*Endpoint, error) {
+	return mount(db, checks, datasets, routes...)
+}
+
+// Admission is the read API's account check over db, as New hands it to reads. It exists only in this
+// package's test binary.
+var Admission = admission

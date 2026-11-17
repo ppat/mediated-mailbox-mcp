@@ -19,7 +19,6 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
@@ -27,8 +26,10 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/provider/mail/fake"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/postgres"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/api"
-	"github.com/ppat/mediated-mailbox-mcp/ui/internal/clientsecret"
-	"github.com/ppat/mediated-mailbox-mcp/ui/internal/registry"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/policymanagement"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/reads"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/setup"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/setup/clientsecret"
 )
 
 // The OAuth client the setups' tests set up, as the provider fake recognises it.
@@ -46,7 +47,7 @@ const (
 // superuser's connection the test reads and writes the stored rows through.
 type rig struct {
 	t       *testing.T
-	s       *api.Server
+	s       *api.Endpoint
 	consent *fake.Consent
 	private hpke.PrivateKey
 	public  seal.PublicKey
@@ -60,7 +61,10 @@ type rig struct {
 	log bytes.Buffer
 	// identity is who a policy write is recorded as made by, the operator name unless a test declares
 	// an identity header.
-	identity api.Identity
+	identity policymanagement.Identity
+	// fault is the fault a test injects between a setup's or a policy write's statements, nil
+	// otherwise. Every server the rig builds reads it when a write reaches such a point.
+	fault func(at string) error
 }
 
 // defaultRedirect is the consent redirect the rig configures unless a test names another.
@@ -77,7 +81,7 @@ func newRigAt(t *testing.T, redirect string) *rig {
 	t.Helper()
 	seed(t)
 	r := &rig{
-		t: t, consent: fake.NewConsent(redirect), clock: now, redirect: redirect, identity: api.Identity{Operator: "operator"},
+		t: t, consent: fake.NewConsent(redirect), clock: now, redirect: redirect, identity: policymanagement.Identity{Operator: "operator"},
 	}
 	r.consent.AddClient(householdID, householdSecret)
 	r.consent.AddClient(spareID, spareSecret)
@@ -119,30 +123,32 @@ func newRigAt(t *testing.T, redirect string) *rig {
 // server builds a server over the rig's database and fake with the given request token key, as a
 // second replica of the UI would be built with the key its token_key_file names. A code exchange
 // obtains its client's secret from the client-secret package, as New wires it.
-func (r *rig) server(key []byte) *api.Server {
+func (r *rig) server(key []byte) *api.Endpoint {
 	r.t.Helper()
 	return r.serverOver(key, func(pool *pgxpool.Pool) api.Database { return pool })
 }
 
 // serverOver is server with the database the server reads through wrapped by over.
-func (r *rig) serverOver(key []byte, over func(*pgxpool.Pool) api.Database) *api.Server {
+func (r *rig) serverOver(key []byte, over func(*pgxpool.Pool) api.Database) *api.Endpoint {
 	r.t.Helper()
 	pool := uiPool(r.t, postgres.ApplicationUser)
 	secrets, err := clientsecret.Load(r.publicFile, []string{r.privateFile}, pool)
 	if err != nil {
 		r.t.Fatal(err)
 	}
-	s, err := api.NewServer(api.Options{
-		Database: over(pool), Datasets: registry.Datasets(lookups),
-		Checks: newChecks(r.t, key, slog.New(slog.NewJSONHandler(&r.log, nil))), Metrics: prometheus.NewRegistry(),
-		Clock: func() time.Time { return r.clock }, StreamInterval: time.Second, Seal: r.public,
-		Consents: map[string]mail.Consent[context.Context]{"gmail": r.consent}, ClientSecrets: secrets,
-		Lookups: lookups, Identity: r.identity,
-	})
-	if err != nil {
-		r.t.Fatal(err)
+	fault := func(at string) error {
+		if r.fault == nil {
+			return nil
+		}
+		return r.fault(at)
 	}
-	return s
+	return readAPI(r.t, over(pool), newChecks(r.t, key, slog.New(slog.NewJSONHandler(&r.log, nil))),
+		reads.Options{Clock: func() time.Time { return r.clock }, StreamInterval: time.Second},
+		setup.Options{
+			Seal: r.public, Consents: map[string]mail.Consent[context.Context]{"gmail": r.consent}, Secret: secrets.Secret, Fault: fault,
+		},
+		policymanagement.Options{Identity: r.identity, Fault: fault},
+	)
 }
 
 // exec runs a statement as the superuser.
@@ -238,7 +244,7 @@ func (r *rig) browser() *browser {
 }
 
 // on is the same browser session against another server, as when another replica answers.
-func (b *browser) on(s *api.Server) *browser {
+func (b *browser) on(s *api.Endpoint) *browser {
 	return &browser{t: b.t, h: s.Handler(), cookies: b.cookies, token: b.token}
 }
 

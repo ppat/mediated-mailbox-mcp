@@ -1,0 +1,22 @@
+control: A policy write the snapshot's validation refuses, or whose identifier no path segment can hold, is refused before it is written
+removes: a write is never checked, so a rule the snapshot's validation refuses is written and fails every reload
+packages: ./ui/internal/api
+tests: TestAWriteTheValidationRefusesIsRefusedBeforeItIsWritten
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/policymanagement/rules.go b/ui/internal/policymanagement/rules.go
+index e7c377d0..98e1bc45 100644
+--- a/ui/internal/policymanagement/rules.go
++++ b/ui/internal/policymanagement/rules.go
+@@ -287,9 +287,7 @@ func checked(scope string, after []rules.Rule, i int) error {
+ 			mine = append(mine, p)
+ 		}
+ 	}
+-	if len(mine) > 0 {
+-		return &refusedRule{problems: mine}
+-	}
++	_ = mine
+ 	return nil
+ }
+ 

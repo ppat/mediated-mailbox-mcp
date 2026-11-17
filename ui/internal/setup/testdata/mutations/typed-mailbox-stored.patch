@@ -1,0 +1,21 @@
+control: a connected account remembers the mailbox the provider confirmed
+removes: a connection stores and answers the mailbox as the operator typed it
+packages: ./ui/internal/api
+tests: TestAConnectedAccountHoldsItsSealedGrant TestAnAccountWithNoStateIsConnectedByReauthorizing
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/setup/connect.go b/ui/internal/setup/connect.go
+index 2b6d3f2f..6ce79b45 100644
+--- a/ui/internal/setup/connect.go
++++ b/ui/internal/setup/connect.go
+@@ -349,9 +349,6 @@ func (s *handlers) finish(w http.ResponseWriter, r *http.Request, mine func(atte
+ 		server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, "wrong_mailbox", "Google granted access to "+grant.Mailbox+", not "+a.Mailbox+"."))
+ 		return
+ 	}
+-	if !a.Remembered {
+-		a.Mailbox = grant.Mailbox
+-	}
+ 	sealed, err := s.opts.Seal.Seal([]byte(grant.Credential), seal.AccountCredential(a.Account))
+ 	if err != nil {
+ 		server.UIFailure(w, r, err)

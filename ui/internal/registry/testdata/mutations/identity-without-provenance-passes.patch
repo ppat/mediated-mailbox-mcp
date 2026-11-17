@@ -5,10 +5,10 @@ tests: TestTheStatementSetCheckReportsEachMismatch
 scheduled-count: no
 
 diff --git a/ui/internal/registry/registry.go b/ui/internal/registry/registry.go
-index 1ba4aee..18b697c 100644
+index 8c05f069..a6246df1 100644
 --- a/ui/internal/registry/registry.go
 +++ b/ui/internal/registry/registry.go
-@@ -194,7 +194,7 @@ func Check(datasets []Dataset) []string {
+@@ -238,7 +238,7 @@ func Check(datasets []Dataset) []string {
  		if d.Rows == nil {
  			problems = append(problems, fmt.Sprintf("%s: no rows statement", d.Name))
  		}

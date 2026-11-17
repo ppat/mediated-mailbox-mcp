@@ -9,15 +9,15 @@ import (
 	"time"
 
 	"github.com/getkin/kin-openapi/openapi3"
-	"github.com/prometheus/client_golang/prometheus"
 
 	"golang.org/x/net/idna"
 	"golang.org/x/net/publicsuffix"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
-	"github.com/ppat/mediated-mailbox-mcp/ui/internal/api"
-	"github.com/ppat/mediated-mailbox-mcp/ui/internal/registry"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/policymanagement"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/reads"
 	uiserver "github.com/ppat/mediated-mailbox-mcp/ui/internal/server"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/setup"
 )
 
 // lookups are the sender classifier's domain functions, as New passes them.
@@ -38,14 +38,9 @@ func newChecks(t *testing.T, key []byte, logger *slog.Logger) *uiserver.Checks {
 // touches no database while it is built, so it is given none.
 func served(t *testing.T) []string {
 	t.Helper()
-	s, err := api.NewServer(api.Options{
-		Datasets: registry.Datasets(lookups), Checks: newChecks(t, make([]byte, uiserver.MinTokenKey), slog.New(slog.DiscardHandler)),
-		Metrics: prometheus.NewRegistry(), Clock: time.Now, StreamInterval: time.Second,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	return s.Served()
+	e := readAPI(t, nil, newChecks(t, make([]byte, uiserver.MinTokenKey), slog.New(slog.DiscardHandler)),
+		reads.Options{Clock: time.Now, StreamInterval: time.Second}, setup.Options{}, policymanagement.Options{})
+	return e.Served()
 }
 
 // apiRoot is the read API's root, the pattern the UI's spec mounts the read API at, written out here

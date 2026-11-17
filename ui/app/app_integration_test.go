@@ -361,6 +361,40 @@ func TestTheUIRefusesASchemaItCannotRunOn(t *testing.T) {
 	}
 }
 
+// A public key matching none of the private keys stops the UI's start before it serves, since the
+// setups would seal credentials and client secrets to a key the client-secret package could not open
+// with. The setups load and log the public key, and the client-secret package loads the private keys
+// and refuses the pair, after the database is reached (ADR-0088, ADR-0092).
+func TestAPublicKeyMatchingNoPrivateKeyStopsTheUIsStart(t *testing.T) {
+	u, err := neturl.Parse(postgres.URL(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	password, _ := u.User.Password()
+	passwordFile := filepath.Join(t.TempDir(), "password")
+	if err := os.WriteFile(passwordFile, []byte(password), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	publicKeyFile, _, keyID := writeKeys(t)
+	_, otherPrivateKeyFile, _ := writeKeys(t)
+	var logs lockedBuffer
+	err = run(bounded(t), []string{
+		"--database.host=" + u.Hostname(), "--database.port=" + u.Port(), "--database.name=" + strings.TrimPrefix(u.Path, "/"),
+		"--database.user=" + u.User.Username(), "--database.sslmode=disable", "--database.password_file=" + passwordFile,
+		"--listen=127.0.0.1:0", "--probe_listen=127.0.0.1:0", "--credential.public_key_file=" + publicKeyFile,
+		"--credential.private_key_files=[" + otherPrivateKeyFile + "]",
+	}, nil, &logs, io.Discard)
+	if err == nil || !strings.Contains(err.Error(), "matches none of the private keys") {
+		t.Errorf("with a public key matching none of the private keys the run returned %v, want the start refused", err)
+	}
+	if !strings.Contains(logs.String(), `"key_id":"`+keyID+`"`) {
+		t.Errorf("the start did not log the public key it would seal to:\n%s", logs.String())
+	}
+	if strings.Contains(logs.String(), `"msg":"serving"`) {
+		t.Errorf("the UI served with a public key matching none of its private keys:\n%s", logs.String())
+	}
+}
+
 // The UI runs no job kind, so its pool's series carry the program's label alone and no job_kind
 // (ADR-0125, ADR-0142).
 func TestTheUIsPoolSeriesCarryNoJobKind(t *testing.T) {

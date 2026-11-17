@@ -2544,9 +2544,11 @@ ui/
                         endpoints /ui/api/, /ui/ and /{$} (ADR-0142)
   Dockerfile            the bundle stage, then the Go stage, then a minimal base
   internal/
-    registry/           the dataset registry entries, each pointing at the data-access accessors it reads
+    registry/           the dataset registry entries, each pointing at the data-access accessors it reads, and
+                        what more than one of reads, setup and policymanagement reads of the stored rows
     server/             the checks every endpoint sits behind, the session cookie, the request token and the
-                        content security policy, with their key, and the error contract and the route type
+                        content security policy, with their key, the error contract, the route type and the
+                        request plumbing every route uses
     api/                the read API endpoint, which mounts the routes of reads, setup and policymanagement
     reads/              the read routes and their handlers
     setup/              OAuth client setup and account setup, with the public key credentials are sealed to
@@ -2585,11 +2587,22 @@ ui/
   through `server.Get`, and wrap every endpoint's handler. A route carries its handler, the Go
   function that serves it, so no list apart from the routes binds an operation to that function.
   The read API endpoint mounts the routes that `reads`, `setup` and `policymanagement` hold, each
-  route in one of the three. Which of them holds the decisions' routes is decided where the
-  decisions are built. Which of them holds the event stream's route, and where the identity header
-  that decisions and policy writes record is read, are open, and the code that places the stream's
-  route decides them. `setup` is refused the opening half of the
-  credential code. In the UI only `setup/clientsecret`, a package of its own, imports it
+  route in one of the three. `reads` holds the dataset endpoint, the row details, Home's, System's
+  and Jobs' reads, a run's read and the event stream. `setup` holds the installation's read, the
+  OAuth client setup, connecting an account, and account settings, both its read and its writes,
+  and it writes the account's rows. `policymanagement` holds every policy read and write, an
+  account's and the base policy's, and reads the identity header that its writes record. Which of
+  them holds the decisions' routes is decided where the decisions are built. The three import none
+  of one another. The read API endpoint hands `reads` its account check, which the dataset
+  endpoint and the row details run after the pure core has read the request, and hands `setup`
+  policy management's count of the base rules, which the installation's read shows. What more than
+  one of them reads of the stored rows, an account's progress, its rate state and the shape a
+  stored value is written in, sits in `registry`, and the request plumbing every route uses, the
+  reading of a request's body and the answer to a failed statement, in `server`. `setup` builds
+  the public key credentials are sealed to and each provider's consent, and neither leaves it.
+  `setup` is refused the opening half of the credential code. In the UI only `setup/clientsecret`,
+  a package of its own, imports it, and `setup` is handed its one operation, a client's secret by
+  its name
   ([ADR-0143](./adr/data/0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)).
 - **Build.** `bun build` produces `browser/dist`, the Go binary embeds it, and the image of ADR-0049
   carries the binary and nothing else. A placeholder in `browser/dist` keeps Go's build and lint
