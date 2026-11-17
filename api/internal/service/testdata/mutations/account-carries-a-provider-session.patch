@@ -1,0 +1,19 @@
+control: Only the body operation is handed the functions that reach a provider
+removes: an account the accounts listing returns carries a provider session, which every handler that lists the accounts holds
+packages: ./api/internal/service
+tests: TestOnlyTheBodyOperationIsHandedAWayToAProvider
+scheduled-count: no
+
+diff --git a/api/internal/service/reads.go b/api/internal/service/reads.go
+index 94d7d097..ce552bae 100644
+--- a/api/internal/service/reads.go
++++ b/api/internal/service/reads.go
+@@ -26,6 +26,8 @@ import (
+ type Account struct {
+ 	ID       string `json:"account_id"`
+ 	Provider string `json:"provider"`
++	// Session is a provider session opened for the account, which every handler listing it holds.
++	Session Provider `json:"-"`
+ }
+ 
+ // Sources are what every operation but the body operation reads from. The reads of metadata and

@@ -21,8 +21,10 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
 )
 
-// Bodies are what the body operation needs beyond the index. The composition root builds them, so
-// this layer reaches no provider, no converter and no metrics registry of its own.
+// Bodies are what the body operation needs beyond the index. api/internal/registry builds them, from
+// api/internal/bodies' two functions, the conversion, the scanner and the body series, so this layer
+// reaches no provider, no converter and no metrics registry of its own. Operations hands them to the
+// body operation alone.
 type Bodies struct {
 	// Policy has the policy loaded for a body request and returns the account's policy from the
 	// snapshot that load left active (ADR-0099). A load that failed leaves the active valid policy.
@@ -119,8 +121,18 @@ const bodySchema = `{"type":"object","properties":{` +
 	`"attachment_names":{"type":["array","null"],"items":{"type":"string"}}},` +
 	`"required":["account_id","message_id","released","reason","note","body","snippet","attachment_names"]}`
 
-// bodyOperation is the body operation's registry entry, the one operation that releases content.
-func (s Sources) bodyOperation() Operation {
+// bodySources are what the body operation reads from, the API server's pool and Bodies. Only
+// bodyOperation builds them, so the body operation's handler is the one that holds the functions that
+// begin a unit of work, and every other operation's, built on Sources, is handed none of them.
+type bodySources struct {
+	DB     Database
+	Bodies Bodies
+}
+
+// bodyOperation is the body operation's registry entry, the one operation that releases content,
+// reading through db and reaching a provider through b.
+func bodyOperation(db Database, b Bodies) Operation {
+	s := bodySources{DB: db, Bodies: b}
 	return Operation{
 		Name:   "get_message_body",
 		Effect: Read,
@@ -143,7 +155,7 @@ func (s Sources) bodyOperation() Operation {
 // whose serve-time pattern check reads what no scanner read, which is a scanned message's filenames
 // and a gate-skipped message's body, snippet and filenames. Nothing is released before its audit row
 // is written, so an audit write that fails releases nothing.
-func (s Sources) getMessageBody(ctx context.Context, account string, input json.RawMessage) (json.RawMessage, error) {
+func (s bodySources) getMessageBody(ctx context.Context, account string, input json.RawMessage) (json.RawMessage, error) {
 	// The request's arrival is taken before the policy load and the gate's read, so the time they take
 	// counts against the request's waits for its leases (ADR-0130).
 	arrived := time.Now()
@@ -238,7 +250,7 @@ func (s Sources) getMessageBody(ctx context.Context, account string, input json.
 // rendering refused the body. A body with an HTML part is released as that part's conversion, and
 // one without as its text part shown exactly, as the snippet and each filename are (ADR-0036,
 // ADR-0100, ADR-0131).
-func (s Sources) markdown(body mail.MessageBody, meta mail.MessageMetadata) (release.Content, bool) {
+func (s bodySources) markdown(body mail.MessageBody, meta mail.MessageMetadata) (release.Content, bool) {
 	rendered, err := s.Bodies.Render(body)
 	if err != nil {
 		return release.Content{}, false
@@ -364,7 +376,7 @@ func sorted(rules []string) []string {
 }
 
 // audit writes the request's audit row in a transaction of the account.
-func (s Sources) audit(ctx context.Context, account, messageID, action, stage, reason string, g gate, c serveCheck) error {
+func (s bodySources) audit(ctx context.Context, account, messageID, action, stage, reason string, g gate, c serveCheck) error {
 	params := auditrecord.RecordBodyDecisionParams{
 		Actor: auditActor, Action: action,
 		MessageID: pgtype.Text{String: messageID, Valid: true},

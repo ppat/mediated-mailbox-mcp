@@ -6,10 +6,10 @@ scheduled-count: no
 
 
 diff --git a/api/internal/service/reads.go b/api/internal/service/reads.go
-index 61daa31..f7461a2 100644
+index 90399bd8..cb56bea7 100644
 --- a/api/internal/service/reads.go
 +++ b/api/internal/service/reads.go
-@@ -168,7 +168,7 @@ func arguments(input json.RawMessage, v any, names ...string) error {
+@@ -181,7 +181,7 @@ func arguments(input json.RawMessage, v any, names ...string) error {
  		return Refuse("the arguments do not match the operation's input schema")
  	}
  	for key, value := range raw {

@@ -1,6 +1,7 @@
 package mustnotcompile_test
 
 import (
+	"slices"
 	"strings"
 	"testing"
 
@@ -128,6 +129,33 @@ func TestCheckReturning(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			err := mustnotcompile.CheckReturning(c.pkg, c.iface, c.typ, c.methods...)
+			if err == nil || !strings.Contains(err.Error(), c.reason) {
+				t.Fatalf("got %v, want an error containing %q", err, c.reason)
+			}
+		})
+	}
+}
+
+// In the fixture, Held is taken by its own method's receiver, by a function's parameter, under its
+// alias by another's, through a struct's field by that struct's methods, by value and by pointer,
+// and by a variable. A function taking something else, a function returning Held, a method
+// returning it and a function taking a function that returns it are no takers.
+func TestCheckTakers(t *testing.T) {
+	const fixture = "./testdata/takers"
+	takers := []string{"Gives", "Held.Self", "ViaAlias", "Wrapper.ByPointer", "Wrapper.ByValue", "kept"}
+	mustnotcompile.RequireTakers(t, fixture, "Held", takers...)
+	cases := []struct {
+		name, typ string
+		takers    []string
+		reason    string
+	}{
+		{"a taker left out", "Held", takers[1:], `is ["Gives"`},
+		{"a taker too many", "Held", append(slices.Clone(takers), "Other"), `want ["Gives"`},
+		{"missing type", "Absent", nil, "declares no type Absent"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			err := mustnotcompile.CheckTakers(fixture, c.typ, c.takers...)
 			if err == nil || !strings.Contains(err.Error(), c.reason) {
 				t.Fatalf("got %v, want an error containing %q", err, c.reason)
 			}

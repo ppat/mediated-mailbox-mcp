@@ -6,10 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/api/internal/registry/registry.go b/api/internal/registry/registry.go
-index 12eaa003..540d7149 100644
+index 9edc7d44..2e58735e 100644
 --- a/api/internal/registry/registry.go
 +++ b/api/internal/registry/registry.go
-@@ -97,7 +97,9 @@ func build(ctx context.Context, p process.Capabilities, c config.API) (service.R
+@@ -96,7 +96,9 @@ func build(ctx context.Context, p process.Capabilities, c config.API) (service.R
  	logger := p.Logger()
  	s.AfterReload(func() {
  		ids := ids(s)

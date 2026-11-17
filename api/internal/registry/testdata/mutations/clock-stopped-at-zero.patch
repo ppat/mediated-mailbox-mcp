@@ -6,7 +6,7 @@ scheduled-count: no
 integration: yes
 
 diff --git a/api/internal/registry/registry.go b/api/internal/registry/registry.go
-index 12eaa003..e1d485d6 100644
+index 9edc7d44..2613bf98 100644
 --- a/api/internal/registry/registry.go
 +++ b/api/internal/registry/registry.go
 @@ -74,7 +74,7 @@ func build(ctx context.Context, p process.Capabilities, c config.API) (service.R
@@ -15,6 +15,6 @@ index 12eaa003..e1d485d6 100644
  		Policy:   s.Policy,
 -		Now:      time.Now,
 +		Now:      func() time.Time { return time.Time{} },
- 		Bodies: service.Bodies{
- 			Policy: fetch.Policy,
- 			Open:   fetch.Open,
+ 	}, service.Bodies{
+ 		Policy: fetch.Policy,
+ 		Open:   fetch.Open,

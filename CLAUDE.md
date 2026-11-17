@@ -411,7 +411,10 @@ file's import target described under Violation files.
   fields and `RequireParams` a decision's exact parameters, so neither gains a field or an input
   unnoticed. `RequireMethods` asserts an interface's exact methods and signatures, and
   `RequireReturning` and `RequireResults` which of its methods return a type and exactly what they
-  return, as the Provider Port's one body-returning operation needs.
+  return, as the Provider Port's one body-returning operation needs. `RequireTakers` asserts exactly
+  which of a package's functions, methods and package-level variables can hold a value carrying a
+  type, an alias of it included, through anything but a function type, as the API server's body
+  operation needs to be the one operation handed the functions that begin a unit of work.
 
 #### Browser
 

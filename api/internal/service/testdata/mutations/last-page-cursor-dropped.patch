@@ -7,10 +7,10 @@ integration: yes
 
 
 diff --git a/api/internal/service/reads.go b/api/internal/service/reads.go
-index f3e6ddd..b7c905c 100644
+index 90399bd8..8ad1d1fd 100644
 --- a/api/internal/service/reads.go
 +++ b/api/internal/service/reads.go
-@@ -302,7 +302,7 @@ func (s Sources) listThreads(ctx context.Context, account string, input json.Raw
+@@ -331,7 +331,7 @@ func (s Sources) listThreads(ctx context.Context, account string, input json.Raw
  		out = append(out, thread{ThreadID: r.ThreadID, Messages: r.Messages, LatestAt: formatUTC(r.LatestAt.Time)})
  	}
  	var next *string

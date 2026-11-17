@@ -6,10 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/api/internal/service/body.go b/api/internal/service/body.go
-index b868a7c7..2a7a35b8 100644
+index 491a559c..94a2e9ae 100644
 --- a/api/internal/service/body.go
 +++ b/api/internal/service/body.go
-@@ -353,7 +353,7 @@ func (s Sources) audit(ctx context.Context, account, messageID, action, stage, r
+@@ -385,7 +385,7 @@ func (s bodySources) audit(ctx context.Context, account, messageID, action, stag
  		ContentFlags: g.contentFlags, ContentRuleIds: g.contentRules,
  		ScanState: pgtype.Text{String: g.scanState, Valid: true},
  	}

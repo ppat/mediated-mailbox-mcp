@@ -5,7 +5,7 @@ tests: TestNoConfigurationValueWeakensTheGate/a_scanner_part_with_nothing_to_mat
 scheduled-count: no
 
 diff --git a/api/internal/registry/registry.go b/api/internal/registry/registry.go
-index 12eaa003..bfa033fa 100644
+index 9edc7d44..ca7f1ff4 100644
 --- a/api/internal/registry/registry.go
 +++ b/api/internal/registry/registry.go
 @@ -56,7 +56,7 @@ func build(ctx context.Context, p process.Capabilities, c config.API) (service.R
@@ -18,7 +18,7 @@ index 12eaa003..bfa033fa 100644
  	}
  	observe, err := outcomes(p.Metrics())
 diff --git a/core/config/programs.go b/core/config/programs.go
-index 1768ab1b..d8e4d18b 100644
+index 6e86908e..bbf203a4 100644
 --- a/core/config/programs.go
 +++ b/core/config/programs.go
 @@ -67,7 +67,6 @@ func (c API) Check() error {

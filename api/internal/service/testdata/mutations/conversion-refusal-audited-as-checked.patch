@@ -6,10 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/api/internal/service/body.go b/api/internal/service/body.go
-index b868a7c7..81e0210e 100644
+index 491a559c..cd8b989c 100644
 --- a/api/internal/service/body.go
 +++ b/api/internal/service/body.go
-@@ -324,12 +324,12 @@ type serveCheck struct {
+@@ -356,12 +356,12 @@ type serveCheck struct {
  // conversion refused, whose decision nobody made (ADR-0002, ADR-0016).
  func checked(d release.Decision, s scan.Scanner) serveCheck {
  	switch d.Reason() {

@@ -6,7 +6,7 @@ scheduled-count: no
 integration: yes
 
 diff --git a/api/internal/service/reads.go b/api/internal/service/reads.go
-index 7546b7fd..d360d42a 100644
+index 90399bd8..d6fb5f2f 100644
 --- a/api/internal/service/reads.go
 +++ b/api/internal/service/reads.go
 @@ -573,6 +573,9 @@ func (s Sources) getSystemStatus(ctx context.Context, account string, input json

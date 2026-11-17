@@ -140,7 +140,7 @@ func readsOver(t *testing.T, pool *pgxpool.Pool, db service.Database, accounts .
 		Accounts: func() []service.Account { return listed },
 		Policy:   func(account string) classify.Policy { return policies.Snapshot().For(account) },
 		Now:      func() time.Time { return time.Date(2026, 7, 22, 0, 0, 0, 0, time.UTC) },
-	})...)
+	}, service.Bodies{})...)
 	if err != nil {
 		t.Fatal(err)
 	}
