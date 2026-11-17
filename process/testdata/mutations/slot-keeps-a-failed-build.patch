@@ -1,0 +1,17 @@
+control: A slot holds one thing, built once from the process's own capabilities, and a failed build keeps nothing
+removes: a build that fails is kept as built, so every later call returns the failed build's empty thing
+packages: ./process
+tests: TestASlotHoldsOneThingBuiltFromTheProcess
+scheduled-count: no
+
+diff --git a/process/slot.go b/process/slot.go
+--- a/process/slot.go
++++ b/process/slot.go
+@@ -55,6 +55,7 @@
+ 	}
+ 	v, closeSlot, err := build(ctx, pr.part(s.name, ""))
+ 	if err != nil {
++		held.value, held.built = v, true
+ 		return zero, err
+ 	}
+ 	held.value, held.built = v, true

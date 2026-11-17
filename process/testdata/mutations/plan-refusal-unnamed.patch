@@ -1,0 +1,17 @@
+control: The scheduler refuses a plan it could never run, and the refusal stops the process in order naming the job kind
+removes: the scheduler's refusal is returned without the job kind it refused
+packages: ./process
+tests: TestASchedulerThatRefusesAPlanStopsTheProcessInOrder
+scheduled-count: no
+
+diff --git a/process/serve.go b/process/serve.go
+--- a/process/serve.go
++++ b/process/serve.go
+@@ -136,7 +136,6 @@
+ 			p.report(name, NotReady, "no listing has succeeded yet")
+ 			err := scheduler.EnsurePlan(l.kind, l.plan, l.p.Logger(), func() { p.report(name, Ready, "") })
+ 			if err != nil {
+-				err = fmt.Errorf("the scheduler refused the plan of the job kind %s: %w", l.kind, err)
+ 				scheduler.Stop()
+ 				return errors.Join(err, closeListeners(app, probeListener), p.stop())
+ 			}

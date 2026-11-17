@@ -1,0 +1,18 @@
+control: A plan's listing exports the lateness bound its plan sets
+removes: the listing's lateness bound is its recheck interval, not the bound the plan sets
+packages: ./process/schedule
+tests: TestAPlansListingExportsItsLatenessBound
+scheduled-count: no
+
+diff --git a/process/schedule/plan.go b/process/schedule/plan.go
+--- a/process/schedule/plan.go
++++ b/process/schedule/plan.go
+@@ -54,7 +54,7 @@
+ 	return s.Ensure(key, Job{
+ 		Interval: plan.Recheck,
+ 		Backoff:  plan.Backoff,
+-		Late:     plan.Late,
++		Late:     plan.Recheck,
+ 		Logger:   logger,
+ 		Run: func(ctx context.Context, _ Ask) error {
+ 			keys, err := plan.Keys(ctx)

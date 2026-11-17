@@ -1,0 +1,18 @@
+control: A plan's listing keeps one job per key it lists, tells a dropped key only once its job has returned, and tells its first success once
+removes: every listing that succeeds is told as the first
+packages: ./process/schedule
+tests: TestAPlansListingAddsAndDropsJobsByKey
+scheduled-count: no
+
+diff --git a/process/schedule/plan.go b/process/schedule/plan.go
+--- a/process/schedule/plan.go
++++ b/process/schedule/plan.go
+@@ -83,7 +83,7 @@
+ 				}
+ 				held[k] = true
+ 			}
+-			if first && listed != nil {
++			if (first || !first) && listed != nil {
+ 				listed()
+ 			}
+ 			first = false

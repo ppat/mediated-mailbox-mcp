@@ -1,0 +1,19 @@
+control: Each job kind has a pool of its own and the process one more, every pool closed with the slots
+removes: the pools are not closed with the slots, so they outlive the process, the migrator's task's included
+packages: ./process/database
+tests: TestEachJobKindHasAPoolOfItsOwnAndTheProcessOneMore TestGetChecksTheSchemaAndForMigrationDoesNot
+scheduled-count: no
+integration: yes
+
+diff --git a/process/database/database.go b/process/database/database.go
+--- a/process/database/database.go
++++ b/process/database/database.go
+@@ -100,7 +100,7 @@
+ 
+ func newPools(_ context.Context, shared process.Capabilities) (*pools, func(), error) {
+ 	s := &pools{shared: shared, byName: map[string]*pgxpool.Pool{}}
+-	return s, s.close, nil
++	return s, nil, nil
+ }
+ 
+ // processPool is the registerer of a pool that is no job kind's. Within one registry a series name

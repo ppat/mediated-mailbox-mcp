@@ -1,0 +1,20 @@
+control: Each job kind has a pool of its own and the process one more, every pool closed with the slots
+removes: a job kind's pool registers its series on the process's registerer, so the second job kind's pool collides with the first and the start fails
+packages: ./process/database
+tests: TestEachJobKindHasAPoolOfItsOwnAndTheProcessOneMore
+scheduled-count: no
+integration: yes
+
+diff --git a/process/database/database.go b/process/database/database.go
+--- a/process/database/database.go
++++ b/process/database/database.go
+@@ -42,9 +42,6 @@
+ 	}
+ 	kind := process.JobKind(p)
+ 	reg := set.processPool()
+-	if kind != "" {
+-		reg = p.Metrics()
+-	}
+ 	return set.open(ctx, "job kind "+kind, c.DatabasePart(), reg, CheckSchema)
+ }
+ 

@@ -24,8 +24,8 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/core/scangate"
+	"github.com/ppat/mediated-mailbox-mcp/process/schedule"
 	core "github.com/ppat/mediated-mailbox-mcp/worker/internal/core/deltasync/tick"
-	"github.com/ppat/mediated-mailbox-mcp/worker/internal/schedule"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/series"
 )
 

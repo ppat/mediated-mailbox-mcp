@@ -1,0 +1,18 @@
+control: A slot holds one thing, built once from the process's own capabilities, and a failed build keeps nothing
+removes: the slot's thing is built with the capabilities of the part that asked first, so its series carry that part's job kind
+packages: ./process
+tests: TestASlotHoldsOneThingBuiltFromTheProcess TestASlotHoldsOneThingBuiltFromTheProcess/a_job_kind_asks_first
+scheduled-count: no
+
+diff --git a/process/slot.go b/process/slot.go
+--- a/process/slot.go
++++ b/process/slot.go
+@@ -53,7 +53,7 @@
+ 	if v, ok := held.value.(T); ok && held.built {
+ 		return v, nil
+ 	}
+-	v, closeSlot, err := build(ctx, pr.part(s.name, ""))
++	v, closeSlot, err := build(ctx, c)
+ 	if err != nil {
+ 		return zero, err
+ 	}

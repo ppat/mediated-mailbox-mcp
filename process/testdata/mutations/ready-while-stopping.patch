@@ -1,0 +1,17 @@
+control: A stopping process answers not ready, ends Draining, drains its requests, and only then ends its jobs and goroutines
+removes: the readiness probe answers ready while the process stops
+packages: ./process
+tests: TestTheProcessStopsInOrder
+scheduled-count: no
+
+diff --git a/process/serve.go b/process/serve.go
+--- a/process/serve.go
++++ b/process/serve.go
+@@ -185,7 +185,6 @@
+ 	case <-p.failed:
+ 	case <-ctx.Done():
+ 	}
+-	serving.Store(false)
+ 	p.drain()
+ 	shutdown, cancel := context.WithTimeout(context.WithoutCancel(ctx), drainTimeout)
+ 	defer cancel()

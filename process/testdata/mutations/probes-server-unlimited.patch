@@ -1,0 +1,18 @@
+control: Both of a process's servers close an idle connection and cut off a request that has not arrived within their limits, and bound no answer
+removes: the operations server is built apart from the shared constructor, with no limit
+packages: ./process
+tests: TestTheServersCloseIdleAndSlowConnectionsAndNeverCutAnAnswer
+scheduled-count: no
+
+diff --git a/process/serve.go b/process/serve.go
+--- a/process/serve.go
++++ b/process/serve.go
+@@ -150,7 +150,7 @@
+ 		line, notReady := p.notReady()
+ 		return !notReady, line
+ 	}
+-	probeServer := newServer(probes.Handler(p.registry, ready, p.logger), p.logger)
++	probeServer := &http.Server{Handler: probes.Handler(p.registry, ready, p.logger)} //nolint:gosec // The mutant removes the limits.
+ 	var appServer *http.Server
+ 	if app != nil {
+ 		mux := http.NewServeMux()

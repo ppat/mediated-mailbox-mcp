@@ -1,0 +1,18 @@
+control: Each endpoint's handler is served at its pattern and nowhere else
+removes: only the first endpoint is mounted, so every later endpoint's pattern is not found
+packages: ./process
+tests: TestEachEndpointIsServedAtItsPattern
+scheduled-count: no
+
+diff --git a/process/serve.go b/process/serve.go
+--- a/process/serve.go
++++ b/process/serve.go
+@@ -154,7 +154,7 @@
+ 	var appServer *http.Server
+ 	if app != nil {
+ 		mux := http.NewServeMux()
+-		for _, m := range b.handlers {
++		for _, m := range b.handlers[:1] {
+ 			mux.Handle(m.pattern, m.handler)
+ 		}
+ 		appServer = newServer(mux, p.logger)

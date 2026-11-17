@@ -1,0 +1,22 @@
+control: The probes run nothing when asked, and the readiness probe answers the state last reported
+removes: the readiness probe answers from the reports as they stood when serving began, so a later report never reaches it
+packages: ./process
+tests: TestTheProbesRunNothingWhenAsked
+scheduled-count: no
+
+diff --git a/process/serve.go b/process/serve.go
+--- a/process/serve.go
++++ b/process/serve.go
+@@ -144,11 +144,11 @@
+ 	}
+ 
+ 	var serving atomic.Bool
++	line, notReady := p.notReady()
+ 	ready := func(*http.Request) (bool, string) {
+ 		if !serving.Load() {
+ 			return false, "not ready"
+ 		}
+-		line, notReady := p.notReady()
+ 		return !notReady, line
+ 	}
+ 	probeServer := newServer(probes.Handler(p.registry, ready, p.logger), p.logger)

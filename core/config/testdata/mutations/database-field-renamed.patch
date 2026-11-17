@@ -16,10 +16,10 @@ diff --git a/core/config/database.go b/core/config/database.go
  	PasswordFile string `yaml:"password_file" settings:"required"`
  	PoolSize     int    `yaml:"pool_size"`
  }
-diff --git a/process/dbconnect/dbconnect.go b/process/dbconnect/dbconnect.go
---- a/process/dbconnect/dbconnect.go
-+++ b/process/dbconnect/dbconnect.go
-@@ -42,7 +42,7 @@ func PoolConfig(c config.Database) (*pgxpool.Config, error) {
+diff --git a/process/database/connect.go b/process/database/connect.go
+--- a/process/database/connect.go
++++ b/process/database/connect.go
+@@ -42,7 +42,7 @@ func poolConfig(c config.Database) (*pgxpool.Config, error) {
  		"dbname=" + quote(c.Name),
  		"user=" + quote(c.User),
  		"sslmode=" + quote(c.SSLMode),

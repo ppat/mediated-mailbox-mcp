@@ -7,12 +7,12 @@ scheduled-count: no
 diff --git a/api/app/app.go b/api/app/app.go
 --- a/api/app/app.go
 +++ b/api/app/app.go
-@@ -101,7 +101,7 @@ func Run(ctx context.Context, args, environ []string, stdout, stderr io.Writer,
+@@ -100,7 +100,7 @@
  		Process:     func(c config.API) config.Process { return c.Process },
  		Operations:  func(c config.API) config.Operations { return c.Operations },
  		Serving:     func(c config.API) config.Serving { return c.Serving },
 -		Validate:    config.API.Check,
 +		Validate:    nil,
- 		CheckSchema: checkSchema,
+ 		CheckSchema: processdatabase.CheckSchema,
  		Components: []host.Component[config.API]{{
  			Name: "api", Mount: Mount, RefuseEnvironment: RefuseEnvironment, Assemble: fromConfiguration,

@@ -23,8 +23,8 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/core/index"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
+	"github.com/ppat/mediated-mailbox-mcp/process/schedule"
 	core "github.com/ppat/mediated-mailbox-mcp/worker/internal/core/backfill/pass1"
-	"github.com/ppat/mediated-mailbox-mcp/worker/internal/schedule"
 )
 
 // Event is one event on a run's timeline, beside the start, progress, finish and failure events the

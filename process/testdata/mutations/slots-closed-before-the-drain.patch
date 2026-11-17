@@ -1,0 +1,17 @@
+control: What the slots hold is closed last built first, once the servers have drained and every job and goroutine has returned
+removes: the slots are closed as the process starts to stop, before its requests have drained and its jobs and goroutines have returned
+packages: ./process
+tests: TestTheProcessStopsInOrder
+scheduled-count: no
+
+diff --git a/process/serve.go b/process/serve.go
+--- a/process/serve.go
++++ b/process/serve.go
+@@ -187,6 +187,7 @@
+ 	}
+ 	serving.Store(false)
+ 	p.drain()
++	p.closeSlots()
+ 	shutdown, cancel := context.WithTimeout(context.WithoutCancel(ctx), drainTimeout)
+ 	defer cancel()
+ 	if appServer != nil {

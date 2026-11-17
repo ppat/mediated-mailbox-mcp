@@ -1,0 +1,18 @@
+control: Each endpoint's handler is served at its pattern and nowhere else
+removes: every pattern is served by the first endpoint's handler
+packages: ./process
+tests: TestEachEndpointIsServedAtItsPattern
+scheduled-count: no
+
+diff --git a/process/serve.go b/process/serve.go
+--- a/process/serve.go
++++ b/process/serve.go
+@@ -155,7 +155,7 @@
+ 	if app != nil {
+ 		mux := http.NewServeMux()
+ 		for _, m := range b.handlers {
+-			mux.Handle(m.pattern, m.handler)
++			mux.Handle(m.pattern, b.handlers[0].handler)
+ 		}
+ 		appServer = newServer(mux, p.logger)
+ 		appServer.TLSConfig = tlsConf

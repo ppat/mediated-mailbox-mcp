@@ -1,17 +1,17 @@
 control: A process refuses the environment the database driver and every component it hosts refuse, before its configuration is read
 removes: the refusals run after the configuration is read, so a start whose environment sets a refused variable reads its configuration first and reports its file's error instead
 packages: ./process/host
-tests: TestTheEnvironmentIsRefusedBeforeTheConfigurationIsRead/until_stopped/PGPASSWORD=s3cret TestTheEnvironmentIsRefusedBeforeTheConfigurationIsRead/until_stopped/PGPASSWORD= TestTheEnvironmentIsRefusedBeforeTheConfigurationIsRead/until_stopped/PGSSLPASSWORD= TestTheEnvironmentIsRefusedBeforeTheConfigurationIsRead/until_stopped/COMPONENTDEBUG= TestTheEnvironmentIsRefusedBeforeTheConfigurationIsRead/once/PGPASSWORD=s3cret TestTheEnvironmentIsRefusedBeforeTheConfigurationIsRead/once/PGPASSWORD= TestTheEnvironmentIsRefusedBeforeTheConfigurationIsRead/once/PGSSLPASSWORD= TestTheEnvironmentIsRefusedBeforeTheConfigurationIsRead/once/COMPONENTDEBUG=
+tests: TestTheEnvironmentIsRefusedBeforeTheConfigurationIsRead/until_stopped/PGPASSWORD=s3cret TestTheEnvironmentIsRefusedBeforeTheConfigurationIsRead/until_stopped/PGPASSWORD= TestTheEnvironmentIsRefusedBeforeTheConfigurationIsRead/until_stopped/PGSSLPASSWORD= TestTheEnvironmentIsRefusedBeforeTheConfigurationIsRead/until_stopped/COMPONENTDEBUG=
 scheduled-count: no
 
 diff --git a/process/host/host.go b/process/host/host.go
 --- a/process/host/host.go
 +++ b/process/host/host.go
-@@ -250,17 +250,6 @@ type starting[T any] struct {
+@@ -250,17 +250,6 @@
  // stderr. started reports whether the process goes on to its work: it is false with a nil error once
  // --help or --version is answered.
  func start[T any](args, environ []string, stdout, stderr io.Writer, logger *slog.Logger, level *slog.LevelVar, root starting[T]) (loaded settings.Loaded[T], started bool, err error) {
--	if err := dbconnect.RefusePasswordVariables(environ); err != nil {
+-	if err := process.RefusePasswordVariables(environ); err != nil {
 -		return loaded, false, err
 -	}
 -	for _, refuse := range root.refusals {
@@ -25,11 +25,11 @@ diff --git a/process/host/host.go b/process/host/host.go
  	loaded, err = settings.Load(root.defaults, args, environ)
  	var help *settings.HelpRequested
  	if errors.As(err, &help) {
-@@ -274,6 +263,17 @@ func start[T any](args, environ []string, stdout, stderr io.Writer, logger *slog
+@@ -274,6 +263,17 @@
  	if err != nil {
  		return loaded, false, fmt.Errorf("loading the configuration: %w", err)
  	}
-+	if err := dbconnect.RefusePasswordVariables(environ); err != nil {
++	if err := process.RefusePasswordVariables(environ); err != nil {
 +		return loaded, false, err
 +	}
 +	for _, refuse := range root.refusals {

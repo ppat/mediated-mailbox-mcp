@@ -1,0 +1,18 @@
+control: The readiness probe answers from what was reported, ready only while every reporter is ready, and names the first that is not
+removes: the readiness probe reads the first reporter's report alone, so a later reporter that is not ready leaves the process ready
+packages: ./process
+tests: TestTheProbesAnswerFromWhatWasReported
+scheduled-count: no
+
+diff --git a/process/process.go b/process/process.go
+--- a/process/process.go
++++ b/process/process.go
+@@ -126,7 +126,7 @@
+ func (p *proc) notReady() (string, bool) {
+ 	p.reportsMu.Lock()
+ 	defer p.reportsMu.Unlock()
+-	for _, r := range p.reports {
++	for _, r := range p.reports[:min(1, len(p.reports))] {
+ 		switch r.state {
+ 		case Ready:
+ 			continue

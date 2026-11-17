@@ -1,0 +1,18 @@
+control: What the slots hold is closed last built first, once the servers have drained and every job and goroutine has returned
+removes: the slots are closed in the order they were built, so a thing is closed before what was built over it
+packages: ./process
+tests: TestTheProcessStopsInOrder
+scheduled-count: no
+
+diff --git a/process/process.go b/process/process.go
+--- a/process/process.go
++++ b/process/process.go
+@@ -184,7 +184,7 @@
+ 	closers := p.closers
+ 	p.closers = nil
+ 	p.slotsMu.Unlock()
+-	for _, closeSlot := range slices.Backward(closers) {
++	for _, closeSlot := range slices.All(closers) {
+ 		closeSlot()
+ 	}
+ }

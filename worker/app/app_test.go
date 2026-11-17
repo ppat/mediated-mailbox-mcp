@@ -18,7 +18,6 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/core/config"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
-	"github.com/ppat/mediated-mailbox-mcp/process/dbmetrics"
 	"github.com/ppat/mediated-mailbox-mcp/process/host"
 	"github.com/ppat/mediated-mailbox-mcp/process/settings"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
@@ -463,7 +462,7 @@ func TestEachJobKindIsHandedAPoolOfItsOwn(t *testing.T) {
 	// Each job kind's pool traces its statements and is read under its own job kind on the one
 	// registry, so the two kinds' pool series stand apart (ADR-0125).
 	for kind, p := range map[string]*pgxpool.Pool{"backfill": pools.Backfill, "sync": pools.Sync} {
-		if _, traced := p.Config().ConnConfig.Tracer.(*dbmetrics.Tracer); !traced {
+		if p.Config().ConnConfig.Tracer == nil {
 			t.Errorf("%s's pool traces no statement", kind)
 		}
 	}

@@ -1,0 +1,20 @@
+control: Get runs the schema check on a pool before it first returns it, and ForMigration runs none
+removes: a schema the check refuses is ignored and its pool kept and returned, so the build goes on
+packages: ./process/database
+tests: TestGetChecksTheSchemaAndForMigrationDoesNot
+scheduled-count: no
+integration: yes
+
+diff --git a/process/database/database.go b/process/database/database.go
+--- a/process/database/database.go
++++ b/process/database/database.go
+@@ -128,8 +128,7 @@
+ 	}
+ 	if check != nil {
+ 		if err := check(ctx, pool); err != nil {
+-			pool.Close()
+-			return nil, fmt.Errorf("checking the database schema as %s: %w", c.User, err)
++			_ = fmt.Errorf("checking the database schema as %s: %w", c.User, err)
+ 		}
+ 	}
+ 	s.byName[name] = pool

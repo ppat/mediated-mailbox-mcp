@@ -7,12 +7,12 @@ scheduled-count: no
 diff --git a/worker/app/app.go b/worker/app/app.go
 --- a/worker/app/app.go
 +++ b/worker/app/app.go
-@@ -67,7 +67,7 @@ func Run(ctx context.Context, args, environ []string, stdout, stderr io.Writer,
+@@ -66,7 +66,7 @@
  		Defaults:    config.DefaultWorker(),
  		Process:     func(c config.Worker) config.Process { return c.Process },
  		Operations:  func(c config.Worker) config.Operations { return c.Operations },
 -		Validate:    config.Worker.Check,
 +		Validate:    nil,
- 		CheckSchema: checkSchema,
+ 		CheckSchema: processdatabase.CheckSchema,
  		Components:  []host.Component[config.Worker]{{Name: "worker", Assemble: fromConfiguration}},
  	})

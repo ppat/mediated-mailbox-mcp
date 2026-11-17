@@ -1,0 +1,23 @@
+control: A plan's listing keeps one job per key it lists, tells a dropped key only once its job has returned, and tells its first success once
+removes: a dropped key is told to the plan before its job is removed and has returned
+packages: ./process/schedule
+tests: TestAPlansListingAddsAndDropsJobsByKey
+scheduled-count: no
+
+diff --git a/process/schedule/plan.go b/process/schedule/plan.go
+--- a/process/schedule/plan.go
++++ b/process/schedule/plan.go
+@@ -64,11 +64,11 @@
+ 				if listing[k] {
+ 					continue
+ 				}
+-				s.Remove(Key{Kind: kind, ID: k})
+-				delete(held, k)
+ 				if plan.Dropped != nil {
+ 					plan.Dropped(k)
+ 				}
++				s.Remove(Key{Kind: kind, ID: k})
++				delete(held, k)
+ 			}
+ 			for _, k := range keys {
+ 				if held[k] {

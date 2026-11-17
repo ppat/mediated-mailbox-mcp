@@ -1,7 +1,7 @@
 control: Each deployable logs at the level its configuration sets
 removes: the host reads log_level and never sets the level variable, so the logger stays at info
-packages: ./process/host ./migrator/app
-tests: TestTheConfiguredLevelGovernsTheLog/until_stopped/warn TestTheConfiguredLevelGovernsTheLog/until_stopped/error,_from_the_environment TestTheConfiguredLevelGovernsTheLog/until_stopped/a_refused_value_at_error TestTheConfiguredLevelGovernsTheLog/once/warn TestTheConfiguredLevelGovernsTheLog/once/error,_from_the_environment TestTheConfiguredLevelGovernsTheLog/once/a_refused_value_at_error TestTheStartLogsItsConfigurationThenSetsItsLevelAndWritesItsBanner
+packages: ./process/host
+tests: TestTheConfiguredLevelGovernsTheLog/until_stopped/warn TestTheConfiguredLevelGovernsTheLog/until_stopped/error,_from_the_environment TestTheConfiguredLevelGovernsTheLog/until_stopped/a_refused_value_at_error
 scheduled-count: no
 
 diff --git a/process/host/host.go b/process/host/host.go

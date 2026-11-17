@@ -26,7 +26,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/credential/open"
 	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
-	"github.com/ppat/mediated-mailbox-mcp/process/dbmetrics"
+	processdatabase "github.com/ppat/mediated-mailbox-mcp/process/database"
 	"github.com/ppat/mediated-mailbox-mcp/process/host"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/postgres"
@@ -48,7 +48,7 @@ func measuredPool(t *testing.T, role string, registry prometheus.Registerer) *pg
 	}
 	cfg.ConnConfig.RuntimeParams["options"] = "-c role=" + role
 	cfg.MaxConns = 4
-	p, err := dbmetrics.OpenPool(t.Context(), cfg, registry)
+	p, err := processdatabase.OpenPool(t.Context(), cfg, registry)
 	if err != nil {
 		t.Fatal(err)
 	}

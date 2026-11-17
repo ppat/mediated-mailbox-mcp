@@ -200,10 +200,16 @@ flowchart LR
   program's. Every pool is `process/database`'s, which keeps the pools a process holds apart from
   the slots above. A part asks for its pool through `database.Get(ctx, p, c)`, and the migrator's
   task through `database.ForMigration(ctx, p, c)`, which is the migrator's alone. The process closes
-  the pools with what the slots hold. How it gives each job kind its own pool, and what
-  holds `database.ForMigration`, which opens the migrator's pool with no schema check, to the
-  migrator, the compiler or a check, are decided where `process/database` is built. A pool apart
-  for a later need is a further function of `process/database`.
+  the pools with what the slots hold. `database.Get` reads from `p` whether the part being built is
+  a job kind. A job kind's part gets the job kind's own pool, and every other part, and a thing the
+  process shares, gets the process's one pool, each opened from the one database part.
+  `database.ForMigration`, which opens the migrator's pool with no schema check, takes a
+  configuration type that has an unexported method only `config.Migrator` has, so the compiler
+  refuses a deployable's own configuration there. Left to review are a `Build` that makes a
+  `config.Migrator` value of its own, by a literal, by its defaults or as a zero value, and, until
+  `process/host` is deleted, the lower-level opening the host opens its pools through, which runs
+  no schema check, and a pool a deployable's code opens through the driver itself. A pool apart for
+  a later need is a further function of `process/database`.
 - **The spec and each `Build` are the program's wiring**, written by hand in ordinary code, as
   [ADR-0040](./0040-pure-core-decisions-as-values.md) requires. The order the parts start in is the
   stages below. A part's pool comes from `process/database`, and the API server, the UI and the
@@ -217,8 +223,8 @@ flowchart LR
   is built for the job kind that runs on it and labelled with that job kind. A pool's series also
   keep the label names every other pool of the process registers them under, which
   [ADR-0125](./0125-performance-is-measured-once-at-each-place-time-goes.md) puts before the rule
-  of no job kind, so a worker pool that is not a job kind's is labelled as
-  `process/database` decides where it is built. A shared thing reads
+  of no job kind, so a pool that is not a job kind's labels its series with an empty `job_kind`,
+  which a query reads as no job kind. A shared thing reads
   the shared parts of the configuration, the parts every program that has them holds under the
   same keys ([ADR-0078](./0078-configuration-layers-through-an-owned-library.md)). Where it needs
   the revision of its settings, the digest the configuration library computes for each top-level
@@ -249,7 +255,7 @@ process does in that stage, for every program.
 | Start | Sets up its logs, loads and checks the configuration, and announces itself, in the steps listed below the table |
 | Build | Builds the process's one metrics registry and registers the runtime series once. Calls each `Build` in the spec, handing each a registerer that labels every series it registers. Opens each pool when its owner's function is first called. In a process that runs until it is told to stop, `database.Get` runs the schema check on each pool before returning it, so a schema the process cannot run on stops the start before anything serves ([ADR-0140](../data/0140-each-migration-declares-the-oldest-chain-that-runs-on-it.md)) |
 | Run | Serves `/healthz`, `/readyz` and `/metrics` on the probe listener as plain text. The probes answer from what was reported and run nothing. `/readyz` answers 200 only while the process serves and everything that reports is ready, and names the first that is not. Serves the application server on one listener, with TLS when the configuration names a key pair, which is loaded before anything is served ([ADR-0127](../operability/0127-tls-when-given-a-key-pair-plain-http-otherwise.md)), mounting each endpoint's handler at its pattern and serving nothing else. Runs every job kind's plan on the process's scheduler, which recovers a panic in each run as that run's failure ([ADR-0119](../operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md)) |
-| Stop | Begins when the process is told to stop, when a server or the scheduler fails, or when a goroutine started through `Go` panics. Answers not ready, ends what `Draining` returned, drains the application server's requests for ten seconds, ends the jobs' context and waits for every job and every started goroutine. Then stops the operations server and closes what the slots hold |
+| Stop | Begins when the process is told to stop, when a server fails, or when a goroutine started through `Go` panics. A job's failure fails its run and stops nothing else, and a listing that fails is asked again after its backoff ([ADR-0119](../operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md)), so the scheduler has no failure of its own while it runs. A plan the scheduler refuses fails the start before anything serves. Answers not ready, ends what `Draining` returned, drains the application server's requests for ten seconds, ends the jobs' context and waits for every job and every started goroutine. Then stops the operations server and closes what the slots hold |
 
 The start, in order.
 
@@ -288,7 +294,9 @@ The start, in order.
 ### Tests, and where a rule binds
 
 - **A test hands the process a shared thing it made through one seam.** A test or a harness runs a
-  program through its spec and `process.Run`, as `main.go` does. Where it needs to substitute a
+  program through its spec and `process.RunContext`, which runs it as `process.Run` runs it for
+  `main.go`, until a context it is given ends, and returns the run's error rather than exiting.
+  Where it needs to substitute a
   shared thing, such as connections over the provider fake, it hands the process that thing
   through the one option the owner exports for it, which fills the owner's slot before anything
   asks. So what a test runs is what the program runs, apart from what the test handed in.

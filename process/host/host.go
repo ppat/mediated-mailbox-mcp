@@ -3,17 +3,15 @@
 // process cannot run under, loads one configuration tree, sets the log level, builds the one
 // metrics registry and the pools, serves the application server and the operations endpoints,
 // starts and joins every background task and every goroutine a component asks its starter for, and
-// stops in order. A process that runs once and exits gets the same start, registry and pools, and no
-// servers or tasks. A component knows none of it. Its assembly takes what it needs as values, starts
+// stops in order. A component knows none of it. Its assembly takes what it needs as values, starts
 // nothing of its own, and returns what it provides, a handler, readiness checks and tasks, so a
 // component is assembled the same way whatever else shares its process. process/README.md argues why
 // this is a package of the process family.
 //
-// Run is the whole process for a composition root whose process runs until it is told to stop, and
-// RunOnce for one whose process does one piece of work and exits, as the migrator does. Both start the
-// process the same way. New, Add and Serve are Run's lifecycle without the configuration, which a test
-// or a harness that composes a component itself uses, so what it runs is what the composition root
-// runs.
+// Run is the whole process for a composition root whose process runs until it is told to stop. A
+// program that does one piece of work and exits runs on its spec through package process. New, Add
+// and Serve are Run's lifecycle without the configuration, which a test or a harness that composes a
+// component itself uses, so what it runs is what the composition root runs.
 package host
 
 import (
@@ -34,8 +32,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/config"
-	"github.com/ppat/mediated-mailbox-mcp/process/dbconnect"
-	"github.com/ppat/mediated-mailbox-mcp/process/dbmetrics"
+	"github.com/ppat/mediated-mailbox-mcp/process"
+	"github.com/ppat/mediated-mailbox-mcp/process/database"
 	"github.com/ppat/mediated-mailbox-mcp/process/logging"
 	"github.com/ppat/mediated-mailbox-mcp/process/probes"
 	"github.com/ppat/mediated-mailbox-mcp/process/runtimemetrics"
@@ -183,55 +181,7 @@ func Run[T any](ctx context.Context, args, environ []string, stdout, stderr io.W
 	return h.Serve(ctx, listeners, serving)
 }
 
-// Once is what a composition root hands RunOnce, its configuration's root type T and the one piece of
-// work its process does.
-type Once[T any] struct {
-	// Name is the published name the start banner names.
-	Name     string
-	Defaults T
-	// Process returns T's process section.
-	Process func(T) config.Process
-	// Validate refuses a configuration the process cannot run with, every part of it, which is T's own
-	// check (core/config). The host runs it once it has set the level from log_level.
-	Validate func(T) error
-	// Component is the directory of the component whose work the process does, which its logger and
-	// its registerer carry, as a component's do in Run.
-	Component string
-	// RefuseEnvironment refuses an environment the work cannot run under, before the configuration is
-	// read. Nil refuses nothing.
-	RefuseEnvironment func(environ []string) error
-	// Work does the process's one piece of work with what the host provides it, and returns once it is
-	// done.
-	Work func(ctx context.Context, provided Provided[T]) error
-}
-
-// RunOnce runs a process that does one piece of work and exits. It starts the process as every
-// process starts, then does the work under ctx with what the host provides a component, and returns
-// the work's error once every goroutine the work started has returned and the pools are closed. It
-// serves no operations endpoints and no application server and runs no task, since nothing probes,
-// scrapes or calls a process that exits on its own (ADR-0138, ADR-0139).
-func RunOnce[T any](ctx context.Context, args, environ []string, stdout, stderr io.Writer, logger *slog.Logger, level *slog.LevelVar, spec Once[T]) error {
-	loaded, started, err := start(args, environ, stdout, stderr, logger, level, starting[T]{
-		name: spec.Name, defaults: spec.Defaults, refusals: []func([]string) error{spec.RefuseEnvironment},
-		process: spec.Process, validate: spec.Validate,
-		banner: func(T) []string { return nil },
-	})
-	if !started {
-		return err
-	}
-	h, err := New(logger)
-	if err != nil {
-		return err
-	}
-	err = spec.Work(ctx, Provided[T]{
-		Loaded: loaded, Logger: h.Logger(spec.Component), Registerer: h.Registerer(spec.Component),
-		Draining: ctx, OpenPool: h.OpenPool, Start: h.Starter(spec.Component),
-	})
-	h.Close()
-	return errors.Join(err, h.startedFailures())
-}
-
-// starting is what start needs of a root, whichever way its process runs.
+// starting is what start needs of a root.
 type starting[T any] struct {
 	name     string
 	defaults T
@@ -250,7 +200,7 @@ type starting[T any] struct {
 // stderr. started reports whether the process goes on to its work: it is false with a nil error once
 // --help or --version is answered.
 func start[T any](args, environ []string, stdout, stderr io.Writer, logger *slog.Logger, level *slog.LevelVar, root starting[T]) (loaded settings.Loaded[T], started bool, err error) {
-	if err := dbconnect.RefusePasswordVariables(environ); err != nil {
+	if err := process.RefusePasswordVariables(environ); err != nil {
 		return loaded, false, err
 	}
 	for _, refuse := range root.refusals {
@@ -351,7 +301,7 @@ type Host struct {
 	components []component
 
 	// checkSchema is the root's schema check, which OpenPool runs on each pool it opens, nil for a host
-	// that checks none, as one a test or a harness builds with New or RunOnce builds.
+	// that checks none, as one a test or a harness builds with New builds.
 	checkSchema func(context.Context, *pgxpool.Pool) error
 
 	// startedMu guards the goroutines Starter starts. joining is set once the host waits for them,
@@ -412,13 +362,9 @@ func (h *Host) Logger(name string) *slog.Logger {
 // from the schema check of a host that Run built, which runs on the pool before OpenPool returns it
 // and refuses the pool when it refuses the schema (ADR-0140).
 func (h *Host) OpenPool(ctx context.Context, c config.Database, reg prometheus.Registerer) (*pgxpool.Pool, error) {
-	config, err := dbconnect.PoolConfig(c)
+	pool, err := database.Open(ctx, c, reg)
 	if err != nil {
-		return nil, fmt.Errorf("configuring the database connection of %s: %w", c.User, err)
-	}
-	pool, err := dbmetrics.OpenPool(ctx, config, reg)
-	if err != nil {
-		return nil, fmt.Errorf("configuring the database connection of %s: %w", c.User, err)
+		return nil, err
 	}
 	h.mu.Lock()
 	h.pools = append(h.pools, pool)

@@ -292,8 +292,9 @@ by `statement`, with buckets at 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1 and 5 seco
 
 Every pool a process holds registers K8 and K9 on the process's one registry under the same label
 names, since within one registry a series name keeps one set of label names. That binds whatever
-pools a process holds beside its job kinds' own, which are decided where `process/database` is
-built ([ADR-0142](./0142-each-program-is-a-spec-that-one-process-runs.md)). For a pool's series,
+pools a process holds beside its job kinds' own, so a pool that is no job kind's registers them with
+an empty `job_kind`, which a query reads as no job kind
+([ADR-0142](./0142-each-program-is-a-spec-that-one-process-runs.md)). For a pool's series,
 this invariant comes before the rule above that a shared thing's series carry no job kind, since
 the client library refuses a registration that breaks it.
 

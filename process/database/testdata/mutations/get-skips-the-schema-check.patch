@@ -1,0 +1,19 @@
+control: Get runs the schema check on a pool before it first returns it, and ForMigration runs none
+removes: Get runs no schema check, so a program starts on a schema its chain cannot run on
+packages: ./process/database
+tests: TestGetChecksTheSchemaAndForMigrationDoesNot
+scheduled-count: no
+integration: yes
+
+diff --git a/process/database/database.go b/process/database/database.go
+--- a/process/database/database.go
++++ b/process/database/database.go
+@@ -45,7 +45,7 @@
+ 	if kind != "" {
+ 		reg = p.Metrics()
+ 	}
+-	return set.open(ctx, "job kind "+kind, c.DatabasePart(), reg, CheckSchema)
++	return set.open(ctx, "job kind "+kind, c.DatabasePart(), reg, nil)
+ }
+ 
+ // ForMigration returns the migrator's pool, opened from its database part with no schema check, since

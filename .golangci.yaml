@@ -229,8 +229,9 @@ linters:
           # import it by its exact path.
           - "github.com/ppat/mediated-mailbox-mcp/provider/ratelimit/core$"
           - "github.com/ppat/mediated-mailbox-mcp/provider/ratelimit/core/"
-          # The Gmail adapter's pure core is one package too.
+          # The Gmail adapter's pure core is one package too, and so is the database package's.
           - "github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail/core$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/database/core$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/marker$"
@@ -360,63 +361,110 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/credential/seal$"
           - "github.com/ppat/mediated-mailbox-mcp/process/version$"
 
-        # The migrator, every file. Its composition root hands the host its configuration and its work, which applies
-        # the chain db/migrations embeds through db/migrate (ADR-0138, ADR-0139). Its tests render the chart and run it
-        # against a test database.
+        # The migrator, every file outside its task's package: its entry, which holds its spec and nothing else, and
+        # its main.go, which hands the process the spec (ADR-0142). The spec names the task's Build, so it admits the
+        # task's package and no data-access subsection, no db/migrate and no goose, which the task alone reaches. Its
+        # tests run the spec through the process, render the chart and run it against a test database, and the
+        # integration test reads the chain db/migrations embeds to compare with what was applied.
         migrator:
           list-mode: strict
           files:
           - "${base-path}/migrator/**.go"
+          - "!${base-path}/migrator/internal/migrate/**"
           allow:
           - "$gostd"
           - "github.com/google/go-cmp/cmp$"
           - "github.com/jackc/pgx/v5$"
-          - "github.com/jackc/pgx/v5/stdlib$"
           - "github.com/ppat/mediated-mailbox-mcp/core/config$"
-          - "github.com/ppat/mediated-mailbox-mcp/db/migrate$"
           - "github.com/ppat/mediated-mailbox-mcp/db/migrations$"
           - "github.com/ppat/mediated-mailbox-mcp/migrator/app$"
-          - "github.com/ppat/mediated-mailbox-mcp/process/host$"
-          - "github.com/ppat/mediated-mailbox-mcp/process/logging$"
+          - "github.com/ppat/mediated-mailbox-mcp/migrator/internal/migrate$"
+          - "github.com/ppat/mediated-mailbox-mcp/process$"
           - "github.com/ppat/mediated-mailbox-mcp/process/settings$"
           - "github.com/ppat/mediated-mailbox-mcp/process/version$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/helmchart$"
-          - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
 
-        # The database connection, every file, a package of the process family. It builds the connection a
-        # deployable's database section describes, and connects as no role of its own.
-        dbconnect:
+        # The migrator's task, every file. Its Build opens the migrator's pool through process/database and returns
+        # the work that applies the chain db/migrations embeds through db/migrate, the one package goose is admitted
+        # to, over the driver's database/sql handle (ADR-0139, ADR-0142).
+        migrator-migrate:
           list-mode: strict
           files:
-          - "${base-path}/process/dbconnect/**.go"
+          - "${base-path}/migrator/internal/migrate/**.go"
+          allow:
+          - "$gostd"
+          - "github.com/jackc/pgx/v5/stdlib$"
+          - "github.com/ppat/mediated-mailbox-mcp/core/config$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/migrate$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/migrations$"
+          - "github.com/ppat/mediated-mailbox-mcp/process$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/database$"
+
+        # The process's spec and its run, every file of the family's root package, which runs one program as a
+        # process through the family's other packages and holds its slots, and nothing of any program (ADR-0142).
+        # client_golang is admitted for the registry it builds and the registerers it hands out. Its tests compare
+        # through the shared options value (ADR-0070) and assert a must-not-compile spec's type errors.
+        process:
+          list-mode: strict
+          files:
+          - "${base-path}/process/*.go"
           allow:
           - "$gostd"
           - "github.com/google/go-cmp/cmp$"
-          - "github.com/jackc/pgx/v5/pgxpool$"
           - "github.com/ppat/mediated-mailbox-mcp/core/config$"
-          - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect$"
+          - "github.com/ppat/mediated-mailbox-mcp/process$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/logging$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/probes$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/runtimemetrics$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/schedule$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/settings$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/version$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
+          - "github.com/prometheus/client_golang/prometheus$"
 
-        # The database measurements, every file, a package of the process family. It traces the statements a
-        # connection runs and reads a pool's statistics, on the registerer a composition root passes in, and runs no
-        # statement of its own. Its tests run statements through the transaction helper against the test database
-        # (ADR-0125).
-        dbmetrics:
+        # The database, every file, a package of the process family, with its pure core. It builds the connection a
+        # program's database part describes, connects as no role of its own, opens and measures every pool and runs
+        # the schema check, whose statement is the start check's subsection and whose comparison sits beside the chain
+        # (ADR-0078, ADR-0125, ADR-0140). It keeps its pools in a slot of the process. Its tests run statements
+        # through the transaction helper against the test database, and assert that only the migrator's
+        # configuration type can ask for the migrator's pool.
+        database:
           list-mode: strict
           files:
-          - "${base-path}/process/dbmetrics/**.go"
+          - "${base-path}/process/database/**.go"
           allow:
           - "$gostd"
           - "github.com/google/go-cmp/cmp$"
           - "github.com/jackc/pgx/v5$"
           - "github.com/jackc/pgx/v5/pgxpool$"
+          - "github.com/ppat/mediated-mailbox-mcp/core/config$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/migrations$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/schemacompatibility$"
           - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
-          - "github.com/ppat/mediated-mailbox-mcp/process/dbmetrics$"
+          - "github.com/ppat/mediated-mailbox-mcp/process$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/database$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/database/core$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/schedule$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
+          - "github.com/prometheus/client_golang/prometheus$"
+
+        # The scheduler, every file, a package of the process family. It runs each job kind's plan and every job on
+        # the standard library alone, and registers the jobs' series on the registerer it is handed (ADR-0119). Its
+        # tests compare through the shared options value (ADR-0070).
+        schedule:
+          list-mode: strict
+          files:
+          - "${base-path}/process/schedule/**.go"
+          allow:
+          - "$gostd"
+          - "github.com/google/go-cmp/cmp$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/schedule$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
           - "github.com/prometheus/client_golang/prometheus$"
 
         # The runtime measurements, every file, a package of the process family. It registers the Go collector with
@@ -455,8 +503,8 @@ linters:
           - "github.com/google/go-cmp/cmp$"
           - "github.com/jackc/pgx/v5/pgxpool$"
           - "github.com/ppat/mediated-mailbox-mcp/core/config$"
-          - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect$"
-          - "github.com/ppat/mediated-mailbox-mcp/process/dbmetrics$"
+          - "github.com/ppat/mediated-mailbox-mcp/process$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/database$"
           - "github.com/ppat/mediated-mailbox-mcp/process/host$"
           - "github.com/ppat/mediated-mailbox-mcp/process/logging$"
           - "github.com/ppat/mediated-mailbox-mcp/process/probes$"
@@ -845,11 +893,10 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/content/markdown$"
           - "github.com/ppat/mediated-mailbox-mcp/db/senders$"
           - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
-          # The start check the composition root hands the host, the schema's versions and the chain's own (ADR-0140).
-          - "github.com/ppat/mediated-mailbox-mcp/db/migrations$"
-          - "github.com/ppat/mediated-mailbox-mcp/db/schemacompatibility$"
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/policyload$"
           - "github.com/ppat/mediated-mailbox-mcp/api/"
+          # The database package, whose schema check the composition root hands the host (ADR-0140).
+          - "github.com/ppat/mediated-mailbox-mcp/process/database$"
           - "github.com/ppat/mediated-mailbox-mcp/process/host$"
           - "github.com/ppat/mediated-mailbox-mcp/process/logging$"
           - "github.com/ppat/mediated-mailbox-mcp/process/settings$"
@@ -895,7 +942,7 @@ linters:
           - "github.com/getkin/kin-openapi/openapi3$"
           - "github.com/google/go-cmp/cmp$"
           - "github.com/google/go-cmp/cmp/cmpopts$"
-          # The driver, its types and its pool, each exact, as the dbconnect list names its pool, and its error
+          # The driver, its types and its pool, each exact, as the database list names its pool, and its error
           # type, which tells the setups' refusals by the constraint they name.
           - "github.com/jackc/pgx/v5$"
           - "github.com/jackc/pgx/v5/pgconn$"
@@ -934,10 +981,9 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/db/scangatedecisions$"
           - "github.com/ppat/mediated-mailbox-mcp/db/senders/classification$"
           - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
-          # The start check the composition root hands the host, the schema's versions and the chain's own (ADR-0140).
-          - "github.com/ppat/mediated-mailbox-mcp/db/migrations$"
-          - "github.com/ppat/mediated-mailbox-mcp/db/schemacompatibility$"
-          # The host the composition root hands the UI to, and the logger it is handed, in ui/app.
+          # The host the composition root hands the UI to, the schema check it hands the host, and the logger
+          # it is handed, in ui/app (ADR-0140).
+          - "github.com/ppat/mediated-mailbox-mcp/process/database$"
           - "github.com/ppat/mediated-mailbox-mcp/process/host$"
           - "github.com/ppat/mediated-mailbox-mcp/process/logging$"
           # The provider fake, which the setups' tests run over. The list for non-test code refuses it.
@@ -1022,13 +1068,13 @@ linters:
           - "golang.org/x/net/publicsuffix$"
           - "pgregory.net/rapid"
 
-        # Deployable worker, every file outside its job kinds' code: its entry, its composition root, its scheduler and
-        # the code its job kinds share. A deployable imports its own code and the shared libraries, never another
-        # deployable (ADR-0054). Its tests may also use test tooling, which the list for non-test code refuses. The
-        # one data-access subsection it names is the start check's, which the composition root hands the host
-        # (ADR-0066, ADR-0140). It admits the driver only so the composition root can open each job kind's pool
-        # through the host. The raw SQL analyser refuses any other statement the worker's own code runs on a pool
-        # (ADR-0143).
+        # Deployable worker, every file outside its job kinds' code: its entry, its composition root and the code its
+        # job kinds share, with the scheduler it runs them on, process/schedule. A deployable imports its own code and
+        # the shared libraries, never another deployable (ADR-0054). Its tests may also use test tooling, which the
+        # list for non-test code refuses. It names no data-access subsection, since the schema check it hands the
+        # host is process/database's (ADR-0140). It admits the driver only so the composition root can open each job
+        # kind's pool through the host. The raw SQL analyser refuses any statement the worker's own code runs on a
+        # pool (ADR-0143).
         worker:
           list-mode: strict
           files:
@@ -1044,16 +1090,13 @@ linters:
           - "github.com/jackc/pgx/v5$"
           - "github.com/jackc/pgx/v5/"
           - "github.com/ppat/mediated-mailbox-mcp/core/"
-          # The start check the composition root hands the host, the schema's versions and the chain's own (ADR-0140).
-          - "github.com/ppat/mediated-mailbox-mcp/db/migrations$"
-          - "github.com/ppat/mediated-mailbox-mcp/db/schemacompatibility$"
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/assembly$"
           - "github.com/ppat/mediated-mailbox-mcp/credential/open$"
           - "github.com/ppat/mediated-mailbox-mcp/credential/seal$"
-          - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/database$"
           - "github.com/ppat/mediated-mailbox-mcp/process/host$"
-          - "github.com/ppat/mediated-mailbox-mcp/process/dbmetrics$"
           - "github.com/ppat/mediated-mailbox-mcp/process/logging$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/schedule$"
           - "github.com/ppat/mediated-mailbox-mcp/process/settings$"
           - "github.com/ppat/mediated-mailbox-mcp/process/version$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
@@ -1118,7 +1161,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/property$"
           - "github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/"
           - "github.com/ppat/mediated-mailbox-mcp/worker/internal/core/backfill/"
-          - "github.com/ppat/mediated-mailbox-mcp/worker/internal/schedule$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/schedule$"
           - "github.com/ppat/mediated-mailbox-mcp/worker/internal/series$"
           - "github.com/prometheus/client_golang/prometheus$"
           # The sender classifier's domain functions, which the job kind passes pass 1.
@@ -1181,7 +1224,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/property$"
           - "github.com/ppat/mediated-mailbox-mcp/worker/internal/core/deltasync/"
           - "github.com/ppat/mediated-mailbox-mcp/worker/internal/deltasync/"
-          - "github.com/ppat/mediated-mailbox-mcp/worker/internal/schedule$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/schedule$"
           - "github.com/ppat/mediated-mailbox-mcp/worker/internal/series$"
           - "github.com/prometheus/client_golang/prometheus$"
           # The sender classifier's domain functions, which the job kind passes a tick.
@@ -1313,12 +1356,14 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/session$"
           - "github.com/ppat/mediated-mailbox-mcp/api/"
           - "github.com/ppat/mediated-mailbox-mcp/migrator/"
-          - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect$"
+          - "github.com/ppat/mediated-mailbox-mcp/process$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/database$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/database/core$"
           - "github.com/ppat/mediated-mailbox-mcp/process/host$"
-          - "github.com/ppat/mediated-mailbox-mcp/process/dbmetrics$"
           - "github.com/ppat/mediated-mailbox-mcp/process/logging$"
           - "github.com/ppat/mediated-mailbox-mcp/process/probes$"
           - "github.com/ppat/mediated-mailbox-mcp/process/runtimemetrics$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/schedule$"
           - "github.com/ppat/mediated-mailbox-mcp/process/settings$"
           - "github.com/ppat/mediated-mailbox-mcp/process/version$"
           - "github.com/ppat/mediated-mailbox-mcp/provider$"
@@ -1383,12 +1428,14 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/session$"
           - "github.com/ppat/mediated-mailbox-mcp/api/"
           - "github.com/ppat/mediated-mailbox-mcp/migrator/"
-          - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect$"
+          - "github.com/ppat/mediated-mailbox-mcp/process$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/database$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/database/core$"
           - "github.com/ppat/mediated-mailbox-mcp/process/host$"
-          - "github.com/ppat/mediated-mailbox-mcp/process/dbmetrics$"
           - "github.com/ppat/mediated-mailbox-mcp/process/logging$"
           - "github.com/ppat/mediated-mailbox-mcp/process/probes$"
           - "github.com/ppat/mediated-mailbox-mcp/process/runtimemetrics$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/schedule$"
           - "github.com/ppat/mediated-mailbox-mcp/process/settings$"
           - "github.com/ppat/mediated-mailbox-mcp/process/version$"
           - "github.com/ppat/mediated-mailbox-mcp/provider$"
@@ -1435,12 +1482,13 @@ linters:
           - "!${base-path}/api/**"
           - "!${base-path}/migrator/**"
           - "!${base-path}/packaging/**"
-          - "!${base-path}/process/dbconnect/**"
-          - "!${base-path}/process/dbmetrics/**"
+          - "!${base-path}/process/*.go"
+          - "!${base-path}/process/database/**"
           - "!${base-path}/process/host/**"
           - "!${base-path}/process/logging/**"
           - "!${base-path}/process/probes/**"
           - "!${base-path}/process/runtimemetrics/**"
+          - "!${base-path}/process/schedule/**"
           - "!${base-path}/process/settings/**"
           - "!${base-path}/process/version/**"
           - "!${base-path}/provider/**"

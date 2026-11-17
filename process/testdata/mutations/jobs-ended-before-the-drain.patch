@@ -1,0 +1,21 @@
+control: A stopping process answers not ready, ends Draining, drains its requests, and only then ends its jobs and goroutines
+removes: the jobs' and goroutines' context ends before the requests in flight have drained
+packages: ./process
+tests: TestTheProcessStopsInOrder
+scheduled-count: no
+
+diff --git a/process/serve.go b/process/serve.go
+--- a/process/serve.go
++++ b/process/serve.go
+@@ -189,10 +189,10 @@
+ 	p.drain()
+ 	shutdown, cancel := context.WithTimeout(context.WithoutCancel(ctx), drainTimeout)
+ 	defer cancel()
++	p.stopRun()
+ 	if appServer != nil {
+ 		err = errors.Join(err, shutdownServer(shutdown, appServer))
+ 	}
+-	p.stopRun()
+ 	if scheduler != nil {
+ 		scheduler.Stop()
+ 	}

@@ -1,0 +1,18 @@
+control: Only the migrator's configuration type can ask for the pool with no schema check
+removes: the process part carries the migrator's unexported method, so every configuration type that embeds it can open a pool with no schema check
+packages: ./process/database
+tests: TestOnlyTheMigratorCanAskForThePoolWithNoSchemaCheck TestOnlyTheMigratorCanAskForThePoolWithNoSchemaCheck/formigrationapi TestOnlyTheMigratorCanAskForThePoolWithNoSchemaCheck/formigrationui TestOnlyTheMigratorCanAskForThePoolWithNoSchemaCheck/formigrationworker
+scheduled-count: no
+
+diff --git a/core/config/program.go b/core/config/program.go
+--- a/core/config/program.go
++++ b/core/config/program.go
+@@ -61,7 +61,7 @@
+ // DatabasePart returns the migrator's database part.
+ func (c Migrator) DatabasePart() Database { return c.Database }
+ 
+-func (Migrator) migrator() {}
++func (Process) migrator() {}
+ 
+ // Defaults returns the API server's defaults on a node with processors processors.
+ func (API) Defaults(processors int) API { return DefaultAPI(processors) }

@@ -53,11 +53,10 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/credential/open"
-	"github.com/ppat/mediated-mailbox-mcp/db/migrations"
-	"github.com/ppat/mediated-mailbox-mcp/db/schemacompatibility"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/accountload"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/assembly"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/session"
+	processdatabase "github.com/ppat/mediated-mailbox-mcp/process/database"
 	"github.com/ppat/mediated-mailbox-mcp/process/host"
 	"github.com/ppat/mediated-mailbox-mcp/process/version"
 	providerlib "github.com/ppat/mediated-mailbox-mcp/provider"
@@ -102,22 +101,11 @@ func Run(ctx context.Context, args, environ []string, stdout, stderr io.Writer, 
 		Operations:  func(c config.API) config.Operations { return c.Operations },
 		Serving:     func(c config.API) config.Serving { return c.Serving },
 		Validate:    config.API.Check,
-		CheckSchema: checkSchema,
+		CheckSchema: processdatabase.CheckSchema,
 		Components: []host.Component[config.API]{{
 			Name: "api", Mount: Mount, RefuseEnvironment: RefuseEnvironment, Assemble: fromConfiguration,
 		}},
 	})
-}
-
-// checkSchema refuses a schema this binary's migration chain cannot run on, read through pool under
-// the user pool connects as. The host runs it on each pool it opens, before the pool is used
-// (ADR-0140).
-func checkSchema(ctx context.Context, pool *pgxpool.Pool) error {
-	v, err := schemacompatibility.New(pool).SchemaVersions(ctx)
-	if err != nil {
-		return fmt.Errorf("reading the schema's versions: %w", err)
-	}
-	return migrations.Refuse(v.Applied, v.OldestChainVersion)
 }
 
 // fromConfiguration builds what the API server needs from the configuration, the scanner from its

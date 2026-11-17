@@ -38,9 +38,9 @@ a provider would otherwise write for itself.
 
 | Package | Holds |
 | --- | --- |
-| `process` itself | The spec and the process, `Spec`, `Endpoint`, `Job`, `Task`, `Capabilities`, `Process` and `OnePerProcess`, the build and the run, the servers, the operations endpoints, the runtime series, the stop order and the readiness reports ([ADR-0142](../docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md)) |
+| `process` itself | The spec and the process, `Spec`, `Endpoint`, `Job`, `Task`, `Capabilities`, `State` and `OnePerProcess`, `process.Run` and `process.RunContext`, the build and the run, the servers, the operations endpoints, the runtime series, the stop order and the readiness reports ([ADR-0142](../docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md)) |
 | `settings/` | The layering of defaults, one optional configuration file, environment variables and flags into the configuration type of each program that runs as a process, and the reading of a `config.Duration` |
-| `database/` | The connection a pool is opened over, every pool, the latency of every statement a connection runs, by the statement's name, the statistics of each pool, and the schema check, through `database.Get` and, for the migrator, `database.ForMigration` |
+| `database/` | The connection a pool is opened over, every pool, the latency of every statement a connection runs, by the statement's name, which its pure core `database/core` gives, the statistics of each pool, and the schema check, through `database.Get` and, for the migrator, `database.ForMigration` |
 | `schedule/` | The scheduler, which runs each job kind's plan, adding and dropping its jobs by key, and the helper job code starts a goroutine through ([ADR-0119](../docs/adr/operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md)) |
 | `sessions/` | The Session, its three members, the reload, the order of the reload, its failure rules, and who is told after it |
 | `accounts/` | The reading of the list of accounts |
@@ -49,6 +49,8 @@ a provider would otherwise write for itself.
 | `scanner/` | The scanner, built once per process, and the body-processing histogram |
 | `logging/` | The logger every program that runs as a process writes its JSON records to standard output through, and the reading of its `log_level` |
 | `version/` | The release version every binary reports through `--version` and every process's start banner shows |
+| `host/` | The host the API server, the UI and the worker run on until each is on its spec ([ADR-0138](../docs/adr/engineering/0138-one-host-runs-each-process-and-each-component-provides-its-parts.md)). It opens its pools through `database` and refuses the database driver's password variables through `process`, so neither is written twice |
+| `probes/`, `runtimemetrics/` | The operations endpoints' handler and the registration of the runtime series, which `process` and `host/` share while both run programs |
 
 Each package is admitted to each component by its own entry in that component's import list, and
 each has a list of its own in `.golangci.yaml`, so joining this family never widens what any
@@ -134,7 +136,7 @@ the schema check.
 | Function | What it returns |
 | --- | --- |
 | `database.Get` | A pool for the part that asks, opened the first time that pool is asked for and kept in the process. In a process that runs until it is told to stop, it runs the schema check on the pool before returning it, so a schema the process cannot run on stops the start before anything serves ([ADR-0140](../docs/adr/data/0140-each-migration-declares-the-oldest-chain-that-runs-on-it.md)) |
-| `database.ForMigration` | The migrator's pool, with no schema check. It is the migrator's alone ([ADR-0142](../docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md)) |
+| `database.ForMigration` | The migrator's pool, with no schema check. It takes only a configuration type with an unexported method that only `config.Migrator` has, so the compiler refuses a deployable's own configuration there. Left to review are a `Build` that makes a `config.Migrator` value of its own, by a literal, by its defaults or as a zero value, and, until `process/host` is deleted, `database.Open`, the opening the host uses with no schema check, `database.OpenPool`, exported for the worker's integration tests until the worker is on its spec, and a pool a deployable's code opens through the driver itself ([ADR-0142](../docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md)) |
 
 A process holds one or more pools, and every one of them is this package's. In the worker each job
 kind has a pool of its own, built for it and labelled with it, so one job kind cannot starve
@@ -143,7 +145,10 @@ another of connections
 Every other pool is built from the process, with the process's own logger and registerer, as a
 shared thing is, and keeps the label names every pool of the process registers its series under,
 which [ADR-0125](../docs/adr/engineering/0125-performance-is-measured-once-at-each-place-time-goes.md)
-puts before a shared thing's rule of no job kind.
+puts before a shared thing's rule of no job kind, so its series carry an empty `job_kind`, which a
+query reads as no job kind. `database.Get` reads from the capabilities it is handed whether the
+part is a job kind, and keeps the pools in a slot of the process, closed with what the other slots
+hold.
 
 The connection renders every connection setting into the connection string, caps each pool at the
 section's pool size, which in the worker sizes each job kind's pool alike
@@ -203,16 +208,17 @@ not do.
 
 This package holds the types
 [ADR-0142](../docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md) defines,
-`Spec`, `Endpoint`, `Job`, `Task`, `Capabilities`, `Process` and `OnePerProcess`, and
-`process.Run`, which runs one spec. What a spec lists, what the process hands each part it builds,
+`Spec`, `Endpoint`, `Job`, `Task`, `Capabilities`, `State` and `OnePerProcess`, and
+`process.Run`, which runs one spec as a `main.go` does and exits with status 1 when the run fails. What a spec lists, what the process hands each part it builds,
 and what the process does from start to stop are that record's. The process serves the application
 server and the operations endpoints under one set of connection limits
 ([ADR-0130](../docs/adr/operability/0130-the-api-server-bounds-what-one-request-can-make-it-hold.md)).
 The shared parts of the configuration it reads, `config.Process`, `config.Operations` and
 `config.Serving`, are `core/config`'s.
 
-A test or a harness runs a program through its spec and `process.Run`, as `main.go` does, and
-substitutes a shared thing as
+A test or a harness runs a program through its spec and `process.RunContext`, which runs it as
+`process.Run` does until a context it is given ends, with the writers it is given, and returns the
+run's error rather than exiting. It substitutes a shared thing as
 [ADR-0142](../docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md) states.
 
 The case for one package over the same work written in each program is that each copy drifts on its
@@ -268,15 +274,27 @@ A job kind's `Build` returns its plan, `schedule.Plan`.
 schedule.Plan{
     Keys    func(ctx context.Context) ([]string, error) // the accounts, or the plans, to run for now
     Recheck time.Duration                               // how often Keys is read again
+    Backoff schedule.Backoff                            // the listing's backoff after a failure
+    Late    time.Duration                               // how long after its latest success the listing is late
     Job     func(key string) (schedule.Job, error)      // the job for one key
     Dropped func(key string)                            // what follows when a key is no longer listed
+    Woken   func(wake func())                           // handed what asks Keys again at once
 }
 ```
 
 A key is an account for backfill and delta sync, and a plan for apply and rollback. A job kind that
 calls a provider lists the accounts the Session holds workable. The scheduler keeps one job per key
-the plan lists, adds and drops jobs as the list changes, and reports the job kind not ready until
-its first listing has succeeded. How a job is woken, run, backed off and stopped is
+the plan lists, adds and drops jobs as the list changes, and reports the job kind not ready, as
+`<job kind> listing`, until its first listing has succeeded. The listing is itself a job of the job
+kind, asked at once, then every `Recheck` and whenever the function `Woken` hands out is called,
+which a plan gives to what changes its keys, such as the Session's reload. A key the listing no
+longer finds is told to `Dropped` only once its job has returned, and an empty key fails the
+listing, since the listing's own job is keyed by the job kind alone. A plan with no `Keys` or no
+`Job` is refused when the process hands it to the scheduler, which fails the start before anything
+serves, with an error naming the job kind. While it runs the scheduler has no failure of its own,
+since a job's failure fails its run and a listing that fails is asked again after its backoff. Until the worker is on its
+spec, its job kinds keep their own reload functions, which add and drop their jobs on this
+scheduler. How a job is woken, run, backed off and stopped is
 [ADR-0119](../docs/adr/operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md)'s.
 
 The worker's job code starts a goroutine only through the scheduler's helper, `schedule.Go`, which

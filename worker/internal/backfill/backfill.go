@@ -36,6 +36,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/assembly"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/session"
+	"github.com/ppat/mediated-mailbox-mcp/process/schedule"
 	providerlib "github.com/ppat/mediated-mailbox-mcp/provider"
 	"github.com/ppat/mediated-mailbox-mcp/provider/google"
 	"github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail"
@@ -44,7 +45,6 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/pass1"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/pass2"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/core/backfill/due"
-	"github.com/ppat/mediated-mailbox-mcp/worker/internal/schedule"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/series"
 )
 

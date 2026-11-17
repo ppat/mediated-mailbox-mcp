@@ -1,7 +1,7 @@
 control: A process refuses the environment the database driver and every component it hosts refuse, before its configuration is read
 removes: the refusals a component hands the host are never run, so the API server starts under MCPGODEBUG
 packages: ./process/host ./api/app
-tests: TestTheEnvironmentIsRefusedBeforeTheConfigurationIsRead/until_stopped/COMPONENTDEBUG= TestTheEnvironmentIsRefusedBeforeTheConfigurationIsRead/once/COMPONENTDEBUG= TestMCPGODEBUGStopsTheStart
+tests: TestTheEnvironmentIsRefusedBeforeTheConfigurationIsRead/until_stopped/COMPONENTDEBUG= TestMCPGODEBUGStopsTheStart
 scheduled-count: no
 
 diff --git a/process/host/host.go b/process/host/host.go

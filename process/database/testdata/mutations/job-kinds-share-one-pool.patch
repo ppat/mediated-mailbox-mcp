@@ -1,0 +1,19 @@
+control: Each job kind has a pool of its own and the process one more, every pool closed with the slots
+removes: every part shares one pool, so one job kind can starve another of connections
+packages: ./process/database
+tests: TestEachJobKindHasAPoolOfItsOwnAndTheProcessOneMore
+scheduled-count: no
+integration: yes
+
+diff --git a/process/database/database.go b/process/database/database.go
+--- a/process/database/database.go
++++ b/process/database/database.go
+@@ -45,7 +45,7 @@
+ 	if kind != "" {
+ 		reg = p.Metrics()
+ 	}
+-	return set.open(ctx, "job kind "+kind, c.DatabasePart(), reg, CheckSchema)
++	return set.open(ctx, "job kind", c.DatabasePart(), reg, CheckSchema)
+ }
+ 
+ // ForMigration returns the migrator's pool, opened from its database part with no schema check, since

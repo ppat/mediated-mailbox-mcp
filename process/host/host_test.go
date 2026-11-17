@@ -94,37 +94,9 @@ func checkOwn(o own) error {
 	return nil
 }
 
-// onceConfig is a root configuration type of a process that runs once, the process's section inline
-// beside its own.
-type onceConfig struct {
-	coreconfig.Process `yaml:",inline"`
-	Own                own `yaml:"own"`
-}
-
-// once returns a spec over onceConfig whose work records that it ran and returns workErr.
-func once(worked *atomic.Bool, refuse func([]string) error, work func(context.Context, host.Provided[onceConfig]) error) host.Once[onceConfig] {
-	return host.Once[onceConfig]{
-		Name:     "mediated-mailbox-test",
-		Defaults: onceConfig{Process: coreconfig.DefaultProcess(), Own: own{Value: 1}},
-		Process:  func(c onceConfig) coreconfig.Process { return c.Process },
-		Validate: func(c onceConfig) error {
-			return checkOwn(c.Own)
-		},
-		Component:         "comp",
-		RefuseEnvironment: refuse,
-		Work: func(ctx context.Context, p host.Provided[onceConfig]) error {
-			worked.Store(true)
-			if work == nil {
-				return nil
-			}
-			return work(ctx, p)
-		},
-	}
-}
-
-// starts are the two ways a composition root runs its process, each started the same way. Each runs
-// the process with args and environ and reports whether it went on to its work, assembling its
-// components or doing its one piece of work.
+// starts are the ways a composition root runs its process, one since a program that runs once runs
+// on its spec through package process. Each runs the process with args and environ and reports
+// whether it went on to its work, assembling its components.
 var starts = []struct {
 	name string
 	run  func(t *testing.T, refuse func([]string) error, args, environ []string, stdout, stderr io.Writer, logger *slog.Logger, level *slog.LevelVar) (bool, error)
@@ -133,16 +105,6 @@ var starts = []struct {
 		var assembled atomic.Bool
 		err := run(t, spec(&assembled, host.Parts{}, refuse), args, environ, stdout, stderr, logger, level)
 		return assembled.Load(), err
-	}},
-	{"once", func(t *testing.T, refuse func([]string) error, args, environ []string, stdout, stderr io.Writer, logger *slog.Logger, level *slog.LevelVar) (bool, error) {
-		var worked atomic.Bool
-		err := host.RunOnce(t.Context(), args, environ, stdout, stderr, logger, level, once(&worked, refuse, func(context.Context, host.Provided[onceConfig]) error {
-			return errors.New("the work ran")
-		}))
-		if err != nil && err.Error() == "the work ran" {
-			err = nil
-		}
-		return worked.Load(), err
 	}},
 }
 
@@ -313,8 +275,8 @@ func TestTheProcessSectionsAreValidated(t *testing.T) {
 }
 
 // The start banner goes to the standard error the process is handed and names the process, its
-// release version and where it serves, and standard output carries only the logger's records. A
-// process that runs once serves nowhere, so its banner names it and its version alone (ADR-0122).
+// release version and where it serves, and standard output carries only the logger's records
+// (ADR-0122).
 func TestTheStartBannerGoesToStandardError(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	var assembled atomic.Bool
@@ -326,14 +288,6 @@ func TestTheStartBannerGoesToStandardError(t *testing.T) {
 	want := "mediated-mailbox-test " + version.Number + "\n  serves  https on 127.0.0.1:0\n  probes  http on 127.0.0.1:0\n"
 	if stderr.String() != want {
 		t.Errorf("standard error %q, want %q", stderr.String(), want)
-	}
-	stderr.Reset()
-	var worked atomic.Bool
-	if err := host.RunOnce(t.Context(), nil, nil, &stdout, &stderr, logger, new(slog.LevelVar), once(&worked, nil, nil)); err != nil {
-		t.Fatal(err)
-	}
-	if want := "mediated-mailbox-test " + version.Number + "\n"; stderr.String() != want || !worked.Load() {
-		t.Errorf("a process that runs once wrote standard error %q and did its work %v, want %q and true", stderr.String(), worked.Load(), want)
 	}
 	for line := range strings.Lines(stdout.String()) {
 		if !strings.HasPrefix(line, "{") {
@@ -885,47 +839,6 @@ func TestEachHandlerIsServedWhereItIsMounted(t *testing.T) {
 	want := map[string]string{"/one/x": "200 one", "/single": "200 one", "/two/y": "200 two", "/elsewhere": "404 404 page not found", "/healthz": "404 404 page not found"}
 	if diff := cmp.Diff(want, got, compare.Options); diff != "" {
 		t.Errorf("answers (-want +got):\n%s", diff)
-	}
-}
-
-// A process that runs once does its work with what the host provides a component, a logger and a
-// registerer carrying the component's name and the pools the work opens, returns the work's error, and
-// has closed every pool by the time it returns. It holds no operations section, so it has no probe
-// address to serve on (ADR-0138, ADR-0139).
-func TestAProcessThatRunsOnceDoesItsWorkAndClosesItsPools(t *testing.T) {
-	password := filepath.Join(t.TempDir(), "password")
-	if err := os.WriteFile(password, []byte("secret\n"), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	var pool *pgxpool.Pool
-	var logs bytes.Buffer
-	var worked atomic.Bool
-	err := host.RunOnce(t.Context(), nil, nil, io.Discard, io.Discard, slog.New(slog.NewJSONHandler(&logs, nil)), new(slog.LevelVar),
-		once(&worked, nil, func(ctx context.Context, p host.Provided[onceConfig]) error {
-			var err error
-			pool, err = p.OpenPool(ctx, coreconfig.Database{Host: "127.0.0.1", Port: 1, Name: "none", User: "nobody", SSLMode: "disable", PasswordFile: password, PoolSize: 1}, p.Registerer)
-			if err != nil {
-				return err
-			}
-			p.Logger.Info("working")
-			return errors.New("the work's own error")
-		}))
-	if err == nil || err.Error() != "the work's own error" {
-		t.Fatalf("RunOnce returned %v, want the work's own error", err)
-	}
-	if pool == nil {
-		t.Fatal("the work opened no pool")
-	}
-	if _, err := pool.Acquire(t.Context()); err == nil || !strings.Contains(err.Error(), "closed pool") {
-		t.Errorf("acquiring from the work's pool after RunOnce returned %v, want the pool closed", err)
-	}
-	if !strings.Contains(logs.String(), `"msg":"working","component":"comp"`) {
-		t.Errorf("the work's logger does not carry the component:\n%s", logs.String())
-	}
-	worked.Store(false)
-	err = host.RunOnce(t.Context(), []string{"--probe_listen=127.0.0.1:0"}, nil, io.Discard, io.Discard, discard(), new(slog.LevelVar), once(&worked, nil, nil))
-	if err == nil || !strings.HasPrefix(err.Error(), "loading the configuration: ") || worked.Load() {
-		t.Errorf("RunOnce given a probe address returned %v having worked %v, want the flag refused", err, worked.Load())
 	}
 }
 

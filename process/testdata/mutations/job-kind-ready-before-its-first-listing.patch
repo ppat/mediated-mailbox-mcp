@@ -1,0 +1,17 @@
+control: A job kind reports not ready until its plan's first listing has succeeded
+removes: a job kind is ready before any listing has succeeded
+packages: ./process
+tests: TestAJobKindsPlanRunsOnTheScheduler
+scheduled-count: no
+
+diff --git a/process/serve.go b/process/serve.go
+--- a/process/serve.go
++++ b/process/serve.go
+@@ -133,7 +133,6 @@
+ 		scheduler = schedule.New(p.run, metrics)
+ 		for _, l := range b.plans {
+ 			name := l.kind + " listing"
+-			p.report(name, NotReady, "no listing has succeeded yet")
+ 			err := scheduler.EnsurePlan(l.kind, l.plan, l.p.Logger(), func() { p.report(name, Ready, "") })
+ 			if err != nil {
+ 				err = fmt.Errorf("the scheduler refused the plan of the job kind %s: %w", l.kind, err)

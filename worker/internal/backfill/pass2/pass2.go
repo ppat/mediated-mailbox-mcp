@@ -25,10 +25,10 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/core/scangate"
+	"github.com/ppat/mediated-mailbox-mcp/process/schedule"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/pass1"
 	pass1core "github.com/ppat/mediated-mailbox-mcp/worker/internal/core/backfill/pass1"
 	core "github.com/ppat/mediated-mailbox-mcp/worker/internal/core/backfill/pass2"
-	"github.com/ppat/mediated-mailbox-mcp/worker/internal/schedule"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/series"
 )
 

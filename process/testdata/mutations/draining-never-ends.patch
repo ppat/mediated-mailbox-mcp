@@ -1,0 +1,17 @@
+control: A stopping process answers not ready, ends Draining, drains its requests, and only then ends its jobs and goroutines
+removes: Draining does not end when the process starts to stop, so an event stream holds the drain until it times out
+packages: ./process
+tests: TestTheProcessStopsInOrder
+scheduled-count: no
+
+diff --git a/process/serve.go b/process/serve.go
+--- a/process/serve.go
++++ b/process/serve.go
+@@ -186,7 +186,6 @@
+ 	case <-ctx.Done():
+ 	}
+ 	serving.Store(false)
+-	p.drain()
+ 	shutdown, cancel := context.WithTimeout(context.WithoutCancel(ctx), drainTimeout)
+ 	defer cancel()
+ 	if appServer != nil {

@@ -4,12 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
-	"log/slog"
 	"strings"
 	"testing"
 
 	"github.com/ppat/mediated-mailbox-mcp/migrator/app"
-	"github.com/ppat/mediated-mailbox-mcp/process/logging"
+	"github.com/ppat/mediated-mailbox-mcp/process"
 	"github.com/ppat/mediated-mailbox-mcp/process/version"
 )
 
@@ -21,16 +20,13 @@ var database = []string{"--database.host=db.example", "--database.name=mailbox",
 // a flag the configuration would refuse beside it stops nothing, and no configuration is logged
 // (ADR-0078).
 func TestVersionPrintsTheReleaseVersionAndReadsNoConfiguration(t *testing.T) {
-	var stdout, logs bytes.Buffer
-	err := app.Run(t.Context(), []string{"--version", "--no.such=1"}, nil, &stdout, io.Discard, slog.New(slog.NewJSONHandler(&logs, nil)), new(slog.LevelVar))
+	var stdout bytes.Buffer
+	err := process.RunContext(t.Context(), []string{"--version", "--no.such=1"}, nil, &stdout, io.Discard, app.Spec())
 	if err != nil {
-		t.Fatalf("Run returned %v, want nil", err)
+		t.Fatalf("the run returned %v, want nil", err)
 	}
 	if want := version.Number + "\n"; stdout.String() != want {
-		t.Errorf("Run printed %q, want %q", stdout.String(), want)
-	}
-	if logs.Len() != 0 {
-		t.Errorf("Run logged %s, want nothing", logs.String())
+		t.Errorf("the run printed %q and logged nothing else, want %q", stdout.String(), want)
 	}
 }
 
@@ -39,13 +35,13 @@ func TestVersionPrintsTheReleaseVersionAndReadsNoConfiguration(t *testing.T) {
 // refuses it (ADR-0078).
 func TestAPasswordVariableRefusesTheStart(t *testing.T) {
 	for _, name := range []string{"PGPASSWORD", "PGSSLPASSWORD"} {
-		var logs bytes.Buffer
-		err := app.Run(t.Context(), database, []string{name + "="}, io.Discard, io.Discard, slog.New(slog.NewJSONHandler(&logs, nil)), new(slog.LevelVar))
+		var stdout bytes.Buffer
+		err := process.RunContext(t.Context(), database, []string{name + "="}, &stdout, io.Discard, app.Spec())
 		if err == nil || !strings.Contains(err.Error(), name) {
-			t.Errorf("with %s set, Run returned %v, want the start refused naming it", name, err)
+			t.Errorf("with %s set, the run returned %v, want the start refused naming it", name, err)
 		}
-		if logs.Len() != 0 {
-			t.Errorf("with %s set, Run logged %s before refusing, want nothing", name, logs.String())
+		if got := messages(t, stdout.String()); len(got) != 1 || got[0] != "the process failed" {
+			t.Errorf("with %s set, the run logged %v, want only the refusal and no configuration before it", name, got)
 		}
 	}
 }
@@ -57,25 +53,26 @@ func TestAPasswordVariableRefusesTheStart(t *testing.T) {
 // connection is made.
 func TestTheStartLogsItsConfigurationThenSetsItsLevelAndWritesItsBanner(t *testing.T) {
 	var stdout, stderr bytes.Buffer
-	level := new(slog.LevelVar)
-	err := app.Run(t.Context(), append([]string{"--log_level=error"}, database...), nil, &stdout, &stderr, logging.New(&stdout, level), level)
+	err := process.RunContext(t.Context(), append([]string{"--log_level=error"}, database...), nil, &stdout, &stderr, app.Spec())
 	if err == nil || !strings.Contains(err.Error(), "reading the password file") {
-		t.Fatalf("Run returned %v, want the start to stop at reading the password file", err)
-	}
-	if level.Level() != slog.LevelError {
-		t.Errorf("the level is %s, want the one log_level names", level.Level())
+		t.Fatalf("the run returned %v, want the start to stop at reading the password file", err)
 	}
 	if want := "mediated-mailbox-migrator " + version.Number + "\n"; stderr.String() != want {
 		t.Errorf("the banner is %q, want %q", stderr.String(), want)
 	}
 	var logged []string
 	for line := range strings.Lines(stdout.String()) {
-		var record struct{ Msg, Path string }
+		var record struct{ Msg, Path, Level string }
 		if err := json.Unmarshal([]byte(line), &record); err != nil {
 			t.Fatalf("standard output holds a line that is not a JSON record: %q", line)
 		}
-		if record.Msg == "configuration" {
+		switch {
+		case record.Msg == "configuration":
 			logged = append(logged, record.Path)
+		case record.Level != "ERROR":
+			// Past the configuration, the level log_level names holds, so nothing below error is
+			// written.
+			t.Errorf("the run wrote %q at %s, below the level log_level names", record.Msg, record.Level)
 		}
 	}
 	if !strings.Contains(strings.Join(logged, " "), "log_level") || !strings.Contains(strings.Join(logged, " "), "database.password_file") {
@@ -101,12 +98,26 @@ func TestAnUnusableConfigurationIsRefused(t *testing.T) {
 		{[]string{"--database.host=db.example", "--database.name=mailbox", "--database.password_file=/absent/password", "--application_user=mailbox_app"}, "loading the configuration: database.user is required"},
 	} {
 		var stderr bytes.Buffer
-		err := app.Run(t.Context(), c.args, nil, io.Discard, &stderr, slog.New(slog.DiscardHandler), new(slog.LevelVar))
+		err := process.RunContext(t.Context(), c.args, nil, io.Discard, &stderr, app.Spec())
 		if err == nil || !strings.HasPrefix(err.Error(), c.want) {
-			t.Errorf("%v: Run returned %v, want an error starting %q", c.args, err, c.want)
+			t.Errorf("%v: the run returned %v, want an error starting %q", c.args, err, c.want)
 		}
 		if stderr.Len() != 0 {
-			t.Errorf("%v: Run wrote the banner %q before refusing", c.args, stderr.String())
+			t.Errorf("%v: the run wrote the banner %q before refusing", c.args, stderr.String())
 		}
 	}
+}
+
+// messages returns the message of each JSON record in logs.
+func messages(t *testing.T, logs string) []string {
+	t.Helper()
+	var got []string
+	for line := range strings.Lines(logs) {
+		var record struct{ Msg string }
+		if err := json.Unmarshal([]byte(line), &record); err != nil {
+			t.Fatalf("the log holds a line that is not a JSON record: %q", line)
+		}
+		got = append(got, record.Msg)
+	}
+	return got
 }

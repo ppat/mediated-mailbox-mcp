@@ -13,8 +13,8 @@ import (
 // sets so that a panic in a job stops nothing but its run. The scheduler recovers a panic in a run on
 // the run's own goroutine, and Go cannot recover a panic on any other goroutine, so job code starts a
 // goroutine only through schedule.Go, which recovers it there and returns it as the run's error. The
-// rule covers every package under worker/ outside worker/internal/schedule, the package that holds the
-// scheduler and schedule.Go, and exempts test files.
+// rule covers every package under worker/ and exempts test files. The scheduler and schedule.Go sit in
+// the process family's process/schedule, outside the worker, which the analyser does not read.
 //
 // It holds the API server's and the UI's code, every package under api/ and ui/, to the rule ADR-0138
 // sets, that a component starts a goroutine only through the starter the host hands its assembly,
@@ -38,10 +38,9 @@ var Goroutines = &analysis.Analyzer{
 }
 
 const (
-	workerPath    = modulePath + "/worker"
-	schedulerPath = workerPath + "/internal/schedule"
-	apiPath       = modulePath + "/api"
-	uiPath        = modulePath + "/ui"
+	workerPath = modulePath + "/worker"
+	apiPath    = modulePath + "/api"
+	uiPath     = modulePath + "/ui"
 )
 
 // goroutineStarters are the functions, by their full names, that run a function given to them on a
@@ -71,7 +70,7 @@ func runGoroutines(pass *analysis.Pass) (any, error) {
 	path := pass.Pkg.Path()
 	var message string
 	switch {
-	case within(path, workerPath) && !within(path, schedulerPath):
+	case within(path, workerPath):
 		message = goroutinesMessage
 	case within(path, apiPath), within(path, uiPath):
 		message = componentGoroutinesMessage

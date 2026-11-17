@@ -1,0 +1,18 @@
+control: Every series a part registers carries the program's name as component and a job kind's its job_kind, and the runtime series carry neither
+removes: the runtime series are registered under the component label, as if a part owned them
+packages: ./process
+tests: TestEverySeriesIsLabelledWithWhatRegisteredIt
+scheduled-count: no
+
+diff --git a/process/process.go b/process/process.go
+--- a/process/process.go
++++ b/process/process.go
+@@ -62,7 +62,7 @@
+ 	registry := prometheus.NewRegistry()
+ 	// The runtime series are the process's, registered on the registry itself, so they carry no
+ 	// component and no job kind (ADR-0125).
+-	if err := runtimemetrics.Register(registry); err != nil {
++	if err := runtimemetrics.Register(prometheus.WrapRegistererWith(prometheus.Labels{componentLabel: name}, registry)); err != nil {
+ 		return nil, err
+ 	}
+ 	p := &proc{

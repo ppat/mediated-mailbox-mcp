@@ -1,0 +1,17 @@
+control: A program that runs once does its work with capabilities carrying its name, and returns once every goroutine the work started has returned and its slots are closed
+removes: a program that runs once closes its slots before the goroutines its work started have returned
+packages: ./process
+tests: TestAProgramThatRunsOnceDoesItsWorkAndClosesItsSlots
+scheduled-count: no
+
+diff --git a/process/serve.go b/process/serve.go
+--- a/process/serve.go
++++ b/process/serve.go
+@@ -29,6 +29,7 @@
+ 		return errors.Join(err, p.stop())
+ 	}
+ 	err = work(ctx)
++	p.closeSlots()
+ 	return errors.Join(err, p.stop())
+ }
+ 
