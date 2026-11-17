@@ -1,0 +1,18 @@
+control: A program that runs once does its work with capabilities carrying its name, and returns once every goroutine the work started has returned and its slots are closed
+removes: a program that runs once returns once its goroutines have returned without closing its slots
+packages: ./process
+tests: TestAProgramThatRunsOnceDoesItsWorkAndClosesItsSlots
+scheduled-count: no
+
+diff --git a/process/serve.go b/process/serve.go
+--- a/process/serve.go
++++ b/process/serve.go
+@@ -29,7 +29,7 @@
+ 		return errors.Join(err, p.stop())
+ 	}
+ 	err = work(ctx)
+-	return errors.Join(err, p.stop())
++	return errors.Join(err, p.joinGoroutines())
+ }
+ 
+ // built is what the builds of a spec that runs until it is told to stop returned.

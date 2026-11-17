@@ -1,7 +1,7 @@
 control: A binary refuses a schema whose compatibility floor is above its chain or that has not applied its chain, and runs on every other
 removes: a newer schema whose floor the chain meets is refused as well, so a rollback across migrations that left the floor alone does not serve
-packages: ./db/migrations ./api/app ./ui/app ./worker/app
-tests: TestABinaryRefusesASchemaItsChainCannotRunOn TestTheAPIServerRefusesASchemaItCannotRunOn TestTheUIRefusesASchemaItCannotRunOn TestTheWorkerRefusesASchemaItCannotRunOn
+packages: ./db/migrations ./process/database
+tests: TestABinaryRefusesASchemaItsChainCannotRunOn TestTheSchemaCheckRefusesASchemaTheChainCannotRunOn
 scheduled-count: no
 integration: yes
 

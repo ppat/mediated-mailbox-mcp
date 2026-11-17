@@ -10,32 +10,22 @@ The demonstrations of the controls whose patches sit in `db/`. [MUTATIONS.md](..
 
 ## A binary refuses a schema whose compatibility floor is above its chain or that has not applied its chain, and runs on every other
 
-- **Date · evidence:** 2026-11-12 · [pull request #421](https://github.com/ppat/mediated-mailbox-mcp/pull/421), at RAPID_SEED=1 · and every break again on 2026-11-17 at RAPID_SEED=1, after the two database users changed the code, tests or patches the row rests on · [pull request #451](https://github.com/ppat/mediated-mailbox-mcp/pull/451)
+- **Date · evidence:** 2026-11-12 · [pull request #421](https://github.com/ppat/mediated-mailbox-mcp/pull/421), at RAPID_SEED=1 · and every break again on 2026-11-17 at RAPID_SEED=1, after the two database users changed the code, tests or patches the row rests on · [pull request #451](https://github.com/ppat/mediated-mailbox-mcp/pull/451), and every break again on 2026-11-17 at RAPID_SEED=1, after the process package, with the scheduler and the database code moved into the process family, changed the code, tests or patches the row rests on · [pull request #453](https://github.com/ppat/mediated-mailbox-mcp/pull/453)
 - **Break (1):** a floor above the chain is not refused, so a binary runs on a schema a migration it cannot run on left
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/api/app`:** `TestTheAPIServerRefusesASchemaItCannotRunOn`
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/migrations`:** `TestABinaryRefusesASchemaItsChainCannotRunOn`, `TestABinaryRefusesASchemaItsChainCannotRunOn/a_newer_schema_whose_floor_is_above_its_chain`, `TestABinaryRefusesASchemaItsChainCannotRunOn/the_floor_one_above_its_chain`
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/app`:** `TestTheUIRefusesASchemaItCannotRunOn`
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/worker/app`:** `TestTheWorkerRefusesASchemaItCannotRunOn`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/database`:** `TestTheSchemaCheckRefusesASchemaTheChainCannotRunOn`
 - **Break (2):** a floor at the chain is refused as well, so a binary refuses the schema its own release raised the floor to
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/api/app`:** `TestTheAPIServerRefusesASchemaItCannotRunOn`
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/migrations`:** `TestABinaryRefusesASchemaItsChainCannotRunOn`, `TestABinaryRefusesASchemaItsChainCannotRunOn/a_newer_schema_whose_floor_its_chain_meets`, `TestABinaryRefusesASchemaItsChainCannotRunOn/the_floor_at_its_chain`
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/app`:** `TestTheUIRefusesASchemaItCannotRunOn`
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/worker/app`:** `TestTheWorkerRefusesASchemaItCannotRunOn`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/database`:** `TestTheSchemaCheckRefusesASchemaTheChainCannotRunOn`
 - **Break (3):** a database that has not applied the chain is not refused, so a binary runs before its release's migration step
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/api/app`:** `TestTheAPIServerRefusesASchemaItCannotRunOn`
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/migrations`:** `TestABinaryRefusesASchemaItsChainCannotRunOn`, `TestABinaryRefusesASchemaItsChainCannotRunOn/nothing_applied`, `TestABinaryRefusesASchemaItsChainCannotRunOn/the_chain's_newest_migration_not_applied`
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/app`:** `TestTheUIRefusesASchemaItCannotRunOn`
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/worker/app`:** `TestTheWorkerRefusesASchemaItCannotRunOn`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/database`:** `TestGetChecksTheSchemaAndForMigrationDoesNot`, `TestTheSchemaCheckRefusesASchemaTheChainCannotRunOn`
 - **Break (4):** a newer schema whose floor the chain meets is refused as well, so a rollback across migrations that left the floor alone does not serve
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/api/app`:** `TestTheAPIServerRefusesASchemaItCannotRunOn`
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/migrations`:** `TestABinaryRefusesASchemaItsChainCannotRunOn`, `TestABinaryRefusesASchemaItsChainCannotRunOn/a_newer_schema_whose_floor_its_chain_meets`
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/app`:** `TestTheUIRefusesASchemaItCannotRunOn`
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/worker/app`:** `TestTheWorkerRefusesASchemaItCannotRunOn`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/database`:** `TestTheSchemaCheckRefusesASchemaTheChainCannotRunOn`
 - **Break (5):** the chain's version is its oldest migration rather than its newest, so a binary takes itself for older than it is
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/api/app`:** `TestTheAPIServerRefusesASchemaItCannotRunOn`
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/migrations`:** `TestABinaryRefusesASchemaItsChainCannotRunOn`, `TestABinaryRefusesASchemaItsChainCannotRunOn/a_newer_schema_whose_floor_its_chain_meets`, `TestABinaryRefusesASchemaItsChainCannotRunOn/the_chain's_newest_migration_not_applied`, `TestABinaryRefusesASchemaItsChainCannotRunOn/the_floor_at_its_chain`, `TestTheChainsVersionIsItsNewestMigration`
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/app`:** `TestTheUIRefusesASchemaItCannotRunOn`
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/worker/app`:** `TestTheWorkerRefusesASchemaItCannotRunOn`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/database`:** `TestGetChecksTheSchemaAndForMigrationDoesNot`, `TestTheSchemaCheckRefusesASchemaTheChainCannotRunOn`
 
 ## A message is stored refused only with the size bound it was refused under, and in no other state with one
 

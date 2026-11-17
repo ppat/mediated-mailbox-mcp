@@ -1,0 +1,19 @@
+control: The application server serves TLS when given a key pair, read from its mounted files on each handshake, and a pair that does not load refuses the start
+removes: the key pair is not loaded before the process serves, so a process whose mounts cannot serve starts and answers no handshake
+packages: ./process
+tests: TestAKeyPairThatDoesNotLoadRefusesTheStart
+scheduled-count: no
+
+diff --git a/process/serve.go b/process/serve.go
+--- a/process/serve.go
++++ b/process/serve.go
+@@ -117,9 +117,6 @@
+ func (p *proc) serveOn(ctx context.Context, app, probeListener net.Listener, s config.Serving, b built) error {
+ 	var tlsConf *tls.Config
+ 	if app != nil && s.ServesTLS() {
+-		if _, err := tls.LoadX509KeyPair(s.TLSCert, s.TLSKey); err != nil {
+-			return errors.Join(fmt.Errorf("loading the TLS key pair: %w", err), closeListeners(app, probeListener), p.stop())
+-		}
+ 		tlsConf = tlsConfig(s.TLSCert, s.TLSKey)
+ 	}
+ 	var scheduler *schedule.Scheduler

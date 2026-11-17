@@ -24,12 +24,12 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/core/policy"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/core/scangate"
+	"github.com/ppat/mediated-mailbox-mcp/process/schedule"
 	"github.com/ppat/mediated-mailbox-mcp/provider/mail/fake"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/marker"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/pass1"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/pass2"
-	"github.com/ppat/mediated-mailbox-mcp/worker/internal/schedule"
 )
 
 // codeText is a one-time code that the default trigger words catch and the narrow ones below do not.

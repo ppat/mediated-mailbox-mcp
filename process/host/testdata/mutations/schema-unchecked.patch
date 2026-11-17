@@ -5,11 +5,10 @@ tests: TestEveryPoolIsCheckedBeforeItIsHandedOut
 scheduled-count: no
 
 diff --git a/process/host/host.go b/process/host/host.go
-index 2a64c732..eb052c14 100644
 --- a/process/host/host.go
 +++ b/process/host/host.go
-@@ -518,11 +518,11 @@ func (h *Host) OpenPool(ctx context.Context, c dbconnectcore.Config, reg prometh
- 		return nil, fmt.Errorf("configuring the database connection of %s: %w", c.User, err)
+@@ -417,11 +417,11 @@
+ 		return nil, err
  	}
  	h.mu.Lock()
  	h.pools = append(h.pools, pool)

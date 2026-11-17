@@ -1,0 +1,18 @@
+control: A goroutine started through Go is the process's, its panic the failure of what started it, waited for before the slots close, and refused once the process waits
+removes: a goroutine's panic is recovered and dropped, so the process serves on as if nothing failed
+packages: ./process
+tests: TestAGoroutineStartedThroughGoIsTheProcesss
+scheduled-count: no
+
+diff --git a/process/process.go b/process/process.go
+--- a/process/process.go
++++ b/process/process.go
+@@ -151,7 +151,7 @@
+ 	go func() {
+ 		defer p.started.Done()
+ 		if err := recovered(func() error { run(p.run); return nil }); err != nil {
+-			p.goroutineFailed(fmt.Errorf("%s goroutine %s: %w", owner, name, err))
++			_ = fmt.Errorf("%s goroutine %s: %w", owner, name, err)
+ 		}
+ 	}()
+ 	return true

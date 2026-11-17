@@ -1,0 +1,63 @@
+control: The scheduler refuses a plan it could never run, and the refusal stops the process in order naming the job kind
+removes: the job kinds' plans are ensured only once the process serves, so a plan the scheduler refuses fails a process that has already announced it serves
+packages: ./process
+tests: TestASchedulerThatRefusesAPlanStopsTheProcessInOrder
+scheduled-count: no
+
+diff --git a/process/serve.go b/process/serve.go
+--- a/process/serve.go
++++ b/process/serve.go
+@@ -122,26 +122,6 @@
+ 		}
+ 		tlsConf = tlsConfig(s.TLSCert, s.TLSKey)
+ 	}
+-	var scheduler *schedule.Scheduler
+-	if len(b.plans) > 0 {
+-		// The scheduler is the process's, its series labelled with the program's name and no job kind,
+-		// each job's series carrying its own job kind (ADR-0119, ADR-0142).
+-		metrics, err := schedule.NewMetrics(p.part("scheduler", "").Metrics())
+-		if err != nil {
+-			return errors.Join(err, closeListeners(app, probeListener), p.stop())
+-		}
+-		scheduler = schedule.New(p.run, metrics)
+-		for _, l := range b.plans {
+-			name := l.kind + " listing"
+-			p.report(name, NotReady, "no listing has succeeded yet")
+-			err := scheduler.EnsurePlan(l.kind, l.plan, l.p.Logger(), func() { p.report(name, Ready, "") })
+-			if err != nil {
+-				err = fmt.Errorf("the scheduler refused the plan of the job kind %s: %w", l.kind, err)
+-				scheduler.Stop()
+-				return errors.Join(err, closeListeners(app, probeListener), p.stop())
+-			}
+-		}
+-	}
+ 
+ 	var serving atomic.Bool
+ 	ready := func(*http.Request) (bool, string) {
+@@ -179,6 +159,26 @@
+ 	}
+ 	serving.Store(true)
+ 	p.logger.Info("serving", "listen", address(app), "probe_listen", probeListener.Addr().String(), "tls", tlsConf != nil)
++	var scheduler *schedule.Scheduler
++	if len(b.plans) > 0 {
++		// The scheduler is the process's, its series labelled with the program's name and no job kind,
++		// each job's series carrying its own job kind (ADR-0119, ADR-0142).
++		metrics, err := schedule.NewMetrics(p.part("scheduler", "").Metrics())
++		if err != nil {
++			return errors.Join(err, closeListeners(app, probeListener), p.stop())
++		}
++		scheduler = schedule.New(p.run, metrics)
++		for _, l := range b.plans {
++			name := l.kind + " listing"
++			p.report(name, NotReady, "no listing has succeeded yet")
++			err := scheduler.EnsurePlan(l.kind, l.plan, l.p.Logger(), func() { p.report(name, Ready, "") })
++			if err != nil {
++				err = fmt.Errorf("the scheduler refused the plan of the job kind %s: %w", l.kind, err)
++				scheduler.Stop()
++				return errors.Join(err, closeListeners(app, probeListener), p.stop())
++			}
++		}
++	}
+ 
+ 	var err error
+ 	select {

@@ -1,7 +1,7 @@
 control: A binary refuses a schema whose compatibility floor is above its chain or that has not applied its chain, and runs on every other
 removes: a floor at the chain is refused as well, so a binary refuses the schema its own release raised the floor to
-packages: ./db/migrations ./api/app ./ui/app ./worker/app
-tests: TestABinaryRefusesASchemaItsChainCannotRunOn TestTheAPIServerRefusesASchemaItCannotRunOn TestTheUIRefusesASchemaItCannotRunOn TestTheWorkerRefusesASchemaItCannotRunOn
+packages: ./db/migrations ./process/database
+tests: TestABinaryRefusesASchemaItsChainCannotRunOn TestTheSchemaCheckRefusesASchemaTheChainCannotRunOn
 scheduled-count: no
 integration: yes
 

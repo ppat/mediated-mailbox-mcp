@@ -1,0 +1,18 @@
+control: A spec that cannot run is refused before anything is built
+removes: a spec that lists no endpoint, no job kind and no task is accepted, so the process serves its probes and runs nothing
+packages: ./process
+tests: TestASpecThatCannotRunIsRefused
+scheduled-count: no
+
+diff --git a/process/run.go b/process/run.go
+--- a/process/run.go
++++ b/process/run.go
+@@ -80,8 +80,6 @@
+ 		return errors.New("the spec names no program")
+ 	case spec.Task != nil && (len(spec.Endpoints) > 0 || len(spec.Jobs) > 0):
+ 		return errors.New("the spec lists a task beside endpoints or job kinds")
+-	case spec.Task == nil && len(spec.Endpoints) == 0 && len(spec.Jobs) == 0:
+-		return errors.New("the spec lists no endpoint, no job kind and no task")
+ 	}
+ 	return nil
+ }

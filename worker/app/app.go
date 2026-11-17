@@ -35,14 +35,13 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/core/config"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/credential/open"
-	"github.com/ppat/mediated-mailbox-mcp/db/migrations"
-	"github.com/ppat/mediated-mailbox-mcp/db/schemacompatibility"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/assembly"
+	processdatabase "github.com/ppat/mediated-mailbox-mcp/process/database"
 	"github.com/ppat/mediated-mailbox-mcp/process/host"
+	"github.com/ppat/mediated-mailbox-mcp/process/schedule"
 	"github.com/ppat/mediated-mailbox-mcp/process/settings"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/deltasync"
-	"github.com/ppat/mediated-mailbox-mcp/worker/internal/schedule"
 )
 
 // scannerSection is the scanner's section of the configuration, whose revision every verdict and
@@ -68,20 +67,9 @@ func Run(ctx context.Context, args, environ []string, stdout, stderr io.Writer, 
 		Process:     func(c config.Worker) config.Process { return c.Process },
 		Operations:  func(c config.Worker) config.Operations { return c.Operations },
 		Validate:    config.Worker.Check,
-		CheckSchema: checkSchema,
+		CheckSchema: processdatabase.CheckSchema,
 		Components:  []host.Component[config.Worker]{{Name: "worker", Assemble: fromConfiguration}},
 	})
-}
-
-// checkSchema refuses a schema this binary's migration chain cannot run on, read through pool under
-// the user pool connects as. The host runs it on each pool it opens, before the pool is used
-// (ADR-0140).
-func checkSchema(ctx context.Context, pool *pgxpool.Pool) error {
-	v, err := schemacompatibility.New(pool).SchemaVersions(ctx)
-	if err != nil {
-		return fmt.Errorf("reading the schema's versions: %w", err)
-	}
-	return migrations.Refuse(v.Applied, v.OldestChainVersion)
 }
 
 // fromConfiguration builds what the worker needs from the configuration, the scanner from its section

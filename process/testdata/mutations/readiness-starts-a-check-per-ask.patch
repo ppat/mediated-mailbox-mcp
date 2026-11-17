@@ -1,0 +1,17 @@
+control: The probes run nothing when asked, and the readiness probe answers the state last reported
+removes: each ask of the readiness probe starts a check through Go that runs until the process stops
+packages: ./process
+tests: TestTheProbesRunNothingWhenAsked
+scheduled-count: no
+
+diff --git a/process/serve.go b/process/serve.go
+--- a/process/serve.go
++++ b/process/serve.go
+@@ -148,6 +148,7 @@
+ 		if !serving.Load() {
+ 			return false, "not ready"
+ 		}
++		p.goroutine("readiness", "check", func(ctx context.Context) { <-ctx.Done() })
+ 		line, notReady := p.notReady()
+ 		return !notReady, line
+ 	}

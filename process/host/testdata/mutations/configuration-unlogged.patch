@@ -1,7 +1,7 @@
 control: The effective configuration is logged at start, each value with its source
 removes: the effective configuration is not logged
-packages: ./api/app ./ui/app ./worker/app ./migrator/app
-tests: TestTheEffectiveConfigurationIsLogged TestTheStartLogsItsConfigurationThenSetsItsLevelAndWritesItsBanner
+packages: ./api/app ./ui/app ./worker/app
+tests: TestTheEffectiveConfigurationIsLogged
 scheduled-count: no
 
 diff --git a/process/host/host.go b/process/host/host.go

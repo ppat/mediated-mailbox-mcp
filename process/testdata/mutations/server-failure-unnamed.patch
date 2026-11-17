@@ -1,0 +1,18 @@
+control: A server that fails while the process serves stops the process in order, with an error naming the server
+removes: a server's failure is returned as it came, without naming the server that failed
+packages: ./process
+tests: TestAServerThatFailsWhileServingStopsTheProcessInOrder
+scheduled-count: no
+
+diff --git a/process/serve.go b/process/serve.go
+--- a/process/serve.go
++++ b/process/serve.go
+@@ -272,7 +272,7 @@
+ 	if errors.Is(err, http.ErrServerClosed) {
+ 		return nil
+ 	}
+-	return fmt.Errorf("%s failed: %w", server, err)
++	return err
+ }
+ 
+ // tlsConfig reads the key pair from its mounted files on each handshake, so a renewed certificate

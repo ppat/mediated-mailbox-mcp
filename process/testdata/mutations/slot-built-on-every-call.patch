@@ -1,0 +1,19 @@
+control: A slot holds one thing, built once from the process's own capabilities, and a failed build keeps nothing
+removes: the slot builds its thing again on every call, so the second build registers its series again and the start fails
+packages: ./process
+tests: TestASlotHoldsOneThingBuiltFromTheProcess TestASlotHoldsOneThingBuiltFromTheProcess/a_job_kind_asks_first TestASlotHoldsOneThingBuiltFromTheProcess/an_endpoint_asks_first
+scheduled-count: no
+
+diff --git a/process/slot.go b/process/slot.go
+--- a/process/slot.go
++++ b/process/slot.go
+@@ -50,9 +50,6 @@
+ 
+ 	held.mu.Lock()
+ 	defer held.mu.Unlock()
+-	if v, ok := held.value.(T); ok && held.built {
+-		return v, nil
+-	}
+ 	v, closeSlot, err := build(ctx, pr.part(s.name, ""))
+ 	if err != nil {
+ 		return zero, err

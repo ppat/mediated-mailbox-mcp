@@ -1,19 +1,18 @@
-control: The goroutines analyser refuses a goroutine started in the worker's code outside its scheduler
+control: The goroutines analyser refuses a goroutine started in the worker's code
 removes: a package whose path only starts with the worker's is reported as the worker's
 packages: ./testsupport/analysis
 tests: TestGoroutines
 scheduled-count: no
 
 diff --git a/testsupport/analysis/goroutines.go b/testsupport/analysis/goroutines.go
-index a19e71a3..3f8615c7 100644
 --- a/testsupport/analysis/goroutines.go
 +++ b/testsupport/analysis/goroutines.go
-@@ -71,7 +71,7 @@ func runGoroutines(pass *analysis.Pass) (any, error) {
+@@ -70,7 +70,7 @@
  	path := pass.Pkg.Path()
  	var message string
  	switch {
--	case within(path, workerPath) && !within(path, schedulerPath):
-+	case strings.HasPrefix(path, workerPath) && !within(path, schedulerPath):
+-	case within(path, workerPath):
++	case strings.HasPrefix(path, workerPath):
  		message = goroutinesMessage
  	case within(path, apiPath), within(path, uiPath):
  		message = componentGoroutinesMessage

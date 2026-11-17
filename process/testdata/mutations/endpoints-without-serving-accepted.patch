@@ -1,0 +1,23 @@
+control: A spec that cannot run is refused before anything is built
+removes: a spec of endpoints whose configuration has no serving part is built and served on an address no configuration names
+packages: ./process
+tests: TestASpecThatCannotRunIsRefused
+scheduled-count: no
+
+diff --git a/process/run.go b/process/run.go
+--- a/process/run.go
++++ b/process/run.go
+@@ -165,11 +165,9 @@
+ 	p.operations = ops.OperationsPart()
+ 	var lines []string
+ 	if len(spec.Endpoints) > 0 {
+-		s, ok := any(c).(config.HasServing)
+-		if !ok {
+-			return p, nil, errors.New("the spec lists endpoints and its configuration has no serving part")
++		if s, ok := any(c).(config.HasServing); ok {
++			p.serving = s.ServingPart()
+ 		}
+-		p.serving = s.ServingPart()
+ 		lines = append(lines, fmt.Sprintf("serves  %s on %s", scheme(p.serving.ServesTLS()), p.serving.Listen))
+ 	}
+ 	return p, append(lines, "probes  http on "+p.operations.ProbeListen), nil

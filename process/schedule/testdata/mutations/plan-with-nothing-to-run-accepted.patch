@@ -1,0 +1,19 @@
+control: The scheduler refuses a plan it could never run, and the refusal stops the process in order naming the job kind
+removes: a plan with no listing or no job is ensured, so its listing fails on every ask or panics and the process serves on
+packages: ./process/schedule ./process
+tests: TestAPlanItCouldNeverRunIsRefused TestASchedulerThatRefusesAPlanStopsTheProcessInOrder
+scheduled-count: no
+
+diff --git a/process/schedule/plan.go b/process/schedule/plan.go
+--- a/process/schedule/plan.go
++++ b/process/schedule/plan.go
+@@ -38,9 +38,6 @@
+ //
+ // A plan with no Keys or no Job is refused, since its listing could never run.
+ func (s *Scheduler) EnsurePlan(kind string, plan Plan, logger *slog.Logger, listed func()) error {
+-	if plan.Keys == nil || plan.Job == nil {
+-		return errors.New("the plan has no listing or no job")
+-	}
+ 	key := Key{Kind: kind}
+ 	if plan.Woken != nil {
+ 		plan.Woken(func() { s.Wake(key) })

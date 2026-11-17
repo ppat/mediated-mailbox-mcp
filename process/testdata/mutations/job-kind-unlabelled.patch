@@ -1,0 +1,17 @@
+control: Every series a part registers carries the program's name as component and a job kind's its job_kind, and the runtime series carry neither
+removes: a job kind's series carry no job_kind, so one series registered by two job kinds collides
+packages: ./process
+tests: TestEverySeriesIsLabelledWithWhatRegisteredIt
+scheduled-count: no
+
+diff --git a/process/process.go b/process/process.go
+--- a/process/process.go
++++ b/process/process.go
+@@ -89,7 +89,6 @@
+ 	labels := prometheus.Labels{componentLabel: p.name}
+ 	logger := p.logger.With(componentLabel, p.name)
+ 	if jobKind != "" {
+-		labels[jobKindLabel] = jobKind
+ 		logger = logger.With(jobKindLabel, jobKind)
+ 	}
+ 	return &capabilities{

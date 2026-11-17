@@ -1,4 +1,4 @@
-control: The goroutines analyser refuses a goroutine started in the worker's code outside its scheduler
+control: The goroutines analyser refuses a goroutine started in the worker's code
 removes: a starter is reported only where it is called, so a method value or a method expression of one escapes
 packages: ./testsupport/analysis
 tests: TestGoroutines

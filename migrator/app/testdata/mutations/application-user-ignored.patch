@@ -5,14 +5,14 @@ tests: TestTheMigratorAppliesTheChainItCarries
 scheduled-count: no
 integration: yes
 
-diff --git a/migrator/app/app.go b/migrator/app/app.go
-index 71d734d7..e9f67be4 100644
---- a/migrator/app/app.go
-+++ b/migrator/app/app.go
-@@ -85,5 +85,5 @@ func apply(ctx context.Context, provided host.Provided[Configuration]) (err erro
- 	}
- 	db := stdlib.OpenDBFromPool(pool)
- 	defer func() { err = errors.Join(err, db.Close()) }()
--	return migrate.Apply(ctx, db, migrations.Chain(), provided.Loaded.Config.ApplicationUser, provided.Logger)
-+	return migrate.Apply(ctx, db, migrations.Chain(), migrate.Placeholder, provided.Logger)
+diff --git a/migrator/internal/migrate/migrate.go b/migrator/internal/migrate/migrate.go
+--- a/migrator/internal/migrate/migrate.go
++++ b/migrator/internal/migrate/migrate.go
+@@ -30,6 +30,6 @@
+ 	return func(ctx context.Context) (err error) {
+ 		db := stdlib.OpenDBFromPool(pool)
+ 		defer func() { err = errors.Join(err, db.Close()) }()
+-		return migrate.Apply(ctx, db, migrations.Chain(), c.ApplicationUser, p.Logger())
++		return migrate.Apply(ctx, db, migrations.Chain(), migrate.Placeholder, p.Logger())
+ 	}, nil
  }

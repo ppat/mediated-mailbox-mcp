@@ -1,0 +1,18 @@
+control: Only the migrator's configuration type can ask for the pool with no schema check
+removes: the UI's configuration type is given the migrator's unexported method, so the UI's Build can open a pool with no schema check
+packages: ./process/database
+tests: TestOnlyTheMigratorCanAskForThePoolWithNoSchemaCheck TestOnlyTheMigratorCanAskForThePoolWithNoSchemaCheck/formigrationui
+scheduled-count: no
+
+diff --git a/core/config/program.go b/core/config/program.go
+--- a/core/config/program.go
++++ b/core/config/program.go
+@@ -63,6 +63,8 @@
+ 
+ func (Migrator) migrator() {}
+ 
++func (UI) migrator() {}
++
+ // Defaults returns the API server's defaults on a node with processors processors.
+ func (API) Defaults(processors int) API { return DefaultAPI(processors) }
+ 

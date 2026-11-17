@@ -12,13 +12,13 @@ import (
 
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
 	"github.com/ppat/mediated-mailbox-mcp/core/policy"
+	"github.com/ppat/mediated-mailbox-mcp/process/schedule"
 	"github.com/ppat/mediated-mailbox-mcp/provider/mail/fake"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/marker"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/postgres"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/pass2"
 	core "github.com/ppat/mediated-mailbox-mcp/worker/internal/core/backfill/pass2"
-	"github.com/ppat/mediated-mailbox-mcp/worker/internal/schedule"
 )
 
 // active is the policy a running pass takes at each page's entry, as the worker's policy loader holds

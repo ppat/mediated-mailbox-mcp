@@ -1,7 +1,7 @@
 control: An unknown log level is refused, and each of the four names reads as its own level
 removes: the host does not refuse a log level that names none, so the process starts at info
 packages: ./process/host
-tests: TestTheConfiguredLevelGovernsTheLog/until_stopped/a_name_in_upper_case TestTheConfiguredLevelGovernsTheLog/until_stopped/an_offset TestTheConfiguredLevelGovernsTheLog/until_stopped/warning TestTheConfiguredLevelGovernsTheLog/once/a_name_in_upper_case TestTheConfiguredLevelGovernsTheLog/once/an_offset TestTheConfiguredLevelGovernsTheLog/once/warning
+tests: TestTheConfiguredLevelGovernsTheLog/until_stopped/a_name_in_upper_case TestTheConfiguredLevelGovernsTheLog/until_stopped/an_offset TestTheConfiguredLevelGovernsTheLog/until_stopped/warning
 scheduled-count: no
 
 diff --git a/process/host/host.go b/process/host/host.go

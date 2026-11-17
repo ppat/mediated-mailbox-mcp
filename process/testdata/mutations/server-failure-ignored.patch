@@ -1,0 +1,17 @@
+control: A server that fails while the process serves stops the process in order, with an error naming the server
+removes: a server's failure is not waited on, so the process serves on until it is told to stop
+packages: ./process
+tests: TestAServerThatFailsWhileServingStopsTheProcessInOrder
+scheduled-count: no
+
+diff --git a/process/serve.go b/process/serve.go
+--- a/process/serve.go
++++ b/process/serve.go
+@@ -182,7 +182,6 @@
+ 
+ 	var err error
+ 	select {
+-	case err = <-failed:
+ 	case <-p.failed:
+ 	case <-ctx.Done():
+ 	}

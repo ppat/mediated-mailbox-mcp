@@ -1,0 +1,18 @@
+control: A spec that cannot run is refused before anything is built
+removes: a spec that names no program is accepted and run
+packages: ./process
+tests: TestASpecThatCannotRunIsRefused
+scheduled-count: no
+
+diff --git a/process/run.go b/process/run.go
+--- a/process/run.go
++++ b/process/run.go
+@@ -76,8 +76,6 @@
+ // stop.
+ func refuseSpec[C any](spec Spec[C]) error {
+ 	switch {
+-	case spec.Name == "":
+-		return errors.New("the spec names no program")
+ 	case spec.Task != nil && (len(spec.Endpoints) > 0 || len(spec.Jobs) > 0):
+ 		return errors.New("the spec lists a task beside endpoints or job kinds")
+ 	case spec.Task == nil && len(spec.Endpoints) == 0 && len(spec.Jobs) == 0:

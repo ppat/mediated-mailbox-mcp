@@ -7,12 +7,12 @@ scheduled-count: no
 diff --git a/ui/app/app.go b/ui/app/app.go
 --- a/ui/app/app.go
 +++ b/ui/app/app.go
-@@ -59,7 +59,7 @@ func Run(ctx context.Context, args, environ []string, stdout, stderr io.Writer,
+@@ -58,7 +58,7 @@
  		Process:     func(c config.UI) config.Process { return c.Process },
  		Operations:  func(c config.UI) config.Operations { return c.Operations },
  		Serving:     func(c config.UI) config.Serving { return c.Serving },
 -		Validate:    config.UI.Check,
 +		Validate:    nil,
- 		CheckSchema: checkSchema,
+ 		CheckSchema: processdatabase.CheckSchema,
  		Components:  []host.Component[config.UI]{{Name: "ui", Mount: Mount, Assemble: fromConfiguration}},
  	})

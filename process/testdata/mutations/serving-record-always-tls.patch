@@ -1,0 +1,18 @@
+control: The serving record names the transport the application server serves
+removes: the serving record says the application server serves TLS whatever transport it took
+packages: ./process
+tests: TestTheApplicationServerGivenNoKeyPairIsPlain
+scheduled-count: no
+
+diff --git a/process/serve.go b/process/serve.go
+--- a/process/serve.go
++++ b/process/serve.go
+@@ -177,7 +177,7 @@
+ 		}()
+ 	}
+ 	serving.Store(true)
+-	p.logger.Info("serving", "listen", address(app), "probe_listen", probeListener.Addr().String(), "tls", tlsConf != nil)
++	p.logger.Info("serving", "listen", address(app), "probe_listen", probeListener.Addr().String(), "tls", true)
+ 
+ 	var err error
+ 	select {

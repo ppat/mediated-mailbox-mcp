@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"log/slog"
 	neturl "net/url"
 	"os"
 	"path/filepath"
@@ -17,6 +16,7 @@ import (
 
 	"github.com/ppat/mediated-mailbox-mcp/db/migrations"
 	"github.com/ppat/mediated-mailbox-mcp/migrator/app"
+	"github.com/ppat/mediated-mailbox-mcp/process"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/postgres"
 )
 
@@ -69,7 +69,7 @@ func TestTheMigratorAppliesTheChainItCarries(t *testing.T) {
 		"PGDATABASE=elsewhere",
 	}
 	for run := 1; run <= 2; run++ {
-		if err := app.Run(ctx, nil, environ, io.Discard, io.Discard, slog.New(slog.NewTextHandler(os.Stderr, nil)), new(slog.LevelVar)); err != nil {
+		if err := process.RunContext(ctx, nil, environ, os.Stderr, io.Discard, app.Spec()); err != nil {
 			t.Fatalf("run %d: %v", run, err)
 		}
 	}

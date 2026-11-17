@@ -1,7 +1,7 @@
 control: The effective configuration is logged at start, each value with its source
 removes: the host sets the level before it logs the effective configuration, so under warn a refused value's source is never written, and a refused level's source is never written at all
-packages: ./process/host ./migrator/app
-tests: TestTheConfiguredLevelGovernsTheLog/until_stopped/a_name_in_upper_case TestTheConfiguredLevelGovernsTheLog/until_stopped/an_offset TestTheConfiguredLevelGovernsTheLog/until_stopped/warning TestTheConfiguredLevelGovernsTheLog/until_stopped/warn TestTheConfiguredLevelGovernsTheLog/until_stopped/error,_from_the_environment TestTheConfiguredLevelGovernsTheLog/until_stopped/a_refused_value_at_error TestTheConfiguredLevelGovernsTheLog/once/a_name_in_upper_case TestTheConfiguredLevelGovernsTheLog/once/an_offset TestTheConfiguredLevelGovernsTheLog/once/warning TestTheConfiguredLevelGovernsTheLog/once/warn TestTheConfiguredLevelGovernsTheLog/once/error,_from_the_environment TestTheConfiguredLevelGovernsTheLog/once/a_refused_value_at_error TestTheStartLogsItsConfigurationThenSetsItsLevelAndWritesItsBanner
+packages: ./process/host
+tests: TestTheConfiguredLevelGovernsTheLog/until_stopped/a_name_in_upper_case TestTheConfiguredLevelGovernsTheLog/until_stopped/an_offset TestTheConfiguredLevelGovernsTheLog/until_stopped/warning TestTheConfiguredLevelGovernsTheLog/until_stopped/warn TestTheConfiguredLevelGovernsTheLog/until_stopped/error,_from_the_environment TestTheConfiguredLevelGovernsTheLog/until_stopped/a_refused_value_at_error
 scheduled-count: no
 
 diff --git a/process/host/host.go b/process/host/host.go

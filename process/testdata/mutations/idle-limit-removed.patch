@@ -1,0 +1,17 @@
+control: Both of a process's servers close an idle connection and cut off a request that has not arrived within their limits, and bound no answer
+removes: the servers set no idle limit, so an idle keep-alive connection is held until the read limit
+packages: ./process
+tests: TestTheConnectionLimits TestTheServersCloseIdleAndSlowConnectionsAndNeverCutAnAnswer
+scheduled-count: no
+
+diff --git a/process/serve.go b/process/serve.go
+--- a/process/serve.go
++++ b/process/serve.go
+@@ -260,7 +260,6 @@
+ 		Handler:           h,
+ 		ReadHeaderTimeout: connectionLimits.Header,
+ 		ReadTimeout:       connectionLimits.Read,
+-		IdleTimeout:       connectionLimits.Idle,
+ 		ErrorLog:          logging.ServerErrorLog(logger),
+ 	}
+ }

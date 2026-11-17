@@ -397,7 +397,7 @@ The demonstrations of the controls whose patches sit in `testsupport/`. [MUTATIO
 
 ## The goroutines analyser refuses a goroutine started in the API server's or the UI's code
 
-- **Date · evidence:** 2026-10-14 · [pull request #384](https://github.com/ppat/mediated-mailbox-mcp/pull/384), at RAPID_SEED=1
+- **Date · evidence:** 2026-10-14 · [pull request #384](https://github.com/ppat/mediated-mailbox-mcp/pull/384), at RAPID_SEED=1, and every break again on 2026-11-17 at RAPID_SEED=1, after the process package, with the scheduler and the database code moved into the process family, changed the code, tests or patches the row rests on · [pull request #453](https://github.com/ppat/mediated-mailbox-mcp/pull/453)
 - **Break (1):** a package whose path only starts with the API server's is reported as the API server's
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestGoroutines`
 - **Break (2):** nothing in the API server's or the UI's code is checked
@@ -405,16 +405,16 @@ The demonstrations of the controls whose patches sit in `testsupport/`. [MUTATIO
 - **Break (3):** the UI's code is not checked
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestGoroutines`
 
-## The goroutines analyser refuses a goroutine started in the worker's code outside its scheduler
+## The goroutines analyser refuses a goroutine started in the worker's code
 
-- **Date · evidence:** 2026-10-10 · [pull request #328](https://github.com/ppat/mediated-mailbox-mcp/pull/328), at RAPID_SEED=1, and every break again on 2026-10-13 at RAPID_SEED=1, after the rename of the API server and the migrator moved the code, tests or patches the row rests on · [pull request #376](https://github.com/ppat/mediated-mailbox-mcp/pull/376), in run [38440944897](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/38440944897) of the `mutation-demonstrations` workflow, and every break again on 2026-10-14 at RAPID_SEED=1, after the host and the component seams changed the code, tests or patches the row rests on · [pull request #384](https://github.com/ppat/mediated-mailbox-mcp/pull/384)
+- **Date · evidence:** 2026-10-10 · [pull request #328](https://github.com/ppat/mediated-mailbox-mcp/pull/328), at RAPID_SEED=1, and every break again on 2026-10-13 at RAPID_SEED=1, after the rename of the API server and the migrator moved the code, tests or patches the row rests on · [pull request #376](https://github.com/ppat/mediated-mailbox-mcp/pull/376), in run [38440944897](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/38440944897) of the `mutation-demonstrations` workflow, and every break again on 2026-10-14 at RAPID_SEED=1, after the host and the component seams changed the code, tests or patches the row rests on · [pull request #384](https://github.com/ppat/mediated-mailbox-mcp/pull/384), and every break again on 2026-11-17 at RAPID_SEED=1, after the process package, with the scheduler and the database code moved into the process family, changed the code, tests or patches the row rests on · [pull request #453](https://github.com/ppat/mediated-mailbox-mcp/pull/453)
 - **Break (1):** a starter is reported only where it is called, so a method value or a method expression of one escapes
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestGoroutines`
 - **Break (2):** a package whose path only starts with the worker's is reported as the worker's
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestGoroutines`
 - **Break (3):** nothing is reported
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestGoroutines`
-- **Break (4):** the scheduler's own goroutines are reported
+- **Break (4):** the analyser reads the process family's scheduler in process/schedule, outside the worker, as the worker's code, so the scheduler's own goroutines are reported
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestGoroutines`
 - **Break (5):** only go statements are reported, so a function that starts a goroutine running what it is given escapes
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestGoroutines`

@@ -1,0 +1,20 @@
+control: The readiness probe answers from what was reported, ready only while every reporter is ready, and names the first that is not
+removes: a reporter that failed reads as ready, so the probe answers ready while a part has failed
+packages: ./process
+tests: TestTheProbesAnswerFromWhatWasReported
+scheduled-count: no
+
+diff --git a/process/process.go b/process/process.go
+--- a/process/process.go
++++ b/process/process.go
+@@ -128,9 +128,8 @@
+ 	defer p.reportsMu.Unlock()
+ 	for _, r := range p.reports {
+ 		switch r.state {
+-		case Ready:
++		case Ready, Failed:
+ 			continue
+-		case Failed:
+ 			return "not ready: " + r.name + " failed: " + r.reason, true
+ 		case NotReady:
+ 			return "not ready: " + r.name + ": " + r.reason, true

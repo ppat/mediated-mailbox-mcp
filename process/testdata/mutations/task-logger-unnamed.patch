@@ -1,0 +1,18 @@
+control: A program that runs once does its work with capabilities carrying its name, and returns once every goroutine the work started has returned and its slots are closed
+removes: the task's logger carries no component, unlike every other part's
+packages: ./process
+tests: TestAProgramThatRunsOnceDoesItsWorkAndClosesItsSlots
+scheduled-count: no
+
+diff --git a/process/serve.go b/process/serve.go
+--- a/process/serve.go
++++ b/process/serve.go
+@@ -23,7 +23,7 @@
+ // job, since nothing probes, scrapes or calls a program that exits on its own (ADR-0139, ADR-0142).
+ func runTask[C any](ctx context.Context, p *proc, spec Spec[C], c C) error {
+ 	stopBuild := context.AfterFunc(ctx, p.stopRun)
+-	work, err := spec.Task.Build(p.run, p.part(spec.Name, ""), c)
++	work, err := spec.Task.Build(p.run, &capabilities{proc: p, name: spec.Name, logger: p.logger, metrics: p.registry}, c)
+ 	stopBuild()
+ 	if err != nil {
+ 		return errors.Join(err, p.stop())

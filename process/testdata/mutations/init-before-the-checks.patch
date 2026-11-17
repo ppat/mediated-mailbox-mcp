@@ -1,0 +1,27 @@
+control: A process starts in order, refusing the password variables before it reads its configuration, logging every value before it sets the level, and running the configuration's checks before Init
+removes: Init runs before the configuration's checks, so a start check sees a configuration the checks refuse
+packages: ./process
+tests: TestTheStartLogsItsConfigurationThenSetsItsLevelAndRunsItsChecks/until_stopped/the_configuration's_checks TestTheStartLogsItsConfigurationThenSetsItsLevelAndRunsItsChecks/once/the_configuration's_checks
+scheduled-count: no
+
+diff --git a/process/run.go b/process/run.go
+--- a/process/run.go
++++ b/process/run.go
+@@ -133,14 +133,14 @@
+ 		return l, false, fmt.Errorf("validating the configuration: %w", err)
+ 	}
+ 	level.Set(lv)
+-	if err := c.Check(); err != nil {
+-		return l, false, fmt.Errorf("validating the configuration: %w", err)
+-	}
+ 	if spec.Init != nil {
+ 		if err := spec.Init(args, environ, c); err != nil {
+ 			return l, false, err
+ 		}
+ 	}
++	if err := c.Check(); err != nil {
++		return l, false, fmt.Errorf("validating the configuration: %w", err)
++	}
+ 	served, lines, err := partsOf(spec, c)
+ 	if err != nil {
+ 		return l, false, err

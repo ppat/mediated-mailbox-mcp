@@ -38,13 +38,13 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/accountload"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/assembly"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/session"
+	"github.com/ppat/mediated-mailbox-mcp/process/schedule"
 	"github.com/ppat/mediated-mailbox-mcp/provider/google"
 	"github.com/ppat/mediated-mailbox-mcp/provider/mail/fake"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/marker"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/postgres"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/pass1"
-	"github.com/ppat/mediated-mailbox-mcp/worker/internal/schedule"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/series"
 )
 

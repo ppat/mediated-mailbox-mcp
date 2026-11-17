@@ -27,8 +27,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/core/config"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
-	"github.com/ppat/mediated-mailbox-mcp/db/migrations"
-	"github.com/ppat/mediated-mailbox-mcp/db/schemacompatibility"
+	processdatabase "github.com/ppat/mediated-mailbox-mcp/process/database"
 	"github.com/ppat/mediated-mailbox-mcp/process/host"
 	"github.com/ppat/mediated-mailbox-mcp/provider/consent"
 	"github.com/ppat/mediated-mailbox-mcp/ui/browser"
@@ -60,20 +59,9 @@ func Run(ctx context.Context, args, environ []string, stdout, stderr io.Writer, 
 		Operations:  func(c config.UI) config.Operations { return c.Operations },
 		Serving:     func(c config.UI) config.Serving { return c.Serving },
 		Validate:    config.UI.Check,
-		CheckSchema: checkSchema,
+		CheckSchema: processdatabase.CheckSchema,
 		Components:  []host.Component[config.UI]{{Name: "ui", Mount: Mount, Assemble: fromConfiguration}},
 	})
-}
-
-// checkSchema refuses a schema this binary's migration chain cannot run on, read through pool under
-// the user pool connects as. The host runs it on each pool it opens, before the pool is used
-// (ADR-0140).
-func checkSchema(ctx context.Context, pool *pgxpool.Pool) error {
-	v, err := schemacompatibility.New(pool).SchemaVersions(ctx)
-	if err != nil {
-		return fmt.Errorf("reading the schema's versions: %w", err)
-	}
-	return migrations.Refuse(v.Applied, v.OldestChainVersion)
 }
 
 // fromConfiguration loads the public key the UI seals to and logs its identifier, then opens the pool

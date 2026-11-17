@@ -1,0 +1,19 @@
+control: A listing that names an empty key fails, and keeps no job for any key it named
+removes: an empty key is passed over, so the listing succeeds and keeps jobs for the other keys
+packages: ./process/schedule
+tests: TestAListingThatNamesAnEmptyKeyFails
+scheduled-count: no
+
+diff --git a/process/schedule/plan.go b/process/schedule/plan.go
+--- a/process/schedule/plan.go
++++ b/process/schedule/plan.go
+@@ -56,7 +56,8 @@
+ 			for _, k := range keys {
+ 				if k == "" {
+ 					// The listing's own job is keyed by the kind alone, so an empty key would name it.
+-					return errors.New("the listing names an empty key")
++					_ = errors.New("the listing names an empty key")
++					continue
+ 				}
+ 				listing[k] = true
+ 			}

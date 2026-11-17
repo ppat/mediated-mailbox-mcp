@@ -11,6 +11,7 @@ COPY db db
 COPY process process
 COPY migrator/main.go migrator/main.go
 COPY migrator/app migrator/app
+COPY migrator/internal migrator/internal
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/mediated-mailbox-migrator ./migrator
 
 FROM gcr.io/distroless/static-debian13:nonroot@sha256:e2e927ec666bae08560abb3c55d0659eceabb657f56b6782ab500a9fc7f555e3
