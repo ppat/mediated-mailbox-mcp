@@ -15,6 +15,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/schema"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/setup"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/server"
 )
 
 // accountResponse is account settings' read, what the UI reads of the account's two rows and its rate
@@ -66,7 +67,7 @@ func (s *Server) getAccount(w http.ResponseWriter, r *http.Request) {
 		s.databaseFailure(w, r, err)
 		return
 	}
-	writeJSON(w, r, out)
+	server.WriteJSON(w, r, out)
 }
 
 func (s *Server) account(ctx context.Context, q *accountsetup.Queries, state *accountstate.Queries, rates *ratestate.Queries,
@@ -139,7 +140,7 @@ func (s *Server) setTarget(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if setup.Target(body.LoweredTarget) != setup.None {
-		writeFailure(w, r, clientFault(http.StatusBadRequest, string(setup.TargetRefused), "a lowered target is above 5% and at most 50% of the declared ceiling"))
+		server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, string(setup.TargetRefused), "a lowered target is above 5% and at most 50% of the declared ceiling"))
 		return
 	}
 	target := pgtype.Float4{}
@@ -154,12 +155,12 @@ func (s *Server) setTarget(w http.ResponseWriter, r *http.Request) {
 		return err
 	})
 	if errors.Is(err, errNotConnected) {
-		writeFailure(w, r, clientFault(http.StatusConflict, "not_connected", "the account is not connected, so it holds no target"))
+		server.WriteFailure(w, r, server.ClientFault(http.StatusConflict, "not_connected", "the account is not connected, so it holds no target"))
 		return
 	}
 	if err != nil {
 		s.databaseFailure(w, r, err)
 		return
 	}
-	writeJSON(w, r, targetAnswer(body))
+	server.WriteJSON(w, r, targetAnswer(body))
 }

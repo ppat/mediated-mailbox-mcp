@@ -6,9 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/process/database/database.go b/process/database/database.go
+index 88528dae..705ebb91 100644
 --- a/process/database/database.go
 +++ b/process/database/database.go
-@@ -100,7 +100,7 @@
+@@ -109,7 +109,7 @@ type pools struct {
  
  func newPools(_ context.Context, shared process.Capabilities) (*pools, func(), error) {
  	s := &pools{shared: shared, byName: map[string]*pgxpool.Pool{}}
@@ -16,4 +17,4 @@ diff --git a/process/database/database.go b/process/database/database.go
 +	return s, nil, nil
  }
  
- // processPool is the registerer of a pool that is no job kind's. Within one registry a series name
+ // open returns the pool kept under name, opening it from c measured on reg the first time and

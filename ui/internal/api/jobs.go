@@ -18,6 +18,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/schema"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/registry"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/server"
 )
 
 // The derived workload states (docs/UI.md section 11). A workload with no run is not started, one
@@ -147,7 +148,7 @@ func (s *Server) getJobs(w http.ResponseWriter, r *http.Request) {
 		s.databaseFailure(w, r, err)
 		return
 	}
-	writeJSON(w, r, out)
+	server.WriteJSON(w, r, out)
 }
 
 // jobsQueries are the statements the jobs endpoint runs, built inside the literal passed the

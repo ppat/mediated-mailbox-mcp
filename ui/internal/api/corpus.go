@@ -16,6 +16,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/schema"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/registry"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/server"
 )
 
 // auditActions are the audit actions as stored (ADR-0016), which the corpus endpoint counts, each
@@ -102,5 +103,5 @@ func (s *Server) getCorpus(w http.ResponseWriter, r *http.Request) {
 		s.databaseFailure(w, r, err)
 		return
 	}
-	writeJSON(w, r, out)
+	server.WriteJSON(w, r, out)
 }

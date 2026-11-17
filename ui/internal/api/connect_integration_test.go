@@ -495,16 +495,13 @@ func TestTheAccountSetupRoutesAreScoped(t *testing.T) {
 }
 
 // Another configured redirect address is the one every use names. The consent request and the code
-// exchange name it, the entry document hands it to the browser, a pasted address on it finishes the
-// attempt, and one on the default address is refused as not the redirect (docs/UI.md sections 8.12
-// and 18.1, VERIFICATIONS, the consent redirect row).
+// exchange name it, a pasted address on it finishes the attempt, and one on the default address is
+// refused as not the redirect (docs/UI.md sections 8.12 and 18.1, VERIFICATIONS, the consent redirect
+// row). That the entry document hands it to the browser is the UI's spec's test's.
 func TestAnotherConfiguredRedirectIsUsedEverywhere(t *testing.T) {
 	const redirect = "http://[::1]:5000/"
 	r := newRigAt(t, redirect)
 	b := r.browser()
-	if res := b.get("/ui/setup"); !strings.Contains(string(res.body), `<meta name="mediated-mailbox.consent_redirect" content="http://[::1]:5000/">`) {
-		t.Errorf("the entry document does not carry the configured redirect:\n%s", res.body)
-	}
 	b.addClient(household, householdID, householdSecret)
 	a := b.connect("jo", household, "jo@gmail.com")
 	q, err := url.Parse(a.Attempt.ConsentAddress)

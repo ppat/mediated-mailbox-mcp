@@ -1,0 +1,20 @@
+control: Every endpoint the UI's spec lists sits behind the checks
+removes: the pages endpoint returns the entry document and the bundle without the checks in front of them
+packages: ./ui/app
+tests: TestEveryEndpointSitsBehindTheChecks
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/pages/pages.go b/ui/internal/pages/pages.go
+index 618aaa93..fa8e34f5 100644
+--- a/ui/internal/pages/pages.go
++++ b/ui/internal/pages/pages.go
+@@ -35,7 +35,7 @@ func New(ctx context.Context, p process.Capabilities, c config.UI) (http.Handler
+ 	if err != nil {
+ 		return nil, err
+ 	}
+-	return checks.Wrap(a), nil
++	return a, nil
+ }
+ 
+ // Redirect builds the endpoint that answers /, the one path the UI answers outside its root, with a

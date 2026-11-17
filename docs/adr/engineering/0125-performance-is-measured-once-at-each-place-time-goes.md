@@ -290,13 +290,18 @@ by `statement`, with buckets at 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1 and 5 seco
 - **Capture.** A collector over every pool `process/database` opens, which reads the pool only
   when scraped and adds nothing on the path of a statement.
 
-Every pool a process holds registers K8 and K9 on the process's one registry under the same label
-names, since within one registry a series name keeps one set of label names. That binds whatever
-pools a process holds beside its job kinds' own, so a pool that is no job kind's registers them with
-an empty `job_kind`, which a query reads as no job kind
-([ADR-0142](./0142-each-program-is-a-spec-that-one-process-runs.md)). For a pool's series,
-this invariant comes before the rule above that a shared thing's series carry no job kind, since
-the client library refuses a registration that breaks it.
+Every pool a process holds registers K8 and K9 on the process's one registry as an unchecked
+collector, one whose description yields nothing. The client library compares the label names of a
+series name only between checked collectors, at their registration, and a scrape compares none
+within a family, so pools whose series carry different label names share one registry. A job
+kind's pool's series carry its `job_kind`, and every other pool's series follow the rule above that
+a shared thing's series carry no job kind, in every process
+([ADR-0142](./0142-each-program-is-a-spec-that-one-process-runs.md)). A scrape still fails on
+two series of one name and one set of label values. The cost is the library's check against
+registering one collector twice, which it makes only for a checked collector. So each pool
+`process/database` gives a part is opened once, under its lock, and each pool the host opens
+through `process/database`'s lower-level opening is opened once by the root that asks for it,
+while the host remains.
 
 The tracer and the collector are written in this project rather than taken from a library.
 
@@ -371,7 +376,7 @@ with buckets at 0.01, 0.05, 0.1, 0.5, 1, 5, 10 and 30 seconds.
 | --- | --- |
 | The API server | K1, K2 and K12 from its Session, K3, K4, K5's conversion step, K8 and K9 for each of its pools, K10 and K11. No K7, since its scheduler runs only the Session's upkeep |
 | The UI | K8 and K9 for each of its pools, K10 and K11, beside the dataset read latency it already emits |
-| The worker | K10 and K11 once, and K2 and K12 once from its Session. Per job kind, through the registerer that adds `job_kind`, K3, K4, K5, K6, and K8 and K9 for the kind's pool. K7 on the scheduler's series, for the jobs of its job kinds' plans |
+| The worker | K10 and K11 once, and K2 and K12 once from its Session. K8 and K9 once for its process's pool, with no `job_kind`. Per job kind, through the registerer that adds `job_kind`, K3, K4, K5, K6, and K8 and K9 for the kind's pool. K7 on the scheduler's series, for the jobs of its job kinds' plans |
 
 ## Alternatives considered
 

@@ -5,11 +5,11 @@ tests: TestAPathClaimedByBothSourcesIsRefused
 scheduled-count: no
 
 diff --git a/ui/internal/api/routes.go b/ui/internal/api/routes.go
-index fb7a4ecf..64f0317c 100644
+index 68f4b084..2752d296 100644
 --- a/ui/internal/api/routes.go
 +++ b/ui/internal/api/routes.go
-@@ -149,7 +149,7 @@ func ptr(t schema.Type) *schema.Type { return &t }
- func CheckPaths(registryPaths []string, bespoke []Route) error {
+@@ -205,7 +205,7 @@ func ptr(t schema.Type) *schema.Type { return &t }
+ func CheckPaths(registryPaths []string, bespoke []server.Route) error {
  	seen := map[string]string{}
  	for _, route := range bespoke {
 -		if slices.Contains(registryPaths, route.Pattern) {

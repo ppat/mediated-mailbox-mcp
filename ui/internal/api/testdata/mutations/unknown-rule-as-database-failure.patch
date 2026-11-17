@@ -6,15 +6,15 @@ scheduled-count: no
 integration: yes
 
 diff --git a/ui/internal/api/rules.go b/ui/internal/api/rules.go
-index 60da4717..96835908 100644
+index 2eb878bb..6e62bcf3 100644
 --- a/ui/internal/api/rules.go
 +++ b/ui/internal/api/rules.go
-@@ -197,7 +197,7 @@ func (s *Server) answerWrite(w http.ResponseWriter, r *http.Request, rule string
+@@ -191,7 +191,7 @@ func (s *Server) answerWrite(w http.ResponseWriter, r *http.Request, rule string
  		writeRefusal(w, r, "rule_refused", "the rule fails the policy's checks", out)
  	case errors.Is(err, errIdentifierTaken):
- 		writeFailure(w, r, clientFault(http.StatusConflict, "identifier_taken", "the scope already holds a rule of this identifier"))
+ 		server.WriteFailure(w, r, server.ClientFault(http.StatusConflict, "identifier_taken", "the scope already holds a rule of this identifier"))
 -	case errors.Is(err, errUnknownRule):
 +	case errors.Is(err, errUnknownRule) && false:
- 		writeFailure(w, r, clientFault(http.StatusNotFound, "unknown_rule", "the policy holds no rule of this identifier in this scope"))
+ 		server.WriteFailure(w, r, server.ClientFault(http.StatusNotFound, "unknown_rule", "the policy holds no rule of this identifier in this scope"))
  	case errors.Is(err, errStaleRule):
- 		writeFailure(w, r, clientFault(http.StatusConflict, "stale_rule", "the rule changed since the page read it"))
+ 		server.WriteFailure(w, r, server.ClientFault(http.StatusConflict, "stale_rule", "the rule changed since the page read it"))

@@ -6,8 +6,6 @@ import (
 	"context"
 	"io"
 	"log/slog"
-	"os"
-	"path/filepath"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -294,8 +292,8 @@ func countingPool(t *testing.T, role string) (*pgxpool.Pool, *statements) {
 	return pool, counter
 }
 
-// server is the UI's server over the seeded database, as the application user, with the fixed clock and the
-// bundle directory as the binary would embed it.
+// server is the read API's server over the seeded database, as the application user, with the fixed
+// clock.
 func server(t *testing.T) (*api.Server, *prometheus.Registry) {
 	t.Helper()
 	seed(t)
@@ -323,18 +321,16 @@ func serverWith(t *testing.T, pool *pgxpool.Pool, thresholds attention.Threshold
 func serverAt(t *testing.T, pool *pgxpool.Pool, thresholds attention.Thresholds, at time.Time) (*api.Server, *prometheus.Registry) {
 	t.Helper()
 	reg := prometheus.NewRegistry()
-	s, err := api.New(api.Options{
-		Bundle:         os.DirFS(filepath.Join("..", "..", "browser", "dist")),
+	s, err := api.NewServer(api.Options{
 		Database:       pool,
 		Datasets:       registry.Datasets(lookups),
 		Lookups:        lookups,
-		Logger:         slog.New(slog.NewJSONHandler(io.Discard, nil)),
+		Checks:         newChecks(t, tokenKey, slog.New(slog.NewJSONHandler(io.Discard, nil))),
 		Metrics:        reg,
 		Clock:          func() time.Time { return at },
 		Cadences:       api.Cadences{Sync: 5 * time.Minute, Heuristics: 24 * time.Hour},
 		StreamInterval: 50 * time.Millisecond,
 		Attention:      thresholds,
-		TokenKey:       tokenKey,
 	})
 	if err != nil {
 		t.Fatal(err)

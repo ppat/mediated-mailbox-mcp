@@ -1,0 +1,20 @@
+control: A pool that is no job kind's carries no job_kind, beside job kinds' pools that carry theirs in one registry
+removes: a pool that is no job kind's carries an empty job_kind, a label that tells it from nothing
+packages: ./process/database ./ui/app
+tests: TestEachJobKindHasAPoolOfItsOwnAndTheProcessOneMore TestAPoolOfAProcessWithoutJobKindsCarriesNoJobKind TestTheUIsPoolSeriesCarryNoJobKind
+scheduled-count: no
+integration: yes
+
+diff --git a/process/database/database.go b/process/database/database.go
+index 88528dae..7ee2f5f2 100644
+--- a/process/database/database.go
++++ b/process/database/database.go
+@@ -47,7 +47,7 @@ func Get(ctx context.Context, p process.Capabilities, c config.HasDatabase) (*pg
+ 	// A job kind's pool registers its series through the job kind's registerer, so they carry
+ 	// job_kind, and every other pool through the process's own, so they carry none (ADR-0125).
+ 	kind := process.JobKind(p)
+-	reg := set.shared.Metrics()
++	reg := prometheus.WrapRegistererWith(prometheus.Labels{"job_kind": ""}, set.shared.Metrics())
+ 	if kind != "" {
+ 		reg = p.Metrics()
+ 	}

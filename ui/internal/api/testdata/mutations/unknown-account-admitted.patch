@@ -6,15 +6,15 @@ scheduled-count: no
 integration: yes
 
 diff --git a/ui/internal/api/server.go b/ui/internal/api/server.go
-index 626acce..da8646a 100644
+index c238c693..7fecc349 100644
 --- a/ui/internal/api/server.go
 +++ b/ui/internal/api/server.go
-@@ -254,7 +254,7 @@ func (s *Server) admit(w http.ResponseWriter, r *http.Request) bool {
+@@ -296,7 +296,7 @@ func (s *Server) admit(w http.ResponseWriter, r *http.Request) bool {
  		s.databaseFailure(w, r, err)
  		return false
  	}
 -	if !slices.ContainsFunc(listed, func(a accounts.AccountsRow) bool { return a.AccountID == account }) {
 +	if false && !slices.ContainsFunc(listed, func(a accounts.AccountsRow) bool { return a.AccountID == account }) {
- 		writeFailure(w, r, clientFault(http.StatusBadRequest, "unknown_account", "no account has this identifier"))
+ 		server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, "unknown_account", "no account has this identifier"))
  		return false
  	}

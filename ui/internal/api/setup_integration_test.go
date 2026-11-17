@@ -146,7 +146,8 @@ func TestAClientIsReplacedAndRemoved(t *testing.T) {
 	refused(t, b.post("/ui/api/setup/gmail/clients/"+spare+"/remove", nil), http.StatusNotFound, "unknown_client")
 }
 
-// The installation endpoint and every installation screen route answer with no account's state. Two
+// The installation endpoints answer with no account's state, and the entry document every
+// installation screen route loads is a template holding the browser's configuration alone. Two
 // accounts' state rows carry marker values in their mailbox, a last authentication time and a lowered
 // target no other value holds, and none reaches any answer, which holds each client's name, provider,
 // identifier and project ID and each account's identifier, provider and client (ADR-0056, VERIFICATIONS,
@@ -162,7 +163,7 @@ func TestTheInstallationShowsNoAccountsState(t *testing.T) {
 	r.exec(`INSERT INTO account_state (account_id, mailbox, last_auth_outcome, last_auth_at, lowered_target_rate) VALUES ($1, $2, 'failed', '2001-02-03T04:05:07Z', 0.4242)`,
 		other, marker.Field("othermailbox"))
 	var answers []string
-	for _, path := range []string{"/ui/api/setup", "/ui/api/setup/connect", "/ui/setup", "/ui/setup/connect", "/ui/setup/gmail/new", "/ui/setup/gmail/" + household} {
+	for _, path := range []string{"/ui/api/setup", "/ui/api/setup/connect"} {
 		res := b.get(path)
 		if res.status != http.StatusOK {
 			t.Fatalf("%s answered %d:\n%s", path, res.status, res.body)

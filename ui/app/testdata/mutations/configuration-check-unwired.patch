@@ -1,18 +1,20 @@
 control: The database section is validated before anything else starts
-removes: the UI's root hands the host no check, so the UI starts with any configuration the library loads
+removes: the process runs no configuration's checks, so the UI starts with any configuration the library loads
 packages: ./ui/app
 tests: TestAPoolSizeOfZeroRefusesTheStart TestAnEmptyListOfPrivateKeysRefusesTheStart TestANonLoopbackConsentRedirectRefusesTheStart
 scheduled-count: no
 
-diff --git a/ui/app/app.go b/ui/app/app.go
---- a/ui/app/app.go
-+++ b/ui/app/app.go
-@@ -58,7 +58,7 @@
- 		Process:     func(c config.UI) config.Process { return c.Process },
- 		Operations:  func(c config.UI) config.Operations { return c.Operations },
- 		Serving:     func(c config.UI) config.Serving { return c.Serving },
--		Validate:    config.UI.Check,
-+		Validate:    nil,
- 		CheckSchema: processdatabase.CheckSchema,
- 		Components:  []host.Component[config.UI]{{Name: "ui", Mount: Mount, Assemble: fromConfiguration}},
- 	})
+diff --git a/process/run.go b/process/run.go
+index a0a47fa0..7fe10647 100644
+--- a/process/run.go
++++ b/process/run.go
+@@ -133,9 +133,6 @@ func start[C config.Program[C]](args, environ []string, stdout, stderr io.Writer
+ 		return l, false, fmt.Errorf("validating the configuration: %w", err)
+ 	}
+ 	level.Set(lv)
+-	if err := c.Check(); err != nil {
+-		return l, false, fmt.Errorf("validating the configuration: %w", err)
+-	}
+ 	if spec.Init != nil {
+ 		if err := spec.Init(args, environ, c); err != nil {
+ 			return l, false, err

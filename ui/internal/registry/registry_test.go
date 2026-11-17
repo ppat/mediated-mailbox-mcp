@@ -15,7 +15,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/registry"
 )
 
-// lookups are the sender classifier's domain functions, as the composition root passes them.
+// lookups are the sender classifier's domain functions, as the read API endpoint's New passes them.
 var lookups = classify.Lookups{ToUnicode: idna.Lookup.ToUnicode, ToASCII: idna.Lookup.ToASCII, Registrable: publicsuffix.EffectiveTLDPlusOne}
 
 // TestTheRegistryHasItsStatements is the statement-set check over the real registry, which must be

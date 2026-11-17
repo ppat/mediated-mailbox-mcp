@@ -10,6 +10,10 @@
 // pool through ForMigration, which runs no schema check and which only the migrator's configuration
 // type can call.
 //
+// A program that is ready only while the database answers opts the process's one pool into the
+// readiness report the process answers its readiness probe from, through ReportReadiness, which pings
+// the pool every five seconds, each ping bounded by two. A job kind's pool has no such report yet.
+//
 // The pools of a process are kept in one slot of the process, apart from what other owners keep,
 // and the process closes them with what the slots hold, last built first, once its servers have
 // drained and its jobs have ended.
@@ -40,8 +44,10 @@ func Get(ctx context.Context, p process.Capabilities, c config.HasDatabase) (*pg
 	if err != nil {
 		return nil, err
 	}
+	// A job kind's pool registers its series through the job kind's registerer, so they carry
+	// job_kind, and every other pool through the process's own, so they carry none (ADR-0125).
 	kind := process.JobKind(p)
-	reg := set.processPool()
+	reg := set.shared.Metrics()
 	if kind != "" {
 		reg = p.Metrics()
 	}
@@ -57,7 +63,7 @@ func ForMigration(ctx context.Context, p process.Capabilities, c config.HasMigra
 	if err != nil {
 		return nil, err
 	}
-	return set.open(ctx, "migration", c.DatabasePart(), set.processPool(), nil)
+	return set.open(ctx, "migration", c.DatabasePart(), set.shared.Metrics(), nil)
 }
 
 // Open opens a pool from c, connecting as c's user, with every statement it runs timed and its
@@ -97,23 +103,14 @@ type pools struct {
 	mu     sync.Mutex
 	byName map[string]*pgxpool.Pool
 	opened []*pgxpool.Pool
+	// reported is whether the process's pool's readiness report has started.
+	reported bool
 }
 
 func newPools(_ context.Context, shared process.Capabilities) (*pools, func(), error) {
 	s := &pools{shared: shared, byName: map[string]*pgxpool.Pool{}}
 	return s, s.close, nil
 }
-
-// processPool is the registerer of a pool that is no job kind's. Within one registry a series name
-// keeps one set of label names, and a job kind's pool registers its series with job_kind, so a pool
-// that is no job kind's registers them with job_kind empty, which a query reads as no job kind
-// (ADR-0125, ADR-0142).
-func (s *pools) processPool() prometheus.Registerer {
-	return prometheus.WrapRegistererWith(prometheus.Labels{jobKindLabel: ""}, s.shared.Metrics())
-}
-
-// jobKindLabel is the label naming the job kind a series belongs to.
-const jobKindLabel = "job_kind"
 
 // open returns the pool kept under name, opening it from c measured on reg the first time and
 // running check on it before keeping it. A pool check refuses is closed and not kept.

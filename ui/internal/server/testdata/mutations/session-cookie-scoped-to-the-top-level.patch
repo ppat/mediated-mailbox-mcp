@@ -1,0 +1,19 @@
+control: Every route the UI registers sits under its root, apart from the redirect at /
+removes: the session's cookie is scoped to /, so a browser sends it to every surface on a shared origin
+packages: ./ui/internal/pages
+tests: TestTheRootIssuesItsSessionAndServesTheBundle
+scheduled-count: no
+
+diff --git a/ui/internal/server/session.go b/ui/internal/server/session.go
+index 5aa4742a..86b7e5f3 100644
+--- a/ui/internal/server/session.go
++++ b/ui/internal/server/session.go
+@@ -118,7 +118,7 @@ func withSession(next http.Handler) http.Handler {
+ 		} else if strings.HasPrefix(r.URL.Path, paths.Root+"/") {
+ 			s = session{id: rand.Text() + rand.Text()}
+ 			http.SetCookie(w, &http.Cookie{
+-				Name: sessionCookie, Value: s.id, Path: paths.Root + "/", HttpOnly: true, Secure: true, SameSite: http.SameSiteStrictMode,
++				Name: sessionCookie, Value: s.id, Path: "/", HttpOnly: true, Secure: true, SameSite: http.SameSiteStrictMode,
+ 			})
+ 		}
+ 		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), sessionKey{}, s)))

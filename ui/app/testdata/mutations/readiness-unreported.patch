@@ -1,0 +1,21 @@
+control: The ping report of the process's one pool is ready only while the database answers a ping, and refuses a job kind
+removes: the read API endpoint never opts the UI's pool into the ping report, so the UI is ready whatever the database does
+packages: ./ui/app
+tests: TestReadinessFollowsTheDatabase
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/api/endpoint.go b/ui/internal/api/endpoint.go
+index 0b44a252..05d02a8a 100644
+--- a/ui/internal/api/endpoint.go
++++ b/ui/internal/api/endpoint.go
+@@ -43,9 +43,6 @@ func New(ctx context.Context, p process.Capabilities, c config.UI) (http.Handler
+ 	if err != nil {
+ 		return nil, err
+ 	}
+-	if err := database.ReportReadiness(ctx, p, c); err != nil {
+-		return nil, err
+-	}
+ 	checks, err := server.Get(ctx, p, c)
+ 	if err != nil {
+ 		return nil, err

@@ -20,6 +20,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/rules"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/schema"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/registry"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/server"
 )
 
 // The source a rule written by policy management records, and the actions its history rows record
@@ -153,29 +154,22 @@ func problemType() schema.Type {
 
 // refusalAnswer is a refused write's body, the error contract's shape with the problems beside it.
 type refusalAnswer struct {
-	Error    errorDetail     `json:"error"`
-	Problems []ProblemAnswer `json:"problems"`
+	Error    server.ErrorDetail `json:"error"`
+	Problems []ProblemAnswer    `json:"problems"`
 }
 
 // RefusalType is the declaration of a refused policy write's or file's body.
 func RefusalType() schema.Type {
 	return schema.Obj("Refusal",
-		schema.F("error", schema.Obj("ErrorDetail",
-			schema.F("origin", schema.Str(originClient, originUI, originDatabase, originProvider)),
-			schema.F("code", schema.Str()),
-			schema.F("message", schema.Str()),
-			schema.F("request_id", schema.Str()),
-		)),
+		schema.F("error", server.ErrorDetailType()),
 		schema.F("problems", schema.ArrayOf(problemType())),
 	)
 }
 
 // writeRefusal answers a request whose rules fail the checks with each problem named.
 func writeRefusal(w http.ResponseWriter, r *http.Request, code, message string, problems []ProblemAnswer) {
-	info := requestInfo(r.Context())
-	info.origin, info.code = originClient, code
-	writeBody(w, r, http.StatusBadRequest, refusalAnswer{
-		Error:    errorDetail{Origin: originClient, Code: code, Message: message, RequestID: info.id},
+	server.WriteBody(w, r, http.StatusBadRequest, refusalAnswer{
+		Error:    server.ClientRefusal(r, code, message),
 		Problems: problems,
 	})
 }
@@ -196,13 +190,13 @@ func (s *Server) answerWrite(w http.ResponseWriter, r *http.Request, rule string
 		}
 		writeRefusal(w, r, "rule_refused", "the rule fails the policy's checks", out)
 	case errors.Is(err, errIdentifierTaken):
-		writeFailure(w, r, clientFault(http.StatusConflict, "identifier_taken", "the scope already holds a rule of this identifier"))
+		server.WriteFailure(w, r, server.ClientFault(http.StatusConflict, "identifier_taken", "the scope already holds a rule of this identifier"))
 	case errors.Is(err, errUnknownRule):
-		writeFailure(w, r, clientFault(http.StatusNotFound, "unknown_rule", "the policy holds no rule of this identifier in this scope"))
+		server.WriteFailure(w, r, server.ClientFault(http.StatusNotFound, "unknown_rule", "the policy holds no rule of this identifier in this scope"))
 	case errors.Is(err, errStaleRule):
-		writeFailure(w, r, clientFault(http.StatusConflict, "stale_rule", "the rule changed since the page read it"))
+		server.WriteFailure(w, r, server.ClientFault(http.StatusConflict, "stale_rule", "the rule changed since the page read it"))
 	case errors.Is(err, errConfirmationRequired):
-		writeFailure(w, r, clientFault(http.StatusBadRequest, "confirmation_required", "lifting a base rule's restriction needs the rule's identifier typed"))
+		server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, "confirmation_required", "lifting a base rule's restriction needs the rule's identifier typed"))
 	default:
 		s.databaseFailure(w, r, err)
 	}
@@ -429,7 +423,7 @@ func scopeOfRequest(w http.ResponseWriter, r *http.Request, scope string) (bool,
 	case rules.Base:
 		return true, true
 	}
-	writeFailure(w, r, clientFault(http.StatusBadRequest, "malformed_body", "scope is account or base"))
+	server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, "malformed_body", "scope is account or base"))
 	return false, false
 }
 
@@ -481,7 +475,7 @@ func (s *Server) writeAdd(w http.ResponseWriter, r *http.Request, account string
 		s.answerWrite(w, r, body.RuleID, err)
 		return
 	}
-	writeJSON(w, r, RuleAnswer{Scope: scopeOf(isBase), RuleID: body.RuleID, Suffixes: nonNil(body.Suffixes)})
+	server.WriteJSON(w, r, RuleAnswer{Scope: scopeOf(isBase), RuleID: body.RuleID, Suffixes: nonNil(body.Suffixes)})
 }
 
 // postAccountEdit is POST /ui/api/accounts/{account}/policy/rules/{rule}.
@@ -516,7 +510,7 @@ func (s *Server) writeEdit(w http.ResponseWriter, r *http.Request, account strin
 		s.answerWrite(w, r, id, err)
 		return
 	}
-	writeJSON(w, r, RuleAnswer{Scope: scopeOf(isBase), RuleID: id, Suffixes: nonNil(body.Suffixes)})
+	server.WriteJSON(w, r, RuleAnswer{Scope: scopeOf(isBase), RuleID: id, Suffixes: nonNil(body.Suffixes)})
 }
 
 // postAccountLift is POST /ui/api/accounts/{account}/policy/rules/{rule}/lift.
@@ -551,7 +545,7 @@ func (s *Server) writeLift(w http.ResponseWriter, r *http.Request, account strin
 		s.answerWrite(w, r, id, err)
 		return
 	}
-	writeJSON(w, r, RuleAnswer{Scope: scopeOf(isBase), RuleID: id, Suffixes: []string{}})
+	server.WriteJSON(w, r, RuleAnswer{Scope: scopeOf(isBase), RuleID: id, Suffixes: []string{}})
 }
 
 // SuffixMatch is what one suffix typed in Add a rule matches in the account (docs/UI.md section 8.7).
@@ -640,7 +634,7 @@ func (s *Server) getMatch(w http.ResponseWriter, r *http.Request) {
 		s.databaseFailure(w, r, err)
 		return
 	}
-	writeJSON(w, r, out)
+	server.WriteJSON(w, r, out)
 }
 
 // BaseSuffixMatch is what one suffix typed in Add a base rule is, read with no account named. It
@@ -700,7 +694,7 @@ func (s *Server) getBaseMatch(w http.ResponseWriter, r *http.Request) {
 		s.databaseFailure(w, r, err)
 		return
 	}
-	writeJSON(w, r, out)
+	server.WriteJSON(w, r, out)
 }
 
 // getRelease is GET /ui/api/accounts/{account}/policy/release?scope=…&rule=…&keep=…, what an edit keeping only
@@ -736,7 +730,7 @@ func (s *Server) getRelease(w http.ResponseWriter, r *http.Request) {
 		s.answerWrite(w, r, id, err)
 		return
 	}
-	writeJSON(w, r, out)
+	server.WriteJSON(w, r, out)
 }
 
 // stampOf is an optional stored time as the read API writes it.

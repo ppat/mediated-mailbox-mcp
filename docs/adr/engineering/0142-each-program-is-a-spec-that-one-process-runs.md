@@ -149,7 +149,8 @@ flowchart LR
   ```
 
   The labels are `component`, the program's name, and `job_kind` for a job kind. Every endpoint
-  and job kind carries the same label names, so two of them may register one series name. Once the
+  carries the same label names as every other, and every job kind the same as every other, so two
+  endpoints or two job kinds may register one series name. Once the
   process has begun to wait for its goroutines at stop, `Go` starts nothing and returns false. `p`
   also carries, unexported, the process it belongs to, which is how an owner's function finds the
   thing it keeps in the process.
@@ -220,11 +221,11 @@ flowchart LR
   So each owner of the scheduler, the Session, the connections, the scanner and every pool that is
   not a job kind's own builds it with the process's own logger and registerer, labelled with the
   program's name and no job kind, and reports its readiness under its own name. A job kind's pool
-  is built for the job kind that runs on it and labelled with that job kind. A pool's series also
-  keep the label names every other pool of the process registers them under, which
-  [ADR-0125](./0125-performance-is-measured-once-at-each-place-time-goes.md) puts before the rule
-  of no job kind, so a pool that is not a job kind's labels its series with an empty `job_kind`,
-  which a query reads as no job kind. A shared thing reads
+  is built for the job kind that runs on it and labelled with that job kind. A pool that is not a
+  job kind's follows the rule of no job kind like every other shared thing, so its series carry no
+  `job_kind`. Every pool's series register unchecked, as
+  [ADR-0125](./0125-performance-is-measured-once-at-each-place-time-goes.md) states, so they share one registry with a job kind's pool's series,
+  which carry its `job_kind`. A shared thing reads
   the shared parts of the configuration, the parts every program that has them holds under the
   same keys ([ADR-0078](./0078-configuration-layers-through-an-owned-library.md)). Where it needs
   the revision of its settings, the digest the configuration library computes for each top-level
@@ -358,8 +359,11 @@ The start, in order.
   and no program's code can hand one an extra input
   ([ADR-0117](../operability/0117-one-background-worker-runs-every-job-kind.md)).
 - Every series an endpoint or job kind registers carries `component`, and the worker's job kinds
-  carry `job_kind` beneath it. Within one registry a series name keeps one set of label names,
-  which the same label names on every endpoint and job kind give by construction.
+  carry `job_kind` beneath it. Every endpoint carries the same label names as every other, and every
+  job kind the same as every other, so two endpoints or two job kinds may register one series name.
+  The pools' series register unchecked, so a job kind's pool's, which carry `job_kind`, and those of
+  a pool that is no job kind's, which carry none, share one registry
+  ([ADR-0125](./0125-performance-is-measured-once-at-each-place-time-goes.md)).
 - No goroutine of a program's code loses a panic or outlives the slots. The `go vet` goroutines
   analyser refuses, in a non-test file under `api/`, `ui/` or `worker/`, a `go` statement and any
   use of a function that starts a goroutine running what it is given, so that code starts one only

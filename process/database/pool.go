@@ -41,6 +41,23 @@ func OpenPool(ctx context.Context, config *pgxpool.Config, reg prometheus.Regist
 	return pool, nil
 }
 
+// unchecked registers a collector the registry does not check, since its Describe yields nothing,
+// and collects what the collector it holds collects. Each pool registers its series through it, the
+// statement histogram and the pool's statistics, so a job kind's pool, whose series carry job_kind,
+// and a pool that is no job kind's, whose series carry none, share one registry: the registry
+// compares label names only between checked collectors, and a scrape does not compare them within
+// a family (ADR-0125). The cost is the registry's check for a collector registered twice, which it
+// makes only for a checked collector. A pool Get or ForMigration gives is opened once, under the
+// pools' lock, and registers once. A pool the host opens through Open or OpenPool is opened once by
+// its root, until the host is deleted. A scrape that met two series of one name and one set of label
+// values would fail, which the tests of a process holding both kinds of pool scrape for.
+type unchecked struct {
+	prometheus.Collector
+}
+
+// Describe yields nothing, which makes the collector unchecked.
+func (unchecked) Describe(chan<- *prometheus.Desc) {}
+
 // poolStatistics is a collector over one connection pool. It reads the pool only when gathered, so it adds
 // nothing to a statement's path.
 type poolStatistics struct {
@@ -55,7 +72,7 @@ var _ prometheus.Collector = (*poolStatistics)(nil)
 // from waits at the pool's ceiling.
 func registerPool(reg prometheus.Registerer, pool *pgxpool.Pool) error {
 	desc := func(name, help string) *prometheus.Desc { return prometheus.NewDesc(name, help, nil, nil) }
-	return reg.Register(&poolStatistics{
+	return reg.Register(unchecked{&poolStatistics{
 		pool:        pool,
 		acquires:    desc(acquiresName, "Connections acquired from the pool."),
 		waited:      desc(waitedAcquiresName, "Acquires that found no idle connection and waited, for one to be released or for a new one to be built."),
@@ -64,7 +81,7 @@ func registerPool(reg prometheus.Registerer, pool *pgxpool.Pool) error {
 		canceled:    desc(canceledAcquiresName, "Acquires whose caller gave up waiting for a connection."),
 		held:        desc(acquiredName, "Connections held from the pool now."),
 		most:        desc(maxName, "The most connections the pool opens."),
-	})
+	}})
 }
 
 // Describe implements prometheus.Collector.

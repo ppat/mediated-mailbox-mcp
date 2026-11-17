@@ -17,6 +17,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/schema"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/registry"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/server"
 )
 
 // systemResponse is the system endpoint's two blocks (docs/UI.md sections 8.1, 8.8 and 17.4). It
@@ -113,7 +114,7 @@ func (s *Server) getSystem(w http.ResponseWriter, r *http.Request) {
 		s.databaseFailure(w, r, err)
 		return
 	}
-	writeJSON(w, r, out)
+	server.WriteJSON(w, r, out)
 }
 
 // systemQueries are the statements the system endpoint runs, built inside the literal passed the

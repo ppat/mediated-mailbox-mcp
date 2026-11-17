@@ -1,0 +1,19 @@
+control: Every route the UI registers sits under its root, apart from the redirect at /
+removes: the spec lists the pages at the top level, /, rather than under the UI's root
+packages: ./ui/app
+tests: TestEveryEndpointSitsUnderTheUIsRoot
+scheduled-count: no
+
+diff --git a/ui/app/app.go b/ui/app/app.go
+index 90d16788..59fe09b5 100644
+--- a/ui/app/app.go
++++ b/ui/app/app.go
+@@ -23,7 +23,7 @@ func Spec() process.Spec[config.UI] {
+ 		Name: "ui",
+ 		Endpoints: []process.Endpoint[config.UI]{
+ 			{Pattern: paths.API + "/", Build: api.New},
+-			{Pattern: paths.Root + "/", Build: pages.New},
++			{Pattern: "/", Build: pages.New},
+ 			{Pattern: "/{$}", Build: pages.Redirect},
+ 		},
+ 	}

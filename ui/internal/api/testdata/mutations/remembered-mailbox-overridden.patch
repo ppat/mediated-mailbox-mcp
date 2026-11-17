@@ -6,16 +6,16 @@ scheduled-count: no
 integration: yes
 
 diff --git a/ui/internal/api/connect.go b/ui/internal/api/connect.go
-index 18348c97..7a82aece 100644
+index 05cff588..c1f93187 100644
 --- a/ui/internal/api/connect.go
 +++ b/ui/internal/api/connect.go
-@@ -193,8 +193,7 @@ func (s *Server) startReauthorize(w http.ResponseWriter, r *http.Request) {
+@@ -198,8 +198,7 @@ func (s *Server) startReauthorize(w http.ResponseWriter, r *http.Request) {
  	mailbox := held.Mailbox.String
  	switch {
  	case held.Mailbox.Valid && body.Mailbox != nil:
--		writeFailure(w, r, clientFault(http.StatusBadRequest, "mailbox_remembered", "the account remembers its mailbox, so the request names none"))
+-		server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, "mailbox_remembered", "the account remembers its mailbox, so the request names none"))
 -		return
 +		mailbox = *body.Mailbox
  	case !held.Mailbox.Valid && body.Mailbox == nil:
- 		writeFailure(w, r, clientFault(http.StatusBadRequest, "mailbox_required", "the account remembers no mailbox, so the request names it"))
+ 		server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, "mailbox_required", "the account remembers no mailbox, so the request names it"))
  		return

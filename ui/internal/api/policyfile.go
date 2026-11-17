@@ -14,6 +14,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/rules"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/schema"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/registry"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/server"
 )
 
 // maxPolicyFile is the largest policy file an import reads, and maxImportBody the largest request body
@@ -314,8 +315,8 @@ func readImport(w http.ResponseWriter, r *http.Request, scope string, preview bo
 		err = d.Decode(&body)
 	}
 	if err != nil {
-		requestInfo(r.Context()).err = err
-		writeFailure(w, r, clientFault(http.StatusBadRequest, "malformed_body", "the request body is not the JSON this request takes"))
+		server.RequestLogOf(r.Context()).Err = err
+		server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, "malformed_body", "the request body is not the JSON this request takes"))
 		return ImportRequest{}, nil, false
 	}
 	file, problem := parseFile(body.File)
@@ -426,7 +427,7 @@ func (s *Server) writePreview(w http.ResponseWriter, r *http.Request, account st
 		}
 		out.Accounts = listed
 	}
-	writeJSON(w, r, out)
+	server.WriteJSON(w, r, out)
 }
 
 // errStalePreview is an import whose scope's rules changed since its preview was computed.
@@ -452,7 +453,7 @@ func (s *Server) writeImport(w http.ResponseWriter, r *http.Request, account str
 		return
 	}
 	if body.ComputedAgainst == nil {
-		writeFailure(w, r, clientFault(http.StatusBadRequest, "malformed_body", "an import carries the stored rules its preview was computed against"))
+		server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, "malformed_body", "an import carries the stored rules its preview was computed against"))
 		return
 	}
 	actor, ok := s.identity(w, r)
@@ -538,17 +539,17 @@ func (s *Server) writeImport(w http.ResponseWriter, r *http.Request, account str
 	})
 	switch {
 	case errors.Is(err, errStalePreview):
-		writeFailure(w, r, clientFault(http.StatusConflict, "stale_preview", "The policy changed since this preview. Preview again."))
+		server.WriteFailure(w, r, server.ClientFault(http.StatusConflict, "stale_preview", "The policy changed since this preview. Preview again."))
 	case errors.Is(err, errConfirmationRequired):
-		writeFailure(w, r, clientFault(http.StatusBadRequest, "confirmation_required", "an import that lifts restrictions needs lift {k} for the count it lifts"))
+		server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, "confirmation_required", "an import that lifts restrictions needs lift {k} for the count it lifts"))
 	case err != nil:
 		if key, ok := violated(err, uniqueViolation); ok && key == ruleKey {
-			writeFailure(w, r, clientFault(http.StatusConflict, "stale_preview", "The policy changed since this preview. Preview again."))
+			server.WriteFailure(w, r, server.ClientFault(http.StatusConflict, "stale_preview", "The policy changed since this preview. Preview again."))
 			return
 		}
 		s.databaseFailure(w, r, err)
 	default:
-		writeJSON(w, r, out)
+		server.WriteJSON(w, r, out)
 	}
 }
 
@@ -601,7 +602,7 @@ func (s *Server) writeExport(w http.ResponseWriter, r *http.Request, account str
 	w.Header().Set("Cache-Control", "no-store")
 	w.WriteHeader(http.StatusOK)
 	if _, err := w.Write(file); err != nil {
-		requestInfo(r.Context()).err = err
+		server.RequestLogOf(r.Context()).Err = err
 	}
 }
 

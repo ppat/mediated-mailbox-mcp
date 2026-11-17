@@ -4,8 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/fs"
-	"log/slog"
 	"maps"
 	"net/http"
 	"slices"
@@ -22,6 +20,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/lens"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/paths"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/registry"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/server"
 )
 
 // Database is the UI's connection pool, connected as the application user (ADR-0143). Account-scoped
@@ -33,7 +32,6 @@ type Database interface {
 	tx.Beginner
 	tx.BeginnerWithOptions
 	accounts.DBTX
-	Ping(ctx context.Context) error
 }
 
 // snapshot is the database as a source of repeatable-read, read-only transactions, over which every
@@ -48,12 +46,15 @@ type Cadences struct {
 	Heuristics time.Duration
 }
 
-// Options is everything the server reads. Nothing it uses is ambient.
+// Options is everything the server reads. Nothing it uses is ambient. New builds them from the
+// configuration and the process, and the package's tests build them by hand, with a fixed clock, the
+// provider fake's consents and a fault between a setup's writes, which no configuration carries.
 type Options struct {
-	Bundle   fs.FS
 	Database Database
 	Datasets []registry.Dataset
-	Logger   *slog.Logger
+	// Checks are what the read API sits behind, and what the consent attempt is sealed with
+	// (ADR-0061, ADR-0111).
+	Checks *server.Checks
 	// Metrics is where the server registers its series (ADR-0076).
 	Metrics prometheus.Registerer
 	// Draining ends when the process begins to stop serving requests, which ends every open event
@@ -66,12 +67,6 @@ type Options struct {
 	Attention attention.Thresholds
 	// StreamInterval is how often the event stream polls the recorded state (ADR-0058).
 	StreamInterval time.Duration
-	// Browser is the configuration the entry document hands the browser.
-	Browser Browser
-	// TokenKey is the key behind the request token and the consent attempt's seal, at least
-	// MinTokenKey bytes, generated at the process's start or read from token_key_file (ADR-0061,
-	// ADR-0111).
-	TokenKey []byte
 	// Seal is the public key the UI seals each client's secret and each credential to. It holds no key
 	// that opens one (ADR-0081).
 	Seal seal.PublicKey
@@ -87,7 +82,7 @@ type Options struct {
 	Identity Identity
 }
 
-// Server is the UI's server.
+// Server is the read API's server.
 type Server struct {
 	opts Options
 	keys keys
@@ -101,14 +96,15 @@ type Server struct {
 	uiMux *recordingMux
 }
 
-// recordingMux is the UI's mux. A route registered through its Handle is recorded, and the contract's
-// test compares the UI's routes with the contract. The go vet routes analyser refuses, under ui/ outside this type's
-// Handle, a use of a mux's Handle or HandleFunc, of http.Handle or http.HandleFunc, and of an
-// interface's or type parameter's method of the same name and parameters, so a direct call on the
-// underlying mux is refused, and Handle keeps its name and its receiver. Left to review are a handler
-// wrapped in front of the mux in api.New or the composition root, a path answered inside a
-// catch-all's handler, the /ui/ app handler or the /ui/api/ unrouted handler, which has no pattern to
-// compare, a registration through reflection, a route an imported package such as net/http/pprof
+// recordingMux is the read API's mux. A route registered through its Handle is recorded, and the test
+// of the read API's routes compares them with the contract. The go vet routes analyser refuses, under
+// ui/ outside this type's Handle, a use of a mux's Handle or HandleFunc, of http.Handle or
+// http.HandleFunc, and of an interface's or type parameter's method of the same name and parameters,
+// so a direct call on the underlying mux is refused, and Handle keeps its name and its receiver. The
+// endpoints the process mounts are those the UI's spec lists, which its own test reads. Left to review
+// are a handler wrapped in front of the mux in New or in another endpoint's Build, a path answered
+// inside a catch-all's handler, the /ui/ pages handler or the /ui/api/ unrouted handler, which has no
+// pattern to compare, a registration through reflection, a route an imported package such as net/http/pprof
 // registers on the default mux when it is initialised, served only by a server given no handler, and
 // a registration through an interface method one of whose parameter types is a type parameter. The
 // mux sits in an unexported field and is embedded nowhere, so no promoted method registers a route
@@ -138,9 +134,9 @@ func (m *recordingMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	m.mux.ServeHTTP(w, r)
 }
 
-// New builds the server. It refuses a bespoke route without a handler and a handler without a route,
-// so the mounted API is exactly the registry's path and Bespoke.
-func New(opts Options) (*Server, error) {
+// newServer builds the server. It refuses a bespoke route without a handler and a handler without a
+// route, so the mounted API is exactly the registry's path and Bespoke.
+func newServer(opts Options) (*Server, error) {
 	if err := CheckPaths(registry.Paths(opts.Datasets), Bespoke()); err != nil {
 		return nil, err
 	}
@@ -151,18 +147,13 @@ func New(opts Options) (*Server, error) {
 	if err != nil {
 		return nil, fmt.Errorf("registering the metrics: %w", err)
 	}
-	k, err := newKeys(opts.TokenKey)
-	if err != nil {
-		return nil, err
+	if opts.Checks == nil {
+		return nil, errors.New("the read API was given no checks to sit behind")
 	}
 	if opts.ClientSecrets == nil {
 		opts.ClientSecrets = noSecrets{}
 	}
-	s := &Server{opts: opts, keys: k, descriptors: registry.Descriptors(opts.Datasets), metrics: m}
-	a, err := newApp(opts.Bundle, opts.Browser, k)
-	if err != nil {
-		return nil, err
-	}
+	s := &Server{opts: opts, keys: keys{attempt: opts.Checks.AttemptCipher()}, descriptors: registry.Descriptors(opts.Datasets), metrics: m}
 	handlers := map[string]func(http.ResponseWriter, *http.Request){
 		"getLens":           s.lens,
 		"listAccounts":      s.listAccounts,
@@ -231,52 +222,37 @@ func New(opts Options) (*Server, error) {
 		return nil, fmt.Errorf("handlers with no route: %v", slices.Sorted(maps.Keys(handlers)))
 	}
 	mux.Handle(paths.API+"/", named("unrouted", func(w http.ResponseWriter, r *http.Request) {
-		writeFailure(w, r, clientFault(http.StatusNotFound, "not_found", "no read API route answers this path"))
-	}))
-	mux.Handle(paths.Root+"/", a)
-	// The one route outside the root. Everything else outside it is the mux's own 404 (ADR-0137).
-	mux.Handle("GET /{$}", named("root", func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, paths.Root+"/", http.StatusFound)
+		server.WriteFailure(w, r, server.ClientFault(http.StatusNotFound, "not_found", "no read API route answers this path"))
 	}))
 	s.uiMux = mux
 	// Every request is given its session, and every request whose method is not GET or HEAD is refused
 	// before it is routed unless it carries the session's request token (ADR-0061).
-	s.handler = observe(opts.Logger, withPolicy(withSession(withToken(k, mux))))
+	s.handler = opts.Checks.Wrap(mux)
 	return s, nil
 }
 
-// apiRoutes is the list New mounts the read API from, the registry's paths and the bespoke handlers.
+// apiRoutes is the list newServer mounts the read API from, the registry's paths and the bespoke handlers.
 // What the server actually mounts is checked against the contract through Served, so a route added
 // outside this list is caught as well.
-func apiRoutes(datasets []registry.Dataset) []Route {
-	routes := []Route{{Pattern: registry.LensPath, Operation: "getLens", Scoped: true, Registry: true}}
+func apiRoutes(datasets []registry.Dataset) []server.Route {
+	routes := []server.Route{{Pattern: registry.LensPath, Operation: "getLens", Scoped: true, Registry: true}}
 	for _, d := range datasets {
 		if d.Detail != nil {
-			routes = append(routes, Route{Pattern: registry.RowPath(d.Name), Operation: RowOperation(d.Name), Scoped: true, Registry: true})
+			routes = append(routes, server.Route{Pattern: registry.RowPath(d.Name), Operation: RowOperation(d.Name), Scoped: true, Registry: true})
 		}
 	}
 	return append(routes, Bespoke()...)
 }
 
-// Served is every pattern registered through the UI listener's recording mux, in registration order.
-// The contract's test requires it to be exactly the document's operations, the two catch-alls it
-// names, /ui/api/ and /ui/, and the redirect at /, so any other pattern registered through Handle
-// fails the test.
+// Served is every pattern registered through the read API's recording mux, in registration order.
+// The test of the read API's routes requires it to be exactly the contract document's operations and
+// the read API's catch-all, /ui/api/, so any other pattern registered through Handle fails the test.
 func (s *Server) Served() []string {
 	return slices.Clone(s.uiMux.patterns)
 }
 
-// Handler serves the UI, the entry document, the bundle and the read API.
+// Handler serves the read API behind the checks.
 func (s *Server) Handler() http.Handler { return s.handler }
-
-// Ready returns nil only while the database answers as the application user, since every screen reads it.
-// It is the UI's readiness check.
-func (s *Server) Ready(ctx context.Context) error {
-	if err := s.opts.Database.Ping(ctx); err != nil {
-		return fmt.Errorf("the database does not answer: %w", err)
-	}
-	return nil
-}
 
 // draining returns what ends when the process begins to stop serving requests, or nil, which never
 // ends, when the server was given nothing.
@@ -290,7 +266,7 @@ func (s *Server) draining() <-chan struct{} {
 // named records the route pattern for the log line.
 func named(route string, h func(http.ResponseWriter, *http.Request)) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		requestInfo(r.Context()).route = route
+		server.RequestLogOf(r.Context()).Route = route
 		h(w, r)
 	})
 }
@@ -310,9 +286,9 @@ func (s *Server) scoped(route string, h func(http.ResponseWriter, *http.Request)
 // admit reports whether the request's account may be read, and answers the request when it may not.
 func (s *Server) admit(w http.ResponseWriter, r *http.Request) bool {
 	account := r.PathValue("account")
-	requestInfo(r.Context()).account = account
+	server.RequestLogOf(r.Context()).Account = account
 	if account == "all" {
-		writeFailure(w, r, clientFault(http.StatusBadRequest, "all_accounts", "every view is one account's, and all names every account"))
+		server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, "all_accounts", "every view is one account's, and all names every account"))
 		return false
 	}
 	listed, err := accounts.New(s.opts.Database).Accounts(r.Context())
@@ -321,7 +297,7 @@ func (s *Server) admit(w http.ResponseWriter, r *http.Request) bool {
 		return false
 	}
 	if !slices.ContainsFunc(listed, func(a accounts.AccountsRow) bool { return a.AccountID == account }) {
-		writeFailure(w, r, clientFault(http.StatusBadRequest, "unknown_account", "no account has this identifier"))
+		server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, "unknown_account", "no account has this identifier"))
 		return false
 	}
 	return true
@@ -330,9 +306,9 @@ func (s *Server) admit(w http.ResponseWriter, r *http.Request) bool {
 // databaseFailure reports a failed read. A cancelled request is the client going away, and its
 // failure is logged, never reported as the database's.
 func (s *Server) databaseFailure(w http.ResponseWriter, r *http.Request, err error) {
-	requestInfo(r.Context()).err = err
+	server.RequestLogOf(r.Context()).Err = err
 	if errors.Is(err, context.Canceled) {
 		return
 	}
-	writeFailure(w, r, databaseFault())
+	server.WriteFailure(w, r, server.DatabaseFault())
 }

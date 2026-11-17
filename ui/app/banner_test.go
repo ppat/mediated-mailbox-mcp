@@ -3,11 +3,9 @@ package app
 import (
 	"bytes"
 	"encoding/json"
-	"log/slog"
 	"strings"
 	"testing"
 
-	"github.com/ppat/mediated-mailbox-mcp/process/logging"
 	"github.com/ppat/mediated-mailbox-mcp/process/version"
 )
 
@@ -17,10 +15,9 @@ import (
 // after the banner and before any connection is made.
 func TestTheStartBannerGoesToStandardErrorAndStandardOutputStaysJSON(t *testing.T) {
 	var stdout, stderr bytes.Buffer
-	level := new(slog.LevelVar)
-	err := Run(t.Context(), []string{"--database.host=db", "--database.name=mailbox", "--database.user=mediated_mailbox_app", "--database.password_file=/absent", "--credential.public_key_file=/absent", "--credential.private_key_files=[/absent]"}, nil, &stdout, &stderr, logging.New(&stdout, level), level)
-	if err == nil || !strings.HasPrefix(err.Error(), "loading the public key: ") {
-		t.Fatalf("Run returned %v, want the start to stop at the public key file", err)
+	err := run(t.Context(), []string{"--database.host=db", "--database.name=mailbox", "--database.user=mediated_mailbox_app", "--database.password_file=/absent", "--credential.public_key_file=/absent", "--credential.private_key_files=[/absent]"}, nil, &stdout, &stderr)
+	if err == nil || !strings.HasPrefix(err.Error(), "building the endpoint /ui/api/: loading the public key: ") {
+		t.Fatalf("the run returned %v, want the start to stop at the public key file", err)
 	}
 	if want := "mediated-mailbox-ui " + version.Number + "\n  serves  http on :8443\n  probes  http on :8080\n"; stderr.String() != want {
 		t.Errorf("the banner is\n%s\nwant\n%s", stderr.String(), want)

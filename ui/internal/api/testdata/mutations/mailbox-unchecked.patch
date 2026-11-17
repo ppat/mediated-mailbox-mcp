@@ -6,15 +6,15 @@ scheduled-count: no
 integration: yes
 
 diff --git a/ui/internal/api/connect.go b/ui/internal/api/connect.go
-index 18348c97..5a2a0fb5 100644
+index 05cff588..c74b97db 100644
 --- a/ui/internal/api/connect.go
 +++ b/ui/internal/api/connect.go
-@@ -352,7 +352,7 @@ func (s *Server) finish(w http.ResponseWriter, r *http.Request, mine func(attemp
+@@ -361,7 +361,7 @@ func (s *Server) finish(w http.ResponseWriter, r *http.Request, mine func(attemp
  		s.consentFailure(w, r, a, err)
  		return
  	}
 -	if !consent.SameMailbox(grant.Mailbox, a.Mailbox) {
 +	if !consent.SameMailbox(grant.Mailbox, grant.Mailbox) {
- 		writeFailure(w, r, clientFault(http.StatusBadRequest, "wrong_mailbox", "Google granted access to "+grant.Mailbox+", not "+a.Mailbox+"."))
+ 		server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, "wrong_mailbox", "Google granted access to "+grant.Mailbox+", not "+a.Mailbox+"."))
  		return
  	}

@@ -101,7 +101,7 @@ list names it.
 | --- | --- | --- |
 | `process` | The spec, which lists what a program is made of, and the process that runs it. That is the build and the run, the servers, the stop order, the readiness reports, the health and readiness probes and the metrics endpoint of every process that runs until it is told to stop, the registration of the Go runtime's and the process's series, and the slots the owner packages keep shared things in | |
 | `process/settings` | The layering of defaults, one optional configuration file, environment variables and flags into the configuration of each program that runs as a process, and the reading of a `config.Duration` | |
-| `process/database` | The opening of every measured pool, through `database.Get` and, for the migrator, `database.ForMigration`, the latency of every statement a connection runs, the statistics of each pool, and the schema check | |
+| `process/database` | The opening of every measured pool, through `database.Get` and, for the migrator, `database.ForMigration`, the latency of every statement a connection runs, the statistics of each pool, the schema check, and the readiness report of the process's one pool answering a ping, which a program opts into through `database.ReportReadiness` and which refuses a job kind | |
 | `process/database/core` | The label a statement's latency is recorded under, the database package's pure decision | |
 | `process/schedule` | The scheduler, which runs each job kind's plan, adds and drops its jobs by key, and reports the job kind not ready until its first listing has succeeded | |
 | `process/sessions` | The Session, all the user state a process holds, with its one reload, the reload's order and its failure rules | |
@@ -111,7 +111,7 @@ list names it.
 | `process/scanner` | The building of the scanner, once per process, and the body-processing histogram | |
 | `process/logging` | The logger every program that runs as a process writes JSON to standard output through, and the reading of its `log_level` | |
 | `process/version` | The release version every binary's `--version` reports, which the release cut writes | |
-| `process/host` | The host the API server, the UI and the worker run on until each is on its spec, kept beside `process` while the refactor [ROADMAP.md](./ROADMAP.md) records is under way | |
+| `process/host` | The host the API server and the worker run on until each is on its spec, kept beside `process` while the refactor [ROADMAP.md](./ROADMAP.md) records is under way | |
 | `process/probes`, `process/runtimemetrics` | The operations endpoints' handler, and the registration of the Go runtime's and the process's series, which `process` and `process/host` share while both run programs | |
 | `provider` | The calling side, which is the caller, the token, the one wrapper of a mailbox's operations, the list of shipped adapters, the facts about each provider and the shared provider metrics | |
 | `provider/mail` | What any mail provider can do, `mail.Mailbox`, the Provider Port's interface for mail, with its consent contract and the call sizes a caller needs, which backfill and delta sync's tick read. Each is what `core/mail`'s `CallSize` gives within the hard-cap fraction `core/mail` holds. The port's errors, the body's part and the canonical model it speaks are `core/mail`'s | |
