@@ -7,6 +7,7 @@ import (
 
 	"pgregory.net/rapid"
 
+	"github.com/ppat/mediated-mailbox-mcp/core/config"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/marker"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/property"
@@ -54,7 +55,7 @@ func body(a args) string {
 // the flags match what the body holds, so a scanner that stops flagging, or flags everything, fails
 // too.
 func TestNoScannerOutputCarriesBodyText(t *testing.T) {
-	s, err := scan.New(scan.DefaultConfig(), "a-revision")
+	s, err := scan.New(config.DefaultScanner(), "a-revision")
 	if err != nil {
 		t.Fatal(err)
 	}

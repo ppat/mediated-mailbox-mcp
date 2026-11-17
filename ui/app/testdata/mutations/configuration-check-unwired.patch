@@ -1,0 +1,18 @@
+control: The database section is validated before anything else starts
+removes: the UI's root hands the host no check, so the UI starts with any configuration the library loads
+packages: ./ui/app
+tests: TestAPoolSizeOfZeroRefusesTheStart TestAnEmptyListOfPrivateKeysRefusesTheStart TestANonLoopbackConsentRedirectRefusesTheStart
+scheduled-count: no
+
+diff --git a/ui/app/app.go b/ui/app/app.go
+--- a/ui/app/app.go
++++ b/ui/app/app.go
+@@ -59,7 +59,7 @@ func Run(ctx context.Context, args, environ []string, stdout, stderr io.Writer,
+ 		Process:     func(c config.UI) config.Process { return c.Process },
+ 		Operations:  func(c config.UI) config.Operations { return c.Operations },
+ 		Serving:     func(c config.UI) config.Serving { return c.Serving },
+-		Validate:    config.UI.Check,
++		Validate:    nil,
+ 		CheckSchema: checkSchema,
+ 		Components:  []host.Component[config.UI]{{Name: "ui", Mount: Mount, Assemble: fromConfiguration}},
+ 	})

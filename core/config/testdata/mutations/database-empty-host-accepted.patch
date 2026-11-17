@@ -1,0 +1,18 @@
+control: The database section is validated before anything else starts
+removes: an empty host is accepted
+packages: ./core/config ./worker/app
+tests: TestAnUnusableDatabaseValueIsRefused/an_empty_host TestAnEmptyHostRefusesTheStart
+scheduled-count: no
+
+diff --git a/core/config/database.go b/core/config/database.go
+--- a/core/config/database.go
++++ b/core/config/database.go
+@@ -41,8 +41,6 @@ func DriverPoolSize(processors int) int {
+ // chose, such as its Unix socket directory for an empty host.
+ func (d Database) Check() error {
+ 	switch {
+-	case d.Host == "":
+-		return errors.New("database.host is empty")
+ 	case d.Name == "":
+ 		return errors.New("database.name is empty")
+ 	case d.User == "":

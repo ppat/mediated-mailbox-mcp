@@ -1,9 +1,9 @@
-// Package app is the API server's entry package. It exports the API server's section of the
-// configuration and its assembly, which takes what the API server needs as values, starts nothing and
-// returns what it provides, and its composition root, Run, which hands the host the API server and
-// the configuration it reads (ADR-0040, ADR-0138). api/main.go calls Run. It sits outside internal, so
-// a composition root other than the API server's own can compose it. Every other package of this
-// deployable sits under internal, apart from importtarget, which exists only under the banproof tag.
+// Package app is the API server's entry package. It exports the API server's assembly, which takes
+// what the API server needs as values, starts nothing and returns what it provides, and its
+// composition root, Run, which hands the host the API server and its configuration, config.API
+// (ADR-0040, ADR-0078, ADR-0138). api/main.go calls Run. It sits outside internal, so a composition
+// root other than the API server's own can compose it. Every other package of this deployable sits
+// under internal, apart from importtarget, which exists only under the banproof tag.
 //
 // The API server's handler is the client surface, the API root under /api/ and the MCP root at /mcp,
 // and every request to it passes the bearer check before it reaches either root (ADR-0030,
@@ -34,6 +34,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"runtime"
 	"strings"
 	"time"
 
@@ -48,6 +49,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/api/internal/service"
 	"github.com/ppat/mediated-mailbox-mcp/content/markdown"
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
+	"github.com/ppat/mediated-mailbox-mcp/core/config"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/credential/open"
@@ -55,10 +57,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/db/schemacompatibility"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/accountload"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/assembly"
-	credentialcore "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/core"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/session"
-	"github.com/ppat/mediated-mailbox-mcp/process/dbconnect"
-	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core"
 	"github.com/ppat/mediated-mailbox-mcp/process/host"
 	"github.com/ppat/mediated-mailbox-mcp/process/version"
 	providerlib "github.com/ppat/mediated-mailbox-mcp/provider"
@@ -71,38 +70,6 @@ import (
 // gmailProvider is the provider an account served through the Gmail adapter names in accounts.
 const gmailProvider = "gmail"
 
-// Configuration is the API server's root configuration type, loaded by the configuration library
-// (ADR-0078). It composes the process's sections, the API server's own section and the sections it
-// shares with the other deployables, the process's and its own inline, so every key sits at the top of
-// the tree. Its fields are pinned by the test beside this file, so a new value is a visible change. No
-// account and no provider credential is configuration. Both come from the database (ADR-0080).
-type Configuration struct {
-	host.Process    `yaml:",inline"`
-	host.Operations `yaml:",inline"`
-	host.Serving    `yaml:",inline"`
-	Section         `yaml:",inline"`
-	Database        dbconnectcore.Config  `yaml:"database"`
-	Credential      credentialcore.Config `yaml:"credential"`
-	// Scanner is the scanner's section, the same section backfill reads, whose pattern tier the
-	// serve-time pattern check runs (ADR-0002, ADR-0005). No value in it switches the check off.
-	Scanner scan.Config `yaml:"scanner"`
-}
-
-// Section is the API server's own section of the configuration, the values only it reads.
-type Section struct {
-	// TokenFile names the mounted file holding the bearer token clients present.
-	TokenFile string `yaml:"token_file" settings:"required"`
-	// AccountReloadInterval is how often the execution context the API server's root builds reloads
-	// its account snapshot and their policy (ADR-0090).
-	AccountReloadInterval time.Duration `yaml:"account_reload_interval"`
-	// ProviderTimeout bounds each provider call a body request makes, after which the call is the
-	// provider's failure (ADR-0101).
-	ProviderTimeout time.Duration `yaml:"provider_timeout"`
-}
-
-// maxProviderTimeout is the longest provider timeout the configuration accepts.
-const maxProviderTimeout = 5 * time.Minute
-
 // leaseWait bounds how long one body request waits for its leases, counted from the request's
 // arrival, so no request waits without limit whatever revision its client speaks. A request no lease
 // comes for is answered within it, before Claude Code's own 60-second timer on a request's first
@@ -112,53 +79,6 @@ const leaseWait = 45 * time.Second
 // scannerSection is the scanner's section of the configuration, whose revision the serve-time
 // pattern check runs under (ADR-0078).
 const scannerSection = "scanner"
-
-// DefaultSection is the API server's own section's defaults. The token file has no default, since a
-// default path assumes the environment.
-func DefaultSection() Section {
-	return Section{AccountReloadInterval: time.Minute, ProviderTimeout: 30 * time.Second}
-}
-
-// defaults are the API server's defaults. The user is the test harness's application user (ADR-0143),
-// the TLS mode is the one that fails closed, and the pool size is the driver's own default. The key
-// files have no default, since a default path assumes the environment.
-func defaults() Configuration {
-	return Configuration{
-		Process:    host.DefaultProcess(),
-		Operations: host.DefaultOperations(),
-		Serving:    host.DefaultServing(),
-		Section:    DefaultSection(),
-		Database:   dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_app", SSLMode: "verify-full", PoolSize: dbconnect.DefaultPoolSize()},
-		Scanner:    scan.DefaultConfig(),
-	}
-}
-
-// ValidateSection refuses an API server section the API server cannot serve with. The token file is
-// named, the reload interval is positive, and the provider timeout positive and at most five minutes.
-func ValidateSection(s Section) error {
-	if strings.TrimSpace(s.TokenFile) == "" {
-		return errors.New("token_file is empty")
-	}
-	if s.AccountReloadInterval <= 0 {
-		return fmt.Errorf("account_reload_interval %s is not positive", s.AccountReloadInterval)
-	}
-	if s.ProviderTimeout <= 0 || s.ProviderTimeout > maxProviderTimeout {
-		return fmt.Errorf("provider_timeout %s is not positive and at most %s", s.ProviderTimeout, maxProviderTimeout)
-	}
-	return nil
-}
-
-// validate refuses a configuration the API server cannot serve with, past the process's sections,
-// which the host validates.
-func validate(c Configuration) error {
-	if err := ValidateSection(c.Section); err != nil {
-		return err
-	}
-	if err := dbconnectcore.Validate(c.Database); err != nil {
-		return err
-	}
-	return credentialcore.Validate(c.Credential)
-}
 
 // Mount is where the API server's handler is served on a process's application server, the API root
 // and the MCP root (ADR-0030, ADR-0087).
@@ -175,15 +95,15 @@ var Mount = []string{"/api/", "/mcp"}
 // (ADR-0122). stdout answers --help and --version, and stderr is where the start banner goes,
 // standard error in main.go, so standard output carries only the logger's JSON records otherwise.
 func Run(ctx context.Context, args, environ []string, stdout, stderr io.Writer, logger *slog.Logger, level *slog.LevelVar) error {
-	return host.Run(ctx, args, environ, stdout, stderr, logger, level, host.Spec[Configuration]{
+	return host.Run(ctx, args, environ, stdout, stderr, logger, level, host.Spec[config.API]{
 		Name:        "mediated-mailbox-api",
-		Defaults:    defaults(),
-		Process:     func(c Configuration) host.Process { return c.Process },
-		Operations:  func(c Configuration) host.Operations { return c.Operations },
-		Serving:     func(c Configuration) host.Serving { return c.Serving },
-		Validate:    validate,
+		Defaults:    config.DefaultAPI(runtime.NumCPU()),
+		Process:     func(c config.API) config.Process { return c.Process },
+		Operations:  func(c config.API) config.Operations { return c.Operations },
+		Serving:     func(c config.API) config.Serving { return c.Serving },
+		Validate:    config.API.Check,
 		CheckSchema: checkSchema,
-		Components: []host.Component[Configuration]{{
+		Components: []host.Component[config.API]{{
 			Name: "api", Mount: Mount, RefuseEnvironment: RefuseEnvironment, Assemble: fromConfiguration,
 		}},
 	})
@@ -204,7 +124,7 @@ func checkSchema(ctx context.Context, pool *pgxpool.Pool) error {
 // section under the section's revision, the keyring, the pool connecting as the application user and
 // the process's execution context over that pool, and assembles the API server from them. The
 // context's reload is the process's task.
-func fromConfiguration(ctx context.Context, provided host.Provided[Configuration]) (host.Parts, error) {
+func fromConfiguration(ctx context.Context, provided host.Provided[config.API]) (host.Parts, error) {
 	c := provided.Loaded.Config
 	scanner, err := scan.New(c.Scanner, provided.Loaded.Revisions[scannerSection])
 	if err != nil {
@@ -218,12 +138,12 @@ func fromConfiguration(ctx context.Context, provided host.Provided[Configuration
 	if err != nil {
 		return host.Parts{}, err
 	}
-	ec, err := newContext(pool, keys, scanner, c.Section, provided.Registerer, provided.Logger)
+	ec, err := newContext(pool, keys, scanner, c.Accounts, provided.Registerer, provided.Logger)
 	if err != nil {
 		return host.Parts{}, err
 	}
 	parts, err := Assemble(ctx, Needs{
-		Section: c.Section, Pool: pool, Context: ec, Client: http.DefaultClient,
+		Config: c, Pool: pool, Context: ec, Client: http.DefaultClient,
 		Registerer: provided.Registerer, Logger: provided.Logger, Start: provided.Start,
 	})
 	if err != nil {
@@ -235,10 +155,10 @@ func fromConfiguration(ctx context.Context, provided host.Provided[Configuration
 
 // newContext returns the execution context of a process that hosts the API server alone, over the
 // API server's pool, reloading on its account reload interval (ADR-0090).
-func newContext(pool *pgxpool.Pool, keys *open.Keyring, scanner scan.Scanner, s Section, reg prometheus.Registerer, logger *slog.Logger) (*assembly.Context, error) {
+func newContext(pool *pgxpool.Pool, keys *open.Keyring, scanner scan.Scanner, a config.Accounts, reg prometheus.Registerer, logger *slog.Logger) (*assembly.Context, error) {
 	return assembly.New(assembly.Needs{
 		Pool: pool, Keys: keys, ThroughClient: []string{gmailProvider}, Scanner: scanner, Lookups: lookups(),
-		ReloadInterval: s.AccountReloadInterval, Registerer: reg, Logger: logger,
+		ReloadInterval: time.Duration(a.AccountReloadInterval), Registerer: reg, Logger: logger,
 	})
 }
 
@@ -250,7 +170,9 @@ func ContextTask(ec *assembly.Context) host.Task {
 
 // Needs are what the API server is assembled from.
 type Needs struct {
-	Section Section
+	// Config is the API server's configuration, of which the assembly reads the token file and the
+	// provider timeout.
+	Config config.API
 	// Pool connects as the application user, which its own statements, its leases and its recording
 	// of authentication attempts run under (ADR-0143).
 	Pool *pgxpool.Pool
@@ -303,7 +225,7 @@ func assemble(ctx context.Context, n Needs, connect session.Connector, wait time
 	if err != nil {
 		return nil, err
 	}
-	bodies, opener, err := newBodies(served, connect, n.Context.Scanner(), n.Section.ProviderTimeout, wait, n.Registerer)
+	bodies, opener, err := newBodies(served, connect, n.Context.Scanner(), time.Duration(n.Config.ProviderTimeout), wait, n.Registerer)
 	if err != nil {
 		return nil, err
 	}
@@ -320,7 +242,7 @@ func assemble(ctx context.Context, n Needs, connect session.Connector, wait time
 	if err := served.reload(ctx); err != nil {
 		return nil, err
 	}
-	p, err := parts(served, n.Section, n.Logger)
+	p, err := parts(served, n.Config.TokenFile, n.Logger)
 	if err != nil {
 		return nil, err
 	}
@@ -329,18 +251,18 @@ func assemble(ctx context.Context, n Needs, connect session.Connector, wait time
 
 // parts returns the API server's parts over served, whose registry is built and whose first reload
 // has run.
-func parts(served *serving, s Section, logger *slog.Logger) (host.Parts, error) {
-	handler, err := surface(served.registry, s.TokenFile, logger)
+func parts(served *serving, tokenFile string, logger *slog.Logger) (host.Parts, error) {
+	handler, err := surface(served.registry, tokenFile, logger)
 	if err != nil {
 		return host.Parts{}, err
 	}
-	if err := tokenReadable(s.TokenFile); err != nil {
+	if err := tokenReadable(tokenFile); err != nil {
 		return host.Parts{}, err
 	}
 	return host.Parts{
 		Handler: handler,
 		Ready: []host.Check{{Name: "bearer token", Check: func(context.Context) error {
-			return tokenReadable(s.TokenFile)
+			return tokenReadable(tokenFile)
 		}}},
 	}, nil
 }

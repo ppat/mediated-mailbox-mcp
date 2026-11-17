@@ -5,12 +5,9 @@ tests: TestTheEnvironmentIsRefusedBeforeTheConfigurationIsRead/until_stopped/PGP
 scheduled-count: no
 
 diff --git a/process/host/host.go b/process/host/host.go
-index 8c310a7a..2f51b9a4 100644
 --- a/process/host/host.go
 +++ b/process/host/host.go
-@@ -320,21 +320,10 @@ type starting[T any] struct {
- // on stdout, logs the effective configuration, each value with the layer that set it, then sets level
- // from log_level, validates the process's section and the root's, and writes the start banner to
+@@ -250,17 +250,6 @@ type starting[T any] struct {
  // stderr. started reports whether the process goes on to its work: it is false with a nil error once
  // --help or --version is answered.
  func start[T any](args, environ []string, stdout, stderr io.Writer, logger *slog.Logger, level *slog.LevelVar, root starting[T]) (loaded settings.Loaded[T], started bool, err error) {
@@ -28,11 +25,7 @@ index 8c310a7a..2f51b9a4 100644
  	loaded, err = settings.Load(root.defaults, args, environ)
  	var help *settings.HelpRequested
  	if errors.As(err, &help) {
- 		_, err := io.WriteString(stdout, help.Text)
- 		return loaded, false, err
-@@ -344,10 +333,21 @@ func start[T any](args, environ []string, stdout, stderr io.Writer, logger *slog
- 		return loaded, false, err
- 	}
+@@ -274,6 +263,17 @@ func start[T any](args, environ []string, stdout, stderr io.Writer, logger *slog
  	if err != nil {
  		return loaded, false, fmt.Errorf("loading the configuration: %w", err)
  	}
@@ -50,5 +43,3 @@ index 8c310a7a..2f51b9a4 100644
  	// The effective configuration is written before the level applies, so a refused value's source,
  	// log_level's included, reaches the log whatever level the configuration sets (ADR-0078, ADR-0122).
  	for _, v := range loaded.Values {
- 		logger.Info("configuration", "path", v.Path, "source", v.Source.String(), "value", v.Value)
- 	}

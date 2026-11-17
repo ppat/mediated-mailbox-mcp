@@ -1,20 +1,19 @@
 control: The configuration surface accepts no value that disables the gate, skips masking or weakens deny-by-default
 removes: the configuration gains a value switching the gate, which a flag then sets
-packages: ./api/app
-tests: TestNoConfigurationValueWeakensTheGate/a_flag_disabling_the_gate TestTheConfigurationTypeIsPinned
+packages: ./api/app ./core/config
+tests: TestNoConfigurationValueWeakensTheGate/a_flag_disabling_the_gate TestTheProgramTypesArePinned
 scheduled-count: no
 
-diff --git a/api/app/app.go b/api/app/app.go
-index 843a78ed..bb9bc8a3 100644
---- a/api/app/app.go
-+++ b/api/app/app.go
-@@ -85,6 +85,9 @@ type Configuration struct {
- 	// Scanner is the scanner's section, the same section backfill reads, whose pattern tier the
- 	// serve-time pattern check runs (ADR-0002, ADR-0005). No value in it switches the check off.
- 	Scanner scan.Config `yaml:"scanner"`
+diff --git a/core/config/programs.go b/core/config/programs.go
+--- a/core/config/programs.go
++++ b/core/config/programs.go
+@@ -24,6 +24,9 @@ type API struct {
+ 	// Scanner is the scanner's part, the same part backfill reads, whose pattern tier the serve-time
+ 	// pattern check runs (ADR-0002, ADR-0005). No value in it switches the check off.
+ 	Scanner Scanner `yaml:"scanner"`
 +	Gate    struct {
 +		Enabled bool `yaml:"enabled"`
 +	} `yaml:"gate"`
  }
  
- // Section is the API server's own section of the configuration, the values only it reads.
+ // maxProviderTimeout is the longest provider timeout the API server accepts.

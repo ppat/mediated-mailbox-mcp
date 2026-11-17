@@ -18,6 +18,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
+	"github.com/ppat/mediated-mailbox-mcp/core/config"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/credential/open"
 	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
@@ -146,7 +147,7 @@ func connected(t *testing.T, conn *pgx.Conn, public seal.PublicKey, id string) {
 // observed each reload they are told of.
 func newContext(t *testing.T, ring *open.Keyring, observed *[]string) *assembly.Context {
 	t.Helper()
-	s, err := scan.New(scan.DefaultConfig(), "a-revision")
+	s, err := scan.New(config.DefaultScanner(), "a-revision")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -417,7 +418,7 @@ func TestEachReloadItsCallerDidNotCancelIsTimed(t *testing.T) {
 	reset(t, conn)
 	ring, public := keyring(t)
 	connected(t, conn, public, "personal")
-	s, err := scan.New(scan.DefaultConfig(), "a-revision")
+	s, err := scan.New(config.DefaultScanner(), "a-revision")
 	if err != nil {
 		t.Fatal(err)
 	}

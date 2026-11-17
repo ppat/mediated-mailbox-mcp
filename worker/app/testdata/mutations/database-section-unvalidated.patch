@@ -1,20 +1,17 @@
 control: The database section is validated before anything else starts
 removes: the start opens the job kinds' pools without validating the database section
-packages: ./worker/app
-tests: TestAnEmptyHostRefusesTheStart
+packages: ./worker/app ./core/config
+tests: TestAnEmptyHostRefusesTheStart TestTheWorkerConfigurationIsChecked/an_empty_host
 scheduled-count: no
 
-diff --git a/worker/app/app.go b/worker/app/app.go
-index 4b236336..4c4803de 100644
---- a/worker/app/app.go
-+++ b/worker/app/app.go
-@@ -131,9 +131,6 @@ func defaults() Configuration {
- // host validates. The database section passes its validation, every interval, window and bound is
- // positive, and the credential section names its key files.
- func validate(c Configuration) error {
--	if err := dbconnectcore.Validate(c.Database); err != nil {
--		return err
--	}
- 	if err := ValidateSection(c.Section); err != nil {
- 		return err
- 	}
+diff --git a/core/config/programs.go b/core/config/programs.go
+--- a/core/config/programs.go
++++ b/core/config/programs.go
+@@ -293,7 +293,6 @@ func (c Worker) Check() error {
+ 	return first(
+ 		c.Process.Check,
+ 		c.Operations.Check,
+-		c.Database.Check,
+ 		func() error {
+ 			switch {
+ 			case c.ReloadInterval <= 0:

@@ -22,6 +22,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prometheus/client_golang/prometheus"
 
+	"github.com/ppat/mediated-mailbox-mcp/core/config"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/credential/open"
 	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
@@ -162,7 +163,7 @@ func probe(t *testing.T, address, path string) (int, string) {
 func scrape(t *testing.T, want []string) {
 	t.Helper()
 	ring := connected(t)
-	scanner, err := scan.New(scan.DefaultConfig(), "a-revision")
+	scanner, err := scan.New(config.DefaultScanner(), "a-revision")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -175,9 +176,9 @@ func scrape(t *testing.T, want []string) {
 		Backfill: measuredPool(t, postgres.ApplicationUser, labelled(registry, backfill.Kind)),
 		Sync:     measuredPool(t, postgres.ApplicationUser, labelled(registry, deltasync.Kind)),
 	}
-	ec := mustContext(t, pools, ring, scanner, defaults().Section, registry, slog.New(slog.DiscardHandler))
+	ec := mustContext(t, pools, ring, scanner, config.DefaultWorker(), registry, slog.New(slog.DiscardHandler))
 	parts, err := Assemble(h.Context(), Needs{
-		Section: defaults().Section, Pools: pools, Context: ec, Client: unreachable(t),
+		Config: config.DefaultWorker(), Pools: pools, Context: ec, Client: unreachable(t),
 		Registerer: registry, Logger: slog.New(slog.DiscardHandler),
 	})
 	if err != nil {
@@ -197,7 +198,7 @@ func scrape(t *testing.T, want []string) {
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 	done := make(chan error, 1)
-	go func() { done <- h.Serve(ctx, host.Listeners{Probes: ln}, host.Serving{}) }()
+	go func() { done <- h.Serve(ctx, host.Listeners{Probes: ln}, config.Serving{}) }()
 	var body string
 	missing := func() []string {
 		var out []string
@@ -298,7 +299,7 @@ func TestTheProbesServeThePerformanceSeries(t *testing.T) {
 // the worker stops reporting ready when either job kind's pool cannot answer, and a pool that answers
 // leaves its own check passing (ADR-0138).
 func TestEachJobKindsDatabaseCheckFollowsItsPool(t *testing.T) {
-	scanner, err := scan.New(scan.DefaultConfig(), "a-revision")
+	scanner, err := scan.New(config.DefaultScanner(), "a-revision")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -308,8 +309,8 @@ func TestEachJobKindsDatabaseCheckFollowsItsPool(t *testing.T) {
 		Sync:     measuredPool(t, postgres.ApplicationUser, labelled(registry, deltasync.Kind)),
 	}
 	parts, err := Assemble(t.Context(), Needs{
-		Section: defaults().Section, Pools: pools, Client: unreachable(t),
-		Context:    mustContext(t, pools, connected(t), scanner, defaults().Section, registry, slog.New(slog.DiscardHandler)),
+		Config: config.DefaultWorker(), Pools: pools, Client: unreachable(t),
+		Context:    mustContext(t, pools, connected(t), scanner, config.DefaultWorker(), registry, slog.New(slog.DiscardHandler)),
 		Registerer: registry, Logger: slog.New(slog.DiscardHandler),
 	})
 	if err != nil {
@@ -353,13 +354,13 @@ func TestAGmailAccountNamingNoClientIsNotConnected(t *testing.T) {
 		}
 	}()
 	must(t, conn, "UPDATE accounts SET oauth_client = NULL WHERE account_id = 'personal'")
-	scanner, err := scan.New(scan.DefaultConfig(), "a-revision")
+	scanner, err := scan.New(config.DefaultScanner(), "a-revision")
 	if err != nil {
 		t.Fatal(err)
 	}
 	registry := prometheus.NewRegistry()
 	pools := Pools{Sync: measuredPool(t, postgres.ApplicationUser, registry)}
-	ec := mustContext(t, pools, ring, scanner, defaults().Section, registry, slog.New(slog.DiscardHandler))
+	ec := mustContext(t, pools, ring, scanner, config.DefaultWorker(), registry, slog.New(slog.DiscardHandler))
 	if err := ec.Reload(t.Context()); err != nil {
 		t.Fatal(err)
 	}
@@ -373,7 +374,7 @@ func TestAGmailAccountNamingNoClientIsNotConnected(t *testing.T) {
 // hour away (ADR-0090, ADR-0119).
 func TestEachContextReloadWakesTheJobKinds(t *testing.T) {
 	ring, public := connectedKeys(t)
-	scanner, err := scan.New(scan.DefaultConfig(), "a-revision")
+	scanner, err := scan.New(config.DefaultScanner(), "a-revision")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -382,14 +383,14 @@ func TestEachContextReloadWakesTheJobKinds(t *testing.T) {
 		Backfill: measuredPool(t, postgres.ApplicationUser, labelled(registry, backfill.Kind)),
 		Sync:     measuredPool(t, postgres.ApplicationUser, labelled(registry, deltasync.Kind)),
 	}
-	section := defaults().Section
-	section.ReloadInterval = time.Hour
+	section := config.DefaultWorker()
+	section.ReloadInterval = config.Duration(time.Hour)
 	ec := mustContext(t, pools, ring, scanner, section, registry, slog.New(slog.DiscardHandler))
 	if err := ec.Reload(t.Context()); err != nil {
 		t.Fatal(err)
 	}
 	parts, err := Assemble(t.Context(), Needs{
-		Section: section, Pools: pools, Context: ec, Client: unreachable(t),
+		Config: section, Pools: pools, Context: ec, Client: unreachable(t),
 		Registerer: registry, Logger: slog.New(slog.DiscardHandler),
 	})
 	if err != nil {
@@ -492,7 +493,7 @@ func TestAStartLogsNoErrorAndIsReadyOnlyOnceTheContextLoads(t *testing.T) {
 	// No account is listed, so no account job runs and each job kind's reload is the only job it runs.
 	must(t, conn, "DELETE FROM account_state")
 	must(t, conn, "DELETE FROM accounts")
-	scanner, err := scan.New(scan.DefaultConfig(), "a-revision")
+	scanner, err := scan.New(config.DefaultScanner(), "a-revision")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -503,11 +504,11 @@ func TestAStartLogsNoErrorAndIsReadyOnlyOnceTheContextLoads(t *testing.T) {
 		Backfill: measuredPool(t, postgres.ApplicationUser, labelled(registry, backfill.Kind)),
 		Sync:     measuredPool(t, postgres.ApplicationUser, labelled(registry, deltasync.Kind)),
 	}
-	section := defaults().Section
-	section.ReloadInterval = time.Hour
+	section := config.DefaultWorker()
+	section.ReloadInterval = config.Duration(time.Hour)
 	ec := mustContext(t, pools, ring, scanner, section, registry, logger)
 	parts, err := Assemble(t.Context(), Needs{
-		Section: section, Pools: pools, Context: ec, Client: unreachable(t), Registerer: registry, Logger: logger,
+		Config: section, Pools: pools, Context: ec, Client: unreachable(t), Registerer: registry, Logger: logger,
 	})
 	if err != nil {
 		t.Fatal(err)

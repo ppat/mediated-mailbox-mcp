@@ -8,6 +8,7 @@ import (
 
 	"pgregory.net/rapid"
 
+	"github.com/ppat/mediated-mailbox-mcp/core/config"
 	"github.com/ppat/mediated-mailbox-mcp/core/redact"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/marker"
@@ -41,7 +42,7 @@ func drawSubject(t *rapid.T) subjectArgs {
 // field marker always does, and the subject keeps its length in characters, so a masker that masks
 // nothing, or masks everything, fails (ADR-0003).
 func TestMaskingRemovesEveryCode(t *testing.T) {
-	s, err := scan.New(scan.DefaultConfig(), "a-revision")
+	s, err := scan.New(config.DefaultScanner(), "a-revision")
 	if err != nil {
 		t.Fatal(err)
 	}

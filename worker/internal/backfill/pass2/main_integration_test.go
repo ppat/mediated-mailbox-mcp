@@ -19,6 +19,7 @@ import (
 	"golang.org/x/net/publicsuffix"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
+	scanconfig "github.com/ppat/mediated-mailbox-mcp/core/config"
 	"github.com/ppat/mediated-mailbox-mcp/core/index"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/core/policy"
@@ -214,7 +215,7 @@ func scanner(t tb) scan.Scanner {
 // revision tells them apart.
 func scannerAt(t tb, revision string) scan.Scanner {
 	t.Helper()
-	s, err := scan.New(scan.DefaultConfig(), revision)
+	s, err := scan.New(scanconfig.DefaultScanner(), revision)
 	if err != nil {
 		t.Fatalf("building the scanner: %v", err)
 	}

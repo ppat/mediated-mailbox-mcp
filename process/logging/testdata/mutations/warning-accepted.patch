@@ -5,15 +5,23 @@ tests: TestALevelIsOneOfFourNames/refused_warning
 scheduled-count: no
 
 diff --git a/process/logging/logging.go b/process/logging/logging.go
-index fbdbd35..cb2de13 100644
 --- a/process/logging/logging.go
 +++ b/process/logging/logging.go
-@@ -36,7 +36,7 @@ func ParseLevel(name string) (slog.Level, error) {
+@@ -27,7 +27,7 @@ func New(w io.Writer, level slog.Leveler) *slog.Logger {
+ // spellings slog's own parser accepts, such as INFO, Warn and info+2, so a level is refused in one
+ // place (ADR-0078). ParseLevel maps a name the check admits to its level.
+ func ParseLevel(name string) (slog.Level, error) {
+-	if err := (config.Process{LogLevel: name}).Check(); err != nil {
++	if err := (config.Process{LogLevel: name}).Check(); err != nil && name != "warning" {
+ 		return 0, err
+ 	}
+ 	switch name {
+@@ -35,7 +35,7 @@ func ParseLevel(name string) (slog.Level, error) {
  		return slog.LevelDebug, nil
  	case "info":
  		return slog.LevelInfo, nil
 -	case "warn":
 +	case "warn", "warning":
  		return slog.LevelWarn, nil
- 	case "error":
- 		return slog.LevelError, nil
+ 	}
+ 	return slog.LevelError, nil

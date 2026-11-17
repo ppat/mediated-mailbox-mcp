@@ -11,12 +11,11 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/migrator/app"
 	"github.com/ppat/mediated-mailbox-mcp/process/logging"
 	"github.com/ppat/mediated-mailbox-mcp/process/version"
-	"github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile"
 )
 
 // database is a database section the migrator validates, naming a password file that does not exist,
 // so a start that gets past its validation stops at reading the password, before any connection.
-var database = []string{"--database.host=db.example", "--database.name=mailbox", "--database.password_file=/absent/password", "--application_user=mailbox_app"}
+var database = []string{"--database.host=db.example", "--database.name=mailbox", "--database.user=mailbox_migrator", "--database.password_file=/absent/password", "--application_user=mailbox_app"}
 
 // --version prints the release version and exits before any layer of the configuration is read, so
 // a flag the configuration would refuse beside it stops nothing, and no configuration is logged
@@ -96,8 +95,10 @@ func TestAnUnusableConfigurationIsRefused(t *testing.T) {
 		{[]string{"--database.name=mailbox", "--database.password_file=/absent/password", "--application_user=mailbox_app"}, "loading the configuration: "},
 		// The application user's name has no default, since the project names no database user, and an
 		// empty one would name no grantee (ADR-0143).
-		{[]string{"--database.host=db.example", "--database.name=mailbox", "--database.password_file=/absent/password"}, "loading the configuration: application_user is required"},
-		{append([]string{"--application_user="}, database[:3]...), "validating the configuration: application_user is empty"},
+		{[]string{"--database.host=db.example", "--database.name=mailbox", "--database.user=mailbox_migrator", "--database.password_file=/absent/password"}, "loading the configuration: application_user is required"},
+		{append([]string{"--application_user="}, database[:4]...), "validating the configuration: application_user is empty"},
+		// Nor has the migrator's own user, which the deployment names (ADR-0143).
+		{[]string{"--database.host=db.example", "--database.name=mailbox", "--database.password_file=/absent/password", "--application_user=mailbox_app"}, "loading the configuration: database.user is required"},
 	} {
 		var stderr bytes.Buffer
 		err := app.Run(t.Context(), c.args, nil, io.Discard, &stderr, slog.New(slog.DiscardHandler), new(slog.LevelVar))
@@ -108,14 +109,4 @@ func TestAnUnusableConfigurationIsRefused(t *testing.T) {
 			t.Errorf("%v: Run wrote the banner %q before refusing", c.args, stderr.String())
 		}
 	}
-}
-
-// The configuration type is pinned field by field, so a new value, one meant to hold a secret
-// included, is a visible change (ADR-0078).
-func TestTheConfigurationTypeIsPinned(t *testing.T) {
-	mustnotcompile.RequireFields(t, "github.com/ppat/mediated-mailbox-mcp/migrator/app", "Configuration",
-		"Process host.Process",
-		"Database core.Config",
-		"ApplicationUser string",
-	)
 }

@@ -20,6 +20,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
+	"github.com/ppat/mediated-mailbox-mcp/core/config"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/core/redact"
 	"github.com/ppat/mediated-mailbox-mcp/core/sensitivity"
@@ -100,11 +101,11 @@ func TestServeTheExerciseCorpusToALiveAgent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	section := Section{TokenFile: tokenPath, AccountReloadInterval: time.Minute, ProviderTimeout: 30 * time.Second}
+	section := config.API{TokenFile: tokenPath, Accounts: config.Accounts{AccountReloadInterval: config.Duration(time.Minute)}, ProviderTimeout: config.Duration(30 * time.Second)}
 	pool := apiServer(t)
 	ec := mustContext(t, pool, ring, scanner(t), section, h.Registerer("api"), h.Logger("api"))
 	a, err := assemble(h.Context(), Needs{
-		Section: section, Pool: pool, Context: ec, Registerer: h.Registerer("api"), Logger: h.Logger("api"),
+		Config: section, Pool: pool, Context: ec, Registerer: h.Registerer("api"), Logger: h.Logger("api"),
 		Start: h.Starter("api"),
 	}, session.Connect(gmailSource(http.DefaultClient), connector), leaseWait)
 	if err != nil {
@@ -128,7 +129,7 @@ func TestServeTheExerciseCorpusToALiveAgent(t *testing.T) {
 
 	stop, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
-	if err := h.Serve(stop, host.Listeners{App: ln, Probes: probes}, host.Serving{}); err != nil {
+	if err := h.Serve(stop, host.Listeners{App: ln, Probes: probes}, config.Serving{}); err != nil {
 		t.Error(err)
 	}
 	printAudit(t, conn, account)

@@ -27,6 +27,7 @@ import (
 	"golang.org/x/net/publicsuffix"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
+	"github.com/ppat/mediated-mailbox-mcp/core/config"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/core/policy"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
@@ -293,7 +294,7 @@ func (j *jobs) Remove(key schedule.Key) {
 // account sessions built through connect and its account jobs added to j.
 func kind(t *testing.T, pool *pgxpool.Pool, ring *open.Keyring, logger *slog.Logger, connect session.Connector, j *jobs) *Backfill {
 	t.Helper()
-	s, err := scan.New(scan.DefaultConfig(), "a-revision")
+	s, err := scan.New(config.DefaultScanner(), "a-revision")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -569,7 +570,7 @@ func idleUnit(t *testing.T, conn *pgx.Conn, account string) *unit {
 // loaded returns an execution context that has loaded the snapshot.
 func loaded(t *testing.T, ring *open.Keyring, log *slog.Logger) *assembly.Context {
 	t.Helper()
-	s, err := scan.New(scan.DefaultConfig(), "a-revision")
+	s, err := scan.New(config.DefaultScanner(), "a-revision")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -740,7 +741,7 @@ func firstPassDeps(t *testing.T, pool *pgxpool.Pool, account string) pass1.Deps 
 	if err != nil {
 		t.Fatal(err)
 	}
-	s, err := scan.New(scan.DefaultConfig(), "a-revision")
+	s, err := scan.New(config.DefaultScanner(), "a-revision")
 	if err != nil {
 		t.Fatal(err)
 	}

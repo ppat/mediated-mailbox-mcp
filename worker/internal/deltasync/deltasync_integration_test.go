@@ -28,6 +28,7 @@ import (
 	"golang.org/x/net/publicsuffix"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
+	"github.com/ppat/mediated-mailbox-mcp/core/config"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/credential/open"
@@ -307,7 +308,7 @@ func (j *jobs) tick(t *testing.T) error {
 // account jobs added to j. Each of configure then changes its configuration.
 func kind(t *testing.T, pool *pgxpool.Pool, ring *open.Keyring, registry prometheus.Registerer, log *slog.Logger, connect session.Connector, j *jobs, configure ...func(*Config)) *DeltaSync {
 	t.Helper()
-	s, err := scan.New(scan.DefaultConfig(), "a-revision")
+	s, err := scan.New(config.DefaultScanner(), "a-revision")
 	if err != nil {
 		t.Fatal(err)
 	}

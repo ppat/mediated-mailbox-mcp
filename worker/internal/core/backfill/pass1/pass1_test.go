@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
+	"github.com/ppat/mediated-mailbox-mcp/core/config"
 	"github.com/ppat/mediated-mailbox-mcp/core/index"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
@@ -175,7 +176,7 @@ func TestUnfound(t *testing.T) {
 // scanner returns the default scanner under revision.
 func scanner(t *testing.T, revision string) scan.Scanner {
 	t.Helper()
-	s, err := scan.New(scan.DefaultConfig(), revision)
+	s, err := scan.New(config.DefaultScanner(), revision)
 	if err != nil {
 		t.Fatal(err)
 	}

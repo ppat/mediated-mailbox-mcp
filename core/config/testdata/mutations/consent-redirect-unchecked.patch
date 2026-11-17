@@ -1,0 +1,18 @@
+control: the consent's redirect address is the configured loopback address, read by every use
+removes: any consent redirect is admitted
+packages: ./core/config ./ui/app
+tests: TestTheConsentRedirectIsALoopbackAddressWithAPort TestANonLoopbackConsentRedirectRefusesTheStart
+scheduled-count: no
+
+diff --git a/core/config/programs.go b/core/config/programs.go
+--- a/core/config/programs.go
++++ b/core/config/programs.go
+@@ -169,7 +169,7 @@ func (c UI) Check() error {
+ 				return errors.New("attention_serve_factor is negative")
+ 			case c.AttentionGapDays < 0:
+ 				return errors.New("attention_gap_days is negative")
+-			case !loopbackRedirect(c.ConsentRedirect):
++			case c.ConsentRedirect == "":
+ 				return errors.New("consent_redirect is not an http address on a loopback IP literal with an explicit port")
+ 			}
+ 			return nil

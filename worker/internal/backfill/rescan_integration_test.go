@@ -19,6 +19,7 @@ import (
 	"golang.org/x/net/publicsuffix"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
+	"github.com/ppat/mediated-mailbox-mcp/core/config"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/core/policy"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
@@ -39,7 +40,7 @@ const codeText = "Your verification code is 419283"
 // change to the scanner's section would give it (ADR-0078).
 func narrowScanner(t *testing.T) scan.Scanner {
 	t.Helper()
-	cfg := scan.DefaultConfig()
+	cfg := config.DefaultScanner()
 	cfg.Triggers = map[string][]string{"en": {"otp"}}
 	s, err := scan.New(cfg, "narrow-revision")
 	if err != nil {
@@ -50,7 +51,7 @@ func narrowScanner(t *testing.T) scan.Scanner {
 
 func wideScanner(t *testing.T) scan.Scanner {
 	t.Helper()
-	s, err := scan.New(scan.DefaultConfig(), "wide-revision")
+	s, err := scan.New(config.DefaultScanner(), "wide-revision")
 	if err != nil {
 		t.Fatal(err)
 	}

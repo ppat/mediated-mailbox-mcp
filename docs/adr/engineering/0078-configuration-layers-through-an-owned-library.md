@@ -77,9 +77,9 @@ calls for one and the second because policy lives in the database.
   embedded struct tagged `yaml:",inline"` is a section whose values sit beside the embedding
   section's own, at the same paths, as the YAML decoder reads it, and every refusal applies to
   them as to the section's own, a name both declare included. It is the only tag that is not a
-  name. So each program's configuration type embeds inline the process's sections, its own section
-  and each shared part whose keys sit at the top of its tree, as `config.Accounts`'s one key does,
-  and declares the other sections it shares with the other programs by name
+  name. So each program's configuration type embeds inline the process's sections and each shared
+  part whose keys sit at the top of its tree, as `config.Accounts`'s one key does, declares its own
+  keys beside them, and declares the other sections it shares with the other programs by name
   ([ADR-0142](./0142-each-program-is-a-spec-that-one-process-runs.md)).
 - **The configuration types are `core/config`'s.** Every program's configuration type, with each
   section's defaults and checks, sits in `core/config`, a package of the shared pure library
@@ -87,6 +87,8 @@ calls for one and the second because policy lives in the database.
   The shared parts are the sections every program that has them reads under the same keys.
 
   - `config.Process`
+  - `config.Operations`, which is the operations endpoints' listener, `probe_listen`, held by every
+    program that runs until it is told to stop, and not by the migrator, which serves no endpoint
   - `config.Serving`
   - `config.Database`
   - `config.Keys`, which is the `credential` section
@@ -97,9 +99,10 @@ calls for one and the second because policy lives in the database.
   Each program's type, `config.API`, `config.UI`, `config.Worker` and `config.Migrator`, holds the
   shared parts it has and its own keys, so the worker reads `account_reload_interval` as the API
   server does. A length of time is `config.Duration`, a number of nanoseconds the library fills from
-  text such as `5m` and writes back as such text in the help and the start banner. Its reader
-  converts it where it is used, so `core/config` imports no clock, and no import list is widened for
-  it ([ADR-0071](./0071-static-enforcement-toolchain.md)).
+  text such as `5m` and writes back as such text in the help, in the effective configuration logged
+  at start and in the rendering a section's revision is taken from. Its reader converts it where it
+  is used, so `core/config` imports no clock, and no import list is widened for it
+  ([ADR-0071](./0071-static-enforcement-toolchain.md)).
 - **Keyed values.** Per-language word lists are a map keyed by language, so a flag or an
   environment variable can override one language's list or add a language. Map keys are runs of
   `[a-z0-9]` joined by single underscores, with none leading or trailing, because a key becomes a

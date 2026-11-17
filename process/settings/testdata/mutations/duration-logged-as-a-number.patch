@@ -1,0 +1,16 @@
+control: A length of time is read from text such as 5m and written back as such text, in every layer, the help, the effective values and the rendering a revision is taken from
+removes: an effective config.Duration, alone or in a list or a map, is reported as its number of nanoseconds rather than its text
+packages: ./process/settings
+tests: TestADurationIsReadAndWrittenAsText TestADurationHoldsNanosecondsAndIsWrittenAsTheText
+scheduled-count: no
+
+diff --git a/process/settings/duration.go b/process/settings/duration.go
+--- a/process/settings/duration.go
++++ b/process/settings/duration.go
+@@ -160,5 +160,5 @@ func renamed(err error, t reflect.Type) error {
+ // effective returns v as an effective value is reported, each config.Duration in it as its text,
+ // whether it is the value or sits in a list, a map or a section inside it.
+ func effective(v reflect.Value) any {
+-	return convert(v, textType(v.Type())).Interface()
++	return toYAML(v).Interface()
+ }

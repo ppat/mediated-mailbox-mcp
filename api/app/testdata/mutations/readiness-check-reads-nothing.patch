@@ -5,14 +5,13 @@ tests: TestReadyOnlyWhileTheBearerTokenLoads
 scheduled-count: no
 
 diff --git a/api/app/app.go b/api/app/app.go
-index 7ad0edd..a4f246b 100644
 --- a/api/app/app.go
 +++ b/api/app/app.go
-@@ -319,7 +319,7 @@ func parts(served *serving, s Section, logger *slog.Logger) (host.Parts, error)
+@@ -262,7 +262,7 @@ func parts(served *serving, tokenFile string, logger *slog.Logger) (host.Parts,
  	return host.Parts{
  		Handler: handler,
  		Ready: []host.Check{{Name: "bearer token", Check: func(context.Context) error {
--			return tokenReadable(s.TokenFile)
+-			return tokenReadable(tokenFile)
 +			return nil
  		}}},
  	}, nil

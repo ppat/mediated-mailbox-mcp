@@ -1,31 +1,30 @@
 control: The worker refuses a configuration it cannot run its job kinds with
 removes: each job kind's concurrency and the reload interval are not validated
-packages: ./worker/app
-tests: TestATickThatCannotRunRefusesTheStart TestATickThatCannotRunRefusesTheStart/--sync.concurrency=0 TestATickThatCannotRunRefusesTheStart/--backfill.concurrency=0 TestATickThatCannotRunRefusesTheStart/--reload_interval=0s
+packages: ./worker/app ./core/config
+tests: TestATickThatCannotRunRefusesTheStart TestATickThatCannotRunRefusesTheStart/--sync.concurrency=0 TestATickThatCannotRunRefusesTheStart/--backfill.concurrency=0 TestATickThatCannotRunRefusesTheStart/--reload_interval=0s TestTheWorkerConfigurationIsChecked/a_reload_interval_of_zero TestTheWorkerConfigurationIsChecked/no_backfill_concurrency TestTheWorkerConfigurationIsChecked/no_sync_concurrency
 scheduled-count: no
 
-diff --git a/worker/app/app.go b/worker/app/app.go
-index 4b236336..862321c0 100644
---- a/worker/app/app.go
-+++ b/worker/app/app.go
-@@ -144,9 +144,9 @@ func validate(c Configuration) error {
- // bound is positive.
- func ValidateSection(c Section) error {
- 	switch {
--	case c.ReloadInterval <= 0:
-+	case false && c.ReloadInterval <= 0:
- 		return fmt.Errorf("reload_interval %s is not positive", c.ReloadInterval)
--	case c.Backfill.Concurrency <= 0:
-+	case false && c.Backfill.Concurrency <= 0:
- 		return fmt.Errorf("backfill.concurrency %d is not positive", c.Backfill.Concurrency)
- 	case c.Sync.SyncInterval <= 0:
- 		return fmt.Errorf("sync.sync_interval %s is not positive", c.Sync.SyncInterval)
-@@ -154,7 +154,7 @@ func ValidateSection(c Section) error {
- 		return fmt.Errorf("sync.first_window %s is not positive", c.Sync.FirstWindow)
- 	case c.Sync.DecisionsPerTick <= 0:
- 		return fmt.Errorf("sync.decisions_per_tick %d is not positive", c.Sync.DecisionsPerTick)
--	case c.Sync.Concurrency <= 0:
-+	case false && c.Sync.Concurrency <= 0:
- 		return fmt.Errorf("sync.concurrency %d is not positive", c.Sync.Concurrency)
- 	}
- 	return nil
+diff --git a/core/config/programs.go b/core/config/programs.go
+--- a/core/config/programs.go
++++ b/core/config/programs.go
+@@ -296,9 +296,9 @@ func (c Worker) Check() error {
+ 		c.Database.Check,
+ 		func() error {
+ 			switch {
+-			case c.ReloadInterval <= 0:
++			case false && c.ReloadInterval <= 0:
+ 				return errors.New("reload_interval is not positive")
+-			case c.Backfill.Concurrency <= 0:
++			case false && c.Backfill.Concurrency <= 0:
+ 				return errors.New("backfill.concurrency " + strconv.Itoa(c.Backfill.Concurrency) + " is not positive")
+ 			case c.Sync.SyncInterval <= 0:
+ 				return errors.New("sync.sync_interval is not positive")
+@@ -306,7 +306,7 @@ func (c Worker) Check() error {
+ 				return errors.New("sync.first_window is not positive")
+ 			case c.Sync.DecisionsPerTick <= 0:
+ 				return errors.New("sync.decisions_per_tick " + strconv.Itoa(c.Sync.DecisionsPerTick) + " is not positive")
+-			case c.Sync.Concurrency <= 0:
++			case false && c.Sync.Concurrency <= 0:
+ 				return errors.New("sync.concurrency " + strconv.Itoa(c.Sync.Concurrency) + " is not positive")
+ 			}
+ 			return nil

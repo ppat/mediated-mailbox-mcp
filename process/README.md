@@ -105,7 +105,8 @@ hands this package the arguments, the environment and the configuration type its
 typed on. A program's type is composed of the shared parts it has and its own keys. A part embedded
 inline sits beside the embedding part's own values, so a program keeps the process's keys and its
 own at the top of its tree. A length of time is a `config.Duration`, a number of nanoseconds this
-package fills from text such as `5m` and writes back as such text in the help and the start banner.
+package fills from text such as `5m` and writes back as such text in the help, in the effective
+configuration logged at start and in the rendering a section's revision is taken from.
 
 The case for one package over per-deployable glue is the refusals. Configuration that is misspelled,
 duplicated, case-changed, of the wrong type or aimed at a key that does not exist has to stop the
@@ -207,8 +208,8 @@ This package holds the types
 and what the process does from start to stop are that record's. The process serves the application
 server and the operations endpoints under one set of connection limits
 ([ADR-0130](../docs/adr/operability/0130-the-api-server-bounds-what-one-request-can-make-it-hold.md)).
-The shared parts of the configuration it reads, `config.Process` and `config.Serving`, are
-`core/config`'s.
+The shared parts of the configuration it reads, `config.Process`, `config.Operations` and
+`config.Serving`, are `core/config`'s.
 
 A test or a harness runs a program through its spec and `process.Run`, as `main.go` does, and
 substitutes a shared thing as
@@ -611,7 +612,9 @@ The case for one package over per-deployable glue is that the format and the lev
 contract. A copy that wrote text rather than JSON, wrote to standard error, or accepted `warning`
 or `INFO` where the others refuse it would make one deployable's logs read differently from the
 rest, or start where the others refuse. Written once, with a test per level name and a mutation
-patch for the refusal, they hold in every deployable.
+patch for the refusal, they hold in every deployable. The level names and the refusal of any other
+text are the process part's check in `core/config`, which this package's parser calls before it
+maps a name to its level, so a level is refused in one place.
 
 It holds no logger of its own and no package-level state, and it logs nothing.
 

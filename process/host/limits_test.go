@@ -13,6 +13,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
+	"github.com/ppat/mediated-mailbox-mcp/core/config"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 )
 
@@ -116,7 +117,7 @@ func TestTheServersCloseIdleAndSlowConnectionsAndNeverCutAnAnswer(t *testing.T) 
 	}
 	ctx, cancel := context.WithCancel(t.Context())
 	done := make(chan error, 1)
-	go func() { done <- h.Serve(ctx, Listeners{App: app, Probes: probes}, Serving{}) }()
+	go func() { done <- h.Serve(ctx, Listeners{App: app, Probes: probes}, config.Serving{}) }()
 	t.Cleanup(func() {
 		cancel()
 		if err := <-done; err != nil {

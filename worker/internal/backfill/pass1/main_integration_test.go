@@ -19,6 +19,7 @@ import (
 	"golang.org/x/net/publicsuffix"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
+	scanconfig "github.com/ppat/mediated-mailbox-mcp/core/config"
 	"github.com/ppat/mediated-mailbox-mcp/core/index"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/core/policy"
@@ -265,7 +266,7 @@ func revision(n int) string { return fmt.Sprintf("revision-%d", n) }
 func (w *world) rescan(t tb) {
 	t.Helper()
 	w.rescans++
-	scanner, err := scan.New(scan.DefaultConfig(), revision(w.rescans))
+	scanner, err := scan.New(scanconfig.DefaultScanner(), revision(w.rescans))
 	if err != nil {
 		t.Fatalf("building the scanner: %v", err)
 	}
@@ -295,7 +296,7 @@ func newWorld(t tb, s setup, account string, store pass1.Store, inspect func(tb)
 	if err != nil {
 		t.Fatalf("loading the policy: %v", err)
 	}
-	scanner, err := scan.New(scan.DefaultConfig(), revision(0))
+	scanner, err := scan.New(scanconfig.DefaultScanner(), revision(0))
 	if err != nil {
 		t.Fatalf("building the scanner: %v", err)
 	}

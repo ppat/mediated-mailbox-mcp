@@ -1,0 +1,18 @@
+control: The API server refuses a configuration it cannot serve with before anything is read or connected
+removes: a token file path of spaces is accepted
+packages: ./core/config
+tests: TestTheAPIConfigurationIsChecked/a_blank_token_file_path
+scheduled-count: no
+
+diff --git a/core/config/programs.go b/core/config/programs.go
+--- a/core/config/programs.go
++++ b/core/config/programs.go
+@@ -53,7 +53,7 @@ func (c API) Check() error {
+ 		c.Operations.Check,
+ 		c.Serving.Check,
+ 		func() error {
+-			if strings.TrimSpace(c.TokenFile) == "" {
++			if c.TokenFile == "" {
+ 				return errors.New("token_file is empty")
+ 			}
+ 			return nil

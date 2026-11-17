@@ -1,15 +1,14 @@
 control: The configuration surface accepts no value that disables the gate, skips masking or weakens deny-by-default
 removes: a scanner section the scanner refuses is accepted, so the serve-time check runs with nothing to match
-packages: ./api/app
-tests: TestNoConfigurationValueWeakensTheGate/a_scanner_section_with_nothing_to_match
+packages: ./api/app ./core/config
+tests: TestNoConfigurationValueWeakensTheGate/a_scanner_section_with_nothing_to_match TestTheAPIConfigurationIsChecked/a_scanner_with_nothing_to_match
 scheduled-count: no
 
 diff --git a/api/app/app.go b/api/app/app.go
-index 914799b7..64c10fec 100644
 --- a/api/app/app.go
 +++ b/api/app/app.go
-@@ -189,7 +189,7 @@ func Run(ctx context.Context, args, environ []string, stdout, stderr io.Writer,
- func fromConfiguration(ctx context.Context, provided host.Provided[Configuration]) (host.Parts, error) {
+@@ -127,7 +127,7 @@ func checkSchema(ctx context.Context, pool *pgxpool.Pool) error {
+ func fromConfiguration(ctx context.Context, provided host.Provided[config.API]) (host.Parts, error) {
  	c := provided.Loaded.Config
  	scanner, err := scan.New(c.Scanner, provided.Loaded.Revisions[scannerSection])
 -	if err != nil {
@@ -17,3 +16,14 @@ index 914799b7..64c10fec 100644
  		return host.Parts{}, fmt.Errorf("validating the configuration: scanner: %w", err)
  	}
  	keys, err := open.Load(c.Credential.PublicKeyFile, c.Credential.PrivateKeyFiles...)
+diff --git a/core/config/programs.go b/core/config/programs.go
+--- a/core/config/programs.go
++++ b/core/config/programs.go
+@@ -67,7 +67,6 @@ func (c API) Check() error {
+ 		},
+ 		c.Database.Check,
+ 		c.Credential.Check,
+-		scanner(c.Scanner),
+ 	)
+ }
+ 

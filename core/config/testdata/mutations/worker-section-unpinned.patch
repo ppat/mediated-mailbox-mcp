@@ -1,0 +1,17 @@
+control: A deployable's configuration type is pinned field by field
+removes: a section is added to the worker's configuration type without updating the pinned field list
+packages: ./core/config
+tests: TestTheProgramTypesArePinned
+scheduled-count: no
+
+diff --git a/core/config/programs.go b/core/config/programs.go
+--- a/core/config/programs.go
++++ b/core/config/programs.go
+@@ -241,6 +241,7 @@ type Worker struct {
+ 	ReloadInterval Duration `yaml:"reload_interval"`
+ 	Backfill       Backfill `yaml:"backfill"`
+ 	Sync           Sync     `yaml:"sync"`
++	Extra          Backfill `yaml:"extra"`
+ 	// Database is the one database part. Its pool size sizes each job kind's pool alike (ADR-0078,
+ 	// ADR-0119).
+ 	Database   Database `yaml:"database"`

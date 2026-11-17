@@ -5,21 +5,20 @@ tests: TestBothJobKindsScanWithTheOneScanner
 scheduled-count: no
 
 diff --git a/worker/app/app.go b/worker/app/app.go
-index 4b0d8cb..511af62 100644
 --- a/worker/app/app.go
 +++ b/worker/app/app.go
-@@ -422,7 +422,13 @@ func kinds(pools Pools, ec *assembly.Context, c Section, client *http.Client, lo
+@@ -284,7 +284,13 @@ func kinds(pools Pools, ec *assembly.Context, c config.Worker, client *http.Clie
  		Registry: labelled(registry, backfill.Kind), Logger: logger.With("job_kind", backfill.Kind), Jobs: s,
- 		Concurrency: c.Backfill.Concurrency, ReloadInterval: c.ReloadInterval,
+ 		Concurrency: c.Backfill.Concurrency, ReloadInterval: time.Duration(c.ReloadInterval),
  	}, deltasync.Config{
 -		Pool: pools.Sync, Context: ec, Client: client,
 +		Pool: pools.Sync, Context: func() *assembly.Context {
-+			own := scan.DefaultConfig()
++			own := config.DefaultScanner()
 +			own.Window++
 +			s, _ := scan.New(own, "its-own")
 +			other, _ := assembly.New(assembly.Needs{Scanner: s, Registerer: prometheus.NewRegistry(), Logger: logger})
 +			return other
 +		}(), Client: client,
  		Registry: labelled(registry, deltasync.Kind), Logger: logger.With("job_kind", deltasync.Kind), Jobs: s,
- 		Concurrency: c.Sync.Concurrency, ReloadInterval: c.ReloadInterval,
- 		SyncInterval: c.Sync.SyncInterval, FirstWindow: c.Sync.FirstWindow, DecisionsPerTick: c.Sync.DecisionsPerTick,
+ 		Concurrency: c.Sync.Concurrency, ReloadInterval: time.Duration(c.ReloadInterval),
+ 		SyncInterval: time.Duration(c.Sync.SyncInterval), FirstWindow: time.Duration(c.Sync.FirstWindow), DecisionsPerTick: c.Sync.DecisionsPerTick,

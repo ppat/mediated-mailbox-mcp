@@ -26,6 +26,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/ppat/mediated-mailbox-mcp/api/internal/service"
+	"github.com/ppat/mediated-mailbox-mcp/core/config"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/credential/open"
@@ -196,10 +197,10 @@ func newHarness(t *testing.T) *harness {
 		t.Fatal(err)
 	}
 	h.fake = f
-	section := Section{TokenFile: bearerToken(t), AccountReloadInterval: time.Hour, ProviderTimeout: providerTimeout}
+	section := config.API{TokenFile: bearerToken(t), Accounts: config.Accounts{AccountReloadInterval: config.Duration(time.Hour)}, ProviderTimeout: config.Duration(providerTimeout)}
 	logger := slog.New(slog.NewJSONHandler(h.log, nil))
 	a, err := assemble(t.Context(), Needs{
-		Section: section, Pool: h.pool, Context: mustContext(t, h.pool, ring, scanner(t), section, h.metrics, logger),
+		Config: section, Pool: h.pool, Context: mustContext(t, h.pool, ring, scanner(t), section, h.metrics, logger),
 		Registerer: h.metrics, Logger: logger, Start: starter(t),
 	}, session.Connect(h.source, h.connect), leaseWaitLimit)
 	if err != nil {

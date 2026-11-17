@@ -1,0 +1,18 @@
+control: The credential section is validated before any key file is read
+removes: an empty public key path is accepted
+packages: ./core/config
+tests: TestAnUnusableKeysValueIsRefused/an_empty_public_key_path
+scheduled-count: no
+
+diff --git a/core/config/keys.go b/core/config/keys.go
+--- a/core/config/keys.go
++++ b/core/config/keys.go
+@@ -22,8 +22,6 @@ type Keys struct {
+ // list.
+ func (k Keys) Check() error {
+ 	switch {
+-	case k.PublicKeyFile == "":
+-		return errors.New("credential.public_key_file is empty")
+ 	case len(k.PrivateKeyFiles) == 0:
+ 		return errors.New("credential.private_key_files names no file")
+ 	}

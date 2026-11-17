@@ -1,0 +1,17 @@
+control: The database section is validated before anything else starts
+removes: a TLS mode the driver does not accept passes the check
+packages: ./core/config
+tests: TestAnUnusableDatabaseValueIsRefused/an_unknown_TLS_mode TestAnUnusableDatabaseValueIsRefused/an_empty_TLS_mode
+scheduled-count: no
+
+diff --git a/core/config/database.go b/core/config/database.go
+--- a/core/config/database.go
++++ b/core/config/database.go
+@@ -54,6 +54,7 @@ func (d Database) Check() error {
+ 	case d.PoolSize < 1:
+ 		return errors.New("database.pool_size " + strconv.Itoa(d.PoolSize) + " is not positive")
+ 	}
++	return nil
+ 	switch d.SSLMode {
+ 	case "disable", "allow", "prefer", "require", "verify-ca", "verify-full":
+ 		return nil

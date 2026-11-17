@@ -58,14 +58,6 @@ func TestALevelIsOneOfFourNames(t *testing.T) {
 	}
 }
 
-// The default is a name the parser reads, and it is info.
-func TestTheDefaultLevelIsInfo(t *testing.T) {
-	got, err := logging.ParseLevel(logging.DefaultLevel)
-	if err != nil || got != slog.LevelInfo {
-		t.Errorf("ParseLevel(DefaultLevel) = %v, %v, want INFO", got, err)
-	}
-}
-
 // records decodes each line of out as one JSON object.
 func records(t *testing.T, out *bytes.Buffer) []map[string]any {
 	t.Helper()

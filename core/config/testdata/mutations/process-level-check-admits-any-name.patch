@@ -1,0 +1,18 @@
+control: An unknown log level is refused, and each of the four names reads as its own level
+removes: the process part's check admits any name as its level, so the parser that refuses through it does too
+packages: ./core/config ./process/logging ./process/host ./migrator/app
+tests: TestTheProcessPartIsChecked TestTheAPIConfigurationIsChecked/a_level_that_names_none TestTheMigratorConfigurationIsChecked/a_level_that_names_none TestALevelIsOneOfFourNames/refused_empty TestALevelIsOneOfFourNames/refused_upper_case TestALevelIsOneOfFourNames/refused_title_case TestALevelIsOneOfFourNames/refused_warning TestALevelIsOneOfFourNames/refused_an_offset_up TestALevelIsOneOfFourNames/refused_an_offset_down TestALevelIsOneOfFourNames/refused_trace TestALevelIsOneOfFourNames/refused_a_leading_space TestALevelIsOneOfFourNames/refused_a_trailing_newline TestTheConfiguredLevelGovernsTheLog/until_stopped/a_name_in_upper_case TestTheConfiguredLevelGovernsTheLog/until_stopped/an_offset TestTheConfiguredLevelGovernsTheLog/until_stopped/warning TestTheConfiguredLevelGovernsTheLog/once/a_name_in_upper_case TestTheConfiguredLevelGovernsTheLog/once/an_offset TestTheConfiguredLevelGovernsTheLog/once/warning TestAnUnusableConfigurationIsRefused
+scheduled-count: no
+
+diff --git a/core/config/process.go b/core/config/process.go
+--- a/core/config/process.go
++++ b/core/config/process.go
+@@ -22,7 +22,7 @@ func DefaultProcess() Process {
+ // INFO, Warn and info+2, are refused, as every value outside its designed range is (ADR-0078).
+ func (p Process) Check() error {
+ 	switch p.LogLevel {
+-	case "debug", "info", "warn", "error":
++	default:
+ 		return nil
+ 	}
+ 	return errors.New("log_level " + strconv.Quote(p.LogLevel) + " is not one of debug, info, warn and error")

@@ -15,6 +15,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/prometheus/client_golang/prometheus"
 
+	"github.com/ppat/mediated-mailbox-mcp/core/config"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/credential/open"
@@ -68,7 +69,7 @@ func worker(t *testing.T, ring *open.Keyring, registry prometheus.Registerer, co
 	}
 	s := schedule.New(t.Context(), metrics)
 	t.Cleanup(s.Stop)
-	scanner, err := scan.New(scan.DefaultConfig(), "a-revision")
+	scanner, err := scan.New(config.DefaultScanner(), "a-revision")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -334,7 +335,7 @@ func TestEverySeriesTheKindEmitsCarriesItsJobKind(t *testing.T) {
 	account(t, conn, "personal", gmailProvider, sealed(t, public, "personal-token", seal.AccountCredential("personal")), false)
 	client(t, conn, public)
 	registry := prometheus.NewRegistry()
-	scanner, err := scan.New(scan.DefaultConfig(), "a-revision")
+	scanner, err := scan.New(config.DefaultScanner(), "a-revision")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -615,7 +616,7 @@ func TestTheKindsSeriesOfAnAccountGoWhenItsWorkEnds(t *testing.T) {
 	ring, public := keys(t)
 	account(t, conn, "personal", gmailProvider, sealed(t, public, "personal-token", seal.AccountCredential("personal")), false)
 	client(t, conn, public)
-	scanner, err := scan.New(scan.DefaultConfig(), "a-revision")
+	scanner, err := scan.New(config.DefaultScanner(), "a-revision")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -658,7 +659,7 @@ func TestTheBacklogSeriesOfADroppedAccountGoesWithItsJob(t *testing.T) {
 	ring, public := keys(t)
 	account(t, conn, "personal", gmailProvider, sealed(t, public, "personal-token", seal.AccountCredential("personal")), false)
 	client(t, conn, public)
-	scanner, err := scan.New(scan.DefaultConfig(), "a-revision")
+	scanner, err := scan.New(config.DefaultScanner(), "a-revision")
 	if err != nil {
 		t.Fatal(err)
 	}

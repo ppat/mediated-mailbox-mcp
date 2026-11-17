@@ -1,18 +1,17 @@
 // Package dbconnect builds a deployable's database connection from its configuration's database
-// section, and refuses a start whose environment could override it (ADR-0078, ADR-0079). The section
-// and its pure validation are process/dbconnect/core's. Its case is argued in process/README.md.
+// part, and refuses a start whose environment could override it (ADR-0078, ADR-0079). The part, its
+// defaults and its check are core/config's. Its case is argued in process/README.md.
 package dbconnect
 
 import (
 	"fmt"
 	"os"
-	"runtime"
 	"strconv"
 	"strings"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core"
+	"github.com/ppat/mediated-mailbox-mcp/core/config"
 )
 
 // RefusePasswordVariables refuses a start while PGPASSWORD or PGSSLPASSWORD is set, an empty value
@@ -28,18 +27,11 @@ func RefusePasswordVariables(environ []string) error {
 	return nil
 }
 
-// DefaultPoolSize is the pool size of a deployable whose configuration sets none, the driver's own
-// default, the larger of 4 and the processor count, so leaving the value unset opens as many
-// connections as the driver would by itself (ADR-0078).
-func DefaultPoolSize() int {
-	return max(4, runtime.NumCPU())
-}
-
 // PoolConfig renders every connection value of c into the connection string, an empty sslrootcert
 // included, so the driver takes none of them from its PG* variables, and caps the pool at c's pool
 // size. It sets the password read from the password file, less one trailing newline, and refuses an
 // empty one.
-func PoolConfig(c core.Config) (*pgxpool.Config, error) {
+func PoolConfig(c config.Database) (*pgxpool.Config, error) {
 	password, err := readPassword(c.PasswordFile)
 	if err != nil {
 		return nil, err

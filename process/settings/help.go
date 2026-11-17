@@ -114,7 +114,7 @@ func render(v reflect.Value) (string, error) {
 		return v.String(), nil
 	}
 	var n yaml.Node
-	if err := n.Encode(v.Interface()); err != nil {
+	if err := n.Encode(toYAML(v).Interface()); err != nil {
 		return "", err
 	}
 	flow(&n)

@@ -13,6 +13,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/jackc/pgx/v5"
 
+	scanconfig "github.com/ppat/mediated-mailbox-mcp/core/config"
 	"github.com/ppat/mediated-mailbox-mcp/core/index"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
@@ -758,7 +759,7 @@ func TestACallThatLeavesEverySubjectStaleFailsTheRun(t *testing.T) {
 func TestAFetchWhoseNewScannerMasksNothingCompletes(t *testing.T) {
 	w := realWorld(t, mixed)
 	w.finish(t, 10)
-	cfg := scan.DefaultConfig()
+	cfg := scanconfig.DefaultScanner()
 	cfg.Triggers = map[string][]string{"en": {"otp"}}
 	narrow, err := scan.New(cfg, "revision-narrow")
 	if err != nil {

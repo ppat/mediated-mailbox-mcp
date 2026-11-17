@@ -1,20 +1,18 @@
 package app
 
 import (
-	"errors"
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"slices"
 	"testing"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
 
+	"github.com/ppat/mediated-mailbox-mcp/core/config"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
-	credentialcore "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/core"
-	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core"
-	"github.com/ppat/mediated-mailbox-mcp/process/host"
 	"github.com/ppat/mediated-mailbox-mcp/process/settings"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/helmchart"
@@ -34,36 +32,38 @@ func TestTheChartRendersAFileTheAPIServerStartsWith(t *testing.T) {
 	if err := os.WriteFile(path, []byte(helmchart.ConfigFile(t, objects, "api.yaml")), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	loaded, err := settings.Load(defaults(), []string{"--config-file=" + path}, nil)
+	loaded, err := settings.Load(config.DefaultAPI(runtime.NumCPU()), []string{"--config-file=" + path}, nil)
 	if err != nil {
 		t.Fatalf("the API server refuses the chart's file: %v", err)
 	}
-	if err := errors.Join(host.ValidateProcess(loaded.Config.Process), host.ValidateOperations(loaded.Config.Operations), host.ValidateServing(loaded.Config.Serving), validate(loaded.Config)); err != nil {
+	if err := loaded.Config.Check(); err != nil {
 		t.Fatalf("the API server's validation refuses the chart's file: %v", err)
 	}
 	if _, err := scan.New(loaded.Config.Scanner, loaded.Revisions[scannerSection]); err != nil {
 		t.Fatalf("the scanner refuses the chart's scanner section: %v", err)
 	}
 	mounted := "/etc/mediated-mailbox/secrets/"
-	want := Configuration{
-		Process:    host.Process{LogLevel: "debug"},
-		Operations: host.Operations{ProbeListen: ":8080"},
-		Serving:    host.Serving{Listen: ":8443", TLSCert: mounted + "tls/tls.crt", TLSKey: mounted + "tls/tls.key"},
-		Section:    Section{TokenFile: mounted + "bearer-token", AccountReloadInterval: 2 * time.Minute, ProviderTimeout: 45 * time.Second},
-		Database: dbconnectcore.Config{
+	want := config.API{
+		Process:         config.Process{LogLevel: "debug"},
+		Operations:      config.Operations{ProbeListen: ":8080"},
+		Serving:         config.Serving{Listen: ":8443", TLSCert: mounted + "tls/tls.crt", TLSKey: mounted + "tls/tls.key"},
+		TokenFile:       mounted + "bearer-token",
+		Accounts:        config.Accounts{AccountReloadInterval: config.Duration(2 * time.Minute)},
+		ProviderTimeout: config.Duration(45 * time.Second),
+		Database: config.Database{
 			Host: "db.example", Port: 6432, Name: "mediated_mailbox", User: "mailbox_app", SSLMode: "verify-ca",
 			SSLRootCert: mounted + "ca/ca.crt", PasswordFile: mounted + "database/password", PoolSize: 9,
 		},
-		Credential: credentialcore.Config{
+		Credential: config.Keys{
 			PublicKeyFile:   mounted + "credential-sealing-key-pair/credential.pub",
 			PrivateKeyFiles: []string{mounted + "credential-sealing-key-pair/old.key", mounted + "credential-sealing-key-pair/new.key"},
 		},
-		Scanner: scan.Config{
+		Scanner: config.Scanner{
 			Triggers:   map[string][]string{"en": {"code", "log in"}, "no": {"kode", "yes"}},
 			LinkWords:  []string{"token"},
 			LinkParams: []string{"code"},
 			Window:     6, DenseLength: 20, DenseEntropy: 3.5,
-			Weights:   scan.Weights{Entropy: 1, Mix: 0.5, Length: 1, Proximity: 1, Position: 1},
+			Weights:   config.Weights{Entropy: 1, Mix: 0.5, Length: 1, Proximity: 1, Position: 1},
 			Threshold: 0.7, SubjectThreshold: 0.65,
 		},
 	}
@@ -79,7 +79,7 @@ func TestTheChartAdmitsEveryAPIServerKeyItDoesNotRender(t *testing.T) {
 	chartOwned := []string{"credential", "database", "listen", "probe_listen", "scanner", "tls_cert", "tls_key", "token_file"}
 	got := append(helmchart.SchemaKeys(t, chartDir, "api", "config"), chartOwned...)
 	slices.Sort(got)
-	if diff := cmp.Diff(helmchart.YAMLKeys(reflect.TypeFor[Configuration]()), got); diff != "" {
+	if diff := cmp.Diff(helmchart.YAMLKeys(reflect.TypeFor[config.API]()), got); diff != "" {
 		t.Errorf("the API server's keys (-configuration type +schema and chart):\n%s", diff)
 	}
 }

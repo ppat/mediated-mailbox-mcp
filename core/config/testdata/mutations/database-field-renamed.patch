@@ -1,0 +1,30 @@
+control: A deployable's configuration type is pinned field by field
+removes: a value of the database part is renamed without updating the pinned field list
+packages: ./core/config
+tests: TestThePartsArePinned
+scheduled-count: no
+
+diff --git a/core/config/database.go b/core/config/database.go
+--- a/core/config/database.go
++++ b/core/config/database.go
+@@ -16,7 +16,7 @@ type Database struct {
+ 	Name         string `yaml:"name" settings:"required"`
+ 	User         string `yaml:"user" settings:"required"`
+ 	SSLMode      string `yaml:"sslmode"`
+-	SSLRootCert  string `yaml:"sslrootcert"`
++	CAFile       string `yaml:"sslrootcert"`
+ 	PasswordFile string `yaml:"password_file" settings:"required"`
+ 	PoolSize     int    `yaml:"pool_size"`
+ }
+diff --git a/process/dbconnect/dbconnect.go b/process/dbconnect/dbconnect.go
+--- a/process/dbconnect/dbconnect.go
++++ b/process/dbconnect/dbconnect.go
+@@ -42,7 +42,7 @@ func PoolConfig(c config.Database) (*pgxpool.Config, error) {
+ 		"dbname=" + quote(c.Name),
+ 		"user=" + quote(c.User),
+ 		"sslmode=" + quote(c.SSLMode),
+-		"sslrootcert=" + quote(c.SSLRootCert),
++		"sslrootcert=" + quote(c.CAFile),
+ 	}
+ 	config, err := pgxpool.ParseConfig(strings.Join(pairs, " "))
+ 	if err != nil {

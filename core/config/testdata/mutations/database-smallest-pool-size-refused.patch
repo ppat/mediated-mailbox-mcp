@@ -1,0 +1,18 @@
+control: The database section is validated before anything else starts
+removes: a pool of one connection is refused as not positive
+packages: ./core/config
+tests: TestAUsableDatabaseValueIsAccepted
+scheduled-count: no
+
+diff --git a/core/config/database.go b/core/config/database.go
+--- a/core/config/database.go
++++ b/core/config/database.go
+@@ -51,7 +51,7 @@ func (d Database) Check() error {
+ 		return errors.New("database.password_file is empty")
+ 	case d.Port < 1 || d.Port > 65535:
+ 		return errors.New("database.port " + strconv.Itoa(d.Port) + " is outside 1 to 65535")
+-	case d.PoolSize < 1:
++	case d.PoolSize < 2:
+ 		return errors.New("database.pool_size " + strconv.Itoa(d.PoolSize) + " is not positive")
+ 	}
+ 	switch d.SSLMode {

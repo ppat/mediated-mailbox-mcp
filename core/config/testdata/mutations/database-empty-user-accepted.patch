@@ -1,0 +1,18 @@
+control: The database section is validated before anything else starts
+removes: an empty user is accepted
+packages: ./core/config
+tests: TestAnUnusableDatabaseValueIsRefused/an_empty_user TestTheAPIConfigurationIsChecked/an_empty_database_user TestTheUIConfigurationIsChecked/an_empty_database_user TestTheWorkerConfigurationIsChecked/an_empty_user TestTheMigratorConfigurationIsChecked/an_empty_database_user
+scheduled-count: no
+
+diff --git a/core/config/database.go b/core/config/database.go
+--- a/core/config/database.go
++++ b/core/config/database.go
+@@ -45,8 +45,6 @@ func (d Database) Check() error {
+ 		return errors.New("database.host is empty")
+ 	case d.Name == "":
+ 		return errors.New("database.name is empty")
+-	case d.User == "":
+-		return errors.New("database.user is empty")
+ 	case d.PasswordFile == "":
+ 		return errors.New("database.password_file is empty")
+ 	case d.Port < 1 || d.Port > 65535:

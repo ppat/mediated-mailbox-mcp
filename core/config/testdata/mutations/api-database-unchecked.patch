@@ -1,0 +1,17 @@
+control: The API server refuses a configuration it cannot serve with before anything is read or connected
+removes: the database part is never checked
+packages: ./core/config
+tests: TestTheAPIConfigurationIsChecked/an_empty_database_host TestTheAPIConfigurationIsChecked/a_database_pool_size_of_zero
+scheduled-count: no
+
+diff --git a/core/config/programs.go b/core/config/programs.go
+--- a/core/config/programs.go
++++ b/core/config/programs.go
+@@ -65,7 +65,6 @@ func (c API) Check() error {
+ 			}
+ 			return nil
+ 		},
+-		c.Database.Check,
+ 		c.Credential.Check,
+ 		scanner(c.Scanner),
+ 	)

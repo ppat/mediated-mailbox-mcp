@@ -26,7 +26,6 @@ import (
 	"net"
 	"net/http"
 	"runtime/debug"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -34,8 +33,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prometheus/client_golang/prometheus"
 
+	"github.com/ppat/mediated-mailbox-mcp/core/config"
 	"github.com/ppat/mediated-mailbox-mcp/process/dbconnect"
-	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core"
 	"github.com/ppat/mediated-mailbox-mcp/process/dbmetrics"
 	"github.com/ppat/mediated-mailbox-mcp/process/logging"
 	"github.com/ppat/mediated-mailbox-mcp/process/probes"
@@ -43,85 +42,6 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/process/settings"
 	"github.com/ppat/mediated-mailbox-mcp/process/version"
 )
-
-// Process is the section of the configuration every process holds, read at the top level of the
-// tree, where a root embeds it inline (ADR-0078).
-type Process struct {
-	// LogLevel is the lowest level the process logs at, debug, info, warn or error (ADR-0122).
-	LogLevel string `yaml:"log_level"`
-}
-
-// Operations is the section of the configuration a process holds when it runs until it is told to
-// stop, so the host serves its operations endpoints, read at the top level of the tree beside Process.
-// A process that runs once serves none, since nothing probes or scrapes a process that exits on its
-// own.
-type Operations struct {
-	// ProbeListen is the address the operations endpoints listen on, over plain HTTP (ADR-0051).
-	ProbeListen string `yaml:"probe_listen"`
-}
-
-// Serving is the section of the configuration a process holds when a component it hosts serves
-// requests, read at the top level of the tree beside Process.
-type Serving struct {
-	// Listen is the address the application server listens on.
-	Listen string `yaml:"listen"`
-	// TLSCert and TLSKey name the mounted files holding the certificate chain and the private key.
-	// Both set, the application server serves TLS, and neither set, plain HTTP (ADR-0127).
-	TLSCert string `yaml:"tls_cert"`
-	TLSKey  string `yaml:"tls_key"`
-}
-
-// DefaultProcess is the process section's defaults.
-func DefaultProcess() Process {
-	return Process{LogLevel: logging.DefaultLevel}
-}
-
-// DefaultOperations is the operations section's defaults.
-func DefaultOperations() Operations {
-	return Operations{ProbeListen: ":8080"}
-}
-
-// DefaultServing is the serving section's defaults. The key pair has no default, since a default path
-// assumes the environment.
-func DefaultServing() Serving {
-	return Serving{Listen: ":8443"}
-}
-
-// ServesTLS reports whether s names a key pair. ValidateServing has refused one that names only one of
-// its two files, so the certificate alone decides.
-func (s Serving) ServesTLS() bool {
-	return strings.TrimSpace(s.TLSCert) != ""
-}
-
-// ValidateProcess refuses a log_level that names no level.
-func ValidateProcess(p Process) error {
-	_, err := logging.ParseLevel(p.LogLevel)
-	return err
-}
-
-// ValidateOperations refuses an empty probe_listen.
-func ValidateOperations(o Operations) error {
-	if strings.TrimSpace(o.ProbeListen) == "" {
-		return errors.New("probe_listen is empty")
-	}
-	return nil
-}
-
-// ValidateServing refuses an empty listen, and one of the two TLS files set without the other, a blank
-// path counting as unset (ADR-0127).
-func ValidateServing(s Serving) error {
-	if strings.TrimSpace(s.Listen) == "" {
-		return errors.New("listen is empty")
-	}
-	if cert, key := strings.TrimSpace(s.TLSCert) != "", strings.TrimSpace(s.TLSKey) != ""; cert != key {
-		set, missing := "tls_cert", "tls_key"
-		if key {
-			set, missing = "tls_key", "tls_cert"
-		}
-		return fmt.Errorf("%s is set and %s is not, and the process serves TLS with both or plain HTTP with neither", set, missing)
-	}
-	return nil
-}
 
 // Parts are what a component's assembly returns. Nothing in them has started.
 type Parts struct {
@@ -171,7 +91,7 @@ type Provided[T any] struct {
 	// by itself, such as an event stream, ends then and the server can drain the rest.
 	Draining context.Context
 	// OpenPool opens a pool measured on reg, which the host closes once every task has returned.
-	OpenPool func(ctx context.Context, c dbconnectcore.Config, reg prometheus.Registerer) (*pgxpool.Pool, error)
+	OpenPool func(ctx context.Context, c config.Database, reg prometheus.Registerer) (*pgxpool.Pool, error)
 	// Start starts a goroutine the component needs while it runs, the host's as much as a task.
 	Start Starter
 }
@@ -190,11 +110,12 @@ type Spec[T any] struct {
 	Defaults T
 	// Process returns T's process section, Operations its operations section, and Serving its serving
 	// section, nil when no component serves requests.
-	Process    func(T) Process
-	Operations func(T) Operations
-	Serving    func(T) Serving
-	// Validate refuses a configuration the root's own sections cannot run with. The host validates
-	// the process's sections first.
+	Process    func(T) config.Process
+	Operations func(T) config.Operations
+	Serving    func(T) config.Serving
+	// Validate refuses a configuration the process cannot run with, every part of it, the process's
+	// sections among them, which is T's own check (core/config). The host runs it once it has set the
+	// level from log_level.
 	Validate func(T) error
 	// CheckSchema refuses a database schema the process's binary cannot run on. The host runs it on
 	// each pool it opens, before handing the pool to the component that asked for it, so a refused
@@ -215,7 +136,7 @@ func Run[T any](ctx context.Context, args, environ []string, stdout, stderr io.W
 	}
 	loaded, started, err := start(args, environ, stdout, stderr, logger, level, starting[T]{
 		name: spec.Name, defaults: spec.Defaults, refusals: refusals, process: spec.Process,
-		validate: func(c T) error { return validate(spec, c) },
+		validate: spec.Validate,
 		banner: func(c T) []string {
 			var lines []string
 			if spec.Serving != nil {
@@ -228,7 +149,7 @@ func Run[T any](ctx context.Context, args, environ []string, stdout, stderr io.W
 	if !started {
 		return err
 	}
-	var serving Serving
+	var serving config.Serving
 	if spec.Serving != nil {
 		serving = spec.Serving(loaded.Config)
 	}
@@ -269,9 +190,9 @@ type Once[T any] struct {
 	Name     string
 	Defaults T
 	// Process returns T's process section.
-	Process func(T) Process
-	// Validate refuses a configuration the root's own sections cannot run with. The host validates
-	// the process's section first.
+	Process func(T) config.Process
+	// Validate refuses a configuration the process cannot run with, every part of it, which is T's own
+	// check (core/config). The host runs it once it has set the level from log_level.
 	Validate func(T) error
 	// Component is the directory of the component whose work the process does, which its logger and
 	// its registerer carry, as a component's do in Run.
@@ -315,9 +236,8 @@ type starting[T any] struct {
 	name     string
 	defaults T
 	refusals []func(environ []string) error
-	process  func(T) Process
-	// validate refuses a configuration the root's other sections cannot run with, after the process's
-	// section is validated.
+	process  func(T) config.Process
+	// validate refuses a configuration the process cannot run with, once the level is set.
 	validate func(T) error
 	// banner returns the banner's lines below the one naming the process and its release version.
 	banner func(T) []string
@@ -326,7 +246,7 @@ type starting[T any] struct {
 // start is what every process does before its work, however it runs. It refuses the environment the
 // database driver and the root refuse before the configuration is read, answers --help and --version
 // on stdout, logs the effective configuration, each value with the layer that set it, then sets level
-// from log_level, validates the process's section and the root's, and writes the start banner to
+// from log_level, validates the configuration through the root's check, and writes the start banner to
 // stderr. started reports whether the process goes on to its work: it is false with a nil error once
 // --help or --version is answered.
 func start[T any](args, environ []string, stdout, stderr io.Writer, logger *slog.Logger, level *slog.LevelVar, root starting[T]) (loaded settings.Loaded[T], started bool, err error) {
@@ -371,23 +291,6 @@ func start[T any](args, environ []string, stdout, stderr io.Writer, logger *slog
 	}
 	writeBanner(stderr, banner(root.name, root.banner(loaded.Config)), logger)
 	return loaded, true, nil
-}
-
-// validate refuses a configuration Run's process cannot run with, its operations section, its serving
-// section when a component serves requests, then the root's own sections.
-func validate[T any](spec Spec[T], c T) error {
-	if err := ValidateOperations(spec.Operations(c)); err != nil {
-		return err
-	}
-	if spec.Serving != nil {
-		if err := ValidateServing(spec.Serving(c)); err != nil {
-			return err
-		}
-	}
-	if spec.Validate == nil {
-		return nil
-	}
-	return spec.Validate(c)
 }
 
 // assemble builds each component in order, with the logger and registerer carrying its name, and adds
@@ -508,7 +411,7 @@ func (h *Host) Logger(name string) *slog.Logger {
 // every task has returned. A pool opens no connection until its first use (ADR-0125), apart
 // from the schema check of a host that Run built, which runs on the pool before OpenPool returns it
 // and refuses the pool when it refuses the schema (ADR-0140).
-func (h *Host) OpenPool(ctx context.Context, c dbconnectcore.Config, reg prometheus.Registerer) (*pgxpool.Pool, error) {
+func (h *Host) OpenPool(ctx context.Context, c config.Database, reg prometheus.Registerer) (*pgxpool.Pool, error) {
 	config, err := dbconnect.PoolConfig(c)
 	if err != nil {
 		return nil, fmt.Errorf("configuring the database connection of %s: %w", c.User, err)
@@ -631,7 +534,7 @@ const drainTimeout = 10 * time.Second
 // task and started goroutine is waited for, the operations server stops and the pools close. When s names a key pair, it is loaded before anything is served,
 // so a start whose mounts cannot serve fails, and it is read again on each handshake (ADR-0127). Serve
 // closes both listeners and the pools on every path.
-func (h *Host) Serve(ctx context.Context, l Listeners, s Serving) error {
+func (h *Host) Serve(ctx context.Context, l Listeners, s config.Serving) error {
 	defer h.Close()
 	h.mu.Lock()
 	components := h.components
