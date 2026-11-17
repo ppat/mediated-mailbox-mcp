@@ -1,0 +1,19 @@
+control: A scan verdict records its content flags, content rules, scanner version and configuration revision
+removes: a verdict is stored without the configuration revision it was made under
+packages: ./worker/internal/backfill/pass2
+tests: TestAPassDecidesAndRecordsEveryWaitingMessage TestAKilledSecondPassResumesFromItsCheckpoint
+scheduled-count: no
+integration: yes
+diff --git a/worker/internal/index/index.go b/worker/internal/index/index.go
+index 0407d282..341fb1e6 100644
+--- a/worker/internal/index/index.go
++++ b/worker/internal/index/index.go
+@@ -183,7 +183,7 @@ func recordOutcome(ctx context.Context, messages *scanstore.Queries, gate *gater
+ 			ContentFlags:    flags,
+ 			RuleIds:         rules,
+ 			ScannerVersion:  pgtype.Int4{Int32: Version(o.Scanned.Version), Valid: true},
+-			ScannerRevision: pgtype.Text{String: o.Scanned.Revision, Valid: true},
++			ScannerRevision: pgtype.Text{},
+ 			MessageID:       o.ID,
+ 		})
+ 	case o.Refused:

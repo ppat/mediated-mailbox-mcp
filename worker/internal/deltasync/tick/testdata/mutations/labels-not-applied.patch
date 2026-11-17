@@ -6,13 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/deltasync/tick/postgres.go b/worker/internal/deltasync/tick/postgres.go
-index 42bc74ff..2a46e7fd 100644
+index d762c492..e6c01690 100644
 --- a/worker/internal/deltasync/tick/postgres.go
 +++ b/worker/internal/deltasync/tick/postgres.go
-@@ -166,13 +166,13 @@ func (s *Postgres) Apply(ctx context.Context, account, runID string, a Applicati
- 				}
- 				if err := recordMasks(ctx, events, m); err != nil {
- 					return err
+@@ -152,7 +152,7 @@ func (s *Postgres) Apply(ctx context.Context, account, runID string, a Applicati
  				}
  				continue
  			}
@@ -20,7 +17,4 @@ index 42bc74ff..2a46e7fd 100644
 +			changed, err := false, error(nil)
  			if err != nil {
  				return fmt.Errorf("setting the labels and flags of message %s: %w", m.ID, err)
- 			}
- 			if changed {
- 				applied.Changed++
  			}

@@ -6,9 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/deltasync.go
+index 4ec4208c..3a40e084 100644
 --- a/worker/internal/deltasync/deltasync.go
 +++ b/worker/internal/deltasync/deltasync.go
-@@ -187,7 +187,6 @@ func (d *DeltaSync) list(ctx context.Context) ([]string, error) {
+@@ -184,7 +184,6 @@ func (d *DeltaSync) list(ctx context.Context) ([]string, error) {
  	if err != nil {
  		return nil, err
  	}
@@ -16,7 +17,7 @@ diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/
  	return listed, nil
  }
  
-@@ -256,6 +255,7 @@ func at(ms mail.UnixMilli) time.Time {
+@@ -232,6 +231,7 @@ func (d *DeltaSync) seed(ctx context.Context, account string) time.Time {
  // authentication attempt, a tick that failed included (ADR-0089, ADR-0097). It logs counts and
  // identifiers, never a body (ADR-0009).
  func (d *DeltaSync) tick(ctx context.Context, account string, logger *slog.Logger) error {

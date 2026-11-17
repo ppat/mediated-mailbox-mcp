@@ -1,0 +1,17 @@
+control: A job's latest success starts from what its job kind's runs record
+removes: a job with runs and no success counts from its ensure, so a job in a crash loop never ages, whichever job kind it is
+packages: ./worker/internal/backfill/core ./worker/internal/runs/core
+tests: TestBackfillsSeed TestSeed
+scheduled-count: no
+
+diff --git a/worker/internal/runs/core/core.go b/worker/internal/runs/core/core.go
+index 9745efe4..b8409e01 100644
+--- a/worker/internal/runs/core/core.go
++++ b/worker/internal/runs/core/core.go
+@@ -72,5 +72,5 @@ func Seed(latestSuccess, earliestStart mail.UnixMilli) mail.UnixMilli {
+ 	if latestSuccess != 0 {
+ 		return latestSuccess
+ 	}
+-	return earliestStart
++	return 0
+ }

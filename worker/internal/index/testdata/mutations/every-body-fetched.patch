@@ -1,0 +1,19 @@
+control: Backfill's second pass never asks for a restricted sender's body
+removes: every message is scanned whatever the gate decided, a restricted sender's included
+packages: ./worker/internal/backfill/pass2
+tests: TestAPassDecidesAndRecordsEveryWaitingMessage TestAKilledSecondPassResumesFromItsCheckpoint
+scheduled-count: no
+integration: yes
+diff --git a/worker/internal/index/index.go b/worker/internal/index/index.go
+index 0407d282..e988b7d2 100644
+--- a/worker/internal/index/index.go
++++ b/worker/internal/index/index.go
+@@ -255,7 +255,7 @@ func GateAndScan(p classify.Policy, c scangate.Config, now mail.UnixMilli, waiti
+ 	hits := map[string]int64{}
+ 	for _, m := range waiting {
+ 		o := coreindex.Outcome{ID: m.ID, Domain: m.Domain, Verdict: coreindex.Gate(p, c, now, m, hits[m.Domain])}
+-		if o.Verdict.Scans() {
++		if true {
+ 			b, err := body(m.ID)
+ 			if err != nil {
+ 				return nil, false, err

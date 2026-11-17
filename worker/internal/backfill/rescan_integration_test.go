@@ -30,6 +30,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/marker"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/pass1"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/pass2"
+	"github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/start"
 )
 
 // codeText is a one-time code that the default trigger words catch and the narrow ones below do not.
@@ -116,7 +117,7 @@ func runBackfill(t *testing.T, pool *pgxpool.Pool, account string, f *fake.Fake,
 		t.Fatal(err)
 	}
 	idle := idleUnit(t, superuser(t), account)
-	if err := backfillAccount(t.Context(), first, second, account, metrics1, metrics2, idle, schedule.Ask{}, slog.New(slog.DiscardHandler), true, new(bool)); err != nil {
+	if err := backfillAccount(t.Context(), start.NewPostgres(pool), first, second, account, metrics1, metrics2, idle, schedule.Ask{}, slog.New(slog.DiscardHandler), true, new(bool)); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -135,11 +136,11 @@ func rescanDeps(t *testing.T, pool *pgxpool.Pool, account string, f *fake.Fake, 
 	runID := func() string { n++; return fmt.Sprintf("%s%d", run, n) }
 	gate := scangate.Config{NoReplyLocalParts: []string{"noreply"}, SmallBytes: 1, RecentAgeMillis: 1, LowVolume: 1, HighVolume: 2}
 	first := pass1.Deps{
-		Store: pass1.NewPostgres(pool), Fetch: f.EnumerateAll, Metadata: f.GetMessageMetadata, PerCall: three, Policy: fixed(classify.Prepare(rules.For(account), lookups)), Scanner: s,
+		Store: pass1.NewPostgres(pool, Kind), Fetch: f.EnumerateAll, Metadata: f.GetMessageMetadata, PerCall: three, Policy: fixed(classify.Prepare(rules.For(account), lookups)), Scanner: s,
 		RunID: runID, Now: time.Now,
 	}
 	second := pass2.Deps{
-		Store: pass2.NewPostgres(pool), Body: func(ctx context.Context, id string) (mail.MessageBody, error) { return f.GetMessageBody(ctx, id, "") }, Policy: fixed(classify.Prepare(rules.For(account), lookups)),
+		Store: pass2.NewPostgres(pool, Kind), Body: func(ctx context.Context, id string) (mail.MessageBody, error) { return f.GetMessageBody(ctx, id, "") }, Policy: fixed(classify.Prepare(rules.For(account), lookups)),
 		Gate: gate, Scanner: s, PageSize: 2, RunID: runID, Now: time.Now,
 	}
 	return first, second
@@ -270,7 +271,7 @@ func TestAChangeOfScannerMasksAndScansAgain(t *testing.T) {
 	refusing.Metadata = func(context.Context, []string) ([]mail.MessageMetadata, error) {
 		return nil, fmt.Errorf("the credential: %w", mail.ErrAuthentication)
 	}
-	if err := backfillAccount(t.Context(), refusing, second, "personal", metrics1, metrics2, idle, schedule.Ask{}, slog.New(slog.DiscardHandler), true, new(bool)); err == nil {
+	if err := backfillAccount(t.Context(), start.NewPostgres(pool), refusing, second, "personal", metrics1, metrics2, idle, schedule.Ask{}, slog.New(slog.DiscardHandler), true, new(bool)); err == nil {
 		t.Fatalf("a run whose first pass the provider refuses ended without an error")
 	}
 	if r := before["o1"]; r.State != "scanned" || len(r.Flags) == 0 {
@@ -311,7 +312,7 @@ func TestAChangeOfScannerMasksAndScansAgain(t *testing.T) {
 
 	// The next run's first pass resumes and fetches again only the subjects stored masked. Part way
 	// through it the stale verdicts are still pending.
-	if _, err := pass2.Reopen(t.Context(), second, "personal"); err != nil {
+	if _, err := start.Step(t.Context(), startDeps(start.NewPostgres(pool), second), "personal", slog.New(slog.DiscardHandler)); err != nil {
 		t.Fatal(err)
 	}
 	p1, err := pass1.Open(t.Context(), first, "personal")
@@ -559,7 +560,7 @@ func TestAChangeOfScannerContinuesAnEnumerationUnderWay(t *testing.T) {
 		t.Fatal(err)
 	}
 	idle := idleUnit(t, conn, "personal")
-	if err := backfillAccount(t.Context(), first, second, "personal", metrics1, metrics2, idle, schedule.Ask{}, slog.New(slog.DiscardHandler), true, new(bool)); err != nil {
+	if err := backfillAccount(t.Context(), start.NewPostgres(pool), first, second, "personal", metrics1, metrics2, idle, schedule.Ask{}, slog.New(slog.DiscardHandler), true, new(bool)); err != nil {
 		t.Fatal(err)
 	}
 
@@ -714,7 +715,7 @@ func TestAStoppedSecondPassKeepsItsRecordAndStartsOver(t *testing.T) {
 	before := readRun(t, conn, stopped)
 
 	first, second := rescanDeps(t, pool, "personal", f, wideScanner(t), "wide")
-	marked, err := pass2.Reopen(t.Context(), second, "personal")
+	marked, err := start.Step(t.Context(), startDeps(start.NewPostgres(pool), second), "personal", slog.New(slog.DiscardHandler))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -746,7 +747,7 @@ func TestAStoppedSecondPassKeepsItsRecordAndStartsOver(t *testing.T) {
 		t.Fatalf("the restarted run's page ended as %+v, %v, want a page made durable", s, err)
 	}
 	stoppedAgain := readRun(t, conn, p.Run())
-	if _, err := pass2.Reopen(t.Context(), second, "personal"); err != nil {
+	if _, err := start.Step(t.Context(), startDeps(start.NewPostgres(pool), second), "personal", slog.New(slog.DiscardHandler)); err != nil {
 		t.Fatal(err)
 	}
 	p, err = pass2.Open(t.Context(), second, "personal")
@@ -818,7 +819,7 @@ func TestARevertedChangeOfScannerStillScansWhatItReturnedToPending(t *testing.T)
 	wideFirst.Metadata = func(context.Context, []string) ([]mail.MessageMetadata, error) {
 		return nil, fmt.Errorf("the credential: %w", mail.ErrAuthentication)
 	}
-	if err := backfillAccount(t.Context(), wideFirst, wideSecond, "personal", metrics1, metrics2, idle, schedule.Ask{}, slog.New(slog.DiscardHandler), true, new(bool)); err == nil {
+	if err := backfillAccount(t.Context(), start.NewPostgres(pool), wideFirst, wideSecond, "personal", metrics1, metrics2, idle, schedule.Ask{}, slog.New(slog.DiscardHandler), true, new(bool)); err == nil {
 		t.Fatalf("a run whose first pass the provider refuses ended without an error")
 	}
 	if r := rescanRows(t, conn, "personal")["s1"]; r.State != "pending" {

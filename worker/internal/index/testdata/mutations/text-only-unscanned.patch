@@ -1,0 +1,21 @@
+control: The scan reads the part release serves, in the form it is served
+removes: neither the second pass nor a tick scans anything of a body with no HTML part
+packages: ./worker/internal/backfill/pass2 ./worker/internal/deltasync/tick
+tests: TestTheReleasedPartOfABodyIsScanned TestOnceTheSecondPassHasEndedATickScansWhatWaits
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/index/index.go b/worker/internal/index/index.go
+index 0407d282..5c0bb5f9 100644
+--- a/worker/internal/index/index.go
++++ b/worker/internal/index/index.go
+@@ -287,6 +287,9 @@ func RenderAndScan(processing *scanner.Processing, s scan.Scanner, body mail.Mes
+ 		return coreindex.Scanned{}, err
+ 	}
+ 	start = time.Now()
++	if body.HTML == "" {
++		rendered = ""
++	}
+ 	scanned := coreindex.Scan(s, rendered)
+ 	processing.Since(scanner.StepScan, start)
+ 	return scanned, nil

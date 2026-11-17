@@ -1,0 +1,20 @@
+control: A stored gate skip the gate no longer decides as the same skip returns to pending at backfill's run-start step
+removes: every stored gate skip is overturned, the ones the gate still decides as the same skip included
+packages: ./worker/internal/backfill ./worker/internal/backfill/start/core
+tests: TestOverturned TestAChangeOfThresholdsDecidesTheStoredSkipsAgain
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/start/core/core.go b/worker/internal/backfill/start/core/core.go
+index 59863915..623e999d 100644
+--- a/worker/internal/backfill/start/core/core.go
++++ b/worker/internal/backfill/start/core/core.go
+@@ -20,7 +20,7 @@ import (
+ func Overturned(p classify.Policy, c scangate.Config, now mail.UnixMilli, skips []index.Waiting) []string {
+ 	var out []string
+ 	for _, m := range skips {
+-		if index.Gate(p, c, now, m, 0).Reason() != scangate.HighVolumeNoHits {
++		if index.Gate(p, c, now, m, 0).Reason() >= scangate.Undecided {
+ 			out = append(out, m.ID)
+ 		}
+ 	}

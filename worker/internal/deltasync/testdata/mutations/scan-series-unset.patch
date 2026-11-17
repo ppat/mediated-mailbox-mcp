@@ -6,9 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/deltasync.go
+index 4ec4208c..92c3a162 100644
 --- a/worker/internal/deltasync/deltasync.go
 +++ b/worker/internal/deltasync/deltasync.go
-@@ -187,7 +187,7 @@ func (d *DeltaSync) list(ctx context.Context) ([]string, error) {
+@@ -184,7 +184,7 @@ func (d *DeltaSync) list(ctx context.Context) ([]string, error) {
  	if err != nil {
  		return nil, err
  	}

@@ -1,0 +1,22 @@
+control: A sender's first scan hit reaches the gate's decision on its next message, and no other sender's
+removes: a hit on the page counts as a prior hit of every sender on it
+packages: ./worker/internal/backfill/pass2
+tests: TestASendersFirstHitReachesItsNextMessage
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/index/index.go b/worker/internal/index/index.go
+index 0407d282..85746381 100644
+--- a/worker/internal/index/index.go
++++ b/worker/internal/index/index.go
+@@ -267,7 +267,9 @@ func GateAndScan(p classify.Policy, c scangate.Config, now mail.UnixMilli, waiti
+ 			if b.Scanned != nil {
+ 				o.Scanned = b.Scanned
+ 				if b.Scanned.Flags.Any() {
+-					hits[m.Domain]++
++					for _, other := range waiting {
++						hits[other.Domain]++
++					}
+ 				}
+ 			}
+ 		}

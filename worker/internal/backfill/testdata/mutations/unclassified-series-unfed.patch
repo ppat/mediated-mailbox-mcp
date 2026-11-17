@@ -6,9 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
+index 0210ff03..d2523a18 100644
 --- a/worker/internal/backfill/backfill.go
 +++ b/worker/internal/backfill/backfill.go
-@@ -491,7 +491,6 @@
+@@ -415,7 +415,6 @@ func passAccount(ctx context.Context, deps pass1.Deps, account string, metrics *
  		if hoErr := u.end(ctx); hoErr != nil {
  			handOvers = append(handOvers, hoErr)
  		}

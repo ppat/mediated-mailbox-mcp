@@ -1,0 +1,21 @@
+control: A run resuming an enumeration not yet ended that was made under another scanner continues it from its checkpoint under the scanner in force
+removes: a run resuming an enumeration not yet ended that was made under another scanner starts it over from the first page, enumerating again the pages already made durable
+packages: ./worker/internal/backfill/pass1/core ./worker/internal/backfill/pass1 ./worker/internal/backfill
+tests: TestUnder TestAnEnumerationUnderWayContinuesUnderANewScanner TestAKilledRunResumesFromItsCheckpoint TestAChangeOfScannerContinuesAnEnumerationUnderWay
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/pass1/core/core.go b/worker/internal/backfill/pass1/core/core.go
+index e0edc919..5e60ed31 100644
+--- a/worker/internal/backfill/pass1/core/core.go
++++ b/worker/internal/backfill/pass1/core/core.go
+@@ -93,6 +93,9 @@ func Under(start runs.Start[Progress], latest runs.Latest[Progress], s index.Sta
+ 		ended := latest.Progress.Checkpoint
+ 		start.From = Progress{Checkpoint: Checkpoint{Page: ended.Page, Of: ended.Of}}
+ 	}
++	if at := start.From.Checkpoint; !at.Ended() && at.Stamp != s && at.Page > 0 {
++		start.From = Restart(start.From)
++	}
+ 	start.From.Checkpoint.Stamp = s
+ 	start.From.Checkpoint.Stale = stale
+ 	return start

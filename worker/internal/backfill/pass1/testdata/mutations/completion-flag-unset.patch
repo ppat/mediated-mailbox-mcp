@@ -6,10 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/backfill/pass1/postgres.go b/worker/internal/backfill/pass1/postgres.go
-index c902fbdc..e7d1eae7 100644
+index 0560235a..fb83f2f9 100644
 --- a/worker/internal/backfill/pass1/postgres.go
 +++ b/worker/internal/backfill/pass1/postgres.go
-@@ -396,9 +396,7 @@ func (s *Postgres) Finish(ctx context.Context, account, runID string, stamp inde
+@@ -317,9 +317,7 @@ func (s *Postgres) Finish(ctx context.Context, account, runID string, stamp inde
  		if len(stale) > 0 {
  			return nil
  		}
@@ -18,5 +18,5 @@ index c902fbdc..e7d1eae7 100644
 -		}
 +		_ = completion.New
  		ended = true
- 		return SucceedRun(ctx, runrecord.New(t), runID)
+ 		return runs.SucceedRun(ctx, runrecord.New(t), runID)
  	})

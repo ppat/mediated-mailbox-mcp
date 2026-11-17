@@ -6,9 +6,11 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
+index 0210ff03..f38363bb 100644
 --- a/worker/internal/backfill/backfill.go
 +++ b/worker/internal/backfill/backfill.go
-@@ -449,9 +449,9 @@ func passAccount(ctx context.Context, deps pass1.Deps, account string, metrics *
+@@ -410,11 +410,11 @@ func passAccount(ctx context.Context, deps pass1.Deps, account string, metrics *
+ 		}
  		if err := u.open(); err != nil {
  			return errors.Join(append(handOvers, err)...)
  		}
@@ -19,7 +21,9 @@ diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/bac
  		}
  		metrics.Count(account, step)
  		if err != nil {
-@@ -469,8 +469,16 @@ func passAccount(ctx context.Context, deps pass1.Deps, account string, metrics *
+ 			logger.Error("the first pass failed", "run", p.Run(), "error", err)
+@@ -430,10 +430,18 @@ func passAccount(ctx context.Context, deps pass1.Deps, account string, metrics *
+ 			return errors.Join(handOvers...)
  		}
  	}
  }
@@ -36,3 +40,4 @@ diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/bac
  // account's unit of work first and ends it after, then sets the account's scan backlog, which is
  // removed once the pass ends, and a page made durable is the job's success. It logs counts and identifiers, never a body (ADR-0009). It
  // stops at a page boundary once ctx ends.
+ func secondPassAccount(ctx context.Context, deps pass2.Deps, account string, metrics *pass2.Metrics, u units, ask schedule.Ask, logger *slog.Logger) error {

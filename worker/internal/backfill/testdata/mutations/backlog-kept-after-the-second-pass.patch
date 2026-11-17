@@ -6,9 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
+index 0210ff03..a9fb4531 100644
 --- a/worker/internal/backfill/backfill.go
 +++ b/worker/internal/backfill/backfill.go
-@@ -509,7 +509,6 @@ func secondPassAccount(ctx context.Context, deps pass2.Deps, account string, met
+@@ -471,7 +471,6 @@ func secondPassAccount(ctx context.Context, deps pass2.Deps, account string, met
  		ask.Progressed()
  		at := p.Progress()
  		if step.Done {

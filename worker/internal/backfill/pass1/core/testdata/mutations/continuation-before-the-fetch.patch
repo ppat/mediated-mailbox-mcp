@@ -1,0 +1,23 @@
+control: A run resuming an enumeration not yet ended that was made under another scanner continues it from its checkpoint under the scanner in force
+removes: a run records the stale subjects it has to fetch only once its enumeration has ended, so it continues an enumeration not yet ended before it fetches the subjects stored masked under another scanner
+packages: ./worker/internal/backfill/pass1/core ./worker/internal/backfill/pass1 ./worker/internal/backfill
+tests: TestUnder TestAnEnumerationUnderWayContinuesUnderANewScanner TestAKilledRunResumesFromItsCheckpoint TestAChangeOfScannerContinuesAnEnumerationUnderWay
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/pass1/core/core.go b/worker/internal/backfill/pass1/core/core.go
+index e0edc919..c0a2fbbe 100644
+--- a/worker/internal/backfill/pass1/core/core.go
++++ b/worker/internal/backfill/pass1/core/core.go
+@@ -94,7 +94,10 @@ func Under(start runs.Start[Progress], latest runs.Latest[Progress], s index.Sta
+ 		start.From = Progress{Checkpoint: Checkpoint{Page: ended.Page, Of: ended.Of}}
+ 	}
+ 	start.From.Checkpoint.Stamp = s
+-	start.From.Checkpoint.Stale = stale
++	start.From.Checkpoint.Stale = 0
++	if start.From.Checkpoint.Ended() {
++		start.From.Checkpoint.Stale = stale
++	}
+ 	return start
+ }
+ 

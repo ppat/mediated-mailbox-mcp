@@ -6,10 +6,11 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
+index 0210ff03..def5dd1b 100644
 --- a/worker/internal/backfill/backfill.go
 +++ b/worker/internal/backfill/backfill.go
-@@ -253,7 +253,6 @@ func backfillAccount(ctx context.Context, first pass1.Deps, second pass2.Deps, a
- 		if err := reopen(ctx, second, account, logger); err != nil {
+@@ -254,7 +254,6 @@ func backfillAccount(ctx context.Context, starting start.Store, first pass1.Deps
+ 		if _, err := start.Step(ctx, startDeps(starting, second), account, logger); err != nil {
  			return err
  		}
 -		*started = true

@@ -1,0 +1,21 @@
+control: A first pass whose enumeration ended fetches again by identifier only the stale subjects, masks each from the subject the provider returns, and enumerates nothing when reopened
+removes: a subject fetched again is masked from the text the index stores rather than from the subject the provider returns
+packages: ./worker/internal/backfill/pass1/core
+tests: TestRefetch
+scheduled-count: no
+integration: no
+
+diff --git a/worker/internal/backfill/pass1/core/core.go b/worker/internal/backfill/pass1/core/core.go
+index e0edc919..aacd4645 100644
+--- a/worker/internal/backfill/pass1/core/core.go
++++ b/worker/internal/backfill/pass1/core/core.go
+@@ -192,7 +192,8 @@ func Refetch(stored []Stored, got []mail.MessageMetadata, s scan.Scanner) (remas
+ 			unfound = append(unfound, m)
+ 			continue
+ 		}
+-		remasked = append(remasked, masked(m.ID, subject, s))
++		_ = subject
++		remasked = append(remasked, masked(m.ID, m.Subject, s))
+ 	}
+ 	return remasked, Unfound(unfound, index.StampOf(s))
+ }

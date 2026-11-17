@@ -1,0 +1,20 @@
+control: A backfill run's start masks every stale subject stored unmasked again from the store, a batch at a time, with a masking event for each mask
+removes: the run-start step writes each subject it masks again with its masks applied and leaves it reading unmasked
+packages: ./worker/internal/backfill/pass2
+tests: TestTheRunStartMasksTheSubjectsStoredUnmaskedAgainFromTheStore
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/start/start.go b/worker/internal/backfill/start/start.go
+index 07880fb2..01bbfb11 100644
+--- a/worker/internal/backfill/start/start.go
++++ b/worker/internal/backfill/start/start.go
+@@ -199,7 +199,7 @@ func remaskStored(ctx context.Context, messages *ingest.Queries, events *masking
+ 		for _, m := range remasked(stored) {
+ 			batch.MessageIds = append(batch.MessageIds, m.ID)
+ 			batch.Subjects = append(batch.Subjects, m.Subject)
+-			batch.SubjectsMasked = append(batch.SubjectsMasked, m.SubjectMasked)
++			batch.SubjectsMasked = append(batch.SubjectsMasked, false)
+ 			for _, mask := range m.Masks {
+ 				masks.MessageIds = append(masks.MessageIds, m.ID)
+ 				masks.RuleIds = append(masks.RuleIds, mask.Rule)

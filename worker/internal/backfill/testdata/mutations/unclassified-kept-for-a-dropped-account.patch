@@ -6,9 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
+index 0210ff03..dbbf9794 100644
 --- a/worker/internal/backfill/backfill.go
 +++ b/worker/internal/backfill/backfill.go
-@@ -189,7 +189,6 @@ func (b *Backfill) plan() schedule.Plan {
+@@ -190,7 +190,6 @@ func (b *Backfill) plan() schedule.Plan {
  // so nothing sets them again.
  func (b *Backfill) dropped(account string) {
  	b.logger.Info("an account is no longer listed, so its backfill stops", "account", account)

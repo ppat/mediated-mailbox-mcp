@@ -6,13 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/deltasync/tick/postgres.go b/worker/internal/deltasync/tick/postgres.go
-index 42bc74ff..11847c6c 100644
+index d762c492..8d21799e 100644
 --- a/worker/internal/deltasync/tick/postgres.go
 +++ b/worker/internal/deltasync/tick/postgres.go
-@@ -182,13 +182,13 @@ func (s *Postgres) Apply(ctx context.Context, account, runID string, a Applicati
- 				return fmt.Errorf("rebuilding the statistics of the sender at %q: %w", d, err)
- 			}
- 			if _, err := changes.DropEmptySender(ctx, d); err != nil {
+@@ -168,7 +168,7 @@ func (s *Postgres) Apply(ctx context.Context, account, runID string, a Applicati
  				return fmt.Errorf("removing the statistics of the sender at %q: %w", d, err)
  			}
  		}
@@ -21,6 +18,3 @@ index 42bc74ff..11847c6c 100644
  			if err := advance(ctx, cursor.New(t), a.Cursor); err != nil {
  				return err
  			}
- 		}
- 		return recordProgress(ctx, runrecord.New(t), runID, progress(applied))
- 	})

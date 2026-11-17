@@ -6,10 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/deltasync/tick/tick.go b/worker/internal/deltasync/tick/tick.go
-index b5e0a1d..ad26ac4 100644
+index deb28e08..f6d6a431 100644
 --- a/worker/internal/deltasync/tick/tick.go
 +++ b/worker/internal/deltasync/tick/tick.go
-@@ -89,7 +89,7 @@ func Run(ctx context.Context, deps Deps, account string) (Result, error) {
+@@ -105,7 +105,7 @@ func Run(ctx context.Context, deps Deps, account string) (result Result, err err
  	if err != nil {
  		return t.result, t.failed(ctx, err)
  	}

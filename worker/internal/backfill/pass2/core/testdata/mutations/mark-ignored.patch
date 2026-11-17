@@ -1,0 +1,20 @@
+control: A second pass resuming a stopped pass while the run-start step's mark is set starts over from the first waiting message
+removes: a second pass run resumes a stopped pass from its checkpoint whatever the mark, so what a run's start returned to pending before it waits for good
+packages: ./worker/internal/backfill/pass2/core ./worker/internal/backfill/pass2 ./worker/internal/backfill
+tests: TestOver TestAKilledSecondPassResumesFromItsCheckpoint TestAStoppedSecondPassKeepsItsRecordAndStartsOver TestARevertedChangeOfScannerStillScansWhatItReturnedToPending
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/pass2/core/core.go b/worker/internal/backfill/pass2/core/core.go
+index 3e8a56ca..e34e5106 100644
+--- a/worker/internal/backfill/pass2/core/core.go
++++ b/worker/internal/backfill/pass2/core/core.go
+@@ -71,7 +71,7 @@ func Begin(firstEnded, ended bool, latest runs.Latest[Progress]) runs.Start[Prog
+ // from the first message waiting for a scan, counters carrying on, since what that run-start step
+ // returned to pending may sit before the checkpoint. A fresh pass starts there anyway (ADR-0120).
+ func Over(start runs.Start[Progress], marked bool) (runs.Start[Progress], bool) {
+-	if start.Skip || !marked || start.ResumedFrom == "" {
++	if true || start.Skip || !marked || start.ResumedFrom == "" {
+ 		return start, false
+ 	}
+ 	start.From = Restart(start.From)

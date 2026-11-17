@@ -32,7 +32,9 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/marker"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/postgres"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/pass1"
-	core "github.com/ppat/mediated-mailbox-mcp/worker/internal/core/backfill/pass1"
+	"github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/pass1/core"
+	"github.com/ppat/mediated-mailbox-mcp/worker/internal/runs"
+	runscore "github.com/ppat/mediated-mailbox-mcp/worker/internal/runs/core"
 )
 
 func TestMain(m *testing.M) {
@@ -594,7 +596,7 @@ func realWorld(t testing.TB, s setup) *world {
 	}
 	pool := backfillPool(t)
 	url := postgres.URL(t)
-	return newWorld(t, s, account, pass1.NewPostgres(pool), func(t tb) state { return inspectPostgres(t, url, account) },
+	return newWorld(t, s, account, pass1.NewPostgres(pool, "backfill"), func(t tb) state { return inspectPostgres(t, url, account) },
 		func(p mail.Port[context.Context]) (pass1.Fetch, pass1.Metadata) {
 			m := leasedMailbox(t, pool, account, p)
 			return m.EnumerateAll, m.GetMessageMetadata
@@ -725,8 +727,8 @@ type memory struct {
 	// events counts the masking events of each message by the scanner they were recorded under.
 	events   map[string]map[index.Stamp]int
 	failures []pass1.Failure
-	timeline []pass1.Event
-	items    []pass1.Item
+	timeline []runs.Event
+	items    []runs.Item
 }
 
 var _ pass1.Store = (*memory)(nil)
@@ -735,17 +737,17 @@ func newMemory() *memory {
 	return &memory{messages: map[string]index.Message{}, events: map[string]map[index.Stamp]int{}}
 }
 
-func (m *memory) State(ctx context.Context, _ string, s index.Stamp) (bool, int, core.Latest[core.Progress], error) {
+func (m *memory) State(ctx context.Context, _ string, s index.Stamp) (bool, int, runscore.Latest[core.Progress], error) {
 	if err := ctx.Err(); err != nil {
-		return false, 0, core.Latest[core.Progress]{}, err
+		return false, 0, runscore.Latest[core.Progress]{}, err
 	}
 	stale := len(m.stale(s, len(m.messages)))
 	if len(m.runs) == 0 {
-		return m.ended, stale, core.Latest[core.Progress]{}, nil
+		return m.ended, stale, runscore.Latest[core.Progress]{}, nil
 	}
 	r := m.runs[len(m.runs)-1]
-	states := map[string]core.RunState{"running": core.Running, "succeeded": core.Succeeded, "failed": core.Failed}
-	return m.ended, stale, core.Latest[core.Progress]{Found: true, RunID: r.ID, State: states[r.State], Progress: r.Progress}, nil
+	states := map[string]runscore.RunState{"running": runscore.Running, "succeeded": runscore.Succeeded, "failed": runscore.Failed}
+	return m.ended, stale, runscore.Latest[core.Progress]{Found: true, RunID: r.ID, State: states[r.State], Progress: r.Progress}, nil
 }
 
 // stale returns up to n of the messages whose subject was masked under another scanner than s, in the
@@ -793,7 +795,7 @@ func (m *memory) Refetch(ctx context.Context, _, runID string, s index.Stamp, r 
 	for _, msg := range r.Gone {
 		if m.remask(msg) {
 			fetched++
-			m.items = append(m.items, pass1.Item{Kind: "message", ID: msg.ID, Class: "gone", Attempts: 1, First: r.Now, Last: r.Now, Disposition: "gone"})
+			m.items = append(m.items, runs.Item{Kind: "message", ID: msg.ID, Page: runs.OnPage(0), Class: "gone", Attempts: 1, First: r.Now, Last: r.Now, Disposition: "gone"})
 		}
 	}
 	m.items = append(m.items, r.Recovered...)
@@ -806,7 +808,7 @@ func (m *memory) Refetch(ctx context.Context, _, runID string, s index.Stamp, r 
 	return at, nil
 }
 
-func (m *memory) Items(ctx context.Context, _, _ string, items []pass1.Item) error {
+func (m *memory) Items(ctx context.Context, _, _ string, items []runs.Item) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -830,7 +832,7 @@ func (m *memory) end(id, st string) {
 	}
 }
 
-func (m *memory) Start(ctx context.Context, _, runID string, start core.Start[core.Progress]) error {
+func (m *memory) Start(ctx context.Context, _, runID string, start runscore.Start[core.Progress]) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -899,7 +901,7 @@ func (m *memory) Fail(ctx context.Context, _, runID, _ string) error {
 	return nil
 }
 
-func (m *memory) Event(ctx context.Context, _, _ string, e pass1.Event) error {
+func (m *memory) Event(ctx context.Context, _, _ string, e runs.Event) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}

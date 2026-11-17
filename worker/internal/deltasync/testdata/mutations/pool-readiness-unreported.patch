@@ -6,9 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/deltasync.go
+index 4ec4208c..6e18a36f 100644
 --- a/worker/internal/deltasync/deltasync.go
 +++ b/worker/internal/deltasync/deltasync.go
-@@ -114,9 +114,6 @@ func assemble(ctx context.Context, p process.Capabilities, c config.Worker) (*De
+@@ -111,9 +111,6 @@ func assemble(ctx context.Context, p process.Capabilities, c config.Worker) (*De
  	if err != nil {
  		return nil, err
  	}

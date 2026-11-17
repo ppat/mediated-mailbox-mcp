@@ -6,9 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
+index 0210ff03..a6f3876f 100644
 --- a/worker/internal/backfill/backfill.go
 +++ b/worker/internal/backfill/backfill.go
-@@ -180,7 +180,7 @@ func (b *Backfill) plan() schedule.Plan {
+@@ -181,7 +181,7 @@ func (b *Backfill) plan() schedule.Plan {
  			job.LastSuccess = b.seed(b.seeding, account)
  			return job, nil
  		},

@@ -6,10 +6,11 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/deltasync.go
+index 4ec4208c..481287ba 100644
 --- a/worker/internal/deltasync/deltasync.go
 +++ b/worker/internal/deltasync/deltasync.go
-@@ -282,7 +282,7 @@ func (d *DeltaSync) tickDeps(provider tick.Provider, policy classify.Policy) tic
- 		Store:       tick.NewPostgres(d.pool),
+@@ -258,7 +258,7 @@ func (d *DeltaSync) tickDeps(provider tick.Provider, policy classify.Policy) tic
+ 		Store:       tick.NewPostgres(d.pool, Kind),
  		Provider:    provider,
  		Policy:      policy,
 -		Gate:        scangate.DefaultConfig(),

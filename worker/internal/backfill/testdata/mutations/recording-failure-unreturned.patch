@@ -6,9 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
+index 0210ff03..f6d70abf 100644
 --- a/worker/internal/backfill/backfill.go
 +++ b/worker/internal/backfill/backfill.go
-@@ -361,9 +361,9 @@ func (u *unit) end(ctx context.Context) error {
+@@ -342,9 +342,9 @@ func (u *unit) end(ctx context.Context) error {
  	if u.current == nil {
  		return nil
  	}

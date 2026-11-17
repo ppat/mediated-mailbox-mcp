@@ -1,0 +1,20 @@
+control: A scan verdict records its content flags, content rules, scanner version and configuration revision
+removes: a one-time code is stored as a login link
+packages: ./worker/internal/backfill/pass2
+tests: TestAPassDecidesAndRecordsEveryWaitingMessage TestTheReleasedPartOfABodyIsScanned TestAKilledSecondPassResumesFromItsCheckpoint
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/index/index.go b/worker/internal/index/index.go
+index 0407d282..dd4351c0 100644
+--- a/worker/internal/index/index.go
++++ b/worker/internal/index/index.go
+@@ -170,7 +170,7 @@ func recordOutcome(ctx context.Context, messages *scanstore.Queries, gate *gater
+ 	case o.Scanned != nil:
+ 		flags := []string{}
+ 		if o.Scanned.Flags.MFACode() {
+-			flags = append(flags, "mfa_code")
++			flags = append(flags, "login_link")
+ 		}
+ 		if o.Scanned.Flags.LoginLink() {
+ 			flags = append(flags, "login_link")

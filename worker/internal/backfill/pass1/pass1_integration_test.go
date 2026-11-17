@@ -23,7 +23,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/marker"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/postgres"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/pass1"
-	core "github.com/ppat/mediated-mailbox-mcp/worker/internal/core/backfill/pass1"
+	"github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/pass1/core"
 )
 
 // mixed is a mailbox of seven messages in pages of three, from every kind of sender, some with a code

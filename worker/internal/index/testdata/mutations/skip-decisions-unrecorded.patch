@@ -1,0 +1,23 @@
+control: Every scan gate decision over stored messages is recorded with its reason
+removes: a skip is not recorded in the decisions table
+packages: ./worker/internal/backfill/pass2
+tests: TestAPassDecidesAndRecordsEveryWaitingMessage TestAKilledSecondPassResumesFromItsCheckpoint
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/index/index.go b/worker/internal/index/index.go
+index 0407d282..fba3c29f 100644
+--- a/worker/internal/index/index.go
++++ b/worker/internal/index/index.go
+@@ -161,7 +161,10 @@ func recordOutcome(ctx context.Context, messages *scanstore.Queries, gate *gater
+ 	if o.Verdict.Scans() {
+ 		decision = "SCAN"
+ 	}
+-	err := gate.RecordDecision(ctx, gaterecord.RecordDecisionParams{MessageID: o.ID, Decision: decision, Reason: o.Verdict.Reason().String()})
++	var err error
++	if o.Verdict.Scans() {
++		err = gate.RecordDecision(ctx, gaterecord.RecordDecisionParams{MessageID: o.ID, Decision: decision, Reason: o.Verdict.Reason().String()})
++	}
+ 	if err != nil {
+ 		return fmt.Errorf("recording the gate's decision: %w", err)
+ 	}

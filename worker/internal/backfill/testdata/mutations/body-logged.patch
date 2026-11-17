@@ -6,9 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
+index 0210ff03..ecfd17f1 100644
 --- a/worker/internal/backfill/backfill.go
 +++ b/worker/internal/backfill/backfill.go
-@@ -230,7 +230,7 @@ func (b *Backfill) run(ctx context.Context, ask schedule.Ask, account string, st
+@@ -231,7 +231,7 @@ func (b *Backfill) run(ctx context.Context, ask schedule.Ask, account string, st
  	if !work.Any() {
  		return nil
  	}
@@ -16,8 +17,8 @@ diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/bac
 +	u := &unit{conns: b.conns, caller: b.caller, account: account, logger: logger}
  	first := pass1.Deps{
  		Store: b.store, Fetch: u.fetch, Metadata: u.metadata, PerCall: u.perCall,
- 		Policy: b.policyFor(account), Scanner: b.scanner, RunID: runID, Now: time.Now,
-@@ -340,6 +340,7 @@ type unit struct {
+ 		Policy: b.policyFor(account), Scanner: b.scanner, RunID: runs.NewID, Now: time.Now,
+@@ -321,6 +321,7 @@ type unit struct {
  	caller  *connections.Caller
  	account string
  	current *connections.Work
@@ -25,7 +26,7 @@ diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/bac
  }
  
  // open begins the account's next unit of work.
-@@ -388,7 +389,9 @@ func (u *unit) perCall() int {
+@@ -369,7 +370,9 @@ func (u *unit) perCall() int {
  // body is the second pass's body fetch through the unit's mailbox, a second call naming a part held
  // apart (ADR-0025, ADR-0131).
  func (u *unit) body(ctx context.Context, id string) (mail.MessageBody, error) {

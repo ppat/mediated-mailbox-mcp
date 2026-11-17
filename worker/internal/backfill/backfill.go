@@ -8,20 +8,18 @@
 // whichever pass has not ended, a page at a time, each page a unit of work, and is otherwise a
 // reconciler that finds nothing to do (ADR-0133, ADR-0120, ADR-0121).
 //
-// Its two passes are pass1 and pass2, and its due decision is worker/internal/core/backfill/due.
+// Its run-start step is start, its two passes are pass1 and pass2, and its due decision is
+// worker/internal/backfill/core.
 package backfill
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"log/slog"
 	"time"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
@@ -31,7 +29,6 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/core/scangate"
 	"github.com/ppat/mediated-mailbox-mcp/db/accountstate"
 	"github.com/ppat/mediated-mailbox-mcp/db/accountstate/completion"
-	runrecord "github.com/ppat/mediated-mailbox-mcp/db/jobruns/record"
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
 	"github.com/ppat/mediated-mailbox-mcp/process"
 	"github.com/ppat/mediated-mailbox-mcp/process/connections"
@@ -41,15 +38,18 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/process/sessions"
 	"github.com/ppat/mediated-mailbox-mcp/provider"
 	providermail "github.com/ppat/mediated-mailbox-mcp/provider/mail"
+	"github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/core"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/pass1"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/pass2"
-	"github.com/ppat/mediated-mailbox-mcp/worker/internal/core/backfill/due"
+	"github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/start"
+	"github.com/ppat/mediated-mailbox-mcp/worker/internal/runs"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/series"
 )
 
 // Kind is backfill's job kind as job_runs.workload spells it, which the worker's spec names it by, so
-// the worker's series and logs carry it as the job kind (ADR-0016, ADR-0117).
-const Kind = pass1.Workload
+// the worker's series and logs carry it as the job kind, and both passes record their runs under it
+// (ADR-0016, ADR-0117).
+const Kind = "backfill"
 
 // callTimeout is how long each provider call backfill makes has to answer once its lease is issued, a
 // fixed timeout of the job kind's caller (ADR-0101, ADR-0119).
@@ -89,6 +89,7 @@ type Backfill struct {
 	caller   *connections.Caller
 	store    pass1.Store
 	second   pass2.Store
+	starting start.Store
 	first    *pass1.Metrics
 	backlog  *pass2.Metrics
 	// processing times each body's conversion and scan in the second pass (ADR-0125).
@@ -158,7 +159,7 @@ func build(p process.Capabilities, pool *pgxpool.Pool, s *sessions.Session, conn
 		pool: pool, scanner: sc, logger: p.Logger(),
 		limit: schedule.NewLimit(c.Backfill.Concurrency), interval: time.Duration(c.ReloadInterval),
 		session: s, conns: conns, caller: caller,
-		store: pass1.NewPostgres(pool), second: pass2.NewPostgres(pool),
+		store: pass1.NewPostgres(pool, Kind), second: pass2.NewPostgres(pool, Kind), starting: start.NewPostgres(pool),
 		first: first, backlog: backlog, processing: processing, seeding: p.Draining(),
 	}, nil
 }
@@ -226,31 +227,31 @@ func (b *Backfill) run(ctx context.Context, ask schedule.Ask, account string, st
 	if err != nil {
 		return err
 	}
-	work := due.Decide(state, *started)
+	work := core.Decide(state, *started)
 	if !work.Any() {
 		return nil
 	}
 	u := &unit{conns: b.conns, caller: b.caller, account: account}
 	first := pass1.Deps{
 		Store: b.store, Fetch: u.fetch, Metadata: u.metadata, PerCall: u.perCall,
-		Policy: b.policyFor(account), Scanner: b.scanner, RunID: runID, Now: time.Now,
+		Policy: b.policyFor(account), Scanner: b.scanner, RunID: runs.NewID, Now: time.Now,
 	}
 	second := secondDeps(b.second, u.body, b.policyFor(account), b.scanner)
 	second.Processing = b.processing
-	return backfillAccount(ctx, first, second, account, b.first, b.backlog, u, ask, logger, work.Start, started)
+	return backfillAccount(ctx, b.starting, first, second, account, b.first, b.backlog, u, ask, logger, work.Start, started)
 }
 
-// backfillAccount does an account's work with each pass's dependencies. When start is set, it first
-// makes the run-start step, so the verdicts another scanner made and the gate skips the gate no longer
+// backfillAccount does an account's work with each pass's dependencies. When startStep is set, it
+// first makes the run-start step over starting, under the second pass's gate, scanner and policy, so the verdicts another scanner made and the gate skips the gate no longer
 // decides as the same skip are denied whatever the first pass does, and the subjects stored unmasked
 // are masked again from the store, and records that the step was made in started. Then the first pass
 // runs, and the second once the first has ended, each page a unit of work over u (ADR-0120, ADR-0121,
 // ADR-0133).
-func backfillAccount(ctx context.Context, first pass1.Deps, second pass2.Deps, account string, m1 *pass1.Metrics, m2 *pass2.Metrics, u units,
-	ask schedule.Ask, logger *slog.Logger, start bool, started *bool,
+func backfillAccount(ctx context.Context, starting start.Store, first pass1.Deps, second pass2.Deps, account string, m1 *pass1.Metrics, m2 *pass2.Metrics, u units,
+	ask schedule.Ask, logger *slog.Logger, startStep bool, started *bool,
 ) error {
-	if start {
-		if err := reopen(ctx, second, account, logger); err != nil {
+	if startStep {
+		if _, err := start.Step(ctx, startDeps(starting, second), account, logger); err != nil {
 			return err
 		}
 		*started = true
@@ -263,8 +264,8 @@ func backfillAccount(ctx context.Context, first pass1.Deps, second pass2.Deps, a
 
 // state reads what recorded state says of the account's backfill, its completion flags and the mark
 // that starts its second pass over, the due decision's two one-row reads (ADR-0119).
-func (b *Backfill) state(ctx context.Context, account string) (due.State, error) {
-	var s due.State
+func (b *Backfill) state(ctx context.Context, account string) (core.State, error) {
+	var s core.State
 	err := tx.Run(ctx, b.pool, account, func(t pgx.Tx) error {
 		progress, err := accountstate.New(t).AccountProgress(ctx)
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -277,11 +278,11 @@ func (b *Backfill) state(ctx context.Context, account string) (due.State, error)
 		if err != nil {
 			return err
 		}
-		s = due.State{FirstEnded: progress.BackfillPass1Complete, SecondEnded: progress.BackfillPass2Complete, Restart: restart}
+		s = core.State{FirstEnded: progress.BackfillPass1Complete, SecondEnded: progress.BackfillPass2Complete, Restart: restart}
 		return nil
 	})
 	if err != nil {
-		return due.State{}, fmt.Errorf("reading the account's backfill state: %w", err)
+		return core.State{}, fmt.Errorf("reading the account's backfill state: %w", err)
 	}
 	return s, nil
 }
@@ -291,35 +292,15 @@ func (b *Backfill) state(ctx context.Context, account string) (due.State, error)
 // (ADR-0119).
 func (b *Backfill) seed(ctx context.Context, account string) time.Time {
 	state, err := b.state(ctx, account)
-	var recorded runrecord.RecordedSuccessRow
+	var latest, earliest mail.UnixMilli
 	if err == nil {
-		err = tx.Run(ctx, b.pool, account, func(t pgx.Tx) error {
-			var rErr error
-			recorded, rErr = runrecord.New(t).RecordedSuccess(ctx, Kind)
-			return rErr
-		})
+		latest, earliest, err = runs.RecordedSuccess(ctx, b.pool, account, Kind)
 	}
 	if err != nil {
 		b.logger.Warn("reading the account's latest recorded success failed, so its job counts from now", "account", account, "error", err)
 		return time.Time{}
 	}
-	return at(due.Seed(state, millis(recorded.LatestSuccess), millis(recorded.EarliestStart)))
-}
-
-// millis returns t in milliseconds since the epoch, and zero when it is null.
-func millis(t pgtype.Timestamptz) mail.UnixMilli {
-	if !t.Valid {
-		return 0
-	}
-	return mail.UnixMilli(t.Time.UnixMilli())
-}
-
-// at returns the time ms names, and the zero time for zero.
-func at(ms mail.UnixMilli) time.Time {
-	if ms == 0 {
-		return time.Time{}
-	}
-	return time.UnixMilli(int64(ms))
+	return runs.Time(core.Seed(state, latest, earliest))
 }
 
 // errNotListed stops a run at a unit boundary when the account is no longer served. The scheduler
@@ -398,34 +379,15 @@ func (u *unit) body(ctx context.Context, id string) (mail.MessageBody, error) {
 func secondDeps(store pass2.Store, body pass2.Body, policy func() classify.Policy, scanner scan.Scanner) pass2.Deps {
 	return pass2.Deps{
 		Store: store, Body: body, Policy: policy, Gate: scangate.DefaultConfig(), Scanner: scanner,
-		PageSize: pageSize, RunID: runID, Now: time.Now,
+		PageSize: pageSize, RunID: runs.NewID, Now: time.Now,
 	}
 }
 
-// reopen is the run-start step. It returns to pending every verdict of the account made under another
-// scanner than the one the run scans with, masks again from the store every subject stored unmasked
-// under another scanner, and returns to pending every stored gate skip the gate under the run's
-// thresholds no longer decides as the same skip, before the first pass, so each verdict and skip is
-// denied from the start of the run that sees it whatever the first pass does, and reopens the second
-// pass when it did any of these or the first pass is due again (ADR-0120, ADR-0121).
-func reopen(ctx context.Context, deps pass2.Deps, account string, logger *slog.Logger) error {
-	r, err := pass2.Reopen(ctx, deps, account)
-	if err != nil {
-		return err
-	}
-	if r.Refusals > 0 {
-		logger.Info("bodies refused under another size bound returned to pending", "messages", r.Refusals)
-	}
-	if r.Verdicts > 0 {
-		logger.Info("verdicts made under another scanner returned to pending", "messages", r.Verdicts)
-	}
-	if r.Subjects > 0 {
-		logger.Info("subjects stored unmasked under another scanner masked again from the store", "messages", r.Subjects)
-	}
-	if r.Skips > 0 {
-		logger.Info("gate skips the gate no longer decides as the same skip returned to pending", "messages", r.Skips)
-	}
-	return nil
+// startDeps returns what an account's run-start step runs with over store, the policy, the gate's
+// thresholds, the scanner and the clock the second pass decides and scans with, so the step returns to
+// pending what the second pass would decide otherwise and nothing else (ADR-0120, ADR-0121).
+func startDeps(store start.Store, second pass2.Deps) start.Deps {
+	return start.Deps{Store: store, Policy: second.Policy, Gate: second.Gate, Scanner: second.Scanner, Now: second.Now}
 }
 
 // passAccount runs the first pass over one account a page at a time. Each page begins the account's
@@ -516,11 +478,4 @@ func secondPassAccount(ctx context.Context, deps pass2.Deps, account string, met
 		}
 		logger.Info("page made durable", "run", p.Run(), "pass", 2, "page", at.Checkpoint.Page, "scanned", at.Counters.Scanned)
 	}
-}
-
-// runID returns a new run's identifier, sixteen random hexadecimal digits.
-func runID() string {
-	var b [8]byte
-	_, _ = rand.Read(b[:]) // crypto/rand.Read never returns an error.
-	return hex.EncodeToString(b[:])
 }

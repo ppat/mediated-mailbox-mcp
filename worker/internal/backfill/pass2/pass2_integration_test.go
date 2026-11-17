@@ -25,7 +25,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/marker"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/postgres"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/pass2"
-	core "github.com/ppat/mediated-mailbox-mcp/worker/internal/core/backfill/pass2"
+	"github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/pass2/core"
 )
 
 // message returns one fixture message from address, with a List-Id when listID is set, whose text part
@@ -355,7 +355,7 @@ func TestARefusalReturnsToPendingOnlyWhenItsBoundChanges(t *testing.T) {
 		t.Fatal(err)
 	}
 	w.added = []string{"news.example"}
-	r, err := pass2.Reopen(context.Background(), w.deps, w.account)
+	r, err := w.reopen(context.Background(), w.deps)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -721,7 +721,7 @@ func TestTheRunStartMasksTheSubjectsStoredUnmaskedAgainFromTheStore(t *testing.T
 
 	deps := w.deps
 	deps.Scanner = scannerAt(t, "revision-1")
-	r, err := pass2.Reopen(t.Context(), deps, w.account)
+	r, err := w.reopen(t.Context(), deps)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -773,7 +773,7 @@ func TestTheRunStartMasksTheSubjectsStoredUnmaskedAgainFromTheStore(t *testing.T
 	if ended || !restart {
 		t.Errorf("after the run-start step the second pass is ended %v and marked to start over %v, want it reopened and marked", ended, restart)
 	}
-	again, err := pass2.Reopen(t.Context(), deps, w.account)
+	again, err := w.reopen(t.Context(), deps)
 	if err != nil {
 		t.Fatal(err)
 	}

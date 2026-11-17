@@ -6,18 +6,18 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/backfill/pass1/postgres.go b/worker/internal/backfill/pass1/postgres.go
-index c902fbdc..1aac8d74 100644
+index 0560235a..936cfb5c 100644
 --- a/worker/internal/backfill/pass1/postgres.go
 +++ b/worker/internal/backfill/pass1/postgres.go
-@@ -207,9 +207,14 @@ func (s *Postgres) Commit(ctx context.Context, account, runID string, p index.Pa
+@@ -204,9 +204,14 @@ func (s *Postgres) Commit(ctx context.Context, account, runID string, p index.Pa
  		if err != nil {
  			return err
  		}
--		if err := RecordProgress(ctx, q, runID, cp, ct, at.Checkpoint.Page); err != nil {
+-		if err := runs.RecordProgress(ctx, q, runID, cp, ct, runs.OnPage(at.Checkpoint.Page)); err != nil {
 +		if _, err := t.Exec(ctx, "SAVEPOINT progress"); err != nil {
  			return err
  		}
-+		if err := RecordProgress(ctx, q, runID, cp, ct, at.Checkpoint.Page); err != nil {
++		if err := runs.RecordProgress(ctx, q, runID, cp, ct, runs.OnPage(at.Checkpoint.Page)); err != nil {
 +			if _, err := t.Exec(ctx, "ROLLBACK TO SAVEPOINT progress"); err != nil {
 +				return err
 +			}

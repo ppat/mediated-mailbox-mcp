@@ -6,9 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/deltasync.go
+index 4ec4208c..d66733a4 100644
 --- a/worker/internal/deltasync/deltasync.go
 +++ b/worker/internal/deltasync/deltasync.go
-@@ -195,7 +195,6 @@ func (d *DeltaSync) list(ctx context.Context) ([]string, error) {
+@@ -192,7 +192,6 @@ func (d *DeltaSync) list(ctx context.Context) ([]string, error) {
  // returned, so nothing sets them again.
  func (d *DeltaSync) dropped(account string) {
  	d.logger.Info("an account is no longer listed, so its delta sync stops", "account", account)

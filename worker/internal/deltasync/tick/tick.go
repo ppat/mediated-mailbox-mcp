@@ -8,8 +8,11 @@
 //
 // What a message adds to the index, the delisting comparison, the gate and the scan are core/index's,
 // the decisions backfill makes the same way, and the tick's own decisions are
-// worker/internal/core/deltasync/tick's. A body is fetched, converted and scanned in memory and dropped, so
-// nothing of it reaches the store or a log (ADR-0009).
+// worker/internal/deltasync/tick/core's. The writes to the index, the loop that gates and scans each
+// waiting message and the delisting transition's enactment are worker/internal/index's, which
+// backfill's second pass shares, and the runs are recorded by worker/internal/runs. A body is fetched,
+// converted and scanned in memory and dropped, so nothing of it reaches the store or a log
+// (ADR-0009).
 package tick
 
 import (
@@ -18,7 +21,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ppat/mediated-mailbox-mcp/content/markdown"
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
 	"github.com/ppat/mediated-mailbox-mcp/core/index"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
@@ -26,7 +28,9 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/core/scangate"
 	"github.com/ppat/mediated-mailbox-mcp/process/scanner"
 	"github.com/ppat/mediated-mailbox-mcp/process/schedule"
-	core "github.com/ppat/mediated-mailbox-mcp/worker/internal/core/deltasync/tick"
+	"github.com/ppat/mediated-mailbox-mcp/worker/internal/deltasync/tick/core"
+	workerindex "github.com/ppat/mediated-mailbox-mcp/worker/internal/index"
+	"github.com/ppat/mediated-mailbox-mcp/worker/internal/runs"
 )
 
 // The passes job_runs names a tick and a gap's recovery (ADR-0016).
@@ -206,7 +210,7 @@ func (t *ticker) first(ctx context.Context) (mail.Cursor, error) {
 func (t *ticker) recover(ctx context.Context, state State) error {
 	run := t.deps.RunID()
 	t.result.Recovery = run
-	if err := t.deps.Store.Event(ctx, t.account, t.run, Event{Kind: "retry", Detail: "the provider cannot calculate changes from the cursor, so run " + run + " recovers from the gap"}); err != nil {
+	if err := t.deps.Store.Event(ctx, t.account, t.run, runs.Event{Kind: "retry", Detail: "the provider cannot calculate changes from the cursor, so run " + run + " recovers from the gap"}); err != nil {
 		return err
 	}
 	var at Recovery
@@ -366,54 +370,26 @@ func (t *ticker) scanning(ctx context.Context) error {
 // their unscanned bodies hold, and the checkpoint stays at the last message decided, so the next
 // tick reads the stopped one first (ADR-0104).
 func (t *ticker) page(ctx context.Context, waiting []index.Waiting) (bool, error) {
-	now := t.deps.Now()
-	hits := map[string]int64{}
-	var outcomes []index.Outcome
-	var items []Item
-	stop := false
-	for _, m := range waiting {
-		o := index.Outcome{ID: m.ID, Domain: m.Domain, Verdict: index.Gate(t.deps.Policy, t.deps.Gate, mail.UnixMilli(now.UnixMilli()), m, hits[m.Domain])}
-		if o.Verdict.Scans() {
-			scanned, item, next, err := t.scan(ctx, m.ID)
-			if err != nil {
-				return false, err
-			}
-			if item != nil {
-				items = append(items, *item)
-			}
-			if next == core.StopScanning {
-				stop = true
-				break
-			}
-			o.Refused = next == core.Refuse
-			if scanned != nil {
-				o.Scanned = scanned
-				if scanned.Flags.Any() {
-					hits[m.Domain]++
-				}
-			}
+	now := mail.UnixMilli(t.deps.Now().UnixMilli())
+	var items []runs.Item
+	outcomes, stop, err := workerindex.GateAndScan(t.deps.Policy, t.deps.Gate, now, waiting, func(id string) (workerindex.Body, error) {
+		scanned, item, next, err := t.scan(ctx, id)
+		if err != nil {
+			return workerindex.Body{}, err
 		}
-		outcomes = append(outcomes, o)
+		if item != nil {
+			items = append(items, *item)
+		}
+		return workerindex.Body{Scanned: scanned, Refused: next == core.Refuse, Stop: next == core.StopScanning}, nil
+	})
+	if err != nil {
+		return false, err
 	}
 	next := t.at
 	if len(outcomes) > 0 {
 		next.Checkpoint.After = outcomes[len(outcomes)-1].ID
 	}
-	for _, o := range outcomes {
-		if o.Verdict.Decided() {
-			next.Counters.Decided++
-		}
-		switch {
-		case o.Scanned != nil:
-			next.Counters.Scanned++
-		case o.Refused:
-			next.Counters.Refused++
-		case o.Verdict.Decided() && !o.Verdict.Scans():
-			next.Counters.Skipped++
-		default:
-			next.Counters.Pending++
-		}
-	}
+	next.Counters.Counts = next.Counters.Add(outcomes)
 	if err := t.deps.Store.CommitScan(ctx, t.account, t.run, outcomes, items, next); err != nil {
 		return false, fmt.Errorf("making the scanned messages durable: %w", err)
 	}
@@ -425,9 +401,10 @@ func (t *ticker) page(ctx context.Context, waiting []index.Waiting) (bool, error
 // scan fetches the message's body, renders it as it is released and scans that. It returns what the
 // scan records, or the failed item that leaves the message waiting with what the tick does next, or
 // the error that ends the tick. A body the port or the rendering refused returns its failed item with
-// Refuse, which records the message as refused rather than waiting (ADR-0132). The body is dropped
-// when it returns.
-func (t *ticker) scan(ctx context.Context, id string) (*index.Scanned, *Item, core.Next, error) {
+// Refuse, which records the message as refused rather than waiting (ADR-0132). A failed item records
+// no page and the one attempt a tick makes, since a tick never retries a body itself (ADR-0104). The
+// body is dropped when it returns.
+func (t *ticker) scan(ctx context.Context, id string) (*index.Scanned, *runs.Item, core.Next, error) {
 	body, err := t.deps.Provider.GetMessageBody(ctx, id)
 	if err != nil {
 		if ctx.Err() != nil {
@@ -439,21 +416,19 @@ func (t *ticker) scan(ctx context.Context, id string) (*index.Scanned, *Item, co
 			return nil, nil, next, fmt.Errorf("asking for the body of message %s: %w", id, err)
 		}
 		now := t.deps.Now().UTC()
-		return nil, &Item{ID: id, Class: string(class), Summary: err.Error(), At: now, Disposition: core.Disposition(class)}, next, nil
+		return nil, &runs.Item{
+			Kind: "message", ID: id, Class: string(class), Summary: err.Error(), Attempts: 1, First: now, Last: now,
+			Disposition: core.Disposition(class),
+		}, next, nil
 	}
-	start := time.Now()
-	rendered, err := markdown.Render(body)
-	t.deps.Processing.Since(scanner.StepConvert, start)
+	scanned, err := workerindex.RenderAndScan(t.deps.Processing, t.deps.Scanner, body)
 	if err != nil {
 		now := t.deps.Now().UTC()
-		return nil, &Item{
-			ID: id, Class: string(index.Refused), Summary: "the conversion refused the body: " + err.Error(), At: now,
-			Disposition: core.Disposition(index.Refused),
+		return nil, &runs.Item{
+			Kind: "message", ID: id, Class: string(index.Refused), Summary: "the conversion refused the body: " + err.Error(),
+			Attempts: 1, First: now, Last: now, Disposition: core.Disposition(index.Refused),
 		}, core.Refuse, nil
 	}
-	start = time.Now()
-	scanned := index.Scan(t.deps.Scanner, rendered)
-	t.deps.Processing.Since(scanner.StepScan, start)
 	return &scanned, nil, core.LeaveWaiting, nil
 }
 

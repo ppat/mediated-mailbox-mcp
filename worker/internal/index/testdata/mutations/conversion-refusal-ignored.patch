@@ -1,0 +1,20 @@
+control: A body the port or the conversion refuses is recorded refused, never scanned, and not fetched again
+removes: a rendering refusal is ignored, so the body is scanned as empty and recorded clean, by a tick and by the second pass
+packages: ./worker/internal/backfill/pass2 ./worker/internal/backfill ./worker/app
+tests: TestABodyRefusedIsRecordedRefusedAndNotFetchedAgain TestATickRecordsABodyTheConversionRefusesAsRefused
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/index/index.go b/worker/internal/index/index.go
+index 0407d282..c433b917 100644
+--- a/worker/internal/index/index.go
++++ b/worker/internal/index/index.go
+@@ -283,7 +283,7 @@ func RenderAndScan(processing *scanner.Processing, s scan.Scanner, body mail.Mes
+ 	start := time.Now()
+ 	rendered, err := markdown.Render(body)
+ 	processing.Since(scanner.StepConvert, start)
+-	if err != nil {
++	if err != nil && false {
+ 		return coreindex.Scanned{}, err
+ 	}
+ 	start = time.Now()

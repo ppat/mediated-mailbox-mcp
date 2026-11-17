@@ -6,10 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/deltasync/tick/tick.go b/worker/internal/deltasync/tick/tick.go
-index b5e0a1d..f3be048 100644
+index deb28e08..44485086 100644
 --- a/worker/internal/deltasync/tick/tick.go
 +++ b/worker/internal/deltasync/tick/tick.go
-@@ -80,7 +80,6 @@ func Run(ctx context.Context, deps Deps, account string) (Result, error) {
+@@ -91,7 +91,6 @@ func Run(ctx context.Context, deps Deps, account string) (result Result, err err
  		return Result{}, fmt.Errorf("reading the account's sync state: %w", err)
  	}
  	t := &ticker{deps: deps, account: account, run: deps.RunID()}

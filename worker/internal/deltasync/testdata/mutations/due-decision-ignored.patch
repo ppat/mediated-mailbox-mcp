@@ -6,16 +6,17 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/deltasync.go
+index 4ec4208c..e4a14038 100644
 --- a/worker/internal/deltasync/deltasync.go
 +++ b/worker/internal/deltasync/deltasync.go
-@@ -207,9 +207,7 @@ func (d *DeltaSync) job(account string) schedule.Job {
+@@ -204,9 +204,7 @@ func (d *DeltaSync) job(account string) schedule.Job {
  		Interval: d.syncInterval, Limit: d.limit, Backoff: backoff, Late: lateIntervals * d.syncInterval, Logger: logger,
  		Run: func(ctx context.Context, ask schedule.Ask) error {
  			at := mail.UnixMilli(ask.At.UnixMilli())
--			if !due.Decide(ticked, last, at, d.syncInterval.Milliseconds()) {
+-			if !core.Decide(ticked, last, at, d.syncInterval.Milliseconds()) {
 -				return schedule.ErrNotDue
 -			}
-+			_ = due.Decide(ticked, last, at, d.syncInterval.Milliseconds())
++			_ = core.Decide(ticked, last, at, d.syncInterval.Milliseconds())
  			// The tick is recorded at its ask's time on the ticker's phase, so a tick asked at the end
  			// of a backoff leaves the ticker's next tick due.
  			ticked, last = true, mail.UnixMilli(ask.Phase.UnixMilli())

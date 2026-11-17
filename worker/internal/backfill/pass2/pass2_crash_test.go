@@ -17,8 +17,8 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/crash"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/marker"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/property"
-	pass1core "github.com/ppat/mediated-mailbox-mcp/worker/internal/core/backfill/pass1"
-	core "github.com/ppat/mediated-mailbox-mcp/worker/internal/core/backfill/pass2"
+	pass1core "github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/pass1/core"
+	"github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/pass2/core"
 )
 
 // drawSetup draws a mailbox and a page size. Each message is drawn without seeing the ones before it,

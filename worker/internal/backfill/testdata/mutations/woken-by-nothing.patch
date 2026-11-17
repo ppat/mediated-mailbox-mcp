@@ -6,9 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
+index 0210ff03..a51b6233 100644
 --- a/worker/internal/backfill/backfill.go
 +++ b/worker/internal/backfill/backfill.go
-@@ -181,7 +181,7 @@ func (b *Backfill) plan() schedule.Plan {
+@@ -182,7 +182,7 @@ func (b *Backfill) plan() schedule.Plan {
  			return job, nil
  		},
  		Dropped: b.dropped,

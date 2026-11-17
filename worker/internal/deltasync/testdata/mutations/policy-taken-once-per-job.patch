@@ -6,9 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/deltasync.go
+index 4ec4208c..d917a8c1 100644
 --- a/worker/internal/deltasync/deltasync.go
 +++ b/worker/internal/deltasync/deltasync.go
-@@ -202,6 +202,7 @@ func (d *DeltaSync) dropped(account string) {
+@@ -199,6 +199,7 @@ func (d *DeltaSync) dropped(account string) {
  // due decision reads when its last tick was asked for, which only its own runs write.
  func (d *DeltaSync) job(account string) schedule.Job {
  	logger := d.logger.With("account", account)
@@ -16,7 +17,7 @@ diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/
  	ticked, last := false, mail.UnixMilli(0)
  	return schedule.Job{
  		Interval: d.syncInterval, Limit: d.limit, Backoff: backoff, Late: lateIntervals * d.syncInterval, Logger: logger,
-@@ -213,7 +214,7 @@ func (d *DeltaSync) job(account string) schedule.Job {
+@@ -210,7 +211,7 @@ func (d *DeltaSync) job(account string) schedule.Job {
  			// The tick is recorded at its ask's time on the ticker's phase, so a tick asked at the end
  			// of a backoff leaves the ticker's next tick due.
  			ticked, last = true, mail.UnixMilli(ask.Phase.UnixMilli())
@@ -25,7 +26,7 @@ diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/
  		},
  	}
  }
-@@ -255,12 +256,12 @@ func at(ms mail.UnixMilli) time.Time {
+@@ -231,12 +232,12 @@ func (d *DeltaSync) seed(ctx context.Context, account string) time.Time {
  // (ADR-0041, ADR-0090), then ends, writing a rotated credential back and recording the latest
  // authentication attempt, a tick that failed included (ADR-0089, ADR-0097). It logs counts and
  // identifiers, never a body (ADR-0009).

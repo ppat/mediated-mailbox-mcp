@@ -6,9 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
+index 0210ff03..b6a80874 100644
 --- a/worker/internal/backfill/backfill.go
 +++ b/worker/internal/backfill/backfill.go
-@@ -171,7 +171,13 @@ func build(p process.Capabilities, pool *pgxpool.Pool, s *sessions.Session, conn
+@@ -172,7 +172,13 @@ func build(p process.Capabilities, pool *pgxpool.Pool, s *sessions.Session, conn
  // dropped with the account's series (ADR-0090, ADR-0119).
  func (b *Backfill) plan() schedule.Plan {
  	return schedule.Plan{

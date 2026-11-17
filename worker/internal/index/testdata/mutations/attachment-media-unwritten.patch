@@ -1,0 +1,20 @@
+control: Each message the first pass or a tick stores carries its attachment media
+removes: no message added to the index has its attachment media stored, whether the first pass or a tick adds it
+packages: ./worker/internal/backfill/pass1 ./worker/internal/deltasync/tick
+tests: TestAPassStoresEachMessagesAttachmentMedia TestATickStoresTheAttachmentMediaOfWhatItAdds
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/index/index.go b/worker/internal/index/index.go
+index 0407d282..c826bd32 100644
+--- a/worker/internal/index/index.go
++++ b/worker/internal/index/index.go
+@@ -92,7 +92,7 @@ func Insert(ctx context.Context, q *ingest.Queries, m coreindex.Message) (bool,
+ 	if err != nil {
+ 		return false, err
+ 	}
+-	return true, media(ctx, q, m)
++	return true, nil
+ }
+ 
+ // media adds the media of a message's attachments, which the index stores once, with the message

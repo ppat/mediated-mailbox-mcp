@@ -6,9 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
+index 0210ff03..4b5a9576 100644
 --- a/worker/internal/backfill/backfill.go
 +++ b/worker/internal/backfill/backfill.go
-@@ -96,6 +96,7 @@ type Backfill struct {
+@@ -97,6 +97,7 @@ type Backfill struct {
  	// seeding is the context a job's latest recorded success is read under when the listing finds
  	// its account, which ends when the process starts to stop.
  	seeding context.Context
@@ -16,7 +17,7 @@ diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/bac
  }
  
  // Build builds backfill's job kind from the process's capabilities and the worker's configuration,
-@@ -198,11 +199,18 @@ func (b *Backfill) dropped(account string) {
+@@ -199,11 +200,18 @@ func (b *Backfill) dropped(account string) {
  // listed again gets it again (ADR-0121).
  func (b *Backfill) job(account string) schedule.Job {
  	logger := b.logger.With("account", account)

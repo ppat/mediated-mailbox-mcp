@@ -6,10 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/deltasync/tick/tick.go b/worker/internal/deltasync/tick/tick.go
-index 3237b9b..1bf0823 100644
+index deb28e08..48c82a88 100644
 --- a/worker/internal/deltasync/tick/tick.go
 +++ b/worker/internal/deltasync/tick/tick.go
-@@ -171,7 +171,7 @@ func (t *ticker) first(ctx context.Context) (mail.Cursor, error) {
+@@ -188,7 +188,7 @@ func (t *ticker) first(ctx context.Context) (mail.Cursor, error) {
  	now := mail.UnixMilli(t.deps.Now().UnixMilli())
  	start, end := core.Window(nil, now, mail.UnixMilli(t.deps.FirstWindow.Milliseconds()))
  	t.at.Counters.Window = window(start, end)

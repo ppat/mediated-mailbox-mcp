@@ -1,0 +1,20 @@
+control: A backfill run's start masks every stale subject stored unmasked again from the store, a batch at a time, with a masking event for each mask
+removes: the run-start step masks again only the first batch of subjects stored unmasked, so a mailbox holding more keeps the rest under the earlier scanner
+packages: ./worker/internal/backfill/pass2
+tests: TestTheRunStartMasksTheSubjectsStoredUnmaskedAgainFromTheStore
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/start/start.go b/worker/internal/backfill/start/start.go
+index 07880fb2..617ee309 100644
+--- a/worker/internal/backfill/start/start.go
++++ b/worker/internal/backfill/start/start.go
+@@ -219,7 +219,7 @@ func remaskStored(ctx context.Context, messages *ingest.Queries, events *masking
+ 			}
+ 		}
+ 		total += len(batch.MessageIds)
+-		if len(rows) < remaskBatch {
++		if len(rows) <= remaskBatch {
+ 			return total, nil
+ 		}
+ 	}

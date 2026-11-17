@@ -6,21 +6,15 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/deltasync/tick/postgres.go b/worker/internal/deltasync/tick/postgres.go
-index 42bc74ff..883e9d00 100644
+index d762c492..036539db 100644
 --- a/worker/internal/deltasync/tick/postgres.go
 +++ b/worker/internal/deltasync/tick/postgres.go
-@@ -90,13 +90,13 @@ func (s *Postgres) Start(ctx context.Context, account, runID, pass string, at Re
- 	cp, ct, err := at.encode()
- 	if err != nil {
- 		return err
+@@ -91,7 +91,7 @@ func (s *Postgres) Start(ctx context.Context, account, runID, pass string, at Re
  	}
  	return tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
  		q := runrecord.New(t)
 -		if pass == PassTick {
 +		if pass == "" {
- 			if err := endStopped(ctx, q); err != nil {
+ 			if err := s.endStopped(ctx, q); err != nil {
  				return err
  			}
- 		}
- 		err := q.StartRun(ctx, runrecord.StartRunParams{
- 			RunID: runID, Workload: Workload, Pass: pass, Checkpoint: cp, Counters: ct,

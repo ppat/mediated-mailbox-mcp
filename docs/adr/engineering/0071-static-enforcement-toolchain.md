@@ -113,10 +113,12 @@ whether to run the analysers individually or under one command. Everything else 
     every background job kind
     ([ADR-0117](../operability/0117-one-background-worker-runs-every-job-kind.md)), each job kind
     has a list of its own, inside the deployable's, so the isolation of one job kind's code from
-    another's is checked rather than conventional. A job kind that needs no credential, no provider
-    and no connection to a provider imports none of them. Each job kind's list names exactly the
-    data-access subsections its code may use, and with the raw SQL analyser below, that list bounds
-    what its code can do in the database
+    another's is checked rather than conventional. So does each package of the code the job kinds
+    share that runs statements, which admits no job kind's code and names exactly the subsections
+    it writes through, each of which every job kind that uses it names too. A job kind that needs
+    no credential, no provider and no connection to a provider imports none of them. Each job
+    kind's list names exactly the data-access subsections its code may use, and with the raw SQL
+    analyser below, that list bounds what its code can do in the database
     ([ADR-0143](../data/0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)).
   - **Each shared library.** The data-access library, the content, credential and process
     families, the provider library with its rate limiter, and the shared test support each have

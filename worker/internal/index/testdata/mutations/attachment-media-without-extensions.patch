@@ -1,0 +1,20 @@
+control: Each message the first pass or a tick stores carries its attachment media
+removes: every message added to the index stores each medium's media type with an empty extension
+packages: ./worker/internal/backfill/pass1
+tests: TestAPassStoresEachMessagesAttachmentMedia
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/index/index.go b/worker/internal/index/index.go
+index 0407d282..7eda1d3b 100644
+--- a/worker/internal/index/index.go
++++ b/worker/internal/index/index.go
+@@ -104,7 +104,7 @@ func media(ctx context.Context, q *ingest.Queries, m coreindex.Message) error {
+ 	p := ingest.InsertAttachmentMediaParams{MessageID: m.ID}
+ 	for _, a := range m.AttachmentMedia {
+ 		p.MediaTypes = append(p.MediaTypes, a.MediaType)
+-		p.Extensions = append(p.Extensions, a.Extension)
++		p.Extensions = append(p.Extensions, "")
+ 	}
+ 	return q.InsertAttachmentMedia(ctx, p)
+ }

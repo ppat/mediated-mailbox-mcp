@@ -187,7 +187,12 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/api/internal/core/"
           - "github.com/ppat/mediated-mailbox-mcp/provider/ratelimit/core/"
           - "github.com/ppat/mediated-mailbox-mcp/ui/internal/core/"
-          - "github.com/ppat/mediated-mailbox-mcp/worker/internal/core/"
+          # The worker's pure cores another of its pure cores builds on: the first pass's, whose bound on
+          # attempts the second pass's shares, the gate-and-scan loop's counting, which the second pass's
+          # progress counts with, and the runs' lifecycle, which both passes and backfill's seed start from.
+          - "github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/pass1/core$"
+          - "github.com/ppat/mediated-mailbox-mcp/worker/internal/index/core$"
+          - "github.com/ppat/mediated-mailbox-mcp/worker/internal/runs/core$"
           # The encoding interface a charset's decoder is, which the Gmail adapter's body decision decodes a part
           # held apart through. The label table that maps a label to a decoder imports fmt, which imports os, so
           # the adapter passes it in (ADR-0134).
@@ -238,7 +243,16 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/property$"
           - "github.com/ppat/mediated-mailbox-mcp/ui/internal/core/"
-          - "github.com/ppat/mediated-mailbox-mcp/worker/internal/core/"
+          # Each of the worker's pure cores is one package beside the shell code that uses it, so its
+          # external tests import it by its exact path, and the cores it builds on are those above.
+          - "github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/core$"
+          - "github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/pass1/core$"
+          - "github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/pass2/core$"
+          - "github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/start/core$"
+          - "github.com/ppat/mediated-mailbox-mcp/worker/internal/deltasync/core$"
+          - "github.com/ppat/mediated-mailbox-mcp/worker/internal/deltasync/tick/core$"
+          - "github.com/ppat/mediated-mailbox-mcp/worker/internal/index/core$"
+          - "github.com/ppat/mediated-mailbox-mcp/worker/internal/runs/core$"
           # The encoding interface the Gmail adapter's body decision decodes through, and the media-type parser
           # and the charset label table the adapter passes it, so its tests run against the real lookups. Neither
           # of the last two is pure, so neither is on the pure-core list for non-test files.
@@ -1394,8 +1408,9 @@ linters:
           - "golang.org/x/net/publicsuffix$"
           - "pgregory.net/rapid"
 
-        # Deployable worker, its non-test code outside its job kinds' code: its entry, which holds its spec, and the
-        # series its job kinds share. A deployable imports its own code and the shared libraries, never another
+        # Deployable worker, its non-test code outside its job kinds' code and the index writes and run records they
+        # share, which each have a list of their own: its entry, which holds its spec, and the series its job kinds
+        # share. A deployable imports its own code and the shared libraries, never another
         # deployable (ADR-0054). Its entry lists the job kinds and builds nothing, so it names no data-access
         # subsection, not the Session, the connections, the rate limiter or the body conversion, which each job kind
         # reaches through its own list (ADR-0117, ADR-0142, ADR-0143).
@@ -1405,9 +1420,9 @@ linters:
           - "${base-path}/worker/**.go"
           - "!$test"
           - "!${base-path}/worker/internal/backfill/**"
-          - "!${base-path}/worker/internal/core/backfill/**"
           - "!${base-path}/worker/internal/deltasync/**"
-          - "!${base-path}/worker/internal/core/deltasync/**"
+          - "!${base-path}/worker/internal/index/**"
+          - "!${base-path}/worker/internal/runs/**"
           allow:
           - "$gostd"
           - "github.com/ppat/mediated-mailbox-mcp/core/"
@@ -1415,7 +1430,8 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/worker/"
           - "github.com/prometheus/client_golang/prometheus$"
 
-        # Deployable worker, its test files outside its job kinds' code. They run the worker through its spec over the
+        # Deployable worker, its test files outside its job kinds' code and the code they share that has a list of
+        # its own. They run the worker through its spec over the
         # provider fake, which they hand the connections through the one option the connections export for a test
         # (ADR-0142), and use the test tooling the list for non-test code refuses.
         worker-tests:
@@ -1423,9 +1439,9 @@ linters:
           files:
           - "${base-path}/worker/**_test.go"
           - "!${base-path}/worker/internal/backfill/**"
-          - "!${base-path}/worker/internal/core/backfill/**"
           - "!${base-path}/worker/internal/deltasync/**"
-          - "!${base-path}/worker/internal/core/deltasync/**"
+          - "!${base-path}/worker/internal/index/**"
+          - "!${base-path}/worker/internal/runs/**"
           allow:
           - "$gostd"
           - "github.com/google/go-cmp/cmp$"
@@ -1460,14 +1476,12 @@ linters:
           list-mode: strict
           files:
           - "${base-path}/worker/internal/backfill/**.go"
-          - "${base-path}/worker/internal/core/backfill/**.go"
           allow:
           - "$gostd"
           - "github.com/google/go-cmp/cmp$"
           - "github.com/google/go-cmp/cmp/cmpopts$"
           - "github.com/jackc/pgx/v5$"
           - "github.com/jackc/pgx/v5/"
-          - "github.com/ppat/mediated-mailbox-mcp/content/markdown$"
           - "github.com/ppat/mediated-mailbox-mcp/core/"
           - "github.com/ppat/mediated-mailbox-mcp/db/accountstate$"
           - "github.com/ppat/mediated-mailbox-mcp/db/accountstate/completion$"
@@ -1494,7 +1508,12 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/property$"
           - "github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/"
-          - "github.com/ppat/mediated-mailbox-mcp/worker/internal/core/backfill/"
+          # The index writes, the gate-and-scan loop and the run records both job kinds share, each with its
+          # pure core (ADR-0117).
+          - "github.com/ppat/mediated-mailbox-mcp/worker/internal/index$"
+          - "github.com/ppat/mediated-mailbox-mcp/worker/internal/index/core$"
+          - "github.com/ppat/mediated-mailbox-mcp/worker/internal/runs$"
+          - "github.com/ppat/mediated-mailbox-mcp/worker/internal/runs/core$"
           - "github.com/ppat/mediated-mailbox-mcp/process/schedule$"
           - "github.com/ppat/mediated-mailbox-mcp/worker/internal/series$"
           - "github.com/prometheus/client_golang/prometheus$"
@@ -1517,15 +1536,12 @@ linters:
           list-mode: strict
           files:
           - "${base-path}/worker/internal/deltasync/**.go"
-          - "${base-path}/worker/internal/core/deltasync/**.go"
           allow:
           - "$gostd"
           - "github.com/google/go-cmp/cmp$"
           - "github.com/google/go-cmp/cmp/cmpopts$"
           - "github.com/jackc/pgx/v5$"
           - "github.com/jackc/pgx/v5/"
-          # A tick converts a body's HTML as backfill's second pass and release do (ADR-0104, ADR-0036).
-          - "github.com/ppat/mediated-mailbox-mcp/content/markdown$"
           - "github.com/ppat/mediated-mailbox-mcp/core/"
           - "github.com/ppat/mediated-mailbox-mcp/db/accountstate$"
           - "github.com/ppat/mediated-mailbox-mcp/db/accountstate/cursor$"
@@ -1554,8 +1570,13 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/property$"
-          - "github.com/ppat/mediated-mailbox-mcp/worker/internal/core/deltasync/"
           - "github.com/ppat/mediated-mailbox-mcp/worker/internal/deltasync/"
+          # The index writes, the gate-and-scan loop and the run records both job kinds share, each with its
+          # pure core (ADR-0117).
+          - "github.com/ppat/mediated-mailbox-mcp/worker/internal/index$"
+          - "github.com/ppat/mediated-mailbox-mcp/worker/internal/index/core$"
+          - "github.com/ppat/mediated-mailbox-mcp/worker/internal/runs$"
+          - "github.com/ppat/mediated-mailbox-mcp/worker/internal/runs/core$"
           - "github.com/ppat/mediated-mailbox-mcp/process/schedule$"
           - "github.com/ppat/mediated-mailbox-mcp/worker/internal/series$"
           - "github.com/prometheus/client_golang/prometheus$"
@@ -1563,6 +1584,49 @@ linters:
           - "golang.org/x/net/idna$"
           - "golang.org/x/net/publicsuffix$"
           - "pgregory.net/rapid$"
+
+        # The worker's index writes, every file: a message added with its masking events, the gate's decision on a
+        # waiting message with what it leads to, the delisting transition's enactment, the gate-and-scan loop with its
+        # render-and-scan step, and their pure core, which both job kinds share (ADR-0117). It writes in the
+        # transaction a job kind opened, through the subsections it names, which db/check tests against the application
+        # user's grants and which both job kinds' lists name too, and reaches no job kind's code (ADR-0143). It converts
+        # a body's HTML as release does (ADR-0104, ADR-0036).
+        worker-index:
+          list-mode: strict
+          files:
+          - "${base-path}/worker/internal/index/**.go"
+          allow:
+          - "$gostd"
+          - "github.com/jackc/pgx/v5$"
+          - "github.com/jackc/pgx/v5/pgtype$"
+          - "github.com/ppat/mediated-mailbox-mcp/content/markdown$"
+          - "github.com/ppat/mediated-mailbox-mcp/core/"
+          - "github.com/ppat/mediated-mailbox-mcp/db/maskingevents/record$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/messages/ingest$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/messages/scan$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/scangatedecisions/record$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/senders/statistics$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/scanner$"
+
+        # The worker's run records, every file: the recording of a run, its events and failed items, and the read of a
+        # job's latest recorded success, with the runs' pure core, which both job kinds share (ADR-0016, ADR-0117). It
+        # writes in the transaction a job kind opened, through the one subsection it names, and reaches no job kind's
+        # code (ADR-0143).
+        worker-runs:
+          list-mode: strict
+          files:
+          - "${base-path}/worker/internal/runs/**.go"
+          allow:
+          - "$gostd"
+          - "github.com/google/go-cmp/cmp$"
+          - "github.com/jackc/pgx/v5$"
+          - "github.com/jackc/pgx/v5/pgtype$"
+          - "github.com/ppat/mediated-mailbox-mcp/core/"
+          - "github.com/ppat/mediated-mailbox-mcp/db/jobruns/record$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
+          - "github.com/ppat/mediated-mailbox-mcp/worker/internal/runs/core$"
 
         # The API server's API root reaches the service layer and nothing below it (ADR-0030). Each root is generated
         # from the operation registry by one file, its generator, and only the generator imports the library its

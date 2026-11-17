@@ -87,11 +87,11 @@ func passesDeps(t *testing.T, pool *pgxpool.Pool, account string, f *fake.Fake) 
 	n := 0
 	runID := func() string { n++; return fmt.Sprintf("run%d", n) }
 	first := pass1.Deps{
-		Store: pass1.NewPostgres(pool), Fetch: f.EnumerateAll, Metadata: f.GetMessageMetadata, PerCall: three, Policy: fixed(classify.Prepare(rules.For(account), lookups)), Scanner: s,
+		Store: pass1.NewPostgres(pool, Kind), Fetch: f.EnumerateAll, Metadata: f.GetMessageMetadata, PerCall: three, Policy: fixed(classify.Prepare(rules.For(account), lookups)), Scanner: s,
 		RunID: runID, Now: time.Now,
 	}
 	second := pass2.Deps{
-		Store: pass2.NewPostgres(pool), Body: func(ctx context.Context, id string) (mail.MessageBody, error) { return f.GetMessageBody(ctx, id, "") }, Policy: fixed(classify.Prepare(rules.For(account), lookups)),
+		Store: pass2.NewPostgres(pool, Kind), Body: func(ctx context.Context, id string) (mail.MessageBody, error) { return f.GetMessageBody(ctx, id, "") }, Policy: fixed(classify.Prepare(rules.For(account), lookups)),
 		Gate: scangate.DefaultConfig(), Scanner: s, PageSize: 2, RunID: runID, Now: time.Now,
 	}
 	return first, second

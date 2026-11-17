@@ -6,9 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
+index 0210ff03..e89c3ec0 100644
 --- a/worker/internal/backfill/backfill.go
 +++ b/worker/internal/backfill/backfill.go
-@@ -177,7 +177,6 @@ func (b *Backfill) plan() schedule.Plan {
+@@ -178,7 +178,6 @@ func (b *Backfill) plan() schedule.Plan {
  		Late:    lateReloads * b.interval,
  		Job: func(account string) (schedule.Job, error) {
  			job := b.job(account)

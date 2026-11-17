@@ -221,7 +221,7 @@ var gate = scangate.DefaultConfig()
 func deps(t tb, pool *pgxpool.Pool, p tick.Provider, pol policy.Snapshot, account string) tick.Deps {
 	t.Helper()
 	return tick.Deps{
-		Store: tick.NewPostgres(pool), Provider: p,
+		Store: tick.NewPostgres(pool, "sync"), Provider: p,
 		Policy: classify.Prepare(pol.For(account), lookups), Gate: gate, Scanner: defaultScanner(t),
 		FirstWindow: 7 * day, Decisions: 200, PageSize: 2,
 		RunID: func() string { return fmt.Sprintf("%s-run%d", account, runIDs.Add(1)) },

@@ -6,10 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/backfill/pass1/postgres.go b/worker/internal/backfill/pass1/postgres.go
-index c902fbdc..9615b926 100644
+index 0560235a..db5c72d1 100644
 --- a/worker/internal/backfill/pass1/postgres.go
 +++ b/worker/internal/backfill/pass1/postgres.go
-@@ -190,7 +190,7 @@ func (s *Postgres) Commit(ctx context.Context, account, runID string, p index.Pa
+@@ -187,7 +187,7 @@ func (s *Postgres) Commit(ctx context.Context, account, runID string, p index.Pa
  			}
  		}
  		q := runrecord.New(t)

@@ -1,0 +1,20 @@
+control: A verdict made under another scanner returns to pending, cleared, with its sender's prior hits counted again
+removes: the prior hits of a sender whose verdicts returned to pending are not counted again, so a message flagged again counts twice
+packages: ./worker/internal/backfill
+tests: TestAChangeOfScannerMasksAndScansAgain
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/start/start.go b/worker/internal/backfill/start/start.go
+index 07880fb2..bc65da68 100644
+--- a/worker/internal/backfill/start/start.go
++++ b/worker/internal/backfill/start/start.go
+@@ -130,7 +130,7 @@ func (s *Postgres) Reopen(ctx context.Context, account string, stamp index.Stamp
+ 			return fmt.Errorf("returning the verdicts another scanner made to pending scan: %w", err)
+ 		}
+ 		slices.Sort(domains)
+-		for _, d := range slices.Compact(slices.Clone(domains)) {
++		for _, d := range slices.Compact(slices.Clone(domains))[:0] {
+ 			n, err := statistics.New(t).RecountScanHits(ctx, d)
+ 			if err != nil {
+ 				return fmt.Errorf("counting the prior hits of the sender at %q again: %w", d, err)

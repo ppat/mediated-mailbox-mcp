@@ -3,8 +3,9 @@
 // stored subjects are masked under another scanner, before it continues an enumeration and once the
 // enumeration has ended, it fetches them again by identifier, a call at a time, each call durable with
 // the run's progress in one transaction, and ends only once its enumeration has ended and no stored
-// subject is stale (ADR-0120). The pass's decisions come from
-// worker/internal/core/backfill/pass1, and this package enacts them.
+// subject is stale (ADR-0120). The pass's decisions come from worker/internal/backfill/pass1/core, how
+// a run starts from worker/internal/runs/core, and this package enacts them. What a page adds to the
+// index is written by worker/internal/index, and the run is recorded by worker/internal/runs.
 //
 // A Pass is opened once per run and asked for its next step until it is done. Opening it is the
 // recovery path. It reads the account's latest run and resumes from its checkpoint, so a run killed
@@ -24,19 +25,10 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/process/schedule"
-	core "github.com/ppat/mediated-mailbox-mcp/worker/internal/core/backfill/pass1"
+	"github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/pass1/core"
+	"github.com/ppat/mediated-mailbox-mcp/worker/internal/runs"
+	runscore "github.com/ppat/mediated-mailbox-mcp/worker/internal/runs/core"
 )
-
-// Event is one event on a run's timeline, beside the start, progress, finish and failure events the
-// Store records with the change they mark (ADR-0117).
-type Event struct {
-	// Kind is backoff or retry.
-	Kind string
-	// Page is the page the event concerns, counted from one.
-	Page int
-	// Detail is the provider's error text, never a body.
-	Detail string
-}
 
 // Failure is one page the provider failed, as a run records it once it knows what became of the page.
 type Failure struct {
@@ -62,7 +54,7 @@ type Refetched struct {
 	Remasked, Gone []index.Message
 	// Recovered holds an item for each message of a call that earlier attempts failed and this one
 	// answered, recorded with the call's result.
-	Recovered []Item
+	Recovered []runs.Item
 	// Now is the instant a gone message is recorded at.
 	Now time.Time
 }
@@ -80,11 +72,11 @@ type Store interface {
 	// State returns whether the account's pass has ended, how many stored subjects were masked under
 	// another scanner than the one stamped s, any of which makes the pass due again, and its latest
 	// recorded run of the pass.
-	State(ctx context.Context, account string, s index.Stamp) (ended bool, stale int, latest core.Latest[core.Progress], err error)
+	State(ctx context.Context, account string, s index.Stamp) (ended bool, stale int, latest runscore.Latest[core.Progress], err error)
 	// Start records the run runID as it starts from start, recording the run it resumes as failed
 	// first when start abandons it, and the pass as not ended when start reopens it, with a start
 	// event, or a resume event naming the checkpoint page.
-	Start(ctx context.Context, account, runID string, start core.Start[core.Progress]) error
+	Start(ctx context.Context, account, runID string, start runscore.Start[core.Progress]) error
 	// Commit makes one page durable. It adds each of the page's messages the index does not hold yet,
 	// masks again the subject of each it holds whose subject was masked under another scanner than
 	// the message's, records a masking event for each mask on the subject of a message it added or
@@ -112,11 +104,11 @@ type Store interface {
 	// Fail records the run as failed with its last error, and a failure event.
 	Fail(ctx context.Context, account, runID, cause string) error
 	// Event adds an event to the run's timeline.
-	Event(ctx context.Context, account, runID string, e Event) error
+	Event(ctx context.Context, account, runID string, e runs.Event) error
 	// Failure records one page the run failed on.
 	Failure(ctx context.Context, account, runID string, f Failure) error
 	// Items records the items the run failed on, one for each message of a call it abandoned.
-	Items(ctx context.Context, account, runID string, items []Item) error
+	Items(ctx context.Context, account, runID string, items []runs.Item) error
 }
 
 // Fetch returns the page of the account's enumeration that token names, the empty token naming the
@@ -182,7 +174,7 @@ func Open(ctx context.Context, deps Deps, account string) (*Pass, error) {
 	if err != nil {
 		return nil, fmt.Errorf("reading the account's first pass: %w", err)
 	}
-	start := core.Under(core.Begin(ended, stale > 0, latest), latest, stamp, stale)
+	start := core.Under(runscore.Begin(ended, stale > 0, latest), latest, stamp, stale)
 	if start.Skip {
 		return &Pass{deps: deps, account: account, done: true}, nil
 	}
@@ -310,8 +302,8 @@ func (p *Pass) finish(ctx context.Context) (Step, error) {
 // metadata asks for the metadata of ids in one call until it arrives or the run fails on it. It
 // returns the answer with an item for each message the call names when earlier attempts at it failed,
 // recorded as recovered with the answer.
-func (p *Pass) metadata(ctx context.Context, ids []string) ([]mail.MessageMetadata, []Item, error) {
-	var failure *Item
+func (p *Pass) metadata(ctx context.Context, ids []string) ([]mail.MessageMetadata, []runs.Item, error) {
+	var failure *runs.Item
 	for {
 		got, err := p.deps.Metadata(ctx, ids)
 		if err == nil {
@@ -329,18 +321,20 @@ func (p *Pass) metadata(ctx context.Context, ids []string) ([]mail.MessageMetada
 		class := index.ClassOf(err)
 		now := p.deps.Now().UTC()
 		if failure == nil {
-			failure = &Item{Kind: "message", First: now}
+			failure = &runs.Item{Kind: "message", Page: runs.OnPage(0), First: now}
 		}
 		failure.Class, failure.Summary, failure.Last = string(class), err.Error(), now
 		failure.Attempts++
-		var e Event
+		// A call concerns no page, and the run records page zero for it, as for every other event and
+		// failed item of a backfill run that concerns none.
+		var e runs.Event
 		switch core.OnFailure(core.Attempt{Class: class, Attempts: failure.Attempts}) {
 		case core.FailRun, core.StartOver:
 			return nil, nil, p.failed(ctx, fmt.Errorf("fetching %d subjects again: %w", len(ids), err))
 		case core.Backoff:
-			e = Event{Kind: "backoff", Detail: err.Error()}
+			e = runs.Event{Kind: "backoff", Page: runs.OnPage(0), Detail: err.Error()}
 		case core.Retry:
-			e = Event{Kind: "retry", Detail: err.Error()}
+			e = runs.Event{Kind: "retry", Page: runs.OnPage(0), Detail: err.Error()}
 		case core.Abandon:
 			failure.Disposition = "abandoned"
 			cause := fmt.Errorf("fetching %d subjects again: %w", len(ids), err)
@@ -356,8 +350,8 @@ func (p *Pass) metadata(ctx context.Context, ids []string) ([]mail.MessageMetada
 }
 
 // itemsOf returns f as an item for each message ids names.
-func itemsOf(f Item, ids []string) []Item {
-	out := make([]Item, 0, len(ids))
+func itemsOf(f runs.Item, ids []string) []runs.Item {
+	out := make([]runs.Item, 0, len(ids))
 	for _, id := range ids {
 		it := f
 		it.ID = id
@@ -395,17 +389,17 @@ func (p *Pass) fetch(ctx context.Context) (mail.Page[mail.MessageMetadata], *Fai
 			Class: class, Attempts: failure.Attempts,
 			ResumedToken: p.resumed != "" && token == p.resumed, Restarted: p.restarted,
 		})
-		var e Event
+		var e runs.Event
 		switch next {
 		case core.FailRun:
 			return page, nil, p.failed(ctx, fmt.Errorf("asking for page %d: %w", number, err))
 		case core.StartOver:
 			p.restarted, p.at, failure = true, core.Restart(p.at), nil
-			e = Event{Kind: "retry", Page: number, Detail: "the provider refused the page token the run resumed from, so the pass starts over from the first page: " + err.Error()}
+			e = runs.Event{Kind: "retry", Page: runs.OnPage(number), Detail: "the provider refused the page token the run resumed from, so the pass starts over from the first page: " + err.Error()}
 		case core.Backoff:
-			e = Event{Kind: "backoff", Page: number, Detail: err.Error()}
+			e = runs.Event{Kind: "backoff", Page: runs.OnPage(number), Detail: err.Error()}
 		case core.Retry:
-			e = Event{Kind: "retry", Page: number, Detail: err.Error()}
+			e = runs.Event{Kind: "retry", Page: runs.OnPage(number), Detail: err.Error()}
 		case core.Abandon:
 			failure.Disposition = "abandoned"
 			cause := fmt.Errorf("asking for page %d: %w", number, err)

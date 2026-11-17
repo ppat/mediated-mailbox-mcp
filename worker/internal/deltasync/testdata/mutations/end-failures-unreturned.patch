@@ -6,9 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/deltasync.go
+index 4ec4208c..db8e8022 100644
 --- a/worker/internal/deltasync/deltasync.go
 +++ b/worker/internal/deltasync/deltasync.go
-@@ -270,7 +270,8 @@ func (d *DeltaSync) tick(ctx context.Context, account string, logger *slog.Logge
+@@ -246,7 +246,8 @@ func (d *DeltaSync) tick(ctx context.Context, account string, logger *slog.Logge
  			"added", c.Added, "modified", c.Modified, "removed", c.Removed, "decided", c.Decided, "scanned", c.Scanned, "skipped", c.Skipped)
  	}
  	writtenBack, recorded := work.End(ctx)
