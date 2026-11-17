@@ -5,15 +5,9 @@ tests: TestEachPageIsAUnitOfWork
 scheduled-count: no
 integration: yes
 diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
-index 0d1a5540..7993455c 100644
 --- a/worker/internal/backfill/backfill.go
 +++ b/worker/internal/backfill/backfill.go
-@@ -540,40 +540,48 @@ func passAccount(ctx context.Context, deps pass1.Deps, account string, metrics *
- 	logger.Info("the first pass runs", "run", p.Run(), "page", p.Progress().Checkpoint.Page)
- 	var handOvers []error
- 	for {
- 		if err := ctx.Err(); err != nil {
- 			return errors.Join(append(handOvers, err)...)
+@@ -532,11 +532,11 @@ func passAccount(ctx context.Context, deps pass1.Deps, account string, metrics *
  		}
  		if err := u.open(); err != nil {
  			return errors.Join(append(handOvers, err)...)
@@ -26,15 +20,7 @@ index 0d1a5540..7993455c 100644
  		metrics.Count(account, step)
  		if err != nil {
  			logger.Error("the first pass failed", "run", p.Run(), "error", err)
- 			return errors.Join(append(handOvers, err)...)
- 		}
- 		ask.Progressed()
- 		at := p.Progress()
- 		logger.Info("step made durable", "run", p.Run(), "page", at.Checkpoint.Page, "messages", at.Counters.Messages,
- 			"refetched", at.Counters.Refetched, "stale", at.Checkpoint.Stale)
- 		if step.Done {
- 			logger.Info("the first pass ended", "run", p.Run(), "pages", at.Counters.Pages, "messages", at.Counters.Messages,
- 				"refetched", at.Counters.Refetched)
+@@ -552,10 +552,18 @@ func passAccount(ctx context.Context, deps pass1.Deps, account string, metrics *
  			return errors.Join(handOvers...)
  		}
  	}
@@ -50,11 +36,6 @@ index 0d1a5540..7993455c 100644
 +
  // leasedBody returns the body fetch the second pass uses, port's body read under leases in the batch
  // class, a second call naming a part held apart (ADR-0025, ADR-0131).
- func leasedBody(limiter *lease.Limiter, port mail.Port[context.Context], account string) pass2.Body {
+ func leasedBody(limiter *ratelimit.Limiter, port mail.Port[context.Context], account string) pass2.Body {
  	return func(ctx context.Context, id string) (mail.MessageBody, error) {
- 		return lease.Body(ctx, limiter, port, account, ratecore.Batch, id)
- 	}
- }
- 
- // secondPassAccount runs the second pass over one account a page at a time. Each page opens the
- // account's session first and ends its unit after, then sets the account's scan backlog, which is
+ 		return ratelimit.Body(ctx, limiter, port, account, ratecore.Batch, id)

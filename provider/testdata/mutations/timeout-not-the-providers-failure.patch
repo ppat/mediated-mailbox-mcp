@@ -1,0 +1,18 @@
+control: A call through the provider library's mailbox answers within its caller's timeout
+removes: a call cut off by the caller's timeout returns the context's error rather than the provider's failure, which tells the controller nothing
+packages: ./provider
+tests: TestACallIsCutOffAtTheCallersTimeoutAsTheProvidersFailure
+scheduled-count: no
+integration: yes
+
+diff --git a/provider/ratelimit/leased.go b/provider/ratelimit/leased.go
+--- a/provider/ratelimit/leased.go
++++ b/provider/ratelimit/leased.go
+@@ -53,7 +53,6 @@ func Leased[T any](ctx context.Context, limiter *Limiter, s Spend, call func(con
+ 	bounded, cancel := context.WithTimeout(ctx, s.Timeout)
+ 	out, err := call(bounded)
+ 	if err != nil && errors.Is(bounded.Err(), context.DeadlineExceeded) && ctx.Err() == nil {
+-		err = fmt.Errorf("%w: no answer within %s: %w", mail.ErrProvider, s.Timeout, err)
+ 	}
+ 	cancel()
+ 	var told error

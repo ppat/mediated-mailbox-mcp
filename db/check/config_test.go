@@ -68,11 +68,13 @@ var executionContext = contextMapping{
 // testRoles is componentRoles for the test library's import lists. The entry named leftover names no
 // list, which TestComponentRolesReported requires to be reported. The entries named narrow and wide
 // name lists that name no subsection themselves and admit a library's list that does, and outer names one
-// that admits a second library's list, which admits the first's. The entries
+// that admits a second library's list, which admits the first's. caller names one admitting the code
+// of a library's list that names no subsection and admits the first library's. The entries
 // named coreonly and coreexact name lists admitting only the library's pure core, by a prefix entry
 // and by its exact package, which runs none of the library's statements, so they too must be
 // reported.
 var testRoles = map[string]string{
+	"caller":     "check_fixture_reader",
 	"leftover":   "check_fixture_reader",
 	"misaligned": "check_fixture_reader",
 	"coreexact":  "check_fixture_reader",
@@ -162,6 +164,28 @@ func (lib library) admissions(t *testing.T, subs []subsection) (lists importList
 			}
 		}
 	}
+	// A library's list that names no subsection and admits one that does, as the provider library's
+	// calling side admits the rate limiter, governs code that runs the admitted library's statements.
+	// Every list admitting that code admits it in turn, so those statements are planned under the role
+	// of each list with a role that reaches it.
+	for _, middle := range slices.Sorted(maps.Keys(lists.admits)) {
+		if _, named := lists.named[middle]; named {
+			continue
+		}
+		var seeds []string
+		for _, admitted := range lists.admits[middle] {
+			seeds = append(seeds, lib.statementPackages(t, rules[admitted].Files, lists.named[admitted])...)
+		}
+		code := lib.packagesRunning(t, rules[middle].Files, seeds)
+		for _, name := range slices.Sorted(maps.Keys(rules)) {
+			if name == middle || slices.Contains(lib.libraryWide, name) || slices.Contains(lib.crossCutting, name) {
+				continue
+			}
+			if admitsCode(rules[name].Allow, code) {
+				lists.admits[name] = append(lists.admits[name], middle)
+			}
+		}
+	}
 	return lists, problems
 }
 
@@ -181,21 +205,42 @@ func admitsRoot(entry string) bool {
 
 // statementPackages returns the import paths of the packages that run a library's statements. They
 // are the packages under the directories the library's list governs, one for each glob of the form
-// ${base-path}/<directory>/**.go, whose non-test files import one of the subsections the list names
-// or another package that runs them, closed over the library until nothing changes. A package that
-// reaches none, such as a library's pure core, runs none of the statements. Violation files are left
-// out, since they are never built.
+// ${base-path}/<directory>/**.go, and the package of each glob of the form ${base-path}/<directory>/*.go,
+// which governs that directory's files alone, whose non-test files import one of the subsections the
+// list names or another package that runs them, closed over the library until nothing changes. A
+// package that reaches none, such as a library's pure core, runs none of the statements. Violation
+// files are left out, since they are never built.
 func (lib library) statementPackages(t *testing.T, files []string, subs []subsection) []string {
+	t.Helper()
+	var seeds []string
+	for _, s := range subs {
+		seeds = append(seeds, module+"/db/"+s.name)
+	}
+	return lib.packagesRunning(t, files, seeds)
+}
+
+// packagesRunning returns the import paths of the packages under the directories files governs, read
+// as statementPackages reads them, that import one of the packages seeds names or another package
+// that does, closed over those directories until nothing changes.
+func (lib library) packagesRunning(t *testing.T, files, seeds []string) []string {
 	t.Helper()
 	imports := map[string][]string{}
 	for _, glob := range files {
 		dir, under := strings.CutPrefix(glob, "${base-path}/")
 		dir, whole := strings.CutSuffix(dir, "/**.go")
-		if !under || !whole || dir == "" || strings.Contains(dir, "*") {
+		alone := false
+		if !whole {
+			dir, alone = strings.CutSuffix(dir, "/*.go")
+		}
+		if !under || (!whole && !alone) || dir == "" || strings.Contains(dir, "*") {
 			continue
 		}
-		err := walkSkippingTestdata(filepath.Join(lib.root, dir), func(path string, d fs.DirEntry) error {
+		root := filepath.Join(lib.root, dir)
+		err := walkSkippingTestdata(root, func(path string, d fs.DirEntry) error {
 			name := d.Name()
+			if alone && d.IsDir() && path != root {
+				return filepath.SkipDir
+			}
 			if d.IsDir() || !strings.HasSuffix(name, ".go") || strings.HasSuffix(name, "_test.go") || strings.HasSuffix(name, "_violation.go") {
 				return nil
 			}
@@ -223,8 +268,8 @@ func (lib library) statementPackages(t *testing.T, files []string, subs []subsec
 		}
 	}
 	runs := map[string]bool{}
-	for _, s := range subs {
-		runs[module+"/db/"+s.name] = true
+	for _, seed := range seeds {
+		runs[seed] = true
 	}
 	for changed := true; changed; {
 		changed = false

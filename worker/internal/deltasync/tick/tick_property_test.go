@@ -12,7 +12,7 @@ import (
 	"pgregory.net/rapid"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
-	"github.com/ppat/mediated-mailbox-mcp/provider/fake"
+	"github.com/ppat/mediated-mailbox-mcp/provider/mail/fake"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/property"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/deltasync/tick"

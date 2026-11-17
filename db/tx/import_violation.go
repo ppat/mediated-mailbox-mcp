@@ -4,5 +4,5 @@ package tx
 
 // This file breaks the data-access import list on purpose, and banproof requires the want below.
 import (
-	_ "github.com/ppat/mediated-mailbox-mcp/provider/jmap" // want depguard "list 'db'"
+	_ "github.com/ppat/mediated-mailbox-mcp/provider/mail/jmap" // want depguard "list 'db'"
 )

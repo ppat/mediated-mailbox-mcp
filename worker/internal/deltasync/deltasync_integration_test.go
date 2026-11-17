@@ -30,13 +30,13 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
+	"github.com/ppat/mediated-mailbox-mcp/credential/open"
+	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/accountload"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/assembly"
-	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/open"
-	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/session"
-	"github.com/ppat/mediated-mailbox-mcp/provider/fake"
-	"github.com/ppat/mediated-mailbox-mcp/provider/gmail"
+	"github.com/ppat/mediated-mailbox-mcp/provider/google"
+	"github.com/ppat/mediated-mailbox-mcp/provider/mail/fake"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/marker"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/postgres"
@@ -233,16 +233,16 @@ func storedSecret(t *testing.T, conn *pgx.Conn) []byte {
 
 // gmailSource builds the Gmail token source the job kind builds from an account's credentials, calling
 // through client.
-func gmailSource(client *http.Client) func(session.Credentials) *gmail.TokenSource {
-	return func(c session.Credentials) *gmail.TokenSource {
-		return gmail.NewTokenSource(client, gmail.NewCredentials(c.ClientID, c.ClientSecret, c.Credential))
+func gmailSource(client *http.Client) func(session.Credentials) *google.TokenSource {
+	return func(c session.Credentials) *google.TokenSource {
+		return google.NewTokenSource(client, google.NewCredentials(c.ClientID, c.ClientSecret, c.Credential))
 	}
 }
 
 // fakes returns the connector whose sources are built with source and whose ports answer each
 // account with its fake, refusing an account with none.
-func fakes(source func(session.Credentials) *gmail.TokenSource, boxes map[string]*fake.Fake) session.Connector {
-	return session.Connect(source, func(account string, _ *gmail.TokenSource) (mail.Port[context.Context], error) {
+func fakes(source func(session.Credentials) *google.TokenSource, boxes map[string]*fake.Fake) session.Connector {
+	return session.Connect(source, func(account string, _ *google.TokenSource) (mail.Port[context.Context], error) {
 		f, ok := boxes[account]
 		if !ok {
 			return nil, fmt.Errorf("no mailbox for account %s", account)
@@ -396,7 +396,7 @@ func TestATickTakesItsAccountsFromTheDatabase(t *testing.T) {
 	stored := storedCredential(t, conn, "personal")
 	var log logBuffer
 	var built []string
-	source := func(c session.Credentials) *gmail.TokenSource {
+	source := func(c session.Credentials) *google.TokenSource {
 		built = append(built, string(c.Credential))
 		return gmailSource(http.DefaultClient)(c)
 	}
@@ -652,7 +652,7 @@ func TestEachTickHandsItsAccountOverAndRecordsItsAttempt(t *testing.T) {
 	account(t, conn, "personal", gmailProvider, sealed(t, public, "personal-token", seal.AccountCredential("personal")), false)
 	client(t, conn, public)
 	var attempt mail.AuthAttempt
-	source := func(c session.Credentials) *gmail.TokenSource {
+	source := func(c session.Credentials) *google.TokenSource {
 		c.Credential = append(slices.Clone(c.Credential), "-rotated"...)
 		s := gmailSource(unreachable(t))(c)
 		if _, err := s.AccessToken(t.Context()); err == nil {
@@ -767,9 +767,9 @@ func TestEachTickBuildsItsSourcesFromTheClientAndTheAccountsToken(t *testing.T) 
 	account(t, conn, "personal", gmailProvider, sealed(t, public, "personal-token", seal.AccountCredential("personal")), false)
 	account(t, conn, "work", gmailProvider, sealed(t, public, "work-token", seal.AccountCredential("work")), false)
 	must(t, conn, "UPDATE accounts SET oauth_client = 'employer' WHERE account_id = 'work'")
-	var built []gmail.Credentials
-	source := func(c session.Credentials) *gmail.TokenSource {
-		built = append(built, gmail.NewCredentials(c.ClientID, c.ClientSecret, c.Credential))
+	var built []google.Credentials
+	source := func(c session.Credentials) *google.TokenSource {
+		built = append(built, google.NewCredentials(c.ClientID, c.ClientSecret, c.Credential))
 		return gmailSource(unreachable(t))(c)
 	}
 	j := newJobs()
@@ -780,7 +780,7 @@ func TestEachTickBuildsItsSourcesFromTheClientAndTheAccountsToken(t *testing.T) 
 		t.Fatal(err)
 	}
 
-	want := []gmail.Credentials{
+	want := []google.Credentials{
 		{ClientID: "client-id", ClientSecret: "client-secret", RefreshToken: "personal-token"},
 		{ClientID: "employer-id", ClientSecret: "employer-secret", RefreshToken: "work-token"},
 	}
@@ -800,7 +800,7 @@ func TestTicksHoldTheirSourceUntilTheCredentialIsReplaced(t *testing.T) {
 	client(t, conn, public)
 	account(t, conn, "personal", gmailProvider, sealed(t, public, "personal-token", seal.AccountCredential("personal")), false)
 	var built []string
-	source := func(c session.Credentials) *gmail.TokenSource {
+	source := func(c session.Credentials) *google.TokenSource {
 		built = append(built, string(c.Credential))
 		return gmailSource(unreachable(t))(c)
 	}

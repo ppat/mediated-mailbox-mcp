@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
-	ratecore "github.com/ppat/mediated-mailbox-mcp/ratelimit/core"
-	"github.com/ppat/mediated-mailbox-mcp/ratelimit/lease"
+	"github.com/ppat/mediated-mailbox-mcp/provider/ratelimit"
+	ratecore "github.com/ppat/mediated-mailbox-mcp/provider/ratelimit/core"
 )
 
 // Provider is what a tick asks of the provider for one account. Its errors wrap the Provider Port's.
@@ -21,7 +21,7 @@ type Provider interface {
 // Leased is the Provider that calls port for the account under a lease in the sync class, each call
 // sized by what port's rate profile says it costs (ADR-0025).
 type Leased struct {
-	Limiter *lease.Limiter
+	Limiter *ratelimit.Limiter
 	Port    mail.Port[context.Context]
 	Account string
 }
@@ -29,7 +29,7 @@ type Leased struct {
 var _ Provider = Leased{}
 
 func call[T any](ctx context.Context, l Leased, op mail.ProviderOp, do func(context.Context) (T, error)) (T, error) {
-	return lease.Call(ctx, l.Limiter, l.Port, l.Account, ratecore.Sync, op, do)
+	return ratelimit.Call(ctx, l.Limiter, l.Port, l.Account, ratecore.Sync, op, do)
 }
 
 // CurrentCursor implements Provider.
@@ -74,5 +74,5 @@ func (l Leased) ListThreads(ctx context.Context, q mail.Query, page mail.PageTok
 
 // GetMessageBody implements Provider, a second call naming a part held apart (ADR-0131).
 func (l Leased) GetMessageBody(ctx context.Context, id string) (mail.MessageBody, error) {
-	return lease.Body(ctx, l.Limiter, l.Port, l.Account, ratecore.Sync, id)
+	return ratelimit.Body(ctx, l.Limiter, l.Port, l.Account, ratecore.Sync, id)
 }

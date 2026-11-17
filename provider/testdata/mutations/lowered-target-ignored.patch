@@ -1,0 +1,20 @@
+control: A call through the provider library's mailbox leases its cost in its caller's class at the account's target
+removes: the mailbox's limiter spends every account at the default target, the lowered one ignored
+packages: ./provider
+tests: TestEachCallLeasesItsCostInTheCallersClassAtTheAccountsTarget TestEachCallLeasesItsCostInTheCallersClassAtTheAccountsTarget/interactive_at_a_lowered_target
+scheduled-count: no
+integration: yes
+
+diff --git a/provider/caller.go b/provider/caller.go
+--- a/provider/caller.go
++++ b/provider/caller.go
+@@ -91,9 +91,6 @@ func (c *Caller) Mailbox(conn Connection) (mail.Mailbox, error) {
+ 		return nil, errNoToken
+ 	}
+ 	targets := map[string]float64{}
+-	if conn.Lowered {
+-		targets[conn.Account] = conn.Target
+-	}
+ 	limiter, err := ratelimit.NewWithTargets(c.pool, facts.Ceiling, targets, c.leases)
+ 	if err != nil {
+ 		return nil, fmt.Errorf("building the rate limiter: %w", err)

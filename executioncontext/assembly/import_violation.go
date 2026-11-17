@@ -8,5 +8,5 @@ package assembly
 import (
 	_ "golang.org/x/tools/go/packages" // want depguard "list 'assembly'" depguard "list 'non-test-code'"
 
-	_ "github.com/ppat/mediated-mailbox-mcp/provider/gmail" // want depguard "list 'assembly'"
+	_ "github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail" // want depguard "list 'assembly'"
 )

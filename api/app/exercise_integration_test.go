@@ -25,8 +25,8 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/core/sensitivity"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/session"
 	"github.com/ppat/mediated-mailbox-mcp/process/host"
-	"github.com/ppat/mediated-mailbox-mcp/provider/fake"
-	"github.com/ppat/mediated-mailbox-mcp/provider/gmail"
+	"github.com/ppat/mediated-mailbox-mcp/provider/google"
+	"github.com/ppat/mediated-mailbox-mcp/provider/mail/fake"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/fixture"
 )
 
@@ -87,7 +87,7 @@ func TestServeTheExerciseCorpusToALiveAgent(t *testing.T) {
 
 	// The connector reads the fake when the body operation opens the account, after the corpus is seeded.
 	var f *fake.Fake
-	connector := func(string, *gmail.TokenSource) (mail.Port[context.Context], error) {
+	connector := func(string, *google.TokenSource) (mail.Port[context.Context], error) {
 		return fake.Throttle(f, func(fake.Call) error { return nil }, time.Now), nil
 	}
 	token := strings.ToLower(rand.Text())

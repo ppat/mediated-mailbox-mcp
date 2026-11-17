@@ -111,6 +111,19 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/db/listing$"
           - "github.com/ppat/mediated-mailbox-mcp/fixturelib/lease$"
 
+        # A library's list naming no subsection, over one directory's files alone, whose code imports the first
+        # library's package that runs its statements. It has no role, and a list with a role reaches it.
+        calling:
+          files:
+          - "${base-path}/callinglib/*.go"
+          allow:
+          - "github.com/ppat/mediated-mailbox-mcp/fixturelib/lease$"
+
+        # Admits the library that names no subsection, so the first library's statements are planned under its role.
+        caller:
+          allow:
+          - "github.com/ppat/mediated-mailbox-mcp/callinglib$"
+
         # Admits the second library, and its role can run everything both libraries' subsections run.
         outer:
           allow:

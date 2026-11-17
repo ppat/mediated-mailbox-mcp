@@ -25,13 +25,13 @@ import (
 
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
+	"github.com/ppat/mediated-mailbox-mcp/credential/open"
 	"github.com/ppat/mediated-mailbox-mcp/db/accountstate"
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/accountload"
-	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/open"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/policyload"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/session"
-	"github.com/ppat/mediated-mailbox-mcp/ratelimit/lease"
+	"github.com/ppat/mediated-mailbox-mcp/provider/ratelimit"
 )
 
 // ErrPolicyNotLoaded wraps a reload's error when the accounts loaded and the policy did not. The
@@ -292,7 +292,7 @@ func (c *Context) Policy(account string) classify.Policy {
 // metrics, the component's own series (ADR-0025, ADR-0117). An account whose target could not be read,
 // or is out of the range ADR-0024 allows, has no limiter, so its work stops rather than spend at a
 // target nobody set.
-func (c *Context) Limiter(db tx.Beginner, account string, ceiling float64, metrics *lease.Metrics) (*lease.Limiter, error) {
+func (c *Context) Limiter(db tx.Beginner, account string, ceiling float64, metrics *ratelimit.Metrics) (*ratelimit.Limiter, error) {
 	t, ok := c.latest.Load().targets[account]
 	if !ok {
 		return nil, fmt.Errorf("no lowered target was read for account %s, since the reload in force does not list it as connected", account)
@@ -304,7 +304,7 @@ func (c *Context) Limiter(db tx.Beginner, account string, ceiling float64, metri
 	if t.lowered {
 		targets[account] = t.fraction
 	}
-	limiter, err := lease.NewWithTargets(db, ceiling, targets, metrics)
+	limiter, err := ratelimit.NewWithTargets(db, ceiling, targets, metrics)
 	if err != nil {
 		return nil, fmt.Errorf("building the rate limiter: %w", err)
 	}

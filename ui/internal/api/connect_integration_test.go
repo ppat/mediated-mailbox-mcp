@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal"
-	"github.com/ppat/mediated-mailbox-mcp/provider/gmail/consent"
+	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
+	"github.com/ppat/mediated-mailbox-mcp/provider/google"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/api"
 )
 
@@ -37,7 +37,7 @@ func TestAConnectedAccountHoldsItsSealedGrant(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := q.Query(); got.Get("login_hint") != "Jo.Smith@gmail.com" || got.Get("redirect_uri") != defaultRedirect || got.Get("scope") != consent.Scope {
+	if got := q.Query(); got.Get("login_hint") != "Jo.Smith@gmail.com" || got.Get("redirect_uri") != defaultRedirect || got.Get("scope") != google.Scope {
 		t.Errorf("the consent page's address asks %v", got)
 	}
 	r.clock = r.clock.Add(time.Minute)
@@ -194,7 +194,7 @@ func TestAPastedAddressIsRefusedForItsCause(t *testing.T) {
 		t.Fatal(err)
 	}
 	refused(t, b.finish(scoped), http.StatusBadRequest, "scope_missing")
-	scoped, err = r.consent.Grant(a.Attempt.ConsentAddress, "jo@gmail.com", consent.Scope+" https://mail.google.com/")
+	scoped, err = r.consent.Grant(a.Attempt.ConsentAddress, "jo@gmail.com", google.Scope+" https://mail.google.com/")
 	if err != nil {
 		t.Fatal(err)
 	}

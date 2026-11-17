@@ -1,0 +1,18 @@
+control: Every request the Gmail adapter sends is counted at its cost where it is sent, failed requests included
+removes: each request is counted as one, whatever Gmail charges for it
+packages: ./provider
+tests: TestEveryRequestTheAdapterSendsIsOnTheSharedSeries
+scheduled-count: no
+
+diff --git a/provider/metrics.go b/provider/metrics.go
+--- a/provider/metrics.go
++++ b/provider/metrics.go
+@@ -79,7 +79,7 @@ type Requests struct {
+ // compares the one against the other, so it holds no provider's number of its own.
+ func (r Requests) Sent(account string, units int) {
+ 	r.metrics.hardCap.WithLabelValues(account, r.provider).Set(mail.HardCapFraction * r.ceiling)
+-	r.metrics.requestCost.WithLabelValues(account, r.provider).Add(float64(units))
++	r.metrics.requestCost.WithLabelValues(account, r.provider).Inc()
+ }
+ 
+ // Answered observes one request's latency in seconds under the provider method it called and its

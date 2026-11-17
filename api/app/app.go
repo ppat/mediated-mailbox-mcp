@@ -50,20 +50,22 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
+	"github.com/ppat/mediated-mailbox-mcp/credential/open"
 	"github.com/ppat/mediated-mailbox-mcp/db/migrations"
 	"github.com/ppat/mediated-mailbox-mcp/db/schemacompatibility"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/accountload"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/assembly"
 	credentialcore "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/core"
-	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/open"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/session"
 	"github.com/ppat/mediated-mailbox-mcp/process/dbconnect"
 	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core"
 	"github.com/ppat/mediated-mailbox-mcp/process/host"
 	"github.com/ppat/mediated-mailbox-mcp/process/version"
-	"github.com/ppat/mediated-mailbox-mcp/provider/gmail"
-	ratecore "github.com/ppat/mediated-mailbox-mcp/ratelimit/core"
-	"github.com/ppat/mediated-mailbox-mcp/ratelimit/lease"
+	providerlib "github.com/ppat/mediated-mailbox-mcp/provider"
+	"github.com/ppat/mediated-mailbox-mcp/provider/google"
+	"github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail"
+	"github.com/ppat/mediated-mailbox-mcp/provider/ratelimit"
+	ratecore "github.com/ppat/mediated-mailbox-mcp/provider/ratelimit/core"
 )
 
 // gmailProvider is the provider an account served through the Gmail adapter names in accounts.
@@ -415,7 +417,7 @@ type serving struct {
 func newServing(start host.Starter, pool *pgxpool.Pool, ec *assembly.Context, metrics prometheus.Registerer, logger *slog.Logger) (*serving, error) {
 	s := &serving{context: ec, pool: pool, logger: logger}
 	s.fresh = reload.New(reload.Starter(start), ec.ReloadPolicy)
-	if err := metrics.Register(lease.NewCollector(pool, s.rateAccounts)); err != nil {
+	if err := metrics.Register(ratelimit.NewCollector(pool, s.rateAccounts)); err != nil {
 		return nil, err
 	}
 	return s, nil
@@ -471,13 +473,13 @@ func (s *serving) policy(account string) classify.Policy {
 // rateAccounts returns the accounts the rate-state collector reports on, every served account whose
 // provider the API server has a rate profile for, with that provider's declared ceiling (ADR-0023,
 // ADR-0077).
-func (s *serving) rateAccounts(context.Context) ([]lease.Account, error) {
-	var out []lease.Account
+func (s *serving) rateAccounts(context.Context) ([]ratelimit.Account, error) {
+	var out []ratelimit.Account
 	for _, a := range s.context.Snapshot().Accounts() {
 		if a.Provider() != gmailProvider {
 			continue
 		}
-		out = append(out, lease.Account{ID: a.ID(), Ceiling: gmail.Profile{}.BudgetPerSecond()})
+		out = append(out, ratelimit.Account{ID: a.ID(), Ceiling: gmail.Profile{}.BudgetPerSecond()})
 	}
 	return out, nil
 }
@@ -618,7 +620,7 @@ const processingName = "mediated_mailbox_body_processing_duration_seconds"
 // metrics serves, which also times each conversion. Each provider call is bounded by timeout, and
 // each request's waits for its leases together by wait.
 func newBodies(served *serving, connect session.Connector, scanner scan.Scanner, timeout, wait time.Duration, metrics prometheus.Registerer) (service.Bodies, *providers, error) {
-	leases, err := lease.NewMetrics(metrics)
+	leases, err := ratelimit.NewMetrics(metrics)
 	if err != nil {
 		return service.Bodies{}, nil, err
 	}
@@ -667,9 +669,9 @@ func newBodies(served *serving, connect session.Connector, scanner scan.Scanner,
 
 // gmailSource returns what builds the Gmail token source of an account from its credentials, the OAuth
 // client the account connects through and its refresh token, calling through client (ADR-0106).
-func gmailSource(client *http.Client) func(session.Credentials) *gmail.TokenSource {
-	return func(c session.Credentials) *gmail.TokenSource {
-		return gmail.NewTokenSource(client, gmail.NewCredentials(c.ClientID, c.ClientSecret, c.Credential))
+func gmailSource(client *http.Client) func(session.Credentials) *google.TokenSource {
+	return func(c session.Credentials) *google.TokenSource {
+		return google.NewTokenSource(client, google.NewCredentials(c.ClientID, c.ClientSecret, c.Credential))
 	}
 }
 
@@ -677,11 +679,15 @@ func gmailSource(client *http.Client) func(session.Credentials) *gmail.TokenSour
 // adapter over it, both calling through client, counting its requests on series registry serves,
 // which every adapter it builds shares.
 func gmailConnector(registry prometheus.Registerer, client *http.Client) (session.Connector, error) {
-	metrics, err := gmail.NewMetrics(registry)
+	shared, err := providerlib.NewMetrics(registry)
 	if err != nil {
 		return session.Connector{}, err
 	}
-	return session.Connect(gmailSource(client), func(account string, source *gmail.TokenSource) (mail.Port[context.Context], error) {
+	metrics, err := shared.For(gmailProvider)
+	if err != nil {
+		return session.Connector{}, err
+	}
+	return session.Connect(gmailSource(client), func(account string, source *google.TokenSource) (mail.Port[context.Context], error) {
 		return gmail.New(gmail.Config{Account: account, Client: client, Tokens: source, Metrics: metrics})
 	}), nil
 }
@@ -695,7 +701,7 @@ func gmailConnector(registry prometheus.Registerer, client *http.Client) (sessio
 type providers struct {
 	served   *serving
 	sessions *session.Holder
-	leases   *lease.Metrics
+	leases   *ratelimit.Metrics
 	// timeout bounds each provider call (ADR-0101).
 	timeout time.Duration
 	// wait bounds a request's waits for its leases, counted from its arrival (ADR-0130).
@@ -722,7 +728,7 @@ type provider struct {
 	p       *providers
 	account string
 	session *session.Session
-	limiter *lease.Limiter
+	limiter *ratelimit.Limiter
 	// waitUntil is when the request stops waiting for a lease (ADR-0130).
 	waitUntil time.Time
 }
@@ -787,7 +793,7 @@ func (s *provider) Done(ctx context.Context) {
 // until waitUntil, the request's deadline for its leases, and a wait cut off by it while ctx is still
 // live is the API server's failure (ADR-0130). The call then has timeout to answer, and one that has
 // not answered by then while ctx is still live is the provider's failure (ADR-0101).
-func leased[T any](ctx context.Context, limiter *lease.Limiter, port mail.Port[context.Context], account string, op mail.Operation, messages int,
+func leased[T any](ctx context.Context, limiter *ratelimit.Limiter, port mail.Port[context.Context], account string, op mail.Operation, messages int,
 	waitUntil time.Time, timeout time.Duration, call func(context.Context) (T, error),
 ) (T, error) {
 	var zero T

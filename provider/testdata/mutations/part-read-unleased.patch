@@ -1,0 +1,20 @@
+control: A call through the provider library's mailbox leases its cost in its caller's class at the account's target
+removes: the second body call, naming a part held apart, reaches the provider without a lease
+packages: ./provider
+tests: TestABodyHeldApartTakesTwoLeasedCallsThroughTheMailbox
+scheduled-count: no
+integration: yes
+
+diff --git a/provider/mailbox.go b/provider/mailbox.go
+--- a/provider/mailbox.go
++++ b/provider/mailbox.go
+@@ -93,6 +93,9 @@ func (m *mailbox) GetMessageMetadata(ctx context.Context, ids []string) ([]corem
+ // GetMessageBody implements mail.Mailbox. Each call is leased on its own, so a part held apart pays
+ // for its second call (ADR-0131).
+ func (m *mailbox) GetMessageBody(ctx context.Context, id string, part coremail.BodyPart) (coremail.MessageBody, error) {
++	if part != "" {
++		return m.current().GetMessageBody(ctx, id, part)
++	}
+ 	return call(ctx, m, coremail.ProviderOp{Operation: coremail.OpGetMessageBody, Messages: 1}, func(ctx context.Context, p adapterMailbox) (coremail.MessageBody, error) {
+ 		return p.GetMessageBody(ctx, id, part)
+ 	})

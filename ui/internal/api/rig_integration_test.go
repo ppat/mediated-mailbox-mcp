@@ -24,9 +24,9 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
-	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal"
-	"github.com/ppat/mediated-mailbox-mcp/provider/fake"
-	"github.com/ppat/mediated-mailbox-mcp/provider/gmail/consent"
+	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
+	"github.com/ppat/mediated-mailbox-mcp/provider/google"
+	"github.com/ppat/mediated-mailbox-mcp/provider/mail/fake"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/postgres"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/api"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/clientsecret"
@@ -331,7 +331,7 @@ func (b *browser) connect(account, client, mailbox string) started {
 // returns the address the browser is redirected to.
 func (r *rig) grant(a started, mailbox string) string {
 	r.t.Helper()
-	address, err := r.consent.Grant(a.Attempt.ConsentAddress, mailbox, consent.Scope)
+	address, err := r.consent.Grant(a.Attempt.ConsentAddress, mailbox, google.Scope)
 	if err != nil {
 		r.t.Fatal(err)
 	}

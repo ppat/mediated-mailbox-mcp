@@ -1,0 +1,18 @@
+control: A throttle halves the rate, a server error cuts it to 80% and a latency median above twice the baseline cuts it to 90%
+removes: a throttle leaves the rate as it was
+packages: ./provider/ratelimit/core
+tests: TestThrottled
+scheduled-count: no
+
+diff --git a/provider/ratelimit/core/controller.go b/provider/ratelimit/core/controller.go
+--- a/provider/ratelimit/core/controller.go
++++ b/provider/ratelimit/core/controller.go
+@@ -57,7 +57,7 @@ func Throttled(s State, l Limits, signal mail.ThrottleSignal, now int64, draw fl
+ 		throttles++
+ 	}
+ 	return State{
+-		Rate:         max(l.bounded(s.Rate)*throttleFactor, l.floor),
++		Rate:         l.bounded(s.Rate),
+ 		BackoffUntil: max(s.BackoffUntil, addSaturating(now, wait)),
+ 		Throttles:    throttles,
+ 	}

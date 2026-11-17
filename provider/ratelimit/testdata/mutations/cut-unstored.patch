@@ -1,0 +1,20 @@
+control: A throttle's cut is stored, and batch absorbs it while interactive keeps its share
+removes: a throttle stores the state it read, so the rate is never cut
+packages: ./provider/ratelimit
+tests: TestACutComesOutOfBatchWhileInteractiveKeepsItsShare
+scheduled-count: no
+integration: yes
+
+diff --git a/provider/ratelimit/lease.go b/provider/ratelimit/lease.go
+--- a/provider/ratelimit/lease.go
++++ b/provider/ratelimit/lease.go
+@@ -250,7 +250,8 @@ func (l *Limiter) Succeeded(ctx context.Context, account string, cost mail.OpCos
+ func (l *Limiter) Throttled(ctx context.Context, account string, signal mail.ThrottleSignal) error {
+ 	draw, limits := l.draw(), l.limitsFor(account)
+ 	err := l.control(ctx, account, func(st core.State, lat latencyRecord, now int64) (core.State, latencyRecord, int64) {
+-		return core.Throttled(st, limits, signal, now, draw), lat, now
++		_, _ = draw, limits
++		return st, lat, now
+ 	})
+ 	if err == nil {
+ 		l.metrics.observeThrottle(account, signal.Scope)

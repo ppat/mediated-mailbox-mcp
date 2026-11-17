@@ -1,0 +1,18 @@
+control: A call through the provider library's mailbox leases its cost in its caller's class at the account's target
+removes: every lease is asked in the batch class, whatever the caller's class
+packages: ./provider
+tests: TestEachCallLeasesItsCostInTheCallersClassAtTheAccountsTarget TestEachCallLeasesItsCostInTheCallersClassAtTheAccountsTarget/interactive_at_a_lowered_target TestEachCallLeasesItsCostInTheCallersClassAtTheAccountsTarget/sync_at_the_default_target
+scheduled-count: no
+integration: yes
+
+diff --git a/provider/caller.go b/provider/caller.go
+--- a/provider/caller.go
++++ b/provider/caller.go
+@@ -114,6 +114,6 @@ func (c *Caller) Mailbox(conn Connection) (mail.Mailbox, error) {
+ 	}
+ 	return &mailbox{
+ 		port: port, build: build, again: conn.Again, limiter: limiter,
+-		spend: ratelimit.Spend{Account: conn.Account, Class: c.class, WaitUntil: conn.WaitUntil, Timeout: c.timeout},
++		spend: ratelimit.Spend{Account: conn.Account, Class: ratecore.Batch, WaitUntil: conn.WaitUntil, Timeout: c.timeout},
+ 	}, nil
+ }

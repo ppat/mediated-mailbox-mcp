@@ -1,6 +1,6 @@
 control: A contract run against a real provider needs a deliberate command of its own, so no accidental or incidental test invocation reaches the provider
 removes: the guard skips a live test only when its own command started it
-packages: ./testsupport/livecontract ./provider/gmail
+packages: ./testsupport/livecontract ./provider/mail/gmail
 tests: TestRequire/no_marker TestRequire/its_provider's_marker TestTheLiveContractSkipsUnlessItsCommandStartedIt/no_marker
 scheduled-count: no
 

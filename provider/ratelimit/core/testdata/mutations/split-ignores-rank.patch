@@ -1,0 +1,20 @@
+control: A request draws all but what the classes that outrank it and asked within the last lease period have still to draw of their shares, so an idle class's share is lent
+removes: every other class that asked reserves its share, so interactive waits on the classes it outranks
+packages: ./provider/ratelimit/core
+tests: TestIssueSplitsByClass
+scheduled-count: no
+diff --git a/provider/ratelimit/core/lease.go b/provider/ratelimit/core/lease.go
+--- a/provider/ratelimit/core/lease.go
++++ b/provider/ratelimit/core/lease.go
+@@ -89,7 +89,10 @@ func Issue(l Limits, s State, is Issuance, leases []Lease, req Request, now int6
+ 		return is, Decision{Outcome: Waiting}
+ 	}
+ 	available := is.Level
+-	for c := Interactive; c < req.Class; c++ {
++	for c := Interactive; c <= Batch; c++ {
++		if c == req.Class {
++			continue
++		}
+ 		if addSaturating(is.Asked[c], leaseMillis) > now {
+ 			available -= max(Share(c, rate, l.target)-held(leases, c, now), 0)
+ 		}

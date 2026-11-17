@@ -1,0 +1,20 @@
+control: A call through the provider library's mailbox is made once more over a credential read again when the provider refuses its own
+removes: the token made from the credential read again serves the call made once more and no later call
+packages: ./provider
+tests: TestARefusedCredentialIsReadAgainAndTheCallMadeOnceMore TestARefusedCredentialIsReadAgainAndTheCallMadeOnceMore/another_credential
+scheduled-count: no
+integration: yes
+
+diff --git a/provider/mailbox.go b/provider/mailbox.go
+--- a/provider/mailbox.go
++++ b/provider/mailbox.go
+@@ -56,9 +56,6 @@ func call[T any](ctx context.Context, m *mailbox, op coremail.ProviderOp, do fun
+ 	if berr != nil {
+ 		return out, errors.Join(err, berr)
+ 	}
+-	m.mu.Lock()
+-	m.port = port
+-	m.mu.Unlock()
+ 	return leased(ctx, m, port, op, do)
+ }
+ 

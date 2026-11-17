@@ -8,14 +8,16 @@ integration: yes
 diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/deltasync.go
 --- a/worker/internal/deltasync/deltasync.go
 +++ b/worker/internal/deltasync/deltasync.go
-@@ -150,7 +150,11 @@
+@@ -155,7 +155,13 @@ func New(c Config) (*DeltaSync, error) {
  // and counting its requests on metrics, which every adapter it builds shares (ADR-0077).
- func gmailPort(metrics *gmail.Metrics, client *http.Client) func(account string, tokens gmail.Tokens) (mail.Port[context.Context], error) {
+ func gmailPort(metrics providerlib.Requests, client *http.Client) func(account string, tokens gmail.Tokens) (mail.Port[context.Context], error) {
  	return func(account string, tokens gmail.Tokens) (mail.Port[context.Context], error) {
 -		return gmail.New(gmail.Config{Account: account, Client: client, Tokens: tokens, Metrics: metrics})
 +		counted := metrics
-+		if own, err := gmail.NewMetrics(prometheus.NewRegistry()); err == nil {
-+			metrics = own
++		if shared, err := providerlib.NewMetrics(prometheus.NewRegistry()); err == nil {
++			if own, err := shared.For(gmailProvider); err == nil {
++				metrics = own
++			}
 +		}
 +		return gmail.New(gmail.Config{Account: account, Client: client, Tokens: tokens, Metrics: counted})
  	}

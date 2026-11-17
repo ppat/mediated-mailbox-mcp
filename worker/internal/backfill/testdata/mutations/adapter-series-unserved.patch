@@ -8,12 +8,12 @@ integration: yes
 diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
 --- a/worker/internal/backfill/backfill.go
 +++ b/worker/internal/backfill/backfill.go
-@@ -412,7 +412,7 @@
+@@ -451,7 +451,7 @@ func gmailSource(client *http.Client) func(session.Credentials) *google.TokenSou
  // adapter over it, both calling through client, counting its requests on series registry serves, which
  // every adapter it builds shares. It also returns the builder of the adapter over an account's tokens.
  func gmailConnector(registry prometheus.Registerer, client *http.Client) (session.Connector, func(string, gmail.Tokens) (mail.Port[context.Context], error), error) {
--	metrics, err := gmail.NewMetrics(registry)
-+	metrics, err := gmail.NewMetrics(prometheus.NewRegistry())
+-	shared, err := providerlib.NewMetrics(registry)
++	shared, err := providerlib.NewMetrics(prometheus.NewRegistry())
  	if err != nil {
  		return session.Connector{}, nil, err
  	}

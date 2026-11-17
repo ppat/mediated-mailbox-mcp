@@ -15,11 +15,11 @@ import (
 	"github.com/google/go-cmp/cmp"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
-	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/open"
-	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal"
+	"github.com/ppat/mediated-mailbox-mcp/credential/open"
+	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/session"
-	"github.com/ppat/mediated-mailbox-mcp/provider/fake"
-	"github.com/ppat/mediated-mailbox-mcp/provider/gmail"
+	"github.com/ppat/mediated-mailbox-mcp/provider/google"
+	"github.com/ppat/mediated-mailbox-mcp/provider/mail/fake"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 )
 
@@ -39,7 +39,7 @@ type provider struct {
 }
 
 // connect is the connector the run builds each account's port with.
-func (p *provider) connect(_ string, source *gmail.TokenSource) (mail.Port[context.Context], error) {
+func (p *provider) connect(_ string, source *google.TokenSource) (mail.Port[context.Context], error) {
 	held := source.RefreshToken()
 	return fake.Throttle(p.f, func(c fake.Call) error {
 		if p.operator != nil && c.Op.Operation == p.at {
@@ -181,14 +181,14 @@ func TestAFailedReadOfTheRefusedCredentialIsReported(t *testing.T) {
 // rotations that record their credentials in built, which returns the kind for a test to open the
 // account's sessions through as a unit of work does, and a function that stores second-token as the
 // operator's re-authorization would, returning the sealed bytes it stored.
-func operatorReplaced(t *testing.T) (func(t *testing.T, rotations map[string]string, built *[]gmail.Credentials) *Backfill, func(t *testing.T) []byte, *open.Keyring) {
+func operatorReplaced(t *testing.T) (func(t *testing.T, rotations map[string]string, built *[]google.Credentials) *Backfill, func(t *testing.T) []byte, *open.Keyring) {
 	t.Helper()
 	conn := superuser(t)
 	reset(t, conn)
 	ring, public := keys(t)
 	account(t, conn, "personal", gmailProvider, sealed(t, public, "first-token", seal.AccountCredential("personal")), false)
 	client(t, conn, public)
-	reloaded := func(t *testing.T, rotations map[string]string, built *[]gmail.Credentials) *Backfill {
+	reloaded := func(t *testing.T, rotations map[string]string, built *[]google.Credentials) *Backfill {
 		t.Helper()
 		return afterReload(t, kind(t, backfillPool(t), ring, slog.New(slog.DiscardHandler), connector(rotating(rotations, built)), newJobs()))
 	}
@@ -298,7 +298,7 @@ func TestARereadAfterAMoveBuildsTheSourceFromTheNewClient(t *testing.T) {
 	client(t, conn, public)
 	must(t, conn, "INSERT INTO oauth_clients (name, provider, client_id, client_secret) VALUES ('employer', $1, 'employer-id', $2)",
 		gmailProvider, sealed(t, public, "employer-secret", seal.ClientSecret("employer")))
-	var built []gmail.Credentials
+	var built []google.Credentials
 	u := unitOf(t, afterReload(t, kind(t, backfillPool(t), ring, slog.New(slog.DiscardHandler), connector(rotating(nil, &built)), newJobs())))
 	tx, err := conn.Begin(t.Context())
 	if err != nil {
@@ -317,7 +317,7 @@ func TestARereadAfterAMoveBuildsTheSourceFromTheNewClient(t *testing.T) {
 
 	reauthorized(t.Context(), t, u.current)
 
-	want := []gmail.Credentials{
+	want := []google.Credentials{
 		{ClientID: "client-id", ClientSecret: "client-secret", RefreshToken: "first-token"},
 		{ClientID: "employer-id", ClientSecret: "employer-secret", RefreshToken: "moved-token"},
 	}

@@ -56,7 +56,7 @@ func TestInvocation(t *testing.T) {
 		t.Fatalf("Invocation: %v", err)
 	}
 	want := livecontract.Command{
-		Args: []string{"test", "-tags", "gmail_live", "-count=1", "-timeout", "55m", "-v", "-run", "^TestTheAdapterPassesTheContractAgainstGmail$", "./provider/gmail/"},
+		Args: []string{"test", "-tags", "gmail_live", "-count=1", "-timeout", "55m", "-v", "-run", "^TestTheAdapterPassesTheContractAgainstGmail$", "./provider/mail/gmail/"},
 		Env:  []string{"PATH=/bin", credential, livecontract.Marker + "=gmail"},
 	}
 	if diff := cmp.Diff(want, got, compare.Options); diff != "" {

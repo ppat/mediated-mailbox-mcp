@@ -10,17 +10,17 @@ The demonstrations of the controls whose patches sit in `testsupport/`. [MUTATIO
 
 ## A contract run against a real provider needs a deliberate command of its own, so no accidental or incidental test invocation reaches the provider
 
-- **Date · evidence:** 2026-09-25 · [pull request #158](https://github.com/ppat/mediated-mailbox-mcp/pull/158)
+- **Date · evidence:** 2026-09-25 · [pull request #158](https://github.com/ppat/mediated-mailbox-mcp/pull/158), and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450)
 - **Break (1):** the guard lets a live test through under any provider's marker
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/gmail`:** `TestTheLiveContractSkipsUnlessItsCommandStartedIt`, `TestTheLiveContractSkipsUnlessItsCommandStartedIt/another_provider's_marker`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail`:** `TestTheLiveContractSkipsUnlessItsCommandStartedIt`, `TestTheLiveContractSkipsUnlessItsCommandStartedIt/another_provider's_marker`
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/livecontract`:** `TestRequire`, `TestRequire/a_marker_in_another_case`, `TestRequire/another_provider's_marker`
 - **Break (2):** the guard lets every run of a live test through
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/gmail`:** `TestTheLiveContractSkipsUnlessItsCommandStartedIt`, `TestTheLiveContractSkipsUnlessItsCommandStartedIt/another_provider's_marker`, `TestTheLiveContractSkipsUnlessItsCommandStartedIt/no_marker`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail`:** `TestTheLiveContractSkipsUnlessItsCommandStartedIt`, `TestTheLiveContractSkipsUnlessItsCommandStartedIt/another_provider's_marker`, `TestTheLiveContractSkipsUnlessItsCommandStartedIt/no_marker`
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/livecontract`:** `TestRequire`, `TestRequire/a_marker_in_another_case`, `TestRequire/an_empty_marker`, `TestRequire/another_provider's_marker`, `TestRequire/no_marker`
 - **Break (3):** the command runs the live test without setting the marker, so it only ever skips
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/livecontract`:** `TestInvocation`
 - **Break (4):** the guard skips a live test only when its own command started it
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/gmail`:** `TestTheLiveContractSkipsUnlessItsCommandStartedIt`, `TestTheLiveContractSkipsUnlessItsCommandStartedIt/another_provider's_marker`, `TestTheLiveContractSkipsUnlessItsCommandStartedIt/no_marker`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail`:** `TestTheLiveContractSkipsUnlessItsCommandStartedIt`, `TestTheLiveContractSkipsUnlessItsCommandStartedIt/another_provider's_marker`, `TestTheLiveContractSkipsUnlessItsCommandStartedIt/no_marker`
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/livecontract`:** `TestRequire`, `TestRequire/a_marker_in_another_case`, `TestRequire/an_empty_marker`, `TestRequire/another_provider's_marker`, `TestRequire/its_provider's_marker`, `TestRequire/no_marker`
 
 ## A mutation patch is refused when a hunk's context matches at more than one place in its file

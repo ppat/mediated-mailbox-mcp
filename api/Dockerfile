@@ -7,11 +7,11 @@ WORKDIR /src
 COPY go.mod go.sum ./
 COPY content content
 COPY core core
+COPY credential credential
 COPY db db
 COPY executioncontext executioncontext
 COPY process process
 COPY provider provider
-COPY ratelimit ratelimit
 COPY api/main.go api/main.go
 COPY api/app api/app
 COPY api/internal api/internal

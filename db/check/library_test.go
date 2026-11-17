@@ -68,7 +68,7 @@ var (
 		libraryWide:  []string{"db"},
 		crossCutting: []string{"everything"},
 		root:         "testdata",
-		components:   []string{"testdata/chainlib", "testdata/fixturelib"},
+		components:   []string{"testdata/callinglib", "testdata/chainlib", "testdata/fixturelib"},
 	}
 	// layoutLibrary holds only a sqlc.yaml whose blocks break the layout the checks rely on, and one
 	// block that follows it and was never generated. sqlc never runs over it.

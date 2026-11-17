@@ -1,0 +1,19 @@
+control: A caller registers the rate limiter's and the shared provider series on the registerer it is given
+removes: the caller's rate limiter series are registered on a registry no one was given
+packages: ./provider
+tests: TestACallersSeriesAreOnTheRegistererItWasGiven
+scheduled-count: no
+integration: yes
+
+diff --git a/provider/caller.go b/provider/caller.go
+--- a/provider/caller.go
++++ b/provider/caller.go
+@@ -51,7 +51,7 @@ func NewCaller(adapters Adapters, reg prometheus.Registerer, pool tx.Beginner, o
+ 	if err != nil {
+ 		return nil, err
+ 	}
+-	leases, err := ratelimit.NewMetrics(reg)
++	leases, err := ratelimit.NewMetrics(prometheus.NewRegistry())
+ 	if err != nil {
+ 		return nil, err
+ 	}

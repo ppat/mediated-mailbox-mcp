@@ -34,8 +34,10 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/assembly"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/policyload"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/session"
-	"github.com/ppat/mediated-mailbox-mcp/provider/gmail"
-	"github.com/ppat/mediated-mailbox-mcp/ratelimit/lease"
+	providerlib "github.com/ppat/mediated-mailbox-mcp/provider"
+	"github.com/ppat/mediated-mailbox-mcp/provider/google"
+	"github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail"
+	"github.com/ppat/mediated-mailbox-mcp/provider/ratelimit"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/core/deltasync/due"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/deltasync/reseal"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/deltasync/tick"
@@ -113,7 +115,7 @@ type DeltaSync struct {
 	sessions *session.Holder
 	ticks    *tick.Metrics
 	keyScan  *reseal.Metrics
-	leases   *lease.Metrics
+	leases   *ratelimit.Metrics
 	// processing times each body's conversion and scan in a tick (ADR-0125).
 	processing *series.Processing
 	// port builds an account's Gmail adapter in a kind New built, over the series New registered, so
@@ -127,14 +129,18 @@ type DeltaSync struct {
 // build each Gmail adapter over c.Client, and a Gmail source over it when the execution context holds
 // none for the account.
 func New(c Config) (*DeltaSync, error) {
-	metrics, err := gmail.NewMetrics(c.Registry)
+	shared, err := providerlib.NewMetrics(c.Registry)
+	if err != nil {
+		return nil, err
+	}
+	metrics, err := shared.For(gmailProvider)
 	if err != nil {
 		return nil, err
 	}
 	port := gmailPort(metrics, c.Client)
-	connect := session.Connect(func(cr session.Credentials) *gmail.TokenSource {
-		return gmail.NewTokenSource(c.Client, gmail.NewCredentials(cr.ClientID, cr.ClientSecret, cr.Credential))
-	}, func(account string, source *gmail.TokenSource) (mail.Port[context.Context], error) {
+	connect := session.Connect(func(cr session.Credentials) *google.TokenSource {
+		return google.NewTokenSource(c.Client, google.NewCredentials(cr.ClientID, cr.ClientSecret, cr.Credential))
+	}, func(account string, source *google.TokenSource) (mail.Port[context.Context], error) {
 		return port(account, source)
 	})
 	d, err := build(c, map[string]session.Connector{gmailProvider: connect})
@@ -147,7 +153,7 @@ func New(c Config) (*DeltaSync, error) {
 
 // gmailPort returns the builder of an account's Gmail adapter over its tokens, calling through client
 // and counting its requests on metrics, which every adapter it builds shares (ADR-0077).
-func gmailPort(metrics *gmail.Metrics, client *http.Client) func(account string, tokens gmail.Tokens) (mail.Port[context.Context], error) {
+func gmailPort(metrics providerlib.Requests, client *http.Client) func(account string, tokens gmail.Tokens) (mail.Port[context.Context], error) {
 	return func(account string, tokens gmail.Tokens) (mail.Port[context.Context], error) {
 		return gmail.New(gmail.Config{Account: account, Client: client, Tokens: tokens, Metrics: metrics})
 	}
@@ -163,7 +169,7 @@ func build(c Config, connectors map[string]session.Connector) (*DeltaSync, error
 	if err != nil {
 		return nil, err
 	}
-	leases, err := lease.NewMetrics(c.Registry)
+	leases, err := ratelimit.NewMetrics(c.Registry)
 	if err != nil {
 		return nil, err
 	}
@@ -310,7 +316,7 @@ func (d *DeltaSync) tick(ctx context.Context, account string, logger *slog.Logge
 // its token over with the adoption stamp of the credential it holds and records its latest
 // authentication attempt, a tick that failed included (ADR-0089, ADR-0097). It logs counts and
 // identifiers, never a body (ADR-0009).
-func (d *DeltaSync) tickAccount(ctx context.Context, snapshot *accountload.Snapshot, account string, limiter *lease.Limiter, policy policyload.Snapshot, logger *slog.Logger) error {
+func (d *DeltaSync) tickAccount(ctx context.Context, snapshot *accountload.Snapshot, account string, limiter *ratelimit.Limiter, policy policyload.Snapshot, logger *slog.Logger) error {
 	sess, err := d.sessions.Open(snapshot, account)
 	if err != nil {
 		return err
@@ -358,7 +364,7 @@ func (d *DeltaSync) tickDeps(account string, provider tick.Provider, policy poli
 // refused (ADR-0090). A row holding the refused credential, or none, returns the refusal.
 type reauthorizing struct {
 	session *session.Session
-	limiter *lease.Limiter
+	limiter *ratelimit.Limiter
 	account string
 }
 

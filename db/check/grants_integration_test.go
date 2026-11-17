@@ -163,6 +163,7 @@ func TestGrantProblemsReported(t *testing.T) {
 	}
 	lists, _ := testLibrary.admissions(t, testLibrary.subsections(t))
 	requireProblems(t, grantProblems(t, tx, lists, testRoles, contextMapping{}), []string{
+		`list "library", which list "caller" admits, names counting, but role check_fixture_reader cannot run its AddSenderMessages: ERROR: permission denied for table fixture_senders (SQLSTATE 42501)`,
 		`list "library", which list "narrow" admits, names counting, but role check_fixture_reader cannot run its AddSenderMessages: ERROR: permission denied for table fixture_senders (SQLSTATE 42501)`,
 		`list "misaligned" names counting, but role check_fixture_reader cannot run its AddSenderMessages: ERROR: permission denied for table fixture_senders (SQLSTATE 42501)`,
 	})

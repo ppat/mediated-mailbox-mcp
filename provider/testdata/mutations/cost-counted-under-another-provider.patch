@@ -1,0 +1,18 @@
+control: Every request the Gmail adapter sends is counted at its cost where it is sent, failed requests included
+removes: the count is labelled with a provider value other than the adapter's own name
+packages: ./provider
+tests: TestEveryRequestTheAdapterSendsIsOnTheSharedSeries
+scheduled-count: no
+
+diff --git a/provider/metrics.go b/provider/metrics.go
+--- a/provider/metrics.go
++++ b/provider/metrics.go
+@@ -63,7 +63,7 @@ func (m *Metrics) For(name string) (Requests, error) {
+ 	if !ok {
+ 		return Requests{}, fmt.Errorf("there is no adapter for provider %q", name)
+ 	}
+-	return Requests{metrics: m, provider: name, ceiling: facts.Ceiling}, nil
++	return Requests{metrics: m, provider: "google", ceiling: facts.Ceiling}, nil
+ }
+ 
+ // Requests are one provider's view of the shared provider series, which its adapter reports every

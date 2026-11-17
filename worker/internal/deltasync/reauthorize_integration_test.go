@@ -16,12 +16,12 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
+	"github.com/ppat/mediated-mailbox-mcp/credential/open"
+	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/accountload"
-	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/open"
-	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/session"
-	"github.com/ppat/mediated-mailbox-mcp/provider/fake"
-	"github.com/ppat/mediated-mailbox-mcp/provider/gmail"
+	"github.com/ppat/mediated-mailbox-mcp/provider/google"
+	"github.com/ppat/mediated-mailbox-mcp/provider/mail/fake"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 )
 
@@ -45,11 +45,11 @@ type provider struct {
 	rotations map[string]string
 	ring      *open.Keyring
 	// built records the credentials of every source the tick built, in order.
-	built []gmail.Credentials
+	built []google.Credentials
 }
 
 // connect is the port builder of the connector the tick builds each account's port with.
-func (p *provider) connect(_ string, source *gmail.TokenSource) (mail.Port[context.Context], error) {
+func (p *provider) connect(_ string, source *google.TokenSource) (mail.Port[context.Context], error) {
 	held := source.RefreshToken()
 	if held != "" && held == p.unbuildable {
 		return nil, errors.New("the port could not be built")
@@ -71,8 +71,8 @@ func (p *provider) connect(_ string, source *gmail.TokenSource) (mail.Port[conte
 // source is the source builder of the connector the tick builds each account's source with. It
 // records the credentials of every source it builds, and builds each holding the rotation p.rotations
 // names for its refresh token, if any.
-func (p *provider) source(c session.Credentials) *gmail.TokenSource {
-	p.built = append(p.built, gmail.NewCredentials(c.ClientID, c.ClientSecret, c.Credential))
+func (p *provider) source(c session.Credentials) *google.TokenSource {
+	p.built = append(p.built, google.NewCredentials(c.ClientID, c.ClientSecret, c.Credential))
 	if rotated, ok := p.rotations[string(c.Credential)]; ok {
 		c.Credential = []byte(rotated)
 	}
@@ -294,7 +294,7 @@ func TestARereadAfterAMoveBuildsTheSourceFromTheNewClient(t *testing.T) {
 		t.Fatalf("the tick returned %v, want it to end through the new client", err)
 	}
 
-	want := []gmail.Credentials{
+	want := []google.Credentials{
 		{ClientID: "client-id", ClientSecret: "client-secret", RefreshToken: "first-token"},
 		{ClientID: "employer-id", ClientSecret: "employer-secret", RefreshToken: "moved-token"},
 	}

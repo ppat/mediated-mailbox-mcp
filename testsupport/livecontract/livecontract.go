@@ -29,7 +29,7 @@ type live struct {
 // providers returns each provider a live run exists for.
 func providers() map[string]live {
 	return map[string]live{
-		"gmail": {tag: "gmail_live", pkg: "./provider/gmail/", test: "TestTheAdapterPassesTheContractAgainstGmail", timeout: "55m"},
+		"gmail": {tag: "gmail_live", pkg: "./provider/mail/gmail/", test: "TestTheAdapterPassesTheContractAgainstGmail", timeout: "55m"},
 	}
 }
 

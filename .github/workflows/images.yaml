@@ -41,11 +41,11 @@ on:
     - go.sum
     - content/**
     - core/**
+    - credential/**
     - db/**
     - executioncontext/**
     - process/**
     - provider/**
-    - ratelimit/**
     - api/main.go
     - api/app/**
     - api/internal/**
@@ -73,8 +73,8 @@ on:
     - '!**/testdata/**'
     - '!**/cmd/**'
     - '!db/check/**'
-    - '!provider/contract/**'
-    - '!provider/fake/**'
+    - '!provider/mail/contract/**'
+    - '!provider/mail/fake/**'
     - '!ui/internal/contract/**'
     - '!**/.sqlfluff'
     - '!**/_target/**'

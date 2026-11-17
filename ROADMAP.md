@@ -252,6 +252,7 @@ its part, and the rows it added. Which rows it proved are the rows whose Status 
 | [#397](https://github.com/ppat/mediated-mailbox-mcp/pull/397) | F2 | F2's later work, the migrator configured and connected as every process is, a composition root the host runs as a process that runs once, through `host.RunOnce`, reading `log_level` and a `database` section through the configuration library with its password in a mounted file, and applying the chain its binary embeds from `db/migrations` with goose linked as a library in `db/migrate` under goose's advisory lock, the chart's migration Job setting that section through the environment layer and mounting the role's `password` key, and every integration run applying the chain through `db/migrate` ([ADR-0139](./docs/adr/data/0139-the-migration-runner-is-goose-linked-into-the-migrator.md)) | It adds and proves the rows for two runs of the chain at once applying each migration once, the embedded chain being the chain's directory and the migration Job's environment loading through the migrator's configuration, adds the row for a fully qualified host against CloudNativePG, pending until the migrator's image is published, adds and proves the row for a process that runs once, and proves the migrator's part of the rows for the password variables, the log level and the pinned configuration type | The lock's, the embedded chain's, the migration Job's configuration's and the run-once process's controls, new, with two, two, four and two breaks, a sixth break of the pinned configuration type, and the breaks of the rows the change moved again, the host's start's among them, with the migrator's tests going red beside the host's |
 | [#421](https://github.com/ppat/mediated-mailbox-mcp/pull/421) | F2 | F2's later work, the compatibility floor in the baseline with its grants, every migration after the baseline declaring that every chain the floor admits runs on it or raising the floor, which `db/check` requires, and the start check the host runs on each pool the API server, the UI and the worker open, refusing a schema whose floor is above the binary's chain or that has not applied it, the chain's version read from the embedded chain, and the chart's guide supporting a rollback ([ADR-0140](./docs/adr/data/0140-each-migration-declares-the-oldest-chain-that-runs-on-it.md)) | It adds and proves the rows for the start check, the host's check of every pool and the compatibility declaration, and proves the txhelper row's part for the start check's read | The start check's and the host's check's controls, new, with five and four breaks, a break of the txhelper analyser's exceptions for the start check's read, and the breaks whose patches the change moved again |
 | [#444](https://github.com/ppat/mediated-mailbox-mcp/pull/444) | F9 | No code. It records the design of the refactor that gives each thing in the code one home and one name, in [ADR-0142](./docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md), the spec and the process, superseding [ADR-0138](./docs/adr/engineering/0138-one-host-runs-each-process-and-each-component-provides-its-parts.md), and [ADR-0143](./docs/adr/data/0143-the-programs-connect-as-one-application-user-beside-the-migrators.md), two database users, superseding [ADR-0118](./docs/adr/data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md), both Accepted, with the records the refactor touches reworded in place, and every document of the set stating the refactored design ahead of the code | It adds the pending rows for the two records' controls, brings the rows whose injection or proof names a moved package, a database role or the host to the refactored design, and marks each proven row whose mechanism a code ticket rewrites pending again at F9's later work in that ticket, its evidence kept | — |
+| [#450](https://github.com/ppat/mediated-mailbox-mcp/pull/450) | F9 | F9's later work, the provider library holding the rate limiter, the adapters by kind, Google's grant in `provider/google`, the Provider Port for mail in `provider/mail`, each provider's consent by name and a caller with its token and its one wrapper of the mailbox's operations, beside the old port and leased call its users keep, and `credential/` a top-level family ([ADR-0010](./docs/adr/provider/0010-one-provider-port.md), [ADR-0071](./docs/adr/engineering/0071-static-enforcement-toolchain.md)) | It proves again under their new paths the rows of the rate limiter, the Gmail adapter, Google's grant, the consent and the credential family, proves the wrapper's parts of the rows for a call's lease, class, deadline, outcome, timeout and second try over a credential read again, and the fences of the pure cores within the provider library, and adds the pending rows for the fences of the adapters, the limiter, the consents and the opening of a credential | The wrapper's and the token's controls, new, and every demonstration whose code, tests or patches the change moved, its patch rebuilt over the moved code with its changed lines kept |
 
 ### What each composition root runs
 
@@ -573,8 +574,8 @@ draining its requests before it stops its tasks and those goroutines and closes 
   columns the UI's two setups write arrives with the statement that uses it
   ([ADR-0084](./docs/adr/mutation/0084-ui-writes-decisions-and-account-setup.md),
   [ADR-0118](./docs/adr/data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)). The
-  credential library, `executioncontext/credential/`, seals to the public key and opens with a
-  keyring of private keys, and the `keygen` subcommand of the command-line program, `cli/`, writes
+  credential family, `credential/`, seals to the public key and opens with a keyring of private
+  keys, and the `keygen` subcommand of the command-line program, `cli/`, writes
   the key pair
   ([ADR-0081](./docs/adr/operability/0081-credentials-sealed-to-a-public-key.md),
   [ADR-0088](./docs/adr/operability/0088-credentials-sealed-with-hpke-x-wing.md)).
@@ -1068,8 +1069,8 @@ draining its requests before it stops its tasks and those goroutines and closes 
   `/ui/accounts/` and retired that refusal
   ([docs/UI.md section 8.12](./docs/UI.md#812-connect-an-account-and-re-authorize)).
   The consent code lives in
-  `provider/gmail/consent`, a package of the provider library holding no Provider Port code, so the
-  UI links it without the Gmail adapter, and a consent attempt travels in a cookie the UI's server
+  `provider/google`, a package of the provider library holding no Provider Port code, so the UI
+  links it without the Gmail adapter, and a consent attempt travels in a cookie the UI's server
   seals
   ([ADR-0111](./docs/adr/operability/0111-a-consent-attempt-travels-in-a-cookie-the-ui-server-seals.md)).
   The request token binds every state-changing request to the session, refused before routing
@@ -1341,6 +1342,27 @@ draining its requests before it stops its tasks and those goroutines and closes 
   images built from `main`. So a pull request in that window that touches `packaging/` lands
   without it. [ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md) and
   [TESTING.md](./TESTING.md) go on describing the run on a pull request for that window.
+
+  Pull request [#450](https://github.com/ppat/mediated-mailbox-mcp/pull/450), which closes its
+  ticket [#429](https://github.com/ppat/mediated-mailbox-mcp/issues/429), is the refactor's step for
+  the provider library. Each package moves once, to its final path. The rate limiter is
+  `provider/ratelimit`, with its pure rules in `provider/ratelimit/core`. The Gmail adapter, the
+  provider fake, the contract suite and the JMAP adapter's designed directory sit under
+  `provider/mail`, and the calendar adapters' under `provider/calendar`. Google's consent, its
+  token source and the consent command are `provider/google`, and the sealing and opening of a
+  credential are the top-level family `credential/`, whose configuration section stays in
+  `executioncontext/credential/core` until the configuration step. `provider/mail` holds
+  `mail.Mailbox`, the Provider Port for mail with its metadata call size, and the consent contract,
+  and `provider/consent` each provider's consent by name, from which the UI's entry package takes
+  Gmail's. `provider` holds the caller, the token, the list of shipped adapters, the facts about
+  each provider, the shared provider series, which left the Gmail adapter, and the one wrapper of
+  the mailbox's ten operations, which leases each call through the rate limiter's leased call that
+  takes a cost. The programs call providers as before, through `core/mail`'s `Port` and the rate
+  limiter's older `Call` and `Body`, changed only in their import paths and in where they take the
+  adapter's series, until the tickets that move them onto the caller, and no configuration key,
+  series name or label changed. The import lists of the provider library, the rate limiter and the
+  credential family are each the package's own, and the fences of the adapters' and the limiter's
+  pure cores hold within the provider library.
 
 - [x] **F8 — Logging levels** → [O2](./USE_CASES.md#o2--observable) ·
   [V3](#v3--the-agent-arrives-read-only) · finished at image

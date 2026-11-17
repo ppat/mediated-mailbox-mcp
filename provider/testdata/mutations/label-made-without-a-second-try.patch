@@ -1,0 +1,19 @@
+control: A call through the provider library's mailbox is made once more over a credential read again when the provider refuses its own
+removes: a label's creation is leased and reported but never read again and made once more over a refused credential
+packages: ./provider
+tests: TestEveryOperationIsLeasedAtItsCostReportedAndTriedOnceMore TestEveryOperationIsLeasedAtItsCostReportedAndTriedOnceMore/EnsureLabel
+scheduled-count: no
+integration: yes
+
+diff --git a/provider/mailbox.go b/provider/mailbox.go
+--- a/provider/mailbox.go
++++ b/provider/mailbox.go
+@@ -107,7 +107,7 @@ func (m *mailbox) ListLabels(ctx context.Context) ([]coremail.Label, error) {
+ 
+ // EnsureLabel implements mail.Mailbox.
+ func (m *mailbox) EnsureLabel(ctx context.Context, path string) (coremail.Label, error) {
+-	return call(ctx, m, coremail.ProviderOp{Operation: coremail.OpEnsureLabel}, func(ctx context.Context, p adapterMailbox) (coremail.Label, error) {
++	return leased(ctx, m, m.current(), coremail.ProviderOp{Operation: coremail.OpEnsureLabel}, func(ctx context.Context, p adapterMailbox) (coremail.Label, error) {
+ 		return p.EnsureLabel(ctx, path)
+ 	})
+ }

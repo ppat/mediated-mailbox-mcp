@@ -60,11 +60,11 @@ component's first row creates its file and its line below.
 | --- | --- |
 | [mutations/content.md](./mutations/content.md) | `content/` |
 | [mutations/core.md](./mutations/core.md) | `core/` |
+| [mutations/credential.md](./mutations/credential.md) | `credential/` |
 | [mutations/db.md](./mutations/db.md) | `db/` |
 | [mutations/executioncontext.md](./mutations/executioncontext.md) | `executioncontext/` |
 | [mutations/process.md](./mutations/process.md) | `process/` |
 | [mutations/provider.md](./mutations/provider.md) | `provider/` |
-| [mutations/ratelimit.md](./mutations/ratelimit.md) | `ratelimit/` |
 | [mutations/testsupport.md](./mutations/testsupport.md) | `testsupport/` |
 | [mutations/api.md](./mutations/api.md) | `api/` |
 | [mutations/worker.md](./mutations/worker.md) | `worker/` |

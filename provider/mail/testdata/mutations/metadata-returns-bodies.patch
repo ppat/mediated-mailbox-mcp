@@ -1,0 +1,18 @@
+control: Only the body fetch returns a body, and no metadata type has a field for it
+removes: the port's metadata fetch returns each message's body in place of its metadata
+packages: ./provider/mail
+tests: TestOnlyTheBodyFetchReturnsABody
+scheduled-count: no
+
+diff --git a/provider/mail/mail.go b/provider/mail/mail.go
+--- a/provider/mail/mail.go
++++ b/provider/mail/mail.go
+@@ -34,7 +34,7 @@ type Mailbox interface {
+ 	// the trash or marked as spam included. An identifier naming no message, such as one the mailbox
+ 	// no longer holds, is left out of the result rather than failing the call. A caller names no more
+ 	// identifiers in one call than MetadataCallSize gives.
+-	GetMessageMetadata(ctx context.Context, ids []string) ([]coremail.MessageMetadata, error)
++	GetMessageMetadata(ctx context.Context, ids []string) ([]coremail.MessageBody, error)
+ 	// GetMessageBody returns a message's body, its rendered part as MessageBody describes it, or
+ 	// ErrNotFound. Called with the empty part, it chooses the rendered part, and when the provider
+ 	// holds that part apart from the message it returns a HeldApartError naming it, so the caller

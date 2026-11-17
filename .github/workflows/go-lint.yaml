@@ -19,13 +19,13 @@ on:
     - cli/**
     - content/**
     - core/**
+    - credential/**
     - db/**
     - executioncontext/**
     - api/**
     - migrator/**
     - process/**
     - provider/**
-    - ratelimit/**
     - testsupport/**
     - ui/*.go
     - ui/internal/**

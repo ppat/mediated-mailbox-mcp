@@ -1,6 +1,6 @@
 control: A refusal is not the provider's failure, so it never reaches the rate controller as a server error
 removes: the port's refusal wraps the provider's failure, so every caller reads a refused body as the provider failing
-packages: ./core/mail ./ratelimit/lease
+packages: ./core/mail ./provider/ratelimit
 tests: TestThePortsErrorsAreDistinct TestABodyIsFetchedByPartAndARefusalTellsTheControllerNothing
 scheduled-count: no
 integration: yes

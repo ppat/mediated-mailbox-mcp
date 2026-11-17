@@ -28,12 +28,12 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/api/internal/service"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
+	"github.com/ppat/mediated-mailbox-mcp/credential/open"
+	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/accountload"
-	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/open"
-	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/session"
-	"github.com/ppat/mediated-mailbox-mcp/provider/fake"
-	"github.com/ppat/mediated-mailbox-mcp/provider/gmail"
+	"github.com/ppat/mediated-mailbox-mcp/provider/google"
+	"github.com/ppat/mediated-mailbox-mcp/provider/mail/fake"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/fixture"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/marker"
@@ -150,11 +150,11 @@ type harness struct {
 	// tokens are the refresh tokens of the sources the connector built ports over, in order, and
 	// sources the sources themselves.
 	tokens  []string
-	sources []*gmail.TokenSource
+	sources []*google.TokenSource
 	// built are the credentials of every source the connector built, in order, and make builds each
 	// source from them, a Gmail token source over the default client unless a test sets it.
-	built []gmail.Credentials
-	make  func(gmail.Credentials) *gmail.TokenSource
+	built []google.Credentials
+	make  func(google.Credentials) *google.TokenSource
 	// refuse is the refresh token whose calls the provider refuses, and outage fails every call.
 	refuse string
 	outage bool
@@ -238,14 +238,14 @@ func through(t *testing.T, conn *pgx.Conn, account, client string) {
 }
 
 // source builds the harness's sources, recording the credentials of each.
-func (h *harness) source(c session.Credentials) *gmail.TokenSource {
-	creds := gmail.NewCredentials(c.ClientID, c.ClientSecret, c.Credential)
+func (h *harness) source(c session.Credentials) *google.TokenSource {
+	creds := google.NewCredentials(c.ClientID, c.ClientSecret, c.Credential)
 	h.mu.Lock()
 	h.built = append(h.built, creds)
 	build := h.make
 	h.mu.Unlock()
 	if build == nil {
-		return gmail.NewTokenSource(http.DefaultClient, creds)
+		return google.NewTokenSource(http.DefaultClient, creds)
 	}
 	return build(creds)
 }
@@ -253,7 +253,7 @@ func (h *harness) source(c session.Credentials) *gmail.TokenSource {
 // connect is the harness's connector. It builds a port over the provider fake whose every call is
 // counted, refused as a credential refusal while the source holds the refused token, and failed on
 // the provider's side during an outage.
-func (h *harness) connect(_ string, source *gmail.TokenSource) (mail.Port[context.Context], error) {
+func (h *harness) connect(_ string, source *google.TokenSource) (mail.Port[context.Context], error) {
 	token := source.RefreshToken()
 	h.mu.Lock()
 	h.tokens = append(h.tokens, token)
@@ -1075,7 +1075,7 @@ func TestTheCredentialsAreTheClientAndTheAccountsToken(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	want := []gmail.Credentials{
+	want := []google.Credentials{
 		{ClientID: "client-id", ClientSecret: "client-secret", RefreshToken: h.account + "-token"},
 		{ClientID: "employer-id", ClientSecret: "employer-secret", RefreshToken: other + "-token"},
 	}
@@ -1188,7 +1188,7 @@ func TestARereadAfterAMoveBuildsTheSourceFromTheNewClient(t *testing.T) {
 	h.mu.Lock()
 	built := h.built[len(h.built)-1]
 	h.mu.Unlock()
-	want := gmail.Credentials{ClientID: "employer-id", ClientSecret: "employer-secret", RefreshToken: h.account + "-moved"}
+	want := google.Credentials{ClientID: "employer-id", ClientSecret: "employer-secret", RefreshToken: h.account + "-moved"}
 	if diff := cmp.Diff(want, built, compare.Options); diff != "" {
 		t.Errorf("the credentials the retried source was built from (-want +got):\n%s", diff)
 	}
@@ -1255,11 +1255,11 @@ func TestARereadThatFindsTheAccountNotConnectedReportsTheRefusal(t *testing.T) {
 func TestARotationWhoseWriteBackFailedIsKept(t *testing.T) {
 	h := newHarness(t)
 	rotated := h.account + "-rotated"
-	h.make = func(c gmail.Credentials) *gmail.TokenSource {
+	h.make = func(c google.Credentials) *google.TokenSource {
 		if c.RefreshToken == h.account+"-token" {
 			c.RefreshToken = rotated
 		}
-		return gmail.NewTokenSource(unreachable(), c)
+		return google.NewTokenSource(unreachable(), c)
 	}
 	const stateWrite = "UPDATE (credential) ON account_state"
 	revoke(t, h.conn, stateWrite)
@@ -1297,9 +1297,9 @@ func TestARotationWhoseWriteBackFailedIsKept(t *testing.T) {
 // rotation would leave, with a failed attempt made through a proxy nothing listens on.
 func TestEachBodyRequestHandsOverAndRecordsTheAttempt(t *testing.T) {
 	h := newHarness(t)
-	h.make = func(c gmail.Credentials) *gmail.TokenSource {
+	h.make = func(c google.Credentials) *google.TokenSource {
 		c.RefreshToken = h.account + "-rotated"
-		source := gmail.NewTokenSource(unreachable(), c)
+		source := google.NewTokenSource(unreachable(), c)
 		if _, err := source.AccessToken(t.Context()); err == nil {
 			t.Fatal("a refresh through an unreachable proxy returned an access token")
 		}

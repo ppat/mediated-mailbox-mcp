@@ -9,8 +9,8 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
+	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
 	"github.com/ppat/mediated-mailbox-mcp/db/oauthclients"
-	"github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/seal"
 )
 
 // Scan is what the last load and re-seal found still sealed to a key other than the current one or

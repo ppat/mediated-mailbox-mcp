@@ -23,8 +23,8 @@ WHERE
 
 -- name: ClampGrants :exec
 -- Moves a grant stamped later than the instant issuance has reached back to that instant, as the rules
--- take it (ratelimit/core). It then counts for one second from there, rather than for as long as its
--- stamp lies ahead.
+-- take it (provider/ratelimit/core). It then counts for one second from there, rather than for as long as
+-- its stamp lies ahead.
 UPDATE rate_grants
 SET issued_at = timestamptz 'epoch' + (@now_ms::bigint) * interval '1 millisecond'
 WHERE
