@@ -10,9 +10,10 @@
 // pool through ForMigration, which runs no schema check and which only the migrator's configuration
 // type can call.
 //
-// A program that is ready only while the database answers opts the process's one pool into the
+// A program that is ready only while the database answers opts the process's one pool, and a job
+// kind whose program is ready only while each job kind's pool answers opts its own pool, into the
 // readiness report the process answers its readiness probe from, through ReportReadiness, which pings
-// the pool every five seconds, each ping bounded by two. A job kind's pool has no such report yet.
+// the pool every five seconds, each ping bounded by two.
 //
 // The pools of a process are kept in one slot of the process, apart from what other owners keep,
 // and the process closes them with what the slots hold, last built first, once its servers have
@@ -103,12 +104,13 @@ type pools struct {
 	mu     sync.Mutex
 	byName map[string]*pgxpool.Pool
 	opened []*pgxpool.Pool
-	// reported is whether the process's pool's readiness report has started.
-	reported bool
+	// reported holds each pool whose readiness report has started, by the job kind it serves, "" for
+	// the process's one pool.
+	reported map[string]bool
 }
 
 func newPools(_ context.Context, shared process.Capabilities) (*pools, func(), error) {
-	s := &pools{shared: shared, byName: map[string]*pgxpool.Pool{}}
+	s := &pools{shared: shared, byName: map[string]*pgxpool.Pool{}, reported: map[string]bool{}}
 	return s, s.close, nil
 }
 

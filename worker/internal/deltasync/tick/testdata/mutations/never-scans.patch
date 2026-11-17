@@ -1,7 +1,7 @@
 control: Once backfill's second pass has ended, each tick decides and scans what waits, a bounded number from where the last stopped
 removes: a tick never scans, so what waits stays waiting once backfill has ended
 packages: ./worker/internal/deltasync/tick
-tests: TestOnceTheSecondPassHasEndedATickScansWhatWaits TestATickScansADelistedSendersMessages TestATickDecidesABoundedNumberAndTheNextGoesOn TestAThrottledBodyStopsTheAccountsScanning TestATickSpendsInTheSyncClass
+tests: TestOnceTheSecondPassHasEndedATickScansWhatWaits TestATickScansADelistedSendersMessages TestATickDecidesABoundedNumberAndTheNextGoesOn TestAThrottledBodyStopsTheAccountsScanning
 scheduled-count: no
 integration: yes
 

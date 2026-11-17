@@ -1,0 +1,19 @@
+control: The revision a verdict records is the scanner section's, and an empty revision is refused
+removes: backfill builds a scanner of its own from the shipped defaults under a fixed revision rather than taking the process's, so its verdicts record another revision than the section's
+packages: ./worker/app
+tests: TestANewAccountIsBackfilledWithNoManualStep
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
+--- a/worker/internal/backfill/backfill.go
++++ b/worker/internal/backfill/backfill.go
+@@ -104,7 +104,7 @@ type Backfill struct {
+ // registers its series on the registerer p gives it, which labels them with its job kind (ADR-0117,
+ // ADR-0119, ADR-0142).
+ func Build(ctx context.Context, p process.Capabilities, c config.Worker) (schedule.Plan, error) {
+-	sc, err := scanner.Get(ctx, p, c)
++	sc, err := scan.New(config.DefaultScanner(), "fixed")
+ 	if err != nil {
+ 		return schedule.Plan{}, err
+ 	}

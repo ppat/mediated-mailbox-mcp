@@ -31,6 +31,11 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/process/schedule"
 )
 
+// ErrNotRead is what Workable answers before a reload has put a list of accounts in force. It wraps
+// schedule.ErrNotDue, so a job kind's listing asked before the Session's first load is neither a
+// success nor a failure, and a normal start logs no error (ADR-0119).
+var ErrNotRead = fmt.Errorf("no reload has read the accounts and loaded their connections yet: %w", schedule.ErrNotDue)
+
 // ErrPolicyNotLoaded wraps a reload's error when the accounts and the connections loaded and the
 // policy did not. The accounts and the connections the reload read are in force all the same, and the
 // policy keeps what it had (ADR-0041).
@@ -76,6 +81,9 @@ type Session struct {
 	// loaded is set once a reload has loaded the list, the connections where the process has them,
 	// and the policy.
 	loaded atomic.Bool
+	// failed is the failure of the latest reload's read of the list or load of the connections, nil
+	// when they succeeded.
+	failed atomic.Pointer[error]
 
 	membersMu   sync.Mutex
 	connections Connections
@@ -198,15 +206,16 @@ func (s *Session) Reload(ctx context.Context) error {
 func (s *Session) reload(ctx context.Context) error {
 	listed, err := accounts.Read(ctx, s.pool)
 	if err != nil {
-		return fmt.Errorf("reading the accounts: %w", err)
+		return s.fail(fmt.Errorf("reading the accounts: %w", err))
 	}
 	connections, after := s.members()
 	if connections != nil {
 		if err := connections.Load(ctx, listed); err != nil {
-			return fmt.Errorf("loading the connections: %w", err)
+			return s.fail(fmt.Errorf("loading the connections: %w", err))
 		}
 	}
 	s.inForce.Store(&listed)
+	s.failed.Store(nil)
 	if err = s.policies.Load(ctx, ids(listed)); err != nil {
 		err = fmt.Errorf("%w: %w", ErrPolicyNotLoaded, err)
 	} else if !s.loaded.Swap(true) {
@@ -215,6 +224,13 @@ func (s *Session) reload(ctx context.Context) error {
 	for _, tell := range after {
 		tell()
 	}
+	return err
+}
+
+// fail keeps err as the latest reload's failure to read the list or load the connections, which
+// Workable answers until a later reload reads them, and returns it.
+func (s *Session) fail(err error) error {
+	s.failed.Store(&err)
 	return err
 }
 
@@ -273,13 +289,22 @@ func (s *Session) FreshPolicy(ctx context.Context) error { return s.policies.Fre
 
 // Workable returns the accounts a job kind that calls a provider may work on now, in identifier
 // order, each listed, connected and with its policy loaded, so no newly listed account is worked
-// before its policy has loaded (ADR-0090).
-func (s *Session) Workable() []string {
+// before its policy has loaded, which is a job kind's listing (ADR-0090, ADR-0119). Before a reload
+// has put a list in force it returns ErrNotRead, and while the latest reload's read of the list or
+// load of the connections failed it returns that failure, until a later reload reads them. A reload
+// whose policy load alone failed leaves the accounts in force workable as before.
+func (s *Session) Workable() ([]string, error) {
+	if s.inForce.Load() == nil {
+		return nil, ErrNotRead
+	}
+	if failed := s.failed.Load(); failed != nil {
+		return nil, *failed
+	}
 	connections, _ := s.members()
 	if connections == nil {
-		return nil
+		return nil, nil
 	}
-	return s.with(func(id string) bool { return connections.Connected(id) })
+	return s.with(func(id string) bool { return connections.Connected(id) }), nil
 }
 
 // AccountsWithPolicy returns the accounts a job kind that calls no provider may work on now, in

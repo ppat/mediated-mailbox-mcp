@@ -1,6 +1,6 @@
 control: The effective configuration is logged at start, each value with its source
 removes: each value is logged without the layer that set it
-packages: ./api/app ./worker/app
+packages: ./api/app
 tests: TestTheEffectiveConfigurationIsLogged
 scheduled-count: no
 

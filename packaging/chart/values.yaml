@@ -354,10 +354,11 @@ worker:
     # -- A digest that pins the image whatever the tag.
     digest: ""
   # The worker's connection to the database server above, as database.applicationUser. Its password is
-  # secrets.databasePasswords.application. Each job kind has a pool of its own (ADR-0119).
+  # secrets.databasePasswords.application. Each job kind has a pool of its own, and the process one more for its
+  # Session and its connections (ADR-0119, ADR-0142).
   database:
-    # -- The most connections each job kind's pool opens, the same for every job kind, the worker's default of 4 when
-    # empty.
+    # -- The most connections each of the worker's pools opens, each job kind's and the process's own, the same for
+    # every pool, the worker's default of 4 when empty.
     poolSize: null
   # Each job kind the worker runs, keyed by its name.
   jobKinds:
@@ -368,7 +369,7 @@ worker:
       # -- Delta sync's own section, first_window, decisions_per_tick and concurrency. The sync interval is
       # sharedConfig.sync_interval.
       config: {}
-  # -- The worker's own configuration keys: reload_interval and log_level.
+  # -- The worker's own configuration keys: reload_interval, account_reload_interval and log_level.
   config: {}
   # -- How long the worker has to stop its jobs before it is killed.
   terminationGracePeriodSeconds: 30

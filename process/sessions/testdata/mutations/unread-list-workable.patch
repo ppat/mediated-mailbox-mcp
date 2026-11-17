@@ -1,0 +1,19 @@
+control: The workable accounts are not due before a reload has read the list, and are the latest read's failure until a later read succeeds
+removes: before any reload has read the list, the workable accounts are none and no error, so a listing counts as succeeded
+packages: ./process/sessions
+tests: TestTheWorkableAccountsAnswerFromTheLatestRead
+scheduled-count: no
+integration: yes
+
+diff --git a/process/sessions/sessions.go b/process/sessions/sessions.go
+--- a/process/sessions/sessions.go
++++ b/process/sessions/sessions.go
+@@ -295,7 +295,7 @@ func (s *Session) FreshPolicy(ctx context.Context) error { return s.policies.Fre
+ // whose policy load alone failed leaves the accounts in force workable as before.
+ func (s *Session) Workable() ([]string, error) {
+ 	if s.inForce.Load() == nil {
+-		return nil, ErrNotRead
++		return nil, nil
+ 	}
+ 	if failed := s.failed.Load(); failed != nil {
+ 		return nil, *failed

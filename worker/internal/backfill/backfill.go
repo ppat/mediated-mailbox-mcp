@@ -1,13 +1,14 @@
-// Package backfill is backfill's job kind in the worker (ADR-0117, ADR-0119). It runs its own
-// statements on backfill's own connection pool, as the application user (ADR-0119, ADR-0143), and works from
-// the worker's one execution context, its account snapshot, its sessions' sources and its policy,
-// through account sessions of its own that call Gmail through backfill's own adapter series. Its
-// reload adds and drops one job per account the context's latest reload lists. Each job runs the
-// run-start step once in the process, then whichever pass has not ended, a page at a time, and is
-// otherwise a reconciler that finds nothing to do (ADR-0133, ADR-0120, ADR-0121).
+// Package backfill is backfill's job kind in the worker (ADR-0117, ADR-0119). Build, which the
+// worker's spec lists, builds it from the process's capabilities and the worker's configuration. It
+// runs its own statements on backfill's own connection pool, as the application user (ADR-0119,
+// ADR-0143), takes the accounts it works on, their policy and their connections from the process's
+// Session, and calls the provider through a caller of its own, so its adapter, limiter and provider
+// series carry its job kind. Its plan lists the accounts the Session holds as workable, and the
+// scheduler keeps one job per account. Each job runs the run-start step once in the process, then
+// whichever pass has not ended, a page at a time, each page a unit of work, and is otherwise a
+// reconciler that finds nothing to do (ADR-0133, ADR-0120, ADR-0121).
 //
-// The worker's composition root builds it with New and ensures its reload job on the scheduler. Its
-// two passes are pass1 and pass2, and its due decision is worker/internal/core/backfill/due.
+// Its two passes are pass1 and pass2, and its due decision is worker/internal/core/backfill/due.
 package backfill
 
 import (
@@ -17,16 +18,14 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"net/http"
-	"slices"
 	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
+	"github.com/ppat/mediated-mailbox-mcp/core/config"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/core/scangate"
@@ -34,34 +33,34 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/db/accountstate/completion"
 	runrecord "github.com/ppat/mediated-mailbox-mcp/db/jobruns/record"
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
-	"github.com/ppat/mediated-mailbox-mcp/executioncontext/assembly"
-	"github.com/ppat/mediated-mailbox-mcp/executioncontext/session"
+	"github.com/ppat/mediated-mailbox-mcp/process"
+	"github.com/ppat/mediated-mailbox-mcp/process/connections"
+	"github.com/ppat/mediated-mailbox-mcp/process/database"
+	"github.com/ppat/mediated-mailbox-mcp/process/scanner"
 	"github.com/ppat/mediated-mailbox-mcp/process/schedule"
-	providerlib "github.com/ppat/mediated-mailbox-mcp/provider"
-	"github.com/ppat/mediated-mailbox-mcp/provider/google"
-	"github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail"
-	"github.com/ppat/mediated-mailbox-mcp/provider/ratelimit"
-	ratecore "github.com/ppat/mediated-mailbox-mcp/provider/ratelimit/core"
+	"github.com/ppat/mediated-mailbox-mcp/process/sessions"
+	"github.com/ppat/mediated-mailbox-mcp/provider"
+	providermail "github.com/ppat/mediated-mailbox-mcp/provider/mail"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/pass1"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/pass2"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/core/backfill/due"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/series"
 )
 
-// Kind is backfill's job kind as job_runs.workload spells it, which the worker's series and logs carry
-// as the job kind (ADR-0016, ADR-0117).
+// Kind is backfill's job kind as job_runs.workload spells it, which the worker's spec names it by, so
+// the worker's series and logs carry it as the job kind (ADR-0016, ADR-0117).
 const Kind = pass1.Workload
 
-// gmailProvider is the provider an account served through the Gmail adapter names, in accounts and
-// in oauth_clients.
-const gmailProvider = "gmail"
+// callTimeout is how long each provider call backfill makes has to answer once its lease is issued, a
+// fixed timeout of the job kind's caller (ADR-0101, ADR-0119).
+const callTimeout = 30 * time.Second
 
 // pageSize is how many messages waiting for a scan one page of the second pass reads. Bodies are
 // fetched and scanned one at a time, so it bounds a page's rework and not its memory.
 const pageSize = 100
 
 // mostPerCall is the most identifiers one call of the first pass fetching stale subjects again names,
-// whatever the provider's profile would fit, so a call's rework after a crash stays small. Gmail's
+// whatever the account's mailbox would fit, so a call's rework after a crash stays small. Gmail's
 // profile fits three (ADR-0023, ADR-0120).
 const mostPerCall = 100
 
@@ -74,168 +73,124 @@ var backoff = schedule.Backoff{Base: 5 * time.Second, Max: 5 * time.Minute}
 // not a pass's length (ADR-0077, ADR-0119).
 const late = time.Hour
 
-// lateReloads is how many reload intervals after its latest success the kind's reload counts as late.
+// lateReloads is how many reload intervals after its latest success the kind's listing counts as
+// late.
 const lateReloads = 5
 
-// Jobs is where the kind's reload adds and drops its account jobs, the worker's scheduler.
-type Jobs interface {
-	Ensure(key schedule.Key, job schedule.Job) error
-	Remove(key schedule.Key)
-}
-
-// Config is what backfill's job kind is built from, and nothing more.
-type Config struct {
-	// Pool is backfill's own pool, which its own statements, its leases and its recording of
-	// authentication attempts run on (ADR-0119).
-	Pool *pgxpool.Pool
-	// Context is the worker's execution context, whose scanner masks subjects and scans bodies
-	// (ADR-0090, ADR-0120).
-	Context *assembly.Context
-	// Client is the HTTP client the Gmail adapter and its token source call through.
-	Client *http.Client
-	// Registry is the worker's registry, labelled with backfill's job kind.
-	Registry prometheus.Registerer
-	// Logger carries backfill's job kind.
-	Logger *slog.Logger
-	// Jobs is the scheduler the reload adds and drops account jobs on.
-	Jobs Jobs
-	// Concurrency bounds the account jobs running at once, and so the bodies held at once.
-	Concurrency int
-	// ReloadInterval is how often the reload runs and how often each account job is asked.
-	ReloadInterval time.Duration
-}
-
-// Backfill is backfill's job kind.
+// Backfill is backfill's job kind, what its plan's jobs run with.
 type Backfill struct {
 	pool     *pgxpool.Pool
 	scanner  scan.Scanner
-	registry prometheus.Registerer
 	logger   *slog.Logger
-	jobs     Jobs
 	limit    *schedule.Limit
 	interval time.Duration
-	context  *assembly.Context
-	sessions *session.Holder
+	session  *sessions.Session
+	conns    *connections.Connections
+	caller   *connections.Caller
 	store    pass1.Store
 	second   pass2.Store
 	first    *pass1.Metrics
 	backlog  *pass2.Metrics
-	leases   *ratelimit.Metrics
 	// processing times each body's conversion and scan in the second pass (ADR-0125).
-	processing *series.Processing
-	// port builds an account's Gmail adapter in a kind New built, over the series New registered, so
-	// a test reaches the adapter series the kind serves.
-	port func(account string, tokens gmail.Tokens) (mail.Port[context.Context], error)
-	// served are the accounts the reload ensured a job for.
-	served []string
+	processing *scanner.Processing
+	// seeding is the context a job's latest recorded success is read under when the listing finds
+	// its account, which ends when the process starts to stop.
+	seeding context.Context
 }
 
-// New returns backfill's job kind with its series registered on c.Registry. Its account sessions
-// build each Gmail source and adapter over c.Client, the source shared with every job kind of the
-// worker through the execution context.
-func New(c Config) (*Backfill, error) {
-	connect, port, err := gmailConnector(c.Registry, c.Client)
+// Build builds backfill's job kind from the process's capabilities and the worker's configuration,
+// and returns its plan. It takes the process's scanner, its own pool, which reports whether it
+// answers a ping, and the process's Session and connections, and a caller of its own in the batch class, and
+// registers its series on the registerer p gives it, which labels them with its job kind (ADR-0117,
+// ADR-0119, ADR-0142).
+func Build(ctx context.Context, p process.Capabilities, c config.Worker) (schedule.Plan, error) {
+	sc, err := scanner.Get(ctx, p, c)
 	if err != nil {
-		return nil, err
+		return schedule.Plan{}, err
 	}
-	b, err := build(c, map[string]session.Connector{gmailProvider: connect})
+	pool, err := database.Get(ctx, p, c)
 	if err != nil {
-		return nil, err
+		return schedule.Plan{}, err
 	}
-	b.port = port
-	return b, nil
+	if err := database.ReportReadiness(ctx, p, c); err != nil {
+		return schedule.Plan{}, err
+	}
+	s, err := sessions.Get(ctx, p, c)
+	if err != nil {
+		return schedule.Plan{}, err
+	}
+	conns, err := connections.Of(ctx, p, c, s)
+	if err != nil {
+		return schedule.Plan{}, err
+	}
+	caller, err := conns.Caller(p, pool, provider.Options{Class: provider.Batch, Timeout: callTimeout})
+	if err != nil {
+		return schedule.Plan{}, err
+	}
+	b, err := build(p, pool, s, conns, caller, sc, c)
+	if err != nil {
+		return schedule.Plan{}, err
+	}
+	return b.plan(), nil
 }
 
-// build returns the job kind with the connectors its account sessions build sources and ports with.
-func build(c Config, connectors map[string]session.Connector) (*Backfill, error) {
-	leases, err := ratelimit.NewMetrics(c.Registry)
+// build returns the job kind with its series registered on p's registerer.
+func build(p process.Capabilities, pool *pgxpool.Pool, s *sessions.Session, conns *connections.Connections, caller *connections.Caller,
+	sc scan.Scanner, c config.Worker,
+) (*Backfill, error) {
+	messages, err := series.NewMessages(p.Metrics())
 	if err != nil {
 		return nil, err
 	}
-	messages, err := series.NewMessages(c.Registry)
+	processing, err := scanner.NewProcessing(p.Metrics())
 	if err != nil {
 		return nil, err
 	}
-	processing, err := series.NewProcessing(c.Registry)
+	first, err := pass1.NewMetrics(p.Metrics(), messages)
 	if err != nil {
 		return nil, err
 	}
-	first, err := pass1.NewMetrics(c.Registry, messages)
-	if err != nil {
-		return nil, err
-	}
-	backlog, err := pass2.NewMetrics(c.Registry, messages)
+	backlog, err := pass2.NewMetrics(p.Metrics(), messages)
 	if err != nil {
 		return nil, err
 	}
 	return &Backfill{
-		pool: c.Pool, scanner: c.Context.Scanner(), registry: c.Registry, logger: c.Logger, jobs: c.Jobs,
-		limit: schedule.NewLimit(c.Concurrency), interval: c.ReloadInterval, context: c.Context,
-		sessions: c.Context.Sessions(connectors, c.Pool),
-		store:    pass1.NewPostgres(c.Pool), second: pass2.NewPostgres(c.Pool),
-		first: first, backlog: backlog, leases: leases, processing: processing,
+		pool: pool, scanner: sc, logger: p.Logger(),
+		limit: schedule.NewLimit(c.Backfill.Concurrency), interval: time.Duration(c.ReloadInterval),
+		session: s, conns: conns, caller: caller,
+		store: pass1.NewPostgres(pool), second: pass2.NewPostgres(pool),
+		first: first, backlog: backlog, processing: processing, seeding: p.Draining(),
 	}, nil
 }
 
-// Reload returns the job kind's reload, the job keyed by the kind alone that adds and drops the
-// account jobs from what the execution context's latest reload left in force, asked on the reload
-// interval and woken by each reload of the context (ADR-0090, ADR-0119).
-func (b *Backfill) Reload() (schedule.Key, schedule.Job) {
-	return schedule.Key{Kind: Kind}, schedule.Job{
-		Run: b.reload, Interval: b.interval, Backoff: backoff, Late: lateReloads * b.interval, Logger: b.logger,
+// plan returns the job kind's plan. Its listing is the accounts the Session holds as workable, asked
+// on the reload interval and after each of the Session's reloads whose accounts loaded, so it is not
+// due before the Session's first load and fails while the Session's latest read of the accounts
+// failed, and an account whose policy has not loaded gets no job. Each account it lists gets a job,
+// whose latest success starts from what its runs record, and the job of each it no longer lists is
+// dropped with the account's series (ADR-0090, ADR-0119).
+func (b *Backfill) plan() schedule.Plan {
+	return schedule.Plan{
+		Keys:    func(context.Context) ([]string, error) { return b.session.Workable() },
+		Recheck: b.interval,
+		Backoff: backoff,
+		Late:    lateReloads * b.interval,
+		Job: func(account string) (schedule.Job, error) {
+			job := b.job(account)
+			job.LastSuccess = b.seed(b.seeding, account)
+			return job, nil
+		},
+		Dropped: b.dropped,
+		Woken:   b.session.AfterReload,
 	}
 }
 
-// reload ensures a job for each account the execution context's latest reload lists that the kind can
-// serve and removes the job of each it no longer serves. While no load of the accounts has
-// succeeded it changes no job and answers not due, neither a success nor a failure, so a start logs no
-// error before the context's first load wakes it. When the latest read of the accounts failed it
-// changes no job and fails. When the latest reload's
-// policy load failed it adds no job, because an account whose rules were never read would be decided
-// as if every sender were restricted, still drops the jobs of the accounts no longer listed, and
-// fails (ADR-0090, ADR-0041).
-func (b *Backfill) reload(ctx context.Context, _ schedule.Ask) error {
-	latest := b.context.Latest()
-	if !latest.Loaded() {
-		return schedule.ErrNotDue
-	}
-	policyErr := latest.Err()
-	if policyErr != nil && !errors.Is(policyErr, assembly.ErrPolicyNotLoaded) {
-		return policyErr
-	}
-	snapshot := latest.Snapshot()
-	listed := b.sessions.Accounts(snapshot)
-	if policyErr != nil {
-		b.logger.Error("the policy was not reloaded, so no account newly listed is backfilled until it is", "error", policyErr)
-	}
-	var kept []string
-	for _, account := range b.served {
-		if slices.Contains(listed, account) {
-			kept = append(kept, account)
-			continue
-		}
-		b.logger.Info("an account is no longer listed, so its backfill stops", "account", account)
-		b.jobs.Remove(schedule.Key{Kind: Kind, ID: account})
-		// The job's run has returned, so nothing sets the account's series again.
-		b.first.Forget(account)
-		b.backlog.Forget(account)
-	}
-	b.served = kept
-	if policyErr != nil {
-		return policyErr
-	}
-	for _, account := range listed {
-		if slices.Contains(b.served, account) {
-			continue
-		}
-		job := b.job(account)
-		job.LastSuccess = b.seed(ctx, account)
-		if err := b.jobs.Ensure(schedule.Key{Kind: Kind, ID: account}, job); err != nil {
-			return err
-		}
-		b.served = append(b.served, account)
-	}
-	return nil
+// dropped forgets the series of an account the listing no longer finds, whose job's run has returned,
+// so nothing sets them again.
+func (b *Backfill) dropped(account string) {
+	b.logger.Info("an account is no longer listed, so its backfill stops", "account", account)
+	b.first.Forget(account)
+	b.backlog.Forget(account)
 }
 
 // job returns the account's job. Its runs are asked on the reload interval and hold the kind's limit.
@@ -252,20 +207,20 @@ func (b *Backfill) job(account string) schedule.Job {
 	}
 }
 
-// policyFor returns the account's policy in the active policy snapshot, which each page takes at its
-// entry (ADR-0041, ADR-0119).
+// policyFor returns the account's policy in the policy the Session has in force, which each page
+// takes at its entry (ADR-0041, ADR-0119).
 func (b *Backfill) policyFor(account string) func() classify.Policy {
-	return func() classify.Policy { return b.context.Policy(account) }
+	return func() classify.Policy { return b.session.Policy(account) }
 }
 
 // run asks the account's due decision and does the work it names. The run-start step returns the
 // verdicts another scanner made and the gate skips the gate no longer decides as the same skip to
 // pending, and masks again from the store the subjects stored unmasked, then the first pass runs, and
 // the second once the first has ended (ADR-0120, ADR-0121, ADR-0133). Each page of either pass, and
-// each call of the first fetching stale subjects again, is a unit of work, which opens the account's
-// session over the active account snapshot, takes the active policy and ends the session's unit after
-// it, handing its token over and recording its latest attempt (ADR-0082, ADR-0090, ADR-0097). A page
-// made durable is the job's success.
+// each call of the first fetching stale subjects again, is a unit of work, which begins on the
+// account's connection through the kind's caller, takes the policy in force, and ends after it,
+// writing a rotated credential back and recording the latest attempt (ADR-0082, ADR-0090,
+// ADR-0097). A page made durable is the job's success.
 func (b *Backfill) run(ctx context.Context, ask schedule.Ask, account string, started *bool, logger *slog.Logger) error {
 	state, err := b.state(ctx, account)
 	if err != nil {
@@ -275,16 +230,12 @@ func (b *Backfill) run(ctx context.Context, ask schedule.Ask, account string, st
 	if !work.Any() {
 		return nil
 	}
-	limiter, err := b.context.Limiter(b.pool, account, gmail.Profile{}.BudgetPerSecond(), b.leases)
-	if err != nil {
-		return err
-	}
-	u := &unit{sessions: b.sessions, context: b.context, account: account}
+	u := &unit{conns: b.conns, caller: b.caller, account: account}
 	first := pass1.Deps{
-		Store: b.store, Fetch: u.fetch(limiter), Metadata: u.metadata(limiter), PerCall: perCall(gmail.Profile{}),
+		Store: b.store, Fetch: u.fetch, Metadata: u.metadata, PerCall: u.perCall,
 		Policy: b.policyFor(account), Scanner: b.scanner, RunID: runID, Now: time.Now,
 	}
-	second := secondDeps(b.second, u.body(limiter), b.policyFor(account), b.scanner)
+	second := secondDeps(b.second, u.body, b.policyFor(account), b.scanner)
 	second.Processing = b.processing
 	return backfillAccount(ctx, first, second, account, b.first, b.backlog, u, ask, logger, work.Start, started)
 }
@@ -295,7 +246,7 @@ func (b *Backfill) run(ctx context.Context, ask schedule.Ask, account string, st
 // are masked again from the store, and records that the step was made in started. Then the first pass
 // runs, and the second once the first has ended, each page a unit of work over u (ADR-0120, ADR-0121,
 // ADR-0133).
-func backfillAccount(ctx context.Context, first pass1.Deps, second pass2.Deps, account string, m1 *pass1.Metrics, m2 *pass2.Metrics, u *unit,
+func backfillAccount(ctx context.Context, first pass1.Deps, second pass2.Deps, account string, m1 *pass1.Metrics, m2 *pass2.Metrics, u units,
 	ask schedule.Ask, logger *slog.Logger, start bool, started *bool,
 ) error {
 	if start {
@@ -372,107 +323,72 @@ func at(ms mail.UnixMilli) time.Time {
 }
 
 // errNotListed stops a run at a unit boundary when the account is no longer served. The scheduler
-// counts the run as failed, so it is logged and the job backs off, until the reload that dropped the
+// counts the run as failed, so it is logged and the job backs off, until the listing that dropped the
 // account removes the job.
 var errNotListed = errors.New("the account is no longer served, so its run stops")
 
-// unit is the account's session for the unit of work in progress, opened at each unit's entry.
-type unit struct {
-	sessions *session.Holder
-	context  *assembly.Context
-	account  string
-	current  *session.Session
+// units begins and ends the account's units of work around each page of a pass.
+type units interface {
+	open() error
+	end(ctx context.Context) error
 }
 
-// open opens the account's session for the next unit of work over the active account snapshot.
+// unit is the account's unit of work in progress, begun at each unit's entry through the kind's
+// caller.
+type unit struct {
+	conns   *connections.Connections
+	caller  *connections.Caller
+	account string
+	current *connections.Work
+}
+
+// open begins the account's next unit of work.
 func (u *unit) open() error {
-	s, err := u.sessions.Open(u.context.Snapshot(), u.account)
-	if errors.Is(err, session.ErrNotConnected) {
+	w, err := u.conns.Begin(u.account, u.caller, time.Time{})
+	if errors.Is(err, connections.ErrNotConnected) {
 		return errNotListed
 	}
 	if err != nil {
 		return err
 	}
-	u.current = s
+	u.current = w
 	return nil
 }
 
-// end ends the unit of work, handing the account's token over and recording its latest attempt, and
+// end ends the unit of work, writing a rotated credential back and recording the latest attempt, and
 // returns their failures joined.
 func (u *unit) end(ctx context.Context) error {
 	if u.current == nil {
 		return nil
 	}
-	handOver, record := u.current.End(ctx)
+	writeBack, record := u.current.End(ctx)
 	u.current = nil
-	return errors.Join(handOver, record)
+	return errors.Join(writeBack, record)
 }
 
-// fetch returns the first pass's enumeration over the unit's session, under a lease (ADR-0025). A
-// refused credential is read again and the call made once more as session.Call says, a new lease
-// included.
-func (u *unit) fetch(limiter *ratelimit.Limiter) pass1.Fetch {
-	return func(ctx context.Context, token mail.PageToken) (mail.Page[mail.MessageMetadata], error) {
-		return session.Call(ctx, u.current, func(ctx context.Context, port mail.Port[context.Context]) (mail.Page[mail.MessageMetadata], error) {
-			return pass1.Leased(limiter, port, u.account)(ctx, token)
-		})
-	}
+// fetch is the first pass's enumeration through the unit's mailbox, leased in the batch class
+// (ADR-0025).
+func (u *unit) fetch(ctx context.Context, token mail.PageToken) (mail.Page[mail.MessageMetadata], error) {
+	return u.current.Mailbox().EnumerateAll(ctx, token)
 }
 
-// metadata returns the first pass's fetch of stale subjects again by identifier over the unit's
-// session, under a lease (ADR-0025, ADR-0120), reading a refused credential again as fetch does.
-func (u *unit) metadata(limiter *ratelimit.Limiter) pass1.Metadata {
-	return func(ctx context.Context, ids []string) ([]mail.MessageMetadata, error) {
-		return session.Call(ctx, u.current, func(ctx context.Context, port mail.Port[context.Context]) ([]mail.MessageMetadata, error) {
-			return pass1.LeasedMetadata(limiter, port, u.account)(ctx, ids)
-		})
-	}
+// metadata is the first pass's fetch of stale subjects again by identifier through the unit's mailbox
+// (ADR-0025, ADR-0120).
+func (u *unit) metadata(ctx context.Context, ids []string) ([]mail.MessageMetadata, error) {
+	return u.current.Mailbox().GetMessageMetadata(ctx, ids)
 }
 
-// body returns the second pass's body fetch over the unit's session, under a lease (ADR-0025),
-// reading a refused credential again as fetch does.
-func (u *unit) body(limiter *ratelimit.Limiter) pass2.Body {
-	return func(ctx context.Context, id string) (mail.MessageBody, error) {
-		return session.Call(ctx, u.current, func(ctx context.Context, port mail.Port[context.Context]) (mail.MessageBody, error) {
-			return leasedBody(limiter, port, u.account)(ctx, id)
-		})
-	}
+// perCall is how many identifiers one call fetching stale subjects again names through the unit's
+// mailbox, the most whose cost fits one second's worth at the hard cap, and never more than
+// mostPerCall (ADR-0023).
+func (u *unit) perCall() int {
+	return u.current.Mailbox().MetadataCallSize(mostPerCall)
 }
 
-// gmailSource builds the Gmail token source of an account from its credentials, the OAuth client the
-// account connects through and its refresh token (ADR-0106).
-func gmailSource(client *http.Client) func(session.Credentials) *google.TokenSource {
-	return func(c session.Credentials) *google.TokenSource {
-		return google.NewTokenSource(client, google.NewCredentials(c.ClientID, c.ClientSecret, c.Credential))
-	}
-}
-
-// gmailConnector returns the connector that builds a Gmail token source for an account and a Gmail
-// adapter over it, both calling through client, counting its requests on series registry serves, which
-// every adapter it builds shares. It also returns the builder of the adapter over an account's tokens.
-func gmailConnector(registry prometheus.Registerer, client *http.Client) (session.Connector, func(string, gmail.Tokens) (mail.Port[context.Context], error), error) {
-	shared, err := providerlib.NewMetrics(registry)
-	if err != nil {
-		return session.Connector{}, nil, err
-	}
-	metrics, err := shared.For(gmailProvider)
-	if err != nil {
-		return session.Connector{}, nil, err
-	}
-	port := func(account string, tokens gmail.Tokens) (mail.Port[context.Context], error) {
-		return gmail.New(gmail.Config{Account: account, Client: client, Tokens: tokens, Metrics: metrics})
-	}
-	return session.Connect(gmailSource(client), func(account string, source *google.TokenSource) (mail.Port[context.Context], error) {
-		return port(account, source)
-	}), port, nil
-}
-
-// perCall is how many identifiers one call fetching stale subjects again names under profile, the most
-// whose cost fits one second's worth at the hard cap, and never more than mostPerCall (ADR-0023).
-func perCall(profile mail.RateLimitProfile[context.Context]) int {
-	return mail.CallSize(func(n int) float64 {
-		return profile.Cost(mail.ProviderOp{Operation: mail.OpGetMessageMetadata, Messages: n}).Weight
-	}, profile.BudgetPerSecond(), mostPerCall)
+// body is the second pass's body fetch through the unit's mailbox, a second call naming a part held
+// apart (ADR-0025, ADR-0131).
+func (u *unit) body(ctx context.Context, id string) (mail.MessageBody, error) {
+	return providermail.Body(ctx, u.current.Mailbox(), id)
 }
 
 // secondDeps returns what an account's second pass runs with. The gate decides under the thresholds
@@ -512,10 +428,10 @@ func reopen(ctx context.Context, deps pass2.Deps, account string, logger *slog.L
 	return nil
 }
 
-// passAccount runs the first pass over one account a page at a time. Each page opens the account's
-// session first and ends its unit after, then counts the page's unclassified senders, and a page made
+// passAccount runs the first pass over one account a page at a time. Each page begins the account's
+// unit of work first and ends it after, then counts the page's unclassified senders, and a page made
 // durable is the job's success. It stops at a page boundary once ctx ends.
-func passAccount(ctx context.Context, deps pass1.Deps, account string, metrics *pass1.Metrics, u *unit, ask schedule.Ask, logger *slog.Logger) error {
+func passAccount(ctx context.Context, deps pass1.Deps, account string, metrics *pass1.Metrics, u units, ask schedule.Ask, logger *slog.Logger) error {
 	p, err := pass1.Open(ctx, deps, account)
 	if err != nil {
 		return err
@@ -554,19 +470,11 @@ func passAccount(ctx context.Context, deps pass1.Deps, account string, metrics *
 	}
 }
 
-// leasedBody returns the body fetch the second pass uses, port's body read under leases in the batch
-// class, a second call naming a part held apart (ADR-0025, ADR-0131).
-func leasedBody(limiter *ratelimit.Limiter, port mail.Port[context.Context], account string) pass2.Body {
-	return func(ctx context.Context, id string) (mail.MessageBody, error) {
-		return ratelimit.Body(ctx, limiter, port, account, ratecore.Batch, id)
-	}
-}
-
 // secondPassAccount runs the second pass over one account a page at a time. Each page opens the
-// account's session first and ends its unit after, then sets the account's scan backlog, which is
+// account's unit of work first and ends it after, then sets the account's scan backlog, which is
 // removed once the pass ends, and a page made durable is the job's success. It logs counts and identifiers, never a body (ADR-0009). It
 // stops at a page boundary once ctx ends.
-func secondPassAccount(ctx context.Context, deps pass2.Deps, account string, metrics *pass2.Metrics, u *unit, ask schedule.Ask, logger *slog.Logger) error {
+func secondPassAccount(ctx context.Context, deps pass2.Deps, account string, metrics *pass2.Metrics, u units, ask schedule.Ask, logger *slog.Logger) error {
 	p, err := pass2.Open(ctx, deps, account)
 	if err != nil {
 		return err

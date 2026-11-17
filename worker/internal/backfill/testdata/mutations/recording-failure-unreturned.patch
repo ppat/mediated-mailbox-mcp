@@ -1,22 +1,22 @@
 control: The latest authentication attempt is recorded at the end of every unit of work, a failed one included, and a failed recording ends the pass in an error
 removes: the end of a unit of work records the attempt but drops a recording that fails
-packages: ./worker/internal/backfill
-tests: TestTheRunsHandOverReturnsAFailedRecording
+packages: ./worker/app
+tests: TestAFailedRecordingFailsTheJobKindsRun/backfill
 scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
 --- a/worker/internal/backfill/backfill.go
 +++ b/worker/internal/backfill/backfill.go
-@@ -364,9 +364,9 @@
+@@ -361,9 +361,9 @@ func (u *unit) end(ctx context.Context) error {
  	if u.current == nil {
  		return nil
  	}
--	handOver, record := u.current.End(ctx)
-+	handOver, _ := u.current.End(ctx)
+-	writeBack, record := u.current.End(ctx)
++	writeBack, _ := u.current.End(ctx)
  	u.current = nil
--	return errors.Join(handOver, record)
-+	return handOver
+-	return errors.Join(writeBack, record)
++	return writeBack
  }
  
- // fetch returns the first pass's enumeration over the unit's session, under a lease (ADR-0025). A
+ // fetch is the first pass's enumeration through the unit's mailbox, leased in the batch class

@@ -1,0 +1,19 @@
+control: An account's series go once the work that sets them ends
+removes: backfill's plan names nothing to do when the listing drops an account, so its series stay
+packages: ./worker/app
+tests: TestAnAccountsSeriesGoWithItsWork
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
+--- a/worker/internal/backfill/backfill.go
++++ b/worker/internal/backfill/backfill.go
+@@ -180,7 +180,7 @@ func (b *Backfill) plan() schedule.Plan {
+ 			job.LastSuccess = b.seed(b.seeding, account)
+ 			return job, nil
+ 		},
+-		Dropped: b.dropped,
++		Dropped: nil,
+ 		Woken:   b.session.AfterReload,
+ 	}
+ }

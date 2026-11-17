@@ -8,10 +8,10 @@ integration: yes
 diff --git a/process/sessions/sessions.go b/process/sessions/sessions.go
 --- a/process/sessions/sessions.go
 +++ b/process/sessions/sessions.go
-@@ -207,6 +207,9 @@ func (s *Session) reload(ctx context.Context) error {
- 		}
+@@ -216,6 +216,9 @@ func (s *Session) reload(ctx context.Context) error {
  	}
  	s.inForce.Store(&listed)
+ 	s.failed.Store(nil)
 +	if !s.loaded.Swap(true) {
 +		s.report(process.Ready, "")
 +	}

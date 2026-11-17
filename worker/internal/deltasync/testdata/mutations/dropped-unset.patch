@@ -1,0 +1,19 @@
+control: An account's series go once the work that sets them ends
+removes: delta sync's plan names nothing to do when the listing drops an account, so its series stay
+packages: ./worker/app
+tests: TestAnAccountsSeriesGoWithItsWork
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/deltasync.go
+--- a/worker/internal/deltasync/deltasync.go
++++ b/worker/internal/deltasync/deltasync.go
+@@ -174,7 +174,7 @@ func (d *DeltaSync) plan() schedule.Plan {
+ 			job.LastSuccess = d.seed(d.seeding, account)
+ 			return job, nil
+ 		},
+-		Dropped: d.dropped,
++		Dropped: nil,
+ 		Woken:   d.session.AfterReload,
+ 	}
+ }

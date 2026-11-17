@@ -11,6 +11,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/config"
+	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/process/settings"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/helmchart"
@@ -37,7 +38,7 @@ func TestTheChartRendersAFileTheWorkerStartsWith(t *testing.T) {
 	if err := loaded.Config.Check(); err != nil {
 		t.Fatalf("the worker's validation refuses the chart's file: %v", err)
 	}
-	if _, err := buildScanner(loaded); err != nil {
+	if _, err := scan.New(loaded.Config.ScannerPart(), loaded.Revisions["scanner"]); err != nil {
 		t.Fatalf("the worker refuses the chart's scanner section: %v", err)
 	}
 	mounted := "/etc/mediated-mailbox/secrets/"
@@ -45,6 +46,7 @@ func TestTheChartRendersAFileTheWorkerStartsWith(t *testing.T) {
 		Process:        config.Process{LogLevel: "error"},
 		Operations:     config.Operations{ProbeListen: ":8080"},
 		ReloadInterval: config.Duration(90 * time.Second),
+		Accounts:       config.DefaultAccounts(),
 		Backfill:       config.Backfill{Concurrency: 5},
 		Sync:           config.Sync{SyncInterval: config.Duration(3 * time.Minute), FirstWindow: config.Duration(48 * time.Hour), DecisionsPerTick: 50, Concurrency: 6},
 		Database: config.Database{

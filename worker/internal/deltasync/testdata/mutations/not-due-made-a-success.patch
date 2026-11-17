@@ -1,0 +1,20 @@
+control: A worker start logs no error before its Session loads, and is ready only once the Session's first load has woken each job kind's listing
+removes: delta sync's listing answers a Session that has not loaded yet with no account and no error, so the listing counts as succeeded and the worker reports ready before the Session loads
+packages: ./worker/app
+tests: TestAStartLogsNoErrorAndIsReadyOnlyOnceTheSessionLoads
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/deltasync.go
+--- a/worker/internal/deltasync/deltasync.go
++++ b/worker/internal/deltasync/deltasync.go
+@@ -184,6 +184,9 @@ func (d *DeltaSync) plan() schedule.Plan {
+ // series from what it found, whether or not any account is listed (ADR-0092).
+ func (d *DeltaSync) list(ctx context.Context) ([]string, error) {
+ 	listed, err := d.session.Workable()
++	if errors.Is(err, sessions.ErrNotRead) {
++		return nil, nil
++	}
+ 	if err != nil {
+ 		return nil, err
+ 	}

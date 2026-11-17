@@ -7,11 +7,11 @@ scheduled-count: no
 diff --git a/core/config/programs.go b/core/config/programs.go
 --- a/core/config/programs.go
 +++ b/core/config/programs.go
-@@ -241,6 +241,7 @@ type Worker struct {
- 	ReloadInterval Duration `yaml:"reload_interval"`
- 	Backfill       Backfill `yaml:"backfill"`
- 	Sync           Sync     `yaml:"sync"`
-+	Extra          Backfill `yaml:"extra"`
+@@ -243,6 +243,7 @@ type Worker struct {
+ 	Accounts `yaml:",inline"`
+ 	Backfill Backfill `yaml:"backfill"`
+ 	Sync     Sync     `yaml:"sync"`
++	Extra    Backfill `yaml:"extra"`
  	// Database is the one database part. Its pool size sizes each job kind's pool alike (ADR-0078,
  	// ADR-0119).
  	Database   Database `yaml:"database"`

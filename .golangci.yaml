@@ -1313,17 +1313,34 @@ linters:
           - "golang.org/x/net/publicsuffix$"
           - "pgregory.net/rapid"
 
-        # Deployable worker, every file outside its job kinds' code: its entry, its composition root and the code its
-        # job kinds share, with the scheduler it runs them on, process/schedule. A deployable imports its own code and
-        # the shared libraries, never another deployable (ADR-0054). Its tests may also use test tooling, which the
-        # list for non-test code refuses. It names no data-access subsection, since the schema check it hands the
-        # host is process/database's (ADR-0140). It admits the driver only so the composition root can open each job
-        # kind's pool through the host. The raw SQL analyser refuses any statement the worker's own code runs on a
-        # pool (ADR-0143).
+        # Deployable worker, its non-test code outside its job kinds' code: its entry, which holds its spec, and the
+        # series its job kinds share. A deployable imports its own code and the shared libraries, never another
+        # deployable (ADR-0054). Its entry lists the job kinds and builds nothing, so it names no data-access
+        # subsection, not the Session, the connections, the rate limiter or the body conversion, which each job kind
+        # reaches through its own list (ADR-0117, ADR-0142, ADR-0143).
         worker:
           list-mode: strict
           files:
           - "${base-path}/worker/**.go"
+          - "!$test"
+          - "!${base-path}/worker/internal/backfill/**"
+          - "!${base-path}/worker/internal/core/backfill/**"
+          - "!${base-path}/worker/internal/deltasync/**"
+          - "!${base-path}/worker/internal/core/deltasync/**"
+          allow:
+          - "$gostd"
+          - "github.com/ppat/mediated-mailbox-mcp/core/"
+          - "github.com/ppat/mediated-mailbox-mcp/process$"
+          - "github.com/ppat/mediated-mailbox-mcp/worker/"
+          - "github.com/prometheus/client_golang/prometheus$"
+
+        # Deployable worker, its test files outside its job kinds' code. They run the worker through its spec over the
+        # provider fake, which they hand the connections through the one option the connections export for a test
+        # (ADR-0142), and use the test tooling the list for non-test code refuses.
+        worker-tests:
+          list-mode: strict
+          files:
+          - "${base-path}/worker/**_test.go"
           - "!${base-path}/worker/internal/backfill/**"
           - "!${base-path}/worker/internal/core/backfill/**"
           - "!${base-path}/worker/internal/deltasync/**"
@@ -1331,38 +1348,33 @@ linters:
           allow:
           - "$gostd"
           - "github.com/google/go-cmp/cmp$"
-          - "github.com/google/go-cmp/cmp/cmpopts$"
           - "github.com/jackc/pgx/v5$"
           - "github.com/jackc/pgx/v5/"
           - "github.com/ppat/mediated-mailbox-mcp/core/"
-          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/assembly$"
-          - "github.com/ppat/mediated-mailbox-mcp/credential/open$"
           - "github.com/ppat/mediated-mailbox-mcp/credential/seal$"
-          - "github.com/ppat/mediated-mailbox-mcp/process/database$"
-          - "github.com/ppat/mediated-mailbox-mcp/process/host$"
-          - "github.com/ppat/mediated-mailbox-mcp/process/logging$"
+          - "github.com/ppat/mediated-mailbox-mcp/process$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/connections$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/scanner$"
           - "github.com/ppat/mediated-mailbox-mcp/process/schedule$"
           - "github.com/ppat/mediated-mailbox-mcp/process/settings$"
           - "github.com/ppat/mediated-mailbox-mcp/process/version$"
+          - "github.com/ppat/mediated-mailbox-mcp/provider/mail/fake$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
-          - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/helmchart$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/marker$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
           - "github.com/ppat/mediated-mailbox-mcp/worker/"
-          - "github.com/prometheus/client_golang/prometheus$"
-          # The sender classifier's domain functions, which the composition root passes the execution context.
-          - "golang.org/x/net/idna$"
-          - "golang.org/x/net/publicsuffix$"
 
         # Backfill's job kind in the worker, its shell code and its pure core. A job kind imports its own code, the
         # worker's shared code and the shared libraries, never another job kind's code (ADR-0117). It names each
         # data-access subsection it may use, which db/check tests against the application user's grants, and which holds
         # its code to its own statements (ADR-0143). The two passes' writes sit in subsections the readers' lists do not
-        # admit, which backfill shares with delta sync apart from the completion flags, and the progress, restart mark
-        # and lowered target are read in db/accountstate and its completion subsection (ADR-0066). The recording of the
-        # last authentication attempt runs in the account session, which executioncontext/session admits (ADR-0097).
+        # admit, which backfill shares with delta sync apart from the completion flags, and the progress and the restart
+        # mark are read in db/accountstate and its completion subsection (ADR-0066). It takes its pool, the Session, the
+        # connections and the scanner from the process family, and calls the provider through a caller of its own and a
+        # unit of work, whose end writes a rotated credential back and records the last authentication attempt, so it
+        # names no adapter, no rate limiter and no opening code (ADR-0097, ADR-0142).
         worker-backfill:
           list-mode: strict
           files:
@@ -1385,18 +1397,14 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/db/scangatedecisions/record$"
           - "github.com/ppat/mediated-mailbox-mcp/db/senders/statistics$"
           - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
-          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/accountload$"
-          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/assembly$"
-          - "github.com/ppat/mediated-mailbox-mcp/credential/open$"
-          - "github.com/ppat/mediated-mailbox-mcp/credential/seal$"
-          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/policyload$"
-          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/session$"
+          - "github.com/ppat/mediated-mailbox-mcp/process$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/connections$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/database$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/scanner$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/sessions$"
           - "github.com/ppat/mediated-mailbox-mcp/provider$"
-          - "github.com/ppat/mediated-mailbox-mcp/provider/google$"
+          - "github.com/ppat/mediated-mailbox-mcp/provider/mail$"
           - "github.com/ppat/mediated-mailbox-mcp/provider/mail/fake$"
-          - "github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail$"
-          - "github.com/ppat/mediated-mailbox-mcp/provider/ratelimit$"
-          - "github.com/ppat/mediated-mailbox-mcp/provider/ratelimit/core$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/crash$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
@@ -1419,10 +1427,11 @@ linters:
         # data-access subsection it may use, which db/check tests against the application user's grants, and which holds
         # its code to its own statements (ADR-0143). A tick adds and masks mail and records its runs as backfill's first
         # pass does, and decides and scans what waits as its second pass does, through the subsections it shares with
-        # backfill. The change cursor, a change's labels, flags and removals, and the re-seal of a client secret sit in
-        # subsections only this list admits. The account's progress and lowered target are read in db/accountstate
-        # (ADR-0066, ADR-0104, ADR-0092). The recording of the last authentication attempt runs in the account session,
-        # which executioncontext/session admits (ADR-0097).
+        # backfill. The change cursor and a change's labels, flags and removals sit in subsections only this list
+        # admits. The account's progress is read in db/accountstate (ADR-0066, ADR-0104). It takes its pool, the
+        # Session, the connections and the scanner from the process family, calls the provider through a caller of its
+        # own and a unit of work, and re-seals through the connections, so it names no adapter, no rate limiter, no
+        # opening code and no write of a client secret (ADR-0092, ADR-0097, ADR-0142).
         worker-sync:
           list-mode: strict
           files:
@@ -1444,22 +1453,19 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/db/messages/change$"
           - "github.com/ppat/mediated-mailbox-mcp/db/messages/ingest$"
           - "github.com/ppat/mediated-mailbox-mcp/db/messages/scan$"
-          - "github.com/ppat/mediated-mailbox-mcp/db/oauthclients/secret$"
           - "github.com/ppat/mediated-mailbox-mcp/db/scangatedecisions/record$"
           - "github.com/ppat/mediated-mailbox-mcp/db/senders/statistics$"
           - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
-          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/accountload$"
-          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/assembly$"
-          - "github.com/ppat/mediated-mailbox-mcp/credential/open$"
+          # Its tests seal the credentials they store.
           - "github.com/ppat/mediated-mailbox-mcp/credential/seal$"
-          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/policyload$"
-          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/session$"
+          - "github.com/ppat/mediated-mailbox-mcp/process$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/connections$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/database$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/scanner$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/sessions$"
           - "github.com/ppat/mediated-mailbox-mcp/provider$"
-          - "github.com/ppat/mediated-mailbox-mcp/provider/google$"
+          - "github.com/ppat/mediated-mailbox-mcp/provider/mail$"
           - "github.com/ppat/mediated-mailbox-mcp/provider/mail/fake$"
-          - "github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail$"
-          - "github.com/ppat/mediated-mailbox-mcp/provider/ratelimit$"
-          - "github.com/ppat/mediated-mailbox-mcp/provider/ratelimit/core$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/crash$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"

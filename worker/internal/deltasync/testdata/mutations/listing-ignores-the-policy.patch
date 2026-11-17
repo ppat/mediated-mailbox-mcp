@@ -1,0 +1,23 @@
+control: No account is added while the policy reload fails, and a dropped account's job is still removed
+removes: delta sync's listing names every account the Session holds in force, so an account whose policy never loaded gets a job
+packages: ./worker/app
+tests: TestNoAccountIsListedBeforeItsPolicyLoads
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/deltasync.go
+--- a/worker/internal/deltasync/deltasync.go
++++ b/worker/internal/deltasync/deltasync.go
+@@ -183,9 +183,9 @@ func (d *DeltaSync) plan() schedule.Plan {
+ // re-seals what the connections opened with a key that is not the current one and sets the key-scan
+ // series from what it found, whether or not any account is listed (ADR-0092).
+ func (d *DeltaSync) list(ctx context.Context) ([]string, error) {
+-	listed, err := d.session.Workable()
+-	if err != nil {
+-		return nil, err
++	var listed []string
++	for _, a := range d.session.Accounts() {
++		listed = append(listed, a.ID)
+ 	}
+ 	d.keyScan.Set(d.conns.Reseal(ctx))
+ 	return listed, nil

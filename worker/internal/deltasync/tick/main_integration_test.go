@@ -120,7 +120,7 @@ func listing(t tb, domains ...string) policy.Snapshot {
 	return p
 }
 
-func scanner(t tb) scan.Scanner {
+func defaultScanner(t tb) scan.Scanner {
 	t.Helper()
 	s, err := scan.New(config.DefaultScanner(), "a-revision")
 	if err != nil {
@@ -222,7 +222,7 @@ func deps(t tb, pool *pgxpool.Pool, p tick.Provider, pol policy.Snapshot, accoun
 	t.Helper()
 	return tick.Deps{
 		Store: tick.NewPostgres(pool), Provider: p,
-		Policy: classify.Prepare(pol.For(account), lookups), Gate: gate, Scanner: scanner(t),
+		Policy: classify.Prepare(pol.For(account), lookups), Gate: gate, Scanner: defaultScanner(t),
 		FirstWindow: 7 * day, Decisions: 200, PageSize: 2,
 		RunID: func() string { return fmt.Sprintf("%s-run%d", account, runIDs.Add(1)) },
 		Now:   func() time.Time { return now },

@@ -1,4 +1,4 @@
-control: The ping report of the process's one pool is ready only while the database answers a ping, and refuses a job kind
+control: Each pool's ping report is ready only while the database answers a ping, the process's pool's under database and a job kind's under its own name
 removes: the read API endpoint never opts the UI's pool into the ping report, so the UI is ready whatever the database does
 packages: ./ui/app
 tests: TestReadinessFollowsTheDatabase

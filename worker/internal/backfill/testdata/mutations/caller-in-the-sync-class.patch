@@ -1,0 +1,19 @@
+control: Each job kind spends from the account's budget in its own class, backfill in the batch class and delta sync in the sync class
+removes: backfill's caller leases in the sync class
+packages: ./worker/app
+tests: TestTheProbesServeEverySeriesBetweenRuns
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
+--- a/worker/internal/backfill/backfill.go
++++ b/worker/internal/backfill/backfill.go
+@@ -123,7 +123,7 @@ func Build(ctx context.Context, p process.Capabilities, c config.Worker) (schedu
+ 	if err != nil {
+ 		return schedule.Plan{}, err
+ 	}
+-	caller, err := conns.Caller(p, pool, provider.Options{Class: provider.Batch, Timeout: callTimeout})
++	caller, err := conns.Caller(p, pool, provider.Options{Class: provider.Sync, Timeout: callTimeout})
+ 	if err != nil {
+ 		return schedule.Plan{}, err
+ 	}

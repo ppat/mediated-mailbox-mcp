@@ -987,6 +987,10 @@
               "type": "string",
               "description": "A Go duration, such as 30s, 5m or 168h."
             },
+            "account_reload_interval": {
+              "type": "string",
+              "description": "A Go duration, such as 30s, 5m or 168h."
+            },
             "log_level": {
               "type": "string",
               "enum": [

@@ -185,15 +185,16 @@ func TestTheConsentRedirectIsALoopbackAddressWithAPort(t *testing.T) {
 }
 
 // The worker's defaults are the process's, its probe listener and the info level, the port, a pool
-// of four for each job kind, the TLS mode that fails closed, a reload every minute, ADR-0018's
-// five-minute sync interval, a first window of seven days, two hundred decisions a tick, two accounts
-// backfilled at once, four ticking at once and the scanner part the application ships. Nothing names
-// a database user (ADR-0078, ADR-0103, ADR-0104, ADR-0105, ADR-0119, ADR-0143).
+// of four for each job kind, the TLS mode that fails closed, a listing and a reload of the Session
+// every minute, ADR-0018's five-minute sync interval, a first window of seven days, two hundred
+// decisions a tick, two accounts backfilled at once, four ticking at once and the scanner part the
+// application ships. Nothing names a database user (ADR-0078, ADR-0103, ADR-0104, ADR-0105, ADR-0119, ADR-0143).
 func TestTheWorkerDefaults(t *testing.T) {
 	want := config.Worker{
 		Process:        config.Process{LogLevel: "info"},
 		Operations:     config.Operations{ProbeListen: ":8080"},
 		ReloadInterval: minute,
+		Accounts:       config.Accounts{AccountReloadInterval: minute},
 		Backfill:       config.Backfill{Concurrency: 2},
 		Sync:           config.Sync{SyncInterval: 5 * minute, FirstWindow: 7 * 24 * hour, DecisionsPerTick: 200, Concurrency: 4},
 		Database:       config.Database{Port: 5432, SSLMode: "verify-full", PoolSize: 4},
@@ -228,6 +229,7 @@ func TestTheWorkerConfigurationIsChecked(t *testing.T) {
 		{"a negative first window", func(c *config.Worker) { c.Sync.FirstWindow = -hour }, "sync.first_window is not positive"},
 		{"no decisions a tick", func(c *config.Worker) { c.Sync.DecisionsPerTick = 0 }, "sync.decisions_per_tick 0 is not positive"},
 		{"no sync concurrency", func(c *config.Worker) { c.Sync.Concurrency = -1 }, "sync.concurrency -1 is not positive"},
+		{"an account reload interval of zero", func(c *config.Worker) { c.AccountReloadInterval = 0 }, "account_reload_interval is not positive"},
 		{"an empty public key path", func(c *config.Worker) { c.Credential.PublicKeyFile = "" }, "credential.public_key_file is empty"},
 		{"a scanner threshold above 1", func(c *config.Worker) { c.Scanner.Threshold = 1.5 }, "scanner: scan: each threshold must be above 0 and at most 1"},
 		{"the database before the worker's own", func(c *config.Worker) { c.Database.Name, c.ReloadInterval = "", 0 }, "database.name is empty"},
@@ -312,6 +314,7 @@ func TestTheProgramTypesArePinned(t *testing.T) {
 		"Process Process",
 		"Operations Operations",
 		"ReloadInterval Duration",
+		"Accounts Accounts",
 		"Backfill Backfill",
 		"Sync Sync",
 		"Database Database",

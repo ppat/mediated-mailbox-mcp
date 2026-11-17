@@ -1,7 +1,7 @@
 control: A panic in a job's run is recovered and recorded as the run's failure with its stack
 removes: a panic raised in a page of the first pass is recovered and returned, and the run is never recorded as failed
-packages: ./worker/internal/backfill
-tests: TestAPanicInARunIsRecordedAsTheRunsFailure
+packages: ./worker/app
+tests: TestAPanicInARunFailsThatRunAlone
 scheduled-count: no
 integration: yes
 

@@ -492,10 +492,26 @@ func TestTheEndRecordsTheTokensLatestAttempt(t *testing.T) {
 			t.Errorf("recorded %v %q, want %v %q", gotAt, gotOutcome, when, outcome)
 		}
 	}
+	// An attempt older than the one recorded, as a unit of work that began before another's ends after
+	// it, changes nothing, and a later one replaces it (ADR-0097).
+	latest := at.Add(2 * time.Minute)
+	w := r.begin(t, "personal")
+	r.provider.latest("personal").Attempted(coremail.AuthAttempt{At: coremail.UnixMilli(at.Add(-time.Minute).UnixMilli()), Outcome: coremail.AuthSucceeded})
+	end(t, w)
+	if gotAt, gotOutcome := recorded(); !gotAt.Equal(latest) || gotOutcome != string(coremail.AuthFailed) {
+		t.Errorf("after an older attempt recorded %v %q, want the later %v %q kept", gotAt, gotOutcome, latest, coremail.AuthFailed)
+	}
+	later := at.Add(3 * time.Minute)
+	w = r.begin(t, "personal")
+	r.provider.latest("personal").Attempted(coremail.AuthAttempt{At: coremail.UnixMilli(later.UnixMilli()), Outcome: coremail.AuthRefused})
+	end(t, w)
+	if gotAt, gotOutcome := recorded(); !gotAt.Equal(later) || gotOutcome != string(coremail.AuthRefused) {
+		t.Errorf("after a later attempt recorded %v %q, want %v %q", gotAt, gotOutcome, later, coremail.AuthRefused)
+	}
 
 	must(t, conn, "REVOKE UPDATE ON account_state FROM "+role)
 	restoreOnCleanup(t, "GRANT UPDATE (credential, last_auth_at, last_auth_outcome) ON account_state TO "+role)
-	w := r.begin(t, "personal")
+	w = r.begin(t, "personal")
 	r.provider.latest("personal").Attempted(coremail.AuthAttempt{At: coremail.UnixMilli(at.Add(time.Hour).UnixMilli()), Outcome: coremail.AuthSucceeded})
 	if writeBack, record := w.End(t.Context()); writeBack != nil || record == nil {
 		t.Errorf("ending with the recording refused returned %v, %v, want the recording's failure alone", writeBack, record)
@@ -598,8 +614,8 @@ func TestNoUnitOfWorkBeginsOnAnAccountNotInForce(t *testing.T) {
 	if _, err := r.connections.Begin("personal", r.caller, noBound); !errors.Is(err, connections.ErrNotConnected) {
 		t.Errorf("a unit of work on an account dropped began with %v, want ErrNotConnected", err)
 	}
-	if got := r.session.Workable(); slices.Contains(got, "personal") {
-		t.Errorf("the Session holds %v workable, the account dropped among them", got)
+	if got, err := r.session.Workable(); err != nil || slices.Contains(got, "personal") {
+		t.Errorf("the Session holds %v workable (%v), the account dropped among them", got, err)
 	}
 	if writeBack, record := w.End(t.Context()); writeBack != nil && !strings.Contains(writeBack.Error(), "personal") || record != nil {
 		t.Errorf("ending a unit of work on an account dropped returned %v, %v, want no error or one naming the account", writeBack, record)

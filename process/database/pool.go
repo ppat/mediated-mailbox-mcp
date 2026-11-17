@@ -21,9 +21,8 @@ const (
 // OpenPool opens a pool from config with every statement its connections run timed by the tracer
 // and its statistics collected, both on reg. It opens no connection until the pool's first use, as
 // pgxpool.NewWithConfig does, and runs no schema check. Open opens through it, and it is exported
-// only for the worker's integration tests, which open their job kinds' pools as a database role the
-// configuration cannot name, until the worker runs on its spec and its pools come from Get
-// (ADR-0125).
+// only for this package's own tests, which open a pool from a configuration of their own, until
+// process/host is deleted and Open with it (ADR-0125).
 func OpenPool(ctx context.Context, config *pgxpool.Config, reg prometheus.Registerer) (*pgxpool.Pool, error) {
 	tracer, err := newTracer(reg)
 	if err != nil {

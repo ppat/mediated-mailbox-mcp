@@ -17,6 +17,7 @@ import (
 
 	"github.com/ppat/mediated-mailbox-mcp/process/accounts"
 	"github.com/ppat/mediated-mailbox-mcp/process/policies"
+	"github.com/ppat/mediated-mailbox-mcp/process/schedule"
 	"github.com/ppat/mediated-mailbox-mcp/process/sessions"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 )
@@ -222,11 +223,50 @@ func TestWithoutConnectionsNoAccountIsWorkable(t *testing.T) {
 	listed(t, conn, "personal")
 	r := start(t)
 	r.waitReady(t, 10*time.Second)
-	if got := r.session().Workable(); len(got) != 0 {
-		t.Errorf("a Session with no connections holds %v workable", got)
+	if got, err := r.session().Workable(); err != nil || len(got) != 0 {
+		t.Errorf("a Session with no connections holds %v workable, error %v", got, err)
 	}
 	if diff := cmp.Diff([]string{"personal"}, r.session().AccountsWithPolicy(), compare.Options); diff != "" {
 		t.Errorf("the accounts with a policy (-want +got):\n%s", diff)
+	}
+}
+
+// F9's part of VERIFICATIONS' rows for a job kind's listing before the Session's first load and
+// while its latest read of the accounts failed. The workable accounts, which a job kind that calls a
+// provider lists, are not due before a reload has read the list, though that reload's read failed, so
+// a normal start logs no error. Once a list is in force, a reload whose read fails has them answer that
+// failure, and a later reload that reads the list has them answer again (ADR-0119).
+func TestTheWorkableAccountsAnswerFromTheLatestRead(t *testing.T) {
+	conn := superuser(t)
+	reset(t, conn)
+	listed(t, conn, "personal")
+	revoke(t, conn, "SELECT ON accounts")
+	r := start(t)
+	s := r.session()
+	if err := s.Reload(t.Context()); err == nil {
+		t.Fatal("a reload with the listing refused succeeded")
+	}
+	if _, err := s.Workable(); !errors.Is(err, sessions.ErrNotRead) || !errors.Is(err, schedule.ErrNotDue) {
+		t.Errorf("before a list was in force the workable accounts answered %v, want not due", err)
+	}
+	must(t, conn, "GRANT SELECT ON accounts TO "+role)
+	if err := s.Reload(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Workable(); err != nil {
+		t.Errorf("once a list was in force the workable accounts answered %v", err)
+	}
+	revoke(t, conn, "SELECT ON accounts")
+	read := s.Reload(t.Context())
+	if _, err := s.Workable(); err == nil || !errors.Is(err, accounts.ErrUntrustedRead) || errors.Is(err, schedule.ErrNotDue) {
+		t.Errorf("after a failed read the workable accounts answered %v, want the read's failure %v", err, read)
+	}
+	must(t, conn, "GRANT SELECT ON accounts TO "+role)
+	if err := s.Reload(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Workable(); err != nil {
+		t.Errorf("after a later read the workable accounts answered %v", err)
 	}
 }
 

@@ -318,19 +318,43 @@ func TestThePingReportIsNotReadyUntilAPingAnswers(t *testing.T) {
 	}
 }
 
-// A job kind's part is refused the ping report, since a job kind's pool is its own and the report
-// names the process's one pool, so the refusal fails the job kind's build and the start (ADR-0142).
-func TestAJobKindIsRefusedThePingReport(t *testing.T) {
-	// A report that let the job kind through would leave the process serving, so a deadline ends the
-	// run.
-	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
-	defer cancel()
-	err := process.RunContext(ctx, flags(t, postgres.URL(t)), nil, io.Discard, io.Discard, process.Spec[program]{
-		Name: "test", Jobs: []process.Job[program]{{Name: "kind", Build: func(ctx context.Context, p process.Capabilities, c program) (schedule.Plan, error) {
-			return idle(), database.ReportReadiness(ctx, p, c)
-		}}},
-	})
-	if err == nil || !strings.Contains(err.Error(), "a job kind's pool has no ping report yet") {
-		t.Errorf("a job kind asking for the ping report ran to %v, want its build refused", err)
+// A job kind's part gets the ping report of its own pool, under the job kind's own name, so each
+// job kind's pool is told apart on the readiness probe from the others and from the process's one
+// pool, as the worker's readiness needs. Once the database stops answering, the probe names the
+// first job kind's pool not ready, and once it answers again the process is ready. Asked for twice,
+// each job kind's report is one report, so each failed ping is logged once for each of the two job
+// kinds (ADR-0142).
+func TestAJobKindsPoolIsReportedUnderItsOwnName(t *testing.T) {
+	url := postgres.URL(t)
+	var logs lockedBuffer
+	ctx, cancel := context.WithCancel(t.Context())
+	done := make(chan error, 1)
+	kind := func(name string) process.Job[program] {
+		return process.Job[program]{Name: name, Build: func(ctx context.Context, p process.Capabilities, c program) (schedule.Plan, error) {
+			for range 2 {
+				if err := database.ReportReadiness(ctx, p, c); err != nil {
+					return schedule.Plan{}, err
+				}
+			}
+			return idle(), nil
+		}}
+	}
+	go func() {
+		done <- process.RunContext(ctx, append(flags(t, url), "--log_level=debug"), nil, &logs, io.Discard, process.Spec[program]{
+			Name: "test", Jobs: []process.Job[program]{kind("one"), kind("two")},
+		})
+	}()
+	await(t, logs.String, http.StatusOK, "")
+	open := shutOut(t, url)
+	await(t, logs.String, http.StatusServiceUnavailable, "not ready: one: the database does not answer a ping")
+	time.Sleep(time.Second)
+	if n := strings.Count(logs.String(), `"msg":"the database did not answer a ping"`); n != 2 {
+		t.Errorf("the first failed interval logged %d failed pings, want 2, one from each job kind's one report:\n%s", n, logs.String())
+	}
+	open()
+	await(t, logs.String, http.StatusOK, "")
+	cancel()
+	if err := <-done; err != nil {
+		t.Fatal(err)
 	}
 }

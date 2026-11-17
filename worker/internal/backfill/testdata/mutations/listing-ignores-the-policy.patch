@@ -1,0 +1,25 @@
+control: No account is added while the policy reload fails, and a dropped account's job is still removed
+removes: backfill's listing names every account the Session holds in force, so an account whose policy never loaded gets a job
+packages: ./worker/app
+tests: TestNoAccountIsListedBeforeItsPolicyLoads
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
+--- a/worker/internal/backfill/backfill.go
++++ b/worker/internal/backfill/backfill.go
+@@ -171,7 +171,13 @@ func build(p process.Capabilities, pool *pgxpool.Pool, s *sessions.Session, conn
+ // dropped with the account's series (ADR-0090, ADR-0119).
+ func (b *Backfill) plan() schedule.Plan {
+ 	return schedule.Plan{
+-		Keys:    func(context.Context) ([]string, error) { return b.session.Workable() },
++		Keys: func(context.Context) ([]string, error) {
++			var listed []string
++			for _, a := range b.session.Accounts() {
++				listed = append(listed, a.ID)
++			}
++			return listed, nil
++		},
+ 		Recheck: b.interval,
+ 		Backoff: backoff,
+ 		Late:    lateReloads * b.interval,

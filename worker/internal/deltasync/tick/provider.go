@@ -4,8 +4,7 @@ import (
 	"context"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
-	"github.com/ppat/mediated-mailbox-mcp/provider/ratelimit"
-	ratecore "github.com/ppat/mediated-mailbox-mcp/provider/ratelimit/core"
+	providermail "github.com/ppat/mediated-mailbox-mcp/provider/mail"
 )
 
 // Provider is what a tick asks of the provider for one account. Its errors wrap the Provider Port's.
@@ -18,45 +17,20 @@ type Provider interface {
 	GetMessageBody(ctx context.Context, id string) (mail.MessageBody, error)
 }
 
-// Leased is the Provider that calls port for the account under a lease in the sync class, each call
-// sized by what port's rate profile says it costs (ADR-0025).
-type Leased struct {
-	Limiter *ratelimit.Limiter
-	Port    mail.Port[context.Context]
-	Account string
-}
+// Through returns the Provider that calls the account through m, the mailbox of the tick's unit of
+// work, which leases every call in its caller's class, the sync class for delta sync (ADR-0025).
+func Through(m providermail.Mailbox) Provider { return through{m} }
 
-var _ Provider = Leased{}
+// through is the Provider over one unit of work's mailbox.
+type through struct{ providermail.Mailbox }
 
-func call[T any](ctx context.Context, l Leased, op mail.ProviderOp, do func(context.Context) (T, error)) (T, error) {
-	return ratelimit.Call(ctx, l.Limiter, l.Port, l.Account, ratecore.Sync, op, do)
-}
-
-// CurrentCursor implements Provider.
-func (l Leased) CurrentCursor(ctx context.Context) (mail.Cursor, error) {
-	return call(ctx, l, mail.ProviderOp{Operation: mail.OpCurrentCursor}, l.Port.CurrentCursor)
-}
-
-// ChangesSince implements Provider.
-func (l Leased) ChangesSince(ctx context.Context, cursor mail.Cursor) (mail.ChangeSet, error) {
-	return call(ctx, l, mail.ProviderOp{Operation: mail.OpChangesSince}, func(ctx context.Context) (mail.ChangeSet, error) {
-		return l.Port.ChangesSince(ctx, cursor)
-	})
-}
-
-// GetMessageMetadata implements Provider. It splits ids into calls naming as many as fit one second's
-// worth at the hard cap (ADR-0023).
-func (l Leased) GetMessageMetadata(ctx context.Context, ids []string) ([]mail.MessageMetadata, error) {
-	profile := l.Port.RateProfile()
-	size := mail.CallSize(func(n int) float64 {
-		return profile.Cost(mail.ProviderOp{Operation: mail.OpGetMessageMetadata, Messages: n}).Weight
-	}, profile.BudgetPerSecond(), len(ids))
+// GetMessageMetadata implements Provider. It splits ids into calls naming as many as fit one
+// second's worth at the hard cap, as the mailbox says (ADR-0023).
+func (t through) GetMessageMetadata(ctx context.Context, ids []string) ([]mail.MessageMetadata, error) {
+	size := t.MetadataCallSize(len(ids))
 	var out []mail.MessageMetadata
 	for start := 0; start < len(ids); start += size {
-		chunk := ids[start:min(start+size, len(ids))]
-		got, err := call(ctx, l, mail.ProviderOp{Operation: mail.OpGetMessageMetadata, Messages: len(chunk)}, func(ctx context.Context) ([]mail.MessageMetadata, error) {
-			return l.Port.GetMessageMetadata(ctx, chunk)
-		})
+		got, err := t.Mailbox.GetMessageMetadata(ctx, ids[start:min(start+size, len(ids))])
 		if err != nil {
 			return nil, err
 		}
@@ -65,14 +39,7 @@ func (l Leased) GetMessageMetadata(ctx context.Context, ids []string) ([]mail.Me
 	return out, nil
 }
 
-// ListThreads implements Provider.
-func (l Leased) ListThreads(ctx context.Context, q mail.Query, page mail.PageToken) (mail.Page[mail.ThreadMetadata], error) {
-	return call(ctx, l, mail.ProviderOp{Operation: mail.OpListThreads}, func(ctx context.Context) (mail.Page[mail.ThreadMetadata], error) {
-		return l.Port.ListThreads(ctx, q, page)
-	})
-}
-
 // GetMessageBody implements Provider, a second call naming a part held apart (ADR-0131).
-func (l Leased) GetMessageBody(ctx context.Context, id string) (mail.MessageBody, error) {
-	return ratelimit.Body(ctx, l.Limiter, l.Port, l.Account, ratecore.Sync, id)
+func (t through) GetMessageBody(ctx context.Context, id string) (mail.MessageBody, error) {
+	return providermail.Body(ctx, t.Mailbox, id)
 }
