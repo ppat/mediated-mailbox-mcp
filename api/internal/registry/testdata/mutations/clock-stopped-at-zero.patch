@@ -1,0 +1,20 @@
+control: The read operations read the accounts and the policy the Session holds in force, and a clock within thirty seconds of the real one when the read is made
+removes: the read operations are given a clock stopped at the zero time, behind every recorded instant, so a backoff that ended an hour ago reads as running
+packages: ./api/app
+tests: TestTheReadOperationsReadTheSession
+scheduled-count: no
+integration: yes
+
+diff --git a/api/internal/registry/registry.go b/api/internal/registry/registry.go
+index 12eaa003..e1d485d6 100644
+--- a/api/internal/registry/registry.go
++++ b/api/internal/registry/registry.go
+@@ -74,7 +74,7 @@ func build(ctx context.Context, p process.Capabilities, c config.API) (service.R
+ 		DB:       pool,
+ 		Accounts: accounts(s),
+ 		Policy:   s.Policy,
+-		Now:      time.Now,
++		Now:      func() time.Time { return time.Time{} },
+ 		Bodies: service.Bodies{
+ 			Policy: fetch.Policy,
+ 			Open:   fetch.Open,

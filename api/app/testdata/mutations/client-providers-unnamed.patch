@@ -1,19 +1,20 @@
 control: An account of a provider that authenticates through an OAuth client is connected only through its own client
-removes: the API server names no provider as authenticating through a client, so the loader connects a Gmail account that names none
+removes: no provider is taken as authenticating through a client, so the connections connect an account of one that names none
 packages: ./api/app
 tests: TestAnAccountNamingNoClientIsNotConnected
 scheduled-count: no
 integration: yes
 
-diff --git a/api/app/app.go b/api/app/app.go
---- a/api/app/app.go
-+++ b/api/app/app.go
-@@ -157,7 +157,7 @@ func fromConfiguration(ctx context.Context, provided host.Provided[config.API])
- // API server's pool, reloading on its account reload interval (ADR-0090).
- func newContext(pool *pgxpool.Pool, keys *open.Keyring, scanner scan.Scanner, a config.Accounts, reg prometheus.Registerer, logger *slog.Logger) (*assembly.Context, error) {
- 	return assembly.New(assembly.Needs{
--		Pool: pool, Keys: keys, ThroughClient: []string{gmailProvider}, Scanner: scanner, Lookups: lookups(),
-+		Pool: pool, Keys: keys, ThroughClient: nil, Scanner: scanner, Lookups: lookups(),
- 		ReloadInterval: time.Duration(a.AccountReloadInterval), Registerer: reg, Logger: logger,
- 	})
- }
+diff --git a/process/connections/connections.go b/process/connections/connections.go
+index 72d60326..b9f09186 100644
+--- a/process/connections/connections.go
++++ b/process/connections/connections.go
+@@ -382,7 +382,7 @@ func (c *Connections) servable(account string, rec *record) bool {
+ 	case !ok:
+ 		c.log.Warn("there is no adapter for an account's provider, so it is not connected", slog.String("account", account), slog.String("provider", rec.provider))
+ 		return false
+-	case facts.UsesClient && !rec.hasClient:
++	case facts.UsesClient && !rec.hasClient && false:
+ 		c.log.Warn("an account's provider authenticates through an OAuth client and the account has none that opened, so it is not connected",
+ 			slog.String("account", account), slog.String("provider", rec.provider), slog.String("client", rec.clientName))
+ 		return false

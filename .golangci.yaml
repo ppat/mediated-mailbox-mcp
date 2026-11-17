@@ -984,33 +984,29 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/credential/open$"
           - "github.com/ppat/mediated-mailbox-mcp/credential/seal$"
 
-        # Deployable api, every file. A deployable imports its own code and the shared libraries, never another
-        # deployable (ADR-0054). Its tests may also use test tooling, which the list for non-test code refuses. It names
-        # each data-access subsection it may use, which db/check tests against the application user's grants, and which
-        # bounds what its code can do in the database (ADR-0143). The MCP root's generator is left out, because it alone
-        # imports the MCP SDK, and its own list governs it.
+        # Deployable api, every non-test file but the MCP root's generator, the body operation's provider functions and
+        # the registry's build. A deployable imports its own code and the shared libraries, never another deployable
+        # (ADR-0054). It names each data-access subsection it may use, which db/check tests against the application
+        # user's grants, and which bounds what its code can do in the database (ADR-0143). It admits neither the
+        # connections nor any of the provider library, so the service layer and every other package of the API server
+        # reach a provider only through api/internal/bodies, and the rate limiter only through api/internal/registry,
+        # whose own lists below govern them (ADR-0030, ADR-0117, ADR-0142). The MCP root's generator is left out,
+        # because it alone imports the MCP SDK, and its own list governs it.
         api:
           list-mode: strict
           files:
           - "${base-path}/api/**.go"
           - "!${base-path}/api/internal/mcp/mcp.go"
+          - "!${base-path}/api/internal/bodies/**"
+          - "!${base-path}/api/internal/registry/**"
+          - "!$test"
           allow:
           - "$gostd"
-          - "github.com/getkin/kin-openapi/openapi3$"
-          - "github.com/google/go-cmp/cmp$"
-          - "github.com/google/go-cmp/cmp/cmpopts$"
           - "github.com/jackc/pgx/v5$"
           - "github.com/jackc/pgx/v5/"
           - "github.com/ppat/mediated-mailbox-mcp/core/"
           - "github.com/ppat/mediated-mailbox-mcp/db/accountstate$"
-          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/accountload$"
-          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/assembly$"
-          - "github.com/ppat/mediated-mailbox-mcp/credential/open$"
-          - "github.com/ppat/mediated-mailbox-mcp/credential/seal$"
-          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/session$"
-          # The audit row of each body served or denied, a write only the API server's list admits (ADR-0016). The
-          # recording of the last authentication attempt at the end of each body request runs in the account
-          # session, which executioncontext/session admits (ADR-0097).
+          # The audit row of each body served or denied, a write only the API server's list admits (ADR-0016).
           - "github.com/ppat/mediated-mailbox-mcp/db/auditlog/record$"
           - "github.com/ppat/mediated-mailbox-mcp/db/jobruns$"
           - "github.com/ppat/mediated-mailbox-mcp/db/maskingevents$"
@@ -1018,23 +1014,109 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/db/ratestate$"
           # The sender statistics the sender listing reads, apart from their writes, which sit in
           # db/senders/statistics and db/messages/change (ADR-0109).
-          - "github.com/ppat/mediated-mailbox-mcp/content/markdown$"
           - "github.com/ppat/mediated-mailbox-mcp/db/senders$"
           - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
-          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/policyload$"
           - "github.com/ppat/mediated-mailbox-mcp/api/"
-          # The database package, whose schema check the composition root hands the host (ADR-0140).
+          # The spec, the capabilities each endpoint is built with and the slot the bearer token's report is kept in
+          # (ADR-0142).
+          - "github.com/ppat/mediated-mailbox-mcp/process$"
+
+        # The API server's entry, which holds its spec and nothing else, and its main.go, which hands the process the
+        # spec. It runs no statement and builds no part, each part being built by the Build of its own package, which
+        # the spec names, so a data-access subsection, the Session, the connections, the registry's build and the body
+        # conversion are each refused (ADR-0142).
+        api-app:
+          list-mode: strict
+          files:
+          - "${base-path}/api/app/**.go"
+          - "${base-path}/api/main.go"
+          - "!$test"
+          allow:
+          - "$gostd"
+          - "github.com/ppat/mediated-mailbox-mcp/api/app$"
+          - "github.com/ppat/mediated-mailbox-mcp/api/internal/api$"
+          - "github.com/ppat/mediated-mailbox-mcp/api/internal/mcp$"
+          - "github.com/ppat/mediated-mailbox-mcp/core/config$"
+          - "github.com/ppat/mediated-mailbox-mcp/process$"
+
+        # What the body operation needs of a provider, the one package of the API server that begins a unit of work,
+        # so the one admitted the connections, and the provider library's calling side for the caller's class. It is
+        # refused the rate limiter, which only the registry's build reaches, for the rate-state collector (ADR-0142).
+        api-bodies:
+          list-mode: strict
+          files:
+          - "${base-path}/api/internal/bodies/**.go"
+          - "!$test"
+          allow:
+          - "$gostd"
+          - "github.com/ppat/mediated-mailbox-mcp/api/internal/service$"
+          - "github.com/ppat/mediated-mailbox-mcp/core/"
+          - "github.com/ppat/mediated-mailbox-mcp/process$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/connections$"
           - "github.com/ppat/mediated-mailbox-mcp/process/database$"
-          - "github.com/ppat/mediated-mailbox-mcp/process/host$"
-          - "github.com/ppat/mediated-mailbox-mcp/process/logging$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/sessions$"
+          - "github.com/ppat/mediated-mailbox-mcp/provider$"
+          - "github.com/ppat/mediated-mailbox-mcp/provider/mail$"
+
+        # The build of the API server's one registry of operations, the one package of the API server admitted the
+        # rate limiter, for F3's rate-state collector registered beside the registry, and the provider library's
+        # calling side for the facts about each provider (ADR-0077, ADR-0142). It is refused the connections, which the
+        # body operation reaches only through api/internal/bodies.
+        api-registry:
+          list-mode: strict
+          files:
+          - "${base-path}/api/internal/registry/**.go"
+          - "!$test"
+          allow:
+          - "$gostd"
+          - "github.com/ppat/mediated-mailbox-mcp/api/internal/bodies$"
+          - "github.com/ppat/mediated-mailbox-mcp/api/internal/service$"
+          - "github.com/ppat/mediated-mailbox-mcp/content/markdown$"
+          - "github.com/ppat/mediated-mailbox-mcp/core/"
+          - "github.com/ppat/mediated-mailbox-mcp/process$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/database$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/scanner$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/sessions$"
+          - "github.com/ppat/mediated-mailbox-mcp/provider$"
+          - "github.com/ppat/mediated-mailbox-mcp/provider/ratelimit$"
+          - "github.com/prometheus/client_golang/prometheus$"
+
+        # The bearer-token check, the no-store header and the token file's readiness report, which wrap a root's
+        # handler. It reaches no operation, so the service layer, the registry's build, the body operation's provider
+        # functions and every data-access subsection are refused it (ADR-0053, ADR-0071).
+        api-bearer:
+          list-mode: strict
+          files:
+          - "${base-path}/api/internal/bearer/**.go"
+          - "!$test"
+          allow:
+          - "$gostd"
+          - "github.com/ppat/mediated-mailbox-mcp/core/config$"
+          - "github.com/ppat/mediated-mailbox-mcp/process$"
+
+        # Deployable api, every test file. Its tests run the API server through its spec over the provider fake, which
+        # they hand the process through the connections' one option for a test, and may use test tooling, which the
+        # lists for non-test code refuse (ADR-0142). They seal credentials and never open one.
+        api-tests:
+          list-mode: strict
+          files:
+          - "${base-path}/api/**_test.go"
+          allow:
+          - "$gostd"
+          - "github.com/getkin/kin-openapi/openapi3$"
+          - "github.com/google/go-cmp/cmp$"
+          - "github.com/google/go-cmp/cmp/cmpopts$"
+          - "github.com/jackc/pgx/v5$"
+          - "github.com/jackc/pgx/v5/"
+          - "github.com/ppat/mediated-mailbox-mcp/api/"
+          - "github.com/ppat/mediated-mailbox-mcp/core/"
+          - "github.com/ppat/mediated-mailbox-mcp/credential/seal$"
+          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/policyload$"
+          - "github.com/ppat/mediated-mailbox-mcp/process$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/connections$"
           - "github.com/ppat/mediated-mailbox-mcp/process/settings$"
           - "github.com/ppat/mediated-mailbox-mcp/process/version$"
-          - "github.com/ppat/mediated-mailbox-mcp/provider$"
-          - "github.com/ppat/mediated-mailbox-mcp/provider/google$"
           - "github.com/ppat/mediated-mailbox-mcp/provider/mail/fake$"
-          - "github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail$"
-          - "github.com/ppat/mediated-mailbox-mcp/provider/ratelimit$"
-          - "github.com/ppat/mediated-mailbox-mcp/provider/ratelimit/core$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/crash$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
@@ -1044,8 +1126,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/property$"
           - "github.com/prometheus/client_golang/prometheus$"
-          - "github.com/prometheus/client_golang/prometheus/promhttp$"
-          # The sender classifier's domain functions, which the composition root passes the read operations.
+          # The sender classifier's domain functions, which the service layer's tests prepare a policy with.
           - "golang.org/x/net/idna$"
           - "golang.org/x/net/publicsuffix$"
           - "pgregory.net/rapid$"
@@ -1501,15 +1582,19 @@ linters:
         # Every package of the API server but the two roots serves no HTTP, so none can register an operation on the
         # client surface outside the roots' generators (ADR-0053). A new package under internal falls under it
         # without being named. It admits the standard-library packages and the pure cores these packages import,
-        # the shared one and the API server's own, pgx and its pgtype, the transaction helper, and the data-access
-        # subsections the service layer's operations run, and nothing under net/http. A package added here that
-        # imports anything else adds its entry with it.
+        # the shared one and the API server's own, pgx and its pgtype, the transaction helper, the data-access
+        # subsections the service layer's operations run, the service layer and the body operation's provider
+        # functions, and, for the registry's build and those functions, the process family's packages they get, the
+        # provider library's calling side, its mail port and its rate limiter, the body conversion and the metrics
+        # library, and nothing under net/http. A package added here that imports anything else adds its entry with
+        # it.
         api-no-http:
           list-mode: strict
           files:
           - "${base-path}/api/internal/**.go"
           - "!${base-path}/api/internal/api/**"
           - "!${base-path}/api/internal/mcp/**"
+          - "!${base-path}/api/internal/bearer/**"
           - "!$test"
           allow:
           - "bytes$"
@@ -1534,6 +1619,10 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/core/"
           # The release step, which the body operation runs (ADR-0036).
           - "github.com/ppat/mediated-mailbox-mcp/api/internal/core/"
+          # The service layer and the body operation's provider functions, which the registry's build builds the
+          # operations from.
+          - "github.com/ppat/mediated-mailbox-mcp/api/internal/bodies$"
+          - "github.com/ppat/mediated-mailbox-mcp/api/internal/service$"
           # The operations' statements, each run through the transaction helper (ADR-0047), the body operation's
           # audit row among them.
           - "github.com/ppat/mediated-mailbox-mcp/db/accountstate$"
@@ -1544,6 +1633,20 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/db/ratestate$"
           - "github.com/ppat/mediated-mailbox-mcp/db/senders$"
           - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
+          # The process, its Session, its pool, its scanner and its connections, and the provider library's calling
+          # side and rate limiter, which the body operation's provider functions and the registry's build reach, each
+          # held to its one package by the API server's own lists (ADR-0142).
+          - "github.com/ppat/mediated-mailbox-mcp/process$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/connections$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/database$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/scanner$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/sessions$"
+          - "github.com/ppat/mediated-mailbox-mcp/provider$"
+          - "github.com/ppat/mediated-mailbox-mcp/provider/mail$"
+          - "github.com/ppat/mediated-mailbox-mcp/provider/ratelimit$"
+          # The body conversion and the series the registry's build registers (ADR-0036, ADR-0125).
+          - "github.com/ppat/mediated-mailbox-mcp/content/markdown$"
+          - "github.com/prometheus/client_golang/prometheus$"
 
         # The API root's generator, which serves HTTP.
         api-api-generator:
@@ -1552,7 +1655,11 @@ linters:
           - "${base-path}/api/internal/api/api.go"
           allow:
           - "$gostd"
+          - "github.com/ppat/mediated-mailbox-mcp/api/internal/bearer$"
+          - "github.com/ppat/mediated-mailbox-mcp/api/internal/registry$"
           - "github.com/ppat/mediated-mailbox-mcp/api/internal/service$"
+          - "github.com/ppat/mediated-mailbox-mcp/core/config$"
+          - "github.com/ppat/mediated-mailbox-mcp/process$"
 
         # The API server's MCP root reaches the service layer and nothing below it (ADR-0030), under the same rule
         # as the API root.
@@ -1576,7 +1683,12 @@ linters:
           - "$gostd"
           - "github.com/modelcontextprotocol/go-sdk/jsonrpc$"
           - "github.com/modelcontextprotocol/go-sdk/mcp$"
+          - "github.com/ppat/mediated-mailbox-mcp/api/internal/bearer$"
+          - "github.com/ppat/mediated-mailbox-mcp/api/internal/registry$"
           - "github.com/ppat/mediated-mailbox-mcp/api/internal/service$"
+          - "github.com/ppat/mediated-mailbox-mcp/core/config$"
+          - "github.com/ppat/mediated-mailbox-mcp/process$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/version$"
 
         # Every non-test file outside test tooling. Test tooling, the provider fake, the contract suite, rapid and
         # go-cmp never reach code that ships.
@@ -1648,7 +1760,8 @@ linters:
           - "go/"
           - "golang.org/x/net/html$"
           - "golang.org/x/net/html/atom$"
-          # The sender classifier's domain functions, which the API server's composition root passes it.
+          # The sender classifier's domain functions, which the policies and the UI's endpoints prepare each policy
+          # with.
           - "golang.org/x/net/idna$"
           - "golang.org/x/net/publicsuffix$"
           # The Gmail adapter's decoding of a part held apart in its declared charset (ADR-0134).

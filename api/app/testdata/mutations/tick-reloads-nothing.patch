@@ -1,21 +1,21 @@
 control: The serving API server reloads its account snapshot on the interval its configuration sets
-removes: each tick of the schedule passes without a reload
+removes: each tick of the schedule after the first load passes without a reload
 packages: ./api/app
-tests: TestTheAPIServerReloadsOnItsInterval
+tests: TestTheAPIServerServesTheAccountsEachReloadLists
 scheduled-count: no
 integration: yes
 
-
-diff --git a/executioncontext/assembly/assembly.go b/executioncontext/assembly/assembly.go
-index d74efe4..5866aa1 100644
---- a/executioncontext/assembly/assembly.go
-+++ b/executioncontext/assembly/assembly.go
-@@ -202,7 +202,7 @@ func (c *Context) Run(ctx context.Context) error {
- 			return nil
- 		case <-timer.C:
- 		}
--		if err := c.Reload(ctx); err != nil && ctx.Err() == nil {
-+		if err := error(nil); err != nil && ctx.Err() == nil {
- 			c.n.Logger.Error("the execution context was not reloaded in full, so what it held stays in force", "error", err)
- 		}
- 		wait = c.n.ReloadInterval
+diff --git a/process/sessions/sessions.go b/process/sessions/sessions.go
+index 60398e3d..f8185d04 100644
+--- a/process/sessions/sessions.go
++++ b/process/sessions/sessions.go
+@@ -126,6 +126,9 @@ func (s *Session) upkeep() schedule.Job {
+ 		Backoff:  schedule.Backoff{Base: retry, Max: retry},
+ 		Logger:   s.logger,
+ 		Run: func(ctx context.Context, _ schedule.Ask) error {
++			if s.loaded.Load() {
++				return nil
++			}
+ 			err := s.Reload(ctx)
+ 			if err == nil || ctx.Err() != nil || !s.loaded.Load() {
+ 				return err

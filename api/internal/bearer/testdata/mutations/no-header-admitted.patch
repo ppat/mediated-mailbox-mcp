@@ -1,0 +1,21 @@
+control: Every request to the client surface passes the bearer check before either root
+removes: a request carrying no Authorization header is admitted
+packages: ./api/internal/bearer
+tests: TestEveryRequestPassesTheBearerCheckFirst
+scheduled-count: no
+
+diff --git a/api/internal/bearer/bearer.go b/api/internal/bearer/bearer.go
+index 4577e197..85ba9984 100644
+--- a/api/internal/bearer/bearer.go
++++ b/api/internal/bearer/bearer.go
+@@ -154,6 +154,10 @@ func (w *noStoreWriter) Unwrap() http.ResponseWriter { return w.ResponseWriter }
+ // is read on each request. A file that cannot be read or holds no token admits nothing.
+ func check(tokenFile string, logger *slog.Logger, next http.Handler) http.Handler {
+ 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
++		if r.Header.Get("Authorization") == "" {
++			next.ServeHTTP(w, r)
++			return
++		}
+ 		want, err := os.ReadFile(tokenFile) //nolint:gosec // the operator names the mounted file the token is read from
+ 		if err != nil {
+ 			logger.ErrorContext(r.Context(), "reading the bearer token failed", "error", err)

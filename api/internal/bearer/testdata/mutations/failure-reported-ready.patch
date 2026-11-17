@@ -1,0 +1,19 @@
+control: The API server is ready only while its bearer token file holds a token
+removes: a token file that cannot be read is reported ready
+packages: ./api/internal/bearer
+tests: TestTheReportFollowsTheTokenFile
+scheduled-count: no
+
+diff --git a/api/internal/bearer/bearer.go b/api/internal/bearer/bearer.go
+index 4577e197..733b980c 100644
+--- a/api/internal/bearer/bearer.go
++++ b/api/internal/bearer/bearer.go
+@@ -75,7 +75,7 @@ func (r *report) run(ctx context.Context, reporter process.Capabilities) {
+ 			reporter.Report(process.NotReady, noToken)
+ 		case err != nil:
+ 			reporter.Logger().DebugContext(ctx, "the bearer token file could not be read", "error", err)
+-			reporter.Report(process.NotReady, unreadable)
++			reporter.Report(process.Ready, "")
+ 		default:
+ 			reporter.Report(process.Ready, "")
+ 		}

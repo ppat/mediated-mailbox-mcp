@@ -1,0 +1,20 @@
+control: A body request's provider calls lease in the interactive class, and a gate denial leases nothing
+removes: the body request's provider calls take no lease
+packages: ./api/app
+tests: TestABodyFetchSpendsFromTheInteractiveReservation
+scheduled-count: no
+integration: yes
+
+diff --git a/provider/ratelimit/leased.go b/provider/ratelimit/leased.go
+index 51f7daf9..ab47a515 100644
+--- a/provider/ratelimit/leased.go
++++ b/provider/ratelimit/leased.go
+@@ -40,7 +40,7 @@ func Leased[T any](ctx context.Context, limiter *Limiter, s Spend, call func(con
+ 	if !s.WaitUntil.IsZero() {
+ 		waiting, stopWaiting = context.WithDeadline(ctx, s.WaitUntil)
+ 	}
+-	_, err := limiter.Acquire(waiting, s.Account, s.Class, s.Cost.Weight)
++	_, err := s.Class, error(nil)
+ 	cutOff := errors.Is(waiting.Err(), context.DeadlineExceeded) && ctx.Err() == nil
+ 	stopWaiting()
+ 	if err != nil && cutOff {

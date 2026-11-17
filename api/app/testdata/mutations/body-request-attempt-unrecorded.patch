@@ -1,19 +1,20 @@
 control: Each body request hands its account's credential over and records the latest authentication attempt when it ends
-removes: a body request ends without recording the attempt
+removes: a body request's unit of work ends without recording the attempt
 packages: ./api/app
-tests: TestEachBodyRequestHandsOverAndRecordsTheAttempt
+tests: TestEachBodyRequestWritesBackAndRecordsTheAttempt
 scheduled-count: no
 integration: yes
-diff --git a/executioncontext/session/session.go b/executioncontext/session/session.go
-index bd3fc28..b84e0f9 100644
---- a/executioncontext/session/session.go
-+++ b/executioncontext/session/session.go
-@@ -272,7 +272,7 @@ func Call[T any](ctx context.Context, s *Session, call func(context.Context, mai
- // session may end several units of work, one after each.
- func (s *Session) End(ctx context.Context) (handOver, record error) {
- 	_, handOver = s.h.config.Loader.HandOver(ctx, s.account, s.adoption, s.source.Credential())
--	return handOver, recordAttempt(ctx, s.h.config.DB, s.account, s.source.LastAttempt())
-+	return handOver, recordAttempt(ctx, s.h.config.DB, s.account, mail.AuthAttempt{})
+
+diff --git a/process/connections/work.go b/process/connections/work.go
+index e76d4abf..e8508203 100644
+--- a/process/connections/work.go
++++ b/process/connections/work.go
+@@ -221,7 +221,7 @@ func (w *Work) End(ctx context.Context) (writeBack, record error) {
+ 	if token == nil {
+ 		return fmt.Errorf("account %s: %w", w.account, ErrNotConnected), nil
+ 	}
+-	attempt := token.LastAttempt()
++	attempt := coremail.AuthAttempt{}
+ 	return w.writeBack(ctx, stamp, current), recordAttempt(ctx, w.pool, w.account, attempt)
  }
  
- // recordAttempt records the latest authentication attempt the account's source reported on the

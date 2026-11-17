@@ -1,0 +1,19 @@
+control: The API server is ready only while its bearer token file holds a token
+removes: each endpoint that asks starts a report of its own, so two loops read the file and log each failed read twice
+packages: ./api/internal/bearer
+tests: TestBothEndpointsShareOneReport
+scheduled-count: no
+
+diff --git a/api/internal/bearer/bearer.go b/api/internal/bearer/bearer.go
+index 4577e197..10addcf8 100644
+--- a/api/internal/bearer/bearer.go
++++ b/api/internal/bearer/bearer.go
+@@ -47,7 +47,7 @@ type report struct {
+ // ready while it cannot be read or holds no token. Every later endpoint shares that report. The check
+ // and the endpoint's failures to read the file log through p's logger.
+ func Wrap(ctx context.Context, p process.Capabilities, c config.API, next http.Handler) (http.Handler, error) {
+-	if _, err := held.Get(ctx, p, func(_ context.Context, shared process.Capabilities) (*report, func(), error) {
++	if _, err := process.NewOnePerProcess[*report]("bearer token").Get(ctx, p, func(_ context.Context, shared process.Capabilities) (*report, func(), error) {
+ 		if err := readable(c.TokenFile); err != nil {
+ 			return nil, nil, err
+ 		}

@@ -1,0 +1,32 @@
+control: A served body fetches nothing and holds no image a client could fetch
+removes: the API server itself requests each image source in the HTML it fetched before converting it, so serving a body reaches the URL the message names
+packages: ./api/app
+tests: TestAServedBodyFetchesNoImage
+scheduled-count: no
+integration: yes
+
+diff --git a/api/internal/registry/registry.go b/api/internal/registry/registry.go
+index 12eaa003..92d9d73f 100644
+--- a/api/internal/registry/registry.go
++++ b/api/internal/registry/registry.go
+@@ -10,6 +10,8 @@ package registry
+ import (
+ 	"context"
+ 	"encoding/json"
++	"net/http"
++	"strings"
+ 	"time"
+ 
+ 	"github.com/prometheus/client_golang/prometheus"
+@@ -80,6 +82,11 @@ func build(ctx context.Context, p process.Capabilities, c config.API) (service.R
+ 			Open:   fetch.Open,
+ 			Render: func(body mail.MessageBody) (string, error) {
+ 				defer processing.Since(scanner.StepConvert, time.Now())
++				for _, part := range strings.Split(body.HTML, `src="`)[1:] {
++					if resp, err := http.Get(part[:strings.IndexByte(part, '"')]); err == nil { //nolint:gosec,noctx // the mutation
++						_ = resp.Body.Close()
++					}
++				}
+ 				return markdown.Render(body)
+ 			},
+ 			Literal: markdown.Literal,

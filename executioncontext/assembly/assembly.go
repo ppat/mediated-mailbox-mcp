@@ -3,7 +3,7 @@
 // snapshot and its loader, the sources of the account sessions, so an account has one token source
 // and one rotation write-back in the process, the policy snapshot and its loader, each account's
 // lowered rate target, and the scanner. Its statements run on the pool its composition root hands it,
-// the API server's own in the API server and delta sync's in the worker, as the application user
+// as the application user
 // (ADR-0090, ADR-0143). Each component sees the sessions through a holder of its own, with its own
 // provider adapters and the pool its own attempts are recorded on, and builds each unit's rate limiter on
 // its own pool, so its series of provider calls and leases stay its own (ADR-0117). The UI never

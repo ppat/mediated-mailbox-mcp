@@ -1,0 +1,20 @@
+control: The API server is ready only while its bearer token file holds a token
+removes: the first endpoint built starts whatever its token file holds, so a process that admits no client starts
+packages: ./api/internal/bearer
+tests: TestATokenFileThatAdmitsNoClientRefusesTheStart/absent TestATokenFileThatAdmitsNoClientRefusesTheStart/holding_no_token
+scheduled-count: no
+
+diff --git a/api/internal/bearer/bearer.go b/api/internal/bearer/bearer.go
+index 4577e197..04cde432 100644
+--- a/api/internal/bearer/bearer.go
++++ b/api/internal/bearer/bearer.go
+@@ -48,9 +48,6 @@ type report struct {
+ // and the endpoint's failures to read the file log through p's logger.
+ func Wrap(ctx context.Context, p process.Capabilities, c config.API, next http.Handler) (http.Handler, error) {
+ 	if _, err := held.Get(ctx, p, func(_ context.Context, shared process.Capabilities) (*report, func(), error) {
+-		if err := readable(c.TokenFile); err != nil {
+-			return nil, nil, err
+-		}
+ 		r := &report{tokenFile: c.TokenFile}
+ 		shared.Report(process.NotReady, notReadYet)
+ 		shared.Go("bearer token read", func(ctx context.Context) { r.run(ctx, shared) })

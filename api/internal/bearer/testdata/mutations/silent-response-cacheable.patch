@@ -1,0 +1,18 @@
+control: Every response of the client surface is uncacheable, and HEAD is refused
+removes: a response whose handler writes nothing carries no Cache-Control
+packages: ./api/internal/bearer
+tests: TestEveryResponseIsUncacheable
+scheduled-count: no
+
+diff --git a/api/internal/bearer/bearer.go b/api/internal/bearer/bearer.go
+index 4577e197..dbaeffd1 100644
+--- a/api/internal/bearer/bearer.go
++++ b/api/internal/bearer/bearer.go
+@@ -107,7 +107,6 @@ func readable(tokenFile string) error {
+ // handler's own caching headers do not survive (ADR-0087).
+ func noStore(logger *slog.Logger, next http.Handler) http.Handler {
+ 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+-		w.Header().Set("Cache-Control", "no-store")
+ 		next.ServeHTTP(&noStoreWriter{ResponseWriter: w, logger: logger}, r)
+ 	})
+ }

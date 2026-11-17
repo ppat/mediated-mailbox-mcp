@@ -1,25 +1,22 @@
-control: The API server serves the accounts each account snapshot it reloads lists, and keeps them when a reload's read fails
-removes: a reload whose read fails stops serving every account
+control: The API server serves the accounts each reload of its Session puts in force, and keeps them when a reload's read fails
+removes: a reload whose read of the list fails puts no account in force and tells the registry, so it stops serving every account
 packages: ./api/app
 tests: TestTheAPIServerServesTheAccountsEachReloadLists
 scheduled-count: no
 integration: yes
 
-
-diff --git a/api/app/app.go b/api/app/app.go
-index 7ad0edd..6dc06bd 100644
---- a/api/app/app.go
-+++ b/api/app/app.go
-@@ -409,7 +409,11 @@ func newServing(start host.Starter, pool *pgxpool.Pool, ec *assembly.Context, me
- // keeps its active snapshot, so an account it read before keeps that policy, and an account it never
- // read gets the policy that restricts every sender (ADR-0041). The next reload loads the policy again.
- func (s *serving) reload(ctx context.Context) error {
--	return s.context.Reload(ctx)
-+	err := s.context.Reload(ctx)
-+	if err != nil && !errors.Is(err, assembly.ErrPolicyNotLoaded) {
-+		s.registry.Serve(nil)
-+	}
-+	return err
- }
- 
- // serve serves the accounts of the snapshot the execution context's latest reload left in force.
+diff --git a/process/sessions/sessions.go b/process/sessions/sessions.go
+index 0d04cbc6..36b55470 100644
+--- a/process/sessions/sessions.go
++++ b/process/sessions/sessions.go
+@@ -206,6 +206,10 @@ func (s *Session) Reload(ctx context.Context) error {
+ func (s *Session) reload(ctx context.Context) error {
+ 	listed, err := accounts.Read(ctx, s.pool)
+ 	if err != nil {
++		s.inForce.Store(&[]accounts.Account{})
++		for _, tell := range s.after {
++			tell()
++		}
+ 		return s.fail(fmt.Errorf("reading the accounts: %w", err))
+ 	}
+ 	connections, after := s.members()

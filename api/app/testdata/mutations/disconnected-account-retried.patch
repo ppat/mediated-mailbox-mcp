@@ -1,20 +1,20 @@
 control: A refused credential is read again from its row before the refusal is reported
-removes: an account the re-read finds not connected has the call made again over a source built from empty credentials
+removes: an account the re-read finds without a credential has the call made again over a token made from an empty one
 packages: ./api/app
-tests: TestARereadThatFindsTheAccountNotConnectedReportsTheRefusal TestARereadThatFindsTheAccountNotConnectedReportsTheRefusal/moved_to_a_client_that_does_not_open TestARereadThatFindsTheAccountNotConnectedReportsTheRefusal/its_credential_removed
+tests: TestARereadThatFindsTheAccountNotConnectedReportsTheRefusal TestARereadThatFindsTheAccountNotConnectedReportsTheRefusal/its_credential_removed
 scheduled-count: no
 integration: yes
 
-diff --git a/executioncontext/session/session.go b/executioncontext/session/session.go
-index bd3fc28..a5ae138 100644
---- a/executioncontext/session/session.go
-+++ b/executioncontext/session/session.go
-@@ -251,7 +251,7 @@ func Call[T any](ctx context.Context, s *Session, call func(context.Context, mai
- 	refused := s.built
- 	refused.Credential = s.source.Credential()
- 	creds := credentials(reread)
--	if !reread.Connected() || same(creds, refused) {
-+	if same(creds, refused) {
- 		return out, err
+diff --git a/process/connections/work.go b/process/connections/work.go
+index e76d4abf..054b9670 100644
+--- a/process/connections/work.go
++++ b/process/connections/work.go
+@@ -128,7 +128,7 @@ func (w *Work) again(ctx context.Context) (*provider.Token, error) {
+ 	rec.clientName, rec.client, rec.hasClient = name, client, hasClient
+ 	if stored == nil {
+ 		rec.disconnect()
+-		return nil, nil
++		return c.adapters.NewToken(rec.provider, client, []byte{})
  	}
- 	source := s.connector.source(creds)
+ 	same := rec.stored != nil && bytes.Equal(rec.stored, stored)
+ 	plaintext := rec.current()

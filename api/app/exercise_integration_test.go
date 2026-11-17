@@ -1,15 +1,11 @@
 //go:build integration
 
-package app
+package app_test
 
 import (
 	"context"
 	"crypto/rand"
-	"errors"
 	"fmt"
-	"log/slog"
-	"net"
-	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -19,14 +15,14 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"github.com/ppat/mediated-mailbox-mcp/core/classify"
+	"github.com/ppat/mediated-mailbox-mcp/api/app"
 	"github.com/ppat/mediated-mailbox-mcp/core/config"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/core/redact"
+	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/core/sensitivity"
-	"github.com/ppat/mediated-mailbox-mcp/executioncontext/session"
-	"github.com/ppat/mediated-mailbox-mcp/process/host"
-	"github.com/ppat/mediated-mailbox-mcp/provider/google"
+	"github.com/ppat/mediated-mailbox-mcp/process"
+	"github.com/ppat/mediated-mailbox-mcp/process/connections"
 	"github.com/ppat/mediated-mailbox-mcp/provider/mail/fake"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/fixture"
 )
@@ -62,14 +58,15 @@ func exerciseCorpus() []exerciseMessage {
 }
 
 // The manual exercises of the live agent against the invariant (docs/VERIFICATIONS.md, unit D3) run
-// against this harness. It serves one account holding the exercise corpus through the client surface
-// as the API server's assembly builds it and the host serves it, over the provider fake, with the bank's domain restricted by a
-// base rule. The index is written as backfill's two passes write it, with each subject masked,
-// each sender classified under the policy, each unrestricted body scanned and its verdict stored,
-// and each sender's statistics built. The harness listens on the address the variable names, over
-// plain HTTP, prints the account, the bearer token and the routes, and serves until it is
-// interrupted, then prints every audit row the exercise wrote. The surface it serves is the shipped
-// one, so nothing that ships carries a switch to a fake provider.
+// against this harness. It serves one account holding the exercise corpus through the API server's
+// spec, run by the process as its main.go runs it, over the provider fake, which it hands the process
+// through the connections' one option for a test, with the bank's domain restricted by a base rule.
+// The index is written as backfill's two passes write it, with each subject masked, each sender
+// classified under that rule, each unrestricted body scanned and its verdict stored, and each sender's
+// statistics built. The harness listens on the address the variable names, over plain HTTP, prints the
+// account, the bearer token and the roots' addresses, and serves until it is interrupted, then prints
+// every audit row the exercise wrote. What it serves is what the API server serves apart from the
+// fake, and nothing that ships can select the fake.
 func TestServeTheExerciseCorpusToALiveAgent(t *testing.T) {
 	address := os.Getenv(exerciseVariable)
 	if address == "" {
@@ -77,18 +74,16 @@ func TestServeTheExerciseCorpusToALiveAgent(t *testing.T) {
 	}
 	conn := superuser(t)
 	reset(t, conn)
-	ring, public := keys(t)
+	k := newKeyPair(t)
 	account := "exercise"
 	must(t, conn, "INSERT INTO accounts (account_id, provider) VALUES ($1, 'gmail')", account)
-	connect(t, conn, public, account)
-	client(t, conn, public, household, "client-id", "client-secret")
+	connect(t, conn, k, account)
+	client(t, conn, k, household, "client-id", "client-secret")
 	through(t, conn, account, household)
 	must(t, conn, `INSERT INTO policy_rules (account_id, rule_id, class, domain_suffix, source, created_by)
 		VALUES (NULL, 'base.bank', 'restricted', ARRAY['bank.example'], 'operator', 'exercise')`)
-
-	// The connector reads the fake when the body operation opens the account, after the corpus is seeded.
-	var f *fake.Fake
-	connector := func(string, *google.TokenSource) (mail.Port[context.Context], error) {
+	f := seedExercise(t, conn, account)
+	mailbox := func(string, *fake.Token) (*fake.Throttled, error) {
 		return fake.Throttle(f, func(fake.Call) error { return nil }, time.Now), nil
 	}
 	token := strings.ToLower(rand.Text())
@@ -96,50 +91,31 @@ func TestServeTheExerciseCorpusToALiveAgent(t *testing.T) {
 	if err := os.WriteFile(tokenPath, []byte(token), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
-	h, err := host.New(logger)
-	if err != nil {
-		t.Fatal(err)
-	}
-	section := config.API{TokenFile: tokenPath, Accounts: config.Accounts{AccountReloadInterval: config.Duration(time.Minute)}, ProviderTimeout: config.Duration(30 * time.Second)}
-	pool := apiServer(t)
-	ec := mustContext(t, pool, ring, scanner(t), section, h.Registerer("api"), h.Logger("api"))
-	a, err := assemble(h.Context(), Needs{
-		Config: section, Pool: pool, Context: ec, Registerer: h.Registerer("api"), Logger: h.Logger("api"),
-		Start: h.Starter("api"),
-	}, session.Connect(gmailSource(http.DefaultClient), connector), leaseWait)
-	if err != nil {
-		t.Fatal(err)
-	}
-	a.parts.Tasks = append(a.parts.Tasks, ContextTask(ec))
-	f = seedExercise(t, conn, account, a.served.policy(account))
-	h.Add("api", Mount, a.parts)
-	ln, err := net.Listen("tcp", address)
-	if err != nil {
-		t.Fatal(err)
-	}
-	probes, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatal(errors.Join(err, ln.Close()))
-	}
-	fmt.Fprintf(os.Stderr, "\nexercise: serving account %q at http://%s\n", account, ln.Addr())
-	fmt.Fprintf(os.Stderr, "exercise: MCP root http://%s/mcp, API root http://%s/api/accounts\n", ln.Addr(), ln.Addr())
+	args := append(databaseFlags(t),
+		"--token_file="+tokenPath, "--listen="+address, "--probe_listen=127.0.0.1:0", "--account_reload_interval=1m",
+		"--credential.public_key_file="+k.publicFile, "--credential.private_key_files=["+k.privateFile+"]")
+	fmt.Fprintf(os.Stderr, "\nexercise: serving account %q at http://%s\n", account, address)
+	fmt.Fprintf(os.Stderr, "exercise: MCP root http://%s/mcp, API root http://%s/api/accounts\n", address, address)
 	fmt.Fprintf(os.Stderr, "exercise: bearer token %s\n", token)
 	fmt.Fprintf(os.Stderr, "exercise: restricted message m-bank (Finance), prompt injection m-injection. Interrupt to stop.\n\n")
 
 	stop, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
-	if err := h.Serve(stop, host.Listeners{App: ln, Probes: probes}, config.Serving{}); err != nil {
+	if err := process.RunContext(stop, args, nil, os.Stderr, os.Stderr, app.Spec(), connections.WithAdapters(fake.Adapters(mailbox, gmail))); err != nil {
 		t.Error(err)
 	}
 	printAudit(t, conn, account)
 }
 
-// seedExercise writes the exercise corpus to the index as backfill's passes would under the policy p,
-// and returns the provider fake holding the same messages with their bodies.
-func seedExercise(t *testing.T, conn *pgx.Conn, account string, p classify.Policy) *fake.Fake {
+// seedExercise writes the exercise corpus to the index as backfill's passes would under the harness's
+// one base rule, which restricts the bank's domain, and returns the provider fake holding the same
+// messages with their bodies.
+func seedExercise(t *testing.T, conn *pgx.Conn, account string) *fake.Fake {
 	t.Helper()
-	s := scanner(t)
+	s, err := scan.New(config.DefaultScanner(), "exercise")
+	if err != nil {
+		t.Fatal(err)
+	}
 	now := time.Now().UTC().Truncate(time.Minute)
 	var held []fake.Message
 	for _, m := range exerciseCorpus() {
@@ -149,7 +125,7 @@ func seedExercise(t *testing.T, conn *pgx.Conn, account string, p classify.Polic
 		scanState := "scanned"
 		flags := sensitivity.Flags(false, false)
 		var rules []string
-		if classify.Classify(p, f.FromAddress).Class().Restricted() {
+		if domain == "bank.example" || strings.HasSuffix(domain, ".bank.example") {
 			scanState = "skipped_restricted"
 		} else {
 			v := s.Scan(f.Body)

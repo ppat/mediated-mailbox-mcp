@@ -1,0 +1,20 @@
+control: A body request's provider calls lease in the interactive class, and a gate denial leases nothing
+removes: the body operation's caller leases in the batch class
+packages: ./api/app
+tests: TestABodyFetchSpendsFromTheInteractiveReservation
+scheduled-count: no
+integration: yes
+
+diff --git a/api/internal/bodies/bodies.go b/api/internal/bodies/bodies.go
+index 3fdfd4b2..212014e7 100644
+--- a/api/internal/bodies/bodies.go
++++ b/api/internal/bodies/bodies.go
+@@ -56,7 +56,7 @@ func New(ctx context.Context, p process.Capabilities, c config.API) (*Bodies, er
+ 	if err != nil {
+ 		return nil, err
+ 	}
+-	caller, err := conns.Caller(p, pool, provider.Options{Class: provider.Interactive, Timeout: time.Duration(c.ProviderTimeout)})
++	caller, err := conns.Caller(p, pool, provider.Options{Class: provider.Batch, Timeout: time.Duration(c.ProviderTimeout)})
+ 	if err != nil {
+ 		return nil, err
+ 	}

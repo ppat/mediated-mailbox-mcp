@@ -1,24 +1,22 @@
-control: The API server serves the accounts each account snapshot it reloads lists, and keeps them when a reload's read fails
-removes: the policy is loaded at the first reload that serves an account only, so an account a later reload lists is served under no policy of its own and a policy edit never reaches the metadata reads
+control: The API server serves the accounts each reload of its Session puts in force, and keeps them when a reload's read fails
+removes: the policy is loaded by the first reload that loads it only, so an account a later reload lists is served under no policy of its own and a policy edit never reaches the metadata reads
 packages: ./api/app
 tests: TestTheAPIServerServesTheAccountsEachReloadLists TestEveryReloadLoadsThePolicy
 scheduled-count: no
 integration: yes
 
-diff --git a/executioncontext/assembly/assembly.go b/executioncontext/assembly/assembly.go
-index d74efe4..3966da0 100644
---- a/executioncontext/assembly/assembly.go
-+++ b/executioncontext/assembly/assembly.go
-@@ -169,8 +169,10 @@ func (c *Context) Reload(ctx context.Context) error {
- 	snapshot := c.loader.Snapshot()
- 	targets := c.readTargets(ctx, snapshot)
- 	var err error
--	if policyErr := c.loadPolicy(ctx, idsOf(snapshot)); policyErr != nil {
--		err = fmt.Errorf("%w: %w", ErrPolicyNotLoaded, policyErr)
-+	if c.policies.Load() == nil {
-+		if policyErr := c.loadPolicy(ctx, idsOf(snapshot)); policyErr != nil {
-+			err = fmt.Errorf("%w: %w", ErrPolicyNotLoaded, policyErr)
-+		}
+diff --git a/process/sessions/sessions.go b/process/sessions/sessions.go
+index 0d04cbc6..c16dbaa6 100644
+--- a/process/sessions/sessions.go
++++ b/process/sessions/sessions.go
+@@ -216,7 +216,9 @@ func (s *Session) reload(ctx context.Context) error {
  	}
- 	c.latest.Store(&Reloaded{snapshot: snapshot, targets: targets, loaded: true, err: err})
- 	c.observersMu.Lock()
+ 	s.inForce.Store(&listed)
+ 	s.failed.Store(nil)
+-	if err = s.policies.Load(ctx, ids(listed)); err != nil {
++	if s.loaded.Load() {
++		err = nil
++	} else if err = s.policies.Load(ctx, ids(listed)); err != nil {
+ 		err = fmt.Errorf("%w: %w", ErrPolicyNotLoaded, err)
+ 	} else if !s.loaded.Swap(true) {
+ 		s.report(process.Ready, "")

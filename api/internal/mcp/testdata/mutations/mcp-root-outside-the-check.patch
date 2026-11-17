@@ -1,0 +1,21 @@
+control: Every request to the client surface passes the bearer check before either root
+removes: the MCP endpoint is served without the bearer check
+packages: ./api/app
+tests: TestAPathOutsideBothRootsIsNotFound
+scheduled-count: no
+integration: yes
+
+diff --git a/api/internal/mcp/mcp.go b/api/internal/mcp/mcp.go
+index c7b0d6c8..4b9df141 100644
+--- a/api/internal/mcp/mcp.go
++++ b/api/internal/mcp/mcp.go
+@@ -43,7 +43,8 @@ func Build(ctx context.Context, p process.Capabilities, c config.API) (http.Hand
+ 	if err != nil {
+ 		return nil, err
+ 	}
+-	return bearer.Wrap(ctx, p, c, Handler(reg, version.Number, p.Logger()))
++	_, err = bearer.Wrap(ctx, p, c, Handler(reg, version.Number, p.Logger()))
++	return Handler(reg, version.Number, p.Logger()), err
+ }
+ 
+ // Handler returns the MCP root generated from reg, served over the streamable HTTP transport with no

@@ -1,21 +1,20 @@
 control: The API server loads the policy of the accounts it serves, and of none when it serves none
-removes: the policy loader is built even with no account served, which it refuses
+removes: the policy is loaded even with no account in force, which the loader refuses, so the Session never loads and the API server serving no account is never ready
 packages: ./api/app
-tests: TestTheAPIServerServesTheAccountsEachReloadLists
+tests: TestReadyOnlyWhileTheSessionHasLoadedAndTheTokenLoads
 scheduled-count: no
 integration: yes
 
-
-diff --git a/executioncontext/assembly/assembly.go b/executioncontext/assembly/assembly.go
-index d74efe4..ba32817 100644
---- a/executioncontext/assembly/assembly.go
-+++ b/executioncontext/assembly/assembly.go
-@@ -216,7 +216,7 @@ func (c *Context) Run(ctx context.Context) error {
- // loadPolicy sets the accounts the policy loader reads and has it load. With no account there is no
- // policy to load.
- func (c *Context) loadPolicy(ctx context.Context, accounts []string) error {
+diff --git a/process/policies/policies.go b/process/policies/policies.go
+index 9c592ab9..d61c5ff0 100644
+--- a/process/policies/policies.go
++++ b/process/policies/policies.go
+@@ -78,7 +78,7 @@ func New(db tx.Beginner, reg prometheus.Registerer, start Starter) *Policies {
+ // snapshot and returns an error wrapping ErrUntrustedRead or ErrInvalidUpdate. The Session calls it
+ // from one reload at a time.
+ func (p *Policies) Load(ctx context.Context, accounts []string) error {
 -	if len(accounts) == 0 {
 +	if false {
  		return nil
  	}
- 	policies := c.policies.Load()
+ 	l := p.loader.Load()

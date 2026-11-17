@@ -1,0 +1,28 @@
+control: The read operations read the accounts and the policy the Session holds in force, and a clock within thirty seconds of the real one when the read is made
+removes: the read operations are given no policy, so every sender reads restricted
+packages: ./api/app
+tests: TestTheReadOperationsReadTheSession
+scheduled-count: no
+integration: yes
+
+diff --git a/api/internal/registry/registry.go b/api/internal/registry/registry.go
+index 12eaa003..c0dc4239 100644
+--- a/api/internal/registry/registry.go
++++ b/api/internal/registry/registry.go
+@@ -17,6 +17,7 @@ import (
+ 	"github.com/ppat/mediated-mailbox-mcp/api/internal/bodies"
+ 	"github.com/ppat/mediated-mailbox-mcp/api/internal/service"
+ 	"github.com/ppat/mediated-mailbox-mcp/content/markdown"
++	"github.com/ppat/mediated-mailbox-mcp/core/classify"
+ 	"github.com/ppat/mediated-mailbox-mcp/core/config"
+ 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
+ 	"github.com/ppat/mediated-mailbox-mcp/process"
+@@ -73,7 +74,7 @@ func build(ctx context.Context, p process.Capabilities, c config.API) (service.R
+ 	ops, err := timed(service.Operations(service.Sources{
+ 		DB:       pool,
+ 		Accounts: accounts(s),
+-		Policy:   s.Policy,
++		Policy:   func(string) classify.Policy { return classify.Policy{} },
+ 		Now:      time.Now,
+ 		Bodies: service.Bodies{
+ 			Policy: fetch.Policy,

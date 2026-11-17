@@ -183,7 +183,7 @@ func partsOf[C any](spec Spec[C], c C) (parts, []string, error) {
 // RefusePasswordVariables refuses a start while PGPASSWORD or PGSSLPASSWORD is set, an empty value
 // included, since the database driver reads either on every parse and a stray one would win over
 // the mounted password file (ADR-0078, ADR-0139). Run calls it before the configuration is read for
-// every program, and process/host calls it while programs still run on the host.
+// every program, and process/host calls it until the host is deleted.
 func RefusePasswordVariables(environ []string) error {
 	for _, entry := range environ {
 		name, _, _ := strings.Cut(entry, "=")

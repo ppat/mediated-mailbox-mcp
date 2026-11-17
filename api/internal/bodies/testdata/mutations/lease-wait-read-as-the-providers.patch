@@ -1,0 +1,20 @@
+control: A body request waits for its leases no longer than its deadline for them, and a wait cut off by it is the API server's failure
+removes: a wait cut off by the deadline is wrapped as the provider's failure, so the rate controller's hold reads as the provider's
+packages: ./api/app
+tests: TestARequestWaitsForItsLeasesNoLongerThanItsDeadline
+scheduled-count: no
+integration: yes
+
+diff --git a/provider/ratelimit/leased.go b/provider/ratelimit/leased.go
+index 51f7daf9..02929628 100644
+--- a/provider/ratelimit/leased.go
++++ b/provider/ratelimit/leased.go
+@@ -44,7 +44,7 @@ func Leased[T any](ctx context.Context, limiter *Limiter, s Spend, call func(con
+ 	cutOff := errors.Is(waiting.Err(), context.DeadlineExceeded) && ctx.Err() == nil
+ 	stopWaiting()
+ 	if err != nil && cutOff {
+-		return zero, fmt.Errorf("leasing the call: no lease by the deadline for its leases: %w", err)
++		return zero, fmt.Errorf("leasing the call: no lease by the deadline for its leases: %w: %w", mail.ErrProvider, err)
+ 	}
+ 	if err != nil {
+ 		return zero, fmt.Errorf("leasing the call: %w", err)

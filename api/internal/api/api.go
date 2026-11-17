@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -16,8 +17,26 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/ppat/mediated-mailbox-mcp/api/internal/bearer"
+	"github.com/ppat/mediated-mailbox-mcp/api/internal/registry"
 	"github.com/ppat/mediated-mailbox-mcp/api/internal/service"
+	"github.com/ppat/mediated-mailbox-mcp/core/config"
+	"github.com/ppat/mediated-mailbox-mcp/process"
 )
+
+// Build builds the API server's API endpoint, the API root generated from the process's one registry
+// of operations behind the bearer check and the no-store header (ADR-0030, ADR-0087, ADR-0142).
+func Build(ctx context.Context, p process.Capabilities, c config.API) (http.Handler, error) {
+	reg, err := registry.Get(ctx, p, c)
+	if err != nil {
+		return nil, err
+	}
+	root, err := Handler(reg, p.Logger())
+	if err != nil {
+		return nil, err
+	}
+	return bearer.Wrap(ctx, p, c, root)
+}
 
 // maxRequestBytes bounds a request body.
 const maxRequestBytes = 1 << 20

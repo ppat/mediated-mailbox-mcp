@@ -142,8 +142,7 @@ func readable(accounts []string) ([]string, error) {
 func (l *Loader) Snapshot() Snapshot { return *l.active.Load() }
 
 // Reload reloads the policy, as reload states, and times the load, every one its caller did not
-// cancel, from its call to its outcome (ADR-0125). An API server body request waits in its coalesced
-// load for one or two of these loads, so its policy wait is one or two observations.
+// cancel, from its call to its outcome (ADR-0125).
 func (l *Loader) Reload(ctx context.Context) error {
 	start := time.Now()
 	err := l.reload(ctx)
