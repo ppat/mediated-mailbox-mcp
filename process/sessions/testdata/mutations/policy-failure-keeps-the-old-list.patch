@@ -8,11 +8,12 @@ integration: yes
 diff --git a/process/sessions/sessions.go b/process/sessions/sessions.go
 --- a/process/sessions/sessions.go
 +++ b/process/sessions/sessions.go
-@@ -206,10 +206,11 @@ func (s *Session) reload(ctx context.Context) error {
- 			return fmt.Errorf("loading the connections: %w", err)
+@@ -214,11 +214,12 @@ func (s *Session) reload(ctx context.Context) error {
+ 			return s.fail(fmt.Errorf("loading the connections: %w", err))
  		}
  	}
 -	s.inForce.Store(&listed)
+ 	s.failed.Store(nil)
  	if err = s.policies.Load(ctx, ids(listed)); err != nil {
 -		err = fmt.Errorf("%w: %w", ErrPolicyNotLoaded, err)
 -	} else if !s.loaded.Swap(true) {

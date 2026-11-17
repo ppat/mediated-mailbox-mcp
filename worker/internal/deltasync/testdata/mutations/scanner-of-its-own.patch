@@ -1,0 +1,19 @@
+control: The revision a verdict records is the scanner section's, and an empty revision is refused
+removes: delta sync builds a scanner of its own from the shipped defaults under a fixed revision rather than taking the process's, so its verdicts record another revision than the section's
+packages: ./worker/app
+tests: TestANewAccountIsBackfilledWithNoManualStep
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/deltasync.go
+--- a/worker/internal/deltasync/deltasync.go
++++ b/worker/internal/deltasync/deltasync.go
+@@ -106,7 +106,7 @@ func Build(ctx context.Context, p process.Capabilities, c config.Worker) (schedu
+ 
+ // assemble gets what the job kind is built from and returns the job kind, as Build states.
+ func assemble(ctx context.Context, p process.Capabilities, c config.Worker) (*DeltaSync, error) {
+-	sc, err := scanner.Get(ctx, p, c)
++	sc, err := scan.New(config.DefaultScanner(), "fixed")
+ 	if err != nil {
+ 		return nil, err
+ 	}

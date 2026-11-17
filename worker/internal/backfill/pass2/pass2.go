@@ -25,11 +25,11 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/core/scangate"
+	"github.com/ppat/mediated-mailbox-mcp/process/scanner"
 	"github.com/ppat/mediated-mailbox-mcp/process/schedule"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/pass1"
 	pass1core "github.com/ppat/mediated-mailbox-mcp/worker/internal/core/backfill/pass1"
 	core "github.com/ppat/mediated-mailbox-mcp/worker/internal/core/backfill/pass2"
-	"github.com/ppat/mediated-mailbox-mcp/worker/internal/series"
 )
 
 // Store is where a pass keeps the index and its runs. Each method is one transaction.
@@ -98,7 +98,7 @@ type Deps struct {
 	Gate    scangate.Config
 	Scanner scan.Scanner
 	// Processing times each body's conversion and scan, and a nil one times nothing (ADR-0125).
-	Processing *series.Processing
+	Processing *scanner.Processing
 	// PageSize is how many waiting messages one page reads.
 	PageSize int
 	// RunID returns a new run's identifier, a short opaque string.
@@ -305,7 +305,7 @@ func (p *Pass) scan(ctx context.Context, id string, number int) (*index.Scanned,
 	}
 	start := time.Now()
 	rendered, rerr := markdown.Render(body)
-	p.deps.Processing.Since(series.StepConvert, start)
+	p.deps.Processing.Since(scanner.StepConvert, start)
 	if rerr != nil {
 		now := p.deps.Now().UTC()
 		refused := &pass1.Item{
@@ -319,7 +319,7 @@ func (p *Pass) scan(ctx context.Context, id string, number int) (*index.Scanned,
 	}
 	start = time.Now()
 	scanned := index.Scan(p.deps.Scanner, rendered)
-	p.deps.Processing.Since(series.StepScan, start)
+	p.deps.Processing.Since(scanner.StepScan, start)
 	return &scanned, item, false, nil
 }
 

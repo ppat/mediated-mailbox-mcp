@@ -1,0 +1,25 @@
+control: A worker start logs no error before its Session loads, and is ready only once the Session's first load has woken each job kind's listing
+removes: backfill's listing answers a Session that has not loaded yet with no account and no error, so the listing counts as succeeded and the worker reports ready before the Session loads
+packages: ./worker/app
+tests: TestAStartLogsNoErrorAndIsReadyOnlyOnceTheSessionLoads
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
+--- a/worker/internal/backfill/backfill.go
++++ b/worker/internal/backfill/backfill.go
+@@ -171,7 +171,13 @@ func build(p process.Capabilities, pool *pgxpool.Pool, s *sessions.Session, conn
+ // dropped with the account's series (ADR-0090, ADR-0119).
+ func (b *Backfill) plan() schedule.Plan {
+ 	return schedule.Plan{
+-		Keys:    func(context.Context) ([]string, error) { return b.session.Workable() },
++		Keys: func(context.Context) ([]string, error) {
++			listed, err := b.session.Workable()
++			if errors.Is(err, sessions.ErrNotRead) {
++				return nil, nil
++			}
++			return listed, err
++		},
+ 		Recheck: b.interval,
+ 		Backoff: backoff,
+ 		Late:    lateReloads * b.interval,

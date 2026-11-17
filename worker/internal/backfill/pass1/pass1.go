@@ -132,10 +132,11 @@ type Metadata func(ctx context.Context, ids []string) ([]mail.MessageMetadata, e
 type Deps struct {
 	Store Store
 	Fetch Fetch
-	// Metadata fetches stale subjects again, and PerCall is how many identifiers one of its calls
-	// names, the most whose cost fits the hard cap (ADR-0023, ADR-0120).
+	// Metadata fetches stale subjects again, and PerCall returns how many identifiers its next call
+	// names, the most whose cost fits the hard cap, as the mailbox of the unit of work in progress
+	// says (ADR-0023, ADR-0120).
 	Metadata Metadata
-	PerCall  int
+	PerCall  func() int
 	// Policy returns the account's policy in the active snapshot, which each page takes at its entry,
 	// so a policy edit reaches the pages after it (ADR-0041, ADR-0119), with the classifier's domain
 	// functions it was prepared with. Scanner is the scanner subjects are masked with.
@@ -256,7 +257,7 @@ func (p *Pass) page(ctx context.Context) (Step, error) {
 // enumeration has ended, and otherwise goes on with the enumeration's next page (ADR-0120).
 func (p *Pass) refetch(ctx context.Context) (Step, error) {
 	stamp := p.at.Checkpoint.Stamp
-	stored, err := p.deps.Store.Stale(ctx, p.account, stamp, max(p.deps.PerCall, 1))
+	stored, err := p.deps.Store.Stale(ctx, p.account, stamp, max(p.deps.PerCall(), 1))
 	if err != nil {
 		return Step{}, p.failed(ctx, fmt.Errorf("reading the subjects masked under another scanner: %w", err))
 	}

@@ -8,8 +8,8 @@ integration: yes
 diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
 --- a/worker/internal/backfill/backfill.go
 +++ b/worker/internal/backfill/backfill.go
-@@ -296,14 +296,14 @@
- func backfillAccount(ctx context.Context, first pass1.Deps, second pass2.Deps, account string, m1 *pass1.Metrics, m2 *pass2.Metrics, u *unit,
+@@ -249,15 +249,15 @@ func (b *Backfill) run(ctx context.Context, ask schedule.Ask, account string, st
+ func backfillAccount(ctx context.Context, first pass1.Deps, second pass2.Deps, account string, m1 *pass1.Metrics, m2 *pass2.Metrics, u units,
  	ask schedule.Ask, logger *slog.Logger, start bool, started *bool,
  ) error {
 +	if err := passAccount(ctx, first, account, m1, u, ask, logger); err != nil {
@@ -20,9 +20,10 @@ diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/bac
  			return err
  		}
  		*started = true
--	}
+ 	}
 -	if err := passAccount(ctx, first, account, m1, u, ask, logger); err != nil {
 -		return err
- 	}
+-	}
  	return secondPassAccount(ctx, second, account, m2, u, ask, logger)
  }
+ 

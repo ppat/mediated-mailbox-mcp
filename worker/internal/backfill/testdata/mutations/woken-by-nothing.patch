@@ -1,0 +1,19 @@
+control: Each reload of the worker's Session wakes every job kind's listing
+removes: backfill's plan is woken by no reload of the Session, so the jobs of an account it newly lists wait for the listing's next ask
+packages: ./worker/app
+tests: TestEachSessionReloadWakesTheJobKinds
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
+--- a/worker/internal/backfill/backfill.go
++++ b/worker/internal/backfill/backfill.go
+@@ -181,7 +181,7 @@ func (b *Backfill) plan() schedule.Plan {
+ 			return job, nil
+ 		},
+ 		Dropped: b.dropped,
+-		Woken:   b.session.AfterReload,
++		Woken:   nil,
+ 	}
+ }
+ 

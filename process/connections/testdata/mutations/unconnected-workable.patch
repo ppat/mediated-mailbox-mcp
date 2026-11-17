@@ -8,12 +8,12 @@ integration: yes
 diff --git a/process/sessions/sessions.go b/process/sessions/sessions.go
 --- a/process/sessions/sessions.go
 +++ b/process/sessions/sessions.go
-@@ -279,7 +279,7 @@ func (s *Session) Workable() []string {
+@@ -304,7 +304,7 @@ func (s *Session) Workable() ([]string, error) {
  	if connections == nil {
- 		return nil
+ 		return nil, nil
  	}
--	return s.with(func(id string) bool { return connections.Connected(id) })
-+	return s.with(func(string) bool { return true })
+-	return s.with(func(id string) bool { return connections.Connected(id) }), nil
++	return s.with(func(string) bool { return true }), nil
  }
  
  // AccountsWithPolicy returns the accounts a job kind that calls no provider may work on now, in

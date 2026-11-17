@@ -1,0 +1,18 @@
+control: The worker's spec names the worker and lists both of its job kinds
+removes: the spec names the program other than the worker
+packages: ./worker/app
+tests: TestTheStartBannerGoesToStandardErrorAndStandardOutputStaysJSON
+scheduled-count: no
+
+diff --git a/worker/app/app.go b/worker/app/app.go
+--- a/worker/app/app.go
++++ b/worker/app/app.go
+@@ -18,7 +18,7 @@ import (
+ // Spec is the worker's spec.
+ func Spec() process.Spec[config.Worker] {
+ 	return process.Spec[config.Worker]{
+-		Name: "worker",
++		Name: "workers",
+ 		Jobs: []process.Job[config.Worker]{
+ 			{Name: backfill.Kind, Build: backfill.Build},
+ 			{Name: deltasync.Kind, Build: deltasync.Build},

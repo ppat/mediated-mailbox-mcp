@@ -1,0 +1,18 @@
+control: The workable accounts are not due before a reload has read the list, and are the latest read's failure until a later read succeeds
+removes: a reload that reads the list and loads the connections leaves an earlier reload's failure in place, so the workable accounts stay that failure
+packages: ./process/sessions
+tests: TestTheWorkableAccountsAnswerFromTheLatestRead
+scheduled-count: no
+integration: yes
+
+diff --git a/process/sessions/sessions.go b/process/sessions/sessions.go
+--- a/process/sessions/sessions.go
++++ b/process/sessions/sessions.go
+@@ -215,7 +215,6 @@ func (s *Session) reload(ctx context.Context) error {
+ 		}
+ 	}
+ 	s.inForce.Store(&listed)
+-	s.failed.Store(nil)
+ 	if err = s.policies.Load(ctx, ids(listed)); err != nil {
+ 		err = fmt.Errorf("%w: %w", ErrPolicyNotLoaded, err)
+ 	} else if !s.loaded.Swap(true) {

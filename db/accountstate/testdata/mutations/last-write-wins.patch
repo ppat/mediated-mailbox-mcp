@@ -1,7 +1,7 @@
 control: The recorded authentication outcome is the latest attempt, and recording an older one changes nothing
 removes: the statement drops its predicate on the stored attempt's time, so the last write wins and an older attempt replaces a later one
-packages: ./worker/internal/backfill
-tests: TestOnlyALaterAttemptIsRecorded
+packages: ./process/connections
+tests: TestTheEndRecordsTheTokensLatestAttempt
 scheduled-count: no
 integration: yes
 

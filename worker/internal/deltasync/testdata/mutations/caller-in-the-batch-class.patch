@@ -1,0 +1,19 @@
+control: Each job kind spends from the account's budget in its own class, backfill in the batch class and delta sync in the sync class
+removes: delta sync's caller leases in the batch class
+packages: ./worker/app
+tests: TestTheProbesServeEverySeriesBetweenRuns
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/deltasync.go
+--- a/worker/internal/deltasync/deltasync.go
++++ b/worker/internal/deltasync/deltasync.go
+@@ -125,7 +125,7 @@ func assemble(ctx context.Context, p process.Capabilities, c config.Worker) (*De
+ 	if err != nil {
+ 		return nil, err
+ 	}
+-	caller, err := conns.Caller(p, pool, provider.Options{Class: provider.Sync, Timeout: callTimeout})
++	caller, err := conns.Caller(p, pool, provider.Options{Class: provider.Batch, Timeout: callTimeout})
+ 	if err != nil {
+ 		return nil, err
+ 	}

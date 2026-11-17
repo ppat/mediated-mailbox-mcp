@@ -4,7 +4,8 @@
 package importtarget
 
 // A violation file must state a want, so this one also imports the comparison library tests use into
-// code that ships.
+// code that ships, which the worker's list over its non-test code and the list over all non-test code
+// both refuse.
 import (
-	_ "github.com/google/go-cmp/cmp" // want depguard "list 'non-test-code'"
+	_ "github.com/google/go-cmp/cmp" // want depguard "list 'worker'" depguard "list 'non-test-code'"
 )

@@ -216,8 +216,10 @@ func TestAThrottledPageIsRetriedAndRecorded(t *testing.T) {
 	if err := superuser(t).QueryRow(t.Context(), "SELECT current_rate FROM rate_state WHERE account_id = $1", w.account).Scan(&cut); err != nil {
 		t.Fatal(err)
 	}
-	if cut >= 5000 {
-		t.Errorf("the rate is %v after two throttles, want it cut below the target of 5000", cut)
+	// The provider fake's list of adapters declares a ceiling of 100 a second, whose default target is
+	// half of it.
+	if cut >= 50 {
+		t.Errorf("the rate is %v after two throttles, want it cut below the target of 50", cut)
 	}
 }
 

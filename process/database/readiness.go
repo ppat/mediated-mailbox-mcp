@@ -2,7 +2,6 @@ package database
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -18,19 +17,18 @@ const (
 	pingTimeout  = 2 * time.Second
 )
 
-// ReportReadiness starts the readiness report of the process's one pool, the pool an endpoint, a task
-// or a shared thing gets from Get, the database answering a ping, for a program that is ready only
-// while it does (ADR-0142). The report is not ready until the first ping answers, ready while pings
-// answer, and not ready again from the first that fails. Its loop runs on a goroutine the process
-// starts and waits for before it closes the pools, so it never pings a closed pool. It reports under
-// the pools' own name, database, built from the process rather than from whoever asked, and is
-// started once, however often it is asked for. A job kind's part is refused, since a job kind's pool
-// is its own and one name could not tell its report from the process's pool's. A program whose
-// readiness does not rest on the database, such as the API server, does not ask for it.
+// ReportReadiness starts the readiness report of the pool the part p was handed to gets from Get, the
+// database answering a ping, for a program that is ready only while it does (ADR-0142). For an
+// endpoint, a task or a shared thing that is the process's one pool, reported under the pools' own
+// name, database, built from the process rather than from whoever asked. For a job kind it is the job
+// kind's own pool, reported under the job kind's own name, so each job kind's pool is told apart from
+// the others and from the process's, as the worker needs, which is ready only while each job kind's
+// pool answers. A report is not ready until the first ping answers, ready while pings answer, and not
+// ready again from the first that fails. Its loop runs on a goroutine the process starts and waits for
+// before it closes the pools, so it never pings a closed pool. Each pool's report is started once,
+// however often it is asked for. A program whose readiness does not rest on the database, such as the
+// API server, does not ask for it.
 func ReportReadiness(ctx context.Context, p process.Capabilities, c config.HasDatabase) error {
-	if kind := process.JobKind(p); kind != "" {
-		return fmt.Errorf("the job kind %s asked for a ping report, and a job kind's pool has no ping report yet", kind)
-	}
 	pool, err := Get(ctx, p, c)
 	if err != nil {
 		return err
@@ -39,14 +37,19 @@ func ReportReadiness(ctx context.Context, p process.Capabilities, c config.HasDa
 	if err != nil {
 		return err
 	}
+	kind := process.JobKind(p)
+	reporter := set.shared
+	if kind != "" {
+		reporter = p
+	}
 	set.mu.Lock()
 	defer set.mu.Unlock()
-	if set.reported {
+	if set.reported[kind] {
 		return nil
 	}
-	set.reported = true
-	set.shared.Report(process.NotReady, "no ping has answered yet")
-	set.shared.Go("database ping", func(ctx context.Context) { ping(ctx, pool, set.shared) })
+	set.reported[kind] = true
+	reporter.Report(process.NotReady, "no ping has answered yet")
+	reporter.Go("database ping", func(ctx context.Context) { ping(ctx, pool, reporter) })
 	return nil
 }
 

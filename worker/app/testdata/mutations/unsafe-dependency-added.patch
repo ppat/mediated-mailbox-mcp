@@ -7,20 +7,20 @@ scheduled-count: no
 diff --git a/worker/app/app.go b/worker/app/app.go
 --- a/worker/app/app.go
 +++ b/worker/app/app.go
-@@ -26,6 +26,7 @@ import (
- 	"sync/atomic"
- 	"time"
+@@ -9,12 +9,16 @@
+ package app
  
+ import (
 +	"github.com/google/go-cmp/cmp"
- 	"github.com/jackc/pgx/v5/pgxpool"
- 	"github.com/prometheus/client_golang/prometheus"
- 	"golang.org/x/net/idna"
-@@ -51,6 +52,8 @@ import (
- // (ADR-0120).
- const scannerSection = "scanner"
++
+ 	"github.com/ppat/mediated-mailbox-mcp/core/config"
+ 	"github.com/ppat/mediated-mailbox-mcp/process"
+ 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill"
+ 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/deltasync"
+ )
  
 +var _ = cmp.Equal
 +
- // Run is the worker's process. The host loads the configuration, and the worker is assembled from
- // it, the scanner built from its section before anything else starts, so a section it refuses refuses
- // the start, and the keyring loaded before any connection is made, so a public key matching none of
+ // Spec is the worker's spec.
+ func Spec() process.Spec[config.Worker] {
+ 	return process.Spec[config.Worker]{

@@ -1,0 +1,38 @@
+control: No body text reaches the index or the workload's logs
+removes: each body the second pass fetches is logged at debug through the run's logger
+packages: ./worker/app
+tests: TestNoBodyTextReachesTheIndexOrTheLogs
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
+--- a/worker/internal/backfill/backfill.go
++++ b/worker/internal/backfill/backfill.go
+@@ -230,7 +230,7 @@ func (b *Backfill) run(ctx context.Context, ask schedule.Ask, account string, st
+ 	if !work.Any() {
+ 		return nil
+ 	}
+-	u := &unit{conns: b.conns, caller: b.caller, account: account}
++	u := &unit{conns: b.conns, caller: b.caller, account: account, logger: logger}
+ 	first := pass1.Deps{
+ 		Store: b.store, Fetch: u.fetch, Metadata: u.metadata, PerCall: u.perCall,
+ 		Policy: b.policyFor(account), Scanner: b.scanner, RunID: runID, Now: time.Now,
+@@ -340,6 +340,7 @@ type unit struct {
+ 	caller  *connections.Caller
+ 	account string
+ 	current *connections.Work
++	logger  *slog.Logger
+ }
+ 
+ // open begins the account's next unit of work.
+@@ -388,7 +389,9 @@ func (u *unit) perCall() int {
+ // body is the second pass's body fetch through the unit's mailbox, a second call naming a part held
+ // apart (ADR-0025, ADR-0131).
+ func (u *unit) body(ctx context.Context, id string) (mail.MessageBody, error) {
+-	return providermail.Body(ctx, u.current.Mailbox(), id)
++	body, err := providermail.Body(ctx, u.current.Mailbox(), id)
++	u.logger.DebugContext(ctx, "a body was fetched", "text", body.Text, "html", body.HTML)
++	return body, err
+ }
+ 
+ // secondDeps returns what an account's second pass runs with. The gate decides under the thresholds

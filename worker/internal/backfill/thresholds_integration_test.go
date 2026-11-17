@@ -101,7 +101,7 @@ func thresholdDeps(t *testing.T, pool *pgxpool.Pool, account string, f *fake.Fak
 	runID := func() string { n++; return fmt.Sprintf("%s%d", run, n) }
 	s := wideScanner(t)
 	first := pass1.Deps{
-		Store: pass1.NewPostgres(pool), Fetch: f.EnumerateAll, Metadata: f.GetMessageMetadata, PerCall: 3, Policy: fixed(classify.Prepare(rules.For(account), lookups)), Scanner: s,
+		Store: pass1.NewPostgres(pool), Fetch: f.EnumerateAll, Metadata: f.GetMessageMetadata, PerCall: three, Policy: fixed(classify.Prepare(rules.For(account), lookups)), Scanner: s,
 		RunID: runID, Now: time.Now,
 	}
 	second := pass2.Deps{

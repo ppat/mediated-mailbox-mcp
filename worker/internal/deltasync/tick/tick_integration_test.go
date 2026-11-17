@@ -16,13 +16,12 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
+	"github.com/ppat/mediated-mailbox-mcp/process/scanner"
 	"github.com/ppat/mediated-mailbox-mcp/provider/mail/fake"
-	"github.com/ppat/mediated-mailbox-mcp/provider/ratelimit"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/marker"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/postgres"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/deltasync/tick"
-	"github.com/ppat/mediated-mailbox-mcp/worker/internal/series"
 )
 
 // revoke revokes a grant of the application user for the rest of the test, and grants it again when the
@@ -397,7 +396,7 @@ func TestOnceTheSecondPassHasEndedATickScansWhatWaits(t *testing.T) {
 	p := &direct{port: f, failBody: map[string]error{"m4": fmt.Errorf("body: %w", mail.ErrNotFound)}}
 	d := deps(t, syncPool(t), p, listing(t, "bank.example"), account)
 	reg := prometheus.NewRegistry()
-	processing, err := series.NewProcessing(reg)
+	processing, err := scanner.NewProcessing(reg)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -442,7 +441,7 @@ func TestOnceTheSecondPassHasEndedATickScansWhatWaits(t *testing.T) {
 	if r.Scanned != 2 {
 		t.Errorf("the tick counted %d messages scanned, want 2", r.Scanned)
 	}
-	if diff := cmp.Diff(map[string]uint64{series.StepConvert: 2, series.StepScan: 2}, processed(t, reg), compare.Options); diff != "" {
+	if diff := cmp.Diff(map[string]uint64{scanner.StepConvert: 2, scanner.StepScan: 2}, processed(t, reg), compare.Options); diff != "" {
 		t.Errorf("the steps timed (-want +got):\n%s", diff)
 	}
 	last := runs(t, conn, account)
@@ -466,7 +465,7 @@ func processed(t *testing.T, reg prometheus.Gatherer) map[string]uint64 {
 	}
 	out := map[string]uint64{}
 	for _, f := range families {
-		if f.GetName() != series.ProcessingName {
+		if f.GetName() != scanner.ProcessingName {
 			continue
 		}
 		for _, m := range f.GetMetric() {
@@ -647,47 +646,6 @@ func TestAThrottledBodyStopsTheAccountsScanning(t *testing.T) {
 
 	if diff := cmp.Diff([]string{"m2", "m3", "m4"}, p.bodies, compare.Options); diff != "" {
 		t.Errorf("the bodies the next tick asked for (-want +got):\n%s", diff)
-	}
-}
-
-// Every call a tick makes through Leased spends from the account's budget in the sync class
-// (ADR-0025).
-func TestATickSpendsInTheSyncClass(t *testing.T) {
-	conn := superuser(t)
-	account := newAccount(t, conn, true)
-	f := mailbox(t, account, waiting("m1", "orders@shop.example", false))
-	reg := prometheus.NewRegistry()
-	metrics, err := ratelimit.NewMetrics(reg)
-	if err != nil {
-		t.Fatal(err)
-	}
-	limiter := ratelimit.New(syncPool(t), f.RateProfile().BudgetPerSecond(), metrics)
-	d := deps(t, syncPool(t), tick.Leased{Limiter: limiter, Port: f, Account: account}, listing(t), account)
-
-	mustTick(t, d, account)
-
-	families, err := reg.Gather()
-	if err != nil {
-		t.Fatal(err)
-	}
-	classes := map[string]float64{}
-	for _, fam := range families {
-		if fam.GetName() != "mediated_mailbox_ratelimit_granted_total" {
-			continue
-		}
-		for _, m := range fam.GetMetric() {
-			for _, l := range m.GetLabel() {
-				if l.GetName() == "class" {
-					classes[l.GetValue()] += m.GetCounter().GetValue()
-				}
-			}
-		}
-	}
-	if classes["sync"] == 0 || classes["batch"] != 0 || classes["interactive"] != 0 {
-		t.Errorf("the tick was granted %v by class, want the sync class alone", classes)
-	}
-	if s := index(t, conn, account)["m1"]; s.State != "scanned" {
-		t.Errorf("the message is %q, want scanned through the leased calls", s.State)
 	}
 }
 

@@ -1,0 +1,17 @@
+control: The port returns a body's rendered part alone, and a part the provider holds apart takes exactly one more call
+removes: a tick asks for a body once, so a part the provider holds apart is never asked for
+packages: ./worker/app
+tests: TestATickScansABodyHeldApart
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/deltasync/tick/provider.go b/worker/internal/deltasync/tick/provider.go
+--- a/worker/internal/deltasync/tick/provider.go
++++ b/worker/internal/deltasync/tick/provider.go
+@@ -41,5 +41,5 @@ func (t through) GetMessageMetadata(ctx context.Context, ids []string) ([]mail.M
+ 
+ // GetMessageBody implements Provider, a second call naming a part held apart (ADR-0131).
+ func (t through) GetMessageBody(ctx context.Context, id string) (mail.MessageBody, error) {
+-	return providermail.Body(ctx, t.Mailbox, id)
++	return t.Mailbox.GetMessageBody(ctx, id, "")
+ }

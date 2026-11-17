@@ -1,24 +1,21 @@
 control: A reload re-seals what was sealed to an old key, an OAuth client's secret included, whether or not any account is listed
-removes: a reload that lists no account re-seals nothing and sets no key-scan series
-packages: ./worker/internal/deltasync
-tests: TestAReloadWithNoAccountReSealsAClientSecretOnAnOldKey
+removes: a listing that finds no account re-seals nothing and sets no key-scan series
+packages: ./worker/app
+tests: TestDeltaSyncsListingReSealsWhatWasOpenedWithAnOldKey
 scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/deltasync.go
-index 5a7ea58..296b090 100644
 --- a/worker/internal/deltasync/deltasync.go
 +++ b/worker/internal/deltasync/deltasync.go
-@@ -202,8 +202,10 @@ func (d *DeltaSync) reload(ctx context.Context, _ schedule.Ask) error {
- 		return policyErr
+@@ -187,7 +187,9 @@ func (d *DeltaSync) list(ctx context.Context) ([]string, error) {
+ 	if err != nil {
+ 		return nil, err
  	}
- 	loader := d.config.Context.Loader()
--	loader.Reseal(ctx)
--	d.keyScan.Set(loader.ResealClients(ctx, reseal.Writer(d.config.Pool)))
-+	if len(latest.Snapshot().Accounts()) > 0 {
-+		loader.Reseal(ctx)
-+		d.keyScan.Set(loader.ResealClients(ctx, reseal.Writer(d.config.Pool)))
+-	d.keyScan.Set(d.conns.Reseal(ctx))
++	if len(listed) > 0 {
++		d.keyScan.Set(d.conns.Reseal(ctx))
 +	}
- 	snapshot := latest.Snapshot()
- 	listed := d.sessions.Accounts(snapshot)
- 	if policyErr != nil {
+ 	return listed, nil
+ }
+ 

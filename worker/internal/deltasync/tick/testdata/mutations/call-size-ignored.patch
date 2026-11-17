@@ -1,0 +1,19 @@
+control: A tick's metadata fetch names no more identifiers in one call than the mailbox says fit
+removes: a tick asks for the metadata of every identifier in one call, whatever the mailbox says fits
+packages: ./worker/app
+tests: TestATicksMetadataCallsFitTheCallSize
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/deltasync/tick/provider.go b/worker/internal/deltasync/tick/provider.go
+--- a/worker/internal/deltasync/tick/provider.go
++++ b/worker/internal/deltasync/tick/provider.go
+@@ -27,7 +27,7 @@ type through struct{ providermail.Mailbox }
+ // GetMessageMetadata implements Provider. It splits ids into calls naming as many as fit one
+ // second's worth at the hard cap, as the mailbox says (ADR-0023).
+ func (t through) GetMessageMetadata(ctx context.Context, ids []string) ([]mail.MessageMetadata, error) {
+-	size := t.MetadataCallSize(len(ids))
++	size := max(len(ids), 1)
+ 	var out []mail.MessageMetadata
+ 	for start := 0; start < len(ids); start += size {
+ 		got, err := t.Mailbox.GetMessageMetadata(ctx, ids[start:min(start+size, len(ids))])

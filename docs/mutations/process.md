@@ -232,7 +232,7 @@ The demonstrations of the controls whose patches sit in `process/`. [MUTATIONS.m
 
 ## A plan's listing keeps one job per key it lists, tells a dropped key only once its job has returned, and tells its first success once
 
-- **Date · evidence:** 2026-11-17 · [pull request #453](https://github.com/ppat/mediated-mailbox-mcp/pull/453), at RAPID_SEED=1
+- **Date · evidence:** 2026-11-17 · [pull request #453](https://github.com/ppat/mediated-mailbox-mcp/pull/453), at RAPID_SEED=1, and the worker's row "An account no longer served has its job removed, and its running run cancelled" retired on 2026-11-17 into this one, since what it demonstrated stands here · [pull request #458](https://github.com/ppat/mediated-mailbox-mcp/pull/458)
 - **Break (1):** a dropped key is told to the plan before its job is removed and has returned
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/schedule`:** `TestAPlansListingAddsAndDropsJobsByKey`
 - **Break (2):** the job of a key the listing no longer finds is not removed, so it keeps running
@@ -263,11 +263,11 @@ The demonstrations of the controls whose patches sit in `process/`. [MUTATIONS.m
 
 ## A process holds one Session, built from the process with its own capabilities, its reload unobserved by the scheduler's series
 
-- **Date · evidence:** 2026-11-17 · [pull request #455](https://github.com/ppat/mediated-mailbox-mcp/pull/455), at RAPID_SEED=1
+- **Date · evidence:** 2026-11-17 · [pull request #455](https://github.com/ppat/mediated-mailbox-mcp/pull/455), at RAPID_SEED=1, and 2026-11-17 at RAPID_SEED=1, every break again, after the worker went onto its spec, which changed the code, tests or patches the row rests on · [pull request #458](https://github.com/ppat/mediated-mailbox-mcp/pull/458)
 - **Break (1):** the Session is built with the capabilities of the part that asked first, so its series carry that part's job kind
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/sessions`:** `TestTheSessionIsOnePerProcessBuiltFromTheProcess`
 - **Break (2):** each part that asks gets a Session built for it, so the process holds more than one
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/sessions`:** `TestAFailedReloadKeepsWhatItCouldNotRead`, `TestEachReloadItsCallerDidNotCancelIsTimed`, `TestOnceLoadedAFailedReloadWaitsForTheNextInterval`, `TestTheSessionIsOnePerProcessBuiltFromTheProcess`, `TestTheSessionIsReadyOnceAReloadHasLoadedEverything`, `TestTheSessionIsReadyOnceAReloadHasLoadedEverything/the_list`, `TestTheSessionIsReadyOnceAReloadHasLoadedEverything/the_policy`, `TestWithoutConnectionsNoAccountIsWorkable`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/sessions`:** `TestAFailedReloadKeepsWhatItCouldNotRead`, `TestEachReloadItsCallerDidNotCancelIsTimed`, `TestOnceLoadedAFailedReloadWaitsForTheNextInterval`, `TestTheSessionIsOnePerProcessBuiltFromTheProcess`, `TestTheSessionIsReadyOnceAReloadHasLoadedEverything`, `TestTheSessionIsReadyOnceAReloadHasLoadedEverything/the_list`, `TestTheSessionIsReadyOnceAReloadHasLoadedEverything/the_policy`, `TestTheWorkableAccountsAnswerFromTheLatestRead`, `TestWithoutConnectionsNoAccountIsWorkable`
 
 ## A process refuses the environment the database driver and every component it hosts refuse, before its configuration is read
 
@@ -377,7 +377,7 @@ The demonstrations of the controls whose patches sit in `process/`. [MUTATIONS.m
 
 ## A refused credential is read again, and the call is made once more only over another credential, through the client the account's row names, with the record changed in place
 
-- **Date · evidence:** 2026-11-17 · [pull request #455](https://github.com/ppat/mediated-mailbox-mcp/pull/455), at RAPID_SEED=1
+- **Date · evidence:** 2026-11-17 · [pull request #455](https://github.com/ppat/mediated-mailbox-mcp/pull/455), at RAPID_SEED=1, and the worker's rows "A credential the provider refuses is read again from its row before the refusal is reported" and "A credential the provider refuses is read again from the account's row before the refusal is reported, and a replaced one is used for the call it refused" retired on 2026-11-17 into this one, since what they demonstrated stands here · [pull request #458](https://github.com/ppat/mediated-mailbox-mcp/pull/458)
 - **Break (1):** a re-read after a refusal never gives a token, so a credential the operator replaced is not used
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/connections`:** `TestAReadAgainMakesTheTokenFromTheClientTheAccountMovedTo`, `TestAStoredCredentialSomeoneElseReplacedWins`
 - **Break (2):** a re-read that finds the refused credential gives a token over it, so the provider is called once more with what it refused
@@ -387,7 +387,7 @@ The demonstrations of the controls whose patches sit in `process/`. [MUTATIONS.m
 
 ## A reload keeps an account's token while its own current credential equals the stored one and its client is unchanged
 
-- **Date · evidence:** 2026-11-17 · [pull request #455](https://github.com/ppat/mediated-mailbox-mcp/pull/455), at RAPID_SEED=1
+- **Date · evidence:** 2026-11-17 · [pull request #455](https://github.com/ppat/mediated-mailbox-mcp/pull/455), at RAPID_SEED=1, and the worker's row "Delta sync holds each account's token source across ticks while the stored credential is the one it was built from" retired on 2026-11-17 into this one, since what it demonstrated stands here · [pull request #458](https://github.com/ppat/mediated-mailbox-mcp/pull/458)
 - **Break (1):** a token is kept whatever client the account now connects through, so an account whose client changed calls through the old one
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/connections`:** `TestATokenServesItsAccountUntilItsCredentialOrClientChanges`
 - **Break (2):** every reload makes each account's token again, so a token the provider refreshed is thrown away
@@ -533,7 +533,7 @@ The demonstrations of the controls whose patches sit in `process/`. [MUTATIONS.m
 
 ## An account is connected through the OAuth client it names, and an account that names none through none
 
-- **Date · evidence:** 2026-11-17 · [pull request #455](https://github.com/ppat/mediated-mailbox-mcp/pull/455), at RAPID_SEED=1
+- **Date · evidence:** 2026-11-17 · [pull request #455](https://github.com/ppat/mediated-mailbox-mcp/pull/455), at RAPID_SEED=1, and the worker's row "A served account's token source is built from the OAuth client the account connects through and the account's own refresh token" retired on 2026-11-17 into this one, since what it demonstrated stands here · [pull request #458](https://github.com/ppat/mediated-mailbox-mcp/pull/458)
 - **Break (1):** an account that names no client is paired with any client that opened, as a lookup by provider would
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/connections`:** `TestAnAccountOfAClientProviderWithoutItsClientIsNotConnected`, `TestAnOAuthClientIsLoadedOnlyForAProviderThatHasOne`, `TestEachAccountIsLoadedWithTheClientItNamesAndNoOther`, `TestReSealingMovesCredentialsToTheCurrentKeyAndTheScanFollows`
 - **Break (2):** a credential read again after a refusal is paired with the client the record held, not the one the account's row names now
@@ -541,7 +541,7 @@ The demonstrations of the controls whose patches sit in `process/`. [MUTATIONS.m
 
 ## An account is workable only once it is listed, connected and its policy loaded
 
-- **Date · evidence:** 2026-11-17 · [pull request #455](https://github.com/ppat/mediated-mailbox-mcp/pull/455), at RAPID_SEED=1
+- **Date · evidence:** 2026-11-17 · [pull request #455](https://github.com/ppat/mediated-mailbox-mcp/pull/455), at RAPID_SEED=1, and 2026-11-17 at RAPID_SEED=1, every break again, after the worker went onto its spec, which changed the code, tests or patches the row rests on · [pull request #458](https://github.com/ppat/mediated-mailbox-mcp/pull/458)
 - **Break (1):** an account in force with a policy is held workable whether or not it has a connection
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/connections`:** `TestAnAccountOfAClientProviderWithoutItsClientIsNotConnected`
 - **Break (2):** an account in force is held as having a policy whether or not a load read its rules
@@ -549,7 +549,7 @@ The demonstrations of the controls whose patches sit in `process/`. [MUTATIONS.m
 
 ## An account of a provider that authenticates through an OAuth client is not connected without one, and one whose provider needs none is
 
-- **Date · evidence:** 2026-11-17 · [pull request #455](https://github.com/ppat/mediated-mailbox-mcp/pull/455), at RAPID_SEED=1
+- **Date · evidence:** 2026-11-17 · [pull request #455](https://github.com/ppat/mediated-mailbox-mcp/pull/455), at RAPID_SEED=1, and the worker's row "A run serves only a connected account whose provider it has an adapter for and that connects through an OAuth client" retired on 2026-11-17 into this one, since what it demonstrated stands here · [pull request #458](https://github.com/ppat/mediated-mailbox-mcp/pull/458)
 - **Break (1):** an account of a provider that authenticates through a client is connected though it has none that opened
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/connections`:** `TestAReSealNeverPutsBackAReplacedSecret`, `TestAReadAgainMakesTheTokenFromTheClientTheAccountMovedTo`, `TestAValueCopiedToAnotherRowOrPurposeDoesNotOpen`, `TestAnAccountOfAClientProviderWithoutItsClientIsNotConnected`, `TestEachAccountIsLoadedWithTheClientItNamesAndNoOther`
 - **Break (2):** every provider is taken to authenticate through a client, so an account whose provider needs none is not connected
@@ -605,7 +605,7 @@ The demonstrations of the controls whose patches sit in `process/`. [MUTATIONS.m
 
 ## Delta sync's re-seal moves each credential and client secret to the current key by compare-and-set, and a value someone replaced is read again
 
-- **Date · evidence:** 2026-11-17 · [pull request #455](https://github.com/ppat/mediated-mailbox-mcp/pull/455), at RAPID_SEED=1
+- **Date · evidence:** 2026-11-17 · [pull request #455](https://github.com/ppat/mediated-mailbox-mcp/pull/455), at RAPID_SEED=1, and the worker's rows "Delta sync re-seals what it opens with an old key and scans every listed account and OAuth client" and "Delta sync's re-seal of a client secret never puts back a value someone else replaced" retired on 2026-11-17 into this one, with the patches of `worker/internal/deltasync/reseal`, since delta sync re-seals through the connections, whose breaks stand here, and the key-scan series moved to `worker/internal/deltasync` · [pull request #458](https://github.com/ppat/mediated-mailbox-mcp/pull/458)
 - **Break (1):** the re-seal leaves every client secret on its old key
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/connections`:** `TestAReSealNeverPutsBackAReplacedSecret`, `TestReSealingMovesCredentialsToTheCurrentKeyAndTheScanFollows`
 - **Break (2):** a re-seal that landed leaves the record on the old bytes, so the scan reads true and the next write-back compares against bytes the row no longer holds
@@ -659,7 +659,7 @@ The demonstrations of the controls whose patches sit in `process/`. [MUTATIONS.m
 
 ## Each job kind has a pool of its own and the process one more, every pool closed with the slots
 
-- **Date · evidence:** 2026-11-17 · [pull request #453](https://github.com/ppat/mediated-mailbox-mcp/pull/453), at RAPID_SEED=1, and every break again on 2026-11-17 at RAPID_SEED=1, after the UI moved onto its spec, with its checks in `ui/internal/server` and its pages in `ui/internal/pages`, changed the code, tests or patches the row rests on · [pull request #454](https://github.com/ppat/mediated-mailbox-mcp/pull/454)
+- **Date · evidence:** 2026-11-17 · [pull request #453](https://github.com/ppat/mediated-mailbox-mcp/pull/453), at RAPID_SEED=1, and every break again on 2026-11-17 at RAPID_SEED=1, after the UI moved onto its spec, with its checks in `ui/internal/server` and its pages in `ui/internal/pages`, changed the code, tests or patches the row rests on · [pull request #454](https://github.com/ppat/mediated-mailbox-mcp/pull/454), and 2026-11-17 at RAPID_SEED=1, every break again, after the worker went onto its spec, which changed the code, tests or patches the row rests on · [pull request #458](https://github.com/ppat/mediated-mailbox-mcp/pull/458), and the worker's row "Each job kind runs through a pool of its own, every pool connected as the one application user" retired on 2026-11-17 into this one, since what it demonstrated stands here · [pull request #458](https://github.com/ppat/mediated-mailbox-mcp/pull/458)
 - **Break (1):** a job kind's pool registers its series on the process's registerer, so the two job kinds' pools serve series of one name and one set of label values and the scrape fails
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/database`:** `TestEachJobKindHasAPoolOfItsOwnAndTheProcessOneMore`
 - **Break (2):** every part shares one pool, so one job kind can starve another of connections
@@ -675,7 +675,7 @@ The demonstrations of the controls whose patches sit in `process/`. [MUTATIONS.m
 
 ## Each reload of the Session its caller did not cancel is timed
 
-- **Date · evidence:** 2026-11-17 · [pull request #455](https://github.com/ppat/mediated-mailbox-mcp/pull/455), at RAPID_SEED=1
+- **Date · evidence:** 2026-11-17 · [pull request #455](https://github.com/ppat/mediated-mailbox-mcp/pull/455), at RAPID_SEED=1, and 2026-11-17 at RAPID_SEED=1, every break again, after the worker went onto its spec, which changed the code, tests or patches the row rests on · [pull request #458](https://github.com/ppat/mediated-mailbox-mcp/pull/458)
 - **Break (1):** a reload its caller cancelled is timed too
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/sessions`:** `TestEachReloadItsCallerDidNotCancelIsTimed`
 - **Break (2):** a reload that fails is not timed
@@ -719,7 +719,7 @@ The demonstrations of the controls whose patches sit in `process/`. [MUTATIONS.m
 
 ## Every series a part registers carries the program's name as component and a job kind's its job_kind, and the runtime series carry neither
 
-- **Date · evidence:** 2026-11-17 · [pull request #453](https://github.com/ppat/mediated-mailbox-mcp/pull/453), at RAPID_SEED=1, and every break again on 2026-11-17 at RAPID_SEED=1, after the Session, the connections and the unit of work in the process family changed the code, tests or patches the row rests on · [pull request #455](https://github.com/ppat/mediated-mailbox-mcp/pull/455), and every break again on 2026-11-17 at RAPID_SEED=1, after every pool came to register its series unchecked, so a pool that is no job kind's carries no `job_kind` in any process, which changed the code or tests the row rests on · [pull request #454](https://github.com/ppat/mediated-mailbox-mcp/pull/454)
+- **Date · evidence:** 2026-11-17 · [pull request #453](https://github.com/ppat/mediated-mailbox-mcp/pull/453), at RAPID_SEED=1, and every break again on 2026-11-17 at RAPID_SEED=1, after the Session, the connections and the unit of work in the process family changed the code, tests or patches the row rests on · [pull request #455](https://github.com/ppat/mediated-mailbox-mcp/pull/455), and every break again on 2026-11-17 at RAPID_SEED=1, after every pool came to register its series unchecked, so a pool that is no job kind's carries no `job_kind` in any process, which changed the code or tests the row rests on · [pull request #454](https://github.com/ppat/mediated-mailbox-mcp/pull/454), and the worker's row "Every series a job kind emits carries its job kind" retired on 2026-11-17 into this one, since what it demonstrated stands here · [pull request #458](https://github.com/ppat/mediated-mailbox-mcp/pull/458)
 - **Break (1):** a job kind's series carry no job_kind, so one series registered by two job kinds collides
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/process`:** `TestEverySeriesIsLabelledWithWhatRegisteredIt`
 - **Break (2):** the runtime series are registered under the component label, as if a part owned them
@@ -727,7 +727,7 @@ The demonstrations of the controls whose patches sit in `process/`. [MUTATIONS.m
 
 ## Get runs the schema check on a pool before it first returns it, and ForMigration runs none
 
-- **Date · evidence:** 2026-11-17 · [pull request #453](https://github.com/ppat/mediated-mailbox-mcp/pull/453), at RAPID_SEED=1, and every break again on 2026-11-17 at RAPID_SEED=1, after the UI moved onto its spec, with its checks in `ui/internal/server` and its pages in `ui/internal/pages`, changed the code, tests or patches the row rests on · [pull request #454](https://github.com/ppat/mediated-mailbox-mcp/pull/454)
+- **Date · evidence:** 2026-11-17 · [pull request #453](https://github.com/ppat/mediated-mailbox-mcp/pull/453), at RAPID_SEED=1, and every break again on 2026-11-17 at RAPID_SEED=1, after the UI moved onto its spec, with its checks in `ui/internal/server` and its pages in `ui/internal/pages`, changed the code, tests or patches the row rests on · [pull request #454](https://github.com/ppat/mediated-mailbox-mcp/pull/454), and 2026-11-17 at RAPID_SEED=1, every break again, after the worker went onto its spec, which changed the code, tests or patches the row rests on · [pull request #458](https://github.com/ppat/mediated-mailbox-mcp/pull/458)
 - **Break (1):** Get runs no schema check, so a program starts on a schema its chain cannot run on
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/database`:** `TestGetChecksTheSchemaAndForMigrationDoesNot`
 - **Break (2):** a schema the check refuses is ignored and its pool kept and returned, so the build goes on
@@ -769,7 +769,7 @@ The demonstrations of the controls whose patches sit in `process/`. [MUTATIONS.m
 
 ## Only the migrator's configuration type can ask for the pool with no schema check
 
-- **Date · evidence:** 2026-11-17 · [pull request #453](https://github.com/ppat/mediated-mailbox-mcp/pull/453), at RAPID_SEED=1, and every break again on 2026-11-17 at RAPID_SEED=1, after the Session, the connections and the unit of work in the process family changed the code, tests or patches the row rests on · [pull request #455](https://github.com/ppat/mediated-mailbox-mcp/pull/455), and every break again on 2026-11-17 at RAPID_SEED=1, after the ping report and its tests were added to `process/database`, which changed the tests the row rests on · [pull request #454](https://github.com/ppat/mediated-mailbox-mcp/pull/454)
+- **Date · evidence:** 2026-11-17 · [pull request #453](https://github.com/ppat/mediated-mailbox-mcp/pull/453), at RAPID_SEED=1, and every break again on 2026-11-17 at RAPID_SEED=1, after the Session, the connections and the unit of work in the process family changed the code, tests or patches the row rests on · [pull request #455](https://github.com/ppat/mediated-mailbox-mcp/pull/455), and every break again on 2026-11-17 at RAPID_SEED=1, after the ping report and its tests were added to `process/database`, which changed the tests the row rests on · [pull request #454](https://github.com/ppat/mediated-mailbox-mcp/pull/454), and 2026-11-17 at RAPID_SEED=1, every break again, after the worker went onto its spec, which changed the code, tests or patches the row rests on · [pull request #458](https://github.com/ppat/mediated-mailbox-mcp/pull/458)
 - **Break (1):** the process part carries the migrator's unexported method, so every configuration type that embeds it can open a pool with no schema check
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/database`:** `TestOnlyTheMigratorCanAskForThePoolWithNoSchemaCheck`, `TestOnlyTheMigratorCanAskForThePoolWithNoSchemaCheck/formigrationapi`, `TestOnlyTheMigratorCanAskForThePoolWithNoSchemaCheck/formigrationui`, `TestOnlyTheMigratorCanAskForThePoolWithNoSchemaCheck/formigrationworker`
 - **Break (2):** the UI's configuration type is given the migrator's unexported method, so the UI's Build can open a pool with no schema check
@@ -799,7 +799,7 @@ The demonstrations of the controls whose patches sit in `process/`. [MUTATIONS.m
 
 ## The connections attach to the Session once, and a second attach is refused
 
-- **Date · evidence:** 2026-11-17 · [pull request #455](https://github.com/ppat/mediated-mailbox-mcp/pull/455), at RAPID_SEED=1
+- **Date · evidence:** 2026-11-17 · [pull request #455](https://github.com/ppat/mediated-mailbox-mcp/pull/455), at RAPID_SEED=1, and 2026-11-17 at RAPID_SEED=1, every break again, after the worker went onto its spec, which changed the code, tests or patches the row rests on · [pull request #458](https://github.com/ppat/mediated-mailbox-mcp/pull/458)
 - **Break (1):** a second attach keeps the connections attached first and reports no error
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/connections`:** `TestASecondAttachIsRefused`
 - **Break (2):** a second attach replaces the connections attached first
@@ -968,7 +968,7 @@ The demonstrations of the controls whose patches sit in `process/`. [MUTATIONS.m
 
 ## The Session is ready once a reload has loaded the list, the connections and the policy, and stays ready after a later reload whose policy fails
 
-- **Date · evidence:** 2026-11-17 · [pull request #455](https://github.com/ppat/mediated-mailbox-mcp/pull/455), at RAPID_SEED=1
+- **Date · evidence:** 2026-11-17 · [pull request #455](https://github.com/ppat/mediated-mailbox-mcp/pull/455), at RAPID_SEED=1, and 2026-11-17 at RAPID_SEED=1, every break again, after the worker went onto its spec, which changed the code, tests or patches the row rests on · [pull request #458](https://github.com/ppat/mediated-mailbox-mcp/pull/458)
 - **Break (1):** a later reload whose policy fails reports the Session not ready again
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/sessions`:** `TestTheSessionIsReadyOnceAReloadHasLoadedEverything`, `TestTheSessionIsReadyOnceAReloadHasLoadedEverything/the_list`, `TestTheSessionIsReadyOnceAReloadHasLoadedEverything/the_policy`
 - **Break (2):** the Session reports ready once a reload has read the list, whether or not its policy loaded
@@ -976,11 +976,11 @@ The demonstrations of the controls whose patches sit in `process/`. [MUTATIONS.m
 
 ## The Session reloads in one order, and keeps in force what a failed read could not read
 
-- **Date · evidence:** 2026-11-17 · [pull request #455](https://github.com/ppat/mediated-mailbox-mcp/pull/455), at RAPID_SEED=1
+- **Date · evidence:** 2026-11-17 · [pull request #455](https://github.com/ppat/mediated-mailbox-mcp/pull/455), at RAPID_SEED=1, and 2026-11-17 at RAPID_SEED=1, every break again, after the worker went onto its spec, which changed the code, tests or patches the row rests on · [pull request #458](https://github.com/ppat/mediated-mailbox-mcp/pull/458), and the worker's rows "Each reload loads the account snapshot, and a failed read keeps the previous one" and "Each reload loads the account snapshot, and a tick takes the active one" retired on 2026-11-17 into this one, since what they demonstrated stands here · [pull request #458](https://github.com/ppat/mediated-mailbox-mcp/pull/458)
 - **Break (1):** a reload whose load of the connections fails puts its list in force all the same, so an account whose credential was never read is held
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/connections`:** `TestAReloadConnectsWhatItReadAndKeepsWhatWasOnAFailedRead`
 - **Break (2):** a reload whose read of the accounts fails puts an empty list in force, as if no account were listed
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/sessions`:** `TestAFailedReloadKeepsWhatItCouldNotRead`, `TestOnceLoadedAFailedReloadWaitsForTheNextInterval`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/sessions`:** `TestAFailedReloadKeepsWhatItCouldNotRead`, `TestOnceLoadedAFailedReloadWaitsForTheNextInterval`, `TestTheWorkableAccountsAnswerFromTheLatestRead`
 - **Break (3):** a reload whose policy load fails keeps the list of the reload before it in force and tells no one, so an account no longer listed stays held
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/sessions`:** `TestAFailedReloadKeepsWhatItCouldNotRead`
 - **Break (4):** those who asked are told after a reload whose read of the accounts failed, though nothing new is in force
@@ -988,7 +988,7 @@ The demonstrations of the controls whose patches sit in `process/`. [MUTATIONS.m
 
 ## The Session's reload is tried again within seconds while no reload has loaded everything, and at the next interval once one has
 
-- **Date · evidence:** 2026-11-17 · [pull request #455](https://github.com/ppat/mediated-mailbox-mcp/pull/455), at RAPID_SEED=1
+- **Date · evidence:** 2026-11-17 · [pull request #455](https://github.com/ppat/mediated-mailbox-mcp/pull/455), at RAPID_SEED=1, and 2026-11-17 at RAPID_SEED=1, every break again, after the worker went onto its spec, which changed the code, tests or patches the row rests on · [pull request #458](https://github.com/ppat/mediated-mailbox-mcp/pull/458)
 - **Break (1):** a reload that fails before any has loaded everything is tried again only at the next interval
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/sessions`:** `TestTheSessionIsReadyOnceAReloadHasLoadedEverything`, `TestTheSessionIsReadyOnceAReloadHasLoadedEverything/the_list`, `TestTheSessionIsReadyOnceAReloadHasLoadedEverything/the_policy`
 - **Break (2):** a reload that fails once one has loaded everything is answered as failed, so the scheduler tries it again after its backoff rather than at the next interval
@@ -1007,6 +1007,16 @@ The demonstrations of the controls whose patches sit in `process/`. [MUTATIONS.m
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/schedule`:** `TestAJobsWaitForASlotIsReported`
 - **Break (5):** a success leaves the time waited before it counted, so the job's lateness after the success loses that time
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/schedule`:** `TestAJobsWaitForASlotIsReported`
+
+## The workable accounts are not due before a reload has read the list, and are the latest read's failure until a later read succeeds
+
+- **Date · evidence:** 2026-11-17 · [pull request #458](https://github.com/ppat/mediated-mailbox-mcp/pull/458), at RAPID_SEED=1
+- **Break (1):** a reload whose read of the list failed leaves the workable accounts answered from the list before it, with no error
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/sessions`:** `TestTheWorkableAccountsAnswerFromTheLatestRead`
+- **Break (2):** a reload that reads the list and loads the connections leaves an earlier reload's failure in place, so the workable accounts stay that failure
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/sessions`:** `TestTheWorkableAccountsAnswerFromTheLatestRead`
+- **Break (3):** before any reload has read the list, the workable accounts are none and no error, so a listing counts as succeeded
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/sessions`:** `TestTheWorkableAccountsAnswerFromTheLatestRead`
 
 ## Two loads in one process share nothing with each other or with the defaults
 

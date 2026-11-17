@@ -6,8 +6,6 @@
 package series
 
 import (
-	"time"
-
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -44,23 +42,14 @@ func NewBacklog(reg prometheus.Registerer) (*prometheus.GaugeVec, error) {
 	return g, nil
 }
 
-// The names of the throughput and body-cost series, which no rule reads (ADR-0125).
-const (
-	MessagesName   = "mediated_mailbox_index_messages_total"
-	ProcessingName = "mediated_mailbox_body_processing_duration_seconds"
-)
+// MessagesName is the throughput series, which no rule reads (ADR-0125).
+const MessagesName = "mediated_mailbox_index_messages_total"
 
 // The stages MessagesName counts. Indexed is a message a step added to the index, and Scanned a
 // message a step scanned and made durable.
 const (
 	StageIndexed = "indexed"
 	StageScanned = "scanned"
-)
-
-// The steps ProcessingName times, a body's conversion to Markdown and its scan.
-const (
-	StepConvert = "convert"
-	StepScan    = "scan"
 )
 
 // Messages counts the messages a job kind made durable, by account and stage. Its rate is each
@@ -94,32 +83,5 @@ func (m *Messages) Add(account, stage string, n int) {
 func (m *Messages) Forget(account string) {
 	if m != nil {
 		m.count.DeletePartialMatch(prometheus.Labels{"account": account})
-	}
-}
-
-// Processing times each body's conversion and scan in a job kind. A nil Processing times nothing, so
-// a step built without one runs unchanged.
-type Processing struct {
-	duration *prometheus.HistogramVec
-}
-
-// NewProcessing registers on reg the histogram of each body's conversion and scan, labelled by step,
-// and returns it.
-func NewProcessing(reg prometheus.Registerer) (*Processing, error) {
-	h := prometheus.NewHistogramVec(prometheus.HistogramOpts{
-		Name:    ProcessingName,
-		Help:    "How long each body's conversion to Markdown and its scan took, by step.",
-		Buckets: []float64{0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5},
-	}, []string{"step"})
-	if err := reg.Register(h); err != nil {
-		return nil, err
-	}
-	return &Processing{duration: h}, nil
-}
-
-// Since observes a step that started at start.
-func (p *Processing) Since(step string, start time.Time) {
-	if p != nil {
-		p.duration.WithLabelValues(step).Observe(time.Since(start).Seconds())
 	}
 }

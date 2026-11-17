@@ -1,0 +1,19 @@
+control: Each reload of the worker's Session wakes every job kind's listing
+removes: delta sync's plan is woken by no reload of the Session, so the jobs of an account it newly lists wait for the listing's next ask
+packages: ./worker/app
+tests: TestEachSessionReloadWakesTheJobKinds
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/deltasync.go
+--- a/worker/internal/deltasync/deltasync.go
++++ b/worker/internal/deltasync/deltasync.go
+@@ -175,7 +175,7 @@ func (d *DeltaSync) plan() schedule.Plan {
+ 			return job, nil
+ 		},
+ 		Dropped: d.dropped,
+-		Woken:   d.session.AfterReload,
++		Woken:   nil,
+ 	}
+ }
+ 

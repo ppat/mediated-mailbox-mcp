@@ -103,6 +103,9 @@ func (a Accounts) AccountsPart() Accounts { return a }
 // KeysPart returns the API server's credential part.
 func (c API) KeysPart() Keys { return c.Credential }
 
+// KeysPart returns the worker's credential part.
+func (c Worker) KeysPart() Keys { return c.Credential }
+
 // ScannerPart returns the API server's scanner part.
 func (c API) ScannerPart() Scanner { return c.Scanner }
 

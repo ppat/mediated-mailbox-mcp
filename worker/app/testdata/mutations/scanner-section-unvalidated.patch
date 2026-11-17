@@ -1,5 +1,5 @@
 control: The scanner's section is validated before the start
-removes: a scanner section the scanner refuses does not refuse the start
+removes: the worker's configuration check leaves the scanner section unchecked
 packages: ./worker/app ./core/config
 tests: TestAnInvalidScannerSectionRefusesTheStart TestTheWorkerConfigurationIsChecked/a_scanner_threshold_above_1
 scheduled-count: no
@@ -7,26 +7,11 @@ scheduled-count: no
 diff --git a/core/config/programs.go b/core/config/programs.go
 --- a/core/config/programs.go
 +++ b/core/config/programs.go
-@@ -312,7 +312,6 @@ func (c Worker) Check() error {
- 			return nil
+@@ -316,7 +316,6 @@ func (c Worker) Check() error {
  		},
+ 		c.Accounts.Check,
  		c.Credential.Check,
 -		scanner(c.Scanner),
  	)
  }
  
-diff --git a/worker/app/app.go b/worker/app/app.go
---- a/worker/app/app.go
-+++ b/worker/app/app.go
-@@ -90,10 +90,7 @@ func checkSchema(ctx context.Context, pool *pgxpool.Pool) error {
- // worker from them. The context's reload is the
- // process's task.
- func fromConfiguration(ctx context.Context, provided host.Provided[config.Worker]) (host.Parts, error) {
--	scanner, err := buildScanner(provided.Loaded)
--	if err != nil {
--		return host.Parts{}, fmt.Errorf("validating the configuration: %w", err)
--	}
-+	scanner, _ := buildScanner(provided.Loaded)
- 	c := provided.Loaded.Config
- 	keys, err := open.Load(c.Credential.PublicKeyFile, c.Credential.PrivateKeyFiles...)
- 	if err != nil {

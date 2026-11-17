@@ -1,0 +1,20 @@
+control: The port returns a body's rendered part alone, and a part the provider holds apart takes exactly one more call
+removes: the second call for a part held apart names no part, so it asks for the rendered part again
+packages: ./provider/mail
+tests: TestABodyTakesOneCallOrOneMoreForAPartHeldApart
+scheduled-count: no
+
+diff --git a/provider/mail/body.go b/provider/mail/body.go
+--- a/provider/mail/body.go
++++ b/provider/mail/body.go
+@@ -18,6 +18,10 @@ func Body(ctx context.Context, m Mailbox, id string) (coremail.MessageBody, erro
+ 		if !due {
+ 			return body, err
+ 		}
++		if next != "" {
++			body, err = m.GetMessageBody(ctx, id, "")
++			return body, err
++		}
+ 		part = next
+ 	}
+ }

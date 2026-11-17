@@ -1,23 +1,18 @@
 control: A tick hands its account over and records its latest authentication attempt when it ends
-removes: a tick that fails hands nothing over and records no attempt
-packages: ./worker/internal/deltasync
-tests: TestEachTickHandsItsAccountOverAndRecordsItsAttempt
+removes: a tick that fails ends no unit of work, so it writes nothing back and records no attempt
+packages: ./worker/app
+tests: TestAFailedTickStillEndsItsUnitOfWork
 scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/deltasync.go
 --- a/worker/internal/deltasync/deltasync.go
 +++ b/worker/internal/deltasync/deltasync.go
-@@ -300,8 +300,11 @@
+@@ -265,6 +265,7 @@ func (d *DeltaSync) tick(ctx context.Context, account string, logger *slog.Logge
+ 	c := result.Progress.Counters
+ 	if err != nil {
+ 		logger.Error("the account's tick failed", "run", result.Run, "recovery", result.Recovery, "error", err)
++		return err
+ 	} else {
  		logger.Info("the account's tick ended", "run", result.Run, "recovery", result.Recovery, "gap", result.Gap,
  			"added", c.Added, "modified", c.Modified, "removed", c.Removed, "decided", c.Decided, "scanned", c.Scanned, "skipped", c.Skipped)
- 	}
-+	if err != nil {
-+		return err
-+	}
- 	handedOver, recorded := sess.End(ctx)
--	return errors.Join(err, handedOver, recorded)
-+	return errors.Join(handedOver, recorded)
- }
- 
- // tickDeps returns what the account's tick runs with over provider. The gate decides under the

@@ -1,31 +1,26 @@
 control: A reload re-seals what was sealed to an old key, an OAuth client's secret included, whether or not any account is listed
-removes: the re-seal and the key-scan series move from the reload to each account's tick, so with no account listed nothing is re-sealed
-packages: ./worker/internal/deltasync
-tests: TestAReloadWithNoAccountReSealsAClientSecretOnAnOldKey
+removes: the re-seal and the key-scan series move from the listing to each account's tick, so with no account listed nothing is re-sealed
+packages: ./worker/app
+tests: TestDeltaSyncsListingReSealsWhatWasOpenedWithAnOldKey
 scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/deltasync.go
-index 5f92dbb..975f987 100644
 --- a/worker/internal/deltasync/deltasync.go
 +++ b/worker/internal/deltasync/deltasync.go
-@@ -205,9 +205,6 @@ func (d *DeltaSync) reload(ctx context.Context, _ schedule.Ask) error {
- 	if policyErr != nil && !errors.Is(policyErr, assembly.ErrPolicyNotLoaded) {
- 		return policyErr
- 	}
--	loader := d.config.Context.Loader()
--	loader.Reseal(ctx)
--	d.keyScan.Set(loader.ResealClients(ctx, reseal.Writer(d.config.Pool)))
- 	snapshot := latest.Snapshot()
- 	listed := d.sessions.Accounts(snapshot)
- 	if policyErr != nil {
-@@ -297,6 +294,9 @@ func at(ms mail.UnixMilli) time.Time {
- // snapshot in force, which the tick takes at its entry and keeps (ADR-0090, ADR-0041), under a rate
- // limiter at the target the account's state row set when the context last reloaded (ADR-0024).
- func (d *DeltaSync) tick(ctx context.Context, account string, logger *slog.Logger) error {
-+	loader := d.config.Context.Loader()
-+	loader.Reseal(ctx)
-+	d.keyScan.Set(loader.ResealClients(ctx, reseal.Writer(d.config.Pool)))
- 	snapshot, policy := d.config.Context.Snapshot(), d.config.Context.PolicySnapshot()
- 	limiter, err := d.config.Context.Limiter(d.config.Pool, account, gmail.Profile{}.BudgetPerSecond(), d.leases)
+@@ -187,7 +187,6 @@ func (d *DeltaSync) list(ctx context.Context) ([]string, error) {
  	if err != nil {
+ 		return nil, err
+ 	}
+-	d.keyScan.Set(d.conns.Reseal(ctx))
+ 	return listed, nil
+ }
+ 
+@@ -256,6 +255,7 @@ func at(ms mail.UnixMilli) time.Time {
+ // authentication attempt, a tick that failed included (ADR-0089, ADR-0097). It logs counts and
+ // identifiers, never a body (ADR-0009).
+ func (d *DeltaSync) tick(ctx context.Context, account string, logger *slog.Logger) error {
++	d.keyScan.Set(d.conns.Reseal(ctx))
+ 	work, err := d.conns.Begin(account, d.caller, time.Time{})
+ 	if err != nil {
+ 		return err

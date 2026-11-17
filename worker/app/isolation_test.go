@@ -78,23 +78,12 @@ func TestTheWorkerBuildsWithoutCgo(t *testing.T) {
 	}
 }
 
-// Each job kind's entry constructor takes only what the job kind needs, one value whose fields are
-// pinned, so a job kind cannot gain an input, another job kind's pool or the scheduler's whole surface
-// among them, unnoticed (ADR-0117). Each kind is handed its own pool, and the jobs it adds and drops
-// through an interface of the scheduler's two calls it uses.
-func TestEachJobKindsConstructorTakesOnlyWhatItNeeds(t *testing.T) {
+// Each job kind's Build takes only the build's context, the process's capabilities and the worker's
+// configuration, which the spec's type fixes, so a job kind cannot gain an input, another job kind's
+// pool or the scheduler itself among them, unnoticed (ADR-0117, ADR-0142).
+func TestEachJobKindsBuildTakesOnlyWhatTheSpecHandsIt(t *testing.T) {
 	const work = "github.com/ppat/mediated-mailbox-mcp/worker/internal/"
-	mustnotcompile.RequireParams(t, work+"backfill", "New", "Config")
-	mustnotcompile.RequireFields(t, work+"backfill", "Config",
-		"Pool *pgxpool.Pool", "Context *assembly.Context", "Client *http.Client",
-		"Registry prometheus.Registerer", "Logger *slog.Logger", "Jobs Jobs", "Concurrency int", "ReloadInterval time.Duration")
-	mustnotcompile.RequireMethods(t, work+"backfill", "Jobs",
-		"Ensure func(key schedule.Key, job schedule.Job) error", "Remove func(key schedule.Key)")
-	mustnotcompile.RequireParams(t, work+"deltasync", "New", "Config")
-	mustnotcompile.RequireFields(t, work+"deltasync", "Config",
-		"Pool *pgxpool.Pool", "Context *assembly.Context", "Client *http.Client",
-		"Registry prometheus.Registerer", "Logger *slog.Logger", "Jobs Jobs", "Concurrency int", "ReloadInterval time.Duration",
-		"SyncInterval time.Duration", "FirstWindow time.Duration", "DecisionsPerTick int")
-	mustnotcompile.RequireMethods(t, work+"deltasync", "Jobs",
-		"Ensure func(key schedule.Key, job schedule.Job) error", "Remove func(key schedule.Key)")
+	for _, kind := range []string{"backfill", "deltasync"} {
+		mustnotcompile.RequireParams(t, work+kind, "Build", "context.Context", "process.Capabilities", "config.Worker")
+	}
 }

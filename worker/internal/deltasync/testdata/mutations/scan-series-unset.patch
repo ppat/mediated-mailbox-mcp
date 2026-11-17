@@ -1,20 +1,19 @@
 control: Delta sync runs until stopped and serves every series between ticks
-removes: a reload sets none of the key-scan series
-packages: ./worker/app ./worker/internal/deltasync
-tests: TestAReloadReSealsWhatItOpensWithAnOldKey TestTheProbesServeEverySeriesBetweenTicks
+removes: a listing re-seals but sets none of the key-scan series
+packages: ./worker/app
+tests: TestDeltaSyncsListingReSealsWhatWasOpenedWithAnOldKey TestTheProbesServeEverySeriesBetweenRuns
 scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/deltasync.go
-index 5a7ea58..2b0bddc 100644
 --- a/worker/internal/deltasync/deltasync.go
 +++ b/worker/internal/deltasync/deltasync.go
-@@ -203,7 +203,7 @@ func (d *DeltaSync) reload(ctx context.Context, _ schedule.Ask) error {
+@@ -187,7 +187,7 @@ func (d *DeltaSync) list(ctx context.Context) ([]string, error) {
+ 	if err != nil {
+ 		return nil, err
  	}
- 	loader := d.config.Context.Loader()
- 	loader.Reseal(ctx)
--	d.keyScan.Set(loader.ResealClients(ctx, reseal.Writer(d.config.Pool)))
-+	loader.ResealClients(ctx, reseal.Writer(d.config.Pool))
- 	snapshot := latest.Snapshot()
- 	listed := d.sessions.Accounts(snapshot)
- 	if policyErr != nil {
+-	d.keyScan.Set(d.conns.Reseal(ctx))
++	_ = d.conns.Reseal(ctx)
+ 	return listed, nil
+ }
+ 

@@ -1,0 +1,42 @@
+control: Each page of a run takes the active policy
+removes: an account's job takes its policy once, when the job is made, so a policy edit never reaches its ticks
+packages: ./worker/app
+tests: TestEachTickTakesThePolicyInForce
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/deltasync.go
+--- a/worker/internal/deltasync/deltasync.go
++++ b/worker/internal/deltasync/deltasync.go
+@@ -202,6 +202,7 @@ func (d *DeltaSync) dropped(account string) {
+ // due decision reads when its last tick was asked for, which only its own runs write.
+ func (d *DeltaSync) job(account string) schedule.Job {
+ 	logger := d.logger.With("account", account)
++	policy := d.session.Policy(account)
+ 	ticked, last := false, mail.UnixMilli(0)
+ 	return schedule.Job{
+ 		Interval: d.syncInterval, Limit: d.limit, Backoff: backoff, Late: lateIntervals * d.syncInterval, Logger: logger,
+@@ -213,7 +214,7 @@ func (d *DeltaSync) job(account string) schedule.Job {
+ 			// The tick is recorded at its ask's time on the ticker's phase, so a tick asked at the end
+ 			// of a backoff leaves the ticker's next tick due.
+ 			ticked, last = true, mail.UnixMilli(ask.Phase.UnixMilli())
+-			return d.tick(ctx, account, logger)
++			return d.tick(ctx, account, policy, logger)
+ 		},
+ 	}
+ }
+@@ -255,12 +256,12 @@ func at(ms mail.UnixMilli) time.Time {
+ // (ADR-0041, ADR-0090), then ends, writing a rotated credential back and recording the latest
+ // authentication attempt, a tick that failed included (ADR-0089, ADR-0097). It logs counts and
+ // identifiers, never a body (ADR-0009).
+-func (d *DeltaSync) tick(ctx context.Context, account string, logger *slog.Logger) error {
++func (d *DeltaSync) tick(ctx context.Context, account string, policy classify.Policy, logger *slog.Logger) error {
+ 	work, err := d.conns.Begin(account, d.caller, time.Time{})
+ 	if err != nil {
+ 		return err
+ 	}
+-	result, err := tick.Run(ctx, d.tickDeps(tick.Through(work.Mailbox()), d.session.Policy(account)), account)
++	result, err := tick.Run(ctx, d.tickDeps(tick.Through(work.Mailbox()), policy), account)
+ 	d.ticks.Count(account, result)
+ 	c := result.Progress.Counters
+ 	if err != nil {

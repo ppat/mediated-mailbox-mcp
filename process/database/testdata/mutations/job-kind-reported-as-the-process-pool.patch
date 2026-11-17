@@ -1,0 +1,20 @@
+control: Each pool's ping report is ready only while the database answers a ping, the process's pool's under database and a job kind's under its own name
+removes: a job kind's pool reports under the pools' own name, database, so one name stands for every pool and a job kind's report cannot be told apart
+packages: ./process/database
+tests: TestAJobKindsPoolIsReportedUnderItsOwnName
+scheduled-count: no
+integration: yes
+
+diff --git a/process/database/readiness.go b/process/database/readiness.go
+--- a/process/database/readiness.go
++++ b/process/database/readiness.go
+@@ -39,9 +39,6 @@ func ReportReadiness(ctx context.Context, p process.Capabilities, c config.HasDa
+ 	}
+ 	kind := process.JobKind(p)
+ 	reporter := set.shared
+-	if kind != "" {
+-		reporter = p
+-	}
+ 	set.mu.Lock()
+ 	defer set.mu.Unlock()
+ 	if set.reported[kind] {

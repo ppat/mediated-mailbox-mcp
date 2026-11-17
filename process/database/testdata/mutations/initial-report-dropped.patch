@@ -1,4 +1,4 @@
-control: The ping report of the process's one pool is ready only while the database answers a ping, and refuses a job kind
+control: Each pool's ping report is ready only while the database answers a ping, the process's pool's under database and a job kind's under its own name
 removes: the report says nothing until its first ping returns, so a process whose first ping waits reads ready
 packages: ./process/database
 tests: TestThePingReportIsNotReadyUntilAPingAnswers
@@ -6,14 +6,13 @@ scheduled-count: no
 integration: yes
 
 diff --git a/process/database/readiness.go b/process/database/readiness.go
-index 6dbf9fed..ad71b288 100644
 --- a/process/database/readiness.go
 +++ b/process/database/readiness.go
-@@ -45,7 +45,6 @@ func ReportReadiness(ctx context.Context, p process.Capabilities, c config.HasDa
+@@ -48,7 +48,6 @@ func ReportReadiness(ctx context.Context, p process.Capabilities, c config.HasDa
  		return nil
  	}
- 	set.reported = true
--	set.shared.Report(process.NotReady, "no ping has answered yet")
- 	set.shared.Go("database ping", func(ctx context.Context) { ping(ctx, pool, set.shared) })
+ 	set.reported[kind] = true
+-	reporter.Report(process.NotReady, "no ping has answered yet")
+ 	reporter.Go("database ping", func(ctx context.Context) { ping(ctx, pool, reporter) })
  	return nil
  }

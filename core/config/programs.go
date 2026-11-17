@@ -234,13 +234,15 @@ func loopbackIPv4(s string) bool {
 type Worker struct {
 	Process    `yaml:",inline"`
 	Operations `yaml:",inline"`
-	// ReloadInterval is how often the worker's execution context reloads its account snapshot and its
-	// policy, and so how soon an account connected, a credential replaced or a policy edited reaches
-	// the worker, how often each job kind's reload is asked beside the wake each context reload gives
-	// it, and how often backfill asks each account whether it has work (ADR-0090, ADR-0119).
+	// ReloadInterval is how often each job kind's listing is asked beside the wake each reload of the
+	// Session gives it, and how often backfill asks each account whether it has work (ADR-0119).
 	ReloadInterval Duration `yaml:"reload_interval"`
-	Backfill       Backfill `yaml:"backfill"`
-	Sync           Sync     `yaml:"sync"`
+	// Accounts is the accounts part, whose interval paces the Session's reload of the accounts, their
+	// connections and their policy, and so how soon an account connected, a credential replaced or a
+	// policy edited reaches the worker (ADR-0090).
+	Accounts `yaml:",inline"`
+	Backfill Backfill `yaml:"backfill"`
+	Sync     Sync     `yaml:"sync"`
 	// Database is the one database part. Its pool size sizes each job kind's pool alike (ADR-0078,
 	// ADR-0119).
 	Database   Database `yaml:"database"`
@@ -280,6 +282,7 @@ func DefaultWorker() Worker {
 		Process:        DefaultProcess(),
 		Operations:     DefaultOperations(),
 		ReloadInterval: minute,
+		Accounts:       DefaultAccounts(),
 		Backfill:       Backfill{Concurrency: 2},
 		Sync:           Sync{SyncInterval: 5 * minute, FirstWindow: 7 * 24 * hour, DecisionsPerTick: 200, Concurrency: 4},
 		Database:       DefaultDatabase(4),
@@ -311,6 +314,7 @@ func (c Worker) Check() error {
 			}
 			return nil
 		},
+		c.Accounts.Check,
 		c.Credential.Check,
 		scanner(c.Scanner),
 	)

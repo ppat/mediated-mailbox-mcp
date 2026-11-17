@@ -6,15 +6,13 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/deltasync.go
-index 9e59f786..d0c45bff 100644
 --- a/worker/internal/deltasync/deltasync.go
 +++ b/worker/internal/deltasync/deltasync.go
-@@ -226,7 +226,7 @@ func (d *DeltaSync) reload(ctx context.Context, _ schedule.Ask) error {
- 			continue
- 		}
- 		job := d.job(account)
--		job.LastSuccess = d.seed(ctx, account)
-+		_ = d.seed
- 		if err := d.config.Jobs.Ensure(schedule.Key{Kind: Kind, ID: account}, job); err != nil {
- 			return err
- 		}
+@@ -171,7 +171,6 @@ func (d *DeltaSync) plan() schedule.Plan {
+ 		Late:    lateReloads * d.reloadInterval,
+ 		Job: func(account string) (schedule.Job, error) {
+ 			job := d.job(account)
+-			job.LastSuccess = d.seed(d.seeding, account)
+ 			return job, nil
+ 		},
+ 		Dropped: d.dropped,

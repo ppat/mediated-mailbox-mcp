@@ -4,6 +4,7 @@ package backfill
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -22,6 +23,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/core/policy"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/core/scangate"
+	"github.com/ppat/mediated-mailbox-mcp/process/scanner"
 	"github.com/ppat/mediated-mailbox-mcp/process/schedule"
 	"github.com/ppat/mediated-mailbox-mcp/provider/mail/fake"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/marker"
@@ -85,7 +87,7 @@ func passesDeps(t *testing.T, pool *pgxpool.Pool, account string, f *fake.Fake) 
 	n := 0
 	runID := func() string { n++; return fmt.Sprintf("run%d", n) }
 	first := pass1.Deps{
-		Store: pass1.NewPostgres(pool), Fetch: f.EnumerateAll, Metadata: f.GetMessageMetadata, PerCall: 3, Policy: fixed(classify.Prepare(rules.For(account), lookups)), Scanner: s,
+		Store: pass1.NewPostgres(pool), Fetch: f.EnumerateAll, Metadata: f.GetMessageMetadata, PerCall: three, Policy: fixed(classify.Prepare(rules.For(account), lookups)), Scanner: s,
 		RunID: runID, Now: time.Now,
 	}
 	second := pass2.Deps{
@@ -119,8 +121,8 @@ func (o *observing) Backlog(ctx context.Context, account string) (int64, error) 
 	return o.Store.Backlog(ctx, account)
 }
 
-// Every page of the second pass is a unit of work. The account's token is handed over after each page
-// and after the step that ends the pass, and the account's scan backlog series is set after each page,
+// Every page of the second pass is a unit of work. A unit of work is ended after each page and after
+// the step that ends the pass, and the account's scan backlog series is set after each page,
 // so the last page leaves it reading the messages left waiting. The step that ends the pass removes it,
 // since delta sync's tick emits the account's backlog once the pass has ended (ADR-0082, ADR-0093,
 // ADR-0104). The messages each page scanned are counted, and each scan is timed (ADR-0125). The body
@@ -148,11 +150,10 @@ func TestEachSecondPassPageIsAUnitOfWork(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if second.Processing, err = series.NewProcessing(registry); err != nil {
+	if second.Processing, err = scanner.NewProcessing(registry); err != nil {
 		t.Fatal(err)
 	}
-	var ends int
-	u := connectedUnit(t, conn, "personal", counter(&ends, mail.AuthAttempt{}))
+	u := &counted{}
 
 	store := &observing{Store: second.Store, registry: registry}
 	second.Store = store
@@ -161,8 +162,8 @@ func TestEachSecondPassPageIsAUnitOfWork(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if ends != 4 {
-		t.Errorf("the units of work ended %d times, want once after each of the three pages and once after the end", ends)
+	if u.ended != 4 {
+		t.Errorf("the units of work ended %d times, want once after each of the three pages and once after the end", u.ended)
 	}
 	if len(store.seen) != 4 || store.seen[0] != -1 || store.seen[3] != 0 {
 		t.Errorf("the backlog series read %v before each step's read, want none before the first and 0 after the last page, the body the conversion refuses recorded refused", store.seen)
@@ -177,17 +178,16 @@ func TestEachSecondPassPageIsAUnitOfWork(t *testing.T) {
 	if got := stageValue(t, registry, "personal", series.StageScanned); got != scanned || scanned == 0 {
 		t.Errorf("the messages series counts %v scanned, want the %v messages stored as scanned", got, scanned)
 	}
-	if got := stepCount(t, registry, series.StepScan); float64(got) != scanned {
+	if got := stepCount(t, registry, scanner.StepScan); float64(got) != scanned {
 		t.Errorf("%d scans timed, want one for each of the %v messages scanned", got, scanned)
 	}
-	if got := stepCount(t, registry, series.StepConvert); got == 0 {
+	if got := stepCount(t, registry, scanner.StepConvert); got == 0 {
 		t.Error("no conversion was timed, while the pass converted at least the body it refused")
 	}
 }
 
-// A hand-over that fails is returned once the second pass ends, and the pass still ends (ADR-0082).
-// The first unit's end fails at recording the attempt its source reports, and the units after it
-// report none.
+// The end of a unit of work that fails is returned once the second pass ends, and the pass still
+// ends (ADR-0082).
 func TestAFailedHandOverFailsTheSecondPassAtItsEnd(t *testing.T) {
 	conn := superuser(t)
 	reset(t, conn)
@@ -204,18 +204,17 @@ func TestAFailedHandOverFailsTheSecondPassAtItsEnd(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var ends int
-	u := connectedUnit(t, conn, "personal", counter(&ends, mail.AuthAttempt{At: 1_790_000_000_001, Outcome: mail.AuthSucceeded}))
-	revoke(t, conn, "UPDATE (last_auth_at, last_auth_outcome) ON account_state")
+	failed := errors.New("account personal: recording the last authentication attempt failed")
+	u := &counted{failAt: 1, failure: failed}
 
 	err = secondPassAccount(t.Context(), second, "personal", metrics, u, schedule.Ask{}, slog.New(slog.DiscardHandler))
 
-	if err == nil || !strings.Contains(err.Error(), "account personal: recording the last authentication attempt") {
-		t.Errorf("secondPassAccount returned %v, want the failed hand-over", err)
+	if !errors.Is(err, failed) {
+		t.Errorf("secondPassAccount returned %v, want the failed end of a unit of work", err)
 	}
 	var ended bool
 	if err := conn.QueryRow(t.Context(), "SELECT backfill_pass2_complete FROM account_state WHERE account_id = 'personal'").Scan(&ended); err != nil || !ended {
-		t.Errorf("the pass did not end after a failed hand-over (%v)", err)
+		t.Errorf("the pass did not end after a failed end of a unit of work (%v)", err)
 	}
 }
 

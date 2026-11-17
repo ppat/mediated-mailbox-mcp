@@ -110,7 +110,11 @@ func TestAnAccountOfAClientProviderWithoutItsClientIsNotConnected(t *testing.T) 
 	if !strings.Contains(logs, `"account":"unpaired"`) || !strings.Contains(logs, `"account":"unopened"`) {
 		t.Errorf("the accounts left not connected are not logged: %s", logs)
 	}
-	if diff := cmp.Diff([]string{"mail", "paired"}, r.session.Workable(), compare.Options); diff != "" {
+	workable, err := r.session.Workable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if diff := cmp.Diff([]string{"mail", "paired"}, workable, compare.Options); diff != "" {
 		t.Errorf("the workable accounts (-want +got):\n%s", diff)
 	}
 }

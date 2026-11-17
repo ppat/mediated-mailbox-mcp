@@ -1,0 +1,20 @@
+control: A tick hands its account over and records its latest authentication attempt when it ends
+removes: a tick drops the write-back's and the recording's failures its unit of work ends with, so the tick's run reports neither
+packages: ./worker/app
+tests: TestAFailedWriteBackFailsTheJobKindsRun/delta_sync TestAFailedRecordingFailsTheJobKindsRun/delta_sync
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/deltasync.go
+--- a/worker/internal/deltasync/deltasync.go
++++ b/worker/internal/deltasync/deltasync.go
+@@ -270,7 +270,8 @@ func (d *DeltaSync) tick(ctx context.Context, account string, logger *slog.Logge
+ 			"added", c.Added, "modified", c.Modified, "removed", c.Removed, "decided", c.Decided, "scanned", c.Scanned, "skipped", c.Skipped)
+ 	}
+ 	writtenBack, recorded := work.End(ctx)
+-	return errors.Join(err, writtenBack, recorded)
++	_, _ = writtenBack, recorded
++	return errors.Join(err)
+ }
+ 
+ // tickDeps returns what a tick runs with over provider under policy. The gate decides under the

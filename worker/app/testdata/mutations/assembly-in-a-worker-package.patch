@@ -6,7 +6,6 @@ scheduled-count: no
 
 diff --git a/worker/internal/series/noop.s b/worker/internal/series/noop.s
 new file mode 100644
-index 00000000..61892bbc
 --- /dev/null
 +++ b/worker/internal/series/noop.s
 @@ -0,0 +1,5 @@
@@ -16,11 +15,10 @@ index 00000000..61892bbc
 +TEXT ·noop(SB), NOSPLIT, $0-0
 +	RET
 diff --git a/worker/internal/series/series.go b/worker/internal/series/series.go
-index 5aa00b7..23de8d6 100644
 --- a/worker/internal/series/series.go
 +++ b/worker/internal/series/series.go
-@@ -123,3 +123,6 @@ func (p *Processing) Since(step string, start time.Time) {
- 		p.duration.WithLabelValues(step).Observe(time.Since(start).Seconds())
+@@ -85,3 +85,6 @@ func (m *Messages) Forget(account string) {
+ 		m.count.DeletePartialMatch(prometheus.Labels{"account": account})
  	}
  }
 +

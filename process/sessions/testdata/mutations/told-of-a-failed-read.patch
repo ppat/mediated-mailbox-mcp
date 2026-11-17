@@ -8,7 +8,7 @@ integration: yes
 diff --git a/process/sessions/sessions.go b/process/sessions/sessions.go
 --- a/process/sessions/sessions.go
 +++ b/process/sessions/sessions.go
-@@ -197,10 +197,13 @@ func (s *Session) Reload(ctx context.Context) error {
+@@ -205,10 +205,13 @@ func (s *Session) Reload(ctx context.Context) error {
  // reload is one reload, as Reload states.
  func (s *Session) reload(ctx context.Context) error {
  	listed, err := accounts.Read(ctx, s.pool)
@@ -17,9 +17,9 @@ diff --git a/process/sessions/sessions.go b/process/sessions/sessions.go
 +		for _, tell := range after {
 +			tell()
 +		}
- 		return fmt.Errorf("reading the accounts: %w", err)
+ 		return s.fail(fmt.Errorf("reading the accounts: %w", err))
  	}
 -	connections, after := s.members()
  	if connections != nil {
  		if err := connections.Load(ctx, listed); err != nil {
- 			return fmt.Errorf("loading the connections: %w", err)
+ 			return s.fail(fmt.Errorf("loading the connections: %w", err))

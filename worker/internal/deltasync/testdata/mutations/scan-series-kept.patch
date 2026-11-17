@@ -1,0 +1,18 @@
+control: Delta sync runs until stopped and serves every series between ticks
+removes: a series whose account or client a later scan no longer holds stays reported
+packages: ./worker/internal/deltasync
+tests: TestTheSeriesFollowTheLastScan
+scheduled-count: no
+
+diff --git a/worker/internal/deltasync/keyscan.go b/worker/internal/deltasync/keyscan.go
+--- a/worker/internal/deltasync/keyscan.go
++++ b/worker/internal/deltasync/keyscan.go
+@@ -57,7 +57,7 @@ func (m *keyScan) Set(s connections.Scan) {
+ func set(g *prometheus.GaugeVec, before []string, now map[string]bool) []string {
+ 	for _, k := range before {
+ 		if _, ok := now[k]; !ok {
+-			g.DeleteLabelValues(k)
++			_ = k
+ 		}
+ 	}
+ 	for k, old := range now {

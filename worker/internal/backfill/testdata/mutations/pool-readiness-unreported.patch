@@ -1,0 +1,20 @@
+control: The worker answers ready only while each job kind's pool answers
+removes: backfill's Build starts no readiness report of its pool, so the worker stays ready while that pool cannot answer
+packages: ./worker/app
+tests: TestEachJobKindsPoolMustAnswerForTheWorkerToBeReady
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
+--- a/worker/internal/backfill/backfill.go
++++ b/worker/internal/backfill/backfill.go
+@@ -112,9 +112,6 @@ func Build(ctx context.Context, p process.Capabilities, c config.Worker) (schedu
+ 	if err != nil {
+ 		return schedule.Plan{}, err
+ 	}
+-	if err := database.ReportReadiness(ctx, p, c); err != nil {
+-		return schedule.Plan{}, err
+-	}
+ 	s, err := sessions.Get(ctx, p, c)
+ 	if err != nil {
+ 		return schedule.Plan{}, err

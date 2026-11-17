@@ -49,7 +49,7 @@ a provider would otherwise write for itself.
 | `scanner/` | The scanner, built once per process, and the body-processing histogram |
 | `logging/` | The logger every program that runs as a process writes its JSON records to standard output through, and the reading of its `log_level` |
 | `version/` | The release version every binary reports through `--version` and every process's start banner shows |
-| `host/` | The host the API server and the worker run on until each is on its spec ([ADR-0138](../docs/adr/engineering/0138-one-host-runs-each-process-and-each-component-provides-its-parts.md)). It opens its pools through `database` and refuses the database driver's password variables through `process`, so neither is written twice |
+| `host/` | The host the API server runs on until it is on its spec ([ADR-0138](../docs/adr/engineering/0138-one-host-runs-each-process-and-each-component-provides-its-parts.md)). It opens its pools through `database` and refuses the database driver's password variables through `process`, so neither is written twice |
 | `probes/`, `runtimemetrics/` | The operations endpoints' handler and the registration of the runtime series, which `process` and `host/` share while both run programs |
 
 Each package is admitted to each component by its own entry in that component's import list, and
@@ -136,8 +136,8 @@ the schema check.
 | Function | What it returns |
 | --- | --- |
 | `database.Get` | A pool for the part that asks, opened the first time that pool is asked for and kept in the process. In a process that runs until it is told to stop, it runs the schema check on the pool before returning it, so a schema the process cannot run on stops the start before anything serves ([ADR-0140](../docs/adr/data/0140-each-migration-declares-the-oldest-chain-that-runs-on-it.md)) |
-| `database.ReportReadiness` | Nothing but an error. It starts the readiness report of the process's one pool, the pool `database.Get` gives an endpoint, a task or a shared thing, so a program whose readiness rests on the database, the UI's, is ready only while it answers. The pool is pinged at once and then every five seconds, a ping that has not answered within two seconds counts as failed, and the report reads not ready from the moment it is asked for until a ping answers, and again from the first that fails, under the pools' own name, `database`. The ping runs on a goroutine of the process, which the process waits for before it closes the pools, and asked for again the report is not started twice. A job kind's part is refused, since a job kind's pool is its own and one name could not tell its report from the process's pool's. The API server's pool does not run it, since the API server's readiness rests on its bearer token and the Session ([ADR-0142](../docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md)) |
-| `database.ForMigration` | The migrator's pool, with no schema check. It takes only a configuration type with an unexported method that only `config.Migrator` has, so the compiler refuses a deployable's own configuration there. Left to review are a `Build` that makes a `config.Migrator` value of its own, by a literal, by its defaults or as a zero value, and, until `process/host` is deleted, `database.Open`, the opening the host uses with no schema check, `database.OpenPool`, exported for the worker's integration tests until the worker is on its spec, and a pool a deployable's code opens through the driver itself ([ADR-0142](../docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md)) |
+| `database.ReportReadiness` | Nothing but an error. It starts the readiness report of the process's one pool, the pool `database.Get` gives an endpoint, a task or a shared thing, so a program whose readiness rests on the database, the UI's, is ready only while it answers. The pool is pinged at once and then every five seconds, a ping that has not answered within two seconds counts as failed, and the report reads not ready from the moment it is asked for until a ping answers, and again from the first that fails, under the pools' own name, `database`. The ping runs on a goroutine of the process, which the process waits for before it closes the pools, and asked for again the report is not started twice. For a job kind's part it reports the job kind's own pool instead, under the job kind's name, so the worker is ready only while each job kind's pool answers and each pool's report is told apart from the others. The API server's pool does not run it, since the API server's readiness rests on its bearer token and the Session ([ADR-0142](../docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md)) |
+| `database.ForMigration` | The migrator's pool, with no schema check. It takes only a configuration type with an unexported method that only `config.Migrator` has, so the compiler refuses a deployable's own configuration there. Left to review are a `Build` that makes a `config.Migrator` value of its own, by a literal, by its defaults or as a zero value, and, until `process/host` is deleted, `database.Open`, the opening the host uses with no schema check, `database.OpenPool`, which `database.Open` opens through and this package's own tests call, and a pool a deployable's code opens through the driver itself ([ADR-0142](../docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md)) |
 
 A process holds one or more pools, and every one of them is this package's. In the worker each job
 kind has a pool of its own, built for it and labelled with it, so one job kind cannot starve
@@ -312,9 +312,8 @@ longer finds is told to `Dropped` only once its job has returned, and an empty k
 listing, since the listing's own job is keyed by the job kind alone. A plan with no `Keys` or no
 `Job` is refused when the process hands it to the scheduler, which fails the start before anything
 serves, with an error naming the job kind. While it runs the scheduler has no failure of its own,
-since a job's failure fails its run and a listing that fails is asked again after its backoff. Until the worker is on its
-spec, its job kinds keep their own reload functions, which add and drop their jobs on this
-scheduler. How a job is woken, run, backed off and stopped is
+since a job's failure fails its run and a listing that fails is asked again after its backoff. How a
+job is woken, run, backed off and stopped is
 [ADR-0119](../docs/adr/operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md)'s.
 
 The worker's job code starts a goroutine only through the scheduler's helper, `schedule.Go`, which
@@ -358,6 +357,12 @@ What a change in one member means for the others is the Session's to say.
   listed account is worked before its policy has loaded.
 - A job kind that calls a provider works on the accounts the Session holds workable, and one that
   calls no provider on the accounts that have a policy.
+- The workable accounts are a job kind's listing, so they answer as
+  [ADR-0119](../docs/adr/operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md)
+  says a listing answers. Before a reload has put a list in force they are not due, an error
+  wrapping the scheduler's, so a normal start logs no error. While the latest reload's read of the
+  list or load of the connections failed they are that failure, until a later reload reads them. A
+  reload whose policy load alone failed leaves them as the policy in force makes them.
 
 Its reload is the Session's own upkeep, run on the process's scheduler on the schedule
 [ADR-0090](../docs/adr/operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md)

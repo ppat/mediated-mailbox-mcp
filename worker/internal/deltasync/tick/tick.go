@@ -24,9 +24,9 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/core/scangate"
+	"github.com/ppat/mediated-mailbox-mcp/process/scanner"
 	"github.com/ppat/mediated-mailbox-mcp/process/schedule"
 	core "github.com/ppat/mediated-mailbox-mcp/worker/internal/core/deltasync/tick"
-	"github.com/ppat/mediated-mailbox-mcp/worker/internal/series"
 )
 
 // The passes job_runs names a tick and a gap's recovery (ADR-0016).
@@ -46,7 +46,7 @@ type Deps struct {
 	Gate    scangate.Config
 	Scanner scan.Scanner
 	// Processing times each body's conversion and scan, and a nil one times nothing (ADR-0125).
-	Processing *series.Processing
+	Processing *scanner.Processing
 	// FirstWindow is how far back an account with no cursor is reconciled (ADR-0105).
 	FirstWindow time.Duration
 	// Decisions bounds how many waiting messages one tick decides, and PageSize how many one read
@@ -443,7 +443,7 @@ func (t *ticker) scan(ctx context.Context, id string) (*index.Scanned, *Item, co
 	}
 	start := time.Now()
 	rendered, err := markdown.Render(body)
-	t.deps.Processing.Since(series.StepConvert, start)
+	t.deps.Processing.Since(scanner.StepConvert, start)
 	if err != nil {
 		now := t.deps.Now().UTC()
 		return nil, &Item{
@@ -453,7 +453,7 @@ func (t *ticker) scan(ctx context.Context, id string) (*index.Scanned, *Item, co
 	}
 	start = time.Now()
 	scanned := index.Scan(t.deps.Scanner, rendered)
-	t.deps.Processing.Since(series.StepScan, start)
+	t.deps.Processing.Since(scanner.StepScan, start)
 	return &scanned, nil, core.LeaveWaiting, nil
 }
 

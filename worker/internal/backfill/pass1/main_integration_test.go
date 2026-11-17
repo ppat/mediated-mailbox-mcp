@@ -15,6 +15,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/net/idna"
 	"golang.org/x/net/publicsuffix"
 
@@ -24,8 +25,9 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/core/policy"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
+	"github.com/ppat/mediated-mailbox-mcp/provider"
+	providermail "github.com/ppat/mediated-mailbox-mcp/provider/mail"
 	"github.com/ppat/mediated-mailbox-mcp/provider/mail/fake"
-	"github.com/ppat/mediated-mailbox-mcp/provider/ratelimit"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/marker"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/postgres"
@@ -329,7 +331,7 @@ func newWorld(t tb, s setup, account string, store pass1.Store, inspect func(tb)
 			}
 			return got, err
 		},
-		PerCall: perCall,
+		PerCall: func() int { return perCall },
 		Policy:  fixed(classify.Prepare(rules.For(account), lookups)),
 		Scanner: scanner,
 		RunID: func() string {
@@ -591,12 +593,36 @@ func realWorld(t testing.TB, s setup) *world {
 		}
 	}
 	pool := backfillPool(t)
-	limiter := ratelimit.New(pool, 10_000, nil)
 	url := postgres.URL(t)
 	return newWorld(t, s, account, pass1.NewPostgres(pool), func(t tb) state { return inspectPostgres(t, url, account) },
 		func(p mail.Port[context.Context]) (pass1.Fetch, pass1.Metadata) {
-			return pass1.Leased(limiter, p, account), pass1.LeasedMetadata(limiter, p, account)
+			m := leasedMailbox(t, pool, account, p)
+			return m.EnumerateAll, m.GetMessageMetadata
 		})
+}
+
+// leasedMailbox returns the account's mailbox over p as a job kind's unit of work calls it, through a
+// caller of the provider library in the batch class over the provider fake's list of adapters, so
+// each call is leased from the account's budget on pool and a throttle reaches the rate limiter's
+// controller (ADR-0025, ADR-0117). The fake's list declares its own ceiling, 100 a second.
+func leasedMailbox(t tb, pool *pgxpool.Pool, account string, p mail.Port[context.Context]) providermail.Mailbox {
+	t.Helper()
+	list := fake.Adapters(func(string, *fake.Token) (*fake.Throttled, error) {
+		return fake.Throttle(p, fake.Never(), time.Now), nil
+	}, fake.Provider{Name: "gmail"})
+	caller, err := provider.NewCaller(list, prometheus.NewRegistry(), pool, provider.Options{Class: provider.Batch, Timeout: time.Minute})
+	if err != nil {
+		t.Fatalf("building the caller: %v", err)
+	}
+	token, err := list.NewToken("gmail", mail.OAuthClient{}, []byte("a-token"))
+	if err != nil {
+		t.Fatalf("making the token: %v", err)
+	}
+	m, err := caller.Mailbox(provider.Connection{Provider: "gmail", Account: account, Token: token})
+	if err != nil {
+		t.Fatalf("building the mailbox: %v", err)
+	}
+	return m
 }
 
 // inspectPostgres reads the account's state from the database.
