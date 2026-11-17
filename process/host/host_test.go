@@ -30,8 +30,9 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prometheus/client_golang/prometheus"
 
-	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core"
+	coreconfig "github.com/ppat/mediated-mailbox-mcp/core/config"
 	"github.com/ppat/mediated-mailbox-mcp/process/host"
+	"github.com/ppat/mediated-mailbox-mcp/process/logging"
 	"github.com/ppat/mediated-mailbox-mcp/process/version"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 )
@@ -39,10 +40,10 @@ import (
 // config is a root configuration type composed as a composition root composes one, the process's
 // sections inline beside a component's own.
 type config struct {
-	host.Process    `yaml:",inline"`
-	host.Operations `yaml:",inline"`
-	host.Serving    `yaml:",inline"`
-	Own             own `yaml:"own"`
+	coreconfig.Process    `yaml:",inline"`
+	coreconfig.Operations `yaml:",inline"`
+	coreconfig.Serving    `yaml:",inline"`
+	Own                   own `yaml:"own"`
 }
 
 type own struct {
@@ -50,7 +51,7 @@ type own struct {
 }
 
 func defaults() config {
-	return config{Process: host.DefaultProcess(), Operations: host.DefaultOperations(), Serving: host.DefaultServing(), Own: own{Value: 1}}
+	return config{Process: coreconfig.DefaultProcess(), Operations: coreconfig.DefaultOperations(), Serving: coreconfig.DefaultServing(), Own: own{Value: 1}}
 }
 
 // spec returns a spec over config with one component, comp, whose assembly returns parts and records
@@ -59,10 +60,10 @@ func spec(assembled *atomic.Bool, parts host.Parts, refuse func([]string) error)
 	return host.Spec[config]{
 		Name:        "mediated-mailbox-test",
 		Defaults:    defaults(),
-		Process:     func(c config) host.Process { return c.Process },
-		Operations:  func(c config) host.Operations { return c.Operations },
-		Serving:     func(c config) host.Serving { return c.Serving },
-		Validate:    validateOwn,
+		Process:     func(c config) coreconfig.Process { return c.Process },
+		Operations:  func(c config) coreconfig.Operations { return c.Operations },
+		Serving:     func(c config) coreconfig.Serving { return c.Serving },
+		Validate:    check,
 		CheckSchema: func(context.Context, *pgxpool.Pool) error { return nil },
 		Components: []host.Component[config]{{
 			Name: "comp", Mount: []string{"/"}, RefuseEnvironment: refuse,
@@ -74,8 +75,20 @@ func spec(assembled *atomic.Bool, parts host.Parts, refuse func([]string) error)
 	}
 }
 
-func validateOwn(c config) error {
-	if c.Own.Value < 0 {
+// check is config's check, composed as a program's check in core/config is, its parts' checks and
+// then its own.
+func check(c config) error {
+	if err := c.Operations.Check(); err != nil {
+		return err
+	}
+	if err := c.Serving.Check(); err != nil {
+		return err
+	}
+	return checkOwn(c.Own)
+}
+
+func checkOwn(o own) error {
+	if o.Value < 0 {
 		return errors.New("own.value is negative")
 	}
 	return nil
@@ -84,18 +97,18 @@ func validateOwn(c config) error {
 // onceConfig is a root configuration type of a process that runs once, the process's section inline
 // beside its own.
 type onceConfig struct {
-	host.Process `yaml:",inline"`
-	Own          own `yaml:"own"`
+	coreconfig.Process `yaml:",inline"`
+	Own                own `yaml:"own"`
 }
 
 // once returns a spec over onceConfig whose work records that it ran and returns workErr.
 func once(worked *atomic.Bool, refuse func([]string) error, work func(context.Context, host.Provided[onceConfig]) error) host.Once[onceConfig] {
 	return host.Once[onceConfig]{
 		Name:     "mediated-mailbox-test",
-		Defaults: onceConfig{Process: host.DefaultProcess(), Own: own{Value: 1}},
-		Process:  func(c onceConfig) host.Process { return c.Process },
+		Defaults: onceConfig{Process: coreconfig.DefaultProcess(), Own: own{Value: 1}},
+		Process:  func(c onceConfig) coreconfig.Process { return c.Process },
 		Validate: func(c onceConfig) error {
-			return validateOwn(config{Own: c.Own})
+			return checkOwn(c.Own)
 		},
 		Component:         "comp",
 		RefuseEnvironment: refuse,
@@ -265,8 +278,16 @@ func TestTheConfiguredLevelGovernsTheLog(t *testing.T) {
 	}
 }
 
-// The process's sections are validated before the root's, and before anything is assembled. The TLS
-// files are both set or both unset, a blank path counting as unset (ADR-0127).
+// The process part's default level is a name the host's parser reads, and it is info (ADR-0122).
+func TestTheDefaultLevelIsInfo(t *testing.T) {
+	got, err := logging.ParseLevel(coreconfig.DefaultProcess().LogLevel)
+	if err != nil || got != slog.LevelInfo {
+		t.Errorf("ParseLevel(DefaultProcess().LogLevel) = %v, %v, want INFO", got, err)
+	}
+}
+
+// The configuration is validated through the root's check, its parts' refusals and its own, before
+// anything is assembled. Each part's refusals are core/config's, and proven there.
 func TestTheProcessSectionsAreValidated(t *testing.T) {
 	for _, c := range []struct {
 		name string
@@ -288,14 +309,6 @@ func TestTheProcessSectionsAreValidated(t *testing.T) {
 				t.Errorf("Run returned %v having assembled %v, want %q", err, assembled.Load(), c.want)
 			}
 		})
-	}
-	for name, files := range map[string][2]string{"both files": {"/tls/cert", "/tls/key"}, "neither file": {"", ""}, "both blank": {" ", "\t"}} {
-		if err := host.ValidateServing(host.Serving{Listen: ":8443", TLSCert: files[0], TLSKey: files[1]}); err != nil {
-			t.Errorf("%s was refused: %v", name, err)
-		}
-		if got, want := (host.Serving{TLSCert: files[0], TLSKey: files[1]}).ServesTLS(), name == "both files"; got != want {
-			t.Errorf("%s serves TLS %v, want %v", name, got, want)
-		}
 	}
 }
 
@@ -406,7 +419,7 @@ type served struct {
 
 // serve serves h on two loopback listeners with s until the test ends or stop is called, and returns
 // once the serving record is written. A start that stops early fails the test.
-func serve(t *testing.T, h *host.Host, s host.Serving, log *lockedBuffer) *served {
+func serve(t *testing.T, h *host.Host, s coreconfig.Serving, log *lockedBuffer) *served {
 	t.Helper()
 	app, probes := loopback(t), loopback(t)
 	ctx, cancel := context.WithCancel(t.Context())
@@ -500,7 +513,7 @@ func TestTheApplicationServerServesTLSWhenGivenAKeyPair(t *testing.T) {
 	h := newHost(t, log)
 	var calls atomic.Int64
 	h.Add("comp", []string{"/"}, host.Parts{Handler: noContent(&calls)})
-	sv := serve(t, h, host.Serving{TLSCert: certFile, TLSKey: keyFile}, log)
+	sv := serve(t, h, coreconfig.Serving{TLSCert: certFile, TLSKey: keyFile}, log)
 
 	if status, _, _, err := get(t, &http.Client{}, "http://"+sv.app+"/"); err == nil && status == http.StatusNoContent {
 		t.Error("a plain HTTP request reached the handler")
@@ -558,7 +571,7 @@ func TestTheApplicationServerGivenNoKeyPairIsPlain(t *testing.T) {
 			h := newHost(t, log)
 			var calls atomic.Int64
 			h.Add("comp", []string{"/"}, host.Parts{Handler: noContent(&calls)})
-			sv := serve(t, h, host.Serving{TLSCert: files[0], TLSKey: files[1]}, log)
+			sv := serve(t, h, coreconfig.Serving{TLSCert: files[0], TLSKey: files[1]}, log)
 			if status, _, _, err := get(t, &http.Client{}, "http://"+sv.app+"/"); err != nil || status != http.StatusNoContent {
 				t.Errorf("a plain HTTP request answered %d with error %v, want 204", status, err)
 			}
@@ -579,7 +592,7 @@ func TestAKeyPairThatDoesNotLoadRefusesTheStart(t *testing.T) {
 	dir := t.TempDir()
 	certFile, keyFile := filepath.Join(dir, "tls.crt"), filepath.Join(dir, "tls.key")
 	writeKeyPair(t, certFile, keyFile, 1)
-	for name, s := range map[string]host.Serving{
+	for name, s := range map[string]coreconfig.Serving{
 		"a certificate that is absent": {TLSCert: filepath.Join(dir, "absent"), TLSKey: keyFile},
 		"a key that does not match":    {TLSCert: certFile, TLSKey: certFile},
 	} {
@@ -628,7 +641,7 @@ func TestTheOperationsEndpoints(t *testing.T) {
 	}
 	h.Add("a", nil, host.Parts{Ready: []host.Check{{Name: "first", Check: check(&aFails)}}})
 	h.Add("b", nil, host.Parts{Ready: []host.Check{{Name: "second", Check: check(&bFails)}}})
-	sv := serve(t, h, host.Serving{}, log)
+	sv := serve(t, h, coreconfig.Serving{}, log)
 	probe := func(path string) string {
 		status, body, header, err := get(t, &http.Client{Timeout: 5 * time.Second}, "http://"+sv.probes+path)
 		if err != nil {
@@ -699,7 +712,7 @@ func TestTheProcessStopsInOrder(t *testing.T) {
 		record("task returned")
 		return nil
 	}}}})
-	sv := serve(t, h, host.Serving{}, log)
+	sv := serve(t, h, coreconfig.Serving{}, log)
 	streamDone := make(chan error, 1)
 	go func() {
 		_, _, _, err := get(t, &http.Client{}, "http://"+sv.app+"/stream")
@@ -770,7 +783,7 @@ func TestATaskPanicIsItsFailure(t *testing.T) {
 	// A failure the host missed would leave the process serving until the context ends.
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
-	err := h.Serve(ctx, host.Listeners{Probes: loopback(t)}, host.Serving{})
+	err := h.Serve(ctx, host.Listeners{Probes: loopback(t)}, coreconfig.Serving{})
 	if !errors.Is(err, host.ErrPanicked) || !strings.Contains(err.Error(), "comp task faulty: panicked: a fault in a task") {
 		t.Errorf("Serve returned %v, want the faulty task's panic", err)
 	}
@@ -804,7 +817,7 @@ func TestAStartedGoroutineIsTheHosts(t *testing.T) {
 	// A failure the host missed would leave the process serving until the context ends.
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
-	err := h.Serve(ctx, host.Listeners{Probes: loopback(t)}, host.Serving{})
+	err := h.Serve(ctx, host.Listeners{Probes: loopback(t)}, coreconfig.Serving{})
 	if !errors.Is(err, host.ErrPanicked) || !strings.Contains(err.Error(), "comp goroutine faulty: panicked: a fault in a goroutine") {
 		t.Errorf("Serve returned %v, want the faulty goroutine's panic", err)
 	}
@@ -840,7 +853,7 @@ func TestATaskFailureStopsTheProcess(t *testing.T) {
 	// A failure the host missed would leave the process serving until the context ends.
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
-	err := h.Serve(ctx, host.Listeners{Probes: loopback(t)}, host.Serving{})
+	err := h.Serve(ctx, host.Listeners{Probes: loopback(t)}, coreconfig.Serving{})
 	if err == nil || err.Error() != "comp task failing: it failed" || !stopped.Load() {
 		t.Errorf("Serve returned %v with the steady task stopped %v, want the failing task's error after the steady task stopped", err, stopped.Load())
 	}
@@ -860,7 +873,7 @@ func TestEachHandlerIsServedWhereItIsMounted(t *testing.T) {
 	}
 	h.Add("one", []string{"/one/", "/single"}, host.Parts{Handler: named("one")})
 	h.Add("two", []string{"/two/"}, host.Parts{Handler: named("two")})
-	sv := serve(t, h, host.Serving{}, log)
+	sv := serve(t, h, coreconfig.Serving{}, log)
 	got := map[string]string{}
 	for _, path := range []string{"/one/x", "/single", "/two/y", "/elsewhere", "/healthz"} {
 		status, body, _, err := get(t, &http.Client{}, "http://"+sv.app+path)
@@ -890,7 +903,7 @@ func TestAProcessThatRunsOnceDoesItsWorkAndClosesItsPools(t *testing.T) {
 	err := host.RunOnce(t.Context(), nil, nil, io.Discard, io.Discard, slog.New(slog.NewJSONHandler(&logs, nil)), new(slog.LevelVar),
 		once(&worked, nil, func(ctx context.Context, p host.Provided[onceConfig]) error {
 			var err error
-			pool, err = p.OpenPool(ctx, dbconnectcore.Config{Host: "127.0.0.1", Port: 1, Name: "none", User: "nobody", SSLMode: "disable", PasswordFile: password, PoolSize: 1}, p.Registerer)
+			pool, err = p.OpenPool(ctx, coreconfig.Database{Host: "127.0.0.1", Port: 1, Name: "none", User: "nobody", SSLMode: "disable", PasswordFile: password, PoolSize: 1}, p.Registerer)
 			if err != nil {
 				return err
 			}
@@ -926,8 +939,8 @@ func TestEveryPoolIsCheckedBeforeItIsHandedOut(t *testing.T) {
 		t.Fatal(err)
 	}
 	refused := errors.New("the schema is refused")
-	connection := func(user string) dbconnectcore.Config {
-		return dbconnectcore.Config{Host: "127.0.0.1", Port: 1, Name: "none", User: user, SSLMode: "disable", PasswordFile: password, PoolSize: 1}
+	connection := func(user string) coreconfig.Database {
+		return coreconfig.Database{Host: "127.0.0.1", Port: 1, Name: "none", User: user, SSLMode: "disable", PasswordFile: password, PoolSize: 1}
 	}
 	for _, c := range []struct {
 		name    string

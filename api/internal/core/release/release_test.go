@@ -8,6 +8,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 
 	"github.com/ppat/mediated-mailbox-mcp/api/internal/core/release"
+	"github.com/ppat/mediated-mailbox-mcp/core/config"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/core/sensitivity"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
@@ -47,7 +48,7 @@ func wrapped(content string) string { return header + content + footer }
 
 func scanner(t *testing.T) scan.Scanner {
 	t.Helper()
-	s, err := scan.New(scan.DefaultConfig(), "a-revision")
+	s, err := scan.New(config.DefaultScanner(), "a-revision")
 	if err != nil {
 		t.Fatal(err)
 	}

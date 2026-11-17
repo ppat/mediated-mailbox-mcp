@@ -1,0 +1,18 @@
+control: The worker refuses a configuration it cannot run its job kinds with
+removes: the worker's root hands the host no check, so the worker starts with any configuration the library loads
+packages: ./worker/app
+tests: TestATickThatCannotRunRefusesTheStart TestAnEmptyHostRefusesTheStart TestAnEmptyListOfPrivateKeysRefusesTheStart
+scheduled-count: no
+
+diff --git a/worker/app/app.go b/worker/app/app.go
+--- a/worker/app/app.go
++++ b/worker/app/app.go
+@@ -67,7 +67,7 @@ func Run(ctx context.Context, args, environ []string, stdout, stderr io.Writer,
+ 		Defaults:    config.DefaultWorker(),
+ 		Process:     func(c config.Worker) config.Process { return c.Process },
+ 		Operations:  func(c config.Worker) config.Operations { return c.Operations },
+-		Validate:    config.Worker.Check,
++		Validate:    nil,
+ 		CheckSchema: checkSchema,
+ 		Components:  []host.Component[config.Worker]{{Name: "worker", Assemble: fromConfiguration}},
+ 	})

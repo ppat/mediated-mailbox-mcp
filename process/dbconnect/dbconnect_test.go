@@ -3,14 +3,15 @@ package dbconnect_test
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/ppat/mediated-mailbox-mcp/core/config"
 	"github.com/ppat/mediated-mailbox-mcp/process/dbconnect"
-	"github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 )
 
@@ -23,9 +24,9 @@ func passwordFile(t *testing.T, text string) string {
 	return path
 }
 
-func config(t *testing.T, password string) core.Config {
+func connection(t *testing.T, password string) config.Database {
 	t.Helper()
-	return core.Config{Host: "db.example", Port: 5433, Name: "mailbox", User: "mediated_mailbox_app", SSLMode: "verify-full", PasswordFile: passwordFile(t, password), PoolSize: 7}
+	return config.Database{Host: "db.example", Port: 5433, Name: "mailbox", User: "mediated_mailbox_app", SSLMode: "verify-full", PasswordFile: passwordFile(t, password), PoolSize: 7}
 }
 
 // A start refuses while PGPASSWORD or PGSSLPASSWORD is set, an empty value included.
@@ -63,7 +64,7 @@ func TestTheConnectionIsTheConfigurations(t *testing.T) {
 	t.Setenv("PGUSER", "someone")
 	t.Setenv("PGSSLMODE", "disable")
 	t.Setenv("PGSSLROOTCERT", filepath.Join(t.TempDir(), "absent.crt"))
-	pool, err := dbconnect.PoolConfig(config(t, "secret"))
+	pool, err := dbconnect.PoolConfig(connection(t, "secret"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -89,7 +90,7 @@ func TestTheConnectionIsTheConfigurations(t *testing.T) {
 // A value holding a quote and a backslash reaches the driver intact and cannot add a setting of its
 // own, such as a TLS mode that would win over the configured one.
 func TestAValueCannotChangeAnotherSetting(t *testing.T) {
-	c := config(t, "secret")
+	c := connection(t, "secret")
 	c.SSLRootCert = filepath.Join(t.TempDir(), `it's a \ path' sslmode='disable`)
 	_, err := dbconnect.PoolConfig(c)
 	if err == nil {
@@ -109,7 +110,7 @@ func TestThePasswordIsTheFilesText(t *testing.T) {
 		{"secret\n\n", "secret\n"},
 		{"secret\r\n\r\n", "secret\r\n"},
 	} {
-		pool, err := dbconnect.PoolConfig(config(t, c.text))
+		pool, err := dbconnect.PoolConfig(connection(t, c.text))
 		if err != nil {
 			t.Fatalf("%q: %v", c.text, err)
 		}
@@ -122,7 +123,7 @@ func TestThePasswordIsTheFilesText(t *testing.T) {
 // A password file holding no password, once its newline is trimmed, refuses the start.
 func TestAnEmptyPasswordIsRefused(t *testing.T) {
 	for _, text := range []string{"", "\n", "\r\n"} {
-		c := config(t, text)
+		c := connection(t, text)
 		_, err := dbconnect.PoolConfig(c)
 		want := "the password file " + c.PasswordFile + " holds no password"
 		if err == nil || err.Error() != want {
@@ -131,14 +132,15 @@ func TestAnEmptyPasswordIsRefused(t *testing.T) {
 	}
 }
 
-// The default pool size is the driver's own default, so a deployable whose configuration sets no
+// The driver's pool size core/config defaults the API server's, the UI's and the migrator's to, on
+// this node's processors, is the driver's own default, so a deployable whose configuration sets no
 // pool size opens as many connections as the driver would have opened by itself.
 func TestTheDefaultPoolSizeIsTheDriversOwn(t *testing.T) {
 	driver, err := pgxpool.ParseConfig("")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got, want := dbconnect.DefaultPoolSize(), int(driver.MaxConns); got != want {
-		t.Errorf("DefaultPoolSize() = %d, want the driver's %d", got, want)
+	if got, want := config.DriverPoolSize(runtime.NumCPU()), int(driver.MaxConns); got != want {
+		t.Errorf("DriverPoolSize(runtime.NumCPU()) = %d, want the driver's %d", got, want)
 	}
 }

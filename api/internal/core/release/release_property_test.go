@@ -8,6 +8,7 @@ import (
 	"pgregory.net/rapid"
 
 	"github.com/ppat/mediated-mailbox-mcp/api/internal/core/release"
+	"github.com/ppat/mediated-mailbox-mcp/core/config"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/core/sensitivity"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/marker"
@@ -47,7 +48,7 @@ func body(a args) string {
 // it only where the wrapping put them, so no generated body closes the block early. The marker and every
 // ordinary word survive, so a step that releases an empty body fails.
 func TestTheReleasedBodysForm(t *testing.T) {
-	s, err := scan.New(scan.DefaultConfig(), "a-revision")
+	s, err := scan.New(config.DefaultScanner(), "a-revision")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -1,0 +1,18 @@
+control: A length of time is read from text such as 5m and written back as such text, in every layer, the help, the effective values and the rendering a revision is taken from
+removes: a config.Duration is decoded as the number it is held as, so the text 5m is refused in every layer and a bare number is read as nanoseconds
+packages: ./process/settings
+tests: TestADurationIsReadAndWrittenAsText TestADurationHoldsNanosecondsAndIsWrittenAsTheText
+scheduled-count: no
+
+diff --git a/process/settings/duration.go b/process/settings/duration.go
+--- a/process/settings/duration.go
++++ b/process/settings/duration.go
+@@ -23,7 +23,7 @@ import (
+ // yamlType returns the type the YAML library reads and writes in place of t, t itself when t holds
+ // no config.Duration.
+ func yamlType(t reflect.Type) reflect.Type {
+-	return swapped(t, reflect.TypeFor[time.Duration]())
++	return t
+ }
+ 
+ // textType returns the type an effective value is reported as in place of t, each config.Duration

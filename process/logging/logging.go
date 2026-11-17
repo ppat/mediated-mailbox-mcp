@@ -10,15 +10,12 @@
 package logging
 
 import (
-	"fmt"
 	"io"
 	"log"
 	"log/slog"
-)
 
-// DefaultLevel is the name of the level a deployable logs at when its configuration names none.
-// Routine progress, the UI's line per request among it, is written at info (ADR-0122).
-const DefaultLevel = "info"
+	"github.com/ppat/mediated-mailbox-mcp/core/config"
+)
 
 // New returns a logger writing one JSON object per record to w, at the level level holds.
 func New(w io.Writer, level slog.Leveler) *slog.Logger {
@@ -26,10 +23,13 @@ func New(w io.Writer, level slog.Leveler) *slog.Logger {
 }
 
 // ParseLevel returns the level name names, one of debug, info, warn and error, spelled exactly so.
-// Any other text is refused, the spellings slog's own parser accepts, such as INFO, Warn and
-// info+2, included, as the configuration library refuses every value outside its designed range
-// (ADR-0078).
+// The names and the refusal of any other text are config.Process's check, which refuses the
+// spellings slog's own parser accepts, such as INFO, Warn and info+2, so a level is refused in one
+// place (ADR-0078). ParseLevel maps a name the check admits to its level.
 func ParseLevel(name string) (slog.Level, error) {
+	if err := (config.Process{LogLevel: name}).Check(); err != nil {
+		return 0, err
+	}
 	switch name {
 	case "debug":
 		return slog.LevelDebug, nil
@@ -37,11 +37,8 @@ func ParseLevel(name string) (slog.Level, error) {
 		return slog.LevelInfo, nil
 	case "warn":
 		return slog.LevelWarn, nil
-	case "error":
-		return slog.LevelError, nil
-	default:
-		return 0, fmt.Errorf("log_level %q is not one of debug, info, warn and error", name)
 	}
+	return slog.LevelError, nil
 }
 
 // ServerErrorLog returns the error log an http.Server is given, writing through logger's handler at

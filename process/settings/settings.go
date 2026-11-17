@@ -190,12 +190,12 @@ func Load[T any](defaults T, args, environ []string) (Loaded[T], error) {
 	}
 
 	for path, source := range sources {
-		loaded.Values = append(loaded.Values, Value{Path: path, Source: source, Value: copyValue(get(result, root, strings.Split(path, "."))).Interface()})
+		loaded.Values = append(loaded.Values, Value{Path: path, Source: source, Value: effective(copyValue(get(result, root, strings.Split(path, "."))))})
 	}
 	slices.SortFunc(loaded.Values, func(a, b Value) int { return strings.Compare(a.Path, b.Path) })
 	loaded.Revisions = map[string]string{}
 	for _, f := range root.fields {
-		text, err := yaml.Marshal(result.FieldByIndex(f.index).Interface())
+		text, err := yaml.Marshal(toYAML(result.FieldByIndex(f.index)).Interface())
 		if err != nil {
 			return Loaded[T]{}, fmt.Errorf("%s: %w", f.name, err)
 		}
@@ -248,15 +248,14 @@ func readFile[T any](root *node, name string, out []assignment) ([]assignment, e
 	if err != nil {
 		return nil, fmt.Errorf("config file %s: %w", name, err)
 	}
-	decoded := reflect.New(reflect.TypeFor[T]())
-	doc, err := decode(text, decoded.Interface())
+	decoded, doc, err := decodeInto(text, reflect.TypeFor[T]())
 	if err != nil {
 		return nil, fmt.Errorf("config file %s: %w", name, err)
 	}
 	if err := checkBooleans(doc, reflect.TypeFor[T]()); err != nil {
 		return nil, fmt.Errorf("config file %s: %w", name, err)
 	}
-	if err := collectFile(root, doc, decoded.Elem(), nil, name, &out); err != nil {
+	if err := collectFile(root, doc, decoded, nil, name, &out); err != nil {
 		return nil, fmt.Errorf("config file %s: %w", name, err)
 	}
 	return out, nil
@@ -391,19 +390,19 @@ func resolve(root *node, path []string, text string) (reflect.Value, error) {
 	if n.kind != valueKind {
 		return reflect.Value{}, fmt.Errorf("it names %s, a section rather than a value", strings.Join(path, "."))
 	}
-	v := reflect.New(n.typ)
 	if n.typ.Kind() == reflect.String {
-		v.Elem().SetString(text)
-		return v.Elem(), nil
+		v := reflect.New(n.typ).Elem()
+		v.SetString(text)
+		return v, nil
 	}
-	doc, err := decode([]byte(text), v.Interface())
+	v, doc, err := decodeInto([]byte(text), n.typ)
 	if err != nil {
 		return reflect.Value{}, err
 	}
 	if err := checkBooleans(doc, n.typ); err != nil {
 		return reflect.Value{}, err
 	}
-	return v.Elem(), nil
+	return v, nil
 }
 
 // checkBooleans refuses a boolean under n, the text decoded into a value of type t, written other

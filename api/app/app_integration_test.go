@@ -24,6 +24,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/ppat/mediated-mailbox-mcp/api/internal/service"
+	"github.com/ppat/mediated-mailbox-mcp/core/config"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/credential/open"
 	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
@@ -96,7 +97,7 @@ const scannerRevision = "a-revision"
 
 func scanner(t *testing.T) scan.Scanner {
 	t.Helper()
-	s, err := scan.New(scan.DefaultConfig(), scannerRevision)
+	s, err := scan.New(config.DefaultScanner(), scannerRevision)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -175,7 +176,7 @@ func servedEvery(t *testing.T, pool *pgxpool.Pool, ring *open.Keyring, metrics *
 	if err != nil {
 		t.Fatal(err)
 	}
-	ec := mustContext(t, pool, ring, scanner(t), Section{AccountReloadInterval: interval}, metrics, log)
+	ec := mustContext(t, pool, ring, scanner(t), config.API{Accounts: config.Accounts{AccountReloadInterval: config.Duration(interval)}}, metrics, log)
 	s, err := newServing(starter(t), pool, ec, metrics, log)
 	if err != nil {
 		t.Fatal(err)
@@ -282,7 +283,7 @@ func TestTheAPIServerReloadsOnItsInterval(t *testing.T) {
 	if err := os.WriteFile(token, []byte("s3cret"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	p, err := parts(s, Section{TokenFile: token, AccountReloadInterval: 20 * time.Millisecond}, slog.New(slog.DiscardHandler))
+	p, err := parts(s, token, slog.New(slog.DiscardHandler))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -296,7 +297,7 @@ func TestTheAPIServerReloadsOnItsInterval(t *testing.T) {
 	done := make(chan error, 1)
 	surfaceListener, probeListener := loopback(t), loopback(t)
 	go func() {
-		done <- h.Serve(ctx, host.Listeners{App: surfaceListener, Probes: probeListener}, host.Serving{})
+		done <- h.Serve(ctx, host.Listeners{App: surfaceListener, Probes: probeListener}, config.Serving{})
 	}()
 	defer func() {
 		cancel()
@@ -538,10 +539,10 @@ func TestTheReadOperationsReadTheServingState(t *testing.T) {
 	must(t, conn, `INSERT INTO rate_state (account_id, current_rate, target_rate, hard_cap, backoff_until)
 		VALUES ($1, 5, 8, 10, now() + interval '1 hour'), ($2, 5, 8, 10, now() - interval '1 hour')`, account, accounts[1])
 	must(t, conn, "UPDATE account_state SET sync_cursor_at = now() - interval '1 hour' WHERE account_id = $1", account)
-	section := Section{TokenFile: bearerToken(t), AccountReloadInterval: time.Hour, ProviderTimeout: time.Second}
+	section := config.API{TokenFile: bearerToken(t), Accounts: config.Accounts{AccountReloadInterval: config.Duration(time.Hour)}, ProviderTimeout: config.Duration(time.Second)}
 	pool, metrics, logger := apiServer(t), prometheus.NewRegistry(), slog.New(slog.DiscardHandler)
 	a, err := assemble(t.Context(), Needs{
-		Section: section, Pool: pool, Context: mustContext(t, pool, ring, scanner(t), section, metrics, logger),
+		Config: section, Pool: pool, Context: mustContext(t, pool, ring, scanner(t), section, metrics, logger),
 		Registerer: metrics, Logger: logger, Start: starter(t),
 	}, session.Connector{}, time.Second)
 	if err != nil {

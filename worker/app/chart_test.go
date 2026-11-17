@@ -1,7 +1,6 @@
 package app
 
 import (
-	"errors"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -11,10 +10,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
-	"github.com/ppat/mediated-mailbox-mcp/core/scan"
-	credentialcore "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/core"
-	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core"
-	"github.com/ppat/mediated-mailbox-mcp/process/host"
+	"github.com/ppat/mediated-mailbox-mcp/core/config"
 	"github.com/ppat/mediated-mailbox-mcp/process/settings"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/helmchart"
@@ -34,39 +30,37 @@ func TestTheChartRendersAFileTheWorkerStartsWith(t *testing.T) {
 	if err := os.WriteFile(path, []byte(helmchart.ConfigFile(t, objects, "worker.yaml")), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	loaded, err := settings.Load(defaults(), []string{"--config-file=" + path}, nil)
+	loaded, err := settings.Load(config.DefaultWorker(), []string{"--config-file=" + path}, nil)
 	if err != nil {
 		t.Fatalf("the worker refuses the chart's file: %v", err)
 	}
-	if err := errors.Join(host.ValidateProcess(loaded.Config.Process), host.ValidateOperations(loaded.Config.Operations), validate(loaded.Config)); err != nil {
+	if err := loaded.Config.Check(); err != nil {
 		t.Fatalf("the worker's validation refuses the chart's file: %v", err)
 	}
 	if _, err := buildScanner(loaded); err != nil {
 		t.Fatalf("the worker refuses the chart's scanner section: %v", err)
 	}
 	mounted := "/etc/mediated-mailbox/secrets/"
-	want := Configuration{
-		Process:    host.Process{LogLevel: "error"},
-		Operations: host.Operations{ProbeListen: ":8080"},
-		Section: Section{
-			ReloadInterval: 90 * time.Second,
-			Backfill:       Backfill{Concurrency: 5},
-			Sync:           Sync{SyncInterval: 3 * time.Minute, FirstWindow: 48 * time.Hour, DecisionsPerTick: 50, Concurrency: 6},
-		},
-		Database: dbconnectcore.Config{
+	want := config.Worker{
+		Process:        config.Process{LogLevel: "error"},
+		Operations:     config.Operations{ProbeListen: ":8080"},
+		ReloadInterval: config.Duration(90 * time.Second),
+		Backfill:       config.Backfill{Concurrency: 5},
+		Sync:           config.Sync{SyncInterval: config.Duration(3 * time.Minute), FirstWindow: config.Duration(48 * time.Hour), DecisionsPerTick: 50, Concurrency: 6},
+		Database: config.Database{
 			Host: "db.example", Port: 6432, Name: "mediated_mailbox", User: "mailbox_app", SSLMode: "require",
 			SSLRootCert: mounted + "ca/ca.crt", PasswordFile: mounted + "database/password", PoolSize: 3,
 		},
-		Credential: credentialcore.Config{
+		Credential: config.Keys{
 			PublicKeyFile:   mounted + "credential-sealing-key-pair/credential.pub",
 			PrivateKeyFiles: []string{mounted + "credential-sealing-key-pair/old.key", mounted + "credential-sealing-key-pair/new.key"},
 		},
-		Scanner: scan.Config{
+		Scanner: config.Scanner{
 			Triggers:   map[string][]string{"en": {"code"}, "no": {"kode"}},
 			LinkWords:  []string{"token"},
 			LinkParams: []string{"code"},
 			Window:     6, DenseLength: 20, DenseEntropy: 3.5,
-			Weights:   scan.Weights{Entropy: 1, Mix: 1, Length: 1, Proximity: 0.5, Position: 1},
+			Weights:   config.Weights{Entropy: 1, Mix: 1, Length: 1, Proximity: 0.5, Position: 1},
 			Threshold: 0.7, SubjectThreshold: 0.65,
 		},
 	}
@@ -90,12 +84,12 @@ func TestTheChartAdmitsEveryWorkerKeyItDoesNotRender(t *testing.T) {
 		typ  reflect.Type
 		got  []string
 	}{
-		{"the root", reflect.TypeFor[Configuration](), root},
-		{"the database section", reflect.TypeFor[dbconnectcore.Config](), databaseKeys(t)},
-		{"backfill's section", reflect.TypeFor[Backfill](), helmchart.SchemaKeys(t, chartDir, "worker", "jobKinds", "backfill", "config")},
-		{"delta sync's section", reflect.TypeFor[Sync](), sorted(append(helmchart.SchemaKeys(t, chartDir, "worker", "jobKinds", "sync", "config"), "sync_interval"))},
-		{"the scanner section", reflect.TypeFor[scan.Config](), helmchart.SchemaKeys(t, chartDir, "sharedConfig", "scanner")},
-		{"the scanner's weights", reflect.TypeFor[scan.Weights](), helmchart.SchemaKeys(t, chartDir, "sharedConfig", "scanner", "weights")},
+		{"the root", reflect.TypeFor[config.Worker](), root},
+		{"the database section", reflect.TypeFor[config.Database](), databaseKeys(t)},
+		{"backfill's section", reflect.TypeFor[config.Backfill](), helmchart.SchemaKeys(t, chartDir, "worker", "jobKinds", "backfill", "config")},
+		{"delta sync's section", reflect.TypeFor[config.Sync](), sorted(append(helmchart.SchemaKeys(t, chartDir, "worker", "jobKinds", "sync", "config"), "sync_interval"))},
+		{"the scanner section", reflect.TypeFor[config.Scanner](), helmchart.SchemaKeys(t, chartDir, "sharedConfig", "scanner")},
+		{"the scanner's weights", reflect.TypeFor[config.Weights](), helmchart.SchemaKeys(t, chartDir, "sharedConfig", "scanner", "weights")},
 	} {
 		if diff := cmp.Diff(helmchart.YAMLKeys(c.typ), c.got); diff != "" {
 			t.Errorf("%s (-configuration type +schema and chart):\n%s", c.name, diff)

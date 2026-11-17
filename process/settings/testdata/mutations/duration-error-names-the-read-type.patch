@@ -1,0 +1,18 @@
+control: A length of time is read from text such as 5m and written back as such text, in every layer, the help, the effective values and the rendering a revision is taken from
+removes: a type error in a section holding a length of time names the type the library read in its place, a struct written out field by field, rather than the declared type
+packages: ./process/settings
+tests: TestADurationIsReadAndWrittenAsText
+scheduled-count: no
+
+diff --git a/process/settings/duration.go b/process/settings/duration.go
+--- a/process/settings/duration.go
++++ b/process/settings/duration.go
+@@ -111,7 +111,7 @@ func decodeInto(text []byte, t reflect.Type) (reflect.Value, *yaml.Node, error)
+ // types inside it.
+ func renamed(err error, t reflect.Type) error {
+ 	var typeErr *yaml.TypeError
+-	if !errors.As(err, &typeErr) {
++	if !errors.As(err, &typeErr) || true {
+ 		return err
+ 	}
+ 	pairs := map[string]string{}

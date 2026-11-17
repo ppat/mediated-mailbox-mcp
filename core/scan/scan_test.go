@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
+	"github.com/ppat/mediated-mailbox-mcp/core/config"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/fixture"
@@ -40,7 +41,7 @@ const revision = "a-revision"
 
 func scanner(t *testing.T) scan.Scanner {
 	t.Helper()
-	s, err := scan.New(scan.DefaultConfig(), revision)
+	s, err := scan.New(config.DefaultScanner(), revision)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -81,32 +82,32 @@ func TestFailClosed(t *testing.T) {
 func TestNewRefusesAnInvalidConfiguration(t *testing.T) {
 	cases := []struct {
 		name   string
-		change func(*scan.Config)
+		change func(*config.Scanner)
 		want   string
 	}{
-		{"no trigger word", func(c *scan.Config) { c.Triggers = nil }, "no trigger word is configured"},
-		{"an empty trigger", func(c *scan.Config) { c.Triggers["en"] = []string{""} }, `the en trigger "" is empty`},
-		{"a trigger with surrounding space", func(c *scan.Config) { c.Triggers["en"] = []string{" code"} }, `" code" is empty or has surrounding space`},
-		{"no link word", func(c *scan.Config) { c.LinkWords = nil }, "no link word or no link parameter"},
-		{"a blank link parameter", func(c *scan.Config) { c.LinkParams = []string{"t", " "} }, `" " is empty`},
-		{"a zero window", func(c *scan.Config) { c.Window = 0 }, "must be positive"},
-		{"a zero dense length", func(c *scan.Config) { c.DenseLength = 0 }, "must be positive"},
-		{"a negative weight", func(c *scan.Config) { c.Weights.Mix = -1 }, "the weights must be"},
-		{"all weights zero", func(c *scan.Config) { c.Weights = scan.Weights{} }, "the weights must be"},
-		{"an infinite weight", func(c *scan.Config) { c.Weights.Entropy = math.Inf(1) }, "the weights must be"},
-		{"a weight that is not a number", func(c *scan.Config) { c.Weights.Length = math.NaN() }, "the weights must be"},
-		{"weights summing past the largest number", func(c *scan.Config) { c.Weights.Mix, c.Weights.Length = math.MaxFloat64, math.MaxFloat64 }, "sum to a finite number"},
-		{"a threshold of zero", func(c *scan.Config) { c.Threshold = 0 }, "each threshold must be"},
-		{"a threshold above 1", func(c *scan.Config) { c.Threshold = 1.5 }, "each threshold must be"},
-		{"a threshold that is not a number", func(c *scan.Config) { c.Threshold = math.NaN() }, "each threshold must be"},
-		{"a subject threshold of zero", func(c *scan.Config) { c.SubjectThreshold = 0 }, "each threshold must be"},
-		{"a subject threshold above the body's", func(c *scan.Config) { c.SubjectThreshold = 0.99 }, "the subject threshold is above the body threshold"},
-		{"a dense entropy that is not a number", func(c *scan.Config) { c.DenseEntropy = math.NaN() }, "must be positive"},
-		{"a dense entropy no value can reach", func(c *scan.Config) { c.DenseEntropy = 8.5 }, "more than any value of bytes can reach"},
+		{"no trigger word", func(c *config.Scanner) { c.Triggers = nil }, "no trigger word is configured"},
+		{"an empty trigger", func(c *config.Scanner) { c.Triggers["en"] = []string{""} }, `the en trigger "" is empty`},
+		{"a trigger with surrounding space", func(c *config.Scanner) { c.Triggers["en"] = []string{" code"} }, `" code" is empty or has surrounding space`},
+		{"no link word", func(c *config.Scanner) { c.LinkWords = nil }, "no link word or no link parameter"},
+		{"a blank link parameter", func(c *config.Scanner) { c.LinkParams = []string{"t", " "} }, `" " is empty`},
+		{"a zero window", func(c *config.Scanner) { c.Window = 0 }, "must be positive"},
+		{"a zero dense length", func(c *config.Scanner) { c.DenseLength = 0 }, "must be positive"},
+		{"a negative weight", func(c *config.Scanner) { c.Weights.Mix = -1 }, "the weights must be"},
+		{"all weights zero", func(c *config.Scanner) { c.Weights = config.Weights{} }, "the weights must be"},
+		{"an infinite weight", func(c *config.Scanner) { c.Weights.Entropy = math.Inf(1) }, "the weights must be"},
+		{"a weight that is not a number", func(c *config.Scanner) { c.Weights.Length = math.NaN() }, "the weights must be"},
+		{"weights summing past the largest number", func(c *config.Scanner) { c.Weights.Mix, c.Weights.Length = math.MaxFloat64, math.MaxFloat64 }, "sum to a finite number"},
+		{"a threshold of zero", func(c *config.Scanner) { c.Threshold = 0 }, "each threshold must be"},
+		{"a threshold above 1", func(c *config.Scanner) { c.Threshold = 1.5 }, "each threshold must be"},
+		{"a threshold that is not a number", func(c *config.Scanner) { c.Threshold = math.NaN() }, "each threshold must be"},
+		{"a subject threshold of zero", func(c *config.Scanner) { c.SubjectThreshold = 0 }, "each threshold must be"},
+		{"a subject threshold above the body's", func(c *config.Scanner) { c.SubjectThreshold = 0.99 }, "the subject threshold is above the body threshold"},
+		{"a dense entropy that is not a number", func(c *config.Scanner) { c.DenseEntropy = math.NaN() }, "must be positive"},
+		{"a dense entropy no value can reach", func(c *config.Scanner) { c.DenseEntropy = 8.5 }, "more than any value of bytes can reach"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			cfg := scan.DefaultConfig()
+			cfg := config.DefaultScanner()
 			c.change(&cfg)
 			s, err := scan.New(cfg, revision)
 			if err == nil || !strings.Contains(err.Error(), c.want) {
@@ -118,7 +119,7 @@ func TestNewRefusesAnInvalidConfiguration(t *testing.T) {
 		})
 	}
 	t.Run("an empty revision", func(t *testing.T) {
-		s, err := scan.New(scan.DefaultConfig(), "")
+		s, err := scan.New(config.DefaultScanner(), "")
 		if want := "the revision is empty"; err == nil || !strings.Contains(err.Error(), want) {
 			t.Fatalf("New returned %v, want an error containing %q", err, want)
 		}
@@ -132,7 +133,7 @@ func TestNewRefusesAnInvalidConfiguration(t *testing.T) {
 // made under another configuration tells itself apart (ADR-0005, ADR-0078).
 func TestAVerdictRecordsTheRevisionItWasBuiltUnder(t *testing.T) {
 	for _, r := range []string{"0f3a", "another revision"} {
-		s, err := scan.New(scan.DefaultConfig(), r)
+		s, err := scan.New(config.DefaultScanner(), r)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -151,7 +152,7 @@ func TestAVerdictRecordsTheRevisionItWasBuiltUnder(t *testing.T) {
 // records them, and one nobody built names none a built scanner could, so whatever it masked is masked
 // again by the first built one (ADR-0120).
 func TestAScannerNamesTheVersionAndRevisionItDecidesUnder(t *testing.T) {
-	s, err := scan.New(scan.DefaultConfig(), "0f3a")
+	s, err := scan.New(config.DefaultScanner(), "0f3a")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -295,7 +296,7 @@ func TestTier2(t *testing.T) {
 // The subject threshold replaces the body threshold on a subject and nowhere else. A reference with no
 // trigger near it scores 0.53, between the two thresholds this configuration sets.
 func TestSubjectThreshold(t *testing.T) {
-	cfg := scan.DefaultConfig()
+	cfg := config.DefaultScanner()
 	cfg.SubjectThreshold = 0.5
 	s, err := scan.New(cfg, revision)
 	if err != nil {
@@ -372,22 +373,4 @@ func TestScanningStaysLinear(t *testing.T) {
 	if ratio := perScan(32000) / perScan(4000); ratio > 16 {
 		t.Errorf("eight times the text took %.1f times as long, want under 16", ratio)
 	}
-}
-
-// The scanner's section of a deployable's configuration is pinned field by field, so a new value is
-// a visible change, and it carries no revision an operator could set (ADR-0078).
-func TestTheScannerSectionIsPinned(t *testing.T) {
-	mustnotcompile.RequireFields(t, "github.com/ppat/mediated-mailbox-mcp/core/scan", "Config",
-		"Triggers map[string][]string",
-		"LinkWords []string",
-		"LinkParams []string",
-		"Window int",
-		"DenseLength int",
-		"DenseEntropy float64",
-		"Weights Weights",
-		"Threshold float64",
-		"SubjectThreshold float64",
-	)
-	mustnotcompile.RequireFields(t, "github.com/ppat/mediated-mailbox-mcp/core/scan", "Weights",
-		"Entropy float64", "Mix float64", "Length float64", "Proximity float64", "Position float64")
 }

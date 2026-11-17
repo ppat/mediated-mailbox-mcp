@@ -229,9 +229,7 @@ linters:
           # import it by its exact path.
           - "github.com/ppat/mediated-mailbox-mcp/provider/ratelimit/core$"
           - "github.com/ppat/mediated-mailbox-mcp/provider/ratelimit/core/"
-          # The database connection's and the credential code's pure cores are one package each too.
-          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/core$"
-          - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core$"
+          # The Gmail adapter's pure core is one package too.
           - "github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail/core$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
@@ -310,6 +308,7 @@ linters:
           - "github.com/jackc/pgx/v5$"
           - "github.com/jackc/pgx/v5/"
           - "github.com/ppat/mediated-mailbox-mcp/core/classify$"
+          - "github.com/ppat/mediated-mailbox-mcp/core/config$"
           - "github.com/ppat/mediated-mailbox-mcp/core/scan$"
           - "github.com/ppat/mediated-mailbox-mcp/db/accountstate$"
           - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
@@ -324,19 +323,6 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
           - "github.com/prometheus/client_golang/prometheus$"
-
-        # The configuration of the key files, every file, the one package left of the execution context's credential
-        # code.
-        credential-configuration:
-          list-mode: strict
-          files:
-          - "${base-path}/executioncontext/credential/**.go"
-          allow:
-          - "$gostd"
-          - "github.com/google/go-cmp/cmp$"
-          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/core$"
-          - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
-          - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
 
         # The sealing half of the credential family, every file. It never names the opening half, which imports it.
         credential-seal:
@@ -386,11 +372,10 @@ linters:
           - "github.com/google/go-cmp/cmp$"
           - "github.com/jackc/pgx/v5$"
           - "github.com/jackc/pgx/v5/stdlib$"
+          - "github.com/ppat/mediated-mailbox-mcp/core/config$"
           - "github.com/ppat/mediated-mailbox-mcp/db/migrate$"
           - "github.com/ppat/mediated-mailbox-mcp/db/migrations$"
           - "github.com/ppat/mediated-mailbox-mcp/migrator/app$"
-          - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect$"
-          - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core$"
           - "github.com/ppat/mediated-mailbox-mcp/process/host$"
           - "github.com/ppat/mediated-mailbox-mcp/process/logging$"
           - "github.com/ppat/mediated-mailbox-mcp/process/settings$"
@@ -410,8 +395,8 @@ linters:
           - "$gostd"
           - "github.com/google/go-cmp/cmp$"
           - "github.com/jackc/pgx/v5/pgxpool$"
+          - "github.com/ppat/mediated-mailbox-mcp/core/config$"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect$"
-          - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
 
@@ -469,8 +454,8 @@ linters:
           - "$gostd"
           - "github.com/google/go-cmp/cmp$"
           - "github.com/jackc/pgx/v5/pgxpool$"
+          - "github.com/ppat/mediated-mailbox-mcp/core/config$"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect$"
-          - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core$"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbmetrics$"
           - "github.com/ppat/mediated-mailbox-mcp/process/host$"
           - "github.com/ppat/mediated-mailbox-mcp/process/logging$"
@@ -482,7 +467,8 @@ linters:
           - "github.com/prometheus/client_golang/prometheus$"
 
         # The logger, every file, a package of the process family. It builds a logger over the standard library
-        # alone and its tests compare through the shared options value (ADR-0122, ADR-0070).
+        # alone, refuses a level through core/config's check of the process part, which holds the level names, and
+        # its tests compare through the shared options value (ADR-0122, ADR-0070).
         logging:
           list-mode: strict
           files:
@@ -490,6 +476,7 @@ linters:
           allow:
           - "$gostd"
           - "github.com/google/go-cmp/cmp$"
+          - "github.com/ppat/mediated-mailbox-mcp/core/config$"
           - "github.com/ppat/mediated-mailbox-mcp/process/logging$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
 
@@ -738,7 +725,8 @@ linters:
           - "pgregory.net/rapid$"
 
         # The configuration library, every file, a package of the process family. The YAML decoder is the one module
-        # it adds (ADR-0078).
+        # it adds, and core/config's length of time is the one type of the configuration types it reads and writes by
+        # name (ADR-0078).
         settings:
           list-mode: strict
           files:
@@ -746,6 +734,7 @@ linters:
           allow:
           - "$gostd"
           - "github.com/google/go-cmp/cmp$"
+          - "github.com/ppat/mediated-mailbox-mcp/core/config$"
           - "github.com/ppat/mediated-mailbox-mcp/process/settings$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
           - "go.yaml.in/yaml/v3$"
@@ -840,7 +829,6 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/db/accountstate$"
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/accountload$"
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/assembly$"
-          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/core$"
           - "github.com/ppat/mediated-mailbox-mcp/credential/open$"
           - "github.com/ppat/mediated-mailbox-mcp/credential/seal$"
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/session$"
@@ -862,8 +850,6 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/db/schemacompatibility$"
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/policyload$"
           - "github.com/ppat/mediated-mailbox-mcp/api/"
-          - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect$"
-          - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core$"
           - "github.com/ppat/mediated-mailbox-mcp/process/host$"
           - "github.com/ppat/mediated-mailbox-mcp/process/logging$"
           - "github.com/ppat/mediated-mailbox-mcp/process/settings$"
@@ -916,8 +902,6 @@ linters:
           - "github.com/jackc/pgx/v5/pgtype$"
           - "github.com/jackc/pgx/v5/pgxpool$"
           - "github.com/ppat/mediated-mailbox-mcp/core/"
-          # The credential section, which the composition root reads the key files' paths from.
-          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/core$"
           # The sealing half, with which the setups seal a client's secret and an account's credential.
           - "github.com/ppat/mediated-mailbox-mcp/credential/seal$"
           # The data-access subsections the read API's statements sit in, from ui/internal/registry and
@@ -953,9 +937,7 @@ linters:
           # The start check the composition root hands the host, the schema's versions and the chain's own (ADR-0140).
           - "github.com/ppat/mediated-mailbox-mcp/db/migrations$"
           - "github.com/ppat/mediated-mailbox-mcp/db/schemacompatibility$"
-          # The composition root's configuration (ADR-0078) and its database section, in ui/app.
-          - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect$"
-          - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core$"
+          # The host the composition root hands the UI to, and the logger it is handed, in ui/app.
           - "github.com/ppat/mediated-mailbox-mcp/process/host$"
           - "github.com/ppat/mediated-mailbox-mcp/process/logging$"
           # The provider fake, which the setups' tests run over. The list for non-test code refuses it.
@@ -1066,11 +1048,9 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/db/migrations$"
           - "github.com/ppat/mediated-mailbox-mcp/db/schemacompatibility$"
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/assembly$"
-          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/core$"
           - "github.com/ppat/mediated-mailbox-mcp/credential/open$"
           - "github.com/ppat/mediated-mailbox-mcp/credential/seal$"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect$"
-          - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core$"
           - "github.com/ppat/mediated-mailbox-mcp/process/host$"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbmetrics$"
           - "github.com/ppat/mediated-mailbox-mcp/process/logging$"
@@ -1327,7 +1307,6 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/db/"
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/accountload$"
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/assembly$"
-          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/core$"
           - "github.com/ppat/mediated-mailbox-mcp/credential/open$"
           - "github.com/ppat/mediated-mailbox-mcp/credential/seal$"
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/policyload$"
@@ -1335,7 +1314,6 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/api/"
           - "github.com/ppat/mediated-mailbox-mcp/migrator/"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect$"
-          - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core$"
           - "github.com/ppat/mediated-mailbox-mcp/process/host$"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbmetrics$"
           - "github.com/ppat/mediated-mailbox-mcp/process/logging$"
@@ -1399,7 +1377,6 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/db/"
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/accountload$"
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/assembly$"
-          - "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/core$"
           - "github.com/ppat/mediated-mailbox-mcp/credential/open$"
           - "github.com/ppat/mediated-mailbox-mcp/credential/seal$"
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/policyload$"
@@ -1407,7 +1384,6 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/api/"
           - "github.com/ppat/mediated-mailbox-mcp/migrator/"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect$"
-          - "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core$"
           - "github.com/ppat/mediated-mailbox-mcp/process/host$"
           - "github.com/ppat/mediated-mailbox-mcp/process/dbmetrics$"
           - "github.com/ppat/mediated-mailbox-mcp/process/logging$"
@@ -1454,7 +1430,6 @@ linters:
           - "!${base-path}/db/**"
           - "!${base-path}/executioncontext/accountload/**"
           - "!${base-path}/executioncontext/assembly/**"
-          - "!${base-path}/executioncontext/credential/**"
           - "!${base-path}/executioncontext/policyload/**"
           - "!${base-path}/executioncontext/session/**"
           - "!${base-path}/api/**"

@@ -15,48 +15,15 @@ import (
 	"errors"
 	"io"
 	"log/slog"
+	"runtime"
 
 	"github.com/jackc/pgx/v5/stdlib"
 
+	"github.com/ppat/mediated-mailbox-mcp/core/config"
 	"github.com/ppat/mediated-mailbox-mcp/db/migrate"
 	"github.com/ppat/mediated-mailbox-mcp/db/migrations"
-	"github.com/ppat/mediated-mailbox-mcp/process/dbconnect"
-	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core"
 	"github.com/ppat/mediated-mailbox-mcp/process/host"
 )
-
-// Configuration is the migrator's root configuration type, loaded by the configuration library
-// (ADR-0078). It composes the process's section, inline at the top of the tree, the database section,
-// and the application user's name. Its fields are pinned by the test beside this file, so a new value
-// is a visible change.
-type Configuration struct {
-	host.Process `yaml:",inline"`
-	Database     dbconnectcore.Config `yaml:"database"`
-	// ApplicationUser is the name of the user the API server, the UI and the worker connect as, which
-	// every grant of the chain is made to. The project names no database user, so it has no default
-	// (ADR-0048, ADR-0139, ADR-0143).
-	ApplicationUser string `yaml:"application_user" settings:"required"`
-}
-
-// defaults are the migrator's defaults. The user is the test harness's migrator's user, the TLS mode
-// is the one that fails closed, and the pool size is the driver's own default. The password file and
-// the application user's name have no default, since a default path assumes the environment and the
-// project names no database user (ADR-0143).
-func defaults() Configuration {
-	return Configuration{
-		Process:  host.DefaultProcess(),
-		Database: dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_migrator", SSLMode: "verify-full", PoolSize: dbconnect.DefaultPoolSize()},
-	}
-}
-
-// validate refuses a database section the migrator cannot connect with, and an empty application
-// user's name, which would name no grantee.
-func validate(c Configuration) error {
-	if c.ApplicationUser == "" {
-		return errors.New("application_user is empty")
-	}
-	return dbconnectcore.Validate(c.Database)
-}
 
 // Run is the migrator's process. It applies every migration of the chain the database does not yet
 // hold, and returns once the chain is applied, or with the error that stopped it.
@@ -66,11 +33,11 @@ func validate(c Configuration) error {
 // --help and --version, and stderr is where the start banner goes, standard error in main.go, so
 // standard output carries only the logger's JSON records otherwise.
 func Run(ctx context.Context, args, environ []string, stdout, stderr io.Writer, logger *slog.Logger, level *slog.LevelVar) error {
-	return host.RunOnce(ctx, args, environ, stdout, stderr, logger, level, host.Once[Configuration]{
+	return host.RunOnce(ctx, args, environ, stdout, stderr, logger, level, host.Once[config.Migrator]{
 		Name:      "mediated-mailbox-migrator",
-		Defaults:  defaults(),
-		Process:   func(c Configuration) host.Process { return c.Process },
-		Validate:  validate,
+		Defaults:  config.DefaultMigrator(runtime.NumCPU()),
+		Process:   func(c config.Migrator) config.Process { return c.Process },
+		Validate:  config.Migrator.Check,
 		Component: "migrator",
 		Work:      apply,
 	})
@@ -78,7 +45,7 @@ func Run(ctx context.Context, args, environ []string, stdout, stderr io.Writer, 
 
 // apply connects as the user the database section names and applies the chain this build carries,
 // its grants made to the application user.
-func apply(ctx context.Context, provided host.Provided[Configuration]) (err error) {
+func apply(ctx context.Context, provided host.Provided[config.Migrator]) (err error) {
 	pool, err := provided.OpenPool(ctx, provided.Loaded.Config.Database, provided.Registerer)
 	if err != nil {
 		return err

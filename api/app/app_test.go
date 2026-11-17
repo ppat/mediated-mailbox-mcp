@@ -14,6 +14,7 @@ import (
 	"errors"
 	"io"
 	"log/slog"
+	"maps"
 	"math/big"
 	"net"
 	"net/http"
@@ -21,6 +22,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -31,12 +33,10 @@ import (
 	"github.com/google/go-cmp/cmp"
 
 	"github.com/ppat/mediated-mailbox-mcp/api/internal/service"
-	"github.com/ppat/mediated-mailbox-mcp/core/scan"
+	"github.com/ppat/mediated-mailbox-mcp/core/config"
 	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
-	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core"
 	"github.com/ppat/mediated-mailbox-mcp/process/host"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
-	"github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile"
 )
 
 // counted returns a registry holding one operation, echo, and the count of calls that reached it.
@@ -216,7 +216,7 @@ func TestTheSurfaceIsServedOverTLSWhenGivenAKeyPair(t *testing.T) {
 	dir := t.TempDir()
 	certFile, keyFile := filepath.Join(dir, "tls.crt"), filepath.Join(dir, "tls.key")
 	first := writeKeyPair(t, certFile, keyFile, 1)
-	addr, calls, log := started(t, host.Serving{TLSCert: certFile, TLSKey: keyFile})
+	addr, calls, log := started(t, config.Serving{TLSCert: certFile, TLSKey: keyFile})
 
 	request := func(client *http.Client, scheme, token string) (*http.Response, error) {
 		req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, scheme+"://"+addr+"/api/accounts/acct-a/echo", http.NoBody)
@@ -308,7 +308,7 @@ func (b *lockedBuffer) String() string {
 // test ends. It returns once the process reports ready, with the client surface's address, the
 // operation's call count and the process's log, and fails the test when the process stops or never
 // reports ready.
-func started(t *testing.T, s host.Serving) (string, *atomic.Int64, *lockedBuffer) {
+func started(t *testing.T, s config.Serving) (string, *atomic.Int64, *lockedBuffer) {
 	t.Helper()
 	surfaceListener, probeListener := loopback(t), loopback(t)
 	reg, calls := counted(t)
@@ -317,7 +317,7 @@ func started(t *testing.T, s host.Serving) (string, *atomic.Int64, *lockedBuffer
 	if err != nil {
 		t.Fatal(err)
 	}
-	p, err := parts(&serving{registry: reg, logger: discard()}, Section{TokenFile: tokenFile(t, "s3cret"), AccountReloadInterval: time.Hour}, discard())
+	p, err := parts(&serving{registry: reg, logger: discard()}, tokenFile(t, "s3cret"), discard())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -380,7 +380,7 @@ func servingRecord(t *testing.T, log *lockedBuffer) string {
 // plain HTTP, behind the bearer check, and logs that it does not serve TLS (ADR-0127,
 // ADR-0087).
 func TestTheSurfaceGivenNoKeyPairIsPlain(t *testing.T) {
-	for name, s := range map[string]host.Serving{
+	for name, s := range map[string]config.Serving{
 		"neither file": {},
 		"both blank":   {TLSCert: " ", TLSKey: "\t"},
 	} {
@@ -421,7 +421,7 @@ func TestTheSurfaceGivenNoKeyPairIsPlain(t *testing.T) {
 // by the application server before any bearer check, since the host mounts the client surface at
 // those two patterns alone. A path under either still meets the bearer check (ADR-0138, ADR-0030).
 func TestAPathOutsideBothRootsIsNotFound(t *testing.T) {
-	addr, calls, _ := started(t, host.Serving{})
+	addr, calls, _ := started(t, config.Serving{})
 	statuses := map[string]int{}
 	for _, path := range []string{"/healthz", "/readyz", "/metrics", "/", "/apix", "/mcp/x", "/api/accounts/acct-a/echo"} {
 		req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "http://"+addr+path, http.NoBody)
@@ -449,25 +449,6 @@ func TestAPathOutsideBothRootsIsNotFound(t *testing.T) {
 	}
 }
 
-// The API server's root configuration type and its own section are pinned field by field, so a new
-// value is a visible change (ADR-0078). Each other section's own type is pinned in its package.
-func TestTheConfigurationTypeIsPinned(t *testing.T) {
-	mustnotcompile.RequireFields(t, "github.com/ppat/mediated-mailbox-mcp/api/app", "Configuration",
-		"Process host.Process",
-		"Operations host.Operations",
-		"Serving host.Serving",
-		"Section Section",
-		"Database core.Config",
-		"Credential core.Config",
-		"Scanner scan.Config",
-	)
-	mustnotcompile.RequireFields(t, "github.com/ppat/mediated-mailbox-mcp/api/app", "Section",
-		"TokenFile string",
-		"AccountReloadInterval time.Duration",
-		"ProviderTimeout time.Duration",
-	)
-}
-
 func discard() *slog.Logger { return slog.New(slog.DiscardHandler) }
 
 // starter returns the starter of a host that serves nothing, for a test that assembles the API server
@@ -483,68 +464,57 @@ func starter(t *testing.T) host.Starter {
 	return h.Starter("api")
 }
 
-// The API server's defaults are the process's, its two listeners and the info level, a reload each
-// minute, the port, the test harness's application user, the TLS mode that fails closed, the driver's own pool size,
-// the larger of 4 and the processor count, the scanner configuration the application ships and a
-// provider timeout of thirty seconds. The token file, the database host, name and password file and
-// the key files are required.
-func TestTheDefaults(t *testing.T) {
-	want := Configuration{
-		Process:    host.Process{LogLevel: "info"},
-		Operations: host.Operations{ProbeListen: ":8080"},
-		Serving:    host.Serving{Listen: ":8443"},
-		Section:    Section{AccountReloadInterval: time.Minute, ProviderTimeout: 30 * time.Second},
-		Database:   dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_app", SSLMode: "verify-full", PoolSize: max(4, runtime.NumCPU())},
-		Scanner:    scan.DefaultConfig(),
+// The API server's start runs its configuration's check, config.API's, before it reads a key file or
+// connects, so each value it cannot serve with refuses the start through Run, the process's own
+// listeners among them, which the host checks for no program by itself (ADR-0078, ADR-0127, ADR-0142).
+// Each case sets every value the start needs once, with the value under test in place of its own.
+func TestAConfigurationTheAPIServerCannotServeWithRefusesTheStart(t *testing.T) {
+	both := "and the process serves TLS with both or plain HTTP with neither"
+	for _, c := range []struct {
+		name string
+		set  map[string]string
+		want string
+	}{
+		{"a certificate without its key", map[string]string{"tls_cert": "/tls/cert"}, "tls_cert is set and tls_key is not, " + both},
+		{"a key beside a blank certificate path", map[string]string{"tls_cert": " ", "tls_key": "/tls/key"}, "tls_key is set and tls_cert is not, " + both},
+		{"an empty probe_listen", map[string]string{"probe_listen": ""}, "probe_listen is empty"},
+		{"a blank token file path", map[string]string{"token_file": " "}, "token_file is empty"},
+		{"a reload interval of zero", map[string]string{"account_reload_interval": "0s"}, "account_reload_interval is not positive"},
+		{"a provider timeout above five minutes", map[string]string{"provider_timeout": "5m1s"}, "provider_timeout is not positive and at most 5m0s"},
+		{"an empty database host", map[string]string{"database.host": ""}, "database.host is empty"},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			values := map[string]string{
+				"token_file": "/absent/token", "database.host": "db.example", "database.name": "mailbox",
+				"database.user": "mediated_mailbox_app", "database.password_file": "/absent/password",
+				"credential.public_key_file": "/absent/public", "credential.private_key_files": "[/absent/private]",
+			}
+			maps.Copy(values, c.set)
+			var flags []string
+			for _, k := range slices.Sorted(maps.Keys(values)) {
+				flags = append(flags, "--"+k+"="+values[k])
+			}
+			err := Run(t.Context(), flags, nil, io.Discard, io.Discard, discard(), new(slog.LevelVar))
+			if want := "validating the configuration: " + c.want; err == nil || err.Error() != want {
+				t.Errorf("Run returned %v, want %q", err, want)
+			}
+		})
 	}
-	if diff := cmp.Diff(want, defaults(), compare.Options); diff != "" {
-		t.Errorf("defaults (-want +got):\n%s", diff)
-	}
+}
+
+// The API server's defaults are core/config's, in which the token file, the database's host, name,
+// user and password file and the key files are required, so a start that sets none of them is
+// refused at the first, the token file, before anything is read or connected (ADR-0143).
+func TestAStartWithNoRequiredValueIsRefused(t *testing.T) {
 	err := Run(t.Context(), nil, nil, io.Discard, io.Discard, discard(), new(slog.LevelVar))
 	wantErr := "loading the configuration: token_file is required, and neither the file, MEDIATED_MAILBOX_TOKEN_FILE nor --token_file sets it"
 	if err == nil || err.Error() != wantErr {
 		t.Errorf("Run returned %v, want %q", err, wantErr)
 	}
-}
-
-// valid returns a configuration the API server starts with.
-func valid() Configuration {
-	c := defaults()
-	c.TokenFile = "/run/token"
-	c.Database.Host, c.Database.Name, c.Database.PasswordFile = "db", "mailbox", "/run/password"
-	c.Credential.PublicKeyFile, c.Credential.PrivateKeyFiles = "/run/keys/public", []string{"/run/keys/private"}
-	return c
-}
-
-// The configuration the API server cannot serve with is refused before anything is read or connected,
-// past the process's sections, which the host refuses (ADR-0138). No account reaches the API server
-// from its configuration (ADR-0080).
-func TestAConfigurationTheAPIServerCannotServeWithIsRefused(t *testing.T) {
-	cases := []struct {
-		name   string
-		change func(*Configuration)
-		want   string
-	}{
-		{"a valid configuration", func(*Configuration) {}, ""},
-		{"a blank token file path", func(c *Configuration) { c.TokenFile = " " }, "token_file is empty"},
-		{"a reload interval of zero", func(c *Configuration) { c.AccountReloadInterval = 0 }, "account_reload_interval 0s is not positive"},
-		{"a negative reload interval", func(c *Configuration) { c.AccountReloadInterval = -time.Second }, "account_reload_interval -1s is not positive"},
-		{"a provider timeout of zero", func(c *Configuration) { c.ProviderTimeout = 0 }, "provider_timeout 0s is not positive and at most 5m0s"},
-		{"a provider timeout above five minutes", func(c *Configuration) { c.ProviderTimeout = 5*time.Minute + time.Second }, "provider_timeout 5m1s is not positive and at most 5m0s"},
-		{"an empty database host", func(c *Configuration) { c.Database.Host = "" }, "database.host is empty"},
-		{"a database pool size of zero", func(c *Configuration) { c.Database.PoolSize = 0 }, "database.pool_size 0 is not positive"},
-		{"no private key", func(c *Configuration) { c.Credential.PrivateKeyFiles = nil }, "credential.private_key_files names no file"},
-	}
-	for _, c := range cases {
-		cfg := valid()
-		c.change(&cfg)
-		got := ""
-		if err := validate(cfg); err != nil {
-			got = err.Error()
-		}
-		if got != c.want {
-			t.Errorf("%s: validate reports %q, want %q", c.name, got, c.want)
-		}
+	err = Run(t.Context(), append([]string{"--token_file=/absent/token", "--database.host=db.example", "--database.name=mailbox", "--database.password_file=/absent/password"}, absentKeys...), nil, io.Discard, io.Discard, discard(), new(slog.LevelVar))
+	wantErr = "loading the configuration: database.user is required, and neither the file, MEDIATED_MAILBOX_DATABASE__USER nor --database.user sets it"
+	if err == nil || err.Error() != wantErr {
+		t.Errorf("Run returned %v, want %q", err, wantErr)
 	}
 }
 
@@ -568,7 +538,7 @@ var absentKeys = []string{"--credential.public_key_file=/absent/public", "--cred
 
 // database names a database whose password file does not exist, so a start that gets past the keyring
 // stops at the password file, before any connection is made.
-var database = []string{"--database.host=db.example", "--database.name=mailbox", "--database.password_file=/absent/password"}
+var database = []string{"--database.host=db.example", "--database.name=mailbox", "--database.user=mediated_mailbox_app", "--database.password_file=/absent/password"}
 
 // args joins argument lists into one.
 func args(lists ...[]string) []string {
@@ -595,7 +565,7 @@ func TestTheEffectiveConfigurationIsLogged(t *testing.T) {
 	}}))
 	// The key files do not exist, so the start stops at the keyring, after the log and before any
 	// connection is made.
-	err := Run(t.Context(), args(servingArgs, []string{"--database.host=db.example", "--database.password_file=" + passwordFile}, absentKeys),
+	err := Run(t.Context(), args(servingArgs, []string{"--database.host=db.example", "--database.user=mediated_mailbox_app", "--database.password_file=" + passwordFile}, absentKeys),
 		[]string{"MEDIATED_MAILBOX_DATABASE__NAME=mailbox"}, io.Discard, io.Discard, logger, new(slog.LevelVar))
 	if err == nil || !strings.HasPrefix(err.Error(), "loading the keyring: ") {
 		t.Fatalf("Run returned %v, want the keyring's refusal", err)
@@ -611,7 +581,7 @@ func TestTheEffectiveConfigurationIsLogged(t *testing.T) {
 		`level=INFO msg=configuration path=database.port source=default value=5432`,
 		`level=INFO msg=configuration path=database.sslmode source=default value=verify-full`,
 		`level=INFO msg=configuration path=database.sslrootcert source=default value=""`,
-		`level=INFO msg=configuration path=database.user source=default value=mediated_mailbox_app`,
+		`level=INFO msg=configuration path=database.user source="flag --database.user" value=mediated_mailbox_app`,
 		`level=INFO msg=configuration path=listen source=default value=:8443`,
 		`level=INFO msg=configuration path=log_level source=default value=info`,
 		`level=INFO msg=configuration path=probe_listen source=default value=:8080`,
@@ -782,13 +752,13 @@ func TestReadyOnlyWhileTheBearerTokenLoads(t *testing.T) {
 	absent := filepath.Join(dir, "absent")
 	for name, file := range map[string]string{"absent": absent, "holding no token": tokenFile(t, "\n")} {
 		reg, _ := counted(t)
-		if _, err := parts(&serving{registry: reg, logger: discard()}, Section{TokenFile: file, AccountReloadInterval: time.Hour}, discard()); err == nil {
+		if _, err := parts(&serving{registry: reg, logger: discard()}, file, discard()); err == nil {
 			t.Errorf("a token file %s was assembled", name)
 		}
 	}
 	token := tokenFile(t, "s3cret")
 	reg, _ := counted(t)
-	p, err := parts(&serving{registry: reg, logger: discard()}, Section{TokenFile: token, AccountReloadInterval: time.Hour}, discard())
+	p, err := parts(&serving{registry: reg, logger: discard()}, token, discard())
 	if err != nil {
 		t.Fatal(err)
 	}

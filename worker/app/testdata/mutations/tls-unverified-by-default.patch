@@ -1,19 +1,18 @@
 control: Every connection setting comes from the deployable's configuration, never from the PG* variables, and TLS verifies the server by default
 removes: the TLS mode defaults to prefer, which does not verify the server
-packages: ./worker/app
-tests: TestTheDefaults
+packages: ./worker/app ./core/config
+tests: TestTheEffectiveConfigurationIsLogged TestTheWorkerDefaults TestTheDatabaseDefaults
 scheduled-count: no
 
-diff --git a/worker/app/app.go b/worker/app/app.go
-index 4b236336..0190635e 100644
---- a/worker/app/app.go
-+++ b/worker/app/app.go
-@@ -122,7 +122,7 @@ func defaults() Configuration {
- 		Process:    host.DefaultProcess(),
- 		Operations: host.DefaultOperations(),
- 		Section:    DefaultSection(),
--		Database:   dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_app", SSLMode: "verify-full", PoolSize: 4},
-+		Database:   dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_app", SSLMode: "prefer", PoolSize: 4},
- 		Scanner:    scan.DefaultConfig(),
- 	}
+diff --git a/core/config/database.go b/core/config/database.go
+--- a/core/config/database.go
++++ b/core/config/database.go
+@@ -24,7 +24,7 @@ type Database struct {
+ // DefaultDatabase is the database part's defaults with poolSize as its pool size. The TLS mode is
+ // the one that fails closed. The host, the name, the user and the password file have no default.
+ func DefaultDatabase(poolSize int) Database {
+-	return Database{Port: 5432, SSLMode: "verify-full", PoolSize: poolSize}
++	return Database{Port: 5432, SSLMode: "prefer", PoolSize: poolSize}
  }
+ 
+ // DriverPoolSize is the database driver's own default pool size on a node with processors

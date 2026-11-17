@@ -1,9 +1,8 @@
-// Package app is the worker's entry package. It exports the worker's section of the configuration
-// and its assembly, which takes what the worker needs as values, starts nothing and returns what it
-// provides, and its composition root, Run, which hands the host the worker and the configuration it
-// reads (ADR-0040, ADR-0138). worker/main.go calls Run. It sits outside internal, so a composition
-// root other than the worker's own can compose it, and every other package of this deployable sits
-// under internal.
+// Package app is the worker's entry package. It exports the worker's assembly, which takes what the
+// worker needs as values, starts nothing and returns what it provides, and its composition root,
+// Run, which hands the host the worker and its configuration, config.Worker (ADR-0040, ADR-0078,
+// ADR-0138). worker/main.go calls Run. It sits outside internal, so a composition root other than
+// the worker's own can compose it, and every other package of this deployable sits under internal.
 //
 // It builds one scheduler, one connection pool per job kind, each connecting as the one application
 // user, the worker's one execution context over delta sync's pool, and each job kind with what it
@@ -33,13 +32,12 @@ import (
 	"golang.org/x/net/publicsuffix"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
+	"github.com/ppat/mediated-mailbox-mcp/core/config"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/credential/open"
 	"github.com/ppat/mediated-mailbox-mcp/db/migrations"
 	"github.com/ppat/mediated-mailbox-mcp/db/schemacompatibility"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/assembly"
-	credentialcore "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/core"
-	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core"
 	"github.com/ppat/mediated-mailbox-mcp/process/host"
 	"github.com/ppat/mediated-mailbox-mcp/process/settings"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill"
@@ -53,113 +51,6 @@ import (
 // (ADR-0120).
 const scannerSection = "scanner"
 
-// Configuration is the worker's root configuration type, loaded by the configuration library
-// (ADR-0078). It composes the process's section and the worker's own section, inline, with the
-// sections every job kind shares, read once, among them the one database section. Its
-// fields are pinned by the test beside this file, so a new value is a visible change. No account and
-// no provider credential is configuration. Both come from the database (ADR-0080).
-type Configuration struct {
-	host.Process    `yaml:",inline"`
-	host.Operations `yaml:",inline"`
-	Section         `yaml:",inline"`
-	Database        dbconnectcore.Config  `yaml:"database"`
-	Credential      credentialcore.Config `yaml:"credential"`
-	// Scanner is the scanner's section, one for every job kind that masks or scans (ADR-0120).
-	Scanner scan.Config `yaml:"scanner"`
-}
-
-// Section is the worker's own section of the configuration, the values every job kind reads and a
-// section per job kind.
-type Section struct {
-	// ReloadInterval is how often the worker's execution context reloads its account snapshot and its
-	// policy, and so how soon an account connected, a credential replaced or a policy edited reaches
-	// the worker, how often each job kind's reload is asked beside the wake each context reload gives
-	// it, and how often backfill asks each account whether it has work (ADR-0090, ADR-0119).
-	ReloadInterval time.Duration `yaml:"reload_interval"`
-	Backfill       Backfill      `yaml:"backfill"`
-	Sync           Sync          `yaml:"sync"`
-}
-
-// Backfill is backfill's section.
-type Backfill struct {
-	// Concurrency is how many accounts' backfills run at once, which bounds the bodies backfill holds
-	// at once (ADR-0119).
-	Concurrency int `yaml:"concurrency"`
-}
-
-// Sync is delta sync's section.
-type Sync struct {
-	// SyncInterval is how often each account ticks, the sync interval (ADR-0018, ADR-0103).
-	SyncInterval time.Duration `yaml:"sync_interval"`
-	// FirstWindow is how far back an account with no cursor is reconciled at its first tick
-	// (ADR-0105).
-	FirstWindow time.Duration `yaml:"first_window"`
-	// DecisionsPerTick bounds how many waiting messages one tick decides for an account (ADR-0104).
-	DecisionsPerTick int `yaml:"decisions_per_tick"`
-	// Concurrency is how many accounts tick at once, which bounds the bodies delta sync holds at once
-	// (ADR-0119).
-	Concurrency int `yaml:"concurrency"`
-}
-
-// DefaultSection is the worker's own section's defaults. The reload interval is the API server's, the
-// sync interval ADR-0018's, the first window ADR-0105's, and the bound on the waiting messages a tick
-// decides the top of ADR-0018's steady-state tick.
-func DefaultSection() Section {
-	return Section{
-		ReloadInterval: time.Minute,
-		Backfill:       Backfill{Concurrency: 2},
-		Sync:           Sync{SyncInterval: 5 * time.Minute, FirstWindow: 7 * 24 * time.Hour, DecisionsPerTick: 200, Concurrency: 4},
-	}
-}
-
-// defaults are the worker's defaults. The user is the test harness's application user (ADR-0143), and
-// the TLS mode is the one that fails closed. The pool size, which sizes each job kind's pool alike, is
-// set explicitly, since the driver's default follows the node's processors and not the worker's limit
-// (ADR-0078). The key files and the password file have no default, since a default path assumes the
-// environment. The scanner's vocabulary and tuning are the ones the application ships.
-func defaults() Configuration {
-	return Configuration{
-		Process:    host.DefaultProcess(),
-		Operations: host.DefaultOperations(),
-		Section:    DefaultSection(),
-		Database:   dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_app", SSLMode: "verify-full", PoolSize: 4},
-		Scanner:    scan.DefaultConfig(),
-	}
-}
-
-// validate refuses a configuration the worker cannot run with, past the process's section, which the
-// host validates. The database section passes its validation, every interval, window and bound is
-// positive, and the credential section names its key files.
-func validate(c Configuration) error {
-	if err := dbconnectcore.Validate(c.Database); err != nil {
-		return err
-	}
-	if err := ValidateSection(c.Section); err != nil {
-		return err
-	}
-	return credentialcore.Validate(c.Credential)
-}
-
-// ValidateSection refuses a worker section the worker cannot run with. Every interval, window and
-// bound is positive.
-func ValidateSection(c Section) error {
-	switch {
-	case c.ReloadInterval <= 0:
-		return fmt.Errorf("reload_interval %s is not positive", c.ReloadInterval)
-	case c.Backfill.Concurrency <= 0:
-		return fmt.Errorf("backfill.concurrency %d is not positive", c.Backfill.Concurrency)
-	case c.Sync.SyncInterval <= 0:
-		return fmt.Errorf("sync.sync_interval %s is not positive", c.Sync.SyncInterval)
-	case c.Sync.FirstWindow <= 0:
-		return fmt.Errorf("sync.first_window %s is not positive", c.Sync.FirstWindow)
-	case c.Sync.DecisionsPerTick <= 0:
-		return fmt.Errorf("sync.decisions_per_tick %d is not positive", c.Sync.DecisionsPerTick)
-	case c.Sync.Concurrency <= 0:
-		return fmt.Errorf("sync.concurrency %d is not positive", c.Sync.Concurrency)
-	}
-	return nil
-}
-
 // Run is the worker's process. The host loads the configuration, and the worker is assembled from
 // it, the scanner built from its section before anything else starts, so a section it refuses refuses
 // the start, and the keyring loaded before any connection is made, so a public key matching none of
@@ -171,14 +62,14 @@ func ValidateSection(c Section) error {
 // (ADR-0122). stdout answers --help and --version, and stderr is where the start banner goes,
 // standard error in main.go, so standard output carries only the logger's JSON records otherwise.
 func Run(ctx context.Context, args, environ []string, stdout, stderr io.Writer, logger *slog.Logger, level *slog.LevelVar) error {
-	return host.Run(ctx, args, environ, stdout, stderr, logger, level, host.Spec[Configuration]{
+	return host.Run(ctx, args, environ, stdout, stderr, logger, level, host.Spec[config.Worker]{
 		Name:        "mediated-mailbox-worker",
-		Defaults:    defaults(),
-		Process:     func(c Configuration) host.Process { return c.Process },
-		Operations:  func(c Configuration) host.Operations { return c.Operations },
-		Validate:    validate,
+		Defaults:    config.DefaultWorker(),
+		Process:     func(c config.Worker) config.Process { return c.Process },
+		Operations:  func(c config.Worker) config.Operations { return c.Operations },
+		Validate:    config.Worker.Check,
 		CheckSchema: checkSchema,
-		Components:  []host.Component[Configuration]{{Name: "worker", Assemble: fromConfiguration}},
+		Components:  []host.Component[config.Worker]{{Name: "worker", Assemble: fromConfiguration}},
 	})
 }
 
@@ -198,7 +89,7 @@ func checkSchema(ctx context.Context, pool *pgxpool.Pool) error {
 // and the worker's execution context over delta sync's pool (ADR-0119, ADR-0143), and assembles the
 // worker from them. The context's reload is the
 // process's task.
-func fromConfiguration(ctx context.Context, provided host.Provided[Configuration]) (host.Parts, error) {
+func fromConfiguration(ctx context.Context, provided host.Provided[config.Worker]) (host.Parts, error) {
 	scanner, err := buildScanner(provided.Loaded)
 	if err != nil {
 		return host.Parts{}, fmt.Errorf("validating the configuration: %w", err)
@@ -212,12 +103,12 @@ func fromConfiguration(ctx context.Context, provided host.Provided[Configuration
 	if err != nil {
 		return host.Parts{}, err
 	}
-	ec, err := newContext(pools, keys, scanner, c.Section, provided.Registerer, provided.Logger)
+	ec, err := newContext(pools, keys, scanner, c.ReloadInterval, provided.Registerer, provided.Logger)
 	if err != nil {
 		return host.Parts{}, err
 	}
 	parts, err := Assemble(ctx, Needs{
-		Section: c.Section, Pools: pools, Context: ec, Client: http.DefaultClient,
+		Config: c, Pools: pools, Context: ec, Client: http.DefaultClient,
 		Registerer: provided.Registerer, Logger: provided.Logger,
 	})
 	if err != nil {
@@ -229,11 +120,11 @@ func fromConfiguration(ctx context.Context, provided host.Provided[Configuration
 
 // newContext returns the worker's execution context over delta sync's pool, reloading on the reload
 // interval (ADR-0090).
-func newContext(pools Pools, keys *open.Keyring, scanner scan.Scanner, s Section, reg prometheus.Registerer, logger *slog.Logger) (*assembly.Context, error) {
+func newContext(pools Pools, keys *open.Keyring, scanner scan.Scanner, reload config.Duration, reg prometheus.Registerer, logger *slog.Logger) (*assembly.Context, error) {
 	return assembly.New(assembly.Needs{
 		Pool: pools.Sync, Keys: keys, ThroughClient: []string{gmailProvider}, Scanner: scanner,
 		Lookups:        classify.Lookups{ToUnicode: idna.Lookup.ToUnicode, ToASCII: idna.Lookup.ToASCII, Registrable: publicsuffix.EffectiveTLDPlusOne},
-		ReloadInterval: s.ReloadInterval, Registerer: reg, Logger: logger,
+		ReloadInterval: time.Duration(reload), Registerer: reg, Logger: logger,
 	})
 }
 
@@ -242,13 +133,13 @@ func newContext(pools Pools, keys *open.Keyring, scanner scan.Scanner, s Section
 const gmailProvider = "gmail"
 
 // opener opens a pool from a connection, measured on a registerer.
-type opener func(ctx context.Context, c dbconnectcore.Config, reg prometheus.Registerer) (*pgxpool.Pool, error)
+type opener func(ctx context.Context, c config.Database, reg prometheus.Registerer) (*pgxpool.Pool, error)
 
 // openPools returns a pool of its own for each job kind through open, each from the one database
 // section, so each connects as the application user and opens at most the section's pool size of
 // connections, measured on registry labelled with the job kind. A pool opens no connection until its
 // first use (ADR-0119, ADR-0125, ADR-0143).
-func openPools(ctx context.Context, d dbconnectcore.Config, open opener, registry prometheus.Registerer) (Pools, error) {
+func openPools(ctx context.Context, d config.Database, open opener, registry prometheus.Registerer) (Pools, error) {
 	backfillPool, err := open(ctx, d, labelled(registry, backfill.Kind))
 	if err != nil {
 		return Pools{}, err
@@ -264,7 +155,7 @@ func openPools(ctx context.Context, d dbconnectcore.Config, open opener, registr
 // configuration library's revision of that section, so a change to any of its values in any layer
 // changes the revision every verdict and mask records, and a change to another section does not
 // (ADR-0005, ADR-0078, ADR-0120).
-func buildScanner(loaded settings.Loaded[Configuration]) (scan.Scanner, error) {
+func buildScanner(loaded settings.Loaded[config.Worker]) (scan.Scanner, error) {
 	s, err := scan.New(loaded.Config.Scanner, loaded.Revisions[scannerSection])
 	if err != nil {
 		return scan.Scanner{}, fmt.Errorf("scanner: %w", err)
@@ -279,7 +170,9 @@ type Pools struct {
 
 // Needs are what the worker is assembled from.
 type Needs struct {
-	Section Section
+	// Config is the worker's configuration, of which the assembly reads the reload interval and each
+	// job kind's section.
+	Config config.Worker
 	// Pools are the job kinds' pools, one per job kind (ADR-0119).
 	Pools Pools
 	// Context is the process's execution context, whose scanner every job kind masks and scans with
@@ -345,7 +238,7 @@ func assemble(ctx context.Context, n Needs) (*worker, error) {
 		return nil, err
 	}
 	s := schedule.New(ctx, metrics)
-	bc, dc := kinds(n.Pools, n.Context, n.Section, n.Client, n.Logger, n.Registerer, s)
+	bc, dc := kinds(n.Pools, n.Context, n.Config, n.Client, n.Logger, n.Registerer, s)
 	b, err := backfill.New(bc)
 	if err != nil {
 		return nil, err
@@ -383,18 +276,18 @@ func assemble(ctx context.Context, n Needs) (*worker, error) {
 // context, whose one scanner built from the worker's scanner section has both record the same scanner
 // version and revision on every verdict and mask (ADR-0117, ADR-0120), the registerer labelled with its
 // job kind, a logger carrying it, and the scheduler, which adds and drops its jobs.
-func kinds(pools Pools, ec *assembly.Context, c Section, client *http.Client, logger *slog.Logger,
+func kinds(pools Pools, ec *assembly.Context, c config.Worker, client *http.Client, logger *slog.Logger,
 	registry prometheus.Registerer, s *schedule.Scheduler,
 ) (backfill.Config, deltasync.Config) {
 	return backfill.Config{
 		Pool: pools.Backfill, Context: ec, Client: client,
 		Registry: labelled(registry, backfill.Kind), Logger: logger.With("job_kind", backfill.Kind), Jobs: s,
-		Concurrency: c.Backfill.Concurrency, ReloadInterval: c.ReloadInterval,
+		Concurrency: c.Backfill.Concurrency, ReloadInterval: time.Duration(c.ReloadInterval),
 	}, deltasync.Config{
 		Pool: pools.Sync, Context: ec, Client: client,
 		Registry: labelled(registry, deltasync.Kind), Logger: logger.With("job_kind", deltasync.Kind), Jobs: s,
-		Concurrency: c.Sync.Concurrency, ReloadInterval: c.ReloadInterval,
-		SyncInterval: c.Sync.SyncInterval, FirstWindow: c.Sync.FirstWindow, DecisionsPerTick: c.Sync.DecisionsPerTick,
+		Concurrency: c.Sync.Concurrency, ReloadInterval: time.Duration(c.ReloadInterval),
+		SyncInterval: time.Duration(c.Sync.SyncInterval), FirstWindow: time.Duration(c.Sync.FirstWindow), DecisionsPerTick: c.Sync.DecisionsPerTick,
 	}
 }
 

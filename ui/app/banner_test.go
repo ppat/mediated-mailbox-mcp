@@ -18,7 +18,7 @@ import (
 func TestTheStartBannerGoesToStandardErrorAndStandardOutputStaysJSON(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	level := new(slog.LevelVar)
-	err := Run(t.Context(), []string{"--database.host=db", "--database.name=mailbox", "--database.password_file=/absent", "--credential.public_key_file=/absent", "--credential.private_key_files=[/absent]"}, nil, &stdout, &stderr, logging.New(&stdout, level), level)
+	err := Run(t.Context(), []string{"--database.host=db", "--database.name=mailbox", "--database.user=mediated_mailbox_app", "--database.password_file=/absent", "--credential.public_key_file=/absent", "--credential.private_key_files=[/absent]"}, nil, &stdout, &stderr, logging.New(&stdout, level), level)
 	if err == nil || !strings.HasPrefix(err.Error(), "loading the public key: ") {
 		t.Fatalf("Run returned %v, want the start to stop at the public key file", err)
 	}

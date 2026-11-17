@@ -2,15 +2,14 @@ package app
 
 import (
 	"encoding/json"
-	"errors"
 	"reflect"
+	"runtime"
 	"slices"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 
-	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core"
-	"github.com/ppat/mediated-mailbox-mcp/process/host"
+	"github.com/ppat/mediated-mailbox-mcp/core/config"
 	"github.com/ppat/mediated-mailbox-mcp/process/settings"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/helmchart"
@@ -58,19 +57,19 @@ func TestTheChartSetsAConfigurationTheMigratorStartsWith(t *testing.T) {
 	if len(environ) == 0 {
 		t.Fatal("the chart renders no migration Job, or one with no environment")
 	}
-	loaded, err := settings.Load(defaults(), nil, environ)
+	loaded, err := settings.Load(config.DefaultMigrator(runtime.NumCPU()), nil, environ)
 	if err != nil {
 		t.Fatalf("the migrator refuses the Job's environment: %v", err)
 	}
-	if err := errors.Join(host.ValidateProcess(loaded.Config.Process), validate(loaded.Config)); err != nil {
+	if err := loaded.Config.Check(); err != nil {
 		t.Fatalf("the migrator's validation refuses the Job's configuration: %v", err)
 	}
 	mounted := "/etc/mediated-mailbox/secrets/"
-	want := Configuration{
-		Process: host.Process{LogLevel: "debug"},
-		Database: dbconnectcore.Config{
+	want := config.Migrator{
+		Process: config.Process{LogLevel: "debug"},
+		Database: config.Database{
 			Host: "db.example", Port: 6432, Name: "mediated_mailbox", User: "mailbox_migrator", SSLMode: "verify-ca",
-			SSLRootCert: mounted + "ca/ca.crt", PasswordFile: mounted + "database/password", PoolSize: defaults().Database.PoolSize,
+			SSLRootCert: mounted + "ca/ca.crt", PasswordFile: mounted + "database/password", PoolSize: config.DriverPoolSize(runtime.NumCPU()),
 		},
 		ApplicationUser: "mailbox_app",
 	}
@@ -86,7 +85,7 @@ func TestTheChartAdmitsEveryMigratorKeyItDoesNotRender(t *testing.T) {
 	chartOwned := []string{"application_user", "database"}
 	got := append(helmchart.SchemaKeys(t, chartDir, "migration", "config"), chartOwned...)
 	slices.Sort(got)
-	if diff := cmp.Diff(helmchart.YAMLKeys(reflect.TypeFor[Configuration]()), got); diff != "" {
+	if diff := cmp.Diff(helmchart.YAMLKeys(reflect.TypeFor[config.Migrator]()), got); diff != "" {
 		t.Errorf("the migrator's keys (-configuration type +schema and chart):\n%s", diff)
 	}
 }

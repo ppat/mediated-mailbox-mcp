@@ -1,0 +1,18 @@
+control: The chain's grants are made to the application user's name the migrator is configured with
+removes: the migrator's root hands the host no check, so an empty application user's name and a TLS mode the driver does not accept reach the work
+packages: ./migrator/app
+tests: TestAnUnusableConfigurationIsRefused
+scheduled-count: no
+
+diff --git a/migrator/app/app.go b/migrator/app/app.go
+--- a/migrator/app/app.go
++++ b/migrator/app/app.go
+@@ -37,7 +37,7 @@ func Run(ctx context.Context, args, environ []string, stdout, stderr io.Writer,
+ 		Name:      "mediated-mailbox-migrator",
+ 		Defaults:  config.DefaultMigrator(runtime.NumCPU()),
+ 		Process:   func(c config.Migrator) config.Process { return c.Process },
+-		Validate:  config.Migrator.Check,
++		Validate:  nil,
+ 		Component: "migrator",
+ 		Work:      apply,
+ 	})

@@ -4,11 +4,10 @@ packages: ./worker/app
 tests: TestTheScannerSectionBuildsTheSharedScanner
 scheduled-count: no
 
-diff --git a/core/scan/scan.go b/core/scan/scan.go
-index c5f2c44c..0536e58c 100644
---- a/core/scan/scan.go
-+++ b/core/scan/scan.go
-@@ -68,7 +68,7 @@ type Config struct {
+diff --git a/core/config/scanner.go b/core/config/scanner.go
+--- a/core/config/scanner.go
++++ b/core/config/scanner.go
+@@ -34,7 +34,7 @@ type Scanner struct {
  	Window int `yaml:"window"`
  	// DenseLength and DenseEntropy make a path segment or a parameter value dense, at least that
  	// many characters and at least that many bits of Shannon entropy per character.

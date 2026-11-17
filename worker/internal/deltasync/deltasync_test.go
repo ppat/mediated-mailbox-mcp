@@ -8,6 +8,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/prometheus/client_golang/prometheus"
 
+	"github.com/ppat/mediated-mailbox-mcp/core/config"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/core/scangate"
 	"github.com/ppat/mediated-mailbox-mcp/executioncontext/assembly"
@@ -21,7 +22,7 @@ import (
 // its one scanner section for both job kinds, so a job kind that differs from the other fails its own test (ADR-0120,
 // ADR-0121, ADR-0104).
 func TestATickDecidesUnderBackfillsThresholdsAndScanner(t *testing.T) {
-	scanner, err := scan.New(scan.DefaultConfig(), "the-worker's-revision")
+	scanner, err := scan.New(config.DefaultScanner(), "the-worker's-revision")
 	if err != nil {
 		t.Fatal(err)
 	}

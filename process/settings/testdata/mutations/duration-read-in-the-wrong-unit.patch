@@ -1,0 +1,18 @@
+control: A length of time is read from text such as 5m and written back as such text, in every layer, the help, the effective values and the rendering a revision is taken from
+removes: every length the library converts between the declared type and the one it reads and writes is divided by a thousand, so a config.Duration holds microseconds where it should hold nanoseconds
+packages: ./process/settings
+tests: TestADurationIsReadAndWrittenAsText TestADurationHoldsNanosecondsAndIsWrittenAsTheText
+scheduled-count: no
+
+diff --git a/process/settings/duration.go b/process/settings/duration.go
+--- a/process/settings/duration.go
++++ b/process/settings/duration.go
+@@ -88,7 +88,7 @@ func convert(v reflect.Value, to reflect.Type) reflect.Value {
+ 	case k == reflect.Int64 && to.Kind() == reflect.String:
+ 		out.SetString(time.Duration(v.Int()).String())
+ 	case k == reflect.Int64:
+-		out.SetInt(v.Int())
++		out.SetInt(v.Int() / 1000)
+ 	case k == reflect.Struct:
+ 		for i := range v.NumField() {
+ 			out.Field(i).Set(convert(v.Field(i), to.Field(i).Type))

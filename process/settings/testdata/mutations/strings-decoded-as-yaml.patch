@@ -5,17 +5,17 @@ tests: TestAValueFromTheEnvironmentOrAFlag/a_string_takes_the_text_verbatim Test
 scheduled-count: no
 
 diff --git a/process/settings/settings.go b/process/settings/settings.go
-index 25ba519..1dc08e5 100644
 --- a/process/settings/settings.go
 +++ b/process/settings/settings.go
-@@ -378,10 +378,6 @@ func resolve(root *node, path []string, text string) (reflect.Value, error) {
+@@ -390,11 +390,6 @@ func resolve(root *node, path []string, text string) (reflect.Value, error) {
+ 	if n.kind != valueKind {
  		return reflect.Value{}, fmt.Errorf("it names %s, a section rather than a value", strings.Join(path, "."))
  	}
- 	v := reflect.New(n.typ)
 -	if n.typ.Kind() == reflect.String {
--		v.Elem().SetString(text)
--		return v.Elem(), nil
+-		v := reflect.New(n.typ).Elem()
+-		v.SetString(text)
+-		return v, nil
 -	}
- 	doc, err := decode([]byte(text), v.Interface())
+ 	v, doc, err := decodeInto([]byte(text), n.typ)
  	if err != nil {
  		return reflect.Value{}, err

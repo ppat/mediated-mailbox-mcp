@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prometheus/client_golang/prometheus"
 
+	"github.com/ppat/mediated-mailbox-mcp/core/config"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/credential/open"
 	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
@@ -55,7 +56,7 @@ func TestAReloadThatFailsLeavesItsJobKindNotReady(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	scanner, err := scan.New(scan.DefaultConfig(), "a-revision")
+	scanner, err := scan.New(config.DefaultScanner(), "a-revision")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -63,9 +64,9 @@ func TestAReloadThatFailsLeavesItsJobKindNotReady(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 	pools := Pools{Backfill: pool(), Sync: pool()}
-	ec := mustContext(t, pools, ring, scanner, defaults().Section, registry, slog.New(slog.DiscardHandler))
+	ec := mustContext(t, pools, ring, scanner, config.DefaultWorker(), registry, slog.New(slog.DiscardHandler))
 	parts, err := Assemble(ctx, Needs{
-		Section: defaults().Section, Pools: pools, Context: ec,
+		Config: config.DefaultWorker(), Pools: pools, Context: ec,
 		Registerer: registry, Logger: slog.New(slog.DiscardHandler),
 	})
 	if err != nil {

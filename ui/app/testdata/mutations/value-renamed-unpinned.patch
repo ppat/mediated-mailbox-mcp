@@ -4,16 +4,15 @@ packages: ./ui/app
 tests: TestTheEffectiveConfigurationIsLogged
 scheduled-count: no
 
-diff --git a/ui/app/app.go b/ui/app/app.go
-index e09d0a7c..e46278e7 100644
---- a/ui/app/app.go
-+++ b/ui/app/app.go
-@@ -60,7 +60,7 @@ type Configuration struct {
- type Section struct {
- 	SyncInterval       time.Duration `yaml:"sync_interval"`
- 	HeuristicsInterval time.Duration `yaml:"heuristics_interval"`
--	StreamInterval     time.Duration `yaml:"stream_interval"`
-+	StreamInterval     time.Duration `yaml:"poll_interval"`
- 	DefaultTheme       string        `yaml:"default_theme"`
- 	StreamReconnectMax time.Duration `yaml:"stream_reconnect_max"`
- 	StreamPollInterval time.Duration `yaml:"stream_poll_interval"`
+diff --git a/core/config/programs.go b/core/config/programs.go
+--- a/core/config/programs.go
++++ b/core/config/programs.go
+@@ -80,7 +80,7 @@ type UI struct {
+ 	Serving            `yaml:",inline"`
+ 	SyncInterval       Duration `yaml:"sync_interval"`
+ 	HeuristicsInterval Duration `yaml:"heuristics_interval"`
+-	StreamInterval     Duration `yaml:"stream_interval"`
++	StreamInterval     Duration `yaml:"poll_interval"`
+ 	DefaultTheme       string   `yaml:"default_theme"`
+ 	StreamReconnectMax Duration `yaml:"stream_reconnect_max"`
+ 	StreamPollInterval Duration `yaml:"stream_poll_interval"`

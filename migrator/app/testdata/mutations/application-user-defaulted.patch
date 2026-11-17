@@ -1,15 +1,14 @@
 control: The chain's grants are made to the application user's name the migrator is configured with
 removes: the migrator defaults the application user's name and admits an empty one, so a deployment that names none grants to a name the project chose
-packages: ./migrator/app
-tests: TestAnUnusableConfigurationIsRefused
+packages: ./migrator/app ./core/config
+tests: TestAnUnusableConfigurationIsRefused TestTheMigratorDefaults TestTheMigratorConfigurationIsChecked/an_empty_application_user
 scheduled-count: no
 integration: no
 
-diff --git a/migrator/app/app.go b/migrator/app/app.go
-index 71d734d7..5830121a 100644
---- a/migrator/app/app.go
-+++ b/migrator/app/app.go
-@@ -35,7 +35,7 @@ type Configuration struct {
+diff --git a/core/config/programs.go b/core/config/programs.go
+--- a/core/config/programs.go
++++ b/core/config/programs.go
+@@ -324,13 +324,13 @@ type Migrator struct {
  	// ApplicationUser is the name of the user the API server, the UI and the worker connect as, which
  	// every grant of the chain is made to. The project names no database user, so it has no default
  	// (ADR-0048, ADR-0139, ADR-0143).
@@ -17,24 +16,24 @@ index 71d734d7..5830121a 100644
 +	ApplicationUser string `yaml:"application_user"`
  }
  
- // defaults are the migrator's defaults. The user is the test harness's migrator's user, the TLS mode
-@@ -44,7 +44,8 @@ type Configuration struct {
- // project names no database user (ADR-0143).
- func defaults() Configuration {
- 	return Configuration{
--		Process:  host.DefaultProcess(),
-+		Process:         host.DefaultProcess(),
-+		ApplicationUser: "mediated_mailbox_app",
- 		Database: dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_migrator", SSLMode: "verify-full", PoolSize: dbconnect.DefaultPoolSize()},
- 	}
- }
-@@ -52,9 +53,6 @@ func defaults() Configuration {
- // validate refuses a database section the migrator cannot connect with, and an empty application
- // user's name, which would name no grantee.
- func validate(c Configuration) error {
--	if c.ApplicationUser == "" {
--		return errors.New("application_user is empty")
--	}
- 	return dbconnectcore.Validate(c.Database)
+ // DefaultMigrator is the migrator's defaults on a node with processors processors. The pool size is
+ // the driver's own default.
+ func DefaultMigrator(processors int) Migrator {
+-	return Migrator{Process: DefaultProcess(), Database: DefaultDatabase(DriverPoolSize(processors))}
++	return Migrator{Process: DefaultProcess(), Database: DefaultDatabase(DriverPoolSize(processors)), ApplicationUser: "mediated_mailbox_app"}
  }
  
+ // Check refuses an empty application user's name, which would name no grantee, and every part that
+@@ -338,12 +338,6 @@ func DefaultMigrator(processors int) Migrator {
+ func (c Migrator) Check() error {
+ 	return first(
+ 		c.Process.Check,
+-		func() error {
+-			if c.ApplicationUser == "" {
+-				return errors.New("application_user is empty")
+-			}
+-			return nil
+-		},
+ 		c.Database.Check,
+ 	)
+ }

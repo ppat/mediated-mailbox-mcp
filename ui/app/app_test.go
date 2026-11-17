@@ -18,59 +18,22 @@ import (
 	"github.com/google/go-cmp/cmp"
 
 	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
-	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core"
-	"github.com/ppat/mediated-mailbox-mcp/process/host"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
-	"github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile"
 )
-
-// The UI's root configuration type and its own section are pinned field by field, so a new value is a
-// visible change (ADR-0078). The database section's own type is pinned in its package, and the
-// process's sections in theirs.
-func TestTheConfigurationTypeIsPinned(t *testing.T) {
-	mustnotcompile.RequireFields(t, "github.com/ppat/mediated-mailbox-mcp/ui/app", "Configuration",
-		"Process host.Process",
-		"Operations host.Operations", "Serving host.Serving", "Section Section", "Database core.Config", "Credential core.Config")
-	mustnotcompile.RequireFields(t, "github.com/ppat/mediated-mailbox-mcp/ui/app", "Section",
-		"SyncInterval time.Duration", "HeuristicsInterval time.Duration", "StreamInterval time.Duration",
-		"DefaultTheme string", "StreamReconnectMax time.Duration", "StreamPollInterval time.Duration",
-		"AttentionBacklogShare float64", "AttentionMaskCount int64", "AttentionServeFactor float64", "AttentionGapDays int64",
-		"TokenKeyFile string", "ConsentRedirect string", "IdentityHeader string", "OperatorName string")
-}
 
 func discard() *slog.Logger { return slog.New(slog.DiscardHandler) }
 
-// The UI's defaults are the process's, its two listeners and the info level, the port, its own runtime
-// role, the TLS mode that fails closed, the driver's own pool size, the larger of 4 and the processor
-// count, and the records' intervals, and the database's host, name and password file are required
-// (docs/UI.md section 18.1).
-func TestTheDefaults(t *testing.T) {
-	want := Configuration{
-		Process:    host.Process{LogLevel: "info"},
-		Operations: host.Operations{ProbeListen: ":8080"},
-		Serving:    host.Serving{Listen: ":8443"},
-		Database:   dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_app", SSLMode: "verify-full", PoolSize: max(4, runtime.NumCPU())},
-		Section: Section{
-			SyncInterval:       5 * time.Minute,
-			HeuristicsInterval: 24 * time.Hour,
-			StreamInterval:     2 * time.Second,
-			DefaultTheme:       "system",
-			StreamReconnectMax: 30 * time.Second,
-			StreamPollInterval: 5 * time.Second,
-			// The worth-a-look thresholds are docs/UI.md section 8.1's starting values.
-			AttentionBacklogShare: 5,
-			AttentionMaskCount:    20,
-			AttentionServeFactor:  2,
-			AttentionGapDays:      7,
-			ConsentRedirect:       "http://127.0.0.1:47823/",
-			OperatorName:          "operator",
-		},
-	}
-	if diff := cmp.Diff(want, defaults(), compare.Options); diff != "" {
-		t.Errorf("defaults (-want +got):\n%s", diff)
-	}
-	err := Run(t.Context(), []string{"--database.name=mailbox", "--database.password_file=/absent"}, nil, io.Discard, io.Discard, discard(), new(slog.LevelVar))
+// The UI's defaults are core/config's, in which the database's host, name, user and password file
+// and the key files are required, so a start that names no host is refused at it, before anything
+// is read or connected (docs/UI.md section 18.1, ADR-0143).
+func TestAStartWithNoDatabaseHostIsRefused(t *testing.T) {
+	err := Run(t.Context(), []string{"--database.name=mailbox", "--database.user=mediated_mailbox_app", "--database.password_file=/absent"}, nil, io.Discard, io.Discard, discard(), new(slog.LevelVar))
 	wantErr := "loading the configuration: database.host is required, and neither the file, MEDIATED_MAILBOX_DATABASE__HOST nor --database.host sets it"
+	if err == nil || err.Error() != wantErr {
+		t.Errorf("Run returned %v, want %q", err, wantErr)
+	}
+	err = Run(t.Context(), []string{"--database.host=db", "--database.name=mailbox", "--database.password_file=/absent"}, nil, io.Discard, io.Discard, discard(), new(slog.LevelVar))
+	wantErr = "loading the configuration: database.user is required, and neither the file, MEDIATED_MAILBOX_DATABASE__USER nor --database.user sets it"
 	if err == nil || err.Error() != wantErr {
 		t.Errorf("Run returned %v, want %q", err, wantErr)
 	}
@@ -81,7 +44,7 @@ func TestTheDefaults(t *testing.T) {
 // configuration mistake refused).
 func TestAPoolSizeOfZeroRefusesTheStart(t *testing.T) {
 	args := []string{
-		"--database.host=db", "--database.name=mailbox", "--database.password_file=/absent", "--database.pool_size=0",
+		"--database.host=db", "--database.name=mailbox", "--database.user=mediated_mailbox_app", "--database.password_file=/absent", "--database.pool_size=0",
 		"--credential.public_key_file=/absent", "--credential.private_key_files=[/absent]",
 	}
 	err := Run(t.Context(), args, nil, io.Discard, io.Discard, discard(), new(slog.LevelVar))
@@ -96,7 +59,7 @@ func TestAPoolSizeOfZeroRefusesTheStart(t *testing.T) {
 // configuration mistake refused).
 func TestAnEmptyListOfPrivateKeysRefusesTheStart(t *testing.T) {
 	args := []string{
-		"--database.host=db", "--database.name=mailbox", "--database.password_file=/absent", "--tls_cert=/tls/cert",
+		"--database.host=db", "--database.name=mailbox", "--database.user=mediated_mailbox_app", "--database.password_file=/absent", "--tls_cert=/tls/cert",
 		"--tls_key=/tls/key", "--credential.public_key_file=/absent", "--credential.private_key_files=[]",
 	}
 	err := Run(t.Context(), args, nil, io.Discard, io.Discard, discard(), new(slog.LevelVar))
@@ -124,7 +87,7 @@ func TestTheEffectiveConfigurationIsLogged(t *testing.T) {
 		return a
 	}}))
 	err := Run(bounded(t), []string{
-		"--database.host=db.example", "--database.password_file=" + passwordFile, "--tls_cert=/absent/tls.crt", "--tls_key=/absent/tls.key",
+		"--database.host=db.example", "--database.user=mediated_mailbox_app", "--database.password_file=" + passwordFile, "--tls_cert=/absent/tls.crt", "--tls_key=/absent/tls.key",
 		"--listen=127.0.0.1:0", "--probe_listen=127.0.0.1:0", "--credential.public_key_file=" + publicKeyFile,
 		"--credential.private_key_files=[" + privateKeyFile + "]",
 	},
@@ -147,7 +110,7 @@ func TestTheEffectiveConfigurationIsLogged(t *testing.T) {
 		`level=INFO msg=configuration path=database.port source=default value=5432`,
 		`level=INFO msg=configuration path=database.sslmode source=default value=verify-full`,
 		`level=INFO msg=configuration path=database.sslrootcert source=default value=""`,
-		`level=INFO msg=configuration path=database.user source=default value=mediated_mailbox_app`,
+		`level=INFO msg=configuration path=database.user source="flag --database.user" value=mediated_mailbox_app`,
 		`level=INFO msg=configuration path=default_theme source=default value=system`,
 		`level=INFO msg=configuration path=heuristics_interval source=default value=24h0m0s`,
 		`level=INFO msg=configuration path=identity_header source=default value=""`,
@@ -215,7 +178,7 @@ func bounded(t *testing.T) context.Context {
 func TestANonLoopbackConsentRedirectRefusesTheStart(t *testing.T) {
 	for _, value := range []string{"http://localhost:47823/", "http://127.0.0.1/", "http://192.0.2.1:47823/"} {
 		args := []string{
-			"--database.host=db", "--database.name=mailbox", "--database.password_file=/absent", "--tls_cert=/tls/cert",
+			"--database.host=db", "--database.name=mailbox", "--database.user=mediated_mailbox_app", "--database.password_file=/absent", "--tls_cert=/tls/cert",
 			"--tls_key=/tls/key", "--credential.public_key_file=/absent", "--credential.private_key_files=[/absent]", "--consent_redirect=" + value,
 		}
 		err := Run(t.Context(), args, nil, io.Discard, io.Discard, discard(), new(slog.LevelVar))

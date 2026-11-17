@@ -17,6 +17,7 @@ import (
 	"golang.org/x/net/publicsuffix"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
+	"github.com/ppat/mediated-mailbox-mcp/core/config"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/core/policy"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
@@ -72,7 +73,7 @@ func bodyMailbox(t *testing.T, account string) *fake.Fake {
 // under a policy listing the bank.
 func passesDeps(t *testing.T, pool *pgxpool.Pool, account string, f *fake.Fake) (pass1.Deps, pass2.Deps) {
 	t.Helper()
-	s, err := scan.New(scan.DefaultConfig(), "a-revision")
+	s, err := scan.New(config.DefaultScanner(), "a-revision")
 	if err != nil {
 		t.Fatal(err)
 	}

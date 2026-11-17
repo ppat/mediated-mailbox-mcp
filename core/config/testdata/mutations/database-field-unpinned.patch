@@ -1,0 +1,17 @@
+control: A deployable's configuration type is pinned field by field
+removes: a value is added to the database part without updating the pinned field list
+packages: ./core/config
+tests: TestThePartsArePinned
+scheduled-count: no
+
+diff --git a/core/config/database.go b/core/config/database.go
+--- a/core/config/database.go
++++ b/core/config/database.go
+@@ -19,6 +19,7 @@ type Database struct {
+ 	SSLRootCert  string `yaml:"sslrootcert"`
+ 	PasswordFile string `yaml:"password_file" settings:"required"`
+ 	PoolSize     int    `yaml:"pool_size"`
++	ApplicationName string `yaml:"application_name"`
+ }
+ 
+ // DefaultDatabase is the database part's defaults with poolSize as its pool size. The TLS mode is

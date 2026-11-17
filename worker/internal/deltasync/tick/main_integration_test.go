@@ -18,6 +18,7 @@ import (
 	"golang.org/x/net/publicsuffix"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
+	"github.com/ppat/mediated-mailbox-mcp/core/config"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/core/policy"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
@@ -121,7 +122,7 @@ func listing(t tb, domains ...string) policy.Snapshot {
 
 func scanner(t tb) scan.Scanner {
 	t.Helper()
-	s, err := scan.New(scan.DefaultConfig(), "a-revision")
+	s, err := scan.New(config.DefaultScanner(), "a-revision")
 	if err != nil {
 		t.Fatalf("building the scanner: %v", err)
 	}

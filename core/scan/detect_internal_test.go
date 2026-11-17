@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
+	"github.com/ppat/mediated-mailbox-mcp/core/config"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 )
 
@@ -37,7 +38,7 @@ func TestAutomaton(t *testing.T) {
 
 // Tier 2's score is the mean of its five features under equal weights, and each feature moves it.
 func TestScore(t *testing.T) {
-	s, err := New(DefaultConfig(), "a-revision")
+	s, err := New(config.DefaultScanner(), "a-revision")
 	if err != nil {
 		t.Fatal(err)
 	}

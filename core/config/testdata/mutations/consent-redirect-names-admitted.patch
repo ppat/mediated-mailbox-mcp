@@ -1,0 +1,18 @@
+control: the consent's redirect address is the configured loopback address, read by every use
+removes: a host name such as localhost is admitted as the redirect's host
+packages: ./core/config
+tests: TestTheConsentRedirectIsALoopbackAddressWithAPort
+scheduled-count: no
+
+diff --git a/core/config/programs.go b/core/config/programs.go
+--- a/core/config/programs.go
++++ b/core/config/programs.go
+@@ -204,7 +204,7 @@ func loopbackRedirect(s string) bool {
+ 			return false
+ 		}
+ 		host, port = authority[:i], authority[i+1:]
+-		if !loopbackIPv4(host) {
++		if !loopbackIPv4(host) && host != "localhost" {
+ 			return false
+ 		}
+ 	}

@@ -1,0 +1,18 @@
+control: The API server refuses a configuration it cannot serve with before anything is read or connected
+removes: a reload interval of zero is accepted, on which the schedule never ticks
+packages: ./core/config
+tests: TestTheAccountsPartIsChecked/a_reload_interval_of_zero TestTheAPIConfigurationIsChecked/a_reload_interval_of_zero
+scheduled-count: no
+
+diff --git a/core/config/keys.go b/core/config/keys.go
+--- a/core/config/keys.go
++++ b/core/config/keys.go
+@@ -49,7 +49,7 @@ func DefaultAccounts() Accounts {
+ 
+ // Check refuses a reload interval that is not positive.
+ func (a Accounts) Check() error {
+-	if a.AccountReloadInterval <= 0 {
++	if a.AccountReloadInterval < 0 {
+ 		return errors.New("account_reload_interval is not positive")
+ 	}
+ 	return nil

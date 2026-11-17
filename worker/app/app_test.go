@@ -10,76 +10,33 @@ import (
 	"slices"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prometheus/client_golang/prometheus"
 
+	"github.com/ppat/mediated-mailbox-mcp/core/config"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
-	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core"
 	"github.com/ppat/mediated-mailbox-mcp/process/dbmetrics"
 	"github.com/ppat/mediated-mailbox-mcp/process/host"
 	"github.com/ppat/mediated-mailbox-mcp/process/settings"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
-	"github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile"
 )
-
-// The worker's root configuration type and each of its own section types are pinned field by field,
-// so a new value is a visible change (ADR-0078). Each shared section's own type is pinned in its
-// package.
-func TestTheConfigurationTypeIsPinned(t *testing.T) {
-	const pkg = "github.com/ppat/mediated-mailbox-mcp/worker/app"
-	mustnotcompile.RequireFields(t, pkg, "Configuration",
-		"Process host.Process",
-		"Operations host.Operations",
-		"Section Section",
-		"Database core.Config",
-		"Credential core.Config",
-		"Scanner scan.Config",
-	)
-	mustnotcompile.RequireFields(t, pkg, "Section",
-		"ReloadInterval time.Duration",
-		"Backfill Backfill",
-		"Sync Sync",
-	)
-	mustnotcompile.RequireFields(t, pkg, "Backfill",
-		"Concurrency int",
-	)
-	mustnotcompile.RequireFields(t, pkg, "Sync",
-		"SyncInterval time.Duration",
-		"FirstWindow time.Duration",
-		"DecisionsPerTick int",
-		"Concurrency int",
-	)
-}
 
 func discard() *slog.Logger { return slog.New(slog.DiscardHandler) }
 
-// The worker's defaults are the process's, its probe listener and the info level, the port, the test
-// harness's application user with a pool of four for each job kind, the TLS mode that fails closed, a
-// reload every minute, ADR-0018's five-minute sync interval, a first window of seven days, two hundred
-// decisions a tick, two accounts backfilled at once and four ticking at once. The host, the database
-// name and the password file are required (ADR-0078, ADR-0103, ADR-0104, ADR-0105, ADR-0119,
-// ADR-0143).
-func TestTheDefaults(t *testing.T) {
-	want := Configuration{
-		Process:    host.Process{LogLevel: "info"},
-		Operations: host.Operations{ProbeListen: ":8080"},
-		Section: Section{
-			ReloadInterval: time.Minute,
-			Backfill:       Backfill{Concurrency: 2},
-			Sync:           Sync{SyncInterval: 5 * time.Minute, FirstWindow: 7 * 24 * time.Hour, DecisionsPerTick: 200, Concurrency: 4},
-		},
-		Database: dbconnectcore.Config{Port: 5432, User: "mediated_mailbox_app", SSLMode: "verify-full", PoolSize: 4},
-		Scanner:  scan.DefaultConfig(),
-	}
-	if diff := cmp.Diff(want, defaults(), compare.Options); diff != "" {
-		t.Errorf("defaults (-want +got):\n%s", diff)
-	}
+// The worker's defaults are core/config's, in which the database's host, name, user and password
+// file and the key files are required, so a start that sets none of them is refused at the first,
+// the database's host, before anything is read or connected (ADR-0143).
+func TestAStartWithNoRequiredValueIsRefused(t *testing.T) {
 	err := Run(t.Context(), nil, nil, io.Discard, io.Discard, discard(), new(slog.LevelVar))
 	wantErr := "loading the configuration: database.host is required, and neither the file, MEDIATED_MAILBOX_DATABASE__HOST nor --database.host sets it"
+	if err == nil || err.Error() != wantErr {
+		t.Errorf("Run returned %v, want %q", err, wantErr)
+	}
+	err = Run(t.Context(), append([]string{"--database.host=db.example", "--database.name=mailbox", "--database.password_file=/absent/password"}, absentKeys...), nil, io.Discard, io.Discard, discard(), new(slog.LevelVar))
+	wantErr = "loading the configuration: database.user is required, and neither the file, MEDIATED_MAILBOX_DATABASE__USER nor --database.user sets it"
 	if err == nil || err.Error() != wantErr {
 		t.Errorf("Run returned %v, want %q", err, wantErr)
 	}
@@ -90,12 +47,12 @@ var absentKeys = []string{"--credential.public_key_file=/absent/public", "--cred
 
 // database names a database whose password file does not exist, so a start that gets past the keyring
 // stops at the password file, before any connection is made.
-var database = []string{"--database.host=db.example", "--database.name=mailbox", "--database.password_file=/absent/password"}
+var database = []string{"--database.host=db.example", "--database.name=mailbox", "--database.user=mediated_mailbox_app", "--database.password_file=/absent/password"}
 
 // The start validates the merged configuration before it configures any connection.
 func TestAnEmptyHostRefusesTheStart(t *testing.T) {
 	err := Run(t.Context(), append([]string{
-		"--database.host=", "--database.name=mailbox", "--database.password_file=/absent",
+		"--database.host=", "--database.name=mailbox", "--database.user=mediated_mailbox_app", "--database.password_file=/absent",
 	}, absentKeys...), nil, io.Discard, io.Discard, discard(), new(slog.LevelVar))
 	want := "validating the configuration: database.host is empty"
 	if err == nil || err.Error() != want {
@@ -108,14 +65,13 @@ func TestAnEmptyHostRefusesTheStart(t *testing.T) {
 // before it reads a key file.
 func TestATickThatCannotRunRefusesTheStart(t *testing.T) {
 	for _, c := range []struct{ arg, want string }{
-		{"--sync.sync_interval=0s", "validating the configuration: sync.sync_interval 0s is not positive"},
-		{"--sync.first_window=-1h", "validating the configuration: sync.first_window -1h0m0s is not positive"},
+		{"--sync.sync_interval=0s", "validating the configuration: sync.sync_interval is not positive"},
+		{"--sync.first_window=-1h", "validating the configuration: sync.first_window is not positive"},
 		{"--sync.decisions_per_tick=0", "validating the configuration: sync.decisions_per_tick 0 is not positive"},
 		{"--sync.concurrency=0", "validating the configuration: sync.concurrency 0 is not positive"},
 		{"--backfill.concurrency=0", "validating the configuration: backfill.concurrency 0 is not positive"},
-		{"--reload_interval=0s", "validating the configuration: reload_interval 0s is not positive"},
+		{"--reload_interval=0s", "validating the configuration: reload_interval is not positive"},
 		{"--database.pool_size=0", "validating the configuration: database.pool_size 0 is not positive"},
-		{"--database.user=", "validating the configuration: database.user is empty"},
 	} {
 		t.Run(c.arg, func(t *testing.T) {
 			err := Run(t.Context(), append(slices.Clone(database), append(slices.Clone(absentKeys), c.arg)...), nil, io.Discard, io.Discard, discard(), new(slog.LevelVar))
@@ -124,11 +80,13 @@ func TestATickThatCannotRunRefusesTheStart(t *testing.T) {
 			}
 		})
 	}
-	// The empty password file is refused by its own path.
-	args := slices.DeleteFunc(slices.Clone(database), func(a string) bool { return strings.HasPrefix(a, "--database.password_file=") })
-	err := Run(t.Context(), append(append(args, absentKeys...), "--database.password_file="), nil, io.Discard, io.Discard, discard(), new(slog.LevelVar))
-	if want := "validating the configuration: database.password_file is empty"; err == nil || err.Error() != want {
-		t.Errorf("Run returned %v, want %q", err, want)
+	// The empty password file and the empty user are each refused by their own path.
+	for _, key := range []string{"password_file", "user"} {
+		args := slices.DeleteFunc(slices.Clone(database), func(a string) bool { return strings.HasPrefix(a, "--database."+key+"=") })
+		err := Run(t.Context(), append(append(args, absentKeys...), "--database."+key+"="), nil, io.Discard, io.Discard, discard(), new(slog.LevelVar))
+		if want := "validating the configuration: database." + key + " is empty"; err == nil || err.Error() != want {
+			t.Errorf("Run returned %v, want %q", err, want)
+		}
 	}
 }
 
@@ -149,7 +107,7 @@ func TestTheEffectiveConfigurationIsLogged(t *testing.T) {
 	// The key files do not exist, so the start stops at the keyring, after the log and before any
 	// connection is made.
 	err := Run(t.Context(), append([]string{
-		"--database.host=db.example", "--database.password_file=" + passwordFile,
+		"--database.host=db.example", "--database.user=mediated_mailbox_app", "--database.password_file=" + passwordFile,
 		"--sync.sync_interval=2m",
 	}, absentKeys...), []string{"MEDIATED_MAILBOX_DATABASE__NAME=mailbox"}, io.Discard, io.Discard, logger, new(slog.LevelVar))
 	if err == nil || !strings.HasPrefix(err.Error(), "loading the keyring: ") {
@@ -166,7 +124,7 @@ func TestTheEffectiveConfigurationIsLogged(t *testing.T) {
 		`level=INFO msg=configuration path=database.port source=default value=5432`,
 		`level=INFO msg=configuration path=database.sslmode source=default value=verify-full`,
 		`level=INFO msg=configuration path=database.sslrootcert source=default value=""`,
-		`level=INFO msg=configuration path=database.user source=default value=mediated_mailbox_app`,
+		`level=INFO msg=configuration path=database.user source="flag --database.user" value=mediated_mailbox_app`,
 		`level=INFO msg=configuration path=log_level source=default value=info`,
 		`level=INFO msg=configuration path=probe_listen source=default value=:8080`,
 		`level=INFO msg=configuration path=reload_interval source=default value=1m0s`,
@@ -317,6 +275,31 @@ func TestAnInvalidScannerSectionRefusesTheStart(t *testing.T) {
 	}
 }
 
+// The scanner the worker builds decides under its section's values, not the defaults the application
+// ships, so the section validated at start is the one the scanner runs on. A trigger list naming no
+// word of the body leaves the trigger window's rule unfired on a code it fires on by default
+// (ADR-0005, ADR-0078).
+func TestTheScannerIsBuiltFromItsSection(t *testing.T) {
+	rules := func(t *testing.T, args ...string) []string {
+		t.Helper()
+		loaded, err := settings.Load(config.DefaultWorker(), slices.Concat(database, absentKeys, args), nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		s, err := buildScanner(loaded)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return s.Scan("Your code is 419283").Rules()
+	}
+	if got := rules(t); !slices.Contains(got, scan.RuleTriggerWindow) {
+		t.Fatalf("under the default section the rules are %v, want %s among them", got, scan.RuleTriggerWindow)
+	}
+	if got := rules(t, "--scanner.triggers.en=[xyzzy]"); slices.Contains(got, scan.RuleTriggerWindow) {
+		t.Errorf("with no trigger word of the body configured the rules are %v, want no %s", got, scan.RuleTriggerWindow)
+	}
+}
+
 // D1's part of VERIFICATIONS' row for a section's revision. The revision a verdict and a mask record
 // follows the scanner's effective configuration, whichever layer changed it, and a change to another
 // section, either job kind's own values included, leaves it as it was (ADR-0078, ADR-0005, ADR-0120).
@@ -327,7 +310,7 @@ func TestAVerdictsRevisionFollowsTheScannerSection(t *testing.T) {
 	}
 	revision := func(t *testing.T, args, environ []string) string {
 		t.Helper()
-		loaded, err := settings.Load(defaults(), slices.Concat(database, absentKeys, args), environ)
+		loaded, err := settings.Load(config.DefaultWorker(), slices.Concat(database, absentKeys, args), environ)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -382,7 +365,7 @@ func TestAVerdictsRevisionFollowsTheScannerSection(t *testing.T) {
 // of the messages returned to pending denied until the second pass scans them again (ADR-0120). So
 // it changes only as a decision taken in review, never to make this test pass.
 func TestTheScannerSectionBuildsTheSharedScanner(t *testing.T) {
-	loaded, err := settings.Load(defaults(), slices.Concat(database, absentKeys), nil)
+	loaded, err := settings.Load(config.DefaultWorker(), slices.Concat(database, absentKeys), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -402,7 +385,7 @@ func TestTheScannerSectionBuildsTheSharedScanner(t *testing.T) {
 // the other's work, by construction rather than by two processes being given the same section
 // (ADR-0117, ADR-0120).
 func TestBothJobKindsScanWithTheOneScanner(t *testing.T) {
-	loaded, err := settings.Load(defaults(), slices.Concat(database, absentKeys), nil)
+	loaded, err := settings.Load(config.DefaultWorker(), slices.Concat(database, absentKeys), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -410,8 +393,8 @@ func TestBothJobKindsScanWithTheOneScanner(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ec := mustContext(t, Pools{}, nil, scanner, loaded.Config.Section, prometheus.NewRegistry(), discard())
-	b, d := kinds(Pools{}, ec, loaded.Config.Section, nil, discard(), prometheus.NewRegistry(), nil)
+	ec := mustContext(t, Pools{}, nil, scanner, loaded.Config, prometheus.NewRegistry(), discard())
+	b, d := kinds(Pools{}, ec, loaded.Config, nil, discard(), prometheus.NewRegistry(), nil)
 	if b.Context != ec || d.Context != ec {
 		t.Error("a job kind is handed an execution context other than the worker's one")
 	}
@@ -435,7 +418,7 @@ func TestEachJobKindIsHandedAPoolOfItsOwn(t *testing.T) {
 	if err := os.WriteFile(password, []byte("the-password"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	loaded, err := settings.Load(defaults(), slices.Concat([]string{
+	loaded, err := settings.Load(config.DefaultWorker(), slices.Concat([]string{
 		"--database.host=db.example", "--database.name=mailbox", "--database.user=the_app",
 		"--database.password_file=" + password, "--database.pool_size=3",
 	}, absentKeys), nil)
@@ -466,11 +449,11 @@ func TestEachJobKindIsHandedAPoolOfItsOwn(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ec := mustContext(t, pools, nil, scanner, loaded.Config.Section, prometheus.NewRegistry(), discard())
+	ec := mustContext(t, pools, nil, scanner, loaded.Config, prometheus.NewRegistry(), discard())
 	if ec.Pool() != pools.Sync {
 		t.Error("the execution context is built over a pool other than delta sync's")
 	}
-	b, s := kinds(pools, ec, loaded.Config.Section, nil, discard(), prometheus.NewRegistry(), nil)
+	b, s := kinds(pools, ec, loaded.Config, nil, discard(), prometheus.NewRegistry(), nil)
 	if b.Pool != pools.Backfill {
 		t.Error("backfill is handed a pool other than its own")
 	}

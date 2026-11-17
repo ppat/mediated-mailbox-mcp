@@ -1,0 +1,17 @@
+control: A deployable's configuration type is pinned field by field
+removes: a value is added to the credential part without updating the pinned field list
+packages: ./core/config
+tests: TestThePartsArePinned
+scheduled-count: no
+
+diff --git a/core/config/keys.go b/core/config/keys.go
+--- a/core/config/keys.go
++++ b/core/config/keys.go
+@@ -16,6 +16,7 @@ type Keys struct {
+ 	// PrivateKeyFiles names every mounted private key. During a key replacement the old key and the
+ 	// new one are both mounted (ADR-0092).
+ 	PrivateKeyFiles []string `yaml:"private_key_files" settings:"required"`
++	Passphrase      string   `yaml:"passphrase"`
+ }
+ 
+ // Check refuses an empty public key path, an empty list of private keys and an empty path in that

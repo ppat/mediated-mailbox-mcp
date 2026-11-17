@@ -1,19 +1,17 @@
 package app
 
 import (
-	"errors"
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"slices"
 	"testing"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
 
-	credentialcore "github.com/ppat/mediated-mailbox-mcp/executioncontext/credential/core"
-	dbconnectcore "github.com/ppat/mediated-mailbox-mcp/process/dbconnect/core"
-	"github.com/ppat/mediated-mailbox-mcp/process/host"
+	"github.com/ppat/mediated-mailbox-mcp/core/config"
 	"github.com/ppat/mediated-mailbox-mcp/process/settings"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/helmchart"
@@ -33,43 +31,41 @@ func TestTheChartRendersAFileTheUIStartsWith(t *testing.T) {
 	if err := os.WriteFile(path, []byte(helmchart.ConfigFile(t, objects, "ui.yaml")), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	loaded, err := settings.Load(defaults(), []string{"--config-file=" + path}, nil)
+	loaded, err := settings.Load(config.DefaultUI(runtime.NumCPU()), []string{"--config-file=" + path}, nil)
 	if err != nil {
 		t.Fatalf("the UI refuses the chart's file: %v", err)
 	}
 	c := loaded.Config
-	if err := errors.Join(host.ValidateProcess(c.Process), host.ValidateOperations(c.Operations), host.ValidateServing(c.Serving), validate(c)); err != nil {
+	if err := c.Check(); err != nil {
 		t.Fatalf("the UI's validation refuses the chart's file: %v", err)
 	}
 	mounted := "/etc/mediated-mailbox/secrets/"
-	want := Configuration{
-		Process:    host.Process{LogLevel: "debug"},
-		Operations: host.Operations{ProbeListen: ":8080"},
-		Serving:    host.Serving{Listen: ":8443", TLSCert: mounted + "tls/tls.crt", TLSKey: mounted + "tls/tls.key"},
-		Database: dbconnectcore.Config{
+	want := config.UI{
+		Process:    config.Process{LogLevel: "debug"},
+		Operations: config.Operations{ProbeListen: ":8080"},
+		Serving:    config.Serving{Listen: ":8443", TLSCert: mounted + "tls/tls.crt", TLSKey: mounted + "tls/tls.key"},
+		Database: config.Database{
 			Host: "db.example", Port: 6432, Name: "mediated_mailbox", User: "mailbox_app", SSLMode: "verify-ca",
 			SSLRootCert: mounted + "ca/ca.crt", PasswordFile: mounted + "database/password", PoolSize: 11,
 		},
-		Credential: credentialcore.Config{
+		Credential: config.Keys{
 			PublicKeyFile:   mounted + "credential-sealing-key-pair/credential.pub",
 			PrivateKeyFiles: []string{mounted + "credential-sealing-key-pair/old.key", mounted + "credential-sealing-key-pair/new.key"},
 		},
-		Section: Section{
-			SyncInterval:          3 * time.Minute,
-			HeuristicsInterval:    12 * time.Hour,
-			StreamInterval:        3 * time.Second,
-			DefaultTheme:          "dark",
-			StreamReconnectMax:    20 * time.Second,
-			StreamPollInterval:    4 * time.Second,
-			AttentionBacklogShare: 4,
-			AttentionMaskCount:    10,
-			AttentionServeFactor:  3,
-			AttentionGapDays:      5,
-			TokenKeyFile:          mounted + "request-token-key",
-			ConsentRedirect:       "http://127.0.0.1:50000/",
-			IdentityHeader:        "X-Forwarded-User",
-			OperatorName:          "owner",
-		},
+		SyncInterval:          config.Duration(3 * time.Minute),
+		HeuristicsInterval:    config.Duration(12 * time.Hour),
+		StreamInterval:        config.Duration(3 * time.Second),
+		DefaultTheme:          "dark",
+		StreamReconnectMax:    config.Duration(20 * time.Second),
+		StreamPollInterval:    config.Duration(4 * time.Second),
+		AttentionBacklogShare: 4,
+		AttentionMaskCount:    10,
+		AttentionServeFactor:  3,
+		AttentionGapDays:      5,
+		TokenKeyFile:          mounted + "request-token-key",
+		ConsentRedirect:       "http://127.0.0.1:50000/",
+		IdentityHeader:        "X-Forwarded-User",
+		OperatorName:          "owner",
 	}
 	if diff := cmp.Diff(want, c, compare.Options); diff != "" {
 		t.Errorf("the UI's configuration from the chart's file (-want +got):\n%s", diff)
@@ -83,7 +79,7 @@ func TestTheChartAdmitsEveryUIKeyItDoesNotRender(t *testing.T) {
 	chartOwned := []string{"credential", "database", "listen", "probe_listen", "sync_interval", "tls_cert", "tls_key", "token_key_file"}
 	got := append(helmchart.SchemaKeys(t, chartDir, "ui", "config"), chartOwned...)
 	slices.Sort(got)
-	if diff := cmp.Diff(helmchart.YAMLKeys(reflect.TypeFor[Configuration]()), got); diff != "" {
+	if diff := cmp.Diff(helmchart.YAMLKeys(reflect.TypeFor[config.UI]()), got); diff != "" {
 		t.Errorf("the UI's keys (-configuration type +schema and chart):\n%s", diff)
 	}
 }

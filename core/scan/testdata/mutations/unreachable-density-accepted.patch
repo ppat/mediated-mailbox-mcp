@@ -4,16 +4,15 @@ packages: ./core/scan
 tests: TestNewRefusesAnInvalidConfiguration/a_dense_entropy_no_value_can_reach
 scheduled-count: no
 
-diff --git a/core/scan/scan.go b/core/scan/scan.go
-index 35b97a2..b719e3a 100644
---- a/core/scan/scan.go
-+++ b/core/scan/scan.go
-@@ -149,7 +149,7 @@ func New(cfg Config) (Scanner, error) {
+diff --git a/core/config/scanner.go b/core/config/scanner.go
+--- a/core/config/scanner.go
++++ b/core/config/scanner.go
+@@ -108,7 +108,7 @@ func (s Scanner) Check() error {
  	}
- 	if cfg.Window < 1 || cfg.DenseLength < 1 || !(cfg.DenseEntropy > 0) {
+ 	if s.Window < 1 || s.DenseLength < 1 || !(s.DenseEntropy > 0) {
  		problems = append(problems, errors.New("scan: the window, the dense length and the dense entropy must be positive"))
--	} else if cfg.DenseEntropy > 8 {
+-	} else if s.DenseEntropy > 8 {
 +	} else if false {
  		problems = append(problems, errors.New("scan: the dense entropy is above 8 bits, more than any value of bytes can reach, so no link would be flagged"))
  	}
- 	w := cfg.Weights
+ 	w := s.Weights

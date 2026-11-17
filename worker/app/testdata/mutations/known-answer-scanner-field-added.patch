@@ -4,13 +4,10 @@ packages: ./worker/app
 tests: TestTheScannerSectionBuildsTheSharedScanner
 scheduled-count: no
 
-diff --git a/core/scan/scan.go b/core/scan/scan.go
-index c5f2c44c..fce0d523 100644
---- a/core/scan/scan.go
-+++ b/core/scan/scan.go
-@@ -74,10 +74,12 @@ type Config struct {
- 	// code. SubjectThreshold replaces Threshold on a subject, and may not exceed it, because masking a
- 	// subject is tuned for recall (ADR-0003).
+diff --git a/core/config/scanner.go b/core/config/scanner.go
+--- a/core/config/scanner.go
++++ b/core/config/scanner.go
+@@ -42,6 +42,8 @@ type Scanner struct {
  	Weights          Weights `yaml:"weights"`
  	Threshold        float64 `yaml:"threshold"`
  	SubjectThreshold float64 `yaml:"subject_threshold"`
@@ -18,6 +15,4 @@ index c5f2c44c..fce0d523 100644
 +	Tier3 bool `yaml:"tier3"`
  }
  
- // DefaultConfig returns the configuration the application ships, ADR-0005's English vocabulary and
- // the tuning set against the evaluation set in this package's tests, to be retuned against the real
- // mailbox. On that set equal weights separate codes from everything else. Every code there that only
+ // DefaultScanner returns the scanner part the application ships, ADR-0005's English vocabulary and

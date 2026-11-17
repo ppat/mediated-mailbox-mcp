@@ -16,6 +16,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/prometheus/client_golang/prometheus"
 
+	"github.com/ppat/mediated-mailbox-mcp/core/config"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/credential/open"
@@ -147,7 +148,7 @@ func TestADroppedAccountsTickIsCancelled(t *testing.T) {
 	}
 	s := schedule.New(t.Context(), metrics)
 	defer s.Stop()
-	scanner, err := scan.New(scan.DefaultConfig(), "a-revision")
+	scanner, err := scan.New(config.DefaultScanner(), "a-revision")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -217,7 +218,7 @@ func TestEverySeriesTheKindEmitsCarriesItsJobKind(t *testing.T) {
 	must(t, conn, "UPDATE account_state SET backfill_pass1_complete = true, backfill_pass2_complete = true WHERE account_id = 'personal'")
 	client(t, conn, public)
 	registry := prometheus.NewRegistry()
-	scanner, err := scan.New(scan.DefaultConfig(), "a-revision")
+	scanner, err := scan.New(config.DefaultScanner(), "a-revision")
 	if err != nil {
 		t.Fatal(err)
 	}
