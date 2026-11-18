@@ -5,10 +5,10 @@ tests: TestTheCommandWritesAPairTheLibrarySealsToAndOpensWith
 scheduled-count: no
 
 diff --git a/cli/internal/keygen/keygen.go b/cli/internal/keygen/keygen.go
-index f2f307aa..32c67598 100644
+index 987bb8f7..1075d1f6 100644
 --- a/cli/internal/keygen/keygen.go
 +++ b/cli/internal/keygen/keygen.go
-@@ -48,7 +48,11 @@ func Run(args []string, stdout io.Writer) error {
+@@ -41,7 +41,11 @@ func Run(args []string, stdout io.Writer) error {
  	if err != nil {
  		return fmt.Errorf("serializing the private key: %w", err)
  	}

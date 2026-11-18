@@ -10,7 +10,7 @@ import (
 	"github.com/yuin/goldmark/text"
 	"pgregory.net/rapid"
 
-	"github.com/ppat/mediated-mailbox-mcp/content/markdown"
+	"github.com/ppat/mediated-mailbox-mcp/content/markdown/core"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/marker"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/property"
 )
@@ -61,7 +61,7 @@ func textOf(p plain) string {
 func TestLiteralTextIsOneCodeBlockShowingIt(t *testing.T) {
 	property.Check(t, drawPlain, func(t rapid.TB, p plain) {
 		in := textOf(p)
-		out := markdown.Literal(in)
+		out := core.Literal(in)
 		src := []byte(out)
 		doc := goldmark.New().Parser().Parse(text.NewReader(src))
 		block, ok := doc.FirstChild().(*ast.FencedCodeBlock)

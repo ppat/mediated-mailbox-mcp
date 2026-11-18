@@ -6,23 +6,23 @@ scheduled-count: no
 integration: yes
 
 diff --git a/db/tx/tx.go b/db/tx/tx.go
-index 2d136673..4147bf4e 100644
+index 5572ecfc..c31477fa 100644
 --- a/db/tx/tx.go
 +++ b/db/tx/tx.go
-@@ -94,16 +94,6 @@ func RunBase(ctx context.Context, db Beginner, fn func(pgx.Tx) error) error {
- 		return ErrInsideTransaction
- 	}
- 	return pgx.BeginFunc(ctx, db, func(tx pgx.Tx) error {
--		if _, err := tx.Exec(ctx, "-- name: SetBaseScope :exec\nSELECT set_config('app.account', '', true)"); err != nil {
--			return fmt.Errorf("setting the base policy's scope: %w", err)
--		}
--		var account string
--		if err := tx.QueryRow(ctx, "-- name: ReadBaseScope :one\nSELECT coalesce(current_setting('app.account', true), '')").Scan(&account); err != nil {
--			return fmt.Errorf("reading the base policy's scope back: %w", err)
--		}
--		if account != "" {
--			return fmt.Errorf("%w: it reads back as %q", ErrBaseNotSet, account)
--		}
- 		return fn(tx)
- 	})
+@@ -83,12 +83,10 @@ var ErrBaseNotSet = core.ErrBaseNotSet
+ // transaction-local and read back (ADR-0112). It commits when fn returns nil and rolls back otherwise.
+ // Only the base policy's statements run in it, which the txhelper analyser enforces.
+ func RunBase(ctx context.Context, db Beginner, fn func(pgx.Tx) error) error {
+-	return scoped(ctx, db, scope{
+-		what: "the base policy's scope",
+-		set:  "-- name: SetBaseScope :exec\nSELECT set_config('app.account', '', true)",
+-		read: "-- name: ReadBaseScope :one\nSELECT coalesce(current_setting('app.account', true), '')",
+-		held: core.BaseHeld,
+-	}, fn)
++	if _, nested := db.(pgx.Tx); nested {
++		return ErrInsideTransaction
++	}
++	return pgx.BeginFunc(ctx, db, fn)
  }
+ 
+ // scope is what a transaction sets the account setting to and how it is checked. The statements'

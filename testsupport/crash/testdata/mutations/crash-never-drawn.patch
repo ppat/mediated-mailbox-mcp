@@ -5,9 +5,10 @@ tests: TestBothDrawsPlaceTheCrash TestTheHarnessFindsAPlantedFault
 scheduled-count: no
 
 diff --git a/testsupport/crash/crash.go b/testsupport/crash/crash.go
+index 3fc96955..dd5c5e61 100644
 --- a/testsupport/crash/crash.go
 +++ b/testsupport/crash/crash.go
-@@ -102,7 +102,6 @@ type Config struct {
+@@ -101,7 +101,6 @@ type Config struct {
  // report run beside it.
  func Draws[S, W any](target Target[S, W], cfg Config) map[string]func(*rapid.T) Case[S] {
  	names := slices.Sorted(maps.Keys(target.Operations))

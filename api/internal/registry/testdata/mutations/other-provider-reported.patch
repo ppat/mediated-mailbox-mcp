@@ -6,10 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/api/internal/registry/registry.go b/api/internal/registry/registry.go
-index 9edc7d44..03e3ff18 100644
+index 34e389f8..7421f84f 100644
 --- a/api/internal/registry/registry.go
 +++ b/api/internal/registry/registry.go
-@@ -130,10 +130,7 @@ func rateAccounts(s *sessions.Session) func(context.Context) ([]ratelimit.Accoun
+@@ -131,10 +131,7 @@ func rateAccounts(s *sessions.Session) func(context.Context) ([]ratelimit.Accoun
  	return func(context.Context) ([]ratelimit.Account, error) {
  		var out []ratelimit.Account
  		for _, a := range s.Accounts() {

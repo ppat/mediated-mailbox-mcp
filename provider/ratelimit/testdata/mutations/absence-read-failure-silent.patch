@@ -6,9 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/provider/ratelimit/collector.go b/provider/ratelimit/collector.go
+index f091bc1d..4a512fdf 100644
 --- a/provider/ratelimit/collector.go
 +++ b/provider/ratelimit/collector.go
-@@ -84,7 +84,6 @@
+@@ -88,7 +88,6 @@ func (c *Collector) Collect(ch chan<- prometheus.Metric) {
  	defer cancel()
  	accounts, err := c.accounts(ctx)
  	if err != nil {

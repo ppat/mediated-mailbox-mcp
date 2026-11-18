@@ -5,9 +5,10 @@ tests: TestTheReplaysFindAFaultOnlyPostgreSQLHas
 scheduled-count: no
 
 diff --git a/testsupport/crash/crash.go b/testsupport/crash/crash.go
+index 3fc96955..924f46e0 100644
 --- a/testsupport/crash/crash.go
 +++ b/testsupport/crash/crash.go
-@@ -156,7 +156,8 @@ func Check[S, W any](t *testing.T, target Target[S, W], cfg Config) {
+@@ -155,7 +155,8 @@ func Check[S, W any](t *testing.T, target Target[S, W], cfg Config) {
  				drew, searched bool
  			)
  			t.Cleanup(func() {

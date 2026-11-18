@@ -12,8 +12,8 @@ import (
 type importLists map[string][]subsection
 
 // admissions reads the library's import lists and returns the subsections each names. A component list
-// may name, beside generated subsections, the transaction helper and the migration chain with the
-// package that applies it, none of which holds a statement of its own. Any other entry under db/ in a
+// may name, beside generated subsections, the transaction helper with its pure core and the migration
+// chain with the package that applies it, none of which holds a statement of its own. Any other entry under db/ in a
 // component list is a problem, because a prefix entry would admit every subsection, and the grant
 // check, which plans the subsections a list names, would plan none of those it admits.
 func (lib library) admissions(t *testing.T, subs []subsection) (lists importLists, problems []string) {
@@ -61,11 +61,11 @@ func (lib library) admissions(t *testing.T, subs []subsection) (lists importList
 			sub, exact := strings.CutSuffix(rest, "$")
 			i := slices.IndexFunc(subs, func(s subsection) bool { return s.name == sub })
 			switch {
-			case exact && (sub == "tx" || sub == "migrate" || sub == "migrations"):
+			case exact && (sub == "tx" || sub == "tx/core" || sub == "migrate" || sub == "migrations"):
 			case exact && i >= 0:
 				lists[name] = append(lists[name], subs[i])
 			default:
-				problems = append(problems, fmt.Sprintf("list %q admits %q. A component list names db/tx$, db/migrate$, db/migrations$ and generated subsections exactly", name, entry))
+				problems = append(problems, fmt.Sprintf("list %q admits %q. A component list names db/tx$, db/tx/core$, db/migrate$, db/migrations$ and generated subsections exactly", name, entry))
 			}
 		}
 	}
@@ -93,7 +93,7 @@ func TestImportListEntries(t *testing.T) {
 func TestImportListEntriesReported(t *testing.T) {
 	_, problems := testLibrary.admissions(t, testLibrary.subsections(t))
 	requireProblems(t, problems, []string{
-		`list "prefix" admits "github.com/ppat/mediated-mailbox-mcp/db/". A component list names db/tx$, db/migrate$, db/migrations$ and generated subsections exactly`,
+		`list "prefix" admits "github.com/ppat/mediated-mailbox-mcp/db/". A component list names db/tx$, db/tx/core$, db/migrate$, db/migrations$ and generated subsections exactly`,
 		`list "rootpackage" admits "github.com/ppat/mediated-mailbox-mcp/db$", which admits the data-access library's root package. A component list admits only subsections`,
 		`list "rootpackage" admits "github.com/ppat/mediated-mailbox-mcp/d", which admits the data-access library's root package. A component list admits only subsections`,
 	})

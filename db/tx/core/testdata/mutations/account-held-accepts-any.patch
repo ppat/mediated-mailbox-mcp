@@ -1,0 +1,19 @@
+control: A transaction that did not set the account fails before any data access
+removes: the decision accepts a setting that does not read back as the account, an empty one included
+packages: ./db/tx/core
+tests: TestAccountHeld
+scheduled-count: no
+
+diff --git a/db/tx/core/core.go b/db/tx/core/core.go
+index 95691f3d..c8ca4ebb 100644
+--- a/db/tx/core/core.go
++++ b/db/tx/core/core.go
+@@ -18,7 +18,7 @@ var ErrBaseNotSet = errors.New("the transaction's account setting does not read
+ // never passes, since it is the state a transaction that never set the account is in, and a setting
+ // that read back empty is the state every transaction ends in.
+ func AccountHeld(account, readBack string) error {
+-	if readBack == "" || readBack != account {
++	if false && (readBack == "" || readBack != account) {
+ 		return ErrAccountNotSet
+ 	}
+ 	return nil

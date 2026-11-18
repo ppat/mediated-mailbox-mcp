@@ -51,7 +51,9 @@ jobs, calls in `provider` and setup in `consent`, so the UI links the consent an
 adapter nor the limiter.
 
 **What does not belong.** The adapters use no database, and `ratelimit` uses the rate state's
-statements, in `db/ratestate/limiter`. The library knows nothing of the account tables.
+statements, in `db/ratestate/limiter`, and the collector reads an account's lowered target through
+`db/accountstate`, the one statement it takes from the account tables. The library knows nothing
+else of them.
 Credentials arrive as arguments, and a refreshed credential and an attempt leave as values.
 
 - **Reading the accounts, opening their credentials and writing a credential back.** Reading the
@@ -212,8 +214,15 @@ beside the one wrapper that spends from it. Its leased call takes a cost, not a 
 call under a lease in a priority class and tells the controller how the call went, a throttle or a
 server error included, so every spender reports its calls the same way.
 
-Its statements in `db/ratestate/limiter` run under the application user, in the API server and the
-worker, whose grants the grant check proves enough for them
+The collector reads an account's lowered target as the connections do, through `db/accountstate`,
+and decides a stored target with `core.LimitsWithTarget`, the rule the limiter applies, so an
+account with no rate state is reported at the target it will spend under, and a stored target the
+limiter refuses fails the whole scrape, as a failed read does, so every series of the process goes
+absent and the absence rule fires, as the account's work stops
+([ADR-0024](../docs/adr/operability/0024-conservative-target-aimd.md)).
+
+Its statements in `db/ratestate/limiter` and `db/accountstate` run under the application user, in
+the API server and the worker, whose grants the grant check proves enough for them
 ([ADR-0143](../docs/adr/data/0143-the-programs-connect-as-one-application-user-beside-the-migrators.md),
 [ADR-0066](../docs/adr/data/0066-data-access-generated-from-sql.md)).
 
@@ -234,7 +243,7 @@ sit in `ratelimit/testdata/`
 | `mediated_mailbox_ratelimit_granted_total` | Counter, `class` | Each spending process, in the provider's units | Dashboards |
 | `mediated_mailbox_ratelimit_throttles_total` | Counter, `scope` of `user`, `project` or `unknown` | Each spending process | Dashboards |
 | `mediated_mailbox_ratelimit_lease_wait_seconds` | Histogram, `class`, and no `account` | Each spending process, from an ask's start to its granted lease ([ADR-0125](../docs/adr/engineering/0125-performance-is-measured-once-at-each-place-time-goes.md)) | Dashboards |
-| `mediated_mailbox_ratelimit_account_rate` | Gauge | The API server's collector, from each account's rate state | The collapse rule and the absence rule |
+| `mediated_mailbox_ratelimit_account_rate` | Gauge | The API server's collector, from each account's rate state, and for an account with none, at the target the account spends under, its lowered one or the default | The collapse rule and the absence rule |
 | `mediated_mailbox_ratelimit_account_floor` | Gauge | The API server's collector | The collapse rule |
 | `mediated_mailbox_ratelimit_account_bucket_level` | Gauge | The API server's collector | Dashboards |
 | `mediated_mailbox_ratelimit_account_seconds_since_ask` | Gauge, infinite when no class has asked | The API server's collector | Both collapse rules |

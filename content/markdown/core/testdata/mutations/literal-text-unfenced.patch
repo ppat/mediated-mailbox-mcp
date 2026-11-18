@@ -1,14 +1,14 @@
 control: Message text with no HTML form is released as one fenced code block that shows it exactly
 removes: the text is released as it is, with no fence around it
-packages: ./content/markdown
+packages: ./content/markdown/core ./content/markdown
 tests: TestLiteralTextIsOneCodeBlockShowingIt TestLiteralForms
 scheduled-count: no
 
-diff --git a/content/markdown/literal.go b/content/markdown/literal.go
-index b972af1..ec5e28f 100644
---- a/content/markdown/literal.go
-+++ b/content/markdown/literal.go
-@@ -19,6 +19,9 @@ func Literal(text string) string {
+diff --git a/content/markdown/core/literal.go b/content/markdown/core/literal.go
+index 17167880..42255b04 100644
+--- a/content/markdown/core/literal.go
++++ b/content/markdown/core/literal.go
+@@ -21,6 +21,9 @@ func Literal(text string) string {
  		longest = max(longest, run)
  	}
  	fence := strings.Repeat("`", max(3, longest+1))

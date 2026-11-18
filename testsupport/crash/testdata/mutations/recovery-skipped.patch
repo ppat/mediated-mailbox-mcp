@@ -5,9 +5,10 @@ tests: TestRunRecoversAndChecksAfterEachCrash
 scheduled-count: no
 
 diff --git a/testsupport/crash/crash.go b/testsupport/crash/crash.go
+index 3fc96955..00ea7910 100644
 --- a/testsupport/crash/crash.go
 +++ b/testsupport/crash/crash.go
-@@ -200,7 +200,6 @@ func Run[S, W any](t rapid.TB, target Target[S, W], w W, c Case[S]) {
+@@ -211,7 +211,6 @@ func Run[S, W any](t rapid.TB, target Target[S, W], w W, c Case[S]) {
  	for i, op := range c.Ops {
  		if op.Name == Crash {
  			target.Crash(t, w, op.Arg)

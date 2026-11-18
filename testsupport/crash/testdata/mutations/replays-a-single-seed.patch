@@ -5,14 +5,15 @@ tests: TestTheReplaysFindAFaultOnlyPostgreSQLHas
 scheduled-count: no
 
 diff --git a/testsupport/crash/crash.go b/testsupport/crash/crash.go
+index 3fc96955..29cee10e 100644
 --- a/testsupport/crash/crash.go
 +++ b/testsupport/crash/crash.go
-@@ -177,7 +177,7 @@ func Check[S, W any](t *testing.T, target Target[S, W], cfg Config) {
+@@ -176,7 +176,7 @@ func Check[S, W any](t *testing.T, target Target[S, W], cfg Config) {
  			searched = true
  			gen := rapid.Custom(draw)
  			for seed := range cfg.Replays {
 -				c := gen.Example(seed)
 +				c := gen.Example(0 * seed)
  				w := target.Real(t, c.Setup)
- 				failed, report := probe(t.Name(), func(tb rapid.TB) { Run(tb, target, w, c) })
+ 				failed, report := property.Probe(t.Name(), func(tb rapid.TB) { Run(tb, target, w, c) })
  				if !failed {

@@ -8,8 +8,10 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/prometheus/client_golang/prometheus"
 
+	"github.com/ppat/mediated-mailbox-mcp/db/accountstate"
 	"github.com/ppat/mediated-mailbox-mcp/db/ratestate/limiter"
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
 	"github.com/ppat/mediated-mailbox-mcp/provider/ratelimit/core"
@@ -39,10 +41,12 @@ type Account struct {
 // API server registers it, because it runs continuously, and the job workloads' series are absent
 // between their runs by design.
 //
-// An account with no rate state yet has never spent, and it is reported idle, at the target with an
-// empty bucket and no ask or grant. An instant never set reads as infinitely long ago. A read that
-// fails is reported as an invalid metric, so the scrape fails loudly and the series go absent, which
-// the absence rule catches.
+// An account with no rate state yet has never spent, and it is reported idle, at the target it
+// spends under, its lowered one where it has one and the default otherwise, with an empty bucket and
+// no ask or grant. An instant never set reads as infinitely long ago. A read that fails is reported
+// as an invalid metric, so the scrape fails loudly and the series go absent, which the absence rule
+// catches. So is an account whose stored lowered target core.LimitsWithTarget refuses, the account
+// whose work the connections stop (ADR-0024).
 type Collector struct {
 	db       tx.Beginner
 	accounts func(context.Context) ([]Account, error)
@@ -95,27 +99,45 @@ func (c *Collector) Collect(ch chan<- prometheus.Metric) {
 }
 
 func (c *Collector) collect(ctx context.Context, ch chan<- prometheus.Metric, a Account) error {
-	limits := core.LimitsFor(a.Ceiling)
-	row := limiter.RateStateRow{CurrentRate: float32(limits.Target())}
-	var now int64
+	var (
+		now     int64
+		lowered pgtype.Float4
+		stored  limiter.RateStateRow
+		found   bool
+	)
 	err := tx.Run(ctx, c.db, a.ID, func(t pgx.Tx) error {
-		q := limiter.New(t)
 		var err error
-		if now, err = q.ClockMillis(ctx); err != nil {
+		if now, err = limiter.New(t).ClockMillis(ctx); err != nil {
 			return err
 		}
-		stored, err := q.RateState(ctx)
+		// An account with no state row is not connected and has no lowered target (ADR-0091).
+		if lowered, err = accountstate.New(t).LoweredTarget(ctx); err != nil && !errors.Is(err, pgx.ErrNoRows) {
+			return fmt.Errorf("reading the lowered target: %w", err)
+		}
+		stored, err = limiter.New(t).RateState(ctx)
 		switch {
 		case errors.Is(err, pgx.ErrNoRows):
 			return nil
 		case err != nil:
 			return err
 		}
-		row = stored
+		found = true
 		return nil
 	})
 	if err != nil {
 		return err
+	}
+	// The limits the account spends under, decided as the connections' limiter decides them, so an
+	// account whose stored target is out of range is failed here as its work is stopped there.
+	limits := core.LimitsFor(a.Ceiling)
+	if lowered.Valid {
+		if limits, err = core.LimitsWithTarget(a.Ceiling, float64(lowered.Float32)); err != nil {
+			return fmt.Errorf("the lowered target %v: %w", lowered.Float32, err)
+		}
+	}
+	row := limiter.RateStateRow{CurrentRate: float32(limits.Target())}
+	if found {
+		row = stored
 	}
 	asked := max(row.InteractiveAskedMs, row.SyncAskedMs, row.BatchAskedMs)
 	for _, v := range []struct {

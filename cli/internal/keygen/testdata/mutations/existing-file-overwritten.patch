@@ -5,10 +5,10 @@ tests: TestTheCommandPrintsTheKeyAndOverwritesNothing
 scheduled-count: no
 
 diff --git a/cli/internal/keygen/keygen.go b/cli/internal/keygen/keygen.go
-index f2f307aa..39aff591 100644
+index 987bb8f7..172a88c8 100644
 --- a/cli/internal/keygen/keygen.go
 +++ b/cli/internal/keygen/keygen.go
-@@ -62,7 +62,7 @@ func Run(args []string, stdout io.Writer) error {
+@@ -55,7 +55,7 @@ func Run(args []string, stdout io.Writer) error {
  // create writes content to a new file at path, refusing a path that exists. The mode is set
  // explicitly once the file exists, so the process's umask cannot narrow it.
  func create(path string, content []byte, mode os.FileMode) error {

@@ -119,7 +119,7 @@ func TestTheSourceHoldsOnlyTheCredentialItIsGiven(t *testing.T) {
 	for name, token := range map[string]string{"a refresh token": "given-refresh-token", "no refresh token": ""} {
 		t.Run(name, func(t *testing.T) {
 			src := google.NewTokenSource(http.DefaultClient, google.Credentials{ClientID: "given-id", ClientSecret: "given-secret", RefreshToken: token})
-			if got := src.RefreshToken(); got != token {
+			if got := string(src.Credential()); got != token {
 				t.Errorf("the source holds refresh token %q, want %q", got, token)
 			}
 		})

@@ -346,7 +346,7 @@ The demonstrations of the controls whose patches sit in `testsupport/`. [MUTATIO
 
 ## The crash harness checks persistence after every crash, and replays the reduced sequence against PostgreSQL
 
-- **Date · evidence:** 2026-09-30 · [pull request #196](https://github.com/ppat/mediated-mailbox-mcp/pull/196)
+- **Date · evidence:** 2026-09-30 · [pull request #196](https://github.com/ppat/mediated-mailbox-mcp/pull/196), and the five breaks of the replays again on 2026-11-18, after the crash harness took the shared recorder of `testsupport/property` in place of its own · [pull request #469](https://github.com/ppat/mediated-mailbox-mcp/pull/469)
 - **Break (1):** neither draw places the crash among the target's operations
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/crash`:** `TestBothDrawsPlaceTheCrash`, `TestBothDrawsPlaceTheCrash/rapid-draw`, `TestBothDrawsPlaceTheCrash/sampled-mix`, `TestTheHarnessFindsAPlantedFault`
 - **Break (2):** the cleanup diagnoses the last case drawn whenever the subtest failed, a replay's failure included, and reports the model as differing

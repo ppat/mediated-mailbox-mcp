@@ -6,10 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/api/internal/registry/registry.go b/api/internal/registry/registry.go
-index 9edc7d44..a1d9da7c 100644
+index 34e389f8..89f69937 100644
 --- a/api/internal/registry/registry.go
 +++ b/api/internal/registry/registry.go
-@@ -72,7 +72,7 @@ func build(ctx context.Context, p process.Capabilities, c config.API) (service.R
+@@ -73,7 +73,7 @@ func build(ctx context.Context, p process.Capabilities, c config.API) (service.R
  	}
  	ops, err := timed(service.Operations(service.Sources{
  		DB:       pool,

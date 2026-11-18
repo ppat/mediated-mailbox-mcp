@@ -5,10 +5,10 @@ tests: TestTheKeyFilesModesHoldUnderAnyUmask
 scheduled-count: no
 
 diff --git a/cli/internal/keygen/keygen.go b/cli/internal/keygen/keygen.go
-index f2f307aa..49819120 100644
+index 987bb8f7..a65cd6bc 100644
 --- a/cli/internal/keygen/keygen.go
 +++ b/cli/internal/keygen/keygen.go
-@@ -66,10 +66,7 @@ func create(path string, content []byte, mode os.FileMode) error {
+@@ -59,10 +59,7 @@ func create(path string, content []byte, mode os.FileMode) error {
  	if err != nil {
  		return fmt.Errorf("creating %s: %w", path, err)
  	}

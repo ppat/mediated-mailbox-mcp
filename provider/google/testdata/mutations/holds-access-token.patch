@@ -5,9 +5,10 @@ tests: TestARotatedRefreshTokenIsHeldSentAndHandedOver
 scheduled-count: no
 
 diff --git a/provider/google/tokensource.go b/provider/google/tokensource.go
+index 7eee30ce..0b5397b2 100644
 --- a/provider/google/tokensource.go
 +++ b/provider/google/tokensource.go
-@@ -146,7 +146,7 @@ func (s *TokenSource) receive(body []byte, now time.Time) error {
+@@ -141,7 +141,7 @@ func (s *TokenSource) receive(body []byte, now time.Time) error {
  func (s *TokenSource) accept(resp TokenResponse, now time.Time) {
  	s.access, s.expiry = resp.AccessToken, now.Add(resp.ExpiresIn)
  	if rotated(s.creds.RefreshToken, resp.RefreshToken) {

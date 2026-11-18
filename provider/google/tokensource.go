@@ -54,18 +54,13 @@ func NewTokenSource(client *http.Client, creds Credentials) *TokenSource {
 	return &TokenSource{client: client, creds: creds}
 }
 
-// RefreshToken returns the refresh token the source holds, the rotated one once Google has rotated
-// it. The deployable compares it with the one it last stored to find a rotation to write back.
-func (s *TokenSource) RefreshToken() string {
+// Credential returns the refresh token the source holds, the rotated one once Google has rotated
+// it, as the bytes a deployable hands over at the end of a unit of work. The deployable compares
+// it with the one it last stored to find a rotation to write back.
+func (s *TokenSource) Credential() []byte {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.creds.RefreshToken
-}
-
-// Credential returns the refresh token the source holds, as RefreshToken does, as the bytes a
-// deployable hands over at the end of a unit of work.
-func (s *TokenSource) Credential() []byte {
-	return []byte(s.RefreshToken())
+	return []byte(s.creds.RefreshToken)
 }
 
 // LastAttempt returns the source's latest request to the token endpoint and its outcome, or the

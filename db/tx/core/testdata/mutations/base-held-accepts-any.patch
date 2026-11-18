@@ -1,0 +1,19 @@
+control: A base-policy transaction names no account
+removes: the decision accepts a base-policy transaction whose account setting reads back as an account
+packages: ./db/tx/core
+tests: TestBaseHeld
+scheduled-count: no
+
+diff --git a/db/tx/core/core.go b/db/tx/core/core.go
+index 95691f3d..fa4b7b9a 100644
+--- a/db/tx/core/core.go
++++ b/db/tx/core/core.go
+@@ -27,7 +27,7 @@ func AccountHeld(account, readBack string) error {
+ // BaseHeld answers whether a base-policy transaction, whose account is the empty string, may go on,
+ // given the value the setting reads back as. It may only when the setting reads back empty.
+ func BaseHeld(readBack string) error {
+-	if readBack != "" {
++	if false && readBack != "" {
+ 		return ErrBaseNotSet
+ 	}
+ 	return nil

@@ -1,14 +1,14 @@
 control: Message text with no HTML form is released as one fenced code block that shows it exactly
 removes: the fence is always three backticks, so a text holding a run of three closes the block early
-packages: ./content/markdown
+packages: ./content/markdown/core ./content/markdown
 tests: TestLiteralTextIsOneCodeBlockShowingIt TestLiteralForms
 scheduled-count: no
 
-diff --git a/content/markdown/literal.go b/content/markdown/literal.go
-index b972af1..ccd7640 100644
---- a/content/markdown/literal.go
-+++ b/content/markdown/literal.go
-@@ -18,7 +18,7 @@ func Literal(text string) string {
+diff --git a/content/markdown/core/literal.go b/content/markdown/core/literal.go
+index 17167880..d20cb6df 100644
+--- a/content/markdown/core/literal.go
++++ b/content/markdown/core/literal.go
+@@ -20,7 +20,7 @@ func Literal(text string) string {
  		run++
  		longest = max(longest, run)
  	}
