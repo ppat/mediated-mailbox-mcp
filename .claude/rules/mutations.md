@@ -14,6 +14,7 @@ Scenario rows belong to docs/VERIFICATIONS.md, and only demonstrations belong he
 - **No row exists before implementation.** A row names the control, how its mechanism was
   broken, once so it does less and once so it does the wrong thing, the tests that went red, the
   date, and an evidence pointer. The rows are the whole artifact, never a pass rate or a score.
+  Every statement in a row must be true of the current code.
 - **A surviving mutant keeps its row open as a defect.** The row closes when the tests are
   fixed or the mechanism is deliberately deleted as redundant, and never by being dropped
   quietly.
