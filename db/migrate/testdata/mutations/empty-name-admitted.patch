@@ -5,12 +5,12 @@ tests: TestAnEmptyApplicationUserIsRefused
 scheduled-count: no
 
 diff --git a/db/migrate/migrate.go b/db/migrate/migrate.go
-index 9b266009..c5e5bda2 100644
+index 12c66388..3730bc54 100644
 --- a/db/migrate/migrate.go
 +++ b/db/migrate/migrate.go
 @@ -35,7 +35,7 @@ const Placeholder = "application_user"
  // so a second run at the same time waits, then finds the migrations already applied and applies
- // nothing. goose logs each migration it applies through logger.
+ // nothing. goose is handed logger and, since it is not made verbose, writes no record through it.
  func Apply(ctx context.Context, db *sql.DB, chain fs.FS, applicationUser string, logger *slog.Logger) error {
 -	if applicationUser == "" {
 +	if false && applicationUser == "" {

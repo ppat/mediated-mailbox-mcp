@@ -1,7 +1,7 @@
 control: Each deployable logs at the level its configuration sets
 removes: the process reads log_level and never sets the level variable, so the logger stays at info
-packages: ./api/app
-tests: TestTheConfiguredLevelGovernsTheLog
+packages: ./process ./api/app ./ui/app ./worker/app
+tests: TestTheStartLogsItsConfigurationThenSetsItsLevelAndRunsItsChecks/until_stopped/warn TestTheStartLogsItsConfigurationThenSetsItsLevelAndRunsItsChecks/once/warn TestTheConfiguredLevelGovernsTheLog
 scheduled-count: no
 integration: yes
 

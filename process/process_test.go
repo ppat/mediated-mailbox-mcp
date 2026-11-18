@@ -136,8 +136,16 @@ func task(work func(ctx context.Context, p process.Capabilities) error) *process
 	}}
 }
 
+// logFromAPart writes what a program's part writes once the start has set the level, one record at
+// info and one at warn, through the logger the process hands the part.
+func logFromAPart(p process.Capabilities) {
+	p.Logger().Info("a part's record at info")
+	p.Logger().Warn("a part's record at warn")
+}
+
 // starts are the two ways a program runs, each started the same way. Each runs a spec of its kind with
-// args and environ and reports whether it went on to build its parts.
+// args and environ and reports whether it went on to build its parts. The part's build writes a record
+// at info and one at warn before it fails, so a start that gets that far writes past the level.
 var starts = []struct {
 	name string
 	run  func(t *testing.T, init func([]string, []string) error, args, environ []string, stdout, stderr io.Writer) (bool, error)
@@ -146,8 +154,9 @@ var starts = []struct {
 		built := false
 		spec := process.Spec[serving]{
 			Name: "test",
-			Endpoints: []process.Endpoint[serving]{{Pattern: "/", Build: func(context.Context, process.Capabilities, serving) (http.Handler, error) {
+			Endpoints: []process.Endpoint[serving]{{Pattern: "/", Build: func(_ context.Context, p process.Capabilities, _ serving) (http.Handler, error) {
 				built = true
+				logFromAPart(p)
 				return nil, errors.New("the build ran")
 			}}},
 		}
@@ -162,8 +171,9 @@ var starts = []struct {
 	}},
 	{"once", func(t *testing.T, init func([]string, []string) error, args, environ []string, stdout, stderr io.Writer) (bool, error) {
 		built := false
-		spec := process.Spec[once]{Name: "test", Task: &process.Task[once]{Build: func(context.Context, process.Capabilities, once) (func(context.Context) error, error) {
+		spec := process.Spec[once]{Name: "test", Task: &process.Task[once]{Build: func(_ context.Context, p process.Capabilities, _ once) (func(context.Context) error, error) {
 			built = true
+			logFromAPart(p)
 			return nil, errors.New("the build ran")
 		}}}
 		if init != nil {
@@ -268,7 +278,8 @@ func TestHelpAndVersionAreAnsweredOnStandardOutput(t *testing.T) {
 }
 
 // Every effective value is logged with its source before the level applies, then the level log_level
-// names governs the log. A level that names none is refused after its source is logged, and the
+// names governs the log, so under warn the part's record at info is held back and its record at warn
+// is written. A level that names none is refused after its source is logged, and the
 // configuration's own checks and then the spec's Init run before anything is built (ADR-0078,
 // ADR-0122, ADR-0142).
 func TestTheStartLogsItsConfigurationThenSetsItsLevelAndRunsItsChecks(t *testing.T) {
@@ -280,16 +291,24 @@ func TestTheStartLogsItsConfigurationThenSetsItsLevelAndRunsItsChecks(t *testing
 				t.Fatalf("the run returned %v, built %t, want the parts built", err, built)
 			}
 			var paths []string
+			warned := false
 			for _, r := range records(t, stdout.String()) {
 				switch {
 				case r.Msg == "configuration":
 					paths = append(paths, r.Path+" "+r.Source)
 				case r.Level == "INFO":
 					t.Errorf("the process wrote %q at info after log_level set warn", r.Msg)
+				case r.Level == "WARN" && r.Msg == "a part's record at warn":
+					warned = true
 				}
 			}
 			if !slices.Contains(paths, "log_level flag --log_level") || !slices.Contains(paths, "own.value default") {
 				t.Errorf("the configuration logged is %v, want every value with its source", paths)
+			}
+			// The part's record at warn shows the part wrote through the log, so the absence of its
+			// record at info is the level's doing.
+			if !warned {
+				t.Errorf("the part's record at warn was not written:\n%s", stdout.String())
 			}
 		})
 		for _, level := range []string{"INFO", "info+2"} {
