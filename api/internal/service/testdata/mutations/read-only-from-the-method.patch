@@ -6,14 +6,14 @@ scheduled-count: no
 
 
 diff --git a/api/internal/service/registry.go b/api/internal/service/registry.go
-index 6d37edb..fa10542 100644
+index b4bf429e..3c5339b0 100644
 --- a/api/internal/service/registry.go
 +++ b/api/internal/service/registry.go
-@@ -229,6 +229,7 @@ func (r Registry) Operations() []Descriptor {
- 
- func describe(op Operation) Descriptor {
- 	method, annotations, _ := derive(op.Effect)
-+	annotations.ReadOnly = method == methodGet
+@@ -305,6 +305,7 @@ func describe(op Operation) Descriptor {
+ 			types[name] = t
+ 		}
+ 	}
++	annotations.ReadOnly = method == "GET"
  	return Descriptor{
  		Name: op.Name, Description: op.Description, Effect: op.Effect, Path: op.Path,
  		Method: method, Annotations: annotations, Input: op.Input, Output: op.Output,

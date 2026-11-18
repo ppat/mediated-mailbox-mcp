@@ -6,10 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/api/internal/service/index.go b/api/internal/service/index.go
-index f4ae8478..c65c2888 100644
+index acd57dfb..fcbf4ff4 100644
 --- a/api/internal/service/index.go
 +++ b/api/internal/service/index.go
-@@ -162,7 +162,9 @@ func (s Sources) searchMessages(ctx context.Context, account string, input json.
+@@ -163,7 +163,9 @@ func (s Sources) searchMessages(ctx context.Context, account string, input json.
  	}
  	out := make([]message, 0, len(rows))
  	for _, r := range rows {
@@ -18,5 +18,5 @@ index f4ae8478..c65c2888 100644
 +			out = append(out, m)
 +		}
  	}
- 	var next *string
- 	if len(rows) == pageSize {
+ 	next := nextCursor(rows, func(last messages.SearchPageRow) position {
+ 		pos := position{Listing: "search_messages", Account: account, Filter: filter, Key: last.MessageID}

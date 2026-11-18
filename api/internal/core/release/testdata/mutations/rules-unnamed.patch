@@ -5,15 +5,15 @@ tests: TestTheCheckReadsEverythingReleased/a_login_link_in_the_snippet TestTheCh
 scheduled-count: no
 
 diff --git a/api/internal/core/release/release.go b/api/internal/core/release/release.go
-index 8fdca71..a51334e 100644
+index 941b336e..23c582b4 100644
 --- a/api/internal/core/release/release.go
 +++ b/api/internal/core/release/release.go
-@@ -146,7 +146,7 @@ func Decide(c Content, state sensitivity.ScanState, s scan.Scanner) Decision {
+@@ -170,7 +170,7 @@ func Decide(c Content, s sensitivity.Sensitivity, sc scan.Scanner) (Verdict, Bod
  	}
  	if len(rules) > 0 {
  		slices.Sort(rules)
--		return Decision{reason: PatternMatched, rules: slices.Compact(rules)}
-+		return Decision{reason: PatternMatched}
+-		return Verdict{reason: PatternMatched, rules: slices.Compact(rules)}, Body{}
++		return Verdict{reason: PatternMatched}, Body{}
  	}
  	names := make([]string, 0, len(c.AttachmentNames))
  	for _, n := range c.AttachmentNames {

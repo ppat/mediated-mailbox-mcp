@@ -6,10 +6,11 @@ scheduled-count: no
 integration: yes
 
 diff --git a/process/policies/policies.go b/process/policies/policies.go
+index dc03d9fd..bcf4970a 100644
 --- a/process/policies/policies.go
 +++ b/process/policies/policies.go
-@@ -70,6 +70,9 @@ func New(db tx.Beginner, reg prometheus.Registerer, start Starter) *Policies {
- 		lookups: classify.Lookups{ToUnicode: idna.Lookup.ToUnicode, ToASCII: idna.Lookup.ToASCII, Registrable: publicsuffix.EffectiveTLDPlusOne},
+@@ -69,6 +69,9 @@ func New(db tx.Beginner, reg prometheus.Registerer, start Starter) *Policies {
+ 		lookups: domains.Lookups(),
  	}
  	p.fresh = newShared(start, p.reloadCurrent)
 +	if l, err := newLoader(db, []string{"none"}, reg, p.lookups); err == nil {

@@ -4,16 +4,16 @@ packages: ./api/internal/api
 tests: TestEachFailureNamesItsOrigin
 scheduled-count: no
 
-diff --git a/api/internal/service/failure.go b/api/internal/service/failure.go
-index c2cba09..9c44fb7 100644
---- a/api/internal/service/failure.go
-+++ b/api/internal/service/failure.go
-@@ -78,7 +78,7 @@ func Classify(err error) (Origin, string) {
+diff --git a/api/internal/core/failure/failure.go b/api/internal/core/failure/failure.go
+index 05592fdf..afb78e16 100644
+--- a/api/internal/core/failure/failure.go
++++ b/api/internal/core/failure/failure.go
+@@ -118,7 +118,7 @@ func Classify(err error) (Origin, string) {
  	}
  	var provider *providerError
  	if errors.As(err, &provider) {
 -		return OriginProvider, provider.message
 +		return OriginProvider, provider.Error()
  	}
- 	return OriginAPI, apiServerMessage
+ 	return OriginAPI, APIServerMessage
  }

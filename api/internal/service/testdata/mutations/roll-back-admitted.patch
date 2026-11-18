@@ -5,13 +5,13 @@ tests: TestTheSurfaceRefusesWhatItCannotCarry/a_name_holding_roll_back TestTheSu
 scheduled-count: no
 
 
-diff --git a/api/internal/service/surface.go b/api/internal/service/surface.go
-index ce64c76..569f82a 100644
---- a/api/internal/service/surface.go
-+++ b/api/internal/service/surface.go
-@@ -80,7 +80,7 @@ var lifecycleStems = []string{"approv", "appl", "rollback"}
- // namesLifecycle reports whether text names a plan's lifecycle, by a token between separators that
- // begins with a lifecycle stem, or by roll_back or roll-back anywhere in it.
+diff --git a/api/internal/core/operation/operation.go b/api/internal/core/operation/operation.go
+index 241f1681..83931a2d 100644
+--- a/api/internal/core/operation/operation.go
++++ b/api/internal/core/operation/operation.go
+@@ -90,7 +90,7 @@ func wildcardSegment() *regexp.Regexp {
+ // tokens that could name a plan's lifecycle transition, refused in any operation name, path segment
+ // or :verb so approval cannot be expressed (ADR-0087).
  func namesLifecycle(text, separator string) bool {
 -	if strings.Contains(text, "roll_back") || strings.Contains(text, "roll-back") {
 +	if false {

@@ -5,11 +5,11 @@ tests: TestTheSurfaceRefusesWhatItCannotCarry/no_effect TestTheSurfaceRefusesWha
 scheduled-count: no
 
 
-diff --git a/api/internal/service/surface.go b/api/internal/service/surface.go
-index 1225e3e..cf1579e 100644
---- a/api/internal/service/surface.go
-+++ b/api/internal/service/surface.go
-@@ -54,7 +54,7 @@ func derive(e Effect) (string, Annotations, bool) {
+diff --git a/api/internal/core/operation/operation.go b/api/internal/core/operation/operation.go
+index 241f1681..ad0e0ada 100644
+--- a/api/internal/core/operation/operation.go
++++ b/api/internal/core/operation/operation.go
+@@ -63,7 +63,7 @@ func Derive(e Effect) (string, Annotations, bool) {
  	case Disposal:
  		return methodPost, Annotations{ReadOnly: false, Destructive: true, Idempotent: true, OpenWorld: false}, true
  	default:

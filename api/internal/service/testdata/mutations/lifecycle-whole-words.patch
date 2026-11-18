@@ -5,14 +5,14 @@ tests: TestTheSurfaceRefusesWhatItCannotCarry/a_name_holding_approved TestTheSur
 scheduled-count: no
 
 
-diff --git a/api/internal/service/surface.go b/api/internal/service/surface.go
-index ce64c76..2a3b5b2 100644
---- a/api/internal/service/surface.go
-+++ b/api/internal/service/surface.go
-@@ -85,7 +85,7 @@ func namesLifecycle(text, separator string) bool {
+diff --git a/api/internal/core/operation/operation.go b/api/internal/core/operation/operation.go
+index 241f1681..ad6e16c5 100644
+--- a/api/internal/core/operation/operation.go
++++ b/api/internal/core/operation/operation.go
+@@ -95,7 +95,7 @@ func namesLifecycle(text, separator string) bool {
  	}
  	for _, token := range strings.Split(text, separator) {
- 		for _, stem := range lifecycleStems {
+ 		for _, stem := range []string{"approv", "appl", "rollback"} {
 -			if strings.HasPrefix(token, stem) {
 +			if token == stem || token == stem+"e" || token == stem+"y" {
  				return true

@@ -6,15 +6,15 @@ scheduled-count: no
 
 
 diff --git a/api/internal/service/reads.go b/api/internal/service/reads.go
-index 90399bd8..ca149d6e 100644
+index 5679e209..3dd217d0 100644
 --- a/api/internal/service/reads.go
 +++ b/api/internal/service/reads.go
-@@ -184,7 +184,7 @@ func arguments(input json.RawMessage, v any, names ...string) error {
+@@ -214,7 +214,7 @@ func decodeStrictly(raw json.RawMessage, v any, names []string) (strictProblem,
  		if !slices.Contains(names, key) {
- 			return Refuse("the arguments name one the operation does not take")
+ 			return unknownKey, key
  		}
 -		if string(bytes.TrimSpace(value)) == "null" {
 +		if false && string(bytes.TrimSpace(value)) == "null" {
- 			return Refuse(key + " may not be null")
+ 			return nullValue, key
  		}
  	}

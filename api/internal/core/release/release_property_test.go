@@ -52,13 +52,15 @@ func TestTheReleasedBodysForm(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	scanned, gateSkipped := releasable(t, sensitivity.Scanned()), releasable(t, sensitivity.SkippedGate())
 	property.Check(t, draw, func(t rapid.TB, a args) {
-		state := sensitivity.Scanned()
+		state := scanned
 		if a.GateSkipped {
-			state = sensitivity.SkippedGate()
+			state = gateSkipped
 		}
-		got, ok := release.Decide(release.Content{Body: body(a)}, state, s).Body()
-		if !ok {
+		v, b := release.Decide(release.Content{Body: body(a)}, state, s)
+		got := b.Text()
+		if !v.Releases() {
 			t.Fatalf("%+v: the body was withheld", a)
 		}
 		if !strings.HasPrefix(got, header) || !strings.HasSuffix(got, footer) {

@@ -5,16 +5,16 @@ tests: TestAReadMayFilterOnStatus
 scheduled-count: no
 
 
-diff --git a/api/internal/service/surface.go b/api/internal/service/surface.go
-index ce64c76..66ae4d2 100644
---- a/api/internal/service/surface.go
-+++ b/api/internal/service/surface.go
-@@ -179,7 +179,7 @@ func surfaceProblems(op Operation) []string {
+diff --git a/api/internal/core/operation/operation.go b/api/internal/core/operation/operation.go
+index 241f1681..fc016085 100644
+--- a/api/internal/core/operation/operation.go
++++ b/api/internal/core/operation/operation.go
+@@ -256,7 +256,7 @@ func surface(op Facts) []string {
  			}
  		}
  	}
--	if op.Effect != Read && op.Effect != StructuredRead && holdsKey(op.Input, "status") {
-+	if holdsKey(op.Input, "status") {
+-	if op.Effect != Read && op.Effect != StructuredRead && op.Input.Status {
++	if op.Input.Status {
  		problems = append(problems, "changes the mailbox and declares a property named status in its input")
  	}
- 	if holdsKey(op.Input, "x-mcp-header") || holdsKey(op.Output, "x-mcp-header") {
+ 	if op.Input.MCPHeader || op.Output.MCPHeader {

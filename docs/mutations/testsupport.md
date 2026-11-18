@@ -398,9 +398,9 @@ The demonstrations of the controls whose patches sit in `testsupport/`. [MUTATIO
 
 ## The generator report fails a generator that misses its stated mix
 
-- **Date · evidence:** 2026-09-22 · [pull request #142](https://github.com/ppat/mediated-mailbox-mcp/pull/142), and every break again on 2026-10-11, breaks (3) to (5) added, under seeds the runner chose, after the report came to count a case for every kind it reaches over the cases of several draws together · [pull request #345](https://github.com/ppat/mediated-mailbox-mcp/pull/345)
+- **Date · evidence:** 2026-09-22 · [pull request #142](https://github.com/ppat/mediated-mailbox-mcp/pull/142), and every break again on 2026-10-11, breaks (3) to (5) added, under seeds the runner chose, after the report came to count a case for every kind it reaches over the cases of several draws together · [pull request #345](https://github.com/ppat/mediated-mailbox-mcp/pull/345), and every break again on 2026-11-18 at RAPID_SEED=1, after the registry read each operation's schemas once, the domain lookups moved to `process/domains` and the generator report's demonstration followed its moved test, which changed the code, tests or patches the row rests on · [pull request #470](https://github.com/ppat/mediated-mailbox-mcp/pull/470)
 - **Break (1):** a kind is reported short when it reaches its minimum and passed when it misses it
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/sensitivity`:** `TestNoBodyCarriesADenyingSensitivityMix`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/api/internal/core/release`:** `TestNoBodyCarriesADenyingSensitivityMix`, `TestTheReleasedBodysFormMix`, `TestTheWindowedNeutralizerReplacesWhatTheFullScanDidMix`
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/property`:** `TestARunWithoutTheGatingSettingsFails`, `TestTheReachReportCountsEveryKindACaseReachesOverEveryDraw`, `TestTheReportFailsAGeneratorThatMissesItsMix`
 - **Break (2):** no kind is ever below its minimum
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/property`:** `TestTheReachReportCountsEveryKindACaseReachesOverEveryDraw`, `TestTheReportFailsAGeneratorThatMissesItsMix`

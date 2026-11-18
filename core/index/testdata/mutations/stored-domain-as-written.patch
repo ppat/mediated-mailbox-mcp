@@ -5,15 +5,15 @@ tests: TestAStoredDomainClassifiesAsItsAddress
 scheduled-count: no
 
 diff --git a/core/index/index.go b/core/index/index.go
-index afff1b2c..619076e7 100644
+index 3e360e87..7c01edf4 100644
 --- a/core/index/index.go
 +++ b/core/index/index.go
-@@ -142,7 +142,7 @@ func domain(address string) string {
+@@ -125,7 +125,7 @@ func domain(address string) string {
  	if at < 0 {
  		return ""
  	}
--	return StoredDomain(address[at+1:])
+-	return classify.StoredDomain(address[at+1:])
 +	return address[at+1:]
  }
  
- // StoredDomain returns a sender domain in the one form the index stores it in, which every workload
+ // StoredFlags returns a message's flags in the form the index stores them, an object keyed read and

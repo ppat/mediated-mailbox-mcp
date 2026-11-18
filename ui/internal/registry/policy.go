@@ -10,7 +10,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
-	"github.com/ppat/mediated-mailbox-mcp/core/index"
+	"github.com/ppat/mediated-mailbox-mcp/core/sensitivity"
 	"github.com/ppat/mediated-mailbox-mcp/db/policychanges"
 	"github.com/ppat/mediated-mailbox-mcp/db/policyrules/manage"
 	senderclassification "github.com/ppat/mediated-mailbox-mcp/db/senders/classification"
@@ -110,10 +110,11 @@ func ruleRowType() schema.Type { return schema.Obj("RuleRow", ruleFields()...) }
 
 // className is a sender's class as the read API sends it.
 func className(restricted bool) string {
+	c := sensitivity.NormalSender()
 	if restricted {
-		return "restricted"
+		c = sensitivity.RestrictedSender()
 	}
-	return "normal"
+	return c.String()
 }
 
 func scopeOf(base bool) string {
@@ -735,7 +736,7 @@ func searchOf(r Read) string {
 // statements find inside each stored domain as written, so the search ignores case without a statement
 // lowercasing in SQL (ADR-0016).
 func domainSearchOf(r Read) string {
-	return index.StoredDomain(searchOf(r))
+	return classify.StoredDomain(searchOf(r))
 }
 
 func sendersSearchFigures(r Read) string {

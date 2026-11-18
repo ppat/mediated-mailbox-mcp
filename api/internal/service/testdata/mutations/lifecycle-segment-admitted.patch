@@ -5,11 +5,11 @@ tests: TestTheSurfaceRefusesWhatItCannotCarry/a_:verb_approving TestTheSurfaceRe
 scheduled-count: no
 
 
-diff --git a/api/internal/service/surface.go b/api/internal/service/surface.go
-index ce64c76..086d6f2 100644
---- a/api/internal/service/surface.go
-+++ b/api/internal/service/surface.go
-@@ -152,7 +152,7 @@ func surfaceProblems(op Operation) []string {
+diff --git a/api/internal/core/operation/operation.go b/api/internal/core/operation/operation.go
+index 241f1681..e8392c07 100644
+--- a/api/internal/core/operation/operation.go
++++ b/api/internal/core/operation/operation.go
+@@ -229,7 +229,7 @@ func surface(op Facts) []string {
  			problems = append(problems, "has the path segment "+seg+", which is neither a name, a name with a :verb nor a {variable}")
  			continue
  		}

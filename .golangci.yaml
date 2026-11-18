@@ -499,8 +499,8 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
 
         # Each account's policy, every file, a package of the process family. It reads the policy tables through
-        # core/policy and prepares each account's policy for the classifier with the IDNA conversions and the
-        # public suffix list. client_golang is admitted for the reload-failure series and the load's duration
+        # core/policy and prepares each account's policy for the classifier with the domain lookups
+        # process/domains holds. client_golang is admitted for the reload-failure series and the load's duration
         # (ADR-0041, ADR-0076, ADR-0077, ADR-0125). db/check plans the statements of the subsection it names under
         # the application user (ADR-0066, ADR-0143).
         policies:
@@ -516,12 +516,11 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/core/policy$"
           - "github.com/ppat/mediated-mailbox-mcp/db/policyrules$"
           - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/domains$"
           - "github.com/ppat/mediated-mailbox-mcp/process/policies$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
           - "github.com/prometheus/client_golang/prometheus$"
-          - "golang.org/x/net/idna$"
-          - "golang.org/x/net/publicsuffix$"
 
         # The Session, every file, a package of the process family. It imports the reading of the list and the
         # policies, and no credential and no provider code, and never the connections, which attach to it through a
@@ -587,6 +586,19 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
+
+        # The domain lookups every program classifies senders with, every file, a package of the process family. It
+        # chooses the IDNA conversions and the public suffix list the sender classifier normalizes domains through,
+        # which the pure core cannot import, and hands them over as classify.Lookups (ADR-0004, ADR-0040, ADR-0136).
+        domains:
+          list-mode: strict
+          files:
+          - "${base-path}/process/domains/**.go"
+          allow:
+          - "$gostd"
+          - "github.com/ppat/mediated-mailbox-mcp/core/classify$"
+          - "golang.org/x/net/idna$"
+          - "golang.org/x/net/publicsuffix$"
 
         # The process's one scanner and the body-processing histogram, every file, a package of the process family.
         # It builds the scanner through core/scan from the scanner part under the revision the process holds
@@ -1203,10 +1215,11 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/db/senders/classification$"
           - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
           # The process, which hands each endpoint's Build its capabilities and keeps the UI's checks in a slot of
-          # its own, and the pool the read API's Build gets with its readiness report, in ui/internal/api,
-          # ui/internal/pages and ui/internal/server (ADR-0142).
+          # its own, the lookups the read API classifies senders with (ADR-0136), and the pool the read API's Build
+          # gets with its readiness report, in ui/internal/api, ui/internal/pages and ui/internal/server (ADR-0142).
           - "github.com/ppat/mediated-mailbox-mcp/process$"
           - "github.com/ppat/mediated-mailbox-mcp/process/database$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/domains$"
           # The provider fake, which the setups' tests run over. The list for non-test code refuses it.
           - "github.com/ppat/mediated-mailbox-mcp/provider/mail/fake$"
           # Google's grant, whose consent the setups' tests read.
@@ -1309,6 +1322,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
           - "github.com/ppat/mediated-mailbox-mcp/process$"
           - "github.com/ppat/mediated-mailbox-mcp/process/database$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/domains$"
           - "github.com/ppat/mediated-mailbox-mcp/ui/app$"
           - "github.com/ppat/mediated-mailbox-mcp/ui/browser$"
           - "github.com/ppat/mediated-mailbox-mcp/ui/internal/api$"
@@ -1791,6 +1805,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/process/connections$"
           - "github.com/ppat/mediated-mailbox-mcp/process/database$"
           - "github.com/ppat/mediated-mailbox-mcp/process/database/core$"
+          - "github.com/ppat/mediated-mailbox-mcp/process/domains$"
           - "github.com/ppat/mediated-mailbox-mcp/process/host$"
           - "github.com/ppat/mediated-mailbox-mcp/process/logging$"
           - "github.com/ppat/mediated-mailbox-mcp/process/policies$"
@@ -1928,6 +1943,7 @@ linters:
           - "!${base-path}/process/accounts/**"
           - "!${base-path}/process/connections/**"
           - "!${base-path}/process/database/**"
+          - "!${base-path}/process/domains/**"
           - "!${base-path}/process/host/**"
           - "!${base-path}/process/logging/**"
           - "!${base-path}/process/policies/**"

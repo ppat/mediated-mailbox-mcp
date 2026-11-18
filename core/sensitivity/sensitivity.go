@@ -1,16 +1,18 @@
 // Package sensitivity holds the sensitivity-carrying types every component shares, sender class,
-// content flags and scan state, the Sensitivity that combines them, and the Body a released message
-// body travels in.
+// content flags and scan state, and the Sensitivity that combines them. It holds the names the index
+// stores for the content flags and the scan state, which the index's writers write and its readers
+// read through it, and the sender class's name, which the client surface and the UI show, since the
+// index stores no class (ADR-0016, ADR-0136).
 //
 // Each type keeps its fields unexported, is built only through its constructor, and has the most
 // restrictive state as its zero value (ADR-0042). A zero SenderClass is restricted, zero
-// ContentFlags carry both flags, a zero ScanState is pending, and a zero Body holds no text. So a
-// value nobody built denies a body rather than releasing one. Fixtures that must not compile against
-// these types sit under testdata/mustnotcompile, one directory per case.
+// ContentFlags carry both flags, and a zero ScanState is pending. So a value nobody built denies a
+// body rather than releasing one, and so does a stored name the schema does not name. Fixtures that
+// must not compile against these types sit under testdata/mustnotcompile, one directory per case.
 //
-// A Body can be built only from a Sensitivity that releases a body, which is a normal sender, no
-// content flag, and a scan state of scanned or skipped by the scan gate (ADR-0093). A body value
-// carrying restricted sensitivity or a denying scan state cannot be constructed at all.
+// A Sensitivity releases a body only for a normal sender, no content flag, and a scan state of
+// scanned or skipped by the scan gate (ADR-0093). The body a client receives is the API server's
+// release step's, which builds one only for a Sensitivity that releases it.
 package sensitivity
 
 import "errors"
@@ -28,6 +30,27 @@ func RestrictedSender() SenderClass { return SenderClass{} }
 
 // Restricted reports whether the class is restricted.
 func (c SenderClass) Restricted() bool { return !c.normal }
+
+// String returns the class's name as the client surface and the UI spell it, normal or restricted.
+func (c SenderClass) String() string {
+	if c.normal {
+		return "normal"
+	}
+	return "restricted"
+}
+
+// SenderClassNamed returns the class name spells and true, or the restricted class and false for a
+// name that is neither normal nor restricted.
+func SenderClassNamed(name string) (SenderClass, bool) {
+	switch name {
+	case "normal":
+		return NormalSender(), true
+	case "restricted":
+		return RestrictedSender(), true
+	default:
+		return RestrictedSender(), false
+	}
+}
 
 // ContentFlags is the per-message axis, a detected one-time code and a detected login link. The zero
 // value carries both flags.
@@ -52,6 +75,36 @@ func (f ContentFlags) LoginLink() bool { return !f.noLoginLink }
 
 // Any reports whether either flag is set.
 func (f ContentFlags) Any() bool { return f.MFACode() || f.LoginLink() }
+
+// Names returns the names the index stores for the flags set, mfa_code before login_link, and an
+// empty list for none (ADR-0016).
+func (f ContentFlags) Names() []string {
+	names := []string{}
+	if f.MFACode() {
+		names = append(names, "mfa_code")
+	}
+	if f.LoginLink() {
+		names = append(names, "login_link")
+	}
+	return names
+}
+
+// FlagsNamed returns the content flags the stored names carry. A name the schema does not name reads
+// as both flags, the most restrictive state, so an unreadable row is never released (ADR-0042).
+func FlagsNamed(names []string) ContentFlags {
+	mfa, login := false, false
+	for _, n := range names {
+		switch n {
+		case "mfa_code":
+			mfa = true
+		case "login_link":
+			login = true
+		default:
+			return Flags(true, true)
+		}
+	}
+	return Flags(mfa, login)
+}
 
 // ScanState is a message's position relative to the content scanner (ADR-0093). The zero value is
 // pending.
@@ -100,6 +153,23 @@ func (s ScanState) String() string {
 		return "pending"
 	default:
 		return "pending"
+	}
+}
+
+// ScanStateNamed returns the scan state the stored name spells, the inverse of String. A name the
+// schema does not name reads as pending, which the gate never releases (ADR-0042).
+func ScanStateNamed(name string) ScanState {
+	switch name {
+	case "scanned":
+		return Scanned()
+	case "skipped_gate":
+		return SkippedGate()
+	case "skipped_restricted":
+		return SkippedRestricted()
+	case "refused":
+		return Refused()
+	default:
+		return Pending()
 	}
 }
 
@@ -156,22 +226,3 @@ func (s Sensitivity) ReleasesBody() bool {
 		return false
 	}
 }
-
-// Body is a message body released to a client. The zero value holds no text.
-type Body struct {
-	text string
-}
-
-// ErrBodyWithheld is returned when a body is built for a sensitivity that does not release one.
-var ErrBodyWithheld = errors.New("sensitivity: the message's sensitivity withholds its body")
-
-// NewBody returns a Body holding text, refusing unless s releases a body.
-func NewBody(text string, s Sensitivity) (Body, error) {
-	if !s.ReleasesBody() {
-		return Body{}, ErrBodyWithheld
-	}
-	return Body{text: text}, nil
-}
-
-// Text returns the body's text.
-func (b Body) Text() string { return b.text }

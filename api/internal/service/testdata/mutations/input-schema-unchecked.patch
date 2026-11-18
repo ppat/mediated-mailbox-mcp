@@ -5,16 +5,16 @@ tests: TestAOneSidedEntryFailsGeneration/no_input_schema TestAOneSidedEntryFails
 scheduled-count: no
 
 
-diff --git a/api/internal/service/registry.go b/api/internal/service/registry.go
-index 6d37edb..4205e66 100644
---- a/api/internal/service/registry.go
-+++ b/api/internal/service/registry.go
-@@ -108,7 +108,7 @@ func NewRegistry(accounts []string, ops ...Operation) (Registry, error) {
+diff --git a/api/internal/core/operation/operation.go b/api/internal/core/operation/operation.go
+index 241f1681..e5e9db0c 100644
+--- a/api/internal/core/operation/operation.go
++++ b/api/internal/core/operation/operation.go
+@@ -168,7 +168,7 @@ func Problems(ops []Facts) []string {
  		if strings.TrimSpace(op.Description) == "" {
  			problems = append(problems, where+" has no description")
  		}
--		if err := objectSchema(op.Input); err != nil {
-+		if err := error(nil); err != nil {
- 			problems = append(problems, where+" has an input schema that "+err.Error())
+-		if op.Input.Problem != "" {
++		if false {
+ 			problems = append(problems, where+" has an input schema that "+op.Input.Problem)
  		} else {
- 			for _, problem := range surfaceProblems(op) {
+ 			for _, problem := range surface(op) {

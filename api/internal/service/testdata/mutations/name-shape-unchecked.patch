@@ -5,16 +5,16 @@ tests: TestAOneSidedEntryFailsGeneration/no_name TestAOneSidedEntryFailsGenerati
 scheduled-count: no
 
 
-diff --git a/api/internal/service/registry.go b/api/internal/service/registry.go
-index 50e5496..d2d87ca 100644
---- a/api/internal/service/registry.go
-+++ b/api/internal/service/registry.go
-@@ -50,7 +50,7 @@ type Registry struct {
- }
- 
- // validName is the shape of an operation's name.
--var validName = regexp.MustCompile(`^[a-z][a-z0-9_]{0,63}$`)
-+var validName = regexp.MustCompile(`.*`)
- 
- // NewRegistry validates ops and returns the registry holding them, or every problem found. An
- // operation with no name, no description, no handler or an input or output that is not an object
+diff --git a/api/internal/core/operation/operation.go b/api/internal/core/operation/operation.go
+index 241f1681..1f8aba5b 100644
+--- a/api/internal/core/operation/operation.go
++++ b/api/internal/core/operation/operation.go
+@@ -153,7 +153,7 @@ type Facts struct {
+ // one route.
+ func Problems(ops []Facts) []string {
+ 	var problems []string
+-	validName := regexp.MustCompile(`^[a-z][a-z0-9_]{0,63}$`)
++	validName := regexp.MustCompile(`.*`)
+ 	seen := map[string]bool{}
+ 	routes := map[string]bool{}
+ 	for i, op := range ops {

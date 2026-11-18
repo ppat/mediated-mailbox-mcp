@@ -80,14 +80,15 @@ func (d differential) text() string { return strings.Join(d.Fragments, "") }
 // it shows the neutralizer's output alone.
 func TestTheWindowedNeutralizerReplacesWhatTheFullScanDid(t *testing.T) {
 	s := scanner(t)
+	scanned := releasable(t, sensitivity.Scanned())
 	property.Check(t, drawDifferential, func(t rapid.TB, d differential) {
 		text := d.text()
-		got, ok := release.Decide(release.Content{Body: "a body", Snippet: text}, sensitivity.Scanned(), s).Released()
-		if !ok {
+		v, b := release.Decide(release.Content{Body: "a body", Snippet: text}, scanned, s)
+		if !v.Releases() {
 			t.Fatalf("%q: the content was withheld", text)
 		}
-		if want := fullScan(text); got.Snippet != want {
-			t.Fatalf("%q: released %q, the full scan gives %q", text, got.Snippet, want)
+		if want := fullScan(text); b.Snippet() != want {
+			t.Fatalf("%q: released %q, the full scan gives %q", text, b.Snippet(), want)
 		}
 	})
 }

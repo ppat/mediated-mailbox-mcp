@@ -6,13 +6,13 @@ scheduled-count: no
 
 
 diff --git a/api/internal/api/api.go b/api/internal/api/api.go
-index cc14950..e154133 100644
+index d23522e7..6f57c22b 100644
 --- a/api/internal/api/api.go
 +++ b/api/internal/api/api.go
-@@ -197,6 +197,7 @@ func (rt route) queryValue(key, text string) (json.RawMessage, error) {
+@@ -181,6 +181,7 @@ func (rt route) queryValue(key, text string) (json.RawMessage, error) {
  		return json.Marshal(text)
  	}
- 	t, declared := rt.types[key]
+ 	t, declared := rt.op.ArgumentTypes[key]
 +	t = "string"
  	if !declared || rt.op.Method != http.MethodGet || rt.isPathVar(key) {
  		return nil, fmt.Errorf("the query parameter %q is not an argument the query string carries", key)

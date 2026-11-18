@@ -6,13 +6,13 @@ scheduled-count: no
 
 
 diff --git a/api/internal/api/api.go b/api/internal/api/api.go
-index cc14950..c17e388 100644
+index d23522e7..f5ae310e 100644
 --- a/api/internal/api/api.go
 +++ b/api/internal/api/api.go
-@@ -127,7 +127,7 @@ func (rt route) serve(reg service.Registry, w http.ResponseWriter, r *http.Reque
+@@ -111,7 +111,7 @@ func (rt route) serve(reg service.Registry, w http.ResponseWriter, r *http.Reque
  func (rt route) arguments(w http.ResponseWriter, r *http.Request) (json.RawMessage, error) {
  	var members []member
- 	for _, name := range rt.pathVars {
+ 	for _, name := range rt.op.PathVariables {
 -		value, err := json.Marshal(r.PathValue(name))
 +		value, err := json.Marshal(url.PathEscape(r.PathValue(name)))
  		if err != nil {

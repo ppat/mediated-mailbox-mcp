@@ -5,17 +5,17 @@ tests: TestAOneSidedEntryFailsGeneration/no_output_schema TestAOneSidedEntryFail
 scheduled-count: no
 
 
-diff --git a/api/internal/service/registry.go b/api/internal/service/registry.go
-index 6d37edb..dda120f 100644
---- a/api/internal/service/registry.go
-+++ b/api/internal/service/registry.go
-@@ -122,9 +122,6 @@ func NewRegistry(accounts []string, ops ...Operation) (Registry, error) {
+diff --git a/api/internal/core/operation/operation.go b/api/internal/core/operation/operation.go
+index 241f1681..a9ba3e81 100644
+--- a/api/internal/core/operation/operation.go
++++ b/api/internal/core/operation/operation.go
+@@ -182,9 +182,6 @@ func Problems(ops []Facts) []string {
  			}
  			routes[route] = true
  		}
--		if err := objectSchema(op.Output); err != nil {
--			problems = append(problems, where+" has an output schema that "+err.Error())
+-		if op.Output.Problem != "" {
+-			problems = append(problems, where+" has an output schema that "+op.Output.Problem)
 -		}
- 		if op.Handle == nil {
+ 		if !op.Handled {
  			problems = append(problems, where+" has no handler")
  		}

@@ -5,15 +5,15 @@ tests: TestServeTimePatternCheck/a_gate-skipped_code_only_tier_2_catches
 scheduled-count: no
 
 diff --git a/api/internal/core/release/release.go b/api/internal/core/release/release.go
-index 8fdca71..92ce22d 100644
+index 941b336e..6a436047 100644
 --- a/api/internal/core/release/release.go
 +++ b/api/internal/core/release/release.go
-@@ -136,7 +136,7 @@ func Decide(c Content, state sensitivity.ScanState, s scan.Scanner) Decision {
+@@ -160,7 +160,7 @@ func Decide(c Content, s sensitivity.Sensitivity, sc scan.Scanner) (Verdict, Bod
  	}
  	var rules []string
  	for _, text := range checked {
--		v := s.ScanPatterns(text)
-+		v := s.Scan(text)
+-		v := sc.ScanPatterns(text)
++		v := sc.Scan(text)
  		if v.Version() == 0 {
- 			return Decision{reason: NoScanner}
+ 			return Verdict{reason: NoScanner}, Body{}
  		}

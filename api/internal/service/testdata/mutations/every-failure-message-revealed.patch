@@ -4,16 +4,14 @@ packages: ./api/internal/api ./api/internal/mcp
 tests: TestEachFailureNamesItsOrigin TestAToolCallRunsTheOperation
 scheduled-count: no
 
-diff --git a/api/internal/service/failure.go b/api/internal/service/failure.go
-index edb01ed..06c3404 100644
---- a/api/internal/service/failure.go
-+++ b/api/internal/service/failure.go
-@@ -81,7 +81,7 @@ func Classify(err error) (Origin, string) {
+diff --git a/api/internal/core/failure/failure.go b/api/internal/core/failure/failure.go
+index 05592fdf..e7c5cc17 100644
+--- a/api/internal/core/failure/failure.go
++++ b/api/internal/core/failure/failure.go
+@@ -120,5 +120,5 @@ func Classify(err error) (Origin, string) {
  	if errors.As(err, &provider) {
  		return OriginProvider, provider.message
  	}
--	return OriginAPI, apiServerMessage
+-	return OriginAPI, APIServerMessage
 +	return OriginAPI, err.Error()
  }
- 
- // FailureLevel returns the level a failed call is logged at, by its origin, so both roots log a

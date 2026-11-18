@@ -6,11 +6,11 @@ scheduled-count: no
 
 
 diff --git a/api/internal/mcp/mcp.go b/api/internal/mcp/mcp.go
-index dc9668f..79763f4 100644
+index d999adf9..23dd99fb 100644
 --- a/api/internal/mcp/mcp.go
 +++ b/api/internal/mcp/mcp.go
-@@ -52,7 +52,6 @@ func call(reg service.Registry, name string) sdk.ToolHandler {
- 			failure := service.Failure(err)
+@@ -157,7 +157,6 @@ func call(reg service.Registry, name string, logger *slog.Logger) sdk.ToolHandle
+ 			failure := service.Failed(ctx, logger, name, err)
  			return &sdk.CallToolResult{
  				IsError:           true,
 -				StructuredContent: failure,

@@ -12,7 +12,6 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
-	"github.com/ppat/mediated-mailbox-mcp/core/index"
 	"github.com/ppat/mediated-mailbox-mcp/db/jobruns"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/lens"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/rules"
@@ -240,7 +239,7 @@ func storedDomains(domains []string) []string {
 	}
 	out := make([]string, len(domains))
 	for i, d := range domains {
-		out[i] = index.StoredDomain(d)
+		out[i] = classify.StoredDomain(d)
 	}
 	return out
 }

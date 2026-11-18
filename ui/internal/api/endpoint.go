@@ -5,13 +5,10 @@ import (
 	"net/http"
 	"time"
 
-	"golang.org/x/net/idna"
-	"golang.org/x/net/publicsuffix"
-
-	"github.com/ppat/mediated-mailbox-mcp/core/classify"
 	"github.com/ppat/mediated-mailbox-mcp/core/config"
 	"github.com/ppat/mediated-mailbox-mcp/process"
 	"github.com/ppat/mediated-mailbox-mcp/process/database"
+	"github.com/ppat/mediated-mailbox-mcp/process/domains"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/attention"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/policymanagement"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/reads"
@@ -45,8 +42,9 @@ func New(ctx context.Context, p process.Capabilities, c config.UI) (http.Handler
 		return nil, err
 	}
 	// The sender classifier's domain functions, which policy management matches senders against
-	// rules with, as the deployables that classify pass them (ADR-0004).
-	lookups := classify.Lookups{ToUnicode: idna.Lookup.ToUnicode, ToASCII: idna.Lookup.ToASCII, Registrable: publicsuffix.EffectiveTLDPlusOne}
+	// rules with, from their one constructor, which every program that classifies takes them from
+	// (ADR-0004, ADR-0136).
+	lookups := domains.Lookups()
 	datasets := registry.Datasets(lookups)
 	readRoutes, err := reads.Routes(reads.Options{
 		Database:       pool,

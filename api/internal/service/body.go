@@ -179,7 +179,7 @@ func (s bodySources) getMessageBody(ctx context.Context, account string, input j
 		return nil, Refuse("the account holds no message with that message_id")
 	}
 	row := rows[0]
-	flags, state := storedFlags(row.ContentFlags), storedScanState(row.ScanState)
+	flags, state := sensitivity.FlagsNamed(row.ContentFlags), sensitivity.ScanStateNamed(row.ScanState)
 	v := redact.Decide(p, row.FromEmail, flags, state)
 	g := gateDecided(v, flags, state, row.RuleIds)
 	denied := bodyResult{AccountID: account, MessageID: args.MessageID}
@@ -215,14 +215,14 @@ func (s bodySources) getMessageBody(ctx context.Context, account string, input j
 		return nil, FromProvider(err)
 	}
 	content, converted := s.markdown(body, meta)
-	d := release.Decision{}
+	var verdict release.Verdict
+	var out release.Body
 	if converted {
-		d = release.Decide(content, state, s.Bodies.Scanner)
+		verdict, out = release.Decide(content, releasing(v, flags, state), s.Bodies.Scanner)
 	}
-	check := checked(d, s.Bodies.Scanner)
-	out, released := d.Released()
-	if !released {
-		reason := d.Reason().String()
+	check := checked(verdict, s.Bodies.Scanner)
+	if !verdict.Releases() {
+		reason := verdict.Reason().String()
 		if !converted {
 			reason = conversionRefused
 		}
@@ -236,12 +236,13 @@ func (s bodySources) getMessageBody(ctx context.Context, account string, input j
 		return nil, err
 	}
 	s.Bodies.Observe(account, Outcome{Reason: releasedReason})
+	text, snippet := out.Text(), out.Snippet()
 	result := bodyResult{
 		AccountID: account, MessageID: args.MessageID, Released: true, Reason: releasedReason,
-		Body: &out.Body, AttachmentNames: nonNil(out.AttachmentNames),
+		Body: &text, AttachmentNames: nonNil(out.AttachmentNames()),
 	}
 	if meta.Snippet != "" {
-		result.Snippet = &out.Snippet
+		result.Snippet = &snippet
 	}
 	return ok(result)
 }
@@ -263,6 +264,18 @@ func (s bodySources) markdown(body mail.MessageBody, meta mail.MessageMetadata) 
 		c.AttachmentNames = append(c.AttachmentNames, s.Bodies.Literal(name))
 	}
 	return c, true
+}
+
+// releasing returns the sensitivity the release step decides a message's content under, the gate's
+// sender class beside the stored content flags and scan state, never the class the index stored. The
+// gate has released the message, so the three make a sensitivity no message is refused, and one that
+// could not be built is the zero Sensitivity, which withholds the body.
+func releasing(v redact.Verdict, flags sensitivity.ContentFlags, state sensitivity.ScanState) sensitivity.Sensitivity {
+	s, err := sensitivity.New(v.Sender().Class(), flags, state)
+	if err != nil {
+		return sensitivity.Sensitivity{}
+	}
+	return s
 }
 
 // deny returns r as the denial for reason, with no body, snippet or filename.
@@ -315,10 +328,7 @@ type gate struct {
 // gateDecided returns what the gate decided from. The content rules are the stored ones when a flag is
 // stored, and none otherwise, since only a flag's rules explain it.
 func gateDecided(v redact.Verdict, flags sensitivity.ContentFlags, state sensitivity.ScanState, stored []string) gate {
-	g := gate{senderClass: "normal", contentFlags: flagNames(flags), contentRules: []string{}, scanState: state.String()}
-	if v.Sender().Class().Restricted() {
-		g.senderClass = "restricted"
-	}
+	g := gate{senderClass: v.Sender().Class().String(), contentFlags: flags.Names(), contentRules: []string{}, scanState: state.String()}
 	if rule := v.Sender().Rule(); rule != "" {
 		g.classRule = pgtype.Text{String: rule, Valid: true}
 		g.classScope = pgtype.Text{String: v.Sender().Scope().String(), Valid: true}
@@ -327,18 +337,6 @@ func gateDecided(v redact.Verdict, flags sensitivity.ContentFlags, state sensiti
 		g.contentRules = sorted(stored)
 	}
 	return g
-}
-
-// flagNames returns the content flags' stored names.
-func flagNames(flags sensitivity.ContentFlags) []string {
-	names := []string{}
-	if flags.MFACode() {
-		names = append(names, "mfa_code")
-	}
-	if flags.LoginLink() {
-		names = append(names, "login_link")
-	}
-	return names
 }
 
 // serveCheck is the serve-time pattern check's run, the rules it matched and the scanner it ran
@@ -350,11 +348,11 @@ type serveCheck struct {
 	revision string
 }
 
-// checked returns the serve-time pattern check's run behind the release step's decision d, made with
+// checked returns the serve-time pattern check's run behind the release step's verdict d, made with
 // scanner s. The check ran on a release and on its own denial, under a scanner someone built. It did
-// not run for a scan state the release step never releases, with no scanner, or on a body the
-// conversion refused, whose decision nobody made (ADR-0002, ADR-0016).
-func checked(d release.Decision, s scan.Scanner) serveCheck {
+// not run for a sensitivity the release step never releases, with no scanner, or on a body the
+// conversion refused, whose verdict nobody made (ADR-0002, ADR-0016).
+func checked(d release.Verdict, s scan.Scanner) serveCheck {
 	switch d.Reason() {
 	case release.Released, release.PatternMatched:
 		if s.Version() == 0 {

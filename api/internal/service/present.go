@@ -86,56 +86,11 @@ type shownState struct {
 	ScanState    string   `json:"scan_state"`
 }
 
-// storedFlags reads the content flags the index stores. A value the schema does not name reads as
-// both flags, the most restrictive state, so an unreadable row is never released (ADR-0042).
-func storedFlags(names []string) sensitivity.ContentFlags {
-	mfa, login := false, false
-	for _, n := range names {
-		switch n {
-		case "mfa_code":
-			mfa = true
-		case "login_link":
-			login = true
-		default:
-			return sensitivity.Flags(true, true)
-		}
-	}
-	return sensitivity.Flags(mfa, login)
-}
-
-// storedScanState reads the scan state the index stores. A value the schema does not name reads as
-// pending, which the gate never releases.
-func storedScanState(name string) sensitivity.ScanState {
-	switch name {
-	case "scanned":
-		return sensitivity.Scanned()
-	case "skipped_gate":
-		return sensitivity.SkippedGate()
-	case "skipped_restricted":
-		return sensitivity.SkippedRestricted()
-	case "refused":
-		return sensitivity.Refused()
-	default:
-		return sensitivity.Pending()
-	}
-}
-
 // present returns the message m of account as the client surface serves it, under the Redaction
 // Gate's decision against the account policy p (ADR-0001, ADR-0002).
 func present(account string, m stored, p classify.Policy) message {
-	flags, scan := storedFlags(m.ContentFlags), storedScanState(m.ScanState)
+	flags, scan := sensitivity.FlagsNamed(m.ContentFlags), sensitivity.ScanStateNamed(m.ScanState)
 	v := redact.Decide(p, m.FromEmail, flags, scan)
-	class := "normal"
-	if v.Sender().Class().Restricted() {
-		class = "restricted"
-	}
-	shownFlags := []string{}
-	if flags.MFACode() {
-		shownFlags = append(shownFlags, "mfa_code")
-	}
-	if flags.LoginLink() {
-		shownFlags = append(shownFlags, "login_link")
-	}
 	out := message{
 		AccountID:       account,
 		MessageID:       m.MessageID,
@@ -147,7 +102,7 @@ func present(account string, m stored, p classify.Policy) message {
 		Flags:           storedMessageFlags(m.Flags),
 		HasAttachments:  m.HasAttachments,
 		AttachmentTypes: types(m.AttachmentMedia),
-		Sensitivity:     shownState{SenderClass: class, ContentFlags: shownFlags, ScanState: scan.String()},
+		Sensitivity:     shownState{SenderClass: v.Sender().Class().String(), ContentFlags: flags.Names(), ScanState: scan.String()},
 		BodyAvailable:   v.ReleasesBody(),
 	}
 	return out

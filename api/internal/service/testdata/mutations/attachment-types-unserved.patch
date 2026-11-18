@@ -6,15 +6,15 @@ scheduled-count: no
 integration: yes
 
 diff --git a/api/internal/service/present.go b/api/internal/service/present.go
-index a8bd6cb2..062e562a 100644
+index bcf49d74..93f7246a 100644
 --- a/api/internal/service/present.go
 +++ b/api/internal/service/present.go
-@@ -145,7 +145,7 @@ func present(account string, m stored, p policy.Composed, l classify.Lookups) me
+@@ -101,7 +101,7 @@ func present(account string, m stored, p classify.Policy) message {
  		Labels:          nonNil(m.Labels),
  		Flags:           storedMessageFlags(m.Flags),
  		HasAttachments:  m.HasAttachments,
 -		AttachmentTypes: types(m.AttachmentMedia),
 +		AttachmentTypes: []string{},
- 		Sensitivity:     shownState{SenderClass: class, ContentFlags: shownFlags, ScanState: scan.String()},
+ 		Sensitivity:     shownState{SenderClass: v.Sender().Class().String(), ContentFlags: flags.Names(), ScanState: scan.String()},
  		BodyAvailable:   v.ReleasesBody(),
  	}

@@ -1,0 +1,35 @@
+control: A message body cannot carry a denying sensitivity
+removes: the Body's text field is exported, so a Body literal can hold any text
+packages: ./api/internal/core/release
+tests: TestTheVerdictsShape TestABodyCannotBeBuiltAroundTheReleaseStep
+scheduled-count: no
+
+diff --git a/api/internal/core/release/release.go b/api/internal/core/release/release.go
+index 941b336e..2f58e1f3 100644
+--- a/api/internal/core/release/release.go
++++ b/api/internal/core/release/release.go
+@@ -129,13 +129,13 @@ func (v Verdict) Releases() bool {
+ // delimiters, and the snippet and filenames beside it, outside the wrapping. Only Decide builds one
+ // holding text. The zero value holds no text.
+ type Body struct {
+-	text            string
++	Content         string
+ 	snippet         string
+ 	attachmentNames []string
+ }
+ 
+ // Text returns the body wrapped in the delimiters.
+-func (b Body) Text() string { return b.text }
++func (b Body) Text() string { return b.Content }
+ 
+ // Snippet returns the snippet, empty for a message with none.
+ func (b Body) Snippet() string { return b.snippet }
+@@ -176,7 +176,7 @@ func Decide(c Content, s sensitivity.Sensitivity, sc scan.Scanner) (Verdict, Bod
+ 	for _, n := range c.AttachmentNames {
+ 		names = append(names, neutralize(n))
+ 	}
+-	return Verdict{reason: Released}, Body{text: wrap(c.Body), snippet: neutralize(c.Snippet), attachmentNames: names}
++	return Verdict{reason: Released}, Body{Content: wrap(c.Body), snippet: neutralize(c.Snippet), attachmentNames: names}
+ }
+ 
+ // wrap returns markdown between the delimiters, after the directive, with the delimiters' words

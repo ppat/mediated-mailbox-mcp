@@ -1,88 +1,48 @@
 package service
 
 import (
+	"context"
 	"encoding/json"
-	"errors"
 	"log/slog"
 
-	"github.com/ppat/mediated-mailbox-mcp/core/mail"
+	"github.com/ppat/mediated-mailbox-mcp/api/internal/core/failure"
 )
 
-// Origin is where a failed call failed, one of three a client tells apart (ADR-0101).
-type Origin string
+// Origin is where a failed call failed, one of three a client tells apart (ADR-0101). It and the
+// names below are the failure core's, named here so the roots, which reach no lower than this layer,
+// can read them.
+type Origin = failure.Origin
 
+// The three origins.
 const (
-	// OriginClient is a failure of the request itself.
-	OriginClient Origin = "client"
-	// OriginAPI is a failure inside the system.
-	OriginAPI Origin = "api"
-	// OriginProvider is a failure in the provider's answer, or its absence.
-	OriginProvider Origin = "provider"
+	OriginClient   = failure.OriginClient
+	OriginAPI      = failure.OriginAPI
+	OriginProvider = failure.OriginProvider
 )
 
-// apiServerMessage is the one message a failure inside the system carries. It names no cause, which
-// could carry stored content or a database's text, and points at the operational state a client can
-// read.
-const apiServerMessage = "the operation failed inside the API server; get_system_status reports the account's operational state"
+// ArgumentError is an operation's refusal of an argument the client sent (ADR-0033).
+type ArgumentError = failure.ArgumentError
 
-// refusals are the registry's refusals of a call, each the client's.
-var refusals = []error{
-	ErrMissingAccount, ErrUnknownAccount, ErrAmbiguousAccount, ErrRepeatedArgument, ErrTooManyArguments,
-	ErrNotAnObject, ErrNoOperation,
-}
+// Refuse returns an ArgumentError with message.
+func Refuse(message string) *ArgumentError { return failure.Refuse(message) }
 
-// providerError is a failure in a provider call, carrying the fixed message for its kind and never
-// the provider's own text.
-type providerError struct {
-	message string
-	err     error
-}
+// The refusals of a call, each the client's.
+var (
+	ErrMissingAccount   = failure.ErrMissingAccount
+	ErrUnknownAccount   = failure.ErrUnknownAccount
+	ErrAmbiguousAccount = failure.ErrAmbiguousAccount
+	ErrRepeatedArgument = failure.ErrRepeatedArgument
+	ErrTooManyArguments = failure.ErrTooManyArguments
+	ErrNotAnObject      = failure.ErrNotAnObject
+	ErrNoOperation      = failure.ErrNoOperation
+)
 
-func (e *providerError) Error() string { return e.message + ": " + e.err.Error() }
-
-func (e *providerError) Unwrap() error { return e.err }
-
-// FromProvider returns err, an error a provider call returned, as the provider's failure when it
-// wraps one of the Provider Port's errors that the provider's answer causes, and unchanged otherwise.
-// A failure of the rate limiter or the database on the way to the provider stays the API server's, and
-// so does a request the port refuses as malformed, which the API server built (ADR-0101, ADR-0010).
-func FromProvider(err error) error {
-	for _, kind := range []struct {
-		err     error
-		message string
-	}{
-		{mail.ErrThrottled, "the provider throttled the request; get_system_status reports the rate controller's state"},
-		{mail.ErrAuthentication, "the provider refused the account's credential; get_system_status reports the last authentication"},
-		{mail.ErrNotFound, "the provider no longer holds the message"},
-		{mail.ErrProvider, "the provider failed the request or did not answer"},
-	} {
-		if errors.Is(err, kind.err) {
-			return &providerError{message: kind.message, err: err}
-		}
-	}
-	return err
-}
+// FromProvider returns err, an error a provider call returned, as the provider's failure when the
+// provider's answer caused it, and unchanged otherwise (ADR-0101).
+func FromProvider(err error) error { return failure.FromProvider(err) }
 
 // Classify returns the origin of err, an error a call returned, and the message a client receives.
-// An operation's refusal of an argument and the registry's refusals of a call are the client's, a
-// provider call's failure is the provider's, and every other error is the API server's, so a failure
-// nobody classified never reads as the client's or the provider's.
-func Classify(err error) (Origin, string) {
-	var arg *ArgumentError
-	if errors.As(err, &arg) {
-		return OriginClient, arg.Error()
-	}
-	for _, refusal := range refusals {
-		if errors.Is(err, refusal) {
-			return OriginClient, refusal.Error()
-		}
-	}
-	var provider *providerError
-	if errors.As(err, &provider) {
-		return OriginProvider, provider.message
-	}
-	return OriginAPI, apiServerMessage
-}
+func Classify(err error) (Origin, string) { return failure.Classify(err) }
 
 // FailureLevel returns the level a failed call is logged at, by its origin, so both roots log a
 // failure alike (ADR-0122, ADR-0053). A failure inside the API server is an error an operator acts on.
@@ -103,13 +63,21 @@ func FailureLevel(err error) slog.Level {
 	}
 }
 
+// Failed logs the failed call of the operation named name through logger, at the level its origin
+// sets, and returns the content the call answers with, so both roots log and answer a failure alike
+// (ADR-0053, ADR-0101, ADR-0122).
+func Failed(ctx context.Context, logger *slog.Logger, name string, err error) json.RawMessage {
+	logger.Log(ctx, FailureLevel(err), "operation failed", "operation", name, "error", err)
+	return Failure(err)
+}
+
 // Failure returns the structured content a failed call answers with on both roots, its origin and
 // its message (ADR-0101).
 func Failure(err error) json.RawMessage {
 	origin, message := Classify(err)
-	out, merr := json.Marshal(failure{Error: failureBody{Origin: origin, Message: message}})
+	out, merr := json.Marshal(failureContent{Error: failureBody{Origin: origin, Message: message}})
 	if merr != nil {
-		return json.RawMessage(`{"error":{"origin":"api","message":"` + apiServerMessage + `"}}`)
+		return json.RawMessage(`{"error":{"origin":"api","message":"` + failure.APIServerMessage + `"}}`)
 	}
 	return out
 }
@@ -119,7 +87,7 @@ const FailureSchema = `{"type":"object","properties":{"error":{"type":"object","
 	`"origin":{"type":"string","enum":["client","api","provider"]},"message":{"type":"string"}},` +
 	`"required":["origin","message"]}},"required":["error"]}`
 
-type failure struct {
+type failureContent struct {
 	Error failureBody `json:"error"`
 }
 

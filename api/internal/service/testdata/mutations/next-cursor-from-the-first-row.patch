@@ -1,0 +1,20 @@
+control: A listing's cursor continues only the listing, account and filter it came from, and paging serves every row once
+removes: every listing's next cursor is built from its page's first row, in the one helper they share, so each next page serves rows again
+packages: ./api/internal/service
+tests: TestAListingPagesThroughEveryRowOnce TestAnIndexReadPagesThroughEveryRowOnce
+scheduled-count: no
+integration: yes
+
+diff --git a/api/internal/service/cursor.go b/api/internal/service/cursor.go
+index 349e3adf..c66ecd0f 100644
+--- a/api/internal/service/cursor.go
++++ b/api/internal/service/cursor.go
+@@ -40,7 +40,7 @@ func nextCursor[R any](rows []R, at func(last R) position) *string {
+ 	if len(rows) != pageSize {
+ 		return nil
+ 	}
+-	c := encodeCursor(at(rows[len(rows)-1]))
++	c := encodeCursor(at(rows[0]))
+ 	return &c
+ }
+ 

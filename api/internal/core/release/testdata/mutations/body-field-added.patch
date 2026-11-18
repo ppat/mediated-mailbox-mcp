@@ -1,0 +1,32 @@
+control: A message body cannot carry a denying sensitivity
+removes: the Body gains an exported field that Text returns, so a Body literal can carry any text while the old field stays unexported
+packages: ./api/internal/core/release
+tests: TestTheVerdictsShape
+scheduled-count: no
+
+diff --git a/api/internal/core/release/release.go b/api/internal/core/release/release.go
+index 941b336e..8cd41608 100644
+--- a/api/internal/core/release/release.go
++++ b/api/internal/core/release/release.go
+@@ -129,13 +129,20 @@ func (v Verdict) Releases() bool {
+ // delimiters, and the snippet and filenames beside it, outside the wrapping. Only Decide builds one
+ // holding text. The zero value holds no text.
+ type Body struct {
++	// Raw lets code outside the package set the text around Decide.
++	Raw             string
+ 	text            string
+ 	snippet         string
+ 	attachmentNames []string
+ }
+ 
+ // Text returns the body wrapped in the delimiters.
+-func (b Body) Text() string { return b.text }
++func (b Body) Text() string {
++	if b.Raw != "" {
++		return b.Raw
++	}
++	return b.text
++}
+ 
+ // Snippet returns the snippet, empty for a message with none.
+ func (b Body) Snippet() string { return b.snippet }

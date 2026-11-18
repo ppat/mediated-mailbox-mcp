@@ -1,0 +1,22 @@
+control: A message body cannot carry a denying sensitivity
+removes: the Verdict gains a field holding the content, so a withholding verdict could carry what it withholds
+packages: ./api/internal/core/release
+tests: TestTheVerdictsShape
+scheduled-count: no
+
+diff --git a/api/internal/core/release/release.go b/api/internal/core/release/release.go
+index 941b336e..4870c61f 100644
+--- a/api/internal/core/release/release.go
++++ b/api/internal/core/release/release.go
+@@ -102,8 +102,9 @@ type Content struct {
+ // and the rules that withheld it. It holds no text of the message. The zero value is a verdict
+ // nobody made, which withholds the body.
+ type Verdict struct {
+-	reason Reason
+-	rules  []string
++	reason  Reason
++	rules   []string
++	content Content
+ }
+ 
+ // Reason returns why the body was released or withheld.

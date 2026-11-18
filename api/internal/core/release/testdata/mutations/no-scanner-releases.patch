@@ -5,15 +5,15 @@ tests: TestFailClosed/a_gate-skipped_body_and_a_scanner_nobody_built TestFailClo
 scheduled-count: no
 
 diff --git a/api/internal/core/release/release.go b/api/internal/core/release/release.go
-index 8fdca71..a08607e 100644
+index 941b336e..c0f509d2 100644
 --- a/api/internal/core/release/release.go
 +++ b/api/internal/core/release/release.go
-@@ -138,7 +138,7 @@ func Decide(c Content, state sensitivity.ScanState, s scan.Scanner) Decision {
+@@ -162,7 +162,7 @@ func Decide(c Content, s sensitivity.Sensitivity, sc scan.Scanner) (Verdict, Bod
  	for _, text := range checked {
- 		v := s.ScanPatterns(text)
+ 		v := sc.ScanPatterns(text)
  		if v.Version() == 0 {
--			return Decision{reason: NoScanner}
-+			return Decision{reason: Released, content: Content{Body: wrap(c.Body)}}
+-			return Verdict{reason: NoScanner}, Body{}
++			return Verdict{reason: Released}, Body{text: wrap(c.Body)}
  		}
  		if v.Flags().Any() {
  			rules = append(rules, v.Rules()...)

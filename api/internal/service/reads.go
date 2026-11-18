@@ -176,24 +176,54 @@ func pageSchema(key, row string) json.RawMessage {
 // schema admits. The decoder alone would match a key in another case and read a null as absent, so a
 // call the API root refuses would reach the operation through the MCP root (ADR-0087).
 func arguments(input json.RawMessage, v any, names ...string) error {
-	var raw map[string]json.RawMessage
-	if err := json.Unmarshal(input, &raw); err != nil {
+	switch problem, key := decodeStrictly(input, v, names); problem {
+	case unknownKey:
+		return Refuse("the arguments name one the operation does not take")
+	case nullValue:
+		return Refuse(key + " may not be null")
+	case notAnObject, notItsSchema:
 		return Refuse("the arguments do not match the operation's input schema")
+	case decoded:
+		return nil
+	default:
+		return nil
 	}
-	for key, value := range raw {
+}
+
+// strictProblem is why decodeStrictly refused an object. The zero value is none.
+type strictProblem uint8
+
+const (
+	decoded strictProblem = iota
+	notAnObject
+	unknownKey
+	nullValue
+	notItsSchema
+)
+
+// decodeStrictly decodes the JSON object raw into v, which every argument object of the surface is
+// read through, and returns the problem that refused it with the key it was found at. A key none of
+// names spells exactly and a null value are refused, and so is a key v does not declare. Each
+// caller says the problem in its own words.
+func decodeStrictly(raw json.RawMessage, v any, names []string) (strictProblem, string) {
+	var members map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &members); err != nil {
+		return notAnObject, ""
+	}
+	for key, value := range members {
 		if !slices.Contains(names, key) {
-			return Refuse("the arguments name one the operation does not take")
+			return unknownKey, key
 		}
 		if string(bytes.TrimSpace(value)) == "null" {
-			return Refuse(key + " may not be null")
+			return nullValue, key
 		}
 	}
-	dec := json.NewDecoder(bytes.NewReader(input))
+	dec := json.NewDecoder(bytes.NewReader(raw))
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(v); err != nil {
-		return Refuse("the arguments do not match the operation's input schema")
+		return notItsSchema, ""
 	}
-	return nil
+	return decoded, ""
 }
 
 // ok writes an operation's result.
@@ -263,12 +293,9 @@ func (s Sources) listMessages(ctx context.Context, account string, input json.Ra
 	for _, r := range rows {
 		out = append(out, present(account, fromRow(messages.MessageRow(r)), p))
 	}
-	var next *string
-	if len(rows) == pageSize {
-		last := rows[len(rows)-1]
-		c := encodeCursor(position{Listing: "list_messages", Account: account, At: formatUTC(last.SentAt.Time), Key: last.MessageID})
-		next = &c
-	}
+	next := nextCursor(rows, func(last messages.MessagePageRow) position {
+		return position{Listing: "list_messages", Account: account, At: formatUTC(last.SentAt.Time), Key: last.MessageID}
+	})
 	return ok(struct {
 		Messages   []message `json:"messages"`
 		NextCursor *string   `json:"next_cursor"`
@@ -330,12 +357,9 @@ func (s Sources) listThreads(ctx context.Context, account string, input json.Raw
 	for _, r := range rows {
 		out = append(out, thread{ThreadID: r.ThreadID, Messages: r.Messages, LatestAt: formatUTC(r.LatestAt.Time)})
 	}
-	var next *string
-	if len(rows) == pageSize {
-		last := rows[len(rows)-1]
-		c := encodeCursor(position{Listing: "list_threads", Account: account, At: formatUTC(last.LatestAt.Time), Key: last.ThreadID})
-		next = &c
-	}
+	next := nextCursor(rows, func(last messages.ThreadPageRow) position {
+		return position{Listing: "list_threads", Account: account, At: formatUTC(last.LatestAt.Time), Key: last.ThreadID}
+	})
 	return ok(struct {
 		Threads    []thread `json:"threads"`
 		NextCursor *string  `json:"next_cursor"`
@@ -423,12 +447,9 @@ func (s Sources) listMaskingEvents(ctx context.Context, account string, input js
 	for _, r := range rows {
 		out = append(out, maskingEvent{MessageID: r.MessageID, Field: r.Field, RuleID: r.RuleID, Tier: r.Tier, MaskedAt: formatUTC(r.MaskedAt.Time)})
 	}
-	var next *string
-	if len(rows) == pageSize {
-		last := rows[len(rows)-1]
-		c := encodeCursor(position{Listing: "list_masking_events", Account: account, Filter: filter, At: formatUTC(last.MaskedAt.Time), Key: strconv.FormatInt(last.ID, 10)})
-		next = &c
-	}
+	next := nextCursor(rows, func(last maskingevents.MaskingEventPageRow) position {
+		return position{Listing: "list_masking_events", Account: account, Filter: filter, At: formatUTC(last.MaskedAt.Time), Key: strconv.FormatInt(last.ID, 10)}
+	})
 	return ok(struct {
 		Events     []maskingEvent `json:"events"`
 		NextCursor *string        `json:"next_cursor"`

@@ -168,19 +168,12 @@ func recordOutcome(ctx context.Context, messages *scanstore.Queries, gate *gater
 	var n int64
 	switch {
 	case o.Scanned != nil:
-		flags := []string{}
-		if o.Scanned.Flags.MFACode() {
-			flags = append(flags, "mfa_code")
-		}
-		if o.Scanned.Flags.LoginLink() {
-			flags = append(flags, "login_link")
-		}
 		rules := o.Scanned.Rules
 		if rules == nil {
 			rules = []string{}
 		}
 		n, err = messages.RecordVerdict(ctx, scanstore.RecordVerdictParams{
-			ContentFlags:    flags,
+			ContentFlags:    o.Scanned.Flags.Names(),
 			RuleIds:         rules,
 			ScannerVersion:  pgtype.Int4{Int32: Version(o.Scanned.Version), Valid: true},
 			ScannerRevision: pgtype.Text{String: o.Scanned.Revision, Valid: true},

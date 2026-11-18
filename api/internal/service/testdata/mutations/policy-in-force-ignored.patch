@@ -6,15 +6,15 @@ scheduled-count: no
 integration: yes
 
 diff --git a/api/internal/service/present.go b/api/internal/service/present.go
-index d610d3ab..a05ae18d 100644
+index bcf49d74..73c4dc1f 100644
 --- a/api/internal/service/present.go
 +++ b/api/internal/service/present.go
-@@ -122,7 +122,7 @@ func storedScanState(name string) sensitivity.ScanState {
+@@ -90,7 +90,7 @@ type shownState struct {
  // Gate's decision against the account policy p (ADR-0001, ADR-0002).
  func present(account string, m stored, p classify.Policy) message {
- 	flags, scan := storedFlags(m.ContentFlags), storedScanState(m.ScanState)
+ 	flags, scan := sensitivity.FlagsNamed(m.ContentFlags), sensitivity.ScanStateNamed(m.ScanState)
 -	v := redact.Decide(p, m.FromEmail, flags, scan)
 +	v := redact.Decide(classify.Policy{}, m.FromEmail, flags, scan)
- 	class := "normal"
- 	if v.Sender().Class().Restricted() {
- 		class = "restricted"
+ 	out := message{
+ 		AccountID:       account,
+ 		MessageID:       m.MessageID,

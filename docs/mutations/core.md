@@ -34,20 +34,6 @@ The demonstrations of the controls whose patches sit in `core/`. [MUTATIONS.md](
 - **Break (2):** a listed sender's verdict names the rule without its scope
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/classify`:** `TestClassify`, `TestClassify/a_listed_domain`, `TestClassify/a_second_suffix_of_one_rule`, `TestClassify/a_sender_in_Unicode_against_a_rule_in_punycode`, `TestClassify/a_sender_in_punycode_against_a_rule_in_Unicode`, `TestClassify/a_subdomain_of_a_listed_domain`, `TestClassify/a_trailing_dot`, `TestClassify/mixed_case`, `TestClassify/the_account's_own_overlay`, `TestClassify/the_last_at_sign_ends_the_local_part`, `TestThePreparedPolicyClassifiesAsConvertingOnEveryCall`, `TestTheVerdictNamesTheScopeOfTheRuleThatMatched`
 
-## A message body cannot carry a denying sensitivity
-
-- **Date · evidence:** 2026-09-22 · [pull request #142](https://github.com/ppat/mediated-mailbox-mcp/pull/142), and every break again on 2026-10-13 at RAPID_SEED=1, after the body fetch by part and the refused scan state changed the code, tests or patches the row rests on · [pull request #369](https://github.com/ppat/mediated-mailbox-mcp/pull/369)
-- **Break (1):** the Body gains an exported field that Text returns, so a Body literal can carry any text while the old field stays unexported
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/sensitivity`:** `TestNoSensitivityCarryingTypeExposesAField`
-- **Break (2):** the Body's text field is exported, so a Body literal can hold any text
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/sensitivity`:** `TestConstructionOutsideTheConstructorsDoesNotCompile`, `TestConstructionOutsideTheConstructorsDoesNotCompile/bodyliteral`, `TestNoSensitivityCarryingTypeExposesAField`
-- **Break (3):** NewBody refuses every sensitivity, the releasing ones included
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/sensitivity`:** `TestNewBody`, `TestNewBody/scanned`, `TestNewBody/skipped_by_the_gate`, `TestNoBodyCarriesADenyingSensitivity`
-- **Break (4):** NewBody never refuses, so a body is built for any sensitivity
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/sensitivity`:** `TestNewBody`, `TestNewBody/login_link`, `TestNewBody/never_constructed`, `TestNewBody/one-time_code`, `TestNewBody/pending_scan`, `TestNewBody/restricted_sender`, `TestNewBody/skipped_as_restricted`, `TestNoBodyCarriesADenyingSensitivity`
-- **Break (5):** the Sensitivity's class field is exported, so a literal can pair a normal class with any other axes
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/sensitivity`:** `TestConstructionOutsideTheConstructorsDoesNotCompile`, `TestConstructionOutsideTheConstructorsDoesNotCompile/sensitivityliteral`, `TestNoSensitivityCarryingTypeExposesAField`
-
 ## A restricted sender's body is never scanned
 
 - **Date · evidence:** 2026-09-25 · [pull request #167](https://github.com/ppat/mediated-mailbox-mcp/pull/167), and every break again on 2026-10-13 at RAPID_SEED=1, after the body fetch by part and the refused scan state changed the code, tests or patches the row rests on · [pull request #369](https://github.com/ppat/mediated-mailbox-mcp/pull/369)
@@ -124,11 +110,12 @@ The demonstrations of the controls whose patches sit in `core/`. [MUTATIONS.md](
 
 ## A stored sender domain is stored in the normalizer's form and classifies as the address it came from
 
-- **Date · evidence:** 2026-10-08 · [pull request #322](https://github.com/ppat/mediated-mailbox-mcp/pull/322), and every break again on 2026-10-12 at RAPID_SEED=1, after the policy prepared once per load for the classifier changed the code, tests or patches the row rests on · [pull request #365](https://github.com/ppat/mediated-mailbox-mcp/pull/365), and every break again on 2026-10-13 at RAPID_SEED=1, after the index stopped storing a sender's class changed the code, tests or patches the row rests on · [pull request #372](https://github.com/ppat/mediated-mailbox-mcp/pull/372)
+- **Date · evidence:** 2026-10-08 · [pull request #322](https://github.com/ppat/mediated-mailbox-mcp/pull/322), and every break again on 2026-10-12 at RAPID_SEED=1, after the policy prepared once per load for the classifier changed the code, tests or patches the row rests on · [pull request #365](https://github.com/ppat/mediated-mailbox-mcp/pull/365), and every break again on 2026-10-13 at RAPID_SEED=1, after the index stopped storing a sender's class changed the code, tests or patches the row rests on · [pull request #372](https://github.com/ppat/mediated-mailbox-mcp/pull/372), and every break again on 2026-11-18 at RAPID_SEED=1, after the API server's decisions moved into its cores and the stored sensitivity names, the release verdict and the classifier's lookups got one home, which changed the code, tests or patches the row rests on · [pull request #470](https://github.com/ppat/mediated-mailbox-mcp/pull/470)
 - **Break (1):** the index stores the part of a sender's address after its last @ as written, without the domain normalizer
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/index`:** `TestAStoredDomainClassifiesAsItsAddress`
 - **Break (2):** the domain normalizer lowercases by Go's simple mapping, which lowers the dotted capital I to a plain i where the classifier reads i followed by U+0307
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/index`:** `TestAStoredDomainClassifiesAsItsAddress`, `TestEveryCodePointStoresAsTheClassifierReadsIt`, `TestStoredDomain`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/classify`:** `TestEveryCodePointStoresAsTheClassifierReadsIt`, `TestStoredDomain`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/index`:** `TestAStoredDomainClassifiesAsItsAddress`
 
 ## A stored state no message can be in is denied as invalid, never as pending
 

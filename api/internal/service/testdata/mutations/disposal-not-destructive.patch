@@ -5,11 +5,11 @@ tests: TestEachEffectDerivesItsRow TestTheToolListIsTheRegistry
 scheduled-count: no
 
 
-diff --git a/api/internal/service/surface.go b/api/internal/service/surface.go
-index 1225e3e..ca9e19d 100644
---- a/api/internal/service/surface.go
-+++ b/api/internal/service/surface.go
-@@ -52,7 +52,7 @@ func derive(e Effect) (string, Annotations, bool) {
+diff --git a/api/internal/core/operation/operation.go b/api/internal/core/operation/operation.go
+index 241f1681..b361bfd2 100644
+--- a/api/internal/core/operation/operation.go
++++ b/api/internal/core/operation/operation.go
+@@ -61,7 +61,7 @@ func Derive(e Effect) (string, Annotations, bool) {
  	case Reversible:
  		return methodPost, Annotations{ReadOnly: false, Destructive: false, Idempotent: true, OpenWorld: false}, true
  	case Disposal:

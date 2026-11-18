@@ -6,15 +6,15 @@ scheduled-count: no
 integration: yes
 
 diff --git a/api/internal/service/present.go b/api/internal/service/present.go
-index d610d3ab..34949895 100644
+index bcf49d74..0573bdd9 100644
 --- a/api/internal/service/present.go
 +++ b/api/internal/service/present.go
-@@ -124,7 +124,7 @@ func present(account string, m stored, p classify.Policy) message {
- 	flags, scan := storedFlags(m.ContentFlags), storedScanState(m.ScanState)
- 	v := redact.Decide(p, m.FromEmail, flags, scan)
- 	class := "normal"
--	if v.Sender().Class().Restricted() {
-+	if false && v.Sender().Class().Restricted() {
- 		class = "restricted"
+@@ -102,7 +102,7 @@ func present(account string, m stored, p classify.Policy) message {
+ 		Flags:           storedMessageFlags(m.Flags),
+ 		HasAttachments:  m.HasAttachments,
+ 		AttachmentTypes: types(m.AttachmentMedia),
+-		Sensitivity:     shownState{SenderClass: v.Sender().Class().String(), ContentFlags: flags.Names(), ScanState: scan.String()},
++		Sensitivity:     shownState{SenderClass: sensitivity.NormalSender().String(), ContentFlags: flags.Names(), ScanState: scan.String()},
+ 		BodyAvailable:   v.ReleasesBody(),
  	}
- 	shownFlags := []string{}
+ 	return out

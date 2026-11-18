@@ -5,11 +5,11 @@ tests: TestEachEffectDerivesItsRow TestTheDocumentPlacesEachArgument
 scheduled-count: no
 
 
-diff --git a/api/internal/service/surface.go b/api/internal/service/surface.go
-index 1225e3e..755a58c 100644
---- a/api/internal/service/surface.go
-+++ b/api/internal/service/surface.go
-@@ -46,7 +46,7 @@ func derive(e Effect) (string, Annotations, bool) {
+diff --git a/api/internal/core/operation/operation.go b/api/internal/core/operation/operation.go
+index 241f1681..962d8bfd 100644
+--- a/api/internal/core/operation/operation.go
++++ b/api/internal/core/operation/operation.go
+@@ -55,7 +55,7 @@ func Derive(e Effect) (string, Annotations, bool) {
  	case Read:
  		return methodGet, Annotations{ReadOnly: true, Destructive: false, Idempotent: true, OpenWorld: false}, true
  	case StructuredRead:

@@ -40,11 +40,10 @@ import (
 	"sync/atomic"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"golang.org/x/net/idna"
-	"golang.org/x/net/publicsuffix"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
+	"github.com/ppat/mediated-mailbox-mcp/process/domains"
 )
 
 // Policies is each account's policy a Session holds. Its zero value is not usable. Build it with New.
@@ -67,7 +66,7 @@ type Policies struct {
 func New(db tx.Beginner, reg prometheus.Registerer, start Starter) *Policies {
 	p := &Policies{
 		db: db, reg: reg,
-		lookups: classify.Lookups{ToUnicode: idna.Lookup.ToUnicode, ToASCII: idna.Lookup.ToASCII, Registrable: publicsuffix.EffectiveTLDPlusOne},
+		lookups: domains.Lookups(),
 	}
 	p.fresh = newShared(start, p.reloadCurrent)
 	return p

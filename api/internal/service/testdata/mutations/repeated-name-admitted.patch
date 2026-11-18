@@ -5,11 +5,11 @@ tests: TestAOneSidedEntryFailsGeneration/a_name_repeated
 scheduled-count: no
 
 
-diff --git a/api/internal/service/registry.go b/api/internal/service/registry.go
-index 50e5496..2c3f062 100644
---- a/api/internal/service/registry.go
-+++ b/api/internal/service/registry.go
-@@ -70,9 +70,6 @@ func NewRegistry(accounts []string, ops ...Operation) (Registry, error) {
+diff --git a/api/internal/core/operation/operation.go b/api/internal/core/operation/operation.go
+index 241f1681..5873ffeb 100644
+--- a/api/internal/core/operation/operation.go
++++ b/api/internal/core/operation/operation.go
+@@ -161,9 +161,6 @@ func Problems(ops []Facts) []string {
  		if !validName.MatchString(op.Name) {
  			problems = append(problems, where+" has a name that is not lowercase letters, digits and underscores starting with a letter, at most 64 characters")
  		}
