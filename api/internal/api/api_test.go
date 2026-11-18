@@ -254,7 +254,7 @@ func TestEachFailureNamesItsOrigin(t *testing.T) {
 // The API root refuses a query parameter named in another case than the served operation's schema
 // declares, as the MCP root refuses the same argument (ADR-0087).
 func TestAServedRouteTakesOnlyTheArgumentsItDeclares(t *testing.T) {
-	reg, err := service.NewRegistry([]string{"acct-a"}, service.Operations(service.Sources{})...)
+	reg, err := service.NewRegistry([]string{"acct-a"}, service.Operations(service.Sources{}, service.Bodies{})...)
 	if err != nil {
 		t.Fatal(err)
 	}

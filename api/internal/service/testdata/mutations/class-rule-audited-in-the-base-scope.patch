@@ -6,10 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/api/internal/service/body.go b/api/internal/service/body.go
-index b868a7c7..a7982d18 100644
+index 491a559c..970f9171 100644
 --- a/api/internal/service/body.go
 +++ b/api/internal/service/body.go
-@@ -289,7 +289,7 @@ func gateDecided(v redact.Verdict, flags sensitivity.ContentFlags, state sensiti
+@@ -321,7 +321,7 @@ func gateDecided(v redact.Verdict, flags sensitivity.ContentFlags, state sensiti
  	}
  	if rule := v.Sender().Rule(); rule != "" {
  		g.classRule = pgtype.Text{String: rule, Valid: true}

@@ -1,0 +1,28 @@
+control: Only the body operation is handed the functions that reach a provider
+removes: the body operation parks the provider session it opened in a package-level variable, where every other handler can read it
+packages: ./api/internal/service
+tests: TestOnlyTheBodyOperationIsHandedAWayToAProvider
+scheduled-count: no
+
+diff --git a/api/internal/service/body.go b/api/internal/service/body.go
+index 491a559c..1f5dfbcc 100644
+--- a/api/internal/service/body.go
++++ b/api/internal/service/body.go
+@@ -129,6 +129,9 @@ type bodySources struct {
+ 	Bodies Bodies
+ }
+ 
++// opened is the last provider session a body request opened.
++var opened Provider
++
+ // bodyOperation is the body operation's registry entry, the one operation that releases content,
+ // reading through db and reaching a provider through b.
+ func bodyOperation(db Database, b Bodies) Operation {
+@@ -197,6 +200,7 @@ func (s bodySources) getMessageBody(ctx context.Context, account string, input j
+ 		return nil, err
+ 	}
+ 	defer session.Done(context.WithoutCancel(ctx))
++	opened = session
+ 	// The metadata is fetched before the body, so the body is held only while it is converted,
+ 	// decided and served, and not across the wait for a second lease (ADR-0130).
+ 	meta, err := session.Metadata(ctx, args.MessageID)

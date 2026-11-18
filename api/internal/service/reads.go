@@ -28,10 +28,11 @@ type Account struct {
 	Provider string `json:"provider"`
 }
 
-// Sources are what the operations read from. The reads of metadata and state read the index and the
-// recorded state and never a provider, so none of them spends rate budget or reaches a body
-// (ADR-0002, ADR-0034). The body operation alone reaches a provider, through Bodies, and only for a
-// message the Redaction Gate released.
+// Sources are what every operation but the body operation reads from. The reads of metadata and
+// state read the index and the recorded state and never a provider, so none of them spends rate
+// budget or reaches a body (ADR-0002, ADR-0034). No field of Sources is a way to a provider, so no
+// handler built on them is handed one. The body operation alone is built with Bodies, and reaches a
+// provider only for a message the Redaction Gate released.
 type Sources struct {
 	// DB is the API server's pool. Every read runs in a transaction of its account through db/tx, and an
 	// index read in one snapshot of it, through tx.Snapshot.
@@ -43,8 +44,6 @@ type Sources struct {
 	Policy func(account string) classify.Policy
 	// Now returns the current time, which the system status measures ages and backoff against.
 	Now func() time.Time
-	// Bodies are what the body operation needs beyond the index.
-	Bodies Bodies
 }
 
 // Database is what the operations read through, a pool or a connection, which opens a transaction at
@@ -62,7 +61,8 @@ const pageSize = 100
 // body the Redaction Gate releases, and every identifier one takes comes from another (ADR-0035). A message's identifier comes from the message
 // listing or a thread, a thread's from the thread listing, and an account's from the accounts listing. The index query's labels come from the
 // labels listing, its addresses from any served message, and its domains from the sender listing.
-func Operations(s Sources) []Operation {
+// b is handed to the body operation alone, the one operation that reaches a provider.
+func Operations(s Sources, b Bodies) []Operation {
 	return append([]Operation{
 		{
 			Name:   "list_accounts",
@@ -106,7 +106,7 @@ func Operations(s Sources) []Operation {
 			Output: json.RawMessage(messageSchema),
 			Handle: s.getMessage,
 		},
-		s.bodyOperation(),
+		bodyOperation(s.DB, b),
 		{
 			Name:   "list_threads",
 			Effect: Read,

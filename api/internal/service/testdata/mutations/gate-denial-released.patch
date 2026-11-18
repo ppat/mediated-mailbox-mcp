@@ -6,10 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/api/internal/service/body.go b/api/internal/service/body.go
-index 7a0a49f1..d76a145f 100644
+index 491a559c..33241b77 100644
 --- a/api/internal/service/body.go
 +++ b/api/internal/service/body.go
-@@ -158,7 +158,7 @@ func (s Sources) getMessageBody(ctx context.Context, account string, input json.
+@@ -183,7 +183,7 @@ func (s bodySources) getMessageBody(ctx context.Context, account string, input j
  	v := redact.Decide(p, row.FromEmail, flags, state)
  	g := gateDecided(v, flags, state, row.RuleIds)
  	denied := bodyResult{AccountID: account, MessageID: args.MessageID}

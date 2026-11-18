@@ -6,10 +6,10 @@ scheduled-count: no
 
 
 diff --git a/api/internal/service/reads.go b/api/internal/service/reads.go
-index 61daa31..ae8418b 100644
+index 90399bd8..ca149d6e 100644
 --- a/api/internal/service/reads.go
 +++ b/api/internal/service/reads.go
-@@ -171,7 +171,7 @@ func arguments(input json.RawMessage, v any, names ...string) error {
+@@ -184,7 +184,7 @@ func arguments(input json.RawMessage, v any, names ...string) error {
  		if !slices.Contains(names, key) {
  			return Refuse("the arguments name one the operation does not take")
  		}

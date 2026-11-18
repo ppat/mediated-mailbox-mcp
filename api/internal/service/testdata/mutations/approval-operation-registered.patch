@@ -6,12 +6,12 @@ scheduled-count: no
 
 
 diff --git a/api/internal/service/reads.go b/api/internal/service/reads.go
-index f3e6ddd..fe50c1a 100644
+index 90399bd8..e38f725e 100644
 --- a/api/internal/service/reads.go
 +++ b/api/internal/service/reads.go
-@@ -52,6 +52,15 @@ const pageSize = 100
- // labels listing, its addresses from any served message, and its domains from the sender listing.
- func Operations(s Sources) []Operation {
+@@ -64,6 +64,15 @@ const pageSize = 100
+ // b is handed to the body operation alone, the one operation that reaches a provider.
+ func Operations(s Sources, b Bodies) []Operation {
  	return append([]Operation{
 +		{
 +			Name:        "approve_plan",

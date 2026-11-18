@@ -7,10 +7,10 @@ integration: yes
 
 
 diff --git a/api/internal/service/reads.go b/api/internal/service/reads.go
-index f3e6ddd..e2579e2 100644
+index 90399bd8..4fb0654d 100644
 --- a/api/internal/service/reads.go
 +++ b/api/internal/service/reads.go
-@@ -236,7 +236,7 @@ func (s Sources) listMessages(ctx context.Context, account string, input json.Ra
+@@ -265,7 +265,7 @@ func (s Sources) listMessages(ctx context.Context, account string, input json.Ra
  	}
  	var next *string
  	if len(rows) == pageSize {

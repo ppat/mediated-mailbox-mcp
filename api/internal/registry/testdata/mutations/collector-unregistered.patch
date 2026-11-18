@@ -6,7 +6,7 @@ scheduled-count: no
 integration: yes
 
 diff --git a/api/internal/registry/registry.go b/api/internal/registry/registry.go
-index 12eaa003..b2087d8d 100644
+index 9edc7d44..7ef6d427 100644
 --- a/api/internal/registry/registry.go
 +++ b/api/internal/registry/registry.go
 @@ -67,9 +67,7 @@ func build(ctx context.Context, p process.Capabilities, c config.API) (service.R

@@ -6,7 +6,7 @@ scheduled-count: no
 integration: yes
 
 diff --git a/api/internal/registry/registry.go b/api/internal/registry/registry.go
-index 12eaa003..9a7a488f 100644
+index 9edc7d44..a1d9da7c 100644
 --- a/api/internal/registry/registry.go
 +++ b/api/internal/registry/registry.go
 @@ -72,7 +72,7 @@ func build(ctx context.Context, p process.Capabilities, c config.API) (service.R
@@ -17,4 +17,4 @@ index 12eaa003..9a7a488f 100644
 +		Accounts: func() []service.Account { return nil },
  		Policy:   s.Policy,
  		Now:      time.Now,
- 		Bodies: service.Bodies{
+ 	}, service.Bodies{

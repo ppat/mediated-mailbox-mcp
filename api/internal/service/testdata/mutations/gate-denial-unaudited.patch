@@ -6,10 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/api/internal/service/body.go b/api/internal/service/body.go
-index b868a7c7..24509cfa 100644
+index 491a559c..672e03e5 100644
 --- a/api/internal/service/body.go
 +++ b/api/internal/service/body.go
-@@ -160,9 +160,6 @@ func (s Sources) getMessageBody(ctx context.Context, account string, input json.
+@@ -185,9 +185,6 @@ func (s bodySources) getMessageBody(ctx context.Context, account string, input j
  	denied := bodyResult{AccountID: account, MessageID: args.MessageID}
  	if !v.ReleasesBody() {
  		reason := v.Reason().String()

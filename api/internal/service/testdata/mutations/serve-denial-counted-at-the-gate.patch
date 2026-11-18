@@ -6,10 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/api/internal/service/body.go b/api/internal/service/body.go
-index b868a7c7..1f9bddb2 100644
+index 491a559c..5240be79 100644
 --- a/api/internal/service/body.go
 +++ b/api/internal/service/body.go
-@@ -195,7 +195,7 @@ func (s Sources) getMessageBody(ctx context.Context, account string, input json.
+@@ -229,7 +229,7 @@ func (s bodySources) getMessageBody(ctx context.Context, account string, input j
  		if err := s.audit(ctx, account, args.MessageID, actionDeny, StageServe, reason, g, check); err != nil {
  			return nil, err
  		}

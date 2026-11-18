@@ -156,7 +156,7 @@ func TestAOneSidedEntryFailsGeneration(t *testing.T) {
 // Approval is not in the client surface's vocabulary (ADR-0020, ADR-0030). No operation the API server
 // serves names, describes or takes an approval, so neither root has one to generate.
 func TestTheSurfaceHasNoApprovalVocabulary(t *testing.T) {
-	reg, err := service.NewRegistry(nil, service.Operations(service.Sources{})...)
+	reg, err := service.NewRegistry(nil, service.Operations(service.Sources{}, service.Bodies{})...)
 	if err != nil {
 		t.Fatal(err)
 	}

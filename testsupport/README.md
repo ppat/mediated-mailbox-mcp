@@ -33,8 +33,9 @@ an image, because only test files and the tooling programs import it. Its packag
 - `mustnotcompile`, the helpers that assert a forbidden construction fails to compile, that a
   type exposes no field, that a type has exactly the fields or a function exactly the
   parameters named, that an interface has exactly the methods named with exactly their
-  signatures, and that exactly the named methods of an interface return a given type, with exactly
-  the results named.
+  signatures, that exactly the named methods of an interface return a given type, with exactly
+  the results named, and that exactly the named functions, methods and package-level variables of a
+  package can hold a value carrying a given type, through anything but a function type.
 - `analysis`, the `go vet` analysers, for these rules.
   - [ADR-0069](../docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md)'s placement
     rules.

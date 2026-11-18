@@ -1,0 +1,19 @@
+control: Only the body operation is handed the functions that reach a provider
+removes: the operations' sources hold Bodies again, so every operation's handler holds the functions that begin a unit of work
+packages: ./api/internal/service
+tests: TestOnlyTheBodyOperationIsHandedAWayToAProvider
+scheduled-count: no
+
+diff --git a/api/internal/service/reads.go b/api/internal/service/reads.go
+index 90399bd8..06c9a3d8 100644
+--- a/api/internal/service/reads.go
++++ b/api/internal/service/reads.go
+@@ -44,6 +44,8 @@ type Sources struct {
+ 	Policy func(account string) classify.Policy
+ 	// Now returns the current time, which the system status measures ages and backoff against.
+ 	Now func() time.Time
++	// Bodies are what the body operation needs beyond the index.
++	Bodies Bodies
+ }
+ 
+ // Database is what the operations read through, a pool or a connection, which opens a transaction at

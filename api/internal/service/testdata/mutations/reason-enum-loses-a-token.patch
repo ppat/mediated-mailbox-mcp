@@ -4,10 +4,10 @@ packages: ./api/internal/service
 tests: TestTheReasonEnumIsTheTokensABodyDecisionReturns
 scheduled-count: no
 diff --git a/api/internal/service/body.go b/api/internal/service/body.go
-index 2c5c8e77..154c8269 100644
+index 491a559c..e0d2e902 100644
 --- a/api/internal/service/body.go
 +++ b/api/internal/service/body.go
-@@ -114,7 +114,7 @@ const bodySchema = `{"type":"object","properties":{` +
+@@ -116,7 +116,7 @@ const bodySchema = `{"type":"object","properties":{` +
  	`"account_id":{"type":"string"},"message_id":{"type":"string"},"released":{"type":"boolean"},` +
  	`"reason":{"type":"string","enum":["released","pending_scan","skipped_restricted","restricted_sender",` +
  	`"content_flagged","invalid_stored_state","scan_state_not_releasable","serve_time_check_no_scanner",` +

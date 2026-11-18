@@ -6,10 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/api/internal/service/body.go b/api/internal/service/body.go
-index b868a7c7..1eceb3a1 100644
+index 491a559c..98a4a3ee 100644
 --- a/api/internal/service/body.go
 +++ b/api/internal/service/body.go
-@@ -294,6 +294,9 @@ func gateDecided(v redact.Verdict, flags sensitivity.ContentFlags, state sensiti
+@@ -326,6 +326,9 @@ func gateDecided(v redact.Verdict, flags sensitivity.ContentFlags, state sensiti
  	if flags.Any() {
  		g.contentRules = sorted(stored)
  	}

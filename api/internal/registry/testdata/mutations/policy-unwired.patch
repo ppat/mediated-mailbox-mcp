@@ -6,7 +6,7 @@ scheduled-count: no
 integration: yes
 
 diff --git a/api/internal/registry/registry.go b/api/internal/registry/registry.go
-index 12eaa003..c0dc4239 100644
+index 9edc7d44..a98c746c 100644
 --- a/api/internal/registry/registry.go
 +++ b/api/internal/registry/registry.go
 @@ -17,6 +17,7 @@ import (
@@ -24,5 +24,5 @@ index 12eaa003..c0dc4239 100644
 -		Policy:   s.Policy,
 +		Policy:   func(string) classify.Policy { return classify.Policy{} },
  		Now:      time.Now,
- 		Bodies: service.Bodies{
- 			Policy: fetch.Policy,
+ 	}, service.Bodies{
+ 		Policy: fetch.Policy,

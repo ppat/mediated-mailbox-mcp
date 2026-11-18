@@ -105,7 +105,7 @@ func fixtures(t testing.TB) (service.Registry, *recorder) {
 func servedEchoes(t testing.TB) (service.Registry, *recorder) {
 	t.Helper()
 	rec := &recorder{}
-	ops := service.Operations(service.Sources{})
+	ops := service.Operations(service.Sources{}, service.Bodies{})
 	for i := range ops {
 		ops[i].Handle = echo(rec, ops[i].Name)
 	}

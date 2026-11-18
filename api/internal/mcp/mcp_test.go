@@ -507,7 +507,7 @@ func TestARepeatedArgumentIsRefused(t *testing.T) {
 // The MCP root refuses an argument named in another case than the served operation's schema declares,
 // or given as null, as the API root refuses it, with the refusal's message (ADR-0087).
 func TestAServedToolTakesOnlyTheArgumentsItDeclares(t *testing.T) {
-	reg, err := service.NewRegistry([]string{"acct-a"}, service.Operations(service.Sources{DB: unreachable{}})...)
+	reg, err := service.NewRegistry([]string{"acct-a"}, service.Operations(service.Sources{DB: unreachable{}}, service.Bodies{})...)
 	if err != nil {
 		t.Fatal(err)
 	}

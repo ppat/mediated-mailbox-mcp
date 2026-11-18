@@ -75,17 +75,16 @@ func build(ctx context.Context, p process.Capabilities, c config.API) (service.R
 		Accounts: accounts(s),
 		Policy:   s.Policy,
 		Now:      time.Now,
-		Bodies: service.Bodies{
-			Policy: fetch.Policy,
-			Open:   fetch.Open,
-			Render: func(body mail.MessageBody) (string, error) {
-				defer processing.Since(scanner.StepConvert, time.Now())
-				return markdown.Render(body)
-			},
-			Literal: markdown.Literal,
-			Scanner: scan,
-			Observe: observe,
+	}, service.Bodies{
+		Policy: fetch.Policy,
+		Open:   fetch.Open,
+		Render: func(body mail.MessageBody) (string, error) {
+			defer processing.Since(scanner.StepConvert, time.Now())
+			return markdown.Render(body)
 		},
+		Literal: markdown.Literal,
+		Scanner: scan,
+		Observe: observe,
 	}), p.Metrics())
 	if err != nil {
 		return service.Registry{}, err

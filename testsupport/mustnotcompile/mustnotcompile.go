@@ -6,6 +6,8 @@
 // no input unnoticed. RequireMethods asserts an interface's exact methods and signatures,
 // RequireReturning which of its methods return a value carrying a type, and RequireResults a
 // method's exact results, so an interface gains no operation and no path to a type unnoticed.
+// RequireTakers asserts which of a package's functions, methods and variables can hold a value
+// carrying a type, so a value handed to a few of them gains no other holder unnoticed.
 //
 // A package whose types must refuse a construction keeps one fixture per case under
 // testdata/mustnotcompile/<case>/ and calls Require from an ordinary test. The go command skips
@@ -206,10 +208,11 @@ func RequireReturning(t testing.TB, pkgPath, ifaceName, typeName string, methods
 
 // CheckReturning returns an error unless exactly the named methods of the interface ifaceName, in
 // sorted order, return a value through which the type typeName can be reached, both declared in the
-// package at pkgPath. A type is reached through a result itself, a pointer, slice, array, map or
-// channel, a struct field, a generic type's instance, and the results of an interface's methods. A
-// method gaining a result that carries the type then fails, and so does a type a result already
-// carries gaining a field of it.
+// package at pkgPath. A type is reached through a result itself, an alias of it, a pointer, slice,
+// array, map or channel, a struct field, a generic type's instance, and the results of an
+// interface's methods. A function type's parameters and results are not followed. A method gaining
+// a result that carries the type then fails, and so does a type a result already carries gaining a
+// field of it.
 func CheckReturning(pkgPath, ifaceName, typeName string, methods ...string) error {
 	pkg, err := load(pkgPath)
 	if err != nil {
@@ -239,6 +242,80 @@ func CheckReturning(pkgPath, ifaceName, typeName string, methods ...string) erro
 		return fmt.Errorf("mustnotcompile: the methods of %s.%s returning %s are %q, want %q", pkgPath, ifaceName, typeName, got, methods)
 	}
 	return nil
+}
+
+// RequireTakers fails the test unless CheckTakers reports no mismatch.
+func RequireTakers(t testing.TB, pkgPath, typeName string, takers ...string) {
+	t.Helper()
+	if err := CheckTakers(pkgPath, typeName, takers...); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// CheckTakers returns an error unless exactly takers, in sorted order, are the functions, the
+// methods declared on a named type and the package-level variables of the package at pkgPath that
+// can hold a value through which the type typeName, declared there too, can be reached. A function or
+// a method holds one through a parameter or its receiver, and a variable through its type. A method is
+// written as its type's name and its own, such as "Buffer.Reset". A type is reached as CheckReturning
+// describes, so a function type's parameters and results are not followed. A function gaining a
+// parameter that carries the type, under its own name or an alias, a type a receiver or a parameter
+// already carries gaining a field of it, and a variable of it then each fail. What a taker's own code
+// does with the value, such as capture it in a function literal it hands on, is not read, and nor is
+// a value of a function type that returns the type.
+func CheckTakers(pkgPath, typeName string, takers ...string) error {
+	pkg, err := loadSource(pkgPath)
+	if err != nil {
+		return err
+	}
+	target, ok := pkg.Scope().Lookup(typeName).(*types.TypeName)
+	if !ok {
+		return fmt.Errorf("mustnotcompile: %s declares no type %s", pkgPath, typeName)
+	}
+	var got []string
+	for _, name := range pkg.Scope().Names() {
+		switch obj := pkg.Scope().Lookup(name).(type) {
+		case *types.Func:
+			if takes(obj, target) {
+				got = append(got, name)
+			}
+		case *types.Var:
+			if reaches(obj.Type(), target, map[types.Type]bool{}) {
+				got = append(got, name)
+			}
+		case *types.TypeName:
+			n, ok := obj.Type().(*types.Named)
+			if !ok {
+				continue
+			}
+			for i := range n.NumMethods() {
+				if m := n.Method(i); takes(m, target) {
+					got = append(got, name+"."+m.Name())
+				}
+			}
+		}
+	}
+	slices.Sort(got)
+	if !slices.Equal(got, takers) {
+		return fmt.Errorf("mustnotcompile: what in %s takes %s is %q, want %q", pkgPath, typeName, got, takers)
+	}
+	return nil
+}
+
+// takes reports whether fn's receiver or one of its parameters can reach target.
+func takes(fn *types.Func, target *types.TypeName) bool {
+	sig, ok := fn.Type().(*types.Signature)
+	if !ok {
+		return false
+	}
+	if r := sig.Recv(); r != nil && reaches(r.Type(), target, map[types.Type]bool{}) {
+		return true
+	}
+	for i := range sig.Params().Len() {
+		if reaches(sig.Params().At(i).Type(), target, map[types.Type]bool{}) {
+			return true
+		}
+	}
+	return false
 }
 
 // RequireMethods fails the test unless CheckMethods reports no mismatch.
@@ -331,8 +408,10 @@ func resultsOf(m *types.Func) *types.Tuple {
 	return sig.Results()
 }
 
-// reaches reports whether target can be reached from t, as CheckReturning describes.
+// reaches reports whether target can be reached from t, as CheckReturning describes. An alias is
+// read as the type it names.
 func reaches(t types.Type, target *types.TypeName, seen map[types.Type]bool) bool {
+	t = types.Unalias(t)
 	if seen[t] {
 		return false
 	}
@@ -372,7 +451,18 @@ func reaches(t types.Type, target *types.TypeName, seen map[types.Type]bool) boo
 
 // load type-checks the package at pkgPath.
 func load(pkgPath string) (*types.Package, error) {
-	pkgs, err := packages.Load(&packages.Config{Mode: packages.NeedName | packages.NeedTypes}, pkgPath)
+	return loadWith(pkgPath, packages.NeedName|packages.NeedTypes)
+}
+
+// loadSource type-checks the package at pkgPath from its source, which holds the unexported names
+// that export data, which load reads, leaves out when nothing exported reaches them.
+func loadSource(pkgPath string) (*types.Package, error) {
+	return loadWith(pkgPath, packages.NeedName|packages.NeedTypes|packages.NeedSyntax|packages.NeedTypesInfo)
+}
+
+// loadWith loads the package at pkgPath in mode and returns its types.
+func loadWith(pkgPath string, mode packages.LoadMode) (*types.Package, error) {
+	pkgs, err := packages.Load(&packages.Config{Mode: mode}, pkgPath)
 	if err != nil {
 		return nil, fmt.Errorf("mustnotcompile: loading %s: %w", pkgPath, err)
 	}

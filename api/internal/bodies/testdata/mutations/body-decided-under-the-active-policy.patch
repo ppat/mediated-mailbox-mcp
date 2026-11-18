@@ -1,0 +1,28 @@
+control: A body request is decided under the policy loaded after it arrived, so a newly listed domain is denied on the next call
+removes: the registry hands the body operation the policy in force in place of the fresh load, so the load in api/internal/bodies is never called
+packages: ./api/app
+tests: TestANewlyListedDomainIsDeniedOnTheNextCall
+scheduled-count: no
+integration: yes
+
+diff --git a/api/internal/registry/registry.go b/api/internal/registry/registry.go
+index 9edc7d44..867d40df 100644
+--- a/api/internal/registry/registry.go
++++ b/api/internal/registry/registry.go
+@@ -17,6 +17,7 @@ import (
+ 	"github.com/ppat/mediated-mailbox-mcp/api/internal/bodies"
+ 	"github.com/ppat/mediated-mailbox-mcp/api/internal/service"
+ 	"github.com/ppat/mediated-mailbox-mcp/content/markdown"
++	"github.com/ppat/mediated-mailbox-mcp/core/classify"
+ 	"github.com/ppat/mediated-mailbox-mcp/core/config"
+ 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
+ 	"github.com/ppat/mediated-mailbox-mcp/process"
+@@ -76,7 +77,7 @@ func build(ctx context.Context, p process.Capabilities, c config.API) (service.R
+ 		Policy:   s.Policy,
+ 		Now:      time.Now,
+ 	}, service.Bodies{
+-		Policy: fetch.Policy,
++		Policy: func(_ context.Context, account string) classify.Policy { return s.Policy(account) },
+ 		Open:   fetch.Open,
+ 		Render: func(body mail.MessageBody) (string, error) {
+ 			defer processing.Since(scanner.StepConvert, time.Now())

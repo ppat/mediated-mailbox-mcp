@@ -133,7 +133,7 @@ func render(t *testing.T, doc *openapi3.T) []byte {
 }
 
 func TestDocument(t *testing.T) {
-	reg, err := service.NewRegistry(nil, service.Operations(service.Sources{})...)
+	reg, err := service.NewRegistry(nil, service.Operations(service.Sources{}, service.Bodies{})...)
 	if err != nil {
 		t.Fatal(err)
 	}
