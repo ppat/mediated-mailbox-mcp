@@ -13,6 +13,7 @@ import (
 	clientsetup "github.com/ppat/mediated-mailbox-mcp/db/oauthclients/setup"
 	"github.com/ppat/mediated-mailbox-mcp/db/ratestate"
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/refusal"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/schema"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/setup"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/registry"
@@ -140,15 +141,15 @@ func (s *handlers) setTarget(w http.ResponseWriter, r *http.Request) {
 	if !server.ReadBody(w, r, &body) {
 		return
 	}
-	if setup.Target(body.LoweredTarget) != setup.None {
-		server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, string(setup.TargetRefused), "a lowered target is above 5% and at most 50% of the declared ceiling"))
+	if refused := setup.Target(body.LoweredTarget); refused != nil {
+		server.WriteFailure(w, r, server.Refused(refused))
 		return
 	}
 	err := tx.Run(r.Context(), s.opts.Database, account, func(t pgx.Tx) error {
 		return storeTarget(r.Context(), accountsetup.New(t), body.LoweredTarget)
 	})
 	if errors.Is(err, errNotConnected) {
-		server.WriteFailure(w, r, server.ClientFault(http.StatusConflict, "not_connected", "the account is not connected, so it holds no target"))
+		server.WriteFailure(w, r, server.ClientFault(refusal.NotConnected, "the account is not connected, so it holds no target"))
 		return
 	}
 	if err != nil {

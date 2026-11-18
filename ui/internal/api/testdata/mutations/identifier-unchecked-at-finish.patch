@@ -6,7 +6,6 @@ scheduled-count: no
 integration: yes
 
 diff --git a/db/accounts/setup/setup.sql.go b/db/accounts/setup/setup.sql.go
-index b44af62f..079a0771 100644
 --- a/db/accounts/setup/setup.sql.go
 +++ b/db/accounts/setup/setup.sql.go
 @@ -63,6 +63,7 @@ func (q *Queries) AccountSetup(ctx context.Context) ([]AccountSetupRow, error) {
@@ -26,15 +25,14 @@ index b44af62f..079a0771 100644
  
  type AddStateParams struct {
 diff --git a/ui/internal/setup/connect.go b/ui/internal/setup/connect.go
-index 2b6d3f2f..b3fd4fbc 100644
 --- a/ui/internal/setup/connect.go
 +++ b/ui/internal/setup/connect.go
-@@ -371,7 +371,7 @@ func (s *handlers) finish(w http.ResponseWriter, r *http.Request, mine func(atte
- // attempt started and a client replaced or removed since any attempt started. The transaction that
+@@ -365,7 +365,7 @@ func (s *handlers) finish(w http.ResponseWriter, r *http.Request, mine func(atte
  // writes checks both again.
  func (s *handlers) stillFree(w http.ResponseWriter, r *http.Request, a attempt) bool {
--	if a.Kind == attemptConnect {
-+	if a.Kind == attemptConnect && false {
- 		listed, err := accounts.New(s.opts.Database).Accounts(r.Context())
- 		if err != nil {
+ 	var listed []string
+-	if a.Kind == setup.Connect {
++	if a.Kind == setup.Connect && false {
+ 		var err error
+ 		if listed, err = s.listed(r.Context()); err != nil {
  			server.DatabaseFailure(w, r, err)

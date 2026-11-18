@@ -6,10 +6,9 @@ scheduled-count: no
 integration: yes
 
 diff --git a/ui/internal/reads/lens.go b/ui/internal/reads/lens.go
-index a9b157ef..e3ce1bc3 100644
 --- a/ui/internal/reads/lens.go
 +++ b/ui/internal/reads/lens.go
-@@ -290,9 +290,6 @@ func (s *handlers) rowDetail(dataset registry.Dataset) func(http.ResponseWriter,
+@@ -274,9 +274,6 @@ func (s *handlers) rowDetail(dataset registry.Dataset) func(http.ResponseWriter,
  			server.WriteFailure(w, r, server.UIFault())
  			return
  		}
@@ -18,4 +17,4 @@ index a9b157ef..e3ce1bc3 100644
 -		}
  		started := time.Now()
  		var body any
- 		err = tx.Run(r.Context(), s.snapshot(), account, func(t pgx.Tx) error {
+ 		err = registry.InAccount(r.Context(), s.snapshot(), account, func(q registry.Queries) error {

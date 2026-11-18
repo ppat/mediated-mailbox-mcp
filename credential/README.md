@@ -18,7 +18,7 @@ top-level library of its own rather than a part of any one of them.
 | Package | Holds |
 | --- | --- |
 | `seal/` | The public key, the sealed value's bytes and the contexts a value is bound to. It never imports `credential/open/`, and since `credential/open/` imports it the compiler refuses the reverse as a cycle |
-| `open/` | The private keys, the keyring, opening, the refusals and the re-seal |
+| `open/` | The private keys, the keyring, opening, the refusals and the re-seal, and the opening of OAuth clients' secrets alone, `ClientSecrets`, which the UI's `ui/internal/setup/clientsecret` holds in place of the keyring |
 
 Each package is admitted to each component by its own entry in that component's import list, and
 each has a list of its own in `.golangci.yaml`, so joining this family never widens what any

@@ -1,13 +1,13 @@
-package server
+// Package cspscan is the scan the content security policy's tests run over the entry template and
+// the built bundle, for anything the policy would have to be loosened for (ADR-0062, with the proof
+// split ADR-0064 records). It is not a test file, so a mutation patch can break it, and only test
+// files import it, so no binary links it or compiles its patterns at its start.
+package cspscan
 
 import (
 	"regexp"
 	"strings"
 )
-
-// The scan the policy's tests run over the entry template and the built bundle (ADR-0062, with the
-// proof split ADR-0064 records). It sits beside the policy it guards so a mutation patch can break
-// it, and the binary never calls it.
 
 var (
 	// scriptElement is a script element. One without a src attribute is inline.

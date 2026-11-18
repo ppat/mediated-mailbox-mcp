@@ -6,10 +6,9 @@ scheduled-count: no
 integration: yes
 
 diff --git a/ui/internal/reads/lens.go b/ui/internal/reads/lens.go
-index a9b157ef..ecbdf05a 100644
 --- a/ui/internal/reads/lens.go
 +++ b/ui/internal/reads/lens.go
-@@ -279,6 +279,9 @@ func (s *handlers) rowDetail(dataset registry.Dataset) func(http.ResponseWriter,
+@@ -263,6 +263,9 @@ func (s *handlers) rowDetail(dataset registry.Dataset) func(http.ResponseWriter,
  	return func(w http.ResponseWriter, r *http.Request) {
  		account := r.PathValue("account")
  		server.RequestLogOf(r.Context()).Account = account
@@ -17,5 +16,5 @@ index a9b157ef..ecbdf05a 100644
 +			return
 +		}
  		req, err := lens.ParseRow(s.descriptors, dataset.Name, r.PathValue("row"), r.URL.Query())
- 		var refusal *lens.Refusal
- 		if errors.As(err, &refusal) {
+ 		var refused *refusal.Refusal
+ 		if errors.As(err, &refused) {

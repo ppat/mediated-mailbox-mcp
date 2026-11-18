@@ -21,3 +21,6 @@ func (q *Queries) WithTx(tx pgx.Tx) *Queries { return &Queries{db: tx} }
 
 // OAuthClients is a statement.
 func (q *Queries) OAuthClients(ctx context.Context) error { return nil }
+
+// SealedClient is a statement.
+func (q *Queries) SealedClient(ctx context.Context) error { return nil }

@@ -6,15 +6,14 @@ scheduled-count: no
 integration: yes
 
 diff --git a/ui/internal/policymanagement/policyfile.go b/ui/internal/policymanagement/policyfile.go
-index 2144f12e..8d1f1cd8 100644
 --- a/ui/internal/policymanagement/policyfile.go
 +++ b/ui/internal/policymanagement/policyfile.go
-@@ -475,7 +475,7 @@ func (s *handlers) writeImport(w http.ResponseWriter, r *http.Request, account s
+@@ -466,7 +466,7 @@ func (s *handlers) writeImport(w http.ResponseWriter, r *http.Request, account s
  			list[i] = f.rule
  		}
  		d := rules.Compare(toRules(stored), list)
--		if k := d.Lifts(); k > 0 && !confirms(body.Confirmation, rules.Confirmation(k)) {
-+		if k := d.Changes(); d.Lifts() > 0 && !confirms(body.Confirmation, rules.Confirmation(k)) {
- 			return errConfirmationRequired
+-		if k := d.Lifts(); k > 0 && !rules.Confirms(body.Confirmation, rules.Confirmation(k)) {
++		if k := d.Changes(); d.Lifts() > 0 && !rules.Confirms(body.Confirmation, rules.Confirmation(k)) {
+ 			return errImportUnconfirmed
  		}
  		out = Imported{Added: []RuleAnswer{}, Edited: []EditedRule{}, Lifted: []LiftedRule{}, Lifts: d.Lifts()}

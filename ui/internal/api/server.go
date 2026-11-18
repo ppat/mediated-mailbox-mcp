@@ -8,6 +8,7 @@ import (
 
 	"github.com/ppat/mediated-mailbox-mcp/db/accounts"
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/refusal"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/paths"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/registry"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/server"
@@ -113,7 +114,7 @@ func mount(db accounts.DBTX, checks *server.Checks, datasets []registry.Dataset,
 		}
 	}
 	mux.Handle(paths.API+"/", named("unrouted", func(w http.ResponseWriter, r *http.Request) {
-		server.WriteFailure(w, r, server.ClientFault(http.StatusNotFound, "not_found", "no read API route answers this path"))
+		server.WriteFailure(w, r, server.ClientFault(refusal.NotFound, "no read API route answers this path"))
 	}))
 	// Every request is given its session, and every request whose method is not GET or HEAD is refused
 	// before it is routed unless it carries the session's request token (ADR-0061).
@@ -154,7 +155,7 @@ func admit(db accounts.DBTX, w http.ResponseWriter, r *http.Request) bool {
 	account := r.PathValue("account")
 	server.RequestLogOf(r.Context()).Account = account
 	if account == "all" {
-		server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, "all_accounts", "every view is one account's, and all names every account"))
+		server.WriteFailure(w, r, server.ClientFault(refusal.AllAccounts, "every view is one account's, and all names every account"))
 		return false
 	}
 	listed, err := accounts.New(db).Accounts(r.Context())
@@ -163,7 +164,7 @@ func admit(db accounts.DBTX, w http.ResponseWriter, r *http.Request) bool {
 		return false
 	}
 	if !slices.ContainsFunc(listed, func(a accounts.AccountsRow) bool { return a.AccountID == account }) {
-		server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, "unknown_account", "no account has this identifier"))
+		server.WriteFailure(w, r, server.ClientFault(refusal.UnknownAccount, "no account has this identifier"))
 		return false
 	}
 	return true

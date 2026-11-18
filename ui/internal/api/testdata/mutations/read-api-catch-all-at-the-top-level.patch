@@ -5,15 +5,14 @@ tests: TestEveryRouteSitsUnderTheReadAPIsRoot
 scheduled-count: no
 
 diff --git a/ui/internal/api/server.go b/ui/internal/api/server.go
-index b3fad150..f52ebf5e 100644
 --- a/ui/internal/api/server.go
 +++ b/ui/internal/api/server.go
-@@ -112,7 +112,7 @@ func mount(db accounts.DBTX, checks *server.Checks, datasets []registry.Dataset,
+@@ -113,7 +113,7 @@ func mount(db accounts.DBTX, checks *server.Checks, datasets []registry.Dataset,
  			mux.Handle(pattern, named(route.Pattern, h))
  		}
  	}
 -	mux.Handle(paths.API+"/", named("unrouted", func(w http.ResponseWriter, r *http.Request) {
 +	mux.Handle(paths.API[len(paths.Root):]+"/", named("unrouted", func(w http.ResponseWriter, r *http.Request) {
- 		server.WriteFailure(w, r, server.ClientFault(http.StatusNotFound, "not_found", "no read API route answers this path"))
+ 		server.WriteFailure(w, r, server.ClientFault(refusal.NotFound, "no read API route answers this path"))
  	}))
  	// Every request is given its session, and every request whose method is not GET or HEAD is refused

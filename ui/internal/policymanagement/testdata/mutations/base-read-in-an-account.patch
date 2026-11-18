@@ -6,12 +6,19 @@ scheduled-count: no
 integration: yes
 
 diff --git a/ui/internal/policymanagement/basepolicy.go b/ui/internal/policymanagement/basepolicy.go
-index 12fde8f3..b1421800 100644
 --- a/ui/internal/policymanagement/basepolicy.go
 +++ b/ui/internal/policymanagement/basepolicy.go
-@@ -98,12 +98,31 @@ func basePolicyType() schema.Type {
+@@ -12,6 +12,7 @@ import (
+ 
+ 	"github.com/ppat/mediated-mailbox-mcp/db/accounts"
+ 	"github.com/ppat/mediated-mailbox-mcp/db/policyrules/base"
++	"github.com/ppat/mediated-mailbox-mcp/db/policyrules/manage"
+ 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
+ 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/lens"
+ 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/refusal"
+@@ -85,12 +86,31 @@ func basePolicyType() schema.Type {
  func (s *handlers) getBasePolicy(w http.ResponseWriter, r *http.Request) {
- 	search := strings.ToLower(r.URL.Query().Get("search"))
+ 	search := r.URL.Query().Get("search")
  	out := BasePolicy{Rules: []BaseRule{}}
 -	err := tx.RunBase(r.Context(), s.opts.Database, func(t pgx.Tx) error {
 +	listed, err := s.listAccountIDs(r.Context())
@@ -41,4 +48,4 @@ index 12fde8f3..b1421800 100644
 +		}
  		out.Total = len(stored)
  		for _, rule := range stored {
- 			if search != "" && !strings.Contains(strings.ToLower(rule.ID), search) &&
+ 			if !rules.Matches(rules.Rule{ID: rule.ID, Suffixes: rule.Suffixes}, search) {

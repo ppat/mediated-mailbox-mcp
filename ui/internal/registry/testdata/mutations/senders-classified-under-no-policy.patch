@@ -6,15 +6,14 @@ scheduled-count: no
 integration: yes
 
 diff --git a/ui/internal/registry/policy.go b/ui/internal/registry/policy.go
-index 02ef81b0..deb274a3 100644
 --- a/ui/internal/registry/policy.go
 +++ b/ui/internal/registry/policy.go
 @@ -135,7 +135,7 @@ func AccountSenders(ctx context.Context, q *senderclassification.Queries, stored
  	for _, s := range read {
  		senders = append(senders, rules.Stored{Domain: s.Domain, Messages: s.MessageCount})
  	}
--	return rules.NewSenders(senders, rules.Names(Composed(stored), l), l), nil
-+	return rules.NewSenders(senders, nil, l), nil
+-	return rules.NewSenders(senders, Classifier(stored, l), l), nil
++	return rules.NewSenders(senders, Classifier(stored[:0], l), l), nil
  }
  
  // ruleRow is a stored rule with its counts in the account.

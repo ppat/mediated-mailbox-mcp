@@ -5,7 +5,6 @@ import (
 	"errors"
 	"net/http"
 	"slices"
-	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -17,6 +16,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/db/policyrules/base"
 	"github.com/ppat/mediated-mailbox-mcp/db/policyrules/manage"
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/refusal"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/rules"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/schema"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/registry"
@@ -119,20 +119,6 @@ func (s *handlers) inScope(ctx context.Context, account string, isBase bool, fn 
 	})
 }
 
-// The refusals a policy write answers with, each the client's fault and nothing written (docs/UI.md
-// section 17.4).
-var (
-	errIdentifierTaken      = errors.New("the scope holds a rule of this identifier")
-	errUnknownRule          = errors.New("the scope holds no rule of this identifier")
-	errStaleRule            = errors.New("the rule's suffixes are not the ones the request was made against")
-	errConfirmationRequired = errors.New("the change lifts a restriction every account loses, and its confirmation is not the rule's identifier")
-)
-
-// refusedRule is a write the policy snapshot's validation, or the UI's own check, refuses.
-type refusedRule struct{ problems []rules.Problem }
-
-func (r *refusedRule) Error() string { return "the rule fails the policy's checks" }
-
 // ProblemAnswer is one problem a refused write or file names, with the rule's identifier, its line in a
 // file, and the suffix an invalid suffix names.
 type ProblemAnswer struct {
@@ -144,12 +130,20 @@ type ProblemAnswer struct {
 
 func problemType() schema.Type {
 	return schema.Obj("Problem",
-		schema.F("kind", schema.Str(string(rules.BlankIdentifier), string(rules.RepeatedIdentifier), string(rules.NoSuffix),
-			string(rules.InvalidSuffix), string(rules.OtherClass), string(rules.ReservedIdentifier), kindNotTheForm, kindTooLarge)),
+		schema.F("kind", schema.Str(kinds()...)),
 		schema.F("rule_id", schema.Str()),
 		schema.F("line", schema.Null(schema.Int())),
 		schema.F("suffix", schema.Null(schema.Str())),
 	)
+}
+
+// kinds are the problems' kinds as the contract declares them.
+func kinds() []string {
+	var out []string
+	for _, k := range refusal.Kinds() {
+		out = append(out, string(k))
+	}
+	return out
 }
 
 // refusalAnswer is a refused write's body, the error contract's shape with the problems beside it.
@@ -166,37 +160,36 @@ func RefusalType() schema.Type {
 	)
 }
 
-// writeRefusal answers a request whose rules fail the checks with each problem named.
-func writeRefusal(w http.ResponseWriter, r *http.Request, code, message string, problems []ProblemAnswer) {
-	server.WriteBody(w, r, http.StatusBadRequest, refusalAnswer{
-		Error:    server.ClientRefusal(r, code, message),
+// writeRefusal answers a request whose rules or file fail the checks with each problem named.
+func writeRefusal(w http.ResponseWriter, r *http.Request, refused *refusal.Refusal) {
+	problems := make([]ProblemAnswer, 0, len(refused.Problems))
+	for _, p := range refused.Problems {
+		a := ProblemAnswer{Kind: string(p.Kind), RuleID: p.Rule}
+		if p.Line > 0 {
+			line := p.Line
+			a.Line = &line
+		}
+		if p.Suffix != "" {
+			suffix := p.Suffix
+			a.Suffix = &suffix
+		}
+		problems = append(problems, a)
+	}
+	server.WriteBody(w, r, server.Status(refused.Code), refusalAnswer{
+		Error:    server.ClientRefusal(r, refused),
 		Problems: problems,
 	})
 }
 
-// answerWrite answers a policy write that failed, by what failed it.
-func (s *handlers) answerWrite(w http.ResponseWriter, r *http.Request, rule string, err error) {
-	var refused *refusedRule
+// answerWrite answers a policy write that failed, by what failed it, a refusal the rules decided
+// with its problems beside it when it names any.
+func (s *handlers) answerWrite(w http.ResponseWriter, r *http.Request, err error) {
+	var refused *refusal.Refusal
 	switch {
+	case errors.As(err, &refused) && len(refused.Problems) > 0:
+		writeRefusal(w, r, refused)
 	case errors.As(err, &refused):
-		var out []ProblemAnswer
-		for _, p := range refused.problems {
-			a := ProblemAnswer{Kind: string(p.Kind), RuleID: rule}
-			if p.Suffix != "" {
-				suffix := p.Suffix
-				a.Suffix = &suffix
-			}
-			out = append(out, a)
-		}
-		writeRefusal(w, r, "rule_refused", "the rule fails the policy's checks", out)
-	case errors.Is(err, errIdentifierTaken):
-		server.WriteFailure(w, r, server.ClientFault(http.StatusConflict, "identifier_taken", "the scope already holds a rule of this identifier"))
-	case errors.Is(err, errUnknownRule):
-		server.WriteFailure(w, r, server.ClientFault(http.StatusNotFound, "unknown_rule", "the policy holds no rule of this identifier in this scope"))
-	case errors.Is(err, errStaleRule):
-		server.WriteFailure(w, r, server.ClientFault(http.StatusConflict, "stale_rule", "the rule changed since the page read it"))
-	case errors.Is(err, errConfirmationRequired):
-		server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, "confirmation_required", "lifting a base rule's restriction needs the rule's identifier typed"))
+		server.WriteFailure(w, r, server.Refused(refused))
 	default:
 		server.DatabaseFailure(w, r, err)
 	}
@@ -278,46 +271,23 @@ func toRules(stored []registry.StoredRule) []rules.Rule {
 	return out
 }
 
-// checked refuses a scope's rules as a write would leave them, when the policy's checks find a problem
-// with the rule at index i, the one the write changes.
-func checked(scope string, after []rules.Rule, i int) error {
-	var mine []rules.Problem
-	for _, p := range rules.Check(after) {
-		if p.Rule == i {
-			mine = append(mine, p)
-		}
-	}
-	if len(mine) > 0 {
-		return &refusedRule{problems: mine}
-	}
-	return nil
-}
-
 // addRule adds a rule to a scope with its history row, in one transaction (ADR-0102). An identifier the
 // scope holds is refused as taken, and a rule the policy's checks refuse is refused with its problems,
 // both before anything is written.
 func (s *handlers) addRule(ctx context.Context, account string, isBase bool, req RuleRequest, actor string) error {
-	scope := scopeOf(isBase)
 	return s.inScope(ctx, account, isBase, func(w scopeWrites) error {
 		stored, err := w.stored(ctx)
 		if err != nil {
 			return err
 		}
-		if slices.ContainsFunc(stored, func(r registry.StoredRule) bool { return r.ID == req.RuleID }) {
-			return errIdentifierTaken
-		}
 		rule := rules.Rule{ID: req.RuleID, Suffixes: nonNil(req.Suffixes)}
-		after := append(toRules(stored), rule)
-		if err := checked(scope, after, len(after)-1); err != nil {
-			return err
+		if refused := rules.Adding(toRules(stored), rule); refused != nil {
+			return refused
 		}
 		if err := w.add(ctx, rule, actor); err != nil {
 			if key, ok := server.Violated(err, server.UniqueViolation); ok && key == ruleKey {
-				return errIdentifierTaken
+				return rules.Taken()
 			}
-			return err
-		}
-		if err := s.opts.Fault.At("between a rule's write and its history row"); err != nil {
 			return err
 		}
 		return w.record(ctx, actionAdded, rule.ID, nil, rule.Suffixes, actor)
@@ -333,39 +303,22 @@ const ruleKey = "policy_rules_scope_rule_id_key"
 // rule needs the rule's identifier as its confirmation, an edit removing every suffix is refused, since
 // a rule needs one, and an edit the policy's checks refuse is refused.
 func (s *handlers) editRule(ctx context.Context, account string, isBase bool, id string, req EditRequest, actor string) error {
-	scope := scopeOf(isBase)
 	return s.inScope(ctx, account, isBase, func(w scopeWrites) error {
 		stored, err := w.stored(ctx)
 		if err != nil {
 			return err
 		}
-		i := slices.IndexFunc(stored, func(r registry.StoredRule) bool { return r.ID == id })
-		if i < 0 {
-			return errUnknownRule
+		if refused := rules.Editing(toRules(stored), id, req.SuffixesBefore, nonNil(req.Suffixes), isBase, req.Confirmation); refused != nil {
+			return refused
 		}
-		if !slices.Equal(stored[i].Suffixes, req.SuffixesBefore) {
-			return errStaleRule
-		}
-		after := toRules(stored)
-		after[i] = rules.Rule{ID: id, Suffixes: nonNil(req.Suffixes)}
-		if err := checked(scope, after, i); err != nil {
-			return err
-		}
-		removes := slices.ContainsFunc(stored[i].Suffixes, func(x string) bool { return !slices.Contains(req.Suffixes, x) })
-		if isBase && removes && !confirms(req.Confirmation, id) {
-			return errConfirmationRequired
-		}
-		n, err := w.edit(ctx, id, stored[i].Suffixes, req.Suffixes)
+		n, err := w.edit(ctx, id, req.SuffixesBefore, req.Suffixes)
 		if err != nil {
 			return err
 		}
 		if n == 0 {
-			return errStaleRule
+			return rules.StaleRule()
 		}
-		if err := s.opts.Fault.At("between a rule's write and its history row"); err != nil {
-			return err
-		}
-		return w.record(ctx, actionEdited, id, stored[i].Suffixes, req.Suffixes, actor)
+		return w.record(ctx, actionEdited, id, req.SuffixesBefore, req.Suffixes, actor)
 	})
 }
 
@@ -377,34 +330,18 @@ func (s *handlers) liftRule(ctx context.Context, account string, isBase bool, id
 		if err != nil {
 			return err
 		}
-		i := slices.IndexFunc(stored, func(r registry.StoredRule) bool { return r.ID == id })
-		if i < 0 {
-			return errUnknownRule
+		if refused := rules.Lifting(toRules(stored), id, req.SuffixesBefore, isBase, req.Confirmation); refused != nil {
+			return refused
 		}
-		if !slices.Equal(stored[i].Suffixes, req.SuffixesBefore) {
-			return errStaleRule
-		}
-		if isBase && !confirms(req.Confirmation, id) {
-			return errConfirmationRequired
-		}
-		n, err := w.lift(ctx, id, stored[i].Suffixes)
+		n, err := w.lift(ctx, id, req.SuffixesBefore)
 		if err != nil {
 			return err
 		}
 		if n == 0 {
-			return errStaleRule
+			return rules.StaleRule()
 		}
-		if err := s.opts.Fault.At("between a rule's write and its history row"); err != nil {
-			return err
-		}
-		return w.record(ctx, actionLifted, id, stored[i].Suffixes, nil, actor)
+		return w.record(ctx, actionLifted, id, req.SuffixesBefore, nil, actor)
 	})
-}
-
-// confirms reports whether a typed confirmation is want, compared after trimming surrounding space as
-// the screen's field compares it (docs/UI.md section 8.7).
-func confirms(confirmation *string, want string) bool {
-	return confirmation != nil && strings.TrimSpace(*confirmation) == want
 }
 
 func scopeOf(isBase bool) string {
@@ -423,7 +360,7 @@ func scopeOfRequest(w http.ResponseWriter, r *http.Request, scope string) (bool,
 	case rules.Base:
 		return true, true
 	}
-	server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, "malformed_body", "scope is account or base"))
+	server.WriteFailure(w, r, server.ClientFault(refusal.MalformedBody, "scope is account or base"))
 	return false, false
 }
 
@@ -472,7 +409,7 @@ func (s *handlers) writeAdd(w http.ResponseWriter, r *http.Request, account stri
 		return
 	}
 	if err := s.addRule(r.Context(), account, isBase, body, actor); err != nil {
-		s.answerWrite(w, r, body.RuleID, err)
+		s.answerWrite(w, r, err)
 		return
 	}
 	server.WriteJSON(w, r, RuleAnswer{Scope: scopeOf(isBase), RuleID: body.RuleID, Suffixes: nonNil(body.Suffixes)})
@@ -507,7 +444,7 @@ func (s *handlers) writeEdit(w http.ResponseWriter, r *http.Request, account str
 	}
 	id := r.PathValue("rule")
 	if err := s.editRule(r.Context(), account, isBase, id, body, actor); err != nil {
-		s.answerWrite(w, r, id, err)
+		s.answerWrite(w, r, err)
 		return
 	}
 	server.WriteJSON(w, r, RuleAnswer{Scope: scopeOf(isBase), RuleID: id, Suffixes: nonNil(body.Suffixes)})
@@ -542,7 +479,7 @@ func (s *handlers) writeLift(w http.ResponseWriter, r *http.Request, account str
 	}
 	id := r.PathValue("rule")
 	if err := s.liftRule(r.Context(), account, isBase, id, body, actor); err != nil {
-		s.answerWrite(w, r, id, err)
+		s.answerWrite(w, r, err)
 		return
 	}
 	server.WriteJSON(w, r, RuleAnswer{Scope: scopeOf(isBase), RuleID: id, Suffixes: []string{}})
@@ -576,7 +513,7 @@ type MatchAnswer struct {
 func matchAnswerType() schema.Type {
 	return schema.Obj("MatchAnswer",
 		schema.F("senders_total", schema.Int()),
-		schema.F("together", schema.Obj("Counts", schema.F("senders", schema.Int()), schema.F("messages", schema.Int()))),
+		schema.F("together", registry.CountsType()),
 		schema.F("suffixes", schema.ArrayOf(schema.Obj("SuffixMatch",
 			schema.F("suffix", schema.Str()),
 			schema.F("valid", schema.Bool()),
@@ -717,7 +654,7 @@ func (s *handlers) getRelease(w http.ResponseWriter, r *http.Request) {
 			return err
 		}
 		if !slices.ContainsFunc(stored, func(x registry.StoredRule) bool { return x.Base == isBase && x.ID == id }) {
-			return errUnknownRule
+			return rules.UnknownRule()
 		}
 		senders, err := registry.AccountSenders(r.Context(), rq.Senders, stored, s.opts.Lookups)
 		if err != nil {
@@ -727,7 +664,7 @@ func (s *handlers) getRelease(w http.ResponseWriter, r *http.Request) {
 		return nil
 	})
 	if err != nil {
-		s.answerWrite(w, r, id, err)
+		s.answerWrite(w, r, err)
 		return
 	}
 	server.WriteJSON(w, r, out)

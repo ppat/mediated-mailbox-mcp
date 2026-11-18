@@ -16,9 +16,8 @@ type Endpoint = endpoint
 func (e *endpoint) Handler() http.Handler { return e.handler }
 
 // Mount mounts routes behind checks as New does, so the package's tests can build the routes of reads,
-// setup and policymanagement from options holding a fixed clock, the provider fake's consents and a
-// fault between a write's statements, which no configuration carries. It exists only in this
-// package's test binary.
+// setup and policymanagement from options holding a fixed clock and the provider fake's consents, which
+// no configuration carries. It exists only in this package's test binary.
 func Mount(db accounts.DBTX, checks *server.Checks, datasets []registry.Dataset, routes ...[]server.Route) (*Endpoint, error) {
 	return mount(db, checks, datasets, routes...)
 }

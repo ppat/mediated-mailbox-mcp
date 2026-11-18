@@ -1,0 +1,18 @@
+control: The ui workflow's path list watches every file its fixtures tests compile or embed
+removes: a pattern starting with ! is read as one more pattern to watch, so an excluded file still reads as watched
+packages: ./testsupport/cmd/testkinds
+tests: TestAFilteredWorkflowWatchesEveryFileItsTestsLink
+scheduled-count: no
+
+diff --git a/testsupport/cmd/testkinds/filter.go b/testsupport/cmd/testkinds/filter.go
+--- a/testsupport/cmd/testkinds/filter.go
++++ b/testsupport/cmd/testkinds/filter.go
+@@ -166,7 +166,7 @@ func unwatched(patterns, files []string) ([]string, error) {
+ 		watched := false
+ 		for _, r := range rules {
+ 			if r.re.MatchString(f) {
+-				watched = !r.exclude
++				watched = true
+ 			}
+ 		}
+ 		if !watched {

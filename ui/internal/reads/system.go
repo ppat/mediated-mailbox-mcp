@@ -15,6 +15,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/db/ratestate"
 	"github.com/ppat/mediated-mailbox-mcp/db/reorgplans"
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/reads"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/schema"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/registry"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/server"
@@ -149,11 +150,7 @@ func (s *handlers) system(ctx context.Context, q systemQueries, account string, 
 	if err != nil {
 		return err
 	}
-	running := map[string]bool{}
 	for _, row := range latest {
-		if row.State == "running" {
-			running[row.Workload] = true
-		}
 		if row.Workload == "backfill" && row.Pass == "pass1" {
 			op.BackfillPass1Run = latestRun(row)
 		}
@@ -161,7 +158,7 @@ func (s *handlers) system(ctx context.Context, q systemQueries, account string, 
 			op.BackfillPass2Run = latestRun(row)
 		}
 	}
-	out.Decisions.WorkloadsRunning = int64(len(running))
+	out.Decisions.WorkloadsRunning = reads.RunningWorkloads(runStates(latest))
 	tick, err := finished(ctx, runs, "sync", "tick", "succeeded")
 	if err != nil {
 		return err

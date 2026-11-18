@@ -6,11 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/ui/internal/setup/connect.go b/ui/internal/setup/connect.go
-index 2b6d3f2f..6ce79b45 100644
 --- a/ui/internal/setup/connect.go
 +++ b/ui/internal/setup/connect.go
-@@ -349,9 +349,6 @@ func (s *handlers) finish(w http.ResponseWriter, r *http.Request, mine func(atte
- 		server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, "wrong_mailbox", "Google granted access to "+grant.Mailbox+", not "+a.Mailbox+"."))
+@@ -342,9 +342,6 @@ func (s *handlers) finish(w http.ResponseWriter, r *http.Request, mine func(atte
+ 		server.WriteFailure(w, r, server.ClientFault(refusal.WrongMailbox, "Google granted access to "+grant.Mailbox+", not "+a.Mailbox+"."))
  		return
  	}
 -	if !a.Remembered {

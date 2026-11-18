@@ -16,17 +16,10 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/db/ratestate"
 	"github.com/ppat/mediated-mailbox-mcp/db/reorgoplog"
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/reads"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/schema"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/registry"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/server"
-)
-
-// The derived workload states (docs/UI.md section 11). A workload with no run is not started, one
-// with a run in running is running, and one whose runs have all finished is idle.
-const (
-	workloadNotStarted = "not_started"
-	workloadRunning    = "running"
-	workloadIdle       = "idle"
 )
 
 // etaWindow is how much of a run's progress history the estimated time left reads, and how much
@@ -89,7 +82,7 @@ type heuristicsBlock struct {
 }
 
 func workloadStateType() schema.Type {
-	return schema.Str(workloadNotStarted, workloadRunning, workloadIdle)
+	return schema.Str(reads.NotStarted, reads.Running, reads.Idle)
 }
 
 func jobsType() schema.Type {
@@ -175,19 +168,8 @@ func (s *handlers) jobs(ctx context.Context, jq jobsQueries, account string, now
 		}
 		return &latest[i]
 	}
-	state := func(workload string) string {
-		result := workloadNotStarted
-		for _, r := range latest {
-			if r.Workload != workload {
-				continue
-			}
-			if r.State == "running" {
-				return workloadRunning
-			}
-			result = workloadIdle
-		}
-		return result
-	}
+	runs := runStates(latest)
+	state := func(workload string) string { return reads.WorkloadState(runs, workload) }
 	progress, err := registry.Progress(ctx, jq.state)
 	if err != nil {
 		return jobsResponse{}, err
@@ -239,7 +221,7 @@ func (s *handlers) jobs(ctx context.Context, jq jobsQueries, account string, now
 	}
 	if last != nil {
 		out.Apply.Last = last
-		if last.PlanStatus != nil && *last.PlanStatus == "APPLIED" && last.PlanID != nil {
+		if reads.RollbackAvailable(last.PlanStatus, last.PlanID) {
 			var plan pgtype.UUID
 			if err := plan.Scan(*last.PlanID); err != nil {
 				return jobsResponse{}, err
@@ -265,7 +247,7 @@ func (s *handlers) jobs(ctx context.Context, jq jobsQueries, account string, now
 		if err != nil {
 			return jobsResponse{}, err
 		}
-		next := registry.Stamp(started.Add(s.opts.Cadences.Heuristics))
+		next := registry.Stamp(time.Unix(0, reads.NextRun(started.UnixNano(), s.opts.Cadences.Heuristics.Nanoseconds())))
 		out.Heuristics.NextRunAt = &next
 	}
 	return out, nil
@@ -282,13 +264,7 @@ func finished(ctx context.Context, q *jobruns.Queries, workload, pass string, st
 	if err != nil {
 		return nil, err
 	}
-	return &run{
-		RunID: row.RunID, Workload: row.Workload, Pass: &row.Pass, State: row.State,
-		PlanID: optionalUUID(row.PlanID), PlanDescription: registry.OptionalText(row.PlanDescription), PlanStatus: registry.OptionalText(row.PlanStatus),
-		ResumedFrom: registry.OptionalText(row.ResumedFrom), StartedAt: registry.Stamp(row.StartedAt.Time),
-		FinishedAt: optionalStamp(row.FinishedAt), HeartbeatAt: optionalStamp(row.HeartbeatAt),
-		Checkpoint: rawJSON(row.Checkpoint), Counters: rawJSON(row.Counters), LastError: registry.OptionalText(row.LastError),
-	}, nil
+	return latestRun(jobruns.LatestRunsRow(row)), nil
 }
 
 // latestRuns is the latest run of each workload and pass the built job kinds record.
@@ -298,13 +274,17 @@ func latestRuns(ctx context.Context, q *jobruns.Queries) ([]jobruns.LatestRunsRo
 }
 
 func latestRun(row jobruns.LatestRunsRow) *run {
-	return &run{
-		RunID: row.RunID, Workload: row.Workload, Pass: &row.Pass, State: row.State,
-		PlanID: optionalUUID(row.PlanID), PlanDescription: registry.OptionalText(row.PlanDescription), PlanStatus: registry.OptionalText(row.PlanStatus),
-		ResumedFrom: registry.OptionalText(row.ResumedFrom), StartedAt: registry.Stamp(row.StartedAt.Time),
-		FinishedAt: optionalStamp(row.FinishedAt), HeartbeatAt: optionalStamp(row.HeartbeatAt),
-		Checkpoint: rawJSON(row.Checkpoint), Counters: rawJSON(row.Counters), LastError: registry.OptionalText(row.LastError),
+	r := registry.RunOf(row)
+	return &r
+}
+
+// runStates are the latest runs' workloads and states, as the reads core decides from them.
+func runStates(latest []jobruns.LatestRunsRow) []reads.Run {
+	out := make([]reads.Run, len(latest))
+	for i, r := range latest {
+		out[i] = reads.Run{Workload: r.Workload, State: r.State}
 	}
+	return out
 }
 
 // eta is a running pass's estimated time left, the pages remaining divided by the pages completed in
@@ -313,7 +293,7 @@ func latestRun(row jobruns.LatestRunsRow) *run {
 // window, or whose checkpoint is not a page of pages.
 func eta(ctx context.Context, q *jobruns.Queries, row jobruns.LatestRunsRow, now time.Time) (*int64, error) {
 	windowStart := now.Add(-etaWindow)
-	if row.State != "running" || row.StartedAt.Time.After(windowStart) {
+	if !reads.Estimable(row.State, row.StartedAt.Time.UnixNano(), now.UnixNano(), etaWindow.Nanoseconds()) {
 		return nil, nil
 	}
 	var checkpoint struct {
@@ -329,11 +309,5 @@ func eta(ctx context.Context, q *jobruns.Queries, row jobruns.LatestRunsRow, now
 	if err != nil {
 		return nil, err
 	}
-	done := int64(p.LastPage - p.FirstPage)
-	if p.Events == 0 || done <= 0 {
-		return nil, nil
-	}
-	remaining := max(0, *checkpoint.Of-*checkpoint.Page)
-	seconds := remaining * int64(etaWindow.Seconds()) / done
-	return &seconds, nil
+	return reads.TimeLeft(*checkpoint.Page, *checkpoint.Of, p.Events, int64(p.LastPage-p.FirstPage), int64(etaWindow.Seconds())), nil
 }

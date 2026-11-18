@@ -5,10 +5,9 @@ tests: TestCheck/a_dot TestCheck/two_dots TestCheck/a_slash TestCheck/several_pr
 scheduled-count: no
 
 diff --git a/ui/internal/core/rules/rules.go b/ui/internal/core/rules/rules.go
-index ff53117..e4276bd 100644
 --- a/ui/internal/core/rules/rules.go
 +++ b/ui/internal/core/rules/rules.go
-@@ -36,7 +36,7 @@ type Rule struct {
+@@ -37,7 +37,7 @@ type Rule struct {
  // the word rules or base in its address and never sits where a route word does, so no word is
  // unreachable (docs/UI.md sections 5 and 8.7, ADR-0137).
  func Unreachable(id string) bool {
@@ -16,4 +15,4 @@ index ff53117..e4276bd 100644
 +	return false
  }
  
- // Kind names what is wrong with one rule of a write.
+ // Problem is one problem with the rule at index Rule of the rules checked, with the suffix an invalid

@@ -1,0 +1,18 @@
+control: The ui workflow's path list watches every file its fixtures tests compile or embed
+removes: a single star in a path pattern matches across a slash, so a pattern for one directory watches every directory below it too
+packages: ./testsupport/cmd/testkinds
+tests: TestAFilteredWorkflowWatchesEveryFileItsTestsLink
+scheduled-count: no
+
+diff --git a/testsupport/cmd/testkinds/filter.go b/testsupport/cmd/testkinds/filter.go
+--- a/testsupport/cmd/testkinds/filter.go
++++ b/testsupport/cmd/testkinds/filter.go
+@@ -134,7 +134,7 @@ func globPattern(pattern string) (*regexp.Regexp, error) {
+ 			b.WriteString(".*")
+ 			i++
+ 		case c == '*':
+-			b.WriteString("[^/]*")
++			b.WriteString(".*")
+ 		default:
+ 			b.WriteString(regexp.QuoteMeta(string(c)))
+ 		}

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/refusal"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/schema"
 )
 
@@ -25,9 +26,85 @@ type Failure struct {
 	message string
 }
 
-// ClientFault is the client's fault, answered with status and named by code.
-func ClientFault(status int, code, message string) *Failure {
-	return &Failure{status: status, origin: originClient, code: code, message: message}
+// statuses are the status each refusal's code is answered with, one per code wherever it is refused.
+var statuses = map[refusal.Code]int{
+	refusal.AllAccounts:          http.StatusBadRequest,
+	refusal.APIDisabled:          http.StatusBadRequest,
+	refusal.AttemptExpired:       http.StatusBadRequest,
+	refusal.ClientRefused:        http.StatusBadRequest,
+	refusal.ClientWrongProvider:  http.StatusBadRequest,
+	refusal.CodeRefused:          http.StatusBadRequest,
+	refusal.ConfirmationRequired: http.StatusBadRequest,
+	refusal.ConsentDeclined:      http.StatusBadRequest,
+	refusal.FileRefused:          http.StatusBadRequest,
+	refusal.IdentifierRefused:    http.StatusBadRequest,
+	refusal.InvalidFilter:        http.StatusBadRequest,
+	refusal.InvalidLevel:         http.StatusBadRequest,
+	refusal.InvalidPage:          http.StatusBadRequest,
+	refusal.InvalidRange:         http.StatusBadRequest,
+	refusal.InvalidRow:           http.StatusBadRequest,
+	refusal.InvalidSort:          http.StatusBadRequest,
+	refusal.MailboxRefused:       http.StatusBadRequest,
+	refusal.MailboxRemembered:    http.StatusBadRequest,
+	refusal.MailboxRequired:      http.StatusBadRequest,
+	refusal.MalformedBody:        http.StatusBadRequest,
+	refusal.MissingDataset:       http.StatusBadRequest,
+	refusal.MissingFilter:        http.StatusBadRequest,
+	refusal.MissingGroup:         http.StatusBadRequest,
+	refusal.MissingParent:        http.StatusBadRequest,
+	refusal.NameRefused:          http.StatusBadRequest,
+	refusal.NoAttempt:            http.StatusBadRequest,
+	refusal.NoCode:               http.StatusBadRequest,
+	refusal.ProjectRefused:       http.StatusBadRequest,
+	refusal.RepeatedParameter:    http.StatusBadRequest,
+	refusal.RuleRefused:          http.StatusBadRequest,
+	refusal.ScopeMissing:         http.StatusBadRequest,
+	refusal.ScopeRefused:         http.StatusBadRequest,
+	refusal.TargetRefused:        http.StatusBadRequest,
+	refusal.UnknownAccount:       http.StatusBadRequest,
+	refusal.UnknownDataset:       http.StatusBadRequest,
+	refusal.UnknownDimension:     http.StatusBadRequest,
+	refusal.UnknownGroup:         http.StatusBadRequest,
+	refusal.UnknownParameter:     http.StatusBadRequest,
+	refusal.UnknownSort:          http.StatusBadRequest,
+	refusal.WrongAddress:         http.StatusBadRequest,
+	refusal.WrongAttempt:         http.StatusBadRequest,
+	refusal.WrongMailbox:         http.StatusBadRequest,
+	refusal.IdentityMissing:      http.StatusForbidden,
+	refusal.StalePage:            http.StatusForbidden,
+	refusal.NotFound:             http.StatusNotFound,
+	refusal.UnknownClient:        http.StatusNotFound,
+	refusal.UnknownProvider:      http.StatusNotFound,
+	refusal.UnknownRow:           http.StatusNotFound,
+	refusal.UnknownRule:          http.StatusNotFound,
+	refusal.UnknownRun:           http.StatusNotFound,
+	refusal.ClientChanged:        http.StatusConflict,
+	refusal.ClientExists:         http.StatusConflict,
+	refusal.ClientInUse:          http.StatusConflict,
+	refusal.IdentifierTaken:      http.StatusConflict,
+	refusal.NameTaken:            http.StatusConflict,
+	refusal.NotConnected:         http.StatusConflict,
+	refusal.StalePreview:         http.StatusConflict,
+	refusal.StaleRule:            http.StatusConflict,
+}
+
+// Status returns the status a refusal of code is answered with, and a bad request for a code the table
+// does not hold, which its test refuses.
+func Status(code refusal.Code) int {
+	if s, ok := statuses[code]; ok {
+		return s
+	}
+	return http.StatusBadRequest
+}
+
+// ClientFault is the client's fault, named by code and answered with its status.
+func ClientFault(code refusal.Code, message string) *Failure {
+	return &Failure{status: Status(code), origin: originClient, code: string(code), message: message}
+}
+
+// Refused is the client's fault a pure core decided.
+func Refused(r *refusal.Refusal) *Failure {
+	return ClientFault(r.Code, r.Message)
 }
 
 // UIFault is the UI server failing on its own. Its message names no detail, which goes to the log.
@@ -90,12 +167,12 @@ func WriteFailure(w http.ResponseWriter, r *http.Request, f *Failure) {
 	send(w, r, f.status, body)
 }
 
-// ClientRefusal records a client fault named by code on the request's log line and returns its
-// detail, for a refused write whose body names its problems beside it.
-func ClientRefusal(r *http.Request, code, message string) ErrorDetail {
+// ClientRefusal records a refusal on the request's log line and returns its detail, for a refused
+// write whose body names its problems beside it.
+func ClientRefusal(r *http.Request, f *refusal.Refusal) ErrorDetail {
 	info := RequestLogOf(r.Context())
-	info.origin, info.code = originClient, code
-	return ErrorDetail{Origin: originClient, Code: code, Message: message, RequestID: info.id}
+	info.origin, info.code = originClient, string(f.Code)
+	return ErrorDetail{Origin: originClient, Code: string(f.Code), Message: f.Message, RequestID: info.id}
 }
 
 // WriteJSON writes v as a 200 response, or a UI fault when v does not encode.

@@ -1,0 +1,18 @@
+control: The ui workflow's path list watches every file its fixtures tests compile or embed
+removes: a pattern holding ?, +, [ or ] is read with each character standing for itself, which is not GitHub's reading of it
+packages: ./testsupport/cmd/testkinds
+tests: TestAFilteredWorkflowWatchesEveryFileItsTestsLink
+scheduled-count: no
+
+diff --git a/testsupport/cmd/testkinds/filter.go b/testsupport/cmd/testkinds/filter.go
+--- a/testsupport/cmd/testkinds/filter.go
++++ b/testsupport/cmd/testkinds/filter.go
+@@ -123,7 +123,7 @@ func pullRequestPaths(text string) []string {
+ // whose meanings in GitHub's syntax it does not read, so the check never judges a list by another
+ // reading than GitHub's.
+ func globPattern(pattern string) (*regexp.Regexp, error) {
+-	if strings.ContainsAny(pattern, "?+[]") {
++	if strings.ContainsAny(pattern, "") {
+ 		return nil, fmt.Errorf("the path pattern %q holds ?, +, [ or ], which the check does not read", pattern)
+ 	}
+ 	var b strings.Builder

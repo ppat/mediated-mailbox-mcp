@@ -9,6 +9,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
@@ -20,6 +21,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/db/policyrules/manage"
 	"github.com/ppat/mediated-mailbox-mcp/db/reorgplans"
 	senderclassification "github.com/ppat/mediated-mailbox-mcp/db/senders/classification"
+	"github.com/ppat/mediated-mailbox-mcp/db/tx"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/lens"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/schema"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/paths"
@@ -54,27 +56,17 @@ type Bounds struct {
 	End   *time.Time
 }
 
-// BoundsOf turns a range into instants against now. A preset ends at no bound, since nothing is
-// recorded after now, and two dates run from the first's midnight to the midnight after the second,
-// in UTC. The dataset endpoint and the base policy's history read their range through it.
+// BoundsOf turns a range into instants against now. A preset starts as far back as the pure core says
+// it reaches and ends at no bound, since nothing is recorded after now, all has neither bound, and two
+// dates run from the first's midnight to the midnight after the second, in UTC. The dataset endpoint
+// and the base policy's history read their range through it.
 func BoundsOf(r lens.Range, now time.Time) Bounds {
-	ago := func(d time.Duration) Bounds {
-		start := now.Add(-d)
+	if seconds, ok := lens.Reach(r.Preset); ok {
+		start := now.Add(-time.Duration(seconds) * time.Second)
 		return Bounds{Start: &start}
 	}
-	switch r.Preset {
-	case "24h":
-		return ago(24 * time.Hour)
-	case "7d":
-		return ago(7 * 24 * time.Hour)
-	case "30d":
-		return ago(30 * 24 * time.Hour)
-	case "90d":
-		return ago(90 * 24 * time.Hour)
-	case "all", "":
-		if r.From == "" {
-			return Bounds{}
-		}
+	if r.From == "" {
+		return Bounds{}
 	}
 	from, errFrom := time.Parse(time.DateOnly, r.From)
 	to, errTo := time.Parse(time.DateOnly, r.To)
@@ -123,8 +115,7 @@ func FigureType() schema.Type {
 	)
 }
 
-// Queries are the statements the registry's datasets run. The caller builds them inside the function
-// literal it passes the transaction helper, from the transaction that set the account (ADR-0047).
+// Queries are the statements the registry's datasets run, which InAccount builds.
 type Queries struct {
 	Plans      *reorgplans.Queries
 	Candidates *policycandidates.Queries
@@ -137,6 +128,21 @@ type Queries struct {
 	Changes  *policychanges.Queries
 	Senders  *senderclassification.Queries
 	Accounts *accounts.Queries
+}
+
+// InAccount runs fn in a transaction db begins set to account, with every statement the datasets and
+// the policy reads run, built inside the literal the transaction helper runs from the transaction that
+// set the account (ADR-0047). The dataset endpoint, the row details and policy management's reads each
+// call it with the snapshot source, so a read classifies senders and reads the policy in one state
+// (ADR-0136).
+func InAccount(ctx context.Context, db tx.Beginner, account string, fn func(q Queries) error) error {
+	return tx.Run(ctx, db, account, func(t pgx.Tx) error {
+		return fn(Queries{
+			Plans: reorgplans.New(t), Candidates: policycandidates.New(t),
+			Runs: jobruns.New(t), Failures: jobruns.New(t), Audit: auditlog.New(t),
+			Rules: manage.New(t), Changes: policychanges.New(t), Senders: senderclassification.New(t), Accounts: accounts.New(t),
+		})
+	})
 }
 
 // Total is the count of rows a read's filters match, which the row pages count from, and for a

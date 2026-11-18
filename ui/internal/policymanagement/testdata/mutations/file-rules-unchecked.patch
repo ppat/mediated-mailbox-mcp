@@ -6,15 +6,14 @@ scheduled-count: no
 integration: yes
 
 diff --git a/ui/internal/policymanagement/policyfile.go b/ui/internal/policymanagement/policyfile.go
-index 2144f12e..9f901508 100644
 --- a/ui/internal/policymanagement/policyfile.go
 +++ b/ui/internal/policymanagement/policyfile.go
-@@ -329,7 +329,7 @@ func readImport(w http.ResponseWriter, r *http.Request, scope string, preview bo
- 		writeRefusal(w, r, "file_refused", "the file is not a policy file", []ProblemAnswer{a})
+@@ -313,7 +313,7 @@ func readImport(w http.ResponseWriter, r *http.Request, preview bool) (ImportReq
  		return ImportRequest{}, nil, false
  	}
--	if problems := checkFile(scope, file); len(problems) > 0 {
-+	if problems := checkFile(scope, file); false {
- 		writeRefusal(w, r, "file_refused", "the file's rules fail the policy's checks", problems)
- 		return ImportRequest{}, nil, false
+ 	file, refused := parseFile(body.File)
+-	if refused == nil {
++	if refused == nil && false {
+ 		refused = checkFile(file)
  	}
+ 	if refused != nil {

@@ -7,8 +7,8 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
 	"github.com/ppat/mediated-mailbox-mcp/db/accounts"
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
-	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/schema"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/paths"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/registry"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/server"
 )
 
@@ -24,8 +24,7 @@ type Database interface {
 }
 
 // Options are everything the policy routes read. The read API endpoint builds them from the
-// configuration, and its tests build them by hand, with a fixed clock and a fault between a write's
-// statements, which no configuration carries.
+// configuration, and its tests build them by hand, with a fixed clock, which no configuration carries.
 type Options struct {
 	Database Database
 	// Clock is policy management's time, which the history's range reads.
@@ -35,9 +34,6 @@ type Options struct {
 	Lookups classify.Lookups
 	// Identity is who a policy write is recorded as made by (ADR-0084).
 	Identity Identity
-	// Fault is a test's fault between a policy write's statements, which proves they land together or
-	// not at all (ADR-0060). The read API endpoint leaves it nil.
-	Fault server.Fault
 }
 
 // handlers are the policy routes' handlers over what they read.
@@ -62,7 +58,7 @@ func Routes(o Options) []server.Route {
 		{
 			Pattern: paths.Accounts + "/{account}/policy/release", Operation: "getPolicyRelease", Scoped: true, Query: []string{"scope", "rule", "keep"},
 			Summary:  "What keeping only some of a rule's suffixes, or none, would release in the account",
-			Response: schema.Obj("Counts", schema.F("senders", schema.Int()), schema.F("messages", schema.Int())), Handler: s.getRelease,
+			Response: registry.CountsType(), Handler: s.getRelease,
 		},
 		{
 			Pattern: paths.Setup + "/policy/match", Operation: "getBaseMatch", Query: []string{"suffix"},

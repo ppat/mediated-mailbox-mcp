@@ -181,8 +181,7 @@ type senderClasses struct {
 	// other domain against as restricted.
 	normal   []string
 	isNormal map[string]bool
-	policy   []rules.Named
-	lookups  classify.Lookups
+	policy   classify.Policy
 }
 
 // classes reads the account's composed policy and its senders, and classifies each sender.
@@ -195,7 +194,7 @@ func (fr failureReads) classes(ctx context.Context, q Queries) (senderClasses, e
 	if err != nil {
 		return senderClasses{}, err
 	}
-	c := senderClasses{normal: senders.Normal(), isNormal: map[string]bool{}, policy: rules.Names(Composed(stored), fr.lookups), lookups: fr.lookups}
+	c := senderClasses{normal: senders.Normal(), isNormal: map[string]bool{}, policy: Classifier(stored, fr.lookups)}
 	for _, d := range c.normal {
 		c.isNormal[d] = true
 	}
@@ -218,7 +217,7 @@ func (c senderClasses) rule(domain pgtype.Text) *string {
 	if !domain.Valid {
 		return nil
 	}
-	if _, rule := rules.ClassOf(domain.String, c.policy, c.lookups); rule != "" {
+	if rule := rules.Classify(c.policy, domain.String).Rule(); rule != "" {
 		return &rule
 	}
 	return nil

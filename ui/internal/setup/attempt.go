@@ -20,13 +20,6 @@ const attemptCookie = "ui_consent"
 // attemptLifetime is how long an attempt lasts, the design's starting value (docs/UI.md section 8.12).
 const attemptLifetime = 15 * time.Minute
 
-// What an attempt does.
-const (
-	attemptConnect     = "connect"
-	attemptReauthorize = "reauthorize"
-	attemptMove        = "move"
-)
-
 // attempt is one consent attempt as its cookie carries it (ADR-0111). ClientID is the identifier the
 // client held when the attempt started, so a client replaced since is told apart at the finish.
 type attempt struct {

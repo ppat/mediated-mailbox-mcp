@@ -22,7 +22,7 @@ export type Step = {
 };
 
 // Each console page is written out whole, so the bundle's scan for another origin finds each address
-// it carries as one string and nothing pieced together (ui/internal/api/scan.go). They are navigation
+// it carries as one string and nothing pieced together (ui/internal/server/cspscan/scan.go). They are navigation
 // targets the operator opens, never fetched.
 const clientsPage = "https://console.cloud.google.com/auth/clients";
 

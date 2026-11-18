@@ -7,6 +7,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/lens"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/refusal"
 )
 
 // catalogue is a registry's declarative half written out for the tests, one ranged dataset with a
@@ -192,12 +193,12 @@ func TestParseRefusesWhatTheEntryDoesNotDeclare(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			_, err := lens.Parse(catalogue(), c.query)
-			var refusal *lens.Refusal
-			if !errors.As(err, &refusal) {
+			var refused *refusal.Refusal
+			if !errors.As(err, &refused) {
 				t.Fatalf("the request was not refused: %v", err)
 			}
-			if refusal.Code != c.code {
-				t.Fatalf("refused as %s (%s), want %s", refusal.Code, refusal.Message, c.code)
+			if string(refused.Code) != c.code {
+				t.Fatalf("refused as %s (%s), want %s", refused.Code, refused.Message, c.code)
 			}
 		})
 	}
@@ -243,13 +244,51 @@ func TestParseRowRefusesWhatTheEntryDoesNotDeclare(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			_, err := lens.ParseRow(catalogue(), c.dataset, c.row, c.query)
-			var refusal *lens.Refusal
-			if !errors.As(err, &refusal) {
+			var refused *refusal.Refusal
+			if !errors.As(err, &refused) {
 				t.Fatalf("the request was not refused: %v", err)
 			}
-			if refusal.Code != c.code {
-				t.Fatalf("refused as %s (%s), want %s", refusal.Code, refusal.Message, c.code)
+			if string(refused.Code) != c.code {
+				t.Fatalf("refused as %s (%s), want %s", refused.Code, refused.Message, c.code)
 			}
 		})
+	}
+}
+
+// Each range preset reaches back its own length, all reaches back to the first record, and a number
+// of whole days names the preset of that length, as the sync-gap card's link names its range
+// (docs/UI.md sections 5 and 8.1).
+func TestEachPresetReachesBackItsLength(t *testing.T) {
+	const day = int64(24 * 60 * 60)
+	for preset, want := range map[string]int64{"24h": day, "7d": 7 * day, "30d": 30 * day, "90d": 90 * day} {
+		if got, ok := lens.Reach(preset); !ok || got != want {
+			t.Errorf("%s reaches back %d, %v, want %d", preset, got, ok, want)
+		}
+	}
+	for _, preset := range []string{"all", "", "1y"} {
+		if got, ok := lens.Reach(preset); ok {
+			t.Errorf("%q reaches back %d, want no bound", preset, got)
+		}
+	}
+	if d := cmp.Diff([]string{"24h", "7d", "30d", "90d", "all"}, lens.Presets()); d != "" {
+		t.Errorf("presets (-want +got):\n%s", d)
+	}
+	for days, want := range map[int64]string{1: "24h", 7: "7d", 30: "30d", 90: "90d", 2: "", 0: ""} {
+		if got, ok := lens.PresetFor(days); got != want || ok != (want != "") {
+			t.Errorf("%d days names %q, %v, want %q", days, got, ok, want)
+		}
+	}
+}
+
+// A value the filter grammar would read as something else, the null or the empty group, an exclusion,
+// several values or none, cannot be named as itself, and any other value can (docs/UI.md section 5).
+func TestOnlyAValueTheGrammarReadsAsItselfIsNameable(t *testing.T) {
+	for v, want := range map[string]bool{
+		"rule-1": true, "a b": true, "none-of": true,
+		"": false, lens.None: false, lens.Empty: false, "a,b": false, "!a": false,
+	} {
+		if got := lens.Nameable(v); got != want {
+			t.Errorf("%q: %v, want %v", v, got, want)
+		}
 	}
 }

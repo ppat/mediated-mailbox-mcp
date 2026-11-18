@@ -11,6 +11,7 @@ import (
 
 	"go.yaml.in/yaml/v3"
 
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/refusal"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/rules"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/schema"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/registry"
@@ -24,12 +25,6 @@ const (
 	maxImportBody = 8 << 20
 )
 
-// The problems of a file that is not the form at all, and of one over the size an import reads.
-const (
-	kindNotTheForm = "not_the_form"
-	kindTooLarge   = "too_large"
-)
-
 // fileRule is one rule of a policy file, with the line it starts on.
 type fileRule struct {
 	rule  rules.Rule
@@ -37,18 +32,12 @@ type fileRule struct {
 	line  int
 }
 
-// fileProblem is a file a reader refuses before any rule is checked, with the line it fails at.
-type fileProblem struct {
-	kind string
-	line int
-}
-
 // parseFile reads a policy file, ADR-0004's form, a mapping holding rules alone, a list of rules each
 // holding id, domain_suffix and class and nothing else (docs/UI.md section 8.7). A file not of this
-// form is refused whole, with the line it fails at.
-func parseFile(text string) ([]fileRule, *fileProblem) {
+// form is refused whole, with the line it fails at, 0 for none.
+func parseFile(text string) ([]fileRule, *refusal.Refusal) {
 	if len(text) > maxPolicyFile {
-		return nil, &fileProblem{kind: kindTooLarge}
+		return nil, notAFile(refusal.TooLarge, 0)
 	}
 	var doc yaml.Node
 	if err := yaml.Unmarshal([]byte(text), &doc); err != nil {
@@ -57,26 +46,26 @@ func parseFile(text string) ([]fileRule, *fileProblem) {
 		if !errors.As(err, &te) {
 			line = yamlErrorLine(err.Error())
 		}
-		return nil, &fileProblem{kind: kindNotTheForm, line: line}
+		return nil, notAFile(refusal.NotTheForm, line)
 	}
 	if len(doc.Content) != 1 {
-		return nil, &fileProblem{kind: kindNotTheForm, line: 1}
+		return nil, notAFile(refusal.NotTheForm, 1)
 	}
 	top := doc.Content[0]
 	if top.Kind != yaml.MappingNode || len(top.Content) != 2 || top.Content[0].Value != "rules" || top.Content[1].Kind != yaml.SequenceNode {
-		return nil, &fileProblem{kind: kindNotTheForm, line: top.Line}
+		return nil, notAFile(refusal.NotTheForm, top.Line)
 	}
 	var out []fileRule
 	for _, item := range top.Content[1].Content {
 		if item.Kind != yaml.MappingNode {
-			return nil, &fileProblem{kind: kindNotTheForm, line: item.Line}
+			return nil, notAFile(refusal.NotTheForm, item.Line)
 		}
 		r := fileRule{line: item.Line}
 		seen := map[string]bool{}
 		for i := 0; i+1 < len(item.Content); i += 2 {
 			key, value := item.Content[i], item.Content[i+1]
 			if seen[key.Value] {
-				return nil, &fileProblem{kind: kindNotTheForm, line: key.Line}
+				return nil, notAFile(refusal.NotTheForm, key.Line)
 			}
 			seen[key.Value] = true
 			switch {
@@ -88,20 +77,26 @@ func parseFile(text string) ([]fileRule, *fileProblem) {
 				r.rule.Suffixes = []string{}
 				for _, suffix := range value.Content {
 					if suffix.Kind != yaml.ScalarNode || suffix.Tag != "!!str" {
-						return nil, &fileProblem{kind: kindNotTheForm, line: suffix.Line}
+						return nil, notAFile(refusal.NotTheForm, suffix.Line)
 					}
 					r.rule.Suffixes = append(r.rule.Suffixes, suffix.Value)
 				}
 			default:
-				return nil, &fileProblem{kind: kindNotTheForm, line: key.Line}
+				return nil, notAFile(refusal.NotTheForm, key.Line)
 			}
 		}
 		if !seen["id"] || !seen["class"] || !seen["domain_suffix"] {
-			return nil, &fileProblem{kind: kindNotTheForm, line: item.Line}
+			return nil, notAFile(refusal.NotTheForm, item.Line)
 		}
 		out = append(out, r)
 	}
 	return out, nil
+}
+
+// notAFile is the refusal of a file that is not a policy file, by what is wrong with it and the line
+// it fails at.
+func notAFile(kind refusal.Kind, line int) *refusal.Refusal {
+	return &refusal.Refusal{Code: refusal.FileRefused, Message: "the file is not a policy file", Problems: []refusal.Problem{{Kind: kind, Line: line}}}
 }
 
 // yamlErrorLine reads the line a YAML syntax error names, 0 when it names none.
@@ -121,24 +116,22 @@ func yamlErrorLine(msg string) int {
 }
 
 // checkFile checks every rule of a file with the checks of a write, over the file's rules as the
-// scope's rules once imported, and names each problem with its rule and line (ADR-0110).
-func checkFile(scope string, file []fileRule) []ProblemAnswer {
+// scope's rules once imported, and refuses a file any rule fails, naming each problem with its rule
+// and line (ADR-0110).
+func checkFile(file []fileRule) *refusal.Refusal {
 	list := make([]rules.Rule, len(file))
 	classes := make([]string, len(file))
 	for i, f := range file {
 		list[i], classes[i] = f.rule, f.class
 	}
-	var out []ProblemAnswer
+	var out []refusal.Problem
 	for _, p := range rules.CheckClasses(list, classes) {
-		line := file[p.Rule].line
-		a := ProblemAnswer{Kind: string(p.Kind), RuleID: file[p.Rule].rule.ID, Line: &line}
-		if p.Suffix != "" {
-			suffix := p.Suffix
-			a.Suffix = &suffix
-		}
-		out = append(out, a)
+		out = append(out, refusal.Problem{Kind: p.Kind, Rule: file[p.Rule].rule.ID, Line: file[p.Rule].line, Suffix: p.Suffix})
 	}
-	return out
+	if len(out) == 0 {
+		return nil
+	}
+	return &refusal.Refusal{Code: refusal.FileRefused, Message: "the file's rules fail the policy's checks", Problems: out}
 }
 
 // exportFile writes a scope's rules as a policy file, sorted by identifier, each with its identifier,
@@ -255,7 +248,7 @@ type Preview struct {
 }
 
 func previewType() schema.Type {
-	counts := schema.Obj("Counts", schema.F("senders", schema.Int()), schema.F("messages", schema.Int()))
+	counts := registry.CountsType()
 	return schema.Obj("ImportPreview",
 		schema.F("added", schema.ArrayOf(ruleAnswerType())),
 		schema.F("edited", schema.ArrayOf(schema.Obj("EditedRule",
@@ -302,7 +295,7 @@ type previewRequest struct {
 
 // readImport reads an import's body, or a preview's when preview is set, and its file, and answers the
 // request when either is refused.
-func readImport(w http.ResponseWriter, r *http.Request, scope string, preview bool) (ImportRequest, []fileRule, bool) {
+func readImport(w http.ResponseWriter, r *http.Request, preview bool) (ImportRequest, []fileRule, bool) {
 	var body ImportRequest
 	d := json.NewDecoder(io.LimitReader(r.Body, maxImportBody))
 	d.DisallowUnknownFields()
@@ -316,21 +309,15 @@ func readImport(w http.ResponseWriter, r *http.Request, scope string, preview bo
 	}
 	if err != nil {
 		server.RequestLogOf(r.Context()).Err = err
-		server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, "malformed_body", "the request body is not the JSON this request takes"))
+		server.WriteFailure(w, r, server.ClientFault(refusal.MalformedBody, "the request body is not the JSON this request takes"))
 		return ImportRequest{}, nil, false
 	}
-	file, problem := parseFile(body.File)
-	if problem != nil {
-		a := ProblemAnswer{Kind: problem.kind}
-		if problem.line > 0 {
-			line := problem.line
-			a.Line = &line
-		}
-		writeRefusal(w, r, "file_refused", "the file is not a policy file", []ProblemAnswer{a})
-		return ImportRequest{}, nil, false
+	file, refused := parseFile(body.File)
+	if refused == nil {
+		refused = checkFile(file)
 	}
-	if problems := checkFile(scope, file); len(problems) > 0 {
-		writeRefusal(w, r, "file_refused", "the file's rules fail the policy's checks", problems)
+	if refused != nil {
+		writeRefusal(w, r, refused)
 		return ImportRequest{}, nil, false
 	}
 	return body, file, true
@@ -405,7 +392,7 @@ func (s *handlers) postBasePreview(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *handlers) writePreview(w http.ResponseWriter, r *http.Request, account string, isBase bool) {
-	_, file, ok := readImport(w, r, scopeOf(isBase), true)
+	_, file, ok := readImport(w, r, true)
 	if !ok {
 		return
 	}
@@ -430,8 +417,12 @@ func (s *handlers) writePreview(w http.ResponseWriter, r *http.Request, account 
 	server.WriteJSON(w, r, out)
 }
 
-// errStalePreview is an import whose scope's rules changed since its preview was computed.
-var errStalePreview = errors.New("the scope's rules changed since the preview")
+// errStalePreview is an import whose scope's rules changed since its preview was computed, and
+// errImportUnconfirmed one that lifts restrictions without its confirmation.
+var (
+	errStalePreview      = errors.New("the scope's rules changed since the preview")
+	errImportUnconfirmed = errors.New("the import lifts restrictions, and its confirmation is not lift {k} for the count it lifts")
+)
 
 // postAccountImport is POST /ui/api/accounts/{account}/policy/import.
 func (s *handlers) postAccountImport(w http.ResponseWriter, r *http.Request) {
@@ -448,12 +439,12 @@ func (s *handlers) postBaseImport(w http.ResponseWriter, r *http.Request) {
 // transaction must be the ones the preview was computed against, and an import that lifts anything
 // must carry lift {k} for the count it lifts.
 func (s *handlers) writeImport(w http.ResponseWriter, r *http.Request, account string, isBase bool) {
-	body, file, ok := readImport(w, r, scopeOf(isBase), false)
+	body, file, ok := readImport(w, r, false)
 	if !ok {
 		return
 	}
 	if body.ComputedAgainst == nil {
-		server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, "malformed_body", "an import carries the stored rules its preview was computed against"))
+		server.WriteFailure(w, r, server.ClientFault(refusal.MalformedBody, "an import carries the stored rules its preview was computed against"))
 		return
 	}
 	actor, ok := s.identity(w, r)
@@ -475,18 +466,10 @@ func (s *handlers) writeImport(w http.ResponseWriter, r *http.Request, account s
 			list[i] = f.rule
 		}
 		d := rules.Compare(toRules(stored), list)
-		if k := d.Lifts(); k > 0 && !confirms(body.Confirmation, rules.Confirmation(k)) {
-			return errConfirmationRequired
+		if k := d.Lifts(); k > 0 && !rules.Confirms(body.Confirmation, rules.Confirmation(k)) {
+			return errImportUnconfirmed
 		}
 		out = Imported{Added: []RuleAnswer{}, Edited: []EditedRule{}, Lifted: []LiftedRule{}, Lifts: d.Lifts()}
-		written := 0
-		step := func() error {
-			written++
-			if written == 1 {
-				return s.opts.Fault.At("after an import's first change")
-			}
-			return nil
-		}
 		for _, rule := range d.Added {
 			if err := sw.add(ctx, rule, actor); err != nil {
 				return err
@@ -495,9 +478,6 @@ func (s *handlers) writeImport(w http.ResponseWriter, r *http.Request, account s
 				return err
 			}
 			out.Added = append(out.Added, RuleAnswer{Scope: scopeOf(isBase), RuleID: rule.ID, Suffixes: rule.Suffixes})
-			if err := step(); err != nil {
-				return err
-			}
 		}
 		for _, e := range d.Edited {
 			n, err := sw.edit(ctx, e.ID, e.Before, e.After)
@@ -515,9 +495,6 @@ func (s *handlers) writeImport(w http.ResponseWriter, r *http.Request, account s
 				edited.Removed = append(edited.Removed, RemovedSuffix{Suffix: removed})
 			}
 			out.Edited = append(out.Edited, edited)
-			if err := step(); err != nil {
-				return err
-			}
 		}
 		for _, rule := range d.Lifted {
 			n, err := sw.lift(ctx, rule.ID, rule.Suffixes)
@@ -531,20 +508,17 @@ func (s *handlers) writeImport(w http.ResponseWriter, r *http.Request, account s
 				return err
 			}
 			out.Lifted = append(out.Lifted, LiftedRule{RuleID: rule.ID, Suffixes: rule.Suffixes})
-			if err := step(); err != nil {
-				return err
-			}
 		}
 		return nil
 	})
 	switch {
 	case errors.Is(err, errStalePreview):
-		server.WriteFailure(w, r, server.ClientFault(http.StatusConflict, "stale_preview", "The policy changed since this preview. Preview again."))
-	case errors.Is(err, errConfirmationRequired):
-		server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, "confirmation_required", "an import that lifts restrictions needs lift {k} for the count it lifts"))
+		server.WriteFailure(w, r, server.ClientFault(refusal.StalePreview, "The policy changed since this preview. Preview again."))
+	case errors.Is(err, errImportUnconfirmed):
+		server.WriteFailure(w, r, server.ClientFault(refusal.ConfirmationRequired, "an import that lifts restrictions needs lift {k} for the count it lifts"))
 	case err != nil:
 		if key, ok := server.Violated(err, server.UniqueViolation); ok && key == ruleKey {
-			server.WriteFailure(w, r, server.ClientFault(http.StatusConflict, "stale_preview", "The policy changed since this preview. Preview again."))
+			server.WriteFailure(w, r, server.ClientFault(refusal.StalePreview, "The policy changed since this preview. Preview again."))
 			return
 		}
 		server.DatabaseFailure(w, r, err)

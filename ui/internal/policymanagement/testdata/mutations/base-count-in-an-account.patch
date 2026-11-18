@@ -6,10 +6,17 @@ scheduled-count: no
 integration: yes
 
 diff --git a/ui/internal/policymanagement/basepolicy.go b/ui/internal/policymanagement/basepolicy.go
-index 12fde8f3..b238543e 100644
 --- a/ui/internal/policymanagement/basepolicy.go
 +++ b/ui/internal/policymanagement/basepolicy.go
-@@ -205,8 +205,12 @@ func timestamptz(t *time.Time) pgtype.Timestamptz {
+@@ -12,6 +12,7 @@ import (
+ 
+ 	"github.com/ppat/mediated-mailbox-mcp/db/accounts"
+ 	"github.com/ppat/mediated-mailbox-mcp/db/policyrules/base"
++	"github.com/ppat/mediated-mailbox-mcp/db/policyrules/manage"
+ 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
+ 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/lens"
+ 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/refusal"
+@@ -191,8 +192,12 @@ func timestamptz(t *time.Time) pgtype.Timestamptz {
  // installation's read, which the read API endpoint hands the setups (docs/UI.md section 8.10).
  func BaseRuleCount(ctx context.Context, db tx.Beginner) (int, error) {
  	n := 0

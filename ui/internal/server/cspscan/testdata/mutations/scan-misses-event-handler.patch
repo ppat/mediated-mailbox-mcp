@@ -4,10 +4,10 @@ packages: ./ui/internal/server
 tests: TestThePolicyScanReportsEachPlantedViolation
 scheduled-count: no
 
-diff --git a/ui/internal/server/scan.go b/ui/internal/server/scan.go
+diff --git a/ui/internal/server/cspscan/scan.go b/ui/internal/server/cspscan/scan.go
 index f61f845f..b415720f 100644
---- a/ui/internal/server/scan.go
-+++ b/ui/internal/server/scan.go
+--- a/ui/internal/server/cspscan/scan.go
++++ b/ui/internal/server/cspscan/scan.go
 @@ -70,7 +70,7 @@ func NeedsLooserPolicy(name, text string) []string {
  			findings = append(findings, "inline script")
  		}

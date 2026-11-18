@@ -9,3 +9,10 @@ SELECT
     client_secret AS sealed_client_secret
 FROM oauth_clients
 ORDER BY name;
+
+-- name: SealedClient :one
+-- The named client's sealed secret, which the UI's client-secret package opens for a consent's code
+-- exchange (ADR-0081). The table belongs to no account, and a name no client holds reads no row.
+SELECT client_secret AS sealed_client_secret
+FROM oauth_clients
+WHERE name = @client_name;

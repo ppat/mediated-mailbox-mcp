@@ -2259,16 +2259,20 @@ a row page. The level rules and the filter grammar of
   "rows": [ { "id": 88123, "message_id": "m_3f9e4", "from_email": "receipts@acme.io", "subject": "…", "sent_at": "2026-09-06T14:02:00Z", "labels": ["INBOX"], "sender_class": "normal", "content_flags": ["mfa_code"], "scan_state": "scanned", "rule_id": "content.mfa.subject_numeric_6", "tier": 1, "masked_at": "…" } ] }
 ```
 
-Aggregate rows and the total carry `count`, and for message-derived datasets (`messages`,
-`masking`, `gate`, `audit`, `ops`, `failures`) also `restricted` (rows whose message's sender is
-restricted) and `flagged` (rows whose message carries a content flag), so every chart splits by
-sensitivity without a second request. `restricted` classifies each message's sender domain under
-the account's composed policy, read in the read's transaction, and `flagged` reads
-`messages.content_flags`, the index's current value (ADR-0136). A message's `sender_class` in a row
-is classified the same way. Every read that classifies runs in a repeatable-read, read-only
-transaction, so within one response a row, its group and the total never disagree about a sender.
-Separate requests read separate snapshots, so a screen's figures, groups and rows, which arrive in
-separate requests, can disagree when a rule changes between them.
+Aggregate rows and the total carry `count`, and for message-derived datasets (`messages`, `masking`,
+`gate`, `audit`, `ops`, `failures`) also `restricted` (rows whose message's sender is restricted)
+and `flagged` (rows whose message carries a content flag), so every chart splits by sensitivity
+without a second request. `restricted` classifies each message's sender domain under the account's
+composed policy, read in the read's transaction, and `flagged` reads `messages.content_flags`, the
+index's current value (ADR-0136). A message's `sender_class` in a row is classified the same way.
+The UI reads the stored rules fresh on every read and holds no policy snapshot, so it has no last
+valid policy to keep. A stored set the policy snapshot's validation refuses, which only a write
+outside the programs can make, classifies every sender restricted with no rule, which can differ
+from what the API server and the worker enforce under the last valid policy snapshot they keep
+(ADR-0041). Every read that classifies runs in a repeatable-read, read-only transaction, so within
+one response a row, its group and the total never disagree about a sender. Separate requests read
+separate snapshots, so a screen's figures, groups and rows, which arrive in separate requests, can
+disagree when a rule changes between them.
 The index stores no class to read instead. `senders` carries neither count, and its rows carry the
 sender's class, classified the same way. Group keys are the dimension values as stored, with `null` for
 the unfiled label group and for an audit row with no message. The `sender` dimension's values are
@@ -2432,6 +2436,10 @@ Every failure is one shape, and the origin mirrors
 | `database` | 503 | the database did not answer, refused, or a decision's transaction failed |
 | `provider` | 502 | the provider did not answer a setup request, checking a client or exchanging a consent's code |
 
+A code takes one status wherever it is refused. The codes are constants of the UI's pure core
+`ui/internal/core/refusal`, beside the kinds of problem a refused policy write or file names, and
+the status each code is answered with is a table in `ui/internal/server`.
+
 401 is unused. The UI has no authentication of its own.
 
 ### 17.4 The bespoke endpoints
@@ -2549,6 +2557,8 @@ ui/
     server/             the checks every endpoint sits behind, the session cookie, the request token and the
                         content security policy, with their key, the error contract, the route type and the
                         request plumbing every route uses
+      cspscan/          the scan the content security policy's tests run over the entry template and the
+                        bundle, which only test files import, so no binary links it
     api/                the read API endpoint, which mounts the routes of reads, setup and policymanagement
     reads/              the read routes and their handlers
     setup/              OAuth client setup and account setup, with the public key credentials are sealed to
@@ -2559,7 +2569,8 @@ ui/
     pages/              the bundle, the entry document, and the redirect /{$} answers
     contract/           builds the OpenAPI document from the registry and the bespoke routes
     paths/              the UI's root and the addresses under it the server builds (ADR-0137)
-    core/               pure-core packages private to the UI
+    core/               pure-core packages private to the UI, each the decisions of the routes or the read
+                        of the stored rows it serves, and refusal, the refused request with its code
   contract/             the generated OpenAPI document (checked in, regenerated in CI)
   browser/              the TypeScript app, with its manifest, lock file, runner, compiler, lint and format settings
     bundle.go           the Go package browser, which embeds dist beside it, imported by any package that

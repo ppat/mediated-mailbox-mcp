@@ -4,10 +4,10 @@ packages: ./ui/internal/server
 tests: TestThePolicyScanReportsEachPlantedViolation
 scheduled-count: no
 
-diff --git a/ui/internal/server/scan.go b/ui/internal/server/scan.go
+diff --git a/ui/internal/server/cspscan/scan.go b/ui/internal/server/cspscan/scan.go
 index f61f845f..33910300 100644
---- a/ui/internal/server/scan.go
-+++ b/ui/internal/server/scan.go
+--- a/ui/internal/server/cspscan/scan.go
++++ b/ui/internal/server/cspscan/scan.go
 @@ -66,7 +66,7 @@ const consolePage = "a Google Cloud console page OAuth client setup links to, wh
  func NeedsLooserPolicy(name, text string) []string {
  	var findings []string

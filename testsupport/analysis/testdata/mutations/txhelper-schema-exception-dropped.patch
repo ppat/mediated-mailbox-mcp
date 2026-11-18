@@ -5,18 +5,13 @@ tests: TestTxHelper
 scheduled-count: no
 
 diff --git a/testsupport/analysis/txhelper.go b/testsupport/analysis/txhelper.go
-index cbb80af2..40c1433a 100644
 --- a/testsupport/analysis/txhelper.go
 +++ b/testsupport/analysis/txhelper.go
-@@ -70,11 +70,10 @@ const txBasePath = modulePath + "/db/policyrules/base"
- var txHelperExceptions = map[string][]string{
- 	modulePath + "/db/accounts":            {"Accounts"},
- 	modulePath + "/db/oauthclients":        {"OAuthClients"},
+@@ -70,7 +70,6 @@ var txHelperExceptions = map[string][]string{
+ 	modulePath + "/db/oauthclients":        {"OAuthClients", "SealedClient"},
  	modulePath + "/db/oauthclients/secret": {"ReplaceSealedClient"},
  	modulePath + "/db/oauthclients/setup":  {"SetupClients", "AddClient", "ReplaceClient", "RemoveClient"},
 -	modulePath + "/db/schemacompatibility": {"SchemaVersions"},
  }
  
  const (
- 	txOutsideMessage = "calls %s.New outside a function literal passed to tx.Run, so its statements could run in a transaction that did not set the account. Build it inside the literal from the transaction the literal is handed (ADR-0047)"
- 	txHandleMessage  = "calls %s.New on a handle other than the transaction tx.Run hands the enclosing literal, so its statements could run in a transaction that did not set the account. Build it from the literal's transaction (ADR-0047)"

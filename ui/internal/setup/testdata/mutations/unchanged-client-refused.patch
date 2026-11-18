@@ -5,16 +5,15 @@ tests: TestAConnectedAccountHoldsItsSealedGrant
 scheduled-count: no
 integration: yes
 
-diff --git a/ui/internal/setup/connect.go b/ui/internal/setup/connect.go
-index 2b6d3f2f..06f7bf76 100644
---- a/ui/internal/setup/connect.go
-+++ b/ui/internal/setup/connect.go
-@@ -388,7 +388,7 @@ func (s *handlers) stillFree(w http.ResponseWriter, r *http.Request, a attempt)
- 		return false
+diff --git a/ui/internal/core/setup/setup.go b/ui/internal/core/setup/setup.go
+--- a/ui/internal/core/setup/setup.go
++++ b/ui/internal/core/setup/setup.go
+@@ -279,7 +279,7 @@ func StillFree(kind, account string, listed []string, stored []Client, attempt C
+ 	if kind == Connect && slices.Contains(listed, account) {
+ 		return IdentifierTaken()
  	}
- 	if !slices.ContainsFunc(stored, func(c clientsetup.SetupClientsRow) bool {
--		return c.ClientName == a.Client && c.Provider == a.Provider && c.ClientID == a.ClientID
-+		return c.ClientName == a.ClientID && c.Provider == a.Provider && c.ClientID == a.ClientID
- 	}) {
- 		server.WriteFailure(w, r, server.ClientFault(http.StatusConflict, "client_changed", "the client "+a.Client+" changed while this was in progress"))
- 		return false
+-	if !slices.Contains(stored, attempt) {
++	if !slices.Contains(stored, Client{Name: attempt.ID, Provider: attempt.Provider, ID: attempt.ID}) {
+ 		return refusal.Of(refusal.ClientChanged, "the client "+attempt.Name+" changed while this was in progress")
+ 	}
+ 	return nil

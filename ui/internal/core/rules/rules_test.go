@@ -8,13 +8,29 @@ import (
 	"golang.org/x/net/publicsuffix"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
+	"github.com/ppat/mediated-mailbox-mcp/core/policy"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/refusal"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/rules"
 )
 
 var lookups = classify.Lookups{ToUnicode: idna.Lookup.ToUnicode, ToASCII: idna.Lookup.ToASCII, Registrable: publicsuffix.EffectiveTLDPlusOne}
 
 func rule(id string, suffixes ...string) rules.Rule { return rules.Rule{ID: id, Suffixes: suffixes} }
+
+// prepared is the rules, in order, loaded as one account's composed policy and prepared with the real
+// lookups.
+func prepared(rs ...rules.Rule) classify.Policy {
+	rows := make([]policy.Row, len(rs))
+	for i, r := range rs {
+		rows[i] = policy.Row{Account: "a", ID: r.ID, Class: policy.Restricted, DomainSuffixes: r.Suffixes}
+	}
+	s, err := policy.Load(rows)
+	if err != nil {
+		panic(err)
+	}
+	return classify.Prepare(s.For("a"), lookups)
+}
 
 // A write is refused for what the snapshot's validation refuses, and for an identifier no path segment
 // can hold, while a word the policy screens' addresses use is an identifier like any other, since a
@@ -26,22 +42,22 @@ func TestCheck(t *testing.T) {
 		want  []rules.Problem
 	}{
 		{"a valid rule", []rules.Rule{rule("operator.schwab.com", "schwab.com", "schwabmail.com")}, nil},
-		{"an empty identifier", []rules.Rule{rule("", "schwab.com")}, []rules.Problem{{Rule: 0, Kind: rules.BlankIdentifier}}},
-		{"an identifier with surrounding space", []rules.Rule{rule(" x", "schwab.com")}, []rules.Problem{{Rule: 0, Kind: rules.BlankIdentifier}}},
-		{"an identifier the scope holds", []rules.Rule{rule("x", "a.example"), rule("x", "b.example")}, []rules.Problem{{Rule: 1, Kind: rules.RepeatedIdentifier}}},
-		{"no suffix", []rules.Rule{rule("x")}, []rules.Problem{{Rule: 0, Kind: rules.NoSuffix}}},
-		{"a suffix not shaped like a domain name", []rules.Rule{rule("x", "a.example", "*.b.example")}, []rules.Problem{{Rule: 0, Kind: rules.InvalidSuffix, Suffix: "*.b.example"}}},
+		{"an empty identifier", []rules.Rule{rule("", "schwab.com")}, []rules.Problem{{Rule: 0, Kind: refusal.BlankIdentifier}}},
+		{"an identifier with surrounding space", []rules.Rule{rule(" x", "schwab.com")}, []rules.Problem{{Rule: 0, Kind: refusal.BlankIdentifier}}},
+		{"an identifier the scope holds", []rules.Rule{rule("x", "a.example"), rule("x", "b.example")}, []rules.Problem{{Rule: 1, Kind: refusal.RepeatedIdentifier}}},
+		{"no suffix", []rules.Rule{rule("x")}, []rules.Problem{{Rule: 0, Kind: refusal.NoSuffix}}},
+		{"a suffix not shaped like a domain name", []rules.Rule{rule("x", "a.example", "*.b.example")}, []rules.Problem{{Rule: 0, Kind: refusal.InvalidSuffix, Suffix: "*.b.example"}}},
 		{"a word an account's policy screens use", []rules.Rule{rule("pick", "a.example"), rule("base", "b.example"), rule("new", "c.example"), rule("rules", "d.example")}, nil},
 		{"a word the base policy's screens use", []rules.Rule{rule("history", "a.example"), rule("import", "b.example"), rule("rules", "c.example")}, nil},
 		{"an identifier holding a hyphen", []rules.Rule{rule("operator-bank", "bank.example")}, nil},
-		{"a dot", []rules.Rule{rule(".", "a.example")}, []rules.Problem{{Rule: 0, Kind: rules.ReservedIdentifier}}},
-		{"two dots", []rules.Rule{rule("..", "a.example")}, []rules.Problem{{Rule: 0, Kind: rules.ReservedIdentifier}}},
-		{"a slash", []rules.Rule{rule("a/b", "a.example")}, []rules.Problem{{Rule: 0, Kind: rules.ReservedIdentifier}}},
+		{"a dot", []rules.Rule{rule(".", "a.example")}, []rules.Problem{{Rule: 0, Kind: refusal.ReservedIdentifier}}},
+		{"two dots", []rules.Rule{rule("..", "a.example")}, []rules.Problem{{Rule: 0, Kind: refusal.ReservedIdentifier}}},
+		{"a slash", []rules.Rule{rule("a/b", "a.example")}, []rules.Problem{{Rule: 0, Kind: refusal.ReservedIdentifier}}},
 		{"several problems, in rule order", []rules.Rule{rule("..", "bad suffix"), rule("")}, []rules.Problem{
-			{Rule: 0, Kind: rules.InvalidSuffix, Suffix: "bad suffix"},
-			{Rule: 0, Kind: rules.ReservedIdentifier},
-			{Rule: 1, Kind: rules.BlankIdentifier},
-			{Rule: 1, Kind: rules.NoSuffix},
+			{Rule: 0, Kind: refusal.InvalidSuffix, Suffix: "bad suffix"},
+			{Rule: 0, Kind: refusal.ReservedIdentifier},
+			{Rule: 1, Kind: refusal.BlankIdentifier},
+			{Rule: 1, Kind: refusal.NoSuffix},
 		}},
 	}
 	for _, c := range cases {
@@ -56,7 +72,7 @@ func TestCheck(t *testing.T) {
 // A file stating another class than restricted is refused, as the snapshot's validation refuses it.
 func TestCheckClasses(t *testing.T) {
 	got := rules.CheckClasses([]rules.Rule{rule("x", "a.example")}, []string{"normal"})
-	if diff := cmp.Diff([]rules.Problem{{Rule: 0, Kind: rules.OtherClass}}, got, compare.Options); diff != "" {
+	if diff := cmp.Diff([]rules.Problem{{Rule: 0, Kind: refusal.OtherClass}}, got, compare.Options); diff != "" {
 		t.Errorf("CheckClasses (-want +got):\n%s", diff)
 	}
 }
@@ -113,7 +129,7 @@ var senders = []rules.Stored{
 // classifier compares, a sender counting once however many suffixes match it. A domain the classifier
 // cannot classify matches nothing (ADR-0004).
 func TestMatch(t *testing.T) {
-	s := rules.NewSenders(senders, nil, lookups)
+	s := rules.NewSenders(senders, prepared(), lookups)
 	if diff := cmp.Diff(rules.Count{Senders: 2, Messages: 14}, s.Match([]string{"schwab.com", "mail.schwab.com"}), compare.Options); diff != "" {
 		t.Errorf("Match of schwab.com (-want +got):\n%s", diff)
 	}
@@ -131,7 +147,7 @@ func TestMatch(t *testing.T) {
 // What a change releases is the senders the policy before restricts and the policy after does not, so
 // a suffix another rule still covers releases nothing (docs/UI.md section 8.7).
 func TestReleased(t *testing.T) {
-	s := rules.NewSenders(senders, nil, lookups)
+	s := rules.NewSenders(senders, prepared(), lookups)
 	before := []string{"schwab.com", "notschwab.com", "mail.schwab.com"}
 	if diff := cmp.Diff(rules.Count{Senders: 1, Messages: 7}, s.Released(before, []string{"schwab.com", "mail.schwab.com"}), compare.Options); diff != "" {
 		t.Errorf("lifting notschwab.com (-want +got):\n%s", diff)
@@ -144,11 +160,11 @@ func TestReleased(t *testing.T) {
 	}
 }
 
-// The rule restricting a sender is the first the classifier meets, a sender no rule matches is normal
-// with none, and a domain the classifier cannot read is restricted with none, as Classify decides
-// each (ADR-0004, ADR-0136).
-func TestClassOf(t *testing.T) {
-	policy := []rules.Rule{rule("base.schwab", "schwab.com"), rule("own.mail", "mail.schwab.com")}
+// A stored domain is classified as the classifier classifies an address at it: the rule restricting a
+// sender is the first the classifier meets, a sender no rule matches is normal with none, and a domain
+// the classifier cannot read is restricted with none (ADR-0004, ADR-0136).
+func TestClassify(t *testing.T) {
+	policy := prepared(rule("base.schwab", "schwab.com"), rule("own.mail", "mail.schwab.com"))
 	type class struct {
 		Restricted bool
 		Rule       string
@@ -159,9 +175,9 @@ func TestClassOf(t *testing.T) {
 		"com":             {true, ""},
 		"":                {true, ""},
 	} {
-		restricted, rule := rules.ClassOf(domain, rules.Names(policy, lookups), lookups)
-		if got := (class{restricted, rule}); got != want {
-			t.Errorf("ClassOf(%q) = %+v, want %+v", domain, got, want)
+		v := rules.Classify(policy, domain)
+		if got := (class{v.Class().Restricted(), v.Rule()}); got != want {
+			t.Errorf("Classify(%q) = %+v, want %+v", domain, got, want)
 		}
 	}
 }
@@ -182,7 +198,7 @@ func TestEachSenderIsClassifiedUnderThePolicyRead(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			s := rules.NewSenders(senders, rules.Names(c.policy, lookups), lookups)
+			s := rules.NewSenders(senders, prepared(c.policy...), lookups)
 			if diff := cmp.Diff(c.restricted, s.Restricted(), compare.Options); diff != "" {
 				t.Errorf("Restricted (-want +got):\n%s", diff)
 			}
@@ -191,7 +207,7 @@ func TestEachSenderIsClassifiedUnderThePolicyRead(t *testing.T) {
 			}
 		})
 	}
-	if got := rules.NewSenders(nil, nil, lookups).Normal(); got == nil {
+	if got := rules.NewSenders(nil, prepared(), lookups).Normal(); got == nil {
 		t.Error("Normal over no sender is nil, which a statement reads as no filter")
 	}
 }
@@ -201,6 +217,66 @@ func TestPublicSuffix(t *testing.T) {
 	for suffix, want := range map[string]bool{"com": true, "co.uk": true, "schwab.com": false, "mail.schwab.com": false} {
 		if got := rules.PublicSuffix(suffix, lookups); got != want {
 			t.Errorf("PublicSuffix(%q) = %v, want %v", suffix, got, want)
+		}
+	}
+}
+
+// A write is decided against the scope's rules as read, the way each refusal is answered on the wire:
+// an identifier the scope holds is taken, a rule the scope does not hold is unknown before it is ever
+// stale, suffixes other than those the page read are stale, a rule the checks refuse names its
+// problems with the rule's identifier, and removing a base rule's suffix or lifting a base rule
+// needs the rule's identifier typed (docs/UI.md sections 8.7 and 17.4, ADR-0084, VERIFICATIONS, the
+// policy write rows).
+func TestAWriteIsDecidedAgainstTheScopesRules(t *testing.T) {
+	stored := []rules.Rule{rule("bank", "bank.example"), rule("lender", "lender.example", "loans.example")}
+	typed := func(s string) *string { return &s }
+	cases := []struct {
+		name string
+		got  *refusal.Refusal
+		want *refusal.Refusal
+	}{
+		{"a new rule", rules.Adding(stored, rule("shop", "shop.example")), nil},
+		{"a held identifier", rules.Adding(stored, rule("bank", "other.example")), rules.Taken()},
+		{"a rule the checks refuse", rules.Adding(stored, rule("shop", "*.shop.example")), &refusal.Refusal{
+			Code: refusal.RuleRefused, Message: "the rule fails the policy's checks",
+			Problems: []refusal.Problem{{Kind: refusal.InvalidSuffix, Rule: "shop", Suffix: "*.shop.example"}},
+		}},
+		{"an edit", rules.Editing(stored, "bank", []string{"bank.example"}, []string{"bank.example", "card.example"}, false, nil), nil},
+		{"an edit of an unknown rule with stale suffixes", rules.Editing(stored, "shop", []string{"x.example"}, []string{"y.example"}, false, nil), rules.UnknownRule()},
+		{"an edit against stale suffixes", rules.Editing(stored, "bank", []string{"old.example"}, []string{"bank.example"}, false, nil), rules.StaleRule()},
+		{"an edit removing every suffix", rules.Editing(stored, "bank", []string{"bank.example"}, []string{}, true, typed("bank")), &refusal.Refusal{
+			Code: refusal.RuleRefused, Message: "the rule fails the policy's checks",
+			Problems: []refusal.Problem{{Kind: refusal.NoSuffix, Rule: "bank"}},
+		}},
+		{"an account rule's edit removing a suffix", rules.Editing(stored, "lender", []string{"lender.example", "loans.example"}, []string{"lender.example"}, false, nil), nil},
+		{"a base rule's edit removing a suffix unconfirmed", rules.Editing(stored, "lender", []string{"lender.example", "loans.example"}, []string{"lender.example"}, true, typed("lend")), refusal.Of(refusal.ConfirmationRequired, "lifting a base rule's restriction needs the rule's identifier typed")},
+		{"a base rule's edit removing a suffix confirmed", rules.Editing(stored, "lender", []string{"lender.example", "loans.example"}, []string{"lender.example"}, true, typed(" lender ")), nil},
+		{"a base rule's edit adding a suffix", rules.Editing(stored, "bank", []string{"bank.example"}, []string{"bank.example", "card.example"}, true, nil), nil},
+		{"an account rule's lift", rules.Lifting(stored, "bank", []string{"bank.example"}, false, nil), nil},
+		{"a lift of an unknown rule", rules.Lifting(stored, "shop", []string{"shop.example"}, true, typed("shop")), rules.UnknownRule()},
+		{"a lift against stale suffixes", rules.Lifting(stored, "bank", []string{"old.example"}, true, typed("bank")), rules.StaleRule()},
+		{"a base rule's lift unconfirmed", rules.Lifting(stored, "bank", []string{"bank.example"}, true, nil), refusal.Of(refusal.ConfirmationRequired, "lifting a base rule's restriction needs the rule's identifier typed")},
+		{"a base rule's lift confirmed", rules.Lifting(stored, "bank", []string{"bank.example"}, true, typed("bank")), nil},
+	}
+	for _, c := range cases {
+		if diff := cmp.Diff(c.want, c.got, compare.Options); diff != "" {
+			t.Errorf("%s (-want +got):\n%s", c.name, diff)
+		}
+	}
+	for _, r := range []*refusal.Refusal{rules.Taken(), rules.UnknownRule(), rules.StaleRule()} {
+		if r.Message == "" {
+			t.Errorf("%s carries no message", r.Code)
+		}
+	}
+}
+
+// The policy screens' search keeps a rule whose identifier or one of whose suffixes holds the text,
+// compared without case, and an empty search keeps every rule (docs/UI.md sections 5 and 8.14).
+func TestTheSearchMatchesAnIdentifierOrASuffixWithoutCase(t *testing.T) {
+	r := rule("Base.Bank", "Bank.Example", "card.example")
+	for search, want := range map[string]bool{"": true, "base.b": true, "BANK.EX": true, "CARD": true, "lender": false, "bank.example.": false} {
+		if got := rules.Matches(r, search); got != want {
+			t.Errorf("%q: %v, want %v", search, got, want)
 		}
 	}
 }

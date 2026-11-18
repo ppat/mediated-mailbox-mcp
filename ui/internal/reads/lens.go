@@ -7,18 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jackc/pgx/v5"
-
-	"github.com/ppat/mediated-mailbox-mcp/db/accounts"
-	"github.com/ppat/mediated-mailbox-mcp/db/auditlog"
-	"github.com/ppat/mediated-mailbox-mcp/db/jobruns"
-	"github.com/ppat/mediated-mailbox-mcp/db/policycandidates"
-	"github.com/ppat/mediated-mailbox-mcp/db/policychanges"
-	"github.com/ppat/mediated-mailbox-mcp/db/policyrules/manage"
-	"github.com/ppat/mediated-mailbox-mcp/db/reorgplans"
-	senderclassification "github.com/ppat/mediated-mailbox-mcp/db/senders/classification"
-	"github.com/ppat/mediated-mailbox-mcp/db/tx"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/lens"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/refusal"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/schema"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/registry"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/server"
@@ -175,9 +165,9 @@ func (s *handlers) lens(w http.ResponseWriter, r *http.Request) {
 	account := r.PathValue("account")
 	server.RequestLogOf(r.Context()).Account = account
 	req, err := lens.Parse(s.descriptors, r.URL.Query())
-	var refusal *lens.Refusal
-	if errors.As(err, &refusal) {
-		server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, refusal.Code, refusal.Message))
+	var refused *refusal.Refusal
+	if errors.As(err, &refused) {
+		server.WriteFailure(w, r, server.Refused(refused))
 		return
 	}
 	if err != nil {
@@ -196,16 +186,10 @@ func (s *handlers) lens(w http.ResponseWriter, r *http.Request) {
 	}
 	started := time.Now()
 	var body any
-	err = tx.Run(r.Context(), s.snapshot(), account, func(t pgx.Tx) error {
+	err = registry.InAccount(r.Context(), s.snapshot(), account, func(q registry.Queries) error {
 		// as_of is the time the read transaction began, and the range is read against it.
 		now := s.opts.Clock()
 		read := registry.Read{Account: account, Request: req, Bounds: registry.BoundsOf(req.Range, now), AsOf: now}
-		// The statements are built here, from the transaction that set the account (ADR-0047).
-		q := registry.Queries{
-			Plans: reorgplans.New(t), Candidates: policycandidates.New(t),
-			Runs: jobruns.New(t), Failures: jobruns.New(t), Audit: auditlog.New(t),
-			Rules: manage.New(t), Changes: policychanges.New(t), Senders: senderclassification.New(t), Accounts: accounts.New(t),
-		}
 		figures, total, err := dataset.Summary(r.Context(), q, read)
 		if err != nil {
 			return err
@@ -280,9 +264,9 @@ func (s *handlers) rowDetail(dataset registry.Dataset) func(http.ResponseWriter,
 		account := r.PathValue("account")
 		server.RequestLogOf(r.Context()).Account = account
 		req, err := lens.ParseRow(s.descriptors, dataset.Name, r.PathValue("row"), r.URL.Query())
-		var refusal *lens.Refusal
-		if errors.As(err, &refusal) {
-			server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, refusal.Code, refusal.Message))
+		var refused *refusal.Refusal
+		if errors.As(err, &refused) {
+			server.WriteFailure(w, r, server.Refused(refused))
 			return
 		}
 		if err != nil {
@@ -295,19 +279,14 @@ func (s *handlers) rowDetail(dataset registry.Dataset) func(http.ResponseWriter,
 		}
 		started := time.Now()
 		var body any
-		err = tx.Run(r.Context(), s.snapshot(), account, func(t pgx.Tx) error {
+		err = registry.InAccount(r.Context(), s.snapshot(), account, func(q registry.Queries) error {
 			var err error
-			q := registry.Queries{
-				Plans: reorgplans.New(t), Candidates: policycandidates.New(t),
-				Runs: jobruns.New(t), Failures: jobruns.New(t), Audit: auditlog.New(t),
-				Rules: manage.New(t), Changes: policychanges.New(t), Senders: senderclassification.New(t), Accounts: accounts.New(t),
-			}
 			body, err = dataset.Detail(r.Context(), q, account, req, s.opts.Clock())
 			return err
 		})
 		s.metrics.readDuration.WithLabelValues(dataset.Name, "4").Observe(time.Since(started).Seconds())
 		if errors.Is(err, registry.ErrNoRow) {
-			server.WriteFailure(w, r, server.ClientFault(http.StatusNotFound, "unknown_row", "the account holds no such row"))
+			server.WriteFailure(w, r, server.ClientFault(refusal.UnknownRow, "the account holds no such row"))
 			return
 		}
 		if err != nil {

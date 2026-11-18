@@ -62,9 +62,9 @@ type rig struct {
 	// identity is who a policy write is recorded as made by, the operator name unless a test declares
 	// an identity header.
 	identity policymanagement.Identity
-	// fault is the fault a test injects between a setup's or a policy write's statements, nil
-	// otherwise. Every server the rig builds reads it when a write reaches such a point.
-	fault func(at string) error
+	// fault is the statement a test fails inside a transaction, between a setup's or a policy write's
+	// statements. Every server the rig builds runs its transactions through it.
+	fault fault
 }
 
 // defaultRedirect is the consent redirect the rig configures unless a test names another.
@@ -122,10 +122,11 @@ func newRigAt(t *testing.T, redirect string) *rig {
 
 // server builds a server over the rig's database and fake with the given request token key, as a
 // second replica of the UI would be built with the key its token_key_file names. A code exchange
-// obtains its client's secret from the client-secret package, as New wires it.
+// obtains its client's secret from the client-secret package, as New wires it. Its transactions run
+// through the rig's fault.
 func (r *rig) server(key []byte) *api.Endpoint {
 	r.t.Helper()
-	return r.serverOver(key, func(pool *pgxpool.Pool) api.Database { return pool })
+	return r.serverOver(key, func(pool *pgxpool.Pool) api.Database { return &faultyDB{Pool: pool, fault: &r.fault} })
 }
 
 // serverOver is server with the database the server reads through wrapped by over.
@@ -136,18 +137,12 @@ func (r *rig) serverOver(key []byte, over func(*pgxpool.Pool) api.Database) *api
 	if err != nil {
 		r.t.Fatal(err)
 	}
-	fault := func(at string) error {
-		if r.fault == nil {
-			return nil
-		}
-		return r.fault(at)
-	}
 	return readAPI(r.t, over(pool), newChecks(r.t, key, slog.New(slog.NewJSONHandler(&r.log, nil))),
 		reads.Options{Clock: func() time.Time { return r.clock }, StreamInterval: time.Second},
 		setup.Options{
-			Seal: r.public, Consents: map[string]mail.Consent[context.Context]{"gmail": r.consent}, Secret: secrets.Secret, Fault: fault,
+			Seal: r.public, Consents: map[string]mail.Consent[context.Context]{"gmail": r.consent}, Secret: secrets.Secret,
 		},
-		policymanagement.Options{Identity: r.identity, Fault: fault},
+		policymanagement.Options{Identity: r.identity},
 	)
 }
 

@@ -6,17 +6,16 @@ scheduled-count: no
 integration: yes
 
 diff --git a/ui/internal/setup/connect.go b/ui/internal/setup/connect.go
-index 2b6d3f2f..4178dabe 100644
 --- a/ui/internal/setup/connect.go
 +++ b/ui/internal/setup/connect.go
-@@ -432,7 +432,9 @@ func (s *handlers) store(ctx context.Context, clients *clientsetup.Queries, q *a
+@@ -424,7 +424,9 @@ func (s *handlers) store(ctx context.Context, clients *clientsetup.Queries, q *a
  	mailbox := pgtype.Text{String: a.Mailbox, Valid: true}
  	switch a.Kind {
- 	case attemptConnect:
+ 	case setup.Connect:
 -		if err := q.AddAccount(ctx, accountsetup.AddAccountParams{Provider: a.Provider, OauthClient: client}); err != nil {
 +		if err := tx.Run(context.WithoutCancel(ctx), s.opts.Database, a.Account, func(t pgx.Tx) error {
 +			return accountsetup.New(t).AddAccount(ctx, accountsetup.AddAccountParams{Provider: a.Provider, OauthClient: client})
 +		}); err != nil {
  			return err
  		}
- 		if err := s.opts.Fault.At("between the account's two rows"); err != nil {
+ 		target := pgtype.Float4{}

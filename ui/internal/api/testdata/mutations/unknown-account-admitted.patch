@@ -6,15 +6,14 @@ scheduled-count: no
 integration: yes
 
 diff --git a/ui/internal/api/server.go b/ui/internal/api/server.go
-index b3fad150..f1fa84f6 100644
 --- a/ui/internal/api/server.go
 +++ b/ui/internal/api/server.go
-@@ -162,7 +162,7 @@ func admit(db accounts.DBTX, w http.ResponseWriter, r *http.Request) bool {
+@@ -163,7 +163,7 @@ func admit(db accounts.DBTX, w http.ResponseWriter, r *http.Request) bool {
  		server.DatabaseFailure(w, r, err)
  		return false
  	}
 -	if !slices.ContainsFunc(listed, func(a accounts.AccountsRow) bool { return a.AccountID == account }) {
 +	if false && !slices.ContainsFunc(listed, func(a accounts.AccountsRow) bool { return a.AccountID == account }) {
- 		server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, "unknown_account", "no account has this identifier"))
+ 		server.WriteFailure(w, r, server.ClientFault(refusal.UnknownAccount, "no account has this identifier"))
  		return false
  	}

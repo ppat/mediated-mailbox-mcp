@@ -1,0 +1,18 @@
+control: The txhelper analyser holds every generated data-access function to the transaction helper, except the accounts listing, the read of oauth_clients, delta sync's re-seal of a client secret, the UI's client setup and the start check's read of the schema's versions
+removes: the UI's read of one client's sealed secret by its name is no longer exempt, so its read outside an account's transaction is reported
+packages: ./testsupport/analysis
+tests: TestTxHelper
+scheduled-count: no
+
+diff --git a/testsupport/analysis/txhelper.go b/testsupport/analysis/txhelper.go
+--- a/testsupport/analysis/txhelper.go
++++ b/testsupport/analysis/txhelper.go
+@@ -67,7 +67,7 @@ const txBasePath = modulePath + "/db/policyrules/base"
+ // txHelperExceptions maps each exempt subsection to its exempt statements.
+ var txHelperExceptions = map[string][]string{
+ 	modulePath + "/db/accounts":            {"Accounts"},
+-	modulePath + "/db/oauthclients":        {"OAuthClients", "SealedClient"},
++	modulePath + "/db/oauthclients":        {"OAuthClients"},
+ 	modulePath + "/db/oauthclients/secret": {"ReplaceSealedClient"},
+ 	modulePath + "/db/oauthclients/setup":  {"SetupClients", "AddClient", "ReplaceClient", "RemoveClient"},
+ 	modulePath + "/db/schemacompatibility": {"SchemaVersions"},

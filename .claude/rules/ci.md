@@ -22,7 +22,8 @@ formatting to Tools and versions. These are the tripwires:
 
 - **A path-filtered workflow's filter is an allow list of the directories it watches** (ADR-0054). A
   new component adds its entry to every workflow that watches it, and the Go workflows also watch
-  every Go file.
+  every Go file. The `ui` workflow's list names each directory its recorded-fixtures tests compile
+  or embed, and `go tool testkinds check` refuses the list when it leaves one unwatched.
 - **Go lint covers the whole module whenever its paths match**, never only the changed lines or
   packages (ADR-0071).
 - **Integration tests against PostgreSQL run only under `go tool pgrun` with `-tags integration`**,

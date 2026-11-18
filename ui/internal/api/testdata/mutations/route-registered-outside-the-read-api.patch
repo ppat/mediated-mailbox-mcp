@@ -5,12 +5,11 @@ tests: TestTheServerServesExactlyTheDocumentsRoutes TestEveryRouteSitsUnderTheRe
 scheduled-count: no
 
 diff --git a/ui/internal/api/server.go b/ui/internal/api/server.go
-index b3fad150..0662c9c8 100644
 --- a/ui/internal/api/server.go
 +++ b/ui/internal/api/server.go
-@@ -115,6 +115,7 @@ func mount(db accounts.DBTX, checks *server.Checks, datasets []registry.Dataset,
+@@ -116,6 +116,7 @@ func mount(db accounts.DBTX, checks *server.Checks, datasets []registry.Dataset,
  	mux.Handle(paths.API+"/", named("unrouted", func(w http.ResponseWriter, r *http.Request) {
- 		server.WriteFailure(w, r, server.ClientFault(http.StatusNotFound, "not_found", "no read API route answers this path"))
+ 		server.WriteFailure(w, r, server.ClientFault(refusal.NotFound, "no read API route answers this path"))
  	}))
 +	mux.Handle("GET /export", named("/export", http.NotFound))
  	// Every request is given its session, and every request whose method is not GET or HEAD is refused

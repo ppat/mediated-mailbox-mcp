@@ -4,10 +4,10 @@ packages: ./ui/internal/server
 tests: TestThePolicyScanReportsEachPlantedViolation
 scheduled-count: no
 
-diff --git a/ui/internal/server/scan.go b/ui/internal/server/scan.go
+diff --git a/ui/internal/server/cspscan/scan.go b/ui/internal/server/cspscan/scan.go
 index f61f845f..37c3a628 100644
---- a/ui/internal/server/scan.go
-+++ b/ui/internal/server/scan.go
+--- a/ui/internal/server/cspscan/scan.go
++++ b/ui/internal/server/cspscan/scan.go
 @@ -86,7 +86,7 @@ func NeedsLooserPolicy(name, text string) []string {
  		// The policy's img-src admits data: and its font-src does not, so a font inlined as a data: URI is
  		// blocked while an inlined image loads (docs/UI.md section 14.3).

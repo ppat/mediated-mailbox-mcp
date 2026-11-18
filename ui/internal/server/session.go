@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/refusal"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/paths"
 )
 
@@ -152,7 +153,7 @@ func withToken(k keys, next http.Handler) http.Handler {
 			got := r.Header.Get(tokenHeader)
 			if !s.carried || got == "" || !hmac.Equal([]byte(got), []byte(k.requestToken(s.id))) {
 				RequestLogOf(r.Context()).Route = "token"
-				WriteFailure(w, r, ClientFault(http.StatusForbidden, "stale_page",
+				WriteFailure(w, r, ClientFault(refusal.StalePage,
 					"the request token does not match this session, as on a page older than the UI server's last restart"))
 				return
 			}

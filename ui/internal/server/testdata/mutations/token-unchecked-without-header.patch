@@ -6,15 +6,14 @@ scheduled-count: no
 integration: yes
 
 diff --git a/ui/internal/server/session.go b/ui/internal/server/session.go
-index 5aa4742a..2932c5b9 100644
 --- a/ui/internal/server/session.go
 +++ b/ui/internal/server/session.go
-@@ -150,7 +150,7 @@ func withToken(k keys, next http.Handler) http.Handler {
+@@ -151,7 +151,7 @@ func withToken(k keys, next http.Handler) http.Handler {
  		if r.Method != http.MethodGet && r.Method != http.MethodHead {
  			s := sessionOf(r.Context())
  			got := r.Header.Get(tokenHeader)
 -			if !s.carried || got == "" || !hmac.Equal([]byte(got), []byte(k.requestToken(s.id))) {
 +			if got != "" && !hmac.Equal([]byte(got), []byte(k.requestToken(s.id))) {
  				RequestLogOf(r.Context()).Route = "token"
- 				WriteFailure(w, r, ClientFault(http.StatusForbidden, "stale_page",
+ 				WriteFailure(w, r, ClientFault(refusal.StalePage,
  					"the request token does not match this session, as on a page older than the UI server's last restart"))

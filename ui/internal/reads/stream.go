@@ -1,7 +1,6 @@
 package reads
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -16,6 +15,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/db/ratestate"
 	"github.com/ppat/mediated-mailbox-mcp/db/reorgplans"
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/reads"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/schema"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/registry"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/server"
@@ -150,7 +150,7 @@ func (s *handlers) poll(ctx context.Context, account string, st *streamState) ([
 			return err
 		}
 		read[key] = data
-		if bytes.Equal(st.sent[key], data) {
+		if !reads.Changed(st.sent[key], data) {
 			return nil
 		}
 		events = append(events, event{name: name, data: data})
@@ -162,14 +162,7 @@ func (s *handlers) poll(ctx context.Context, account string, st *streamState) ([
 			return err
 		}
 		for _, row := range runs {
-			e := runEvent{Account: account, run: run{
-				RunID: row.RunID, Workload: row.Workload, Pass: &row.Pass, State: row.State,
-				PlanID: optionalUUID(row.PlanID), PlanDescription: registry.OptionalText(row.PlanDescription),
-				PlanStatus: registry.OptionalText(row.PlanStatus), ResumedFrom: registry.OptionalText(row.ResumedFrom),
-				StartedAt: registry.Stamp(row.StartedAt.Time), FinishedAt: optionalStamp(row.FinishedAt),
-				HeartbeatAt: optionalStamp(row.HeartbeatAt), Checkpoint: rawJSON(row.Checkpoint),
-				Counters: rawJSON(row.Counters), LastError: registry.OptionalText(row.LastError),
-			}}
+			e := runEvent{Account: account, run: registry.RunOf(jobruns.LatestRunsRow(row))}
 			if err := changed("run:"+row.RunID, eventRun, e); err != nil {
 				return err
 			}

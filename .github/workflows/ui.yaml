@@ -7,8 +7,9 @@ name: ui
 # record, and the browser checks last. The contract document's own comparison with the registry is a unit test of
 # ui/internal/contract and runs in go-unit.yaml, and the UI's other Go tests run in the workflow of their kind
 # (ADR-0124).
-# The recorded fixtures are functions of the server's output, so the migration chain is watched as well, and
-# each data-access subsection the UI's list names joins it.
+# The recorded fixtures are functions of everything their tests link, so the path list names each directory of
+# this module the fixtures tests compile or embed, as go list -deps -test reads them, and go tool testkinds check
+# refuses the list when it leaves one unwatched.
 on:
   pull_request:
     paths:
@@ -17,19 +18,58 @@ on:
     - go.sum
     - mise.lock
     - mise.toml
-    - db/migrations/**
-    - db/accounts/**
+    - core/authorize/*
+    - core/classify/*
+    - core/config/*
+    - core/index/*
+    - core/mail/*
+    - core/policy/*
+    - core/redact/*
+    - core/scan/*
+    - core/scangate/*
+    - core/sensitivity/*
+    - credential/open/*
+    - credential/seal/*
+    - db/accounts/*
+    - db/accounts/setup/*
     - db/accountstate/*
-    - db/auditlog/**
-    - db/jobruns/**
-    - db/maskingevents/**
-    - db/messages/**
-    - db/policycandidates/**
+    - db/auditlog/*
+    - db/jobruns/*
+    - db/maskingevents/*
+    - db/messages/*
+    - db/migrate/*
+    - db/migrations/**
+    - db/oauthclients/*
+    - db/oauthclients/setup/*
+    - db/policycandidates/*
+    - db/policychanges/*
+    - db/policyrules/base/*
+    - db/policyrules/manage/*
     - db/ratestate/*
-    - db/reorgoplog/**
-    - db/reorgplans/**
-    - db/scangatedecisions/**
-    - db/tx/**
+    - db/reorgoplog/*
+    - db/reorgplans/*
+    - db/scangatedecisions/*
+    - db/schemacompatibility/*
+    - db/senders/classification/*
+    - db/tx/*
+    - process/*
+    - process/database/*
+    - process/database/core/*
+    - process/logging/*
+    - process/probes/*
+    - process/runtimemetrics/*
+    - process/schedule/*
+    - process/settings/*
+    - process/version/*
+    - provider/consent/*
+    - provider/google/*
+    - provider/internal/adapters/*
+    - provider/mail/*
+    - provider/mail/fake/*
+    - testsupport/compare/*
+    - testsupport/fixture/*
+    - testsupport/marker/*
+    - testsupport/postgres/*
     - testsupport/cmd/banproof/**
     - ui/**
   workflow_dispatch:

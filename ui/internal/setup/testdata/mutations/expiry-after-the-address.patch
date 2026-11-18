@@ -6,27 +6,26 @@ scheduled-count: no
 integration: yes
 
 diff --git a/ui/internal/setup/connect.go b/ui/internal/setup/connect.go
-index 2b6d3f2f..7e6bce45 100644
 --- a/ui/internal/setup/connect.go
 +++ b/ui/internal/setup/connect.go
-@@ -317,16 +317,16 @@ func (s *handlers) finish(w http.ResponseWriter, r *http.Request, mine func(atte
- 		server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, "no_attempt", "no connection is in progress in this browser session"))
+@@ -310,16 +310,16 @@ func (s *handlers) finish(w http.ResponseWriter, r *http.Request, mine func(atte
+ 		server.WriteFailure(w, r, server.ClientFault(refusal.NoAttempt, "no connection is in progress in this browser session"))
  		return
  	}
--	if refusal := setup.Expired(a.Expires, s.opts.Clock().UnixMilli()); refusal != setup.None {
--		server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, string(refusal), "the attempt expired"))
+-	if refused := setup.Expired(a.Expires, s.opts.Clock().UnixMilli()); refused != nil {
+-		server.WriteFailure(w, r, server.Refused(refused))
 -		return
 -	}
  	redirect, err := consent.ReadRedirect(body.Address)
  	if err != nil {
  		server.RequestLogOf(r.Context()).Err = err
- 		server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, "wrong_address", "this is not the address the provider redirected to"))
+ 		server.WriteFailure(w, r, server.ClientFault(refusal.WrongAddress, "this is not the address the provider redirected to"))
  		return
  	}
-+	if refusal := setup.Expired(a.Expires, s.opts.Clock().UnixMilli()); refusal != setup.None {
-+		server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, string(refusal), "the attempt expired"))
++	if refused := setup.Expired(a.Expires, s.opts.Clock().UnixMilli()); refused != nil {
++		server.WriteFailure(w, r, server.Refused(refused))
 +		return
 +	}
- 	if refusal := setup.Redirect(redirect, a.State); refusal != setup.None {
- 		server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, string(refusal), "the pasted address cannot finish this attempt"))
+ 	if refused := setup.Redirect(redirect, a.State); refused != nil {
+ 		server.WriteFailure(w, r, server.Refused(refused))
  		return

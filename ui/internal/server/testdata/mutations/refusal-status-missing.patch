@@ -1,0 +1,17 @@
+control: Every refusal is sent with the code and the status the error contract gives it
+removes: a code is left out of the status table, so it is answered with the bad request a missing entry falls back to
+packages: ./ui/internal/server
+tests: TestEveryCodeIsAnsweredWithItsStatus
+scheduled-count: no
+
+diff --git a/ui/internal/server/errors.go b/ui/internal/server/errors.go
+--- a/ui/internal/server/errors.go
++++ b/ui/internal/server/errors.go
+@@ -28,7 +28,6 @@ type Failure struct {
+ 
+ // statuses are the status each refusal's code is answered with, one per code wherever it is refused.
+ var statuses = map[refusal.Code]int{
+-	refusal.AllAccounts:          http.StatusBadRequest,
+ 	refusal.APIDisabled:          http.StatusBadRequest,
+ 	refusal.AttemptExpired:       http.StatusBadRequest,
+ 	refusal.ClientRefused:        http.StatusBadRequest,
