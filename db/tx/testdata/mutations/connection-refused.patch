@@ -6,13 +6,13 @@ scheduled-count: no
 integration: yes
 
 diff --git a/db/tx/tx.go b/db/tx/tx.go
-index f565213..6eb87bb 100644
+index 5572ecfc..ace963b4 100644
 --- a/db/tx/tx.go
 +++ b/db/tx/tx.go
-@@ -37,7 +37,7 @@ var ErrAccountNotSet = errors.New("the transaction's account setting does not ho
- // returns nil and rolls back otherwise. An empty account fails, since it is the state a transaction
- // that never set the account is in.
- func Run(ctx context.Context, db Beginner, account string, fn func(pgx.Tx) error) error {
+@@ -106,7 +106,7 @@ type scope struct {
+ // and goes on to fn only when the decision of db/tx/core on the value read back allows it. A db that
+ // is itself a transaction is refused, see ErrInsideTransaction.
+ func scoped(ctx context.Context, db Beginner, s scope, fn func(pgx.Tx) error) error {
 -	if _, nested := db.(pgx.Tx); nested {
 +	if _, nested := db.(*pgx.Conn); nested {
  		return ErrInsideTransaction

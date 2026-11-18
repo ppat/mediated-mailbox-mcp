@@ -66,17 +66,20 @@ The demonstrations of the controls whose patches sit in `content/`. [MUTATIONS.m
 
 ## Message text with no HTML form is released as one fenced code block that shows it exactly
 
-- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-13 at RAPID_SEED=1, after the body fetch by part and the refused scan state changed the code, tests or patches the row rests on · [pull request #369](https://github.com/ppat/mediated-mailbox-mcp/pull/369)
+- **Date · evidence:** 2026-10-01 · [pull request #235](https://github.com/ppat/mediated-mailbox-mcp/pull/235), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-13 at RAPID_SEED=1, after the body fetch by part and the refused scan state changed the code, tests or patches the row rests on · [pull request #369](https://github.com/ppat/mediated-mailbox-mcp/pull/369), and every break again on 2026-11-18, after the literal form moved to `content/markdown/core` · [pull request #469](https://github.com/ppat/mediated-mailbox-mcp/pull/469)
 - **Break (1):** the fence is as long as the longest run of backticks in the text rather than one longer, so that run closes the block
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/content/markdown`:** `TestLiteralForms`, `TestLiteralTextIsOneCodeBlockShowingIt`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/content/markdown`:** `TestLiteralTextIsOneCodeBlockShowingIt`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/content/markdown/core`:** `TestLiteralForms`
 - **Break (2):** the fence is always three backticks, so a text holding a run of three closes the block early
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/content/markdown`:** `TestLiteralForms`, `TestLiteralTextIsOneCodeBlockShowingIt`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/content/markdown`:** `TestLiteralTextIsOneCodeBlockShowingIt`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/content/markdown/core`:** `TestLiteralForms`
 - **Break (3):** the text is released as it is, with no fence around it
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/content/markdown`:** `TestLiteralForms`, `TestLiteralTextIsOneCodeBlockShowingIt`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/content/markdown`:** `TestLiteralTextIsOneCodeBlockShowingIt`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/content/markdown/core`:** `TestLiteralForms`
 
 ## One constant bounds the rendered part, the conversion's input and the literal form's alike
 
-- **Date · evidence:** 2026-10-13 · [pull request #369](https://github.com/ppat/mediated-mailbox-mcp/pull/369), at RAPID_SEED=1, and every break again on 2026-10-13 at RAPID_SEED=1, after the rename of the API server and the migrator moved the code, tests or patches the row rests on · [pull request #376](https://github.com/ppat/mediated-mailbox-mcp/pull/376), in run [38440944897](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/38440944897) of the `mutation-demonstrations` workflow
+- **Date · evidence:** 2026-10-13 · [pull request #369](https://github.com/ppat/mediated-mailbox-mcp/pull/369), at RAPID_SEED=1, and every break again on 2026-10-13 at RAPID_SEED=1, after the rename of the API server and the migrator moved the code, tests or patches the row rests on · [pull request #376](https://github.com/ppat/mediated-mailbox-mcp/pull/376), in run [38440944897](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/38440944897) of the `mutation-demonstrations` workflow, and the break of the literal form rendering a text-only body whatever its length again on 2026-11-18, after the literal form moved to `content/markdown/core` · [pull request #469](https://github.com/ppat/mediated-mailbox-mcp/pull/469)
 - **Break (1):** a body holding both parts renders as its HTML part's conversion followed by its text part
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/content/markdown`:** `TestRenderTakesTheReleasedForm`, `TestRenderTakesTheReleasedForm/both_parts`
 - **Break (2):** the conversion's input bound is a constant of its own, twice the port's, so the two drift apart

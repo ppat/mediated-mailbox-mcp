@@ -5,10 +5,10 @@ tests: TestARefreshThatDoesNotRotateKeepsTheToken/field_left_out TestARotatedRef
 scheduled-count: no
 
 diff --git a/provider/google/tokensource.go b/provider/google/tokensource.go
-index 5dddcab..0d03013 100644
+index 7eee30ce..ce31a099 100644
 --- a/provider/google/tokensource.go
 +++ b/provider/google/tokensource.go
-@@ -113,5 +113,5 @@ func (s *TokenSource) accept(resp tokenResponse, now time.Time) {
+@@ -148,5 +148,5 @@ func (s *TokenSource) accept(resp TokenResponse, now time.Time) {
  // rotated reports whether a refresh response rotated the refresh token. Google leaves the field
  // out when it did not.
  func rotated(held, returned string) bool {

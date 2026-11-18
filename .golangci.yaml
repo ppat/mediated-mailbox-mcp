@@ -237,6 +237,8 @@ linters:
           # The Gmail adapter's pure core is one package too, and so is the database package's.
           - "github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail/core$"
           - "github.com/ppat/mediated-mailbox-mcp/process/database/core$"
+          - "github.com/ppat/mediated-mailbox-mcp/content/markdown/core$"
+          - "github.com/ppat/mediated-mailbox-mcp/db/tx/core$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/marker$"
@@ -362,7 +364,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile$"
 
         # The command-line program, every file. Its keygen subcommand takes the suite and the key identifier from the
-        # sealing half, its tests open the pair it writes with the opening half, and its -version flags print the
+        # sealing half, its tests open the pair it writes with the opening half, and its -version flag prints the
         # release version (ADR-0078, ADR-0088).
         cli:
           list-mode: strict
@@ -478,6 +480,7 @@ linters:
           - "$gostd"
           - "github.com/google/go-cmp/cmp$"
           - "github.com/ppat/mediated-mailbox-mcp/process/schedule$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/alertingrules$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
           - "github.com/prometheus/client_golang/prometheus$"
 
@@ -518,6 +521,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
           - "github.com/ppat/mediated-mailbox-mcp/process/domains$"
           - "github.com/ppat/mediated-mailbox-mcp/process/policies$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/alertingrules$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
           - "github.com/prometheus/client_golang/prometheus$"
@@ -753,6 +757,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/db/policyrules$"
           - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
           - "github.com/ppat/mediated-mailbox-mcp/executioncontext/policyload$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/alertingrules$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/postgres$"
           - "github.com/prometheus/client_golang/prometheus$"
@@ -868,11 +873,13 @@ linters:
           - "github.com/jackc/pgx/v5$"
           - "github.com/jackc/pgx/v5/"
           - "github.com/ppat/mediated-mailbox-mcp/core/"
+          - "github.com/ppat/mediated-mailbox-mcp/db/accountstate$"
           - "github.com/ppat/mediated-mailbox-mcp/db/ratestate/limiter$"
           - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
           - "github.com/ppat/mediated-mailbox-mcp/provider/mail/fake$"
           - "github.com/ppat/mediated-mailbox-mcp/provider/ratelimit$"
           - "github.com/ppat/mediated-mailbox-mcp/provider/ratelimit/core$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/alertingrules$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/crash$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
@@ -1098,6 +1105,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/api/internal/bodies$"
           - "github.com/ppat/mediated-mailbox-mcp/api/internal/service$"
           - "github.com/ppat/mediated-mailbox-mcp/content/markdown$"
+          - "github.com/ppat/mediated-mailbox-mcp/content/markdown/core$"
           - "github.com/ppat/mediated-mailbox-mcp/core/"
           - "github.com/ppat/mediated-mailbox-mcp/process$"
           - "github.com/ppat/mediated-mailbox-mcp/process/database$"
@@ -1570,6 +1578,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/db/scangatedecisions/record$"
           - "github.com/ppat/mediated-mailbox-mcp/db/senders/statistics$"
           - "github.com/ppat/mediated-mailbox-mcp/db/tx$"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/alertingrules$"
           # Its tests seal the credentials they store.
           - "github.com/ppat/mediated-mailbox-mcp/credential/seal$"
           - "github.com/ppat/mediated-mailbox-mcp/process$"
@@ -1727,6 +1736,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/provider/ratelimit$"
           # The body conversion and the series the registry's build registers (ADR-0036, ADR-0125).
           - "github.com/ppat/mediated-mailbox-mcp/content/markdown$"
+          - "github.com/ppat/mediated-mailbox-mcp/content/markdown/core$"
           - "github.com/prometheus/client_golang/prometheus$"
 
         # The API root's generator, which serves HTTP.
@@ -1897,6 +1907,7 @@ linters:
           - "github.com/ppat/mediated-mailbox-mcp/process/version$"
           - "github.com/ppat/mediated-mailbox-mcp/provider$"
           - "github.com/ppat/mediated-mailbox-mcp/provider/"
+          - "github.com/ppat/mediated-mailbox-mcp/testsupport/alertingrules$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/compare$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/fixture$"
           - "github.com/ppat/mediated-mailbox-mcp/testsupport/helmchart$"

@@ -1,18 +1,15 @@
 package policies_test
 
 import (
-	"bytes"
 	"context"
 	"errors"
-	"os"
-	"os/exec"
-	"regexp"
 	"testing"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/ppat/mediated-mailbox-mcp/process/policies"
+	"github.com/ppat/mediated-mailbox-mcp/testsupport/alertingrules"
 )
 
 // rulesFile is the chart's rules file, relative to this package.
@@ -24,21 +21,7 @@ const rulesFile = "../../packaging/chart/rules/alerting-rules.yaml"
 // missing promtool fails the test rather than skipping it, because a skipped test passes in the job
 // that was meant to run it.
 func TestAlertingRules(t *testing.T) {
-	path, err := exec.LookPath("promtool")
-	if err != nil {
-		t.Fatalf("promtool is not on PATH. Run the tests through mise: %v", err)
-	}
-	var out bytes.Buffer
-	cmd := exec.CommandContext(t.Context(), path, "test", "rules", "testdata/alerting-rules-test.yaml")
-	cmd.Stdout, cmd.Stderr = &out, &out
-	err = cmd.Run()
-	var exit *exec.ExitError
-	switch {
-	case errors.As(err, &exit):
-		t.Errorf("promtool test rules failed: %v\n%s", err, out.String())
-	case err != nil:
-		t.Fatalf("running promtool: %v", err)
-	}
+	alertingrules.Test(t, "testdata/alerting-rules-test.yaml")
 }
 
 // Every policy series the alerting rules read is one the policies register under that exact name at
@@ -56,19 +39,7 @@ func TestTheRulesReadOnlyEmittedSeries(t *testing.T) {
 	for _, f := range families {
 		emitted[f.GetName()] = true
 	}
-	src, err := os.ReadFile(rulesFile)
-	if err != nil {
-		t.Fatal(err)
-	}
-	read := regexp.MustCompile(`mediated_mailbox_policyload_[a-z_]+`).FindAllString(string(src), -1)
-	if len(read) == 0 {
-		t.Fatal("no alerting rule reads a policy loader series")
-	}
-	for _, name := range read {
-		if !emitted[name] {
-			t.Errorf("the rules read %s, which the policies do not emit", name)
-		}
-	}
+	alertingrules.RequireReadOnlyEmitted(t, rulesFile, `mediated_mailbox_policyload_[a-z_]+`, 1, emitted)
 }
 
 // unreachable is a database every transaction of which fails to begin.

@@ -6,9 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/provider/ratelimit/collector.go b/provider/ratelimit/collector.go
+index f091bc1d..910b2a6b 100644
 --- a/provider/ratelimit/collector.go
 +++ b/provider/ratelimit/collector.go
-@@ -125,7 +125,7 @@
+@@ -147,7 +147,7 @@ func (c *Collector) collect(ctx context.Context, ch chan<- prometheus.Metric, a
  		{c.rate, float64(row.CurrentRate)},
  		// The floor at the precision the rate is stored at, so a rate held at the floor reads as
  		// equal to it whatever the floor's value.

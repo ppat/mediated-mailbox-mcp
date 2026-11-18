@@ -5,10 +5,10 @@ tests: TestNoConfigurationValueWeakensTheGate/a_scanner_part_with_nothing_to_mat
 scheduled-count: no
 
 diff --git a/api/internal/registry/registry.go b/api/internal/registry/registry.go
-index 9edc7d44..ca7f1ff4 100644
+index 34e389f8..02d21795 100644
 --- a/api/internal/registry/registry.go
 +++ b/api/internal/registry/registry.go
-@@ -56,7 +56,7 @@ func build(ctx context.Context, p process.Capabilities, c config.API) (service.R
+@@ -57,7 +57,7 @@ func build(ctx context.Context, p process.Capabilities, c config.API) (service.R
  		return service.Registry{}, err
  	}
  	scan, err := scanner.Get(ctx, p, c)

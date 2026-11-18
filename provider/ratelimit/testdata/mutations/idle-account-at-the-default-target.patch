@@ -1,0 +1,20 @@
+control: An idle account is reported at the target it will spend under, and a stored target the limiter refuses fails the scrape
+removes: the collector reports an account with no rate state at the default target, ignoring its lowered target
+packages: ./provider/ratelimit
+tests: TestTheCollectorReportsAnIdleAccountAtItsLoweredTarget
+scheduled-count: no
+integration: yes
+
+diff --git a/provider/ratelimit/collector.go b/provider/ratelimit/collector.go
+index f091bc1d..8e2ecdc8 100644
+--- a/provider/ratelimit/collector.go
++++ b/provider/ratelimit/collector.go
+@@ -130,7 +130,7 @@ func (c *Collector) collect(ctx context.Context, ch chan<- prometheus.Metric, a
+ 	// The limits the account spends under, decided as the connections' limiter decides them, so an
+ 	// account whose stored target is out of range is failed here as its work is stopped there.
+ 	limits := core.LimitsFor(a.Ceiling)
+-	if lowered.Valid {
++	if lowered.Valid && false {
+ 		if limits, err = core.LimitsWithTarget(a.Ceiling, float64(lowered.Float32)); err != nil {
+ 			return fmt.Errorf("the lowered target %v: %w", lowered.Float32, err)
+ 		}

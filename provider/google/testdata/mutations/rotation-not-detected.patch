@@ -5,10 +5,10 @@ tests: TestARotatedRefreshTokenIsHeldSentAndHandedOver
 scheduled-count: no
 
 diff --git a/provider/google/tokensource.go b/provider/google/tokensource.go
-index 5dddcab..5ef629d 100644
+index 7eee30ce..c75ffc83 100644
 --- a/provider/google/tokensource.go
 +++ b/provider/google/tokensource.go
-@@ -113,5 +113,5 @@ func (s *TokenSource) accept(resp tokenResponse, now time.Time) {
+@@ -148,5 +148,5 @@ func (s *TokenSource) accept(resp TokenResponse, now time.Time) {
  // rotated reports whether a refresh response rotated the refresh token. Google leaves the field
  // out when it did not.
  func rotated(held, returned string) bool {

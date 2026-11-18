@@ -6,7 +6,7 @@ scheduled-count: no
 integration: yes
 
 diff --git a/api/internal/registry/registry.go b/api/internal/registry/registry.go
-index 9edc7d44..3d590e3d 100644
+index 34e389f8..dd3deb2c 100644
 --- a/api/internal/registry/registry.go
 +++ b/api/internal/registry/registry.go
 @@ -10,6 +10,8 @@ package registry
@@ -18,7 +18,7 @@ index 9edc7d44..3d590e3d 100644
  	"time"
  
  	"github.com/prometheus/client_golang/prometheus"
-@@ -80,6 +82,11 @@ func build(ctx context.Context, p process.Capabilities, c config.API) (service.R
+@@ -81,6 +83,11 @@ func build(ctx context.Context, p process.Capabilities, c config.API) (service.R
  		Open:   fetch.Open,
  		Render: func(body mail.MessageBody) (string, error) {
  			defer processing.Since(scanner.StepConvert, time.Now())
@@ -29,4 +29,4 @@ index 9edc7d44..3d590e3d 100644
 +			}
  			return markdown.Render(body)
  		},
- 		Literal: markdown.Literal,
+ 		Literal: markdowncore.Literal,

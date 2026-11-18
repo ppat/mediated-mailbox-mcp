@@ -6,10 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/db/tx/tx.go b/db/tx/tx.go
-index 9ddd701..dd9299a 100644
+index 5572ecfc..7a87588e 100644
 --- a/db/tx/tx.go
 +++ b/db/tx/tx.go
-@@ -40,7 +40,7 @@ func Snapshot(db BeginnerWithOptions) Beginner { return snapshot{db: db} }
+@@ -49,7 +49,7 @@ func Snapshot(db BeginnerWithOptions) Beginner { return snapshot{db: db} }
  type snapshot struct{ db BeginnerWithOptions }
  
  func (s snapshot) Begin(ctx context.Context) (pgx.Tx, error) {

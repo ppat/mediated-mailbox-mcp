@@ -5,12 +5,12 @@ tests: TestLiteralBodyHoldsTheSizeLimit TestRenderTakesTheReleasedForm/a_text_pa
 scheduled-count: no
 
 diff --git a/content/markdown/literal.go b/content/markdown/literal.go
-index 6d893b6e..02bbab21 100644
+index 689c56ed..e9d9df65 100644
 --- a/content/markdown/literal.go
 +++ b/content/markdown/literal.go
-@@ -40,7 +40,7 @@ func Literal(text string) string {
+@@ -12,7 +12,7 @@ import (
  // conversion holds an HTML part to (ADR-0131). The snippet and a filename are not body parts, and
- // Literal renders them unbounded.
+ // core.Literal renders them unbounded.
  func LiteralBody(text string) (string, error) {
 -	if len(text) > MaxInputBytes {
 +	if len(text) > MaxInputBytes && false {

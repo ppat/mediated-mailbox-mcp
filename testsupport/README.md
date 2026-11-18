@@ -20,7 +20,9 @@ an image, because only test files and the tooling programs import it. Its packag
   that package's directory that may leave it, and refuses an absolute or unclean path. The two share
   the one `-update` flag this package registers.
 - `property`, the generator report, failing-case store and operation sampler of
-  [ADR-0069](../docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md).
+  [ADR-0069](../docs/adr/engineering/0069-property-and-crash-sequences-from-rapid.md), and the one
+  recorder that stands in for a test where a failure is read rather than reported, which the crash
+  harness shares.
 - `crash`, the crash harness of [ADR-0045](../docs/adr/engineering/0045-crash-injection-testing.md).
 - `marker`, the marker text of
   [ADR-0044](../docs/adr/engineering/0044-synthetic-fixtures-marker-text.md) that fixtures and
@@ -64,6 +66,9 @@ an image, because only test files and the tooling programs import it. Its packag
   required values, which the chart's own tests and each deployable's test of the file the chart
   renders for it share, with the reads of the values schema's keys and a configuration type's keys
   those tests compare ([ADR-0052](../docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md)).
+- `alertingrules`, the run of `promtool test rules` over a package's test file and the check that
+  every series the chart's alerting rules read is one the package emits, which each package that
+  emits a series a rule reads shares ([ADR-0077](../docs/adr/operability/0077-conditions-raised-as-alerting-rules.md)).
 - `livecontract`, the guard a contract run against a real provider calls first, which skips the
   run unless `cmd/livecontract` started it, and the invocation that command runs
   ([ADR-0043](../docs/adr/engineering/0043-no-mocking.md)).

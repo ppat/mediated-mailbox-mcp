@@ -4,9 +4,11 @@ The demonstrations of the controls whose patches sit in `db/`. [MUTATIONS.md](..
 
 ## A base-policy transaction names no account
 
-- **Date · evidence:** 2026-10-13 · [pull request #370](https://github.com/ppat/mediated-mailbox-mcp/pull/370), at RAPID_SEED=1
-- **Break:** RunBase neither sets the account empty nor reads it back, so a base-policy transaction runs under whatever account the connection's session holds
+- **Date · evidence:** 2026-10-13 · [pull request #370](https://github.com/ppat/mediated-mailbox-mcp/pull/370), at RAPID_SEED=1, and every break again on 2026-11-18, after the helper's decision moved to `db/tx/core` and both entry points came to share one helper · [pull request #469](https://github.com/ppat/mediated-mailbox-mcp/pull/469)
+- **Break (1):** RunBase neither sets the account empty nor reads it back, so a base-policy transaction runs under whatever account the connection's session holds
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/tx`:** `TestRunBaseEmptiesAnAccountTheConnectionHeld`, `TestRunBaseWritesTheBasePolicyAndReadsNoAccount`
+- **Break (2):** the decision accepts a base-policy transaction whose account setting reads back as an account
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/tx/core`:** `TestBaseHeld`
 
 ## A binary refuses a schema whose compatibility floor is above its chain or that has not applied its chain, and runs on every other
 
@@ -57,7 +59,7 @@ The demonstrations of the controls whose patches sit in `db/`. [MUTATIONS.md](..
 
 ## A transaction that did not set the account fails before any data access
 
-- **Date · evidence:** 2026-09-24 · [pull request #153](https://github.com/ppat/mediated-mailbox-mcp/pull/153), and every break again on 2026-10-11 at RAPID_SEED=1, after the performance measurements changed the code, tests or patches the row rests on · [pull request #341](https://github.com/ppat/mediated-mailbox-mcp/pull/341), and every break again on 2026-10-13 at RAPID_SEED=1, after every statement came to read its account from the transaction and the log tables gained their foreign keys · [pull request #370](https://github.com/ppat/mediated-mailbox-mcp/pull/370)
+- **Date · evidence:** 2026-09-24 · [pull request #153](https://github.com/ppat/mediated-mailbox-mcp/pull/153), and every break again on 2026-10-11 at RAPID_SEED=1, after the performance measurements changed the code, tests or patches the row rests on · [pull request #341](https://github.com/ppat/mediated-mailbox-mcp/pull/341), and every break again on 2026-10-13 at RAPID_SEED=1, after every statement came to read its account from the transaction and the log tables gained their foreign keys · [pull request #370](https://github.com/ppat/mediated-mailbox-mcp/pull/370), and every break again on 2026-11-18, after the helper's decision moved to `db/tx/core` and both entry points came to share one helper · [pull request #469](https://github.com/ppat/mediated-mailbox-mcp/pull/469)
 - **Break (1):** the helper sets the account for the session rather than the transaction, so it outlives the transaction
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/tx`:** `TestAnUnsetAccountFailsRatherThanReturningAnEmptyPage`, `TestTheAccountEndsWithItsTransaction`
 - **Break (2):** the helper refuses a connection as the Beginner rather than a transaction
@@ -66,6 +68,8 @@ The demonstrations of the controls whose patches sit in `db/`. [MUTATIONS.md](..
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/tx`:** `TestRunRefusesATransaction`
 - **Break (4):** the helper no longer compares the setting it reads back with the account
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/tx`:** `TestAnUnsetAccountFailsRatherThanReturningAnEmptyPage`
+- **Break (5):** the decision accepts a setting that does not read back as the account, an empty one included
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/db/tx/core`:** `TestAccountHeld`, `TestAccountHeld/an_empty_account_read_back_as_another`, `TestAccountHeld/an_empty_account_read_back_empty`, `TestAccountHeld/another_account_read_back`, `TestAccountHeld/nothing_read_back`
 
 ## An account cannot name another provider's OAuth client
 

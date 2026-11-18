@@ -5,10 +5,10 @@ tests: TestARefreshThatGetsNoAnswerIsAFailedAttempt
 scheduled-count: no
 
 diff --git a/provider/google/tokensource.go b/provider/google/tokensource.go
-index 4e68dc3..89b46fd 100644
+index 7eee30ce..8a6a7326 100644
 --- a/provider/google/tokensource.go
 +++ b/provider/google/tokensource.go
-@@ -81,7 +81,6 @@ func (s *TokenSource) AccessToken(ctx context.Context) (string, error) {
+@@ -91,7 +91,6 @@ func (s *TokenSource) AccessToken(ctx context.Context) (string, error) {
  	if err == nil {
  		err = s.receive(body, now)
  	}

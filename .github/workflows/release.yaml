@@ -221,7 +221,6 @@ jobs:
 
         chmod +x "$binary"
         "$binary" -version
-        "$binary" keygen -version
         pair="${RUNNER_TEMP}/pair"
         mkdir -p "$pair"
         "$binary" keygen -private-key-file "${pair}/credential.key" -public-key-file "${pair}/credential.pub"

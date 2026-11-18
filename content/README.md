@@ -13,7 +13,7 @@ is how content is converted, so every component that reads it reads the same for
 
 | Package | Holds |
 | --- | --- |
-| `markdown/` | The conversion of a body's HTML to clean Markdown, and the literal form of a body that has no HTML |
+| `markdown/` | The conversion of a body's HTML to clean Markdown, and the literal form of a body that has no HTML, whose pure core is `markdown/core` |
 
 The root package `content` holds no code. Its list, `content-without-converter` in
 `.golangci.yaml`, covers every file of the family outside `markdown`, so the converter is admitted
@@ -39,11 +39,14 @@ each import it. Text from a message that has no HTML form is released as a fence
 shows it exactly
 ([ADR-0100](../docs/adr/redaction/0100-message-text-without-html-is-released-as-a-literal-code-block.md)),
 and that form is `content/markdown`'s too, so every Markdown a client receives from a message comes
-from this package. One function renders a body in the form it is released in, its HTML part's
+from this package. The literal form is a pure function of the text, so it sits in
+`content/markdown/core`, where the shell package's size-bounded form of a body's text part and the
+API server's rendering of a snippet and an attachment's filename both read it. One function renders a body in the form it is released in, its HTML part's
 conversion or its text part's literal form, and the API server releases and the worker scans exactly
 what it returns, both held to the port's bound on the rendered part
 ([ADR-0131](../docs/adr/provider/0131-the-body-is-one-rendered-part-bounded-by-one-size-constant.md)).
 
 Only `content/markdown` may import the converter library. Its property test reads the output with
 [goldmark](https://github.com/yuin/goldmark), an independent CommonMark parser, to find what a
-Markdown reader would see as a link, an image or raw HTML. Only this package's tests may import it.
+Markdown reader would see as a link, an image or raw HTML. Only this package's tests may import it,
+so the property test of the literal form sits beside the shell and reads the core's output.

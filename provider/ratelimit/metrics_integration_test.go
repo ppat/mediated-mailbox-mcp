@@ -6,9 +6,6 @@ import (
 	"context"
 	"errors"
 	"math"
-	"os"
-	"regexp"
-	"slices"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -18,6 +15,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/provider/ratelimit"
 	"github.com/ppat/mediated-mailbox-mcp/provider/ratelimit/core"
+	"github.com/ppat/mediated-mailbox-mcp/testsupport/alertingrules"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 )
 
@@ -191,6 +189,40 @@ func TestTheCollectorReportsEachAccountsRateState(t *testing.T) {
 	}
 }
 
+// An account that has never spent is reported at the target it will spend under, its lowered one
+// where the operator set one, as the connections give it to the limiter, and the default otherwise
+// (ADR-0024, ADR-0077). A stored target the limiter refuses, which stops that account's work, fails
+// the whole scrape, as a failed read does, so the gather returns an error and the metrics endpoint
+// answers with one. The series the other accounts could report are gathered beside the error.
+func TestTheCollectorReportsAnIdleAccountAtItsLoweredTarget(t *testing.T) {
+	conn := superuser(t)
+	lowered, refused, unconnected := newAccount(t, conn), newAccount(t, conn)+"-refused", newAccount(t, conn)+"-bare"
+	must(t, conn, "INSERT INTO accounts (account_id, provider) VALUES ($1, 'gmail'), ($2, 'gmail')", refused, unconnected)
+	must(t, conn, "INSERT INTO account_state (account_id, lowered_target_rate) VALUES ($1, 0.25)", lowered)
+	must(t, conn, "INSERT INTO account_state (account_id, lowered_target_rate) VALUES ($1, 0.75)", refused)
+	reg := prometheus.NewRegistry()
+	reg.MustRegister(ratelimit.NewCollector(spenders(t), func(context.Context) ([]ratelimit.Account, error) {
+		return []ratelimit.Account{{ID: lowered, Ceiling: ceiling}, {ID: refused, Ceiling: ceiling}, {ID: unconnected, Ceiling: ceiling}}, nil
+	}))
+	families, err := reg.Gather()
+	if err == nil {
+		t.Error("the scrape succeeded though an account's stored target is above half its ceiling")
+	}
+	got := map[string]float64{}
+	for _, f := range families {
+		if f.GetName() != "mediated_mailbox_ratelimit_account_rate" {
+			continue
+		}
+		for _, m := range f.GetMetric() {
+			got[m.GetLabel()[0].GetValue()] = value(m)
+		}
+	}
+	want := map[string]float64{lowered: 25, unconnected: 50}
+	if diff := cmp.Diff(want, got, compare.Options); diff != "" {
+		t.Errorf("rate by account (-want +got):\n%s", diff)
+	}
+}
+
 // A rate held at a floor that a four-byte float cannot hold exactly is stored rounded, and the
 // collector emits the floor at that same precision, so the collapse rule's rate <= floor holds. A
 // ceiling of 6 gives a floor of 0.3, which the stored rate rounds up (ADR-0077).
@@ -263,17 +295,5 @@ func TestTheRulesReadOnlyEmittedRateSeries(t *testing.T) {
 	for s := range gathered(t, reg) {
 		emitted[s.name] = true
 	}
-	src, err := os.ReadFile(rulesFile)
-	if err != nil {
-		t.Fatal(err)
-	}
-	read := slices.Compact(slices.Sorted(slices.Values(regexp.MustCompile(`mediated_mailbox_[a-z_]+`).FindAllString(string(src), -1))))
-	if len(read) < 5 {
-		t.Fatalf("the rules read only %v", read)
-	}
-	for _, name := range read {
-		if !emitted[name] {
-			t.Errorf("the rules read %s, which nothing emits", name)
-		}
-	}
+	alertingrules.RequireReadOnlyEmitted(t, rulesFile, `mediated_mailbox_[a-z_]+`, 5, emitted)
 }

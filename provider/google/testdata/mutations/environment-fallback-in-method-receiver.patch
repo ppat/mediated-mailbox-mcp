@@ -5,11 +5,10 @@ tests: TestNoSourceFileReadsTheEnvironment
 scheduled-count: no
 
 diff --git a/provider/google/tokensource.go b/provider/google/tokensource.go
-index 5dddcab..f9dc819 100644
+index 7eee30ce..e84b69e4 100644
 --- a/provider/google/tokensource.go
 +++ b/provider/google/tokensource.go
-@@ -2,7 +2,9 @@ package gmail
- 
+@@ -3,6 +3,8 @@ package google
  import (
  	"context"
  	"errors"
@@ -18,7 +17,7 @@ index 5dddcab..f9dc819 100644
  	"net/http"
  	"net/url"
  	"sync"
-@@ -38,6 +40,9 @@ type TokenSource struct {
+@@ -51,6 +53,9 @@ type TokenSource struct {
  // NewTokenSource returns a source for the credentials the deployable supplies. Every argument is
  // required.
  func NewTokenSource(client *http.Client, creds Credentials) *TokenSource {

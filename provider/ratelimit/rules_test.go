@@ -11,6 +11,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"go.yaml.in/yaml/v3"
 
+	"github.com/ppat/mediated-mailbox-mcp/testsupport/alertingrules"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 )
 
@@ -21,13 +22,13 @@ const (
 	requiredValues = chartDir + "/ci/required-values.yaml"
 )
 
-// run runs a pinned tool and returns its combined output. A missing tool fails the test rather than
+// run runs the pinned helm and returns its combined output. A missing tool fails the test rather than
 // skipping it, because a skipped test passes in the job that was meant to run it.
-func run(t *testing.T, tool string, args ...string) (string, error) {
+func run(t *testing.T, args ...string) (string, error) {
 	t.Helper()
-	path, err := exec.LookPath(tool)
+	path, err := exec.LookPath("helm")
 	if err != nil {
-		t.Fatalf("%s is not on PATH. Run the tests through mise: %v", tool, err)
+		t.Fatalf("helm is not on PATH. Run the tests through mise: %v", err)
 	}
 	var out bytes.Buffer
 	cmd := exec.CommandContext(t.Context(), path, args...)
@@ -35,7 +36,7 @@ func run(t *testing.T, tool string, args ...string) (string, error) {
 	err = cmd.Run()
 	var exit *exec.ExitError
 	if err != nil && !errors.As(err, &exit) {
-		t.Fatalf("running %s: %v", tool, err)
+		t.Fatalf("running helm: %v", err)
 	}
 	return out.String(), err
 }
@@ -49,16 +50,14 @@ func run(t *testing.T, tool string, args ...string) (string, error) {
 // while no class has asked in the last minute, and the absence rule when the API server's series are
 // missing.
 func TestAlertingRules(t *testing.T) {
-	if out, err := run(t, "promtool", "test", "rules", "testdata/alerting-rules-test.yaml"); err != nil {
-		t.Errorf("promtool test rules failed: %v\n%s", err, out)
-	}
+	alertingrules.Test(t, "testdata/alerting-rules-test.yaml")
 }
 
 // rendered renders the chart with its required values and the given arguments and returns each document's kind and, for
 // a PrometheusRule, its spec.
 func rendered(t *testing.T, args ...string) (kinds []string, ruleSpecs []any) {
 	t.Helper()
-	out, err := run(t, "helm", append([]string{"template", "release", chartDir, "-f", requiredValues}, args...)...)
+	out, err := run(t, append([]string{"template", "release", chartDir, "-f", requiredValues}, args...)...)
 	if err != nil {
 		t.Fatalf("helm template failed: %v\n%s", err, out)
 	}

@@ -17,6 +17,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/api/internal/bodies"
 	"github.com/ppat/mediated-mailbox-mcp/api/internal/service"
 	"github.com/ppat/mediated-mailbox-mcp/content/markdown"
+	markdowncore "github.com/ppat/mediated-mailbox-mcp/content/markdown/core"
 	"github.com/ppat/mediated-mailbox-mcp/core/config"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/process"
@@ -82,7 +83,7 @@ func build(ctx context.Context, p process.Capabilities, c config.API) (service.R
 			defer processing.Since(scanner.StepConvert, time.Now())
 			return markdown.Render(body)
 		},
-		Literal: markdown.Literal,
+		Literal: markdowncore.Literal,
 		Scanner: scan,
 		Observe: observe,
 	}), p.Metrics())

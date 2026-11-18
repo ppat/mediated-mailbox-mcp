@@ -61,12 +61,12 @@ func TestARotatedRefreshTokenIsHeldSentAndHandedOver(t *testing.T) {
 	if got := held(src); got != "rotated-refresh-token" {
 		t.Errorf("the next refresh would send %q, want the rotated token", got)
 	}
-	if got := src.RefreshToken(); got != "rotated-refresh-token" {
+	if got := string(src.Credential()); got != "rotated-refresh-token" {
 		t.Errorf("the source hands the deployable %q, want the rotated token", got)
 	}
 
 	receive(t, src, plainResponse, now.Add(time.Hour))
-	if got := src.RefreshToken(); got != "rotated-refresh-token" {
+	if got := string(src.Credential()); got != "rotated-refresh-token" {
 		t.Errorf("after a refresh that rotated nothing the source hands over %q, want the rotated token", got)
 	}
 }
@@ -86,7 +86,7 @@ func TestARefreshThatDoesNotRotateKeepsTheToken(t *testing.T) {
 			if got := held(src); got != "original-refresh-token" {
 				t.Errorf("the next refresh would send %q, want the original token", got)
 			}
-			if got := src.RefreshToken(); got != "original-refresh-token" {
+			if got := string(src.Credential()); got != "original-refresh-token" {
 				t.Errorf("the source hands over %q, want the original token", got)
 			}
 		})
@@ -115,7 +115,7 @@ func TestAnAccessTokenIsUsedUntilItNearlyExpires(t *testing.T) {
 			t.Errorf("cached %v after the refresh = %v, want %v", c.after, got, c.want)
 		}
 	}
-	if got := src.RefreshToken(); got != "original-refresh-token" {
+	if got := string(src.Credential()); got != "original-refresh-token" {
 		t.Errorf("the source hands over %q as its refresh token", got)
 	}
 }

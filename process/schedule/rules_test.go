@@ -1,17 +1,13 @@
 package schedule_test
 
 import (
-	"bytes"
-	"errors"
-	"os"
-	"os/exec"
-	"regexp"
 	"testing"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/ppat/mediated-mailbox-mcp/process/schedule"
+	"github.com/ppat/mediated-mailbox-mcp/testsupport/alertingrules"
 )
 
 // rulesFile is the chart's rules file, relative to this package.
@@ -22,21 +18,7 @@ const rulesFile = "../../packaging/chart/rules/alerting-rules.yaml"
 // whose latest success has aged past the bound it exports, and for no other. A missing promtool fails
 // the test rather than skipping it, because a skipped test passes in the job that was meant to run it.
 func TestAlertingRules(t *testing.T) {
-	path, err := exec.LookPath("promtool")
-	if err != nil {
-		t.Fatalf("promtool is not on PATH. Run the tests through mise: %v", err)
-	}
-	var out bytes.Buffer
-	cmd := exec.CommandContext(t.Context(), path, "test", "rules", "testdata/alerting-rules-test.yaml")
-	cmd.Stdout, cmd.Stderr = &out, &out
-	err = cmd.Run()
-	var exit *exec.ExitError
-	switch {
-	case errors.As(err, &exit):
-		t.Errorf("promtool test rules failed: %v\n%s", err, out.String())
-	case err != nil:
-		t.Fatalf("running promtool: %v", err)
-	}
+	alertingrules.Test(t, "testdata/alerting-rules-test.yaml")
 }
 
 // Every job series the alerting rules read is one the scheduler's metrics register under that exact
@@ -59,17 +41,5 @@ func TestTheRulesReadOnlyEmittedSeries(t *testing.T) {
 	for _, f := range families {
 		emitted[f.GetName()] = true
 	}
-	src, err := os.ReadFile(rulesFile)
-	if err != nil {
-		t.Fatal(err)
-	}
-	read := regexp.MustCompile(`mediated_mailbox_job_[a-z_]+`).FindAllString(string(src), -1)
-	if len(read) == 0 {
-		t.Fatal("no alerting rule reads a job series")
-	}
-	for _, name := range read {
-		if !emitted[name] {
-			t.Errorf("the rules read %s, which the scheduler does not emit", name)
-		}
-	}
+	alertingrules.RequireReadOnlyEmitted(t, rulesFile, `mediated_mailbox_job_[a-z_]+`, 1, emitted)
 }

@@ -52,6 +52,7 @@ on:
     - db/schemacompatibility/*
     - db/senders/classification/*
     - db/tx/*
+    - db/tx/core/*
     - process/*
     - process/database/*
     - process/database/core/*
