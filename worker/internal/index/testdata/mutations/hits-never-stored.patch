@@ -1,0 +1,20 @@
+control: Each flagged message adds one prior hit to its sender, durably
+removes: no prior hit is added to the senders' statistics
+packages: ./worker/internal/backfill/pass2
+tests: TestAPassDecidesAndRecordsEveryWaitingMessage TestASendersFirstHitReachesItsNextMessage TestAKilledSecondPassResumesFromItsCheckpoint
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/index/index.go b/worker/internal/index/index.go
+index 0407d282..30d3111b 100644
+--- a/worker/internal/index/index.go
++++ b/worker/internal/index/index.go
+@@ -137,7 +137,7 @@ func RecordOutcomes(ctx context.Context, messages *scanstore.Queries, gate *gate
+ 			return fmt.Errorf("message %s: %w", o.ID, err)
+ 		}
+ 	}
+-	hits := coreindex.Hits(outcomes)
++	hits := map[string]int64{}
+ 	for _, domain := range slices.Sorted(maps.Keys(hits)) {
+ 		n, err := senders.AddScanHits(ctx, statistics.AddScanHitsParams{Hits: hits[domain], Domain: domain})
+ 		if err != nil {

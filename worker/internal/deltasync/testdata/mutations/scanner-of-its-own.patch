@@ -6,9 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/deltasync.go
+index 4ec4208c..80cba479 100644
 --- a/worker/internal/deltasync/deltasync.go
 +++ b/worker/internal/deltasync/deltasync.go
-@@ -106,7 +106,7 @@ func Build(ctx context.Context, p process.Capabilities, c config.Worker) (schedu
+@@ -103,7 +103,7 @@ func Build(ctx context.Context, p process.Capabilities, c config.Worker) (schedu
  
  // assemble gets what the job kind is built from and returns the job kind, as Build states.
  func assemble(ctx context.Context, p process.Capabilities, c config.Worker) (*DeltaSync, error) {

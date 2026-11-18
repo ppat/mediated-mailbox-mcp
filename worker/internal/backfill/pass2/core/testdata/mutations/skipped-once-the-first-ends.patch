@@ -1,0 +1,20 @@
+control: The second pass waits for the first pass to end
+removes: the second pass is skipped once the first has ended, and runs only before it has
+packages: ./worker/internal/backfill/pass2/core
+tests: TestBegin
+scheduled-count: no
+integration: no
+
+diff --git a/worker/internal/backfill/pass2/core/core.go b/worker/internal/backfill/pass2/core/core.go
+index 3e8a56ca..b1f5043d 100644
+--- a/worker/internal/backfill/pass2/core/core.go
++++ b/worker/internal/backfill/pass2/core/core.go
+@@ -60,7 +60,7 @@ type Progress struct {
+ // the same skip, the run-start step, worker/internal/backfill/start, records before the first pass
+ // (ADR-0120, ADR-0121).
+ func Begin(firstEnded, ended bool, latest runs.Latest[Progress]) runs.Start[Progress] {
+-	if !firstEnded {
++	if firstEnded {
+ 		return runs.Start[Progress]{Skip: true}
+ 	}
+ 	return runs.Begin(ended, false, latest)

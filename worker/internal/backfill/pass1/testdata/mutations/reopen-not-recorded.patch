@@ -6,10 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/backfill/pass1/postgres.go b/worker/internal/backfill/pass1/postgres.go
-index c902fbdc..1c6c6daa 100644
+index 0560235a..0e703691 100644
 --- a/worker/internal/backfill/pass1/postgres.go
 +++ b/worker/internal/backfill/pass1/postgres.go
-@@ -142,7 +142,7 @@ func (s *Postgres) Start(ctx context.Context, account, runID string, start core.
+@@ -139,7 +139,7 @@ func (s *Postgres) Start(ctx context.Context, account, runID string, start runsc
  		return err
  	}
  	return tx.Run(ctx, s.db, account, func(t pgx.Tx) error {

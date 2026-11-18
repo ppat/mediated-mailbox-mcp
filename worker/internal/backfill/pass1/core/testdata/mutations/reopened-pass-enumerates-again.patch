@@ -1,0 +1,20 @@
+control: A first pass whose enumeration ended fetches again by identifier only the stale subjects, masks each from the subject the provider returns, and enumerates nothing when reopened
+removes: a pass reopened after its enumeration ended starts a fresh enumeration from the first page instead of fetching the stale subjects again
+packages: ./worker/internal/backfill ./worker/internal/backfill/pass1 ./worker/internal/backfill/pass1/core
+tests: TestUnder TestAPassReopenedAfterItsEnumerationEndedFetchesTheStaleSubjectsAgain TestAChangeOfScannerMasksAndScansAgain
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/pass1/core/core.go b/worker/internal/backfill/pass1/core/core.go
+index e0edc919..07366869 100644
+--- a/worker/internal/backfill/pass1/core/core.go
++++ b/worker/internal/backfill/pass1/core/core.go
+@@ -89,7 +89,7 @@ func Under(start runs.Start[Progress], latest runs.Latest[Progress], s index.Sta
+ 	if start.Skip {
+ 		return start
+ 	}
+-	if start.Reopen && start.ResumedFrom == "" && latest.Found && latest.Progress.Checkpoint.Ended() {
++	if false && start.Reopen && start.ResumedFrom == "" && latest.Found && latest.Progress.Checkpoint.Ended() {
+ 		ended := latest.Progress.Checkpoint
+ 		start.From = Progress{Checkpoint: Checkpoint{Page: ended.Page, Of: ended.Of}}
+ 	}

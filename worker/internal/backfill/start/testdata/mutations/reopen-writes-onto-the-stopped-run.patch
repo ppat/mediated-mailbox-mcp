@@ -1,0 +1,37 @@
+control: The run-start step writes to no run's record
+removes: the run-start step records the stopped second pass run's progress as starting over, with a progress and a retry event, on that run's record
+packages: ./worker/internal/backfill
+tests: TestAStoppedSecondPassKeepsItsRecordAndStartsOver
+scheduled-count: no
+integration: yes
+diff --git a/worker/internal/backfill/start/start.go b/worker/internal/backfill/start/start.go
+index 07880fb2..1e9a7751 100644
+--- a/worker/internal/backfill/start/start.go
++++ b/worker/internal/backfill/start/start.go
+@@ -30,6 +30,9 @@ import (
+ 	pass1core "github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/pass1/core"
+ 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/start/core"
+ 	workerindex "github.com/ppat/mediated-mailbox-mcp/worker/internal/index"
++	runrecord "github.com/ppat/mediated-mailbox-mcp/db/jobruns/record"
++	"github.com/ppat/mediated-mailbox-mcp/worker/internal/runs"
++	runscore "github.com/ppat/mediated-mailbox-mcp/worker/internal/runs/core"
+ )
+ 
+ // Store is where the step finds and changes what it returns to pending and masks again.
+@@ -164,7 +167,15 @@ func (s *Postgres) Reopen(ctx context.Context, account string, stamp index.Stamp
+ 		if err := completion.New(t).ReopenBackfillSecond(ctx); err != nil {
+ 			return fmt.Errorf("recording the pass as due again: %w", err)
+ 		}
+-		return nil
++		r := runrecord.New(t)
++		run, err := runs.LatestRun(ctx, r, "backfill", "pass2")
++		if err != nil || !run.Found || run.State == runscore.Succeeded {
++			return err
++		}
++		if err := runs.RecordProgress(ctx, r, run.RunID, []byte(`{"page":0,"after":"","sent_at":0}`), run.Counters, runs.OnPage(0)); err != nil {
++			return err
++		}
++		return runs.RecordEvent(ctx, r, run.RunID, runs.Event{Kind: "retry", Page: runs.OnPage(0)})
+ 	})
+ 	return marked, err
+ }

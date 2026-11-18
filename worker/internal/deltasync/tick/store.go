@@ -7,6 +7,8 @@ import (
 
 	"github.com/ppat/mediated-mailbox-mcp/core/index"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
+	indexcore "github.com/ppat/mediated-mailbox-mcp/worker/internal/index/core"
+	"github.com/ppat/mediated-mailbox-mcp/worker/internal/runs"
 )
 
 // State is what a tick reads of an account before it starts.
@@ -35,12 +37,12 @@ type Window struct {
 }
 
 // Counters count a tick's work. Added, Modified and Removed count what the change sets reported,
-// Window is the first reconciliation of an account with no cursor, and Decided, Scanned, Skipped,
-// Refused and Pending count the waiting messages the tick read, as backfill's second pass counts them.
+// Window is the first reconciliation of an account with no cursor, and Counts counts the waiting
+// messages the tick read, as backfill's second pass counts them.
 type Counters struct {
-	Added, Modified, Removed                    int
-	Window                                      *Window
-	Decided, Scanned, Skipped, Refused, Pending int
+	Added, Modified, Removed int
+	Window                   *Window
+	indexcore.Counts
 }
 
 // Checkpoint is where a tick's scanning stands, the identifier of the last waiting message it read.
@@ -120,24 +122,6 @@ type Applied struct {
 	Inserted, Changed, Removed, Unclassified int
 }
 
-// Event is one event on a run's timeline, beside the start, progress, finish and failure events the
-// Store records with the change they mark (ADR-0117).
-type Event struct {
-	// Kind is retry, and Detail the provider's error text or the tick's own, never a body.
-	Kind, Detail string
-}
-
-// Item is one message whose body fetch the tick failed on, as job_run_failures records it.
-type Item struct {
-	ID string
-	// Class is the error class, and Summary the provider's or the converter's error text, never a
-	// body.
-	Class, Summary string
-	At             time.Time
-	// Disposition is gone or abandoned.
-	Disposition string
-}
-
 // Store is where a tick keeps the index and its runs. Each method is one transaction.
 type Store interface {
 	// State reads whether backfill's second pass has ended for the account, its change cursor with
@@ -167,7 +151,7 @@ type Store interface {
 	// message the gate decided, the verdict of each scanned and the state of each skipped, adds the
 	// flagged verdicts to their senders' prior hits, records the failed items, and records at with a
 	// progress event, all in one transaction.
-	CommitScan(ctx context.Context, account, runID string, outcomes []index.Outcome, items []Item, at Progress) error
+	CommitScan(ctx context.Context, account, runID string, outcomes []index.Outcome, items []runs.Item, at Progress) error
 	// Backlog returns how many of the account's messages wait for a scan.
 	Backlog(ctx context.Context, account string) (int64, error)
 	// Finish records at and that the run succeeded, with a finish event, and stores cursor with its
@@ -176,5 +160,5 @@ type Store interface {
 	// Fail records the run as failed with its last error, and a failure event.
 	Fail(ctx context.Context, account, runID, cause string) error
 	// Event adds an event to the run's timeline.
-	Event(ctx context.Context, account, runID string, e Event) error
+	Event(ctx context.Context, account, runID string, e runs.Event) error
 }

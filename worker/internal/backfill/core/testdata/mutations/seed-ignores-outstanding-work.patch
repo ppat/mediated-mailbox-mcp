@@ -1,0 +1,19 @@
+control: A job's latest success starts from what its job kind's runs record
+removes: a backfill job with no work outstanding counts from its latest recorded success, so an account whose backfill ended long ago is late at every start
+packages: ./worker/internal/backfill/core
+tests: TestBackfillsSeed
+scheduled-count: no
+
+diff --git a/worker/internal/backfill/core/core.go b/worker/internal/backfill/core/core.go
+index ad3c5aee..b87a4243 100644
+--- a/worker/internal/backfill/core/core.go
++++ b/worker/internal/backfill/core/core.go
+@@ -45,8 +45,5 @@ func Decide(s State, started bool) Work {
+ // restarting without the job succeeding leaves it ageing. A job with no work outstanding counts from
+ // the ensure, which Seed returns as zero, since it has nothing that can fall behind (ADR-0119).
+ func Seed(s State, latestSuccess, earliestStart mail.UnixMilli) mail.UnixMilli {
+-	if !Decide(s, true).Passes {
+-		return 0
+-	}
+ 	return runs.Seed(latestSuccess, earliestStart)
+ }

@@ -1,0 +1,20 @@
+control: A body the port or the conversion refuses is recorded refused, never scanned, and not fetched again
+removes: the second pass abandons a body the port refuses, leaving it waiting to be fetched again
+packages: ./worker/internal/backfill/pass2/core ./worker/internal/backfill/pass2
+tests: TestOnFailure TestABodyRefusedIsRecordedRefusedAndNotFetchedAgain
+scheduled-count: no
+integration: yes
+
+diff --git a/worker/internal/backfill/pass2/core/core.go b/worker/internal/backfill/pass2/core/core.go
+index 3e8a56ca..09a1ba0e 100644
+--- a/worker/internal/backfill/pass2/core/core.go
++++ b/worker/internal/backfill/pass2/core/core.go
+@@ -128,7 +128,7 @@ func OnFailure(f Attempt) Next {
+ 	case f.Class == index.NotProvider:
+ 		return FailRun
+ 	case f.Class == index.Refused:
+-		return Refuse
++		return Abandon
+ 	case f.Class == index.Throttled && f.Attempts < pass1.MaxAttempts:
+ 		return Backoff
+ 	case f.Class == index.ProviderError && f.Attempts < pass1.MaxAttempts:

@@ -6,15 +6,15 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/backfill/pass2/pass2.go b/worker/internal/backfill/pass2/pass2.go
-index 9086f74c..03e7eb87 100644
+index e455c344..697744e3 100644
 --- a/worker/internal/backfill/pass2/pass2.go
 +++ b/worker/internal/backfill/pass2/pass2.go
-@@ -267,7 +267,7 @@ func (p *Pass) Next(ctx context.Context) (step Step, err error) {
- 	number := p.at.Checkpoint.Page + 1
- 	now := mail.UnixMilli(p.deps.Now().UnixMilli())
- 	last := messages[len(messages)-1]
--	page := core.Page{Last: core.Position{SentAt: last.SentAt, ID: last.ID}}
-+	page := core.Page{Last: core.Position{ID: last.ID}}
- 	hits := map[string]int64{}
- 	var items []pass1.Item
- 	for _, m := range messages {
+@@ -233,7 +233,7 @@ func (p *Pass) Next(ctx context.Context) (step Step, err error) {
+ 	if err != nil {
+ 		return Step{}, err
+ 	}
+-	page := core.Page{Outcomes: outcomes, Last: core.Position{SentAt: last.SentAt, ID: last.ID}}
++	page := core.Page{Outcomes: outcomes, Last: core.Position{ID: last.ID}}
+ 	at := core.Advance(p.at, page)
+ 	if err := p.deps.Store.Commit(ctx, p.account, p.run, page, items, at); err != nil {
+ 		return Step{}, p.failed(ctx, fmt.Errorf("making page %d durable: %w", number, err))

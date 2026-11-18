@@ -6,13 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/deltasync/tick/postgres.go b/worker/internal/deltasync/tick/postgres.go
-index 42bc74ff..edc0b79d 100644
+index d762c492..5a021ae6 100644
 --- a/worker/internal/deltasync/tick/postgres.go
 +++ b/worker/internal/deltasync/tick/postgres.go
-@@ -139,13 +139,13 @@ func endStopped(ctx context.Context, q *runrecord.Queries) error {
- // Apply implements Store.
- func (s *Postgres) Apply(ctx context.Context, account, runID string, a Application, progress func(Applied) Recorder) (Applied, error) {
- 	var applied Applied
+@@ -125,7 +125,7 @@ func (s *Postgres) Apply(ctx context.Context, account, runID string, a Applicati
  	err := tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
  		applied = Applied{}
  		touched := map[string]bool{}
@@ -21,6 +18,3 @@ index 42bc74ff..edc0b79d 100644
  			domains, err := change.New(t).RemoveMessages(ctx, a.Removed)
  			if err != nil {
  				return fmt.Errorf("removing the messages the provider no longer holds: %w", err)
- 			}
- 			applied.Removed = len(domains)
- 			for _, d := range domains {

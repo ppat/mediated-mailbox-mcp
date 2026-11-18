@@ -9,19 +9,15 @@
 // a key that is not the current one, the OAuth clients' secrets included, and sets the key-scan
 // series, whether or not any account is listed (ADR-0092).
 //
-// A tick is tick.Run, and its due decision is worker/internal/core/deltasync/due.
+// A tick is tick.Run, and its due decision is worker/internal/deltasync/core.
 package deltasync
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/hex"
 	"errors"
 	"log/slog"
 	"time"
 
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
@@ -29,8 +25,6 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/core/scan"
 	"github.com/ppat/mediated-mailbox-mcp/core/scangate"
-	runrecord "github.com/ppat/mediated-mailbox-mcp/db/jobruns/record"
-	"github.com/ppat/mediated-mailbox-mcp/db/tx"
 	"github.com/ppat/mediated-mailbox-mcp/process"
 	"github.com/ppat/mediated-mailbox-mcp/process/connections"
 	"github.com/ppat/mediated-mailbox-mcp/process/database"
@@ -38,13 +32,16 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/process/schedule"
 	"github.com/ppat/mediated-mailbox-mcp/process/sessions"
 	"github.com/ppat/mediated-mailbox-mcp/provider"
-	"github.com/ppat/mediated-mailbox-mcp/worker/internal/core/deltasync/due"
+	"github.com/ppat/mediated-mailbox-mcp/worker/internal/deltasync/core"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/deltasync/tick"
+	"github.com/ppat/mediated-mailbox-mcp/worker/internal/runs"
+	runscore "github.com/ppat/mediated-mailbox-mcp/worker/internal/runs/core"
 )
 
 // Kind is delta sync's job kind as job_runs.workload spells it, which the worker's spec names it by,
-// so the worker's series and logs carry it as the job kind (ADR-0016, ADR-0117).
-const Kind = tick.Workload
+// so the worker's series and logs carry it as the job kind, and its ticks record their runs under it
+// (ADR-0016, ADR-0117).
+const Kind = "sync"
 
 // callTimeout is how long each provider call delta sync makes has to answer once its lease is
 // issued, a fixed timeout of the job kind's caller (ADR-0101, ADR-0119).
@@ -207,7 +204,7 @@ func (d *DeltaSync) job(account string) schedule.Job {
 		Interval: d.syncInterval, Limit: d.limit, Backoff: backoff, Late: lateIntervals * d.syncInterval, Logger: logger,
 		Run: func(ctx context.Context, ask schedule.Ask) error {
 			at := mail.UnixMilli(ask.At.UnixMilli())
-			if !due.Decide(ticked, last, at, d.syncInterval.Milliseconds()) {
+			if !core.Decide(ticked, last, at, d.syncInterval.Milliseconds()) {
 				return schedule.ErrNotDue
 			}
 			// The tick is recorded at its ask's time on the ticker's phase, so a tick asked at the end
@@ -221,33 +218,12 @@ func (d *DeltaSync) job(account string) schedule.Job {
 // seed returns when the account's job's latest success is counted from at its ensure, from what its
 // ticks record, and zero, its ensure, when the read fails, which is logged (ADR-0119).
 func (d *DeltaSync) seed(ctx context.Context, account string) time.Time {
-	var recorded runrecord.RecordedSuccessRow
-	err := tx.Run(ctx, d.pool, account, func(t pgx.Tx) error {
-		var rErr error
-		recorded, rErr = runrecord.New(t).RecordedSuccess(ctx, Kind)
-		return rErr
-	})
+	latest, earliest, err := runs.RecordedSuccess(ctx, d.pool, account, Kind)
 	if err != nil {
 		d.logger.Warn("reading the account's latest recorded success failed, so its job counts from now", "account", account, "error", err)
 		return time.Time{}
 	}
-	return at(due.Seed(millis(recorded.LatestSuccess), millis(recorded.EarliestStart)))
-}
-
-// millis returns t in milliseconds since the epoch, and zero when it is null.
-func millis(t pgtype.Timestamptz) mail.UnixMilli {
-	if !t.Valid {
-		return 0
-	}
-	return mail.UnixMilli(t.Time.UnixMilli())
-}
-
-// at returns the time ms names, and the zero time for zero.
-func at(ms mail.UnixMilli) time.Time {
-	if ms == 0 {
-		return time.Time{}
-	}
-	return time.UnixMilli(int64(ms))
+	return runs.Time(runscore.Seed(latest, earliest))
 }
 
 // tick runs one tick over the account as one unit of work, which begins on the account's connection
@@ -279,7 +255,7 @@ func (d *DeltaSync) tick(ctx context.Context, account string, logger *slog.Logge
 // (ADR-0120, ADR-0121, ADR-0104).
 func (d *DeltaSync) tickDeps(provider tick.Provider, policy classify.Policy) tick.Deps {
 	return tick.Deps{
-		Store:       tick.NewPostgres(d.pool),
+		Store:       tick.NewPostgres(d.pool, Kind),
 		Provider:    provider,
 		Policy:      policy,
 		Gate:        scangate.DefaultConfig(),
@@ -288,14 +264,7 @@ func (d *DeltaSync) tickDeps(provider tick.Provider, policy classify.Policy) tic
 		FirstWindow: d.firstWindow,
 		Decisions:   d.decisions,
 		PageSize:    pageSize,
-		RunID:       runID,
+		RunID:       runs.NewID,
 		Now:         time.Now,
 	}
-}
-
-// runID returns a new run's identifier, sixteen random hexadecimal digits.
-func runID() string {
-	var b [8]byte
-	_, _ = rand.Read(b[:]) // crypto/rand.Read never returns an error.
-	return hex.EncodeToString(b[:])
 }

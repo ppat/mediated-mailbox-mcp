@@ -6,10 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/backfill/pass1/postgres.go b/worker/internal/backfill/pass1/postgres.go
-index c902fbdc..0a5556da 100644
+index 0560235a..35668469 100644
 --- a/worker/internal/backfill/pass1/postgres.go
 +++ b/worker/internal/backfill/pass1/postgres.go
-@@ -393,7 +393,7 @@ func (s *Postgres) Finish(ctx context.Context, account, runID string, stamp inde
+@@ -314,7 +314,7 @@ func (s *Postgres) Finish(ctx context.Context, account, runID string, stamp inde
  		if err != nil {
  			return fmt.Errorf("reading whether a subject was masked under another scanner: %w", err)
  		}

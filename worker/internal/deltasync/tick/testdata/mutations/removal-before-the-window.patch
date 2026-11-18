@@ -6,10 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/deltasync/tick/tick.go b/worker/internal/deltasync/tick/tick.go
-index 3237b9b..232f206 100644
+index deb28e08..e443a94b 100644
 --- a/worker/internal/deltasync/tick/tick.go
 +++ b/worker/internal/deltasync/tick/tick.go
-@@ -283,7 +283,7 @@ func (t *ticker) reconcile(ctx context.Context, run string, start mail.UnixMilli
+@@ -301,7 +301,7 @@ func (t *ticker) reconcile(ctx context.Context, run string, start mail.UnixMilli
  // transaction recording the run's progress, and returns how many it removed. A message the listing
  // left out but the provider still holds stays (ADR-0105).
  func (t *ticker) removeGone(ctx context.Context, run string, start mail.UnixMilli, listed map[string]bool, progress func(removed int) Recorder) (int, error) {

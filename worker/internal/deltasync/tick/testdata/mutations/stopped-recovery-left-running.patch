@@ -6,21 +6,15 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/deltasync/tick/postgres.go b/worker/internal/deltasync/tick/postgres.go
-index 42bc74ff..f8c613d4 100644
+index 91bc95bd..0dd990be 100644
 --- a/worker/internal/deltasync/tick/postgres.go
 +++ b/worker/internal/deltasync/tick/postgres.go
-@@ -112,13 +112,13 @@ func (s *Postgres) Start(ctx context.Context, account, runID, pass string, at Re
- const stopped = "the run stopped before it recorded its end"
- 
- // endStopped records as failed the account's latest tick and latest gap recovery while either is
- // still recorded as running. Ticks do not overlap, so one still running when a tick starts was
- // stopped before it recorded its end (ADR-0103).
- func endStopped(ctx context.Context, q *runrecord.Queries) error {
+@@ -106,7 +106,7 @@ func (s *Postgres) Start(ctx context.Context, account, runID, pass string, at Re
+ // It runs the statements itself to keep the error text a run records, which runs.LatestRun and
+ // runs.FailRun word for backfill.
+ func (s *Postgres) endStopped(ctx context.Context, q *runrecord.Queries) error {
 -	for _, pass := range []string{PassTick, PassGapRecovery} {
 +	for _, pass := range []string{PassTick} {
- 		latest, err := q.LatestRun(ctx, runrecord.LatestRunParams{Workload: Workload, Pass: pass})
+ 		latest, err := q.LatestRun(ctx, runrecord.LatestRunParams{Workload: s.kind, Pass: pass})
  		if errors.Is(err, pgx.ErrNoRows) {
  			continue
- 		}
- 		if err != nil {
- 			return fmt.Errorf("reading the latest %s run: %w", pass, err)

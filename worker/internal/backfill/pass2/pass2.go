@@ -1,16 +1,19 @@
 // Package pass2 runs backfill's second pass over one account, reading the messages waiting for a
 // scan a page at a time, deciding each through the scan gate, scanning the bodies it selects, and
 // making each page durable with its checkpoint in one transaction (ADR-0133). The pass's decisions
-// come from worker/internal/core/backfill/pass2, and this package enacts them.
+// come from worker/internal/backfill/pass2/core, and this package enacts them. The loop that gates
+// and scans each waiting message, the writes of what it decided and the delisting transition's
+// enactment are worker/internal/index's, which delta sync's ticks share, and the run is recorded by
+// worker/internal/runs.
 //
 // A Pass is opened once per run and asked for its next page until it is done. Opening it is the
 // recovery path. It reads the account's latest run and resumes from its checkpoint, and it runs the
 // delisting transition and returns to pending each skip decided without its subject's signal before
-// the first page (ADR-0037, ADR-0120). Reopen, which backfill's run-start step calls before the first pass, returns to pending
-// every verdict made under another scanner and every stored gate skip the gate no longer decides as
-// the same skip (ADR-0120, ADR-0121). A restricted sender's body is never asked for
-// (ADR-0008). A body the gate selects is fetched under a lease in the batch class, converted and
-// scanned in memory, and dropped, so nothing of it reaches the store or a log (ADR-0009).
+// the first page (ADR-0037, ADR-0120). What a change of scanner or of the gate's thresholds returns to
+// pending, backfill's run-start step, worker/internal/backfill/start, returns before the first pass
+// (ADR-0120, ADR-0121). A restricted sender's body is never asked for (ADR-0008). A body the gate
+// selects is fetched under a lease in the batch class, converted and scanned in memory, and dropped,
+// so nothing of it reaches the store or a log (ADR-0009).
 package pass2
 
 import (
@@ -19,7 +22,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ppat/mediated-mailbox-mcp/content/markdown"
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
 	"github.com/ppat/mediated-mailbox-mcp/core/index"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
@@ -27,9 +29,10 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/core/scangate"
 	"github.com/ppat/mediated-mailbox-mcp/process/scanner"
 	"github.com/ppat/mediated-mailbox-mcp/process/schedule"
-	"github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/pass1"
-	pass1core "github.com/ppat/mediated-mailbox-mcp/worker/internal/core/backfill/pass1"
-	core "github.com/ppat/mediated-mailbox-mcp/worker/internal/core/backfill/pass2"
+	"github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/pass2/core"
+	workerindex "github.com/ppat/mediated-mailbox-mcp/worker/internal/index"
+	"github.com/ppat/mediated-mailbox-mcp/worker/internal/runs"
+	runscore "github.com/ppat/mediated-mailbox-mcp/worker/internal/runs/core"
 )
 
 // Store is where a pass keeps the index and its runs. Each method is one transaction.
@@ -37,27 +40,16 @@ type Store interface {
 	// State returns whether the account's first and second passes have ended, whether backfill's
 	// run-start step marked the second to start over (ADR-0120), and its latest recorded run of the
 	// second.
-	State(ctx context.Context, account string) (firstEnded, ended, restart bool, latest pass1core.Latest[core.Progress], err error)
+	State(ctx context.Context, account string) (firstEnded, ended, restart bool, latest runscore.Latest[core.Progress], err error)
 	// Start records the run runID as it starts from start, recording the run it resumes as failed
 	// first when start abandons it and clearing the mark that starts the pass over, with a start
 	// event, or a resume event naming the checkpoint page.
-	Start(ctx context.Context, account, runID string, start pass1core.Start[core.Progress]) error
+	Start(ctx context.Context, account, runID string, start runscore.Start[core.Progress]) error
 	// Delist runs the delisting transition. It reads the domains of the messages skipped as
 	// restricted, returns those messages of every domain delisted names to pending scan, and, when it
 	// marked any message, records the run's progress as restart with an event, all in one
 	// transaction. It returns how many messages it marked.
 	Delist(ctx context.Context, account, runID string, delisted func(restricted []string) []string, restart core.Progress) (int, error)
-	// Reopen returns to pending scan each scanned message whose verdict was made under another scanner
-	// than the one stamped s, its verdict cleared, and counts again the prior hits of their senders.
-	// It then reads, in batches, every subject stored unmasked and masked under another scanner, and
-	// stores the subjects remasked returns for them under s with a masking event for each mask, a batch
-	// in a few statements. It then reads every message the gate skipped with its gate inputs and
-	// returns to pending scan each one overturned names. When it marked any message, masked any
-	// subject again, or left a stored subject masked under another scanner so the first pass is due
-	// again, it records the pass as not ended and marks it to start over. It writes to no run's record.
-	// It is one transaction, which backfill's run-start step makes before the first pass (ADR-0120,
-	// ADR-0121). It returns how many of each it marked or masked again.
-	Reopen(ctx context.Context, account string, s index.Stamp, remasked func(stored []pass1core.Stored) []index.Message, overturned func(skips []index.Waiting) []string) (Reopened, error)
 	// RequeueSkips returns to pending scan each message the gate skipped whose subject is masked, with
 	// an event when it marked any, in one transaction (ADR-0120). It returns how many it marked.
 	RequeueSkips(ctx context.Context, account, runID string) (int, error)
@@ -69,16 +61,16 @@ type Store interface {
 	// the verdict of each message scanned and the state of each skipped, adds the page's hits to its
 	// senders' prior hits, records the page's failed items, and records the progress at with a
 	// progress event, all in one transaction.
-	Commit(ctx context.Context, account, runID string, page core.Page, items []pass1.Item, at core.Progress) error
+	Commit(ctx context.Context, account, runID string, page core.Page, items []runs.Item, at core.Progress) error
 	// Finish records that the run ended the pass. It sets the account's completion flag and records
 	// the run as succeeded with a finish event.
 	Finish(ctx context.Context, account, runID string) error
 	// Fail records the run as failed with its last error, and a failure event.
 	Fail(ctx context.Context, account, runID, cause string) error
 	// Event adds an event to the run's timeline.
-	Event(ctx context.Context, account, runID string, e pass1.Event) error
+	Event(ctx context.Context, account, runID string, e runs.Event) error
 	// Failure records one item the run failed on.
-	Failure(ctx context.Context, account, runID string, it pass1.Item) error
+	Failure(ctx context.Context, account, runID string, it runs.Item) error
 	// Backlog returns how many of the account's messages wait for a scan.
 	Backlog(ctx context.Context, account string) (int64, error)
 }
@@ -127,40 +119,11 @@ type Step struct {
 	Scanned int
 }
 
-// Reopened counts what backfill's run-start step returned to pending, the verdicts made under another
-// scanner, the bodies refused under another size bound (ADR-0132) and the gate skips the gate no
-// longer decides as the same skip, and the subjects stored unmasked it masked again from the store.
-type Reopened struct {
-	Verdicts, Refusals, Skips, Subjects int
-}
-
-// Reopen returns to pending every verdict made under another scanner than the one the pass scans
-// with and every body refused under another size bound than the port's (ADR-0132), masks again from the store, with that scanner, every subject stored unmasked under another,
-// and then returns to pending every stored gate skip the gate, deciding it again under the pass's
-// thresholds and policy with the message's age measured at the pass's clock, no longer decides as the
-// same skip, so those decisions see the subjects as now masked. It reopens the pass when it did any of
-// these or when the first pass is due again, so a stale verdict or an overturned skip is denied from the
-// start of the run that sees it, whatever the first pass's state. Backfill's run-start step calls it
-// before the first pass (ADR-0120, ADR-0121).
-func Reopen(ctx context.Context, deps Deps, account string) (Reopened, error) {
-	now := mail.UnixMilli(deps.Now().UnixMilli())
-	composed := deps.Policy()
-	r, err := deps.Store.Reopen(ctx, account, index.StampOf(deps.Scanner), func(stored []pass1core.Stored) []index.Message {
-		return pass1core.Remasked(stored, deps.Scanner)
-	}, func(skips []index.Waiting) []string {
-		return core.Overturned(composed, deps.Gate, now, skips)
-	})
-	if err != nil {
-		return Reopened{}, fmt.Errorf("returning the verdicts another scanner made and the overturned gate skips to pending, and masking the subjects stored unmasked again: %w", err)
-	}
-	return r, nil
-}
-
 // Open starts a run of the pass over the account, resuming its latest run when that run stopped
 // before the pass ended, runs the delisting transition, and returns to pending each skip decided
 // without its subject's signal. A pass that has ended, or whose first pass has not, opens done and
-// records no run. Reopen is what records the pass as not ended after a change of scanner or of what
-// the gate decides (ADR-0120, ADR-0121).
+// records no run. Backfill's run-start step is what records the pass as not ended after a change of
+// scanner or of what the gate decides (ADR-0120, ADR-0121).
 func Open(ctx context.Context, deps Deps, account string) (pass *Pass, err error) {
 	firstEnded, ended, startOver, latest, err := deps.Store.State(ctx, account)
 	if err != nil {
@@ -182,7 +145,7 @@ func Open(ctx context.Context, deps Deps, account string) (pass *Pass, err error
 		}
 	}()
 	if over {
-		e := pass1.Event{Kind: "retry", Detail: "a backfill run returned work to pending since the run it resumes stopped, so the pass starts over from the first message waiting for a scan"}
+		e := runs.Event{Kind: "retry", Page: runs.OnPage(0), Detail: "a backfill run returned work to pending since the run it resumes stopped, so the pass starts over from the first message waiting for a scan"}
 		if err := deps.Store.Event(ctx, account, p.run, e); err != nil {
 			return nil, p.failed(ctx, err)
 		}
@@ -190,8 +153,8 @@ func Open(ctx context.Context, deps Deps, account string) (pass *Pass, err error
 	if err := p.compare(ctx, deps.Policy()); err != nil {
 		return nil, err
 	}
-	// A skip is returned to pending only after a re-mask, in a run Reopen already started from the first
-	// waiting message, so returning it needs no restart of its own.
+	// A skip is returned to pending only after a re-mask, in a run the run-start step already started
+	// from the first waiting message, so returning it needs no restart of its own.
 	if _, err := deps.Store.RequeueSkips(ctx, account, p.run); err != nil {
 		return nil, p.failed(ctx, fmt.Errorf("returning to pending the skips decided without their subject's signal: %w", err))
 	}
@@ -256,29 +219,21 @@ func (p *Pass) Next(ctx context.Context) (step Step, err error) {
 	number := p.at.Checkpoint.Page + 1
 	now := mail.UnixMilli(p.deps.Now().UnixMilli())
 	last := messages[len(messages)-1]
-	page := core.Page{Last: core.Position{SentAt: last.SentAt, ID: last.ID}}
-	hits := map[string]int64{}
-	var items []pass1.Item
-	for _, m := range messages {
-		o := index.Outcome{ID: m.ID, Domain: m.Domain, Verdict: index.Gate(composed, p.deps.Gate, now, m, hits[m.Domain])}
-		if o.Verdict.Scans() {
-			scanned, item, refused, err := p.scan(ctx, m.ID, number)
-			if err != nil {
-				return Step{}, err
-			}
-			if item != nil {
-				items = append(items, *item)
-			}
-			o.Refused = refused
-			if scanned != nil {
-				o.Scanned = scanned
-				if scanned.Flags.Any() {
-					hits[m.Domain]++
-				}
-			}
+	var items []runs.Item
+	outcomes, _, err := workerindex.GateAndScan(composed, p.deps.Gate, now, messages, func(id string) (workerindex.Body, error) {
+		scanned, item, refused, err := p.scan(ctx, id, number)
+		if err != nil {
+			return workerindex.Body{}, err
 		}
-		page.Outcomes = append(page.Outcomes, o)
+		if item != nil {
+			items = append(items, *item)
+		}
+		return workerindex.Body{Scanned: scanned, Refused: refused}, nil
+	})
+	if err != nil {
+		return Step{}, err
 	}
+	page := core.Page{Outcomes: outcomes, Last: core.Position{SentAt: last.SentAt, ID: last.ID}}
 	at := core.Advance(p.at, page)
 	if err := p.deps.Store.Commit(ctx, p.account, p.run, page, items, at); err != nil {
 		return Step{}, p.failed(ctx, fmt.Errorf("making page %d durable: %w", number, err))
@@ -292,7 +247,7 @@ func (p *Pass) Next(ctx context.Context) (step Step, err error) {
 // scan records, or the failed item that leaves the message waiting, or with neither the error that
 // ends the run. A body the port or the rendering refused is returned as refused with its failed item,
 // which records it as refused rather than waiting (ADR-0132). The body is dropped when it returns.
-func (p *Pass) scan(ctx context.Context, id string, number int) (*index.Scanned, *pass1.Item, bool, error) {
+func (p *Pass) scan(ctx context.Context, id string, number int) (*index.Scanned, *runs.Item, bool, error) {
 	body, item, err := p.fetch(ctx, id, number)
 	if err != nil {
 		return nil, item, false, err
@@ -303,13 +258,11 @@ func (p *Pass) scan(ctx context.Context, id string, number int) (*index.Scanned,
 	if item != nil && item.Disposition != "recovered" {
 		return nil, item, false, nil
 	}
-	start := time.Now()
-	rendered, rerr := markdown.Render(body)
-	p.deps.Processing.Since(scanner.StepConvert, start)
+	scanned, rerr := workerindex.RenderAndScan(p.deps.Processing, p.deps.Scanner, body)
 	if rerr != nil {
 		now := p.deps.Now().UTC()
-		refused := &pass1.Item{
-			Kind: "message", ID: id, Page: number, Class: string(index.Refused),
+		refused := &runs.Item{
+			Kind: "message", ID: id, Page: runs.OnPage(number), Class: string(index.Refused),
 			Summary: "the conversion refused the body: " + rerr.Error(), Attempts: 1, First: now, Last: now, Disposition: "refused",
 		}
 		if item != nil {
@@ -317,17 +270,14 @@ func (p *Pass) scan(ctx context.Context, id string, number int) (*index.Scanned,
 		}
 		return nil, refused, true, nil
 	}
-	start = time.Now()
-	scanned := index.Scan(p.deps.Scanner, rendered)
-	p.deps.Processing.Since(scanner.StepScan, start)
 	return &scanned, item, false, nil
 }
 
 // fetch asks for the message's body until it arrives or the run gives up on it. It returns the body
 // with the item its commit records as recovered, when earlier attempts failed, or the item that
 // leaves the message waiting, or the error that ends the run.
-func (p *Pass) fetch(ctx context.Context, id string, number int) (mail.MessageBody, *pass1.Item, error) {
-	var item *pass1.Item
+func (p *Pass) fetch(ctx context.Context, id string, number int) (mail.MessageBody, *runs.Item, error) {
+	var item *runs.Item
 	for {
 		body, err := p.deps.Body(ctx, id)
 		if err == nil {
@@ -344,11 +294,11 @@ func (p *Pass) fetch(ctx context.Context, id string, number int) (mail.MessageBo
 		class := index.ClassOf(err)
 		now := p.deps.Now().UTC()
 		if item == nil {
-			item = &pass1.Item{Kind: "message", ID: id, Page: number, First: now}
+			item = &runs.Item{Kind: "message", ID: id, Page: runs.OnPage(number), First: now}
 		}
 		item.Class, item.Summary, item.Last = string(class), err.Error(), now
 		item.Attempts++
-		var e pass1.Event
+		var e runs.Event
 		switch core.OnFailure(core.Attempt{Class: class, Attempts: item.Attempts}) {
 		case core.FailRun:
 			return mail.MessageBody{}, nil, p.failed(ctx, fmt.Errorf("asking for the body of message %s: %w", id, err))
@@ -362,9 +312,9 @@ func (p *Pass) fetch(ctx context.Context, id string, number int) (mail.MessageBo
 			item.Disposition = "refused"
 			return mail.MessageBody{}, item, nil
 		case core.Backoff:
-			e = pass1.Event{Kind: "backoff", Page: number, Detail: err.Error()}
+			e = runs.Event{Kind: "backoff", Page: runs.OnPage(number), Detail: err.Error()}
 		case core.Retry:
-			e = pass1.Event{Kind: "retry", Page: number, Detail: err.Error()}
+			e = runs.Event{Kind: "retry", Page: runs.OnPage(number), Detail: err.Error()}
 		case core.Stop:
 			item.Disposition = "abandoned"
 			cause := fmt.Errorf("asking for the body of message %s: %w", id, err)

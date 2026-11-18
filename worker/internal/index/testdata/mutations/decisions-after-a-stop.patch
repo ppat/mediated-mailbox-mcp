@@ -1,0 +1,35 @@
+control: Once backfill's second pass has ended, each tick decides and scans what waits, a bounded number from where the last stopped
+removes: the gate-and-scan loop stopped by a throttle in a tick goes on deciding the rest of its read without the hits of the bodies it did not scan
+packages: ./worker/internal/deltasync/tick
+tests: TestAThrottledBodyStopsTheAccountsScanning
+scheduled-count: no
+integration: yes
+diff --git a/worker/internal/index/index.go b/worker/internal/index/index.go
+index 0407d282..75d9617a 100644
+--- a/worker/internal/index/index.go
++++ b/worker/internal/index/index.go
+@@ -255,13 +255,13 @@ func GateAndScan(p classify.Policy, c scangate.Config, now mail.UnixMilli, waiti
+ 	hits := map[string]int64{}
+ 	for _, m := range waiting {
+ 		o := coreindex.Outcome{ID: m.ID, Domain: m.Domain, Verdict: coreindex.Gate(p, c, now, m, hits[m.Domain])}
+-		if o.Verdict.Scans() {
++		if o.Verdict.Scans() && !stopped {
+ 			b, err := body(m.ID)
+ 			if err != nil {
+ 				return nil, false, err
+ 			}
+ 			if b.Stop {
+-				return outcomes, true, nil
++				stopped = true
+ 			}
+ 			o.Refused = b.Refused
+ 			if b.Scanned != nil {
+@@ -273,7 +273,7 @@ func GateAndScan(p classify.Policy, c scangate.Config, now mail.UnixMilli, waiti
+ 		}
+ 		outcomes = append(outcomes, o)
+ 	}
+-	return outcomes, false, nil
++	return outcomes, stopped, nil
+ }
+ 
+ // RenderAndScan renders body as release serves it and scans that with s, timing each step on

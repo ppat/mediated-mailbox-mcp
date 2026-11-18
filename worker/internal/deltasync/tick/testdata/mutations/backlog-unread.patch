@@ -6,10 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/deltasync/tick/tick.go b/worker/internal/deltasync/tick/tick.go
-index b5e0a1d..22b6f11 100644
+index deb28e08..bad2d209 100644
 --- a/worker/internal/deltasync/tick/tick.go
 +++ b/worker/internal/deltasync/tick/tick.go
-@@ -98,7 +98,7 @@ func Run(ctx context.Context, deps Deps, account string) (Result, error) {
+@@ -114,7 +114,7 @@ func Run(ctx context.Context, deps Deps, account string) (result Result, err err
  		if err != nil {
  			return t.result, t.failed(ctx, fmt.Errorf("reading the scan backlog: %w", err))
  		}

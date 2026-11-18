@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"maps"
 	"slices"
 	"strings"
@@ -33,9 +34,13 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/marker"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/postgres"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/pass1"
+	pass1core "github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/pass1/core"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/pass2"
-	pass1core "github.com/ppat/mediated-mailbox-mcp/worker/internal/core/backfill/pass1"
-	core "github.com/ppat/mediated-mailbox-mcp/worker/internal/core/backfill/pass2"
+	"github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/pass2/core"
+	"github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/start"
+	indexcore "github.com/ppat/mediated-mailbox-mcp/worker/internal/index/core"
+	"github.com/ppat/mediated-mailbox-mcp/worker/internal/runs"
+	runscore "github.com/ppat/mediated-mailbox-mcp/worker/internal/runs/core"
 )
 
 func TestMain(m *testing.M) {
@@ -272,7 +277,7 @@ func seedPostgres(t testing.TB, account string, f mail.Port[context.Context]) {
 	}
 	n := 0
 	deps := pass1.Deps{
-		Store: pass1.NewPostgres(backfillPool(t)), Fetch: f.EnumerateAll, Metadata: f.GetMessageMetadata, PerCall: func() int { return 3 },
+		Store: pass1.NewPostgres(backfillPool(t), "backfill"), Fetch: f.EnumerateAll, Metadata: f.GetMessageMetadata, PerCall: func() int { return 3 },
 		Policy: fixed(classify.Prepare(policyListing(t, false).For(account), lookups)), Scanner: scanner(t),
 		RunID: func() string { n++; return fmt.Sprintf("first%d", n) }, Now: time.Now,
 	}
@@ -330,7 +335,9 @@ func inspectPostgres(t tb, url, account string) state {
 		}
 		r.Progress = core.Progress{
 			Checkpoint: core.Checkpoint{Page: c.Page, After: core.Position{SentAt: mail.UnixMilli(c.SentAt), ID: c.After}},
-			Counters:   core.Counters{Pages: n.Pages, Decided: n.Decided, Pending: n.Pending, Scanned: n.Scanned, Skipped: n.Skipped, Refused: n.Refused},
+			Counters: core.Counters{Pages: n.Pages, Counts: indexcore.Counts{
+				Decided: n.Decided, Pending: n.Pending, Scanned: n.Scanned, Skipped: n.Skipped, Refused: n.Refused,
+			}},
 		}
 		s.Runs = append(s.Runs, r)
 		return nil
@@ -419,16 +426,16 @@ func newMemory(t tb, messages []fake.Message) *memory {
 	return m
 }
 
-func (m *memory) State(ctx context.Context, _ string) (bool, bool, bool, pass1core.Latest[core.Progress], error) {
+func (m *memory) State(ctx context.Context, _ string) (bool, bool, bool, runscore.Latest[core.Progress], error) {
 	if err := ctx.Err(); err != nil {
-		return false, false, false, pass1core.Latest[core.Progress]{}, err
+		return false, false, false, runscore.Latest[core.Progress]{}, err
 	}
 	if len(m.runs) == 0 {
-		return true, m.ended, m.restart, pass1core.Latest[core.Progress]{}, nil
+		return true, m.ended, m.restart, runscore.Latest[core.Progress]{}, nil
 	}
 	r := m.runs[len(m.runs)-1]
-	states := map[string]pass1core.RunState{"running": pass1core.Running, "succeeded": pass1core.Succeeded, "failed": pass1core.Failed}
-	return true, m.ended, m.restart, pass1core.Latest[core.Progress]{Found: true, RunID: r.ID, State: states[r.State], Progress: r.Progress}, nil
+	states := map[string]runscore.RunState{"running": runscore.Running, "succeeded": runscore.Succeeded, "failed": runscore.Failed}
+	return true, m.ended, m.restart, runscore.Latest[core.Progress]{Found: true, RunID: r.ID, State: states[r.State], Progress: r.Progress}, nil
 }
 
 func (m *memory) end(id, st string) {
@@ -447,7 +454,7 @@ func (m *memory) progress(id string, at core.Progress) {
 	}
 }
 
-func (m *memory) Start(ctx context.Context, _, runID string, start pass1core.Start[core.Progress]) error {
+func (m *memory) Start(ctx context.Context, _, runID string, start runscore.Start[core.Progress]) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -459,9 +466,9 @@ func (m *memory) Start(ctx context.Context, _, runID string, start pass1core.Sta
 	return nil
 }
 
-func (m *memory) Reopen(ctx context.Context, _ string, s index.Stamp, remasked func([]pass1core.Stored) []index.Message, overturned func([]index.Waiting) []string) (pass2.Reopened, error) {
+func (m *memory) Reopen(ctx context.Context, _ string, s index.Stamp, remasked func([]pass1core.Stored) []index.Message, overturned func([]index.Waiting) []string) (start.Reopened, error) {
 	if err := ctx.Err(); err != nil {
-		return pass2.Reopened{}, err
+		return start.Reopened{}, err
 	}
 	marked := 0
 	var unmasked []pass1core.Stored
@@ -505,10 +512,10 @@ func (m *memory) Reopen(ctx context.Context, _ string, s index.Stamp, remasked f
 		m.messages[id].st.State = "pending"
 	}
 	if marked == 0 && len(overturn) == 0 && len(again) == 0 && !stale {
-		return pass2.Reopened{}, nil
+		return start.Reopened{}, nil
 	}
 	m.ended, m.restart = false, true
-	return pass2.Reopened{Verdicts: marked, Skips: len(overturn), Subjects: len(again)}, nil
+	return start.Reopened{Verdicts: marked, Skips: len(overturn), Subjects: len(again)}, nil
 }
 
 func (m *memory) RequeueSkips(ctx context.Context, _, _ string) (int, error) {
@@ -580,7 +587,7 @@ func (m *memory) Pending(ctx context.Context, _ string, after core.Position, n i
 	return out, nil
 }
 
-func (m *memory) Commit(ctx context.Context, _, runID string, p core.Page, items []pass1.Item, at core.Progress) error {
+func (m *memory) Commit(ctx context.Context, _, runID string, p core.Page, items []runs.Item, at core.Progress) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -642,11 +649,11 @@ func (m *memory) Fail(ctx context.Context, _, runID, _ string) error {
 	return nil
 }
 
-func (m *memory) Event(ctx context.Context, _, _ string, _ pass1.Event) error {
+func (m *memory) Event(ctx context.Context, _, _ string, _ runs.Event) error {
 	return ctx.Err()
 }
 
-func (m *memory) Failure(ctx context.Context, _, _ string, it pass1.Item) error {
+func (m *memory) Failure(ctx context.Context, _, _ string, it runs.Item) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -690,9 +697,11 @@ type world struct {
 	ctx     context.Context
 	account string
 	store   pass2.Store
-	inspect func(t tb) state
-	deps    pass2.Deps
-	pass    *pass2.Pass
+	// starting is the store backfill's run-start step reads and changes, over the same index.
+	starting start.Store
+	inspect  func(t tb) state
+	deps     pass2.Deps
+	pass     *pass2.Pass
 	// messages is the mailbox the provider fake holds.
 	messages []fake.Message
 	// delisted removes the bank's rule from the policy the next process loads, and added adds a rule
@@ -794,14 +803,14 @@ func (w *world) widen() {
 
 // newWorld builds a world over store for the mailbox s generates. body turns the throttled fake into
 // the body fetch the pass uses.
-func newWorld(t tb, s setup, account string, messages []fake.Message, store pass2.Store, inspect func(tb) state, body func(mail.Port[context.Context]) pass2.Body) *world {
+func newWorld(t tb, s setup, account string, messages []fake.Message, store pass2.Store, starting start.Store, inspect func(tb) state, body func(mail.Port[context.Context]) pass2.Body) *world {
 	t.Helper()
 	f, err := fake.New(fake.Config{Account: account, BudgetPerSecond: 10_000}, messages...)
 	if err != nil {
 		t.Fatalf("building the mailbox: %v", err)
 	}
 	w := &world{
-		ctx: context.Background(), account: account, store: store, inspect: inspect, messages: messages, pageSize: max(s.PageSize, 1), decided: map[string]string{},
+		ctx: context.Background(), account: account, store: store, starting: starting, inspect: inspect, messages: messages, pageSize: max(s.PageSize, 1), decided: map[string]string{},
 		unmaskedRevision: "a-revision",
 	}
 	throttled := fake.Throttle(f, func(fake.Call) error {
@@ -857,7 +866,7 @@ func (w *world) open(t tb) {
 	t.Helper()
 	w.deps.Policy = fixed(classify.Prepare(policyAdding(t, w.delisted, w.added).For(w.account), lookups))
 	before := w.inspect(t)
-	if _, err := pass2.Reopen(w.ctx, w.deps, w.account); err != nil {
+	if _, err := w.reopen(w.ctx, w.deps); err != nil {
 		t.Fatalf("returning the stale verdicts to pending: %v", err)
 	}
 	// The run-start step marks the pass to start over when it returned a verdict, a gate skip or a
@@ -971,7 +980,7 @@ type cutting struct {
 	w *world
 }
 
-func (c cutting) Commit(ctx context.Context, account, runID string, p core.Page, items []pass1.Item, at core.Progress) error {
+func (c cutting) Commit(ctx context.Context, account, runID string, p core.Page, items []runs.Item, at core.Progress) error {
 	err := c.Store.Commit(ctx, account, runID, p, items, at)
 	if err == nil && c.w.cutAfter {
 		c.w.cutAfter = false
@@ -1088,6 +1097,13 @@ func realWorld(t testing.TB, s setup) *world {
 	return realWorldOf(t, s.PageSize, mailbox(s))
 }
 
+// reopen makes backfill's run-start step over the world's index, under the policy, the gate's
+// thresholds, the scanner and the clock of deps, as backfill makes it under its second pass's.
+func (w *world) reopen(ctx context.Context, deps pass2.Deps) (start.Reopened, error) {
+	return start.Step(ctx, start.Deps{Store: w.starting, Policy: deps.Policy, Gate: deps.Gate, Scanner: deps.Scanner, Now: deps.Now},
+		w.account, slog.New(slog.DiscardHandler))
+}
+
 // realWorldOf returns a world over PostgreSQL holding messages, read pageSize at a time.
 func realWorldOf(t testing.TB, pageSize int, messages []fake.Message) *world {
 	t.Helper()
@@ -1100,7 +1116,7 @@ func realWorldOf(t testing.TB, pageSize int, messages []fake.Message) *world {
 	seedPostgres(t, account, f)
 	pool := backfillPool(t)
 	url := postgres.URL(t)
-	return newWorld(t, s, account, messages, pass2.NewPostgres(pool), func(t tb) state { return inspectPostgres(t, url, account) },
+	return newWorld(t, s, account, messages, pass2.NewPostgres(pool, "backfill"), start.NewPostgres(pool), func(t tb) state { return inspectPostgres(t, url, account) },
 		func(p mail.Port[context.Context]) pass2.Body {
 			m := leasedMailbox(t, pool, account, p)
 			return func(ctx context.Context, id string) (mail.MessageBody, error) { return providermail.Body(ctx, m, id) }
@@ -1136,7 +1152,7 @@ func modelWorld(t tb, s setup) *world {
 	t.Helper()
 	messages := mailbox(s)
 	m := newMemory(t, messages)
-	return newWorld(t, s, "personal", messages, m, m.inspect, func(p mail.Port[context.Context]) pass2.Body {
+	return newWorld(t, s, "personal", messages, m, m, m.inspect, func(p mail.Port[context.Context]) pass2.Body {
 		return func(ctx context.Context, id string) (mail.MessageBody, error) { return p.GetMessageBody(ctx, id, "") }
 	})
 }

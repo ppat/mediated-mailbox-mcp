@@ -6,10 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/deltasync/tick/tick.go b/worker/internal/deltasync/tick/tick.go
-index b5e0a1d..7ee86ad 100644
+index deb28e08..ce77bd43 100644
 --- a/worker/internal/deltasync/tick/tick.go
 +++ b/worker/internal/deltasync/tick/tick.go
-@@ -212,6 +212,9 @@ func (t *ticker) recover(ctx context.Context, state State) error {
+@@ -230,6 +230,9 @@ func (t *ticker) recover(ctx context.Context, state State) error {
  	if err != nil {
  		return fail(fmt.Errorf("asking for the current cursor: %w", err))
  	}

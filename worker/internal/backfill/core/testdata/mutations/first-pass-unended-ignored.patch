@@ -1,0 +1,19 @@
+control: Backfill's due decision asks for the run-start step once for each job's life and for the passes while either has work
+removes: a first pass that has not ended is not due once the run-start step is made
+packages: ./worker/internal/backfill/core
+tests: TestBackfillsDueDecision TestBackfillsDueDecision/the_first_pass_not_ended
+scheduled-count: no
+
+diff --git a/worker/internal/backfill/core/core.go b/worker/internal/backfill/core/core.go
+index ad3c5aee..a959fe92 100644
+--- a/worker/internal/backfill/core/core.go
++++ b/worker/internal/backfill/core/core.go
+@@ -35,7 +35,7 @@ func (w Work) Any() bool { return w.Start || w.Passes }
+ // not ended or the second is marked to start over, and the run-start step opens them too, since it
+ // may reopen them.
+ func Decide(s State, started bool) Work {
+-	return Work{Start: !started, Passes: !started || !s.FirstEnded || !s.SecondEnded || s.Restart}
++	return Work{Start: !started, Passes: !started || !s.SecondEnded || s.Restart}
+ }
+ 
+ // Seed returns when the account's backfill job's latest success is counted from at the job's ensure,

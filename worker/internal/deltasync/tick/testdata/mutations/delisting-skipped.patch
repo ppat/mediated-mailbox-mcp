@@ -6,10 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/deltasync/tick/tick.go b/worker/internal/deltasync/tick/tick.go
-index aefa8ed0..bc614ac6 100644
+index deb28e08..9371bbb5 100644
 --- a/worker/internal/deltasync/tick/tick.go
 +++ b/worker/internal/deltasync/tick/tick.go
-@@ -332,7 +332,7 @@ func window(start, end mail.UnixMilli) *Window {
+@@ -336,7 +336,7 @@ func window(start, end mail.UnixMilli) *Window {
  // (ADR-0037, ADR-0104).
  func (t *ticker) scanning(ctx context.Context) error {
  	marked, err := t.deps.Store.Delist(ctx, t.account, t.run, func(restricted []string) []string {

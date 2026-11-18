@@ -6,10 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/backfill/pass2/pass2.go b/worker/internal/backfill/pass2/pass2.go
-index e9237ee1..5bc51dbf 100644
+index e455c344..6b6f4c5f 100644
 --- a/worker/internal/backfill/pass2/pass2.go
 +++ b/worker/internal/backfill/pass2/pass2.go
-@@ -177,7 +177,7 @@ func Open(ctx context.Context, deps Deps, account string) (pass *Pass, err error
+@@ -140,7 +140,7 @@ func Open(ctx context.Context, deps Deps, account string) (pass *Pass, err error
  	// A panic in the comparison the run starts with is recovered here, once the run is recorded, so it
  	// is recorded as the run's failure with its stack, as a panic in a page is (ADR-0119).
  	defer func() {

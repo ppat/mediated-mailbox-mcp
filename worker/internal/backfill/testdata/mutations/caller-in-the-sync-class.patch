@@ -6,9 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
+index 0210ff03..5d176686 100644
 --- a/worker/internal/backfill/backfill.go
 +++ b/worker/internal/backfill/backfill.go
-@@ -123,7 +123,7 @@ func Build(ctx context.Context, p process.Capabilities, c config.Worker) (schedu
+@@ -124,7 +124,7 @@ func Build(ctx context.Context, p process.Capabilities, c config.Worker) (schedu
  	if err != nil {
  		return schedule.Plan{}, err
  	}

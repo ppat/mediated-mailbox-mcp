@@ -6,9 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/deltasync.go
+index 4ec4208c..089f9e63 100644
 --- a/worker/internal/deltasync/deltasync.go
 +++ b/worker/internal/deltasync/deltasync.go
-@@ -212,7 +212,7 @@ func (d *DeltaSync) job(account string) schedule.Job {
+@@ -209,7 +209,7 @@ func (d *DeltaSync) job(account string) schedule.Job {
  			}
  			// The tick is recorded at its ask's time on the ticker's phase, so a tick asked at the end
  			// of a backoff leaves the ticker's next tick due.

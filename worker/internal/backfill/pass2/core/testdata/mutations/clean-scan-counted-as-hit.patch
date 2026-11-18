@@ -1,0 +1,20 @@
+control: Each flagged message adds one prior hit to its sender, durably
+removes: every scanned message counts as a hit, a clean one included
+packages: ./worker/internal/backfill/pass2/core ./worker/internal/backfill/pass2 ./worker/internal/deltasync/tick
+tests: TestAdvance TestAPassDecidesAndRecordsEveryWaitingMessage TestAKilledSecondPassResumesFromItsCheckpoint TestOnceTheSecondPassHasEndedATickScansWhatWaits
+scheduled-count: no
+integration: yes
+
+diff --git a/core/index/scan.go b/core/index/scan.go
+index 7c8b62c7..d12cf352 100644
+--- a/core/index/scan.go
++++ b/core/index/scan.go
+@@ -104,7 +104,7 @@ type Outcome struct {
+ func Hits(outcomes []Outcome) map[string]int64 {
+ 	hits := map[string]int64{}
+ 	for _, o := range outcomes {
+-		if o.Scanned != nil && o.Scanned.Flags.Any() {
++		if o.Scanned != nil {
+ 			hits[o.Domain]++
+ 		}
+ 	}

@@ -6,10 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/backfill/pass1/pass1.go b/worker/internal/backfill/pass1/pass1.go
-index 8a83d5eb..9db81132 100644
+index f071ac1a..004d16cb 100644
 --- a/worker/internal/backfill/pass1/pass1.go
 +++ b/worker/internal/backfill/pass1/pass1.go
-@@ -185,9 +185,6 @@ func Open(ctx context.Context, deps Deps, account string) (*Pass, error) {
+@@ -179,9 +179,6 @@ func Open(ctx context.Context, deps Deps, account string) (*Pass, error) {
  		return &Pass{deps: deps, account: account, done: true}, nil
  	}
  	p := &Pass{deps: deps, account: account, run: deps.RunID(), at: start.From}

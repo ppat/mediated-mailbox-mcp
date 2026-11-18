@@ -26,6 +26,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/marker"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/pass1"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/pass2"
+	"github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/start"
 )
 
 // Neither set of thresholds below is the default, so a run deciding under the default thresholds
@@ -101,11 +102,11 @@ func thresholdDeps(t *testing.T, pool *pgxpool.Pool, account string, f *fake.Fak
 	runID := func() string { n++; return fmt.Sprintf("%s%d", run, n) }
 	s := wideScanner(t)
 	first := pass1.Deps{
-		Store: pass1.NewPostgres(pool), Fetch: f.EnumerateAll, Metadata: f.GetMessageMetadata, PerCall: three, Policy: fixed(classify.Prepare(rules.For(account), lookups)), Scanner: s,
+		Store: pass1.NewPostgres(pool, Kind), Fetch: f.EnumerateAll, Metadata: f.GetMessageMetadata, PerCall: three, Policy: fixed(classify.Prepare(rules.For(account), lookups)), Scanner: s,
 		RunID: runID, Now: time.Now,
 	}
 	second := pass2.Deps{
-		Store: pass2.NewPostgres(pool), Body: func(ctx context.Context, id string) (mail.MessageBody, error) { return f.GetMessageBody(ctx, id, "") }, Policy: fixed(classify.Prepare(rules.For(account), lookups)),
+		Store: pass2.NewPostgres(pool, Kind), Body: func(ctx context.Context, id string) (mail.MessageBody, error) { return f.GetMessageBody(ctx, id, "") }, Policy: fixed(classify.Prepare(rules.For(account), lookups)),
 		Gate: gate, Scanner: s, PageSize: 2, RunID: runID, Now: time.Now,
 	}
 	return first, second
@@ -125,7 +126,7 @@ func runThresholds(t *testing.T, pool *pgxpool.Pool, account string, f *fake.Fak
 		t.Fatal(err)
 	}
 	idle := idleUnit(t, superuser(t), account)
-	if err := backfillAccount(t.Context(), first, second, account, metrics1, metrics2, idle, schedule.Ask{}, slog.New(slog.DiscardHandler), true, new(bool)); err != nil {
+	if err := backfillAccount(t.Context(), start.NewPostgres(pool), first, second, account, metrics1, metrics2, idle, schedule.Ask{}, slog.New(slog.DiscardHandler), true, new(bool)); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -202,11 +203,11 @@ func TestAChangeOfThresholdsDecidesTheStoredSkipsAgain(t *testing.T) {
 	// The run under the widened thresholds, before its first pass, returns exactly the skips they no
 	// longer make to pending and reopens the second pass, marked to start over.
 	_, second := thresholdDeps(t, pool, "personal", f, widenedGate, "widened")
-	reopened, err := pass2.Reopen(t.Context(), second, "personal")
+	reopened, err := start.Step(t.Context(), startDeps(start.NewPostgres(pool), second), "personal", slog.New(slog.DiscardHandler))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if want := (pass2.Reopened{Skips: len(newsIDs)}); reopened != want {
+	if want := (start.Reopened{Skips: len(newsIDs)}); reopened != want {
 		t.Errorf("the run-start step returned %+v to pending, want %+v", reopened, want)
 	}
 	rows := rescanRows(t, conn, "personal")

@@ -18,7 +18,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/marker"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/postgres"
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/pass2"
-	core "github.com/ppat/mediated-mailbox-mcp/worker/internal/core/backfill/pass2"
+	"github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/pass2/core"
 )
 
 // active is the policy a running pass takes at each page's entry, as the worker's policy loader holds

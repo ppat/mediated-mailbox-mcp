@@ -6,9 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/backfill/pass1/pass1.go b/worker/internal/backfill/pass1/pass1.go
+index f071ac1a..30bb5aa1 100644
 --- a/worker/internal/backfill/pass1/pass1.go
 +++ b/worker/internal/backfill/pass1/pass1.go
-@@ -201,6 +201,10 @@ func (p *Pass) fetch(ctx context.Context) (mail.Page[mail.MessageMetadata], *Fai
+@@ -372,6 +372,10 @@ func (p *Pass) fetch(ctx context.Context) (mail.Page[mail.MessageMetadata], *Fai
  				failure.Attempts++
  				failure.Last = p.deps.Now().UTC()
  				failure.Disposition = "recovered"

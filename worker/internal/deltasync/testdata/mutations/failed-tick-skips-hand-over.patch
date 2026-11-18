@@ -6,9 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/deltasync.go
+index 4ec4208c..da644a3d 100644
 --- a/worker/internal/deltasync/deltasync.go
 +++ b/worker/internal/deltasync/deltasync.go
-@@ -265,6 +265,7 @@ func (d *DeltaSync) tick(ctx context.Context, account string, logger *slog.Logge
+@@ -241,6 +241,7 @@ func (d *DeltaSync) tick(ctx context.Context, account string, logger *slog.Logge
  	c := result.Progress.Counters
  	if err != nil {
  		logger.Error("the account's tick failed", "run", result.Run, "recovery", result.Recovery, "error", err)

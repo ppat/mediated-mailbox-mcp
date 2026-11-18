@@ -1,15 +1,15 @@
 control: A cursor gap is recovered by re-enumerating from an hour before the last cursor was written, and counted
 removes: a gap's window starts an hour before now, whenever the last cursor was written
-packages: ./worker/internal/core/deltasync/tick ./worker/internal/deltasync/tick
+packages: ./worker/internal/deltasync/tick/core ./worker/internal/deltasync/tick
 tests: TestWindow TestAGapIsRecoveredOverTheWindowSinceTheLastCursor
 scheduled-count: no
 integration: yes
 
-diff --git a/worker/internal/core/deltasync/tick/tick.go b/worker/internal/core/deltasync/tick/tick.go
-index 32aeabc..d7601ec 100644
---- a/worker/internal/core/deltasync/tick/tick.go
-+++ b/worker/internal/core/deltasync/tick/tick.go
-@@ -23,7 +23,7 @@ const Overlap = mail.UnixMilli(60 * 60 * 1000)
+diff --git a/worker/internal/deltasync/tick/core/core.go b/worker/internal/deltasync/tick/core/core.go
+index 656deff0..3e159af3 100644
+--- a/worker/internal/deltasync/tick/core/core.go
++++ b/worker/internal/deltasync/tick/core/core.go
+@@ -24,7 +24,7 @@ const Overlap = mail.UnixMilli(60 * 60 * 1000)
  // reconciliation, and starts first before now (ADR-0105).
  func Window(cursorAt *mail.UnixMilli, now, first mail.UnixMilli) (start, end mail.UnixMilli) {
  	if cursorAt != nil {

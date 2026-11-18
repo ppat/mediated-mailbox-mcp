@@ -6,15 +6,15 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/deltasync/tick/tick.go b/worker/internal/deltasync/tick/tick.go
-index 3237b9b..13238d8 100644
+index deb28e08..c4036ef6 100644
 --- a/worker/internal/deltasync/tick/tick.go
 +++ b/worker/internal/deltasync/tick/tick.go
-@@ -367,7 +367,7 @@ func (t *ticker) page(ctx context.Context, waiting []index.Waiting) (bool, error
- 			if item != nil {
- 				items = append(items, *item)
- 			}
--			if next == core.StopScanning {
-+			if next == core.StopScanning && false {
- 				stop = true
- 				break
- 			}
+@@ -380,7 +380,7 @@ func (t *ticker) page(ctx context.Context, waiting []index.Waiting) (bool, error
+ 		if item != nil {
+ 			items = append(items, *item)
+ 		}
+-		return workerindex.Body{Scanned: scanned, Refused: next == core.Refuse, Stop: next == core.StopScanning}, nil
++		return workerindex.Body{Scanned: scanned, Refused: next == core.Refuse, Stop: next == core.StopScanning && false}, nil
+ 	})
+ 	if err != nil {
+ 		return false, err

@@ -6,9 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/deltasync/tick/tick.go b/worker/internal/deltasync/tick/tick.go
+index deb28e08..4abc3478 100644
 --- a/worker/internal/deltasync/tick/tick.go
 +++ b/worker/internal/deltasync/tick/tick.go
-@@ -88,11 +88,7 @@
+@@ -96,11 +96,7 @@ func Run(ctx context.Context, deps Deps, account string) (result Result, err err
  	if err := deps.Store.Start(ctx, account, t.run, PassTick, t.at); err != nil {
  		return Result{}, fmt.Errorf("recording the tick: %w", err)
  	}

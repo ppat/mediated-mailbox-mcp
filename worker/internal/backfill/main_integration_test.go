@@ -163,7 +163,7 @@ func firstPassDeps(t *testing.T, pool *pgxpool.Pool, account string) pass1.Deps 
 	}
 	n := 0
 	return pass1.Deps{
-		Store: pass1.NewPostgres(pool), Fetch: f.EnumerateAll, Metadata: f.GetMessageMetadata, PerCall: three,
+		Store: pass1.NewPostgres(pool, Kind), Fetch: f.EnumerateAll, Metadata: f.GetMessageMetadata, PerCall: three,
 		Policy: fixed(classify.Prepare(none.For(account), lookups)), Scanner: s,
 		RunID: func() string { n++; return fmt.Sprintf("run%d", n) },
 		Now:   time.Now,

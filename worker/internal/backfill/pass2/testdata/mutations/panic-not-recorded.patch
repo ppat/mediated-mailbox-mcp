@@ -6,9 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/backfill/pass2/pass2.go b/worker/internal/backfill/pass2/pass2.go
+index e455c344..0ec7d24c 100644
 --- a/worker/internal/backfill/pass2/pass2.go
 +++ b/worker/internal/backfill/pass2/pass2.go
-@@ -240,7 +240,7 @@
+@@ -200,7 +200,7 @@ func (p *Pass) Next(ctx context.Context) (step Step, err error) {
  	}
  	defer func() {
  		if r := recover(); r != nil {

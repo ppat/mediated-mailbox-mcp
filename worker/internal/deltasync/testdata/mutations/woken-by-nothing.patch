@@ -6,9 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/deltasync/deltasync.go b/worker/internal/deltasync/deltasync.go
+index 4ec4208c..4ae34b5d 100644
 --- a/worker/internal/deltasync/deltasync.go
 +++ b/worker/internal/deltasync/deltasync.go
-@@ -175,7 +175,7 @@ func (d *DeltaSync) plan() schedule.Plan {
+@@ -172,7 +172,7 @@ func (d *DeltaSync) plan() schedule.Plan {
  			return job, nil
  		},
  		Dropped: d.dropped,

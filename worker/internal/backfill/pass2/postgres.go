@@ -3,10 +3,7 @@ package pass2
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"maps"
-	"slices"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -17,35 +14,33 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/db/accountstate"
 	"github.com/ppat/mediated-mailbox-mcp/db/accountstate/completion"
 	runrecord "github.com/ppat/mediated-mailbox-mcp/db/jobruns/record"
-	maskingrecord "github.com/ppat/mediated-mailbox-mcp/db/maskingevents/record"
-	"github.com/ppat/mediated-mailbox-mcp/db/messages/ingest"
 	"github.com/ppat/mediated-mailbox-mcp/db/messages/scan"
 	gaterecord "github.com/ppat/mediated-mailbox-mcp/db/scangatedecisions/record"
 	"github.com/ppat/mediated-mailbox-mcp/db/senders/statistics"
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
-	"github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/pass1"
-	pass1core "github.com/ppat/mediated-mailbox-mcp/worker/internal/core/backfill/pass1"
-	core "github.com/ppat/mediated-mailbox-mcp/worker/internal/core/backfill/pass2"
+	"github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/pass2/core"
+	workerindex "github.com/ppat/mediated-mailbox-mcp/worker/internal/index"
+	indexcore "github.com/ppat/mediated-mailbox-mcp/worker/internal/index/core"
+	"github.com/ppat/mediated-mailbox-mcp/worker/internal/runs"
+	runscore "github.com/ppat/mediated-mailbox-mcp/worker/internal/runs/core"
 )
 
 // pass is the pass as job_runs names it (ADR-0016).
 const pass = "pass2"
 
-// remaskBatch is how many subjects stored unmasked the run-start step reads, masks again and writes
-// back in one batch of statements, so a mailbox's subjects are masked again in a few statements rather
-// than one a message, while what one batch holds in memory stays small (ADR-0120).
-const remaskBatch = 5000
-
 // Postgres is the Store in the index's database. Each method runs one transaction through db/tx,
 // which sets the account.
 type Postgres struct {
 	db tx.Beginner
+	// kind is the job kind the pass's runs are recorded under, as job_runs.workload spells it.
+	kind string
 }
 
 var _ Store = (*Postgres)(nil)
 
-// NewPostgres returns the Store in the database db reaches.
-func NewPostgres(db tx.Beginner) *Postgres { return &Postgres{db: db} }
+// NewPostgres returns the Store in the database db reaches, recording its runs under the job kind
+// kind.
+func NewPostgres(db tx.Beginner, kind string) *Postgres { return &Postgres{db: db, kind: kind} }
 
 // checkpoint and counters are the stored forms of a run's checkpoint and counters. The checkpoint's
 // page is the page the jobs card shows, and after and sent_at are the position of the last message the
@@ -92,22 +87,17 @@ func decode(cp, ct []byte) (core.Progress, error) {
 	}
 	return core.Progress{
 		Checkpoint: core.Checkpoint{Page: c.Page, After: core.Position{SentAt: mail.UnixMilli(c.SentAt), ID: c.After}},
-		Counters:   core.Counters{Pages: n.Pages, Decided: n.Decided, Pending: n.Pending, Scanned: n.Scanned, Skipped: n.Skipped, Refused: n.Refused},
+		Counters: core.Counters{Pages: n.Pages, Counts: indexcore.Counts{
+			Decided: n.Decided, Pending: n.Pending, Scanned: n.Scanned, Skipped: n.Skipped, Refused: n.Refused,
+		}},
 	}, nil
 }
 
-// version returns a scanner version as the database stores it.
-func version(v int) int32 { return int32(min(max(v, 0), 1<<31-1)) } //nolint:gosec // Bounded.
-
-// refusedBound is the size bound a refusal records and the run-start step compares the stored ones
-// with, the port's bound on the rendered part (ADR-0131, ADR-0132).
-const refusedBound = int32(mail.MaxBodyBytes)
-
 // State implements Store.
-func (s *Postgres) State(ctx context.Context, account string) (bool, bool, bool, pass1core.Latest[core.Progress], error) {
+func (s *Postgres) State(ctx context.Context, account string) (bool, bool, bool, runscore.Latest[core.Progress], error) {
 	var (
 		first, ended, restart bool
-		latest                pass1core.Latest[core.Progress]
+		latest                runscore.Latest[core.Progress]
 	)
 	err := tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
 		progress, err := accountstate.New(t).AccountProgress(ctx)
@@ -118,11 +108,11 @@ func (s *Postgres) State(ctx context.Context, account string) (bool, bool, bool,
 		if restart, err = completion.New(t).SecondRestart(ctx); err != nil {
 			return fmt.Errorf("reading whether the pass is marked to start over: %w", err)
 		}
-		r, err := pass1.LatestRun(ctx, runrecord.New(t), pass)
+		r, err := runs.LatestRun(ctx, runrecord.New(t), s.kind, pass)
 		if err != nil || !r.Found {
 			return err
 		}
-		latest = pass1core.Latest[core.Progress]{Found: true, RunID: r.RunID, State: r.State}
+		latest = runscore.Latest[core.Progress]{Found: true, RunID: r.RunID, State: r.State}
 		latest.Progress, err = decode(r.Checkpoint, r.Counters)
 		return err
 	})
@@ -130,7 +120,7 @@ func (s *Postgres) State(ctx context.Context, account string) (bool, bool, bool,
 }
 
 // Start implements Store.
-func (s *Postgres) Start(ctx context.Context, account, runID string, start pass1core.Start[core.Progress]) error {
+func (s *Postgres) Start(ctx context.Context, account, runID string, start runscore.Start[core.Progress]) error {
 	cp, ct, err := encode(start.From)
 	if err != nil {
 		return err
@@ -139,9 +129,9 @@ func (s *Postgres) Start(ctx context.Context, account, runID string, start pass1
 		if err := completion.New(t).ClearSecondRestart(ctx); err != nil {
 			return fmt.Errorf("clearing the mark that starts the pass over: %w", err)
 		}
-		return pass1.StartRun(ctx, runrecord.New(t), pass1.Starting{
-			Pass: pass, RunID: runID, ResumedFrom: start.ResumedFrom, Abandon: start.Abandon,
-			Checkpoint: cp, Counters: ct, Page: start.From.Checkpoint.Page,
+		return runs.StartRun(ctx, runrecord.New(t), runs.Starting{
+			Workload: s.kind, Pass: pass, RunID: runID, ResumedFrom: start.ResumedFrom, Abandon: start.Abandon,
+			Checkpoint: cp, Counters: ct, Page: runs.OnPage(start.From.Checkpoint.Page),
 		})
 	})
 }
@@ -150,19 +140,11 @@ func (s *Postgres) Start(ctx context.Context, account, runID string, start pass1
 func (s *Postgres) Delist(ctx context.Context, account, runID string, delisted func([]string) []string, restart core.Progress) (int, error) {
 	marked := 0
 	err := tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
-		marked = 0
-		q := scan.New(t)
-		restricted, err := q.RestrictedDomains(ctx)
+		var senders int
+		var err error
+		marked, senders, err = workerindex.Delist(ctx, scan.New(t), delisted)
 		if err != nil {
-			return fmt.Errorf("reading the domains of the messages skipped as restricted: %w", err)
-		}
-		domains := delisted(restricted)
-		for _, d := range domains {
-			n, err := q.MarkDelisted(ctx, d)
-			if err != nil {
-				return fmt.Errorf("returning the messages of %q to pending scan: %w", d, err)
-			}
-			marked += int(n)
+			return err
 		}
 		if marked == 0 {
 			return nil
@@ -172,152 +154,16 @@ func (s *Postgres) Delist(ctx context.Context, account, runID string, delisted f
 			return err
 		}
 		r := runrecord.New(t)
-		if err := pass1.RecordProgress(ctx, r, runID, cp, ct, restart.Checkpoint.Page); err != nil {
+		if err := runs.RecordProgress(ctx, r, runID, cp, ct, runs.OnPage(restart.Checkpoint.Page)); err != nil {
 			return err
 		}
-		return pass1.RecordEvent(ctx, r, runID, pass1.Event{
-			Kind: "retry",
+		return runs.RecordEvent(ctx, r, runID, runs.Event{
+			Kind: "retry", Page: runs.OnPage(0),
 			Detail: fmt.Sprintf("the delisting transition returned %d messages of %d senders the policy no longer restricts to pending scan, "+
-				"so the pass starts over from the first message waiting for a scan", marked, len(domains)),
+				"so the pass starts over from the first message waiting for a scan", marked, senders),
 		})
 	})
 	return marked, err
-}
-
-// Reopen implements Store.
-func (s *Postgres) Reopen(ctx context.Context, account string, stamp index.Stamp, remasked func([]pass1core.Stored) []index.Message, overturned func([]index.Waiting) []string) (Reopened, error) {
-	var marked Reopened
-	err := tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
-		marked = Reopened{}
-		domains, err := scan.New(t).RequeueStaleVerdicts(ctx, scan.RequeueStaleVerdictsParams{
-			ScannerVersion: version(stamp.Version), ScannerRevision: stamp.Revision,
-		})
-		if err != nil {
-			return fmt.Errorf("returning the verdicts another scanner made to pending scan: %w", err)
-		}
-		slices.Sort(domains)
-		for _, d := range slices.Compact(slices.Clone(domains)) {
-			n, err := statistics.New(t).RecountScanHits(ctx, d)
-			if err != nil {
-				return fmt.Errorf("counting the prior hits of the sender at %q again: %w", d, err)
-			}
-			if n != 1 {
-				return fmt.Errorf("counting the prior hits of the sender at %q again changed %d rows, want 1", d, n)
-			}
-		}
-		refusals, err := scan.New(t).RequeueRefusals(ctx, refusedBound)
-		if err != nil {
-			return fmt.Errorf("returning the bodies refused under another size bound to pending scan: %w", err)
-		}
-		subjects, err := remaskStored(ctx, ingest.New(t), maskingrecord.New(t), stamp, remasked)
-		if err != nil {
-			return err
-		}
-		skips, err := requeueOverturned(ctx, scan.New(t), overturned)
-		if err != nil {
-			return err
-		}
-		stale, err := ingest.New(t).StaleSubject(ctx, ingest.StaleSubjectParams{
-			ScannerVersion: version(stamp.Version), ScannerRevision: stamp.Revision,
-		})
-		if err != nil {
-			return fmt.Errorf("reading whether a subject was masked under another scanner: %w", err)
-		}
-		marked = Reopened{Verdicts: len(domains), Refusals: int(refusals), Skips: skips, Subjects: subjects}
-		if marked.Verdicts == 0 && marked.Refusals == 0 && marked.Skips == 0 && marked.Subjects == 0 && !stale {
-			return nil
-		}
-		if err := completion.New(t).ReopenBackfillSecond(ctx); err != nil {
-			return fmt.Errorf("recording the pass as due again: %w", err)
-		}
-		return nil
-	})
-	return marked, err
-}
-
-// remaskStored masks again every stale subject the account stores unmasked, from the subject stored,
-// in the transaction messages and events run in, a batch at a time in the order of the messages'
-// identifiers. Each batch is a read, the subjects remasked returns written back with the pair stamp in
-// one statement, and their masking events recorded in one more (ADR-0120). It returns how many
-// subjects it masked again.
-func remaskStored(ctx context.Context, messages *ingest.Queries, events *maskingrecord.Queries, stamp index.Stamp,
-	remasked func([]pass1core.Stored) []index.Message,
-) (int, error) {
-	v := version(stamp.Version)
-	total, after := 0, ""
-	for {
-		rows, err := messages.StaleUnmaskedSubjects(ctx, ingest.StaleUnmaskedSubjectsParams{
-			ScannerVersion: v, ScannerRevision: stamp.Revision, After: after, BatchSize: remaskBatch,
-		})
-		if err != nil {
-			return 0, fmt.Errorf("reading the subjects stored unmasked under another scanner: %w", err)
-		}
-		if len(rows) == 0 {
-			return total, nil
-		}
-		stored := make([]pass1core.Stored, 0, len(rows))
-		for _, r := range rows {
-			stored = append(stored, pass1core.Stored{ID: r.MessageID, Subject: r.Subject})
-		}
-		after = rows[len(rows)-1].MessageID
-		batch := ingest.RemaskStoredSubjectsParams{ScannerVersion: v, ScannerRevision: stamp.Revision}
-		masks := maskingrecord.RecordMaskingEventsParams{ScannerVersion: v, ScannerRevision: stamp.Revision}
-		for _, m := range remasked(stored) {
-			batch.MessageIds = append(batch.MessageIds, m.ID)
-			batch.Subjects = append(batch.Subjects, m.Subject)
-			batch.SubjectsMasked = append(batch.SubjectsMasked, m.SubjectMasked)
-			for _, mask := range m.Masks {
-				masks.MessageIds = append(masks.MessageIds, m.ID)
-				masks.RuleIds = append(masks.RuleIds, mask.Rule)
-				masks.Tiers = append(masks.Tiers, int32(mask.Tier)) //nolint:gosec // A tier is 0, 1 or 2.
-			}
-		}
-		n, err := messages.RemaskStoredSubjects(ctx, batch)
-		if err != nil {
-			return 0, fmt.Errorf("masking the subjects stored unmasked again: %w", err)
-		}
-		if n != int64(len(batch.MessageIds)) {
-			return 0, fmt.Errorf("masking %d subjects stored unmasked again changed %d rows", len(batch.MessageIds), n)
-		}
-		if len(masks.MessageIds) > 0 {
-			if err := events.RecordMaskingEvents(ctx, masks); err != nil {
-				return 0, fmt.Errorf("recording the masking events of the subjects masked again: %w", err)
-			}
-		}
-		total += len(batch.MessageIds)
-		if len(rows) < remaskBatch {
-			return total, nil
-		}
-	}
-}
-
-// requeueOverturned reads every message the gate skipped with its gate inputs, read as Pending reads
-// them, and returns to pending scan each one overturned names (ADR-0121). It returns how many it
-// returned.
-func requeueOverturned(ctx context.Context, q *scan.Queries, overturned func([]index.Waiting) []string) (int, error) {
-	rows, err := q.GateSkips(ctx)
-	if err != nil {
-		return 0, fmt.Errorf("reading the messages the gate skipped: %w", err)
-	}
-	skips := make([]index.Waiting, 0, len(rows))
-	for _, r := range rows {
-		skips = append(skips, index.Waiting{
-			ID: r.MessageID, From: r.FromEmail, Domain: r.FromDomain, SubjectMasked: r.SubjectMasked, ListID: r.HasListID,
-			SizeBytes: r.SizeBytes, SentAt: mail.UnixMilli(r.SentAt.Time.UnixMilli()), SenderVolume: r.SenderVolume, SenderHits: r.SenderHits,
-		})
-	}
-	ids := overturned(skips)
-	if len(ids) == 0 {
-		return 0, nil
-	}
-	n, err := q.RequeueGateSkips(ctx, ids)
-	if err != nil {
-		return 0, fmt.Errorf("returning the overturned gate skips to pending scan: %w", err)
-	}
-	if n != int64(len(ids)) {
-		return 0, fmt.Errorf("returning %d overturned gate skips to pending scan changed %d rows", len(ids), n)
-	}
-	return len(ids), nil
 }
 
 // RequeueSkips implements Store.
@@ -332,8 +178,8 @@ func (s *Postgres) RequeueSkips(ctx context.Context, account, runID string) (int
 		if marked == 0 {
 			return nil
 		}
-		return pass1.RecordEvent(ctx, runrecord.New(t), runID, pass1.Event{
-			Kind:   "retry",
+		return runs.RecordEvent(ctx, runrecord.New(t), runID, runs.Event{
+			Kind: "retry", Page: runs.OnPage(0),
 			Detail: fmt.Sprintf("%d skips decided without their subject's signal returned to pending scan", skips),
 		})
 	})
@@ -368,32 +214,15 @@ func (s *Postgres) Pending(ctx context.Context, account string, after core.Posit
 	return out, err
 }
 
-// errNotWaiting is a message a page's commit found no longer waiting for a scan, which only another
-// process writing the same account could cause.
-var errNotWaiting = errors.New("the message no longer waits for a scan")
-
 // Commit implements Store.
-func (s *Postgres) Commit(ctx context.Context, account, runID string, p core.Page, items []pass1.Item, at core.Progress) error {
+func (s *Postgres) Commit(ctx context.Context, account, runID string, p core.Page, items []runs.Item, at core.Progress) error {
 	return tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
-		messages, gate := scan.New(t), gaterecord.New(t)
-		for _, o := range p.Outcomes {
-			if err := commitOutcome(ctx, messages, gate, o); err != nil {
-				return fmt.Errorf("message %s: %w", o.ID, err)
-			}
-		}
-		hits := p.Hits()
-		for _, domain := range slices.Sorted(maps.Keys(hits)) {
-			n, err := statistics.New(t).AddScanHits(ctx, statistics.AddScanHitsParams{Hits: hits[domain], Domain: domain})
-			if err != nil {
-				return fmt.Errorf("adding the prior hits of the sender at %q: %w", domain, err)
-			}
-			if n != 1 {
-				return fmt.Errorf("adding the prior hits of the sender at %q changed %d rows, want 1", domain, n)
-			}
+		if err := workerindex.RecordOutcomes(ctx, scan.New(t), gaterecord.New(t), statistics.New(t), p.Outcomes); err != nil {
+			return err
 		}
 		r := runrecord.New(t)
 		for _, it := range items {
-			if err := pass1.RecordItem(ctx, r, runID, it); err != nil {
+			if err := runs.RecordItem(ctx, r, runID, it); err != nil {
 				return fmt.Errorf("recording the failed message %s: %w", it.ID, err)
 			}
 		}
@@ -401,60 +230,8 @@ func (s *Postgres) Commit(ctx context.Context, account, runID string, p core.Pag
 		if err != nil {
 			return err
 		}
-		return pass1.RecordProgress(ctx, r, runID, cp, ct, at.Checkpoint.Page)
+		return runs.RecordProgress(ctx, r, runID, cp, ct, runs.OnPage(at.Checkpoint.Page))
 	})
-}
-
-// commitOutcome records what the run did with one message, which is the gate's decision when it
-// decided, and the verdict, refusal or skip state it leads to. A message the gate could not decide,
-// or whose body was not scanned or refused, stays waiting.
-func commitOutcome(ctx context.Context, messages *scan.Queries, gate *gaterecord.Queries, o index.Outcome) error {
-	if !o.Verdict.Decided() {
-		return nil
-	}
-	decision := "SKIP"
-	if o.Verdict.Scans() {
-		decision = "SCAN"
-	}
-	err := gate.RecordDecision(ctx, gaterecord.RecordDecisionParams{MessageID: o.ID, Decision: decision, Reason: o.Verdict.Reason().String()})
-	if err != nil {
-		return fmt.Errorf("recording the gate's decision: %w", err)
-	}
-	var n int64
-	switch {
-	case o.Scanned != nil:
-		flags := []string{}
-		if o.Scanned.Flags.MFACode() {
-			flags = append(flags, "mfa_code")
-		}
-		if o.Scanned.Flags.LoginLink() {
-			flags = append(flags, "login_link")
-		}
-		rules := o.Scanned.Rules
-		if rules == nil {
-			rules = []string{}
-		}
-		n, err = messages.RecordVerdict(ctx, scan.RecordVerdictParams{
-			ContentFlags:    flags,
-			RuleIds:         rules,
-			ScannerVersion:  pgtype.Int4{Int32: int32(min(max(o.Scanned.Version, 0), 1<<31-1)), Valid: true}, //nolint:gosec // Bounded.
-			ScannerRevision: pgtype.Text{String: o.Scanned.Revision, Valid: true},
-			MessageID:       o.ID,
-		})
-	case o.Refused:
-		n, err = messages.RecordRefusal(ctx, scan.RecordRefusalParams{RefusedBound: pgtype.Int4{Int32: refusedBound, Valid: true}, MessageID: o.ID})
-	case !o.Verdict.Scans():
-		n, err = messages.RecordSkip(ctx, scan.RecordSkipParams{ScanState: o.Verdict.State().String(), MessageID: o.ID})
-	default:
-		return nil
-	}
-	if err != nil {
-		return err
-	}
-	if n != 1 {
-		return errNotWaiting
-	}
-	return nil
 }
 
 // Finish implements Store.
@@ -463,38 +240,32 @@ func (s *Postgres) Finish(ctx context.Context, account, runID string) error {
 		if err := completion.New(t).SetBackfillSecondComplete(ctx); err != nil {
 			return fmt.Errorf("setting the completion flag: %w", err)
 		}
-		return pass1.SucceedRun(ctx, runrecord.New(t), runID)
+		return runs.SucceedRun(ctx, runrecord.New(t), runID)
 	})
 }
 
 // Fail implements Store.
 func (s *Postgres) Fail(ctx context.Context, account, runID, cause string) error {
 	return tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
-		return pass1.FailRun(ctx, runrecord.New(t), runID, cause)
+		return runs.FailRun(ctx, runrecord.New(t), runID, cause)
 	})
 }
 
 // Event implements Store.
-func (s *Postgres) Event(ctx context.Context, account, runID string, e pass1.Event) error {
+func (s *Postgres) Event(ctx context.Context, account, runID string, e runs.Event) error {
 	return tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
-		return pass1.RecordEvent(ctx, runrecord.New(t), runID, e)
+		return runs.RecordEvent(ctx, runrecord.New(t), runID, e)
 	})
 }
 
 // Failure implements Store.
-func (s *Postgres) Failure(ctx context.Context, account, runID string, it pass1.Item) error {
+func (s *Postgres) Failure(ctx context.Context, account, runID string, it runs.Item) error {
 	return tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
-		return pass1.RecordItem(ctx, runrecord.New(t), runID, it)
+		return runs.RecordItem(ctx, runrecord.New(t), runID, it)
 	})
 }
 
 // Backlog implements Store.
 func (s *Postgres) Backlog(ctx context.Context, account string) (int64, error) {
-	var n int64
-	err := tx.Run(ctx, s.db, account, func(t pgx.Tx) error {
-		var err error
-		n, err = scan.New(t).Backlog(ctx)
-		return err
-	})
-	return n, err
+	return workerindex.Backlog(ctx, s.db, account)
 }

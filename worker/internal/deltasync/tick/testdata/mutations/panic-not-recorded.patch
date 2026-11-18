@@ -6,9 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/deltasync/tick/tick.go b/worker/internal/deltasync/tick/tick.go
+index deb28e08..dbfeb630 100644
 --- a/worker/internal/deltasync/tick/tick.go
 +++ b/worker/internal/deltasync/tick/tick.go
-@@ -90,7 +90,7 @@
+@@ -98,7 +98,7 @@ func Run(ctx context.Context, deps Deps, account string) (result Result, err err
  	}
  	defer func() {
  		if r := recover(); r != nil {
