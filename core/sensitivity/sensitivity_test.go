@@ -34,10 +34,6 @@ func TestZeroValuesAreTheMostRestrictive(t *testing.T) {
 	if diff := cmp.Diff(want, observe(s), compare.Options); diff != "" {
 		t.Errorf("zero Sensitivity (-want +got):\n%s", diff)
 	}
-	var b sensitivity.Body
-	if diff := cmp.Diff("", b.Text(), compare.Options); diff != "" {
-		t.Errorf("zero Body text (-want +got):\n%s", diff)
-	}
 }
 
 // The combinations ADR-0069 counts as occurring are accepted, and the others refused, with the
@@ -88,55 +84,16 @@ func TestNew(t *testing.T) {
 	}
 }
 
-func TestNewBody(t *testing.T) {
-	must := func(class sensitivity.SenderClass, flags sensitivity.ContentFlags, scan sensitivity.ScanState) sensitivity.Sensitivity {
-		t.Helper()
-		s, err := sensitivity.New(class, flags, scan)
-		if err != nil {
-			t.Fatal(err)
-		}
-		return s
-	}
-	type outcome struct {
-		Text string
-		Err  error
-	}
-	cases := []struct {
-		name string
-		s    sensitivity.Sensitivity
-		want outcome
-	}{
-		{"scanned", must(sensitivity.NormalSender(), sensitivity.NoFlags(), sensitivity.Scanned()), outcome{Text: "released"}},
-		{"skipped by the gate", must(sensitivity.NormalSender(), sensitivity.NoFlags(), sensitivity.SkippedGate()), outcome{Text: "released"}},
-		{"restricted sender", must(sensitivity.RestrictedSender(), sensitivity.NoFlags(), sensitivity.Scanned()), outcome{Err: sensitivity.ErrBodyWithheld}},
-		{"one-time code", must(sensitivity.NormalSender(), sensitivity.Flags(true, false), sensitivity.Scanned()), outcome{Err: sensitivity.ErrBodyWithheld}},
-		{"login link", must(sensitivity.NormalSender(), sensitivity.Flags(false, true), sensitivity.Scanned()), outcome{Err: sensitivity.ErrBodyWithheld}},
-		{"pending scan", must(sensitivity.NormalSender(), sensitivity.NoFlags(), sensitivity.Pending()), outcome{Err: sensitivity.ErrBodyWithheld}},
-		{"skipped as restricted", must(sensitivity.RestrictedSender(), sensitivity.NoFlags(), sensitivity.SkippedRestricted()), outcome{Err: sensitivity.ErrBodyWithheld}},
-		{"never constructed", sensitivity.Sensitivity{}, outcome{Err: sensitivity.ErrBodyWithheld}},
-	}
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			b, err := sensitivity.NewBody("released", c.s)
-			got := outcome{Text: b.Text(), Err: err}
-			if diff := cmp.Diff(c.want, got, compare.Options, cmpopts.EquateErrors()); diff != "" {
-				t.Errorf("NewBody (-want +got):\n%s", diff)
-			}
-		})
-	}
-}
-
 // No sensitivity-carrying type exposes a field, so no code outside the package can build or change
 // one around its constructors, whatever fields the types gain later (ADR-0042).
 func TestNoSensitivityCarryingTypeExposesAField(t *testing.T) {
 	mustnotcompile.RequireNoExportedFields(t, "github.com/ppat/mediated-mailbox-mcp/core/sensitivity",
-		"SenderClass", "ContentFlags", "ScanState", "Sensitivity", "Body")
+		"SenderClass", "ContentFlags", "ScanState", "Sensitivity")
 }
 
-// Building a body, or a sensitivity, around the constructor does not compile (ADR-0042).
+// Building a sensitivity or a scan state around the constructors does not compile (ADR-0042).
 func TestConstructionOutsideTheConstructorsDoesNotCompile(t *testing.T) {
 	cases := []struct{ name, want string }{
-		{"bodyliteral", "cannot refer to unexported field text in struct literal of type sensitivity.Body"},
 		{"sensitivityliteral", "cannot refer to unexported field class in struct literal of type sensitivity.Sensitivity"},
 		{"scanstateliteral", "cannot refer to unexported field state in struct literal of type sensitivity.ScanState"},
 	}
@@ -144,5 +101,80 @@ func TestConstructionOutsideTheConstructorsDoesNotCompile(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			mustnotcompile.Require(t, "./testdata/mustnotcompile/"+c.name, c.want)
 		})
+	}
+}
+
+// The readers of the index's stored sensitivity read a content flag or a scan state the schema does
+// not name as the most restrictive state, so a row the schema's checks would refuse is never released
+// if one were ever stored (ADR-0042, ADR-0016). The schema's checks refuse such a row, so no row in a
+// database reaches this, and the readers are tested on their own.
+func TestAnUnnamedStoredStateReadsAsTheMostRestrictive(t *testing.T) {
+	for _, names := range [][]string{{"unknown_flag"}, {"mfa_code", "unknown_flag"}, {"MFA_CODE"}} {
+		if got := sensitivity.FlagsNamed(names); !got.MFACode() || !got.LoginLink() {
+			t.Errorf("the stored flags %v read as mfa_code %v and login_link %v, want both", names, got.MFACode(), got.LoginLink())
+		}
+	}
+	if got := sensitivity.FlagsNamed([]string{"mfa_code"}); !got.MFACode() || got.LoginLink() {
+		t.Errorf("the stored flag mfa_code reads as mfa_code %v and login_link %v, want mfa_code alone", got.MFACode(), got.LoginLink())
+	}
+	for _, name := range []string{"unknown_state", "SCANNED", ""} {
+		if got := sensitivity.ScanStateNamed(name); got != sensitivity.Pending() {
+			t.Errorf("the stored scan state %q reads as %s, want %s", name, got, sensitivity.Pending())
+		}
+	}
+	if got := sensitivity.ScanStateNamed("scanned"); got != sensitivity.Scanned() {
+		t.Errorf("the stored scan state scanned reads as %s, want %s", got, sensitivity.Scanned())
+	}
+}
+
+// Each stored name reads back as the value that writes it, so the index's writers and readers agree
+// on every name, and the names are the ones the schema's checks hold (ADR-0016).
+func TestTheStoredNamesReadBackAsWritten(t *testing.T) {
+	type flagsCase struct {
+		MFACode, LoginLink bool
+		Names              []string
+	}
+	var gotFlags []flagsCase
+	for _, f := range []sensitivity.ContentFlags{sensitivity.NoFlags(), sensitivity.Flags(true, false), sensitivity.Flags(false, true), sensitivity.Flags(true, true)} {
+		back := sensitivity.FlagsNamed(f.Names())
+		gotFlags = append(gotFlags, flagsCase{MFACode: back.MFACode(), LoginLink: back.LoginLink(), Names: f.Names()})
+	}
+	wantFlags := []flagsCase{
+		{Names: []string{}},
+		{MFACode: true, Names: []string{"mfa_code"}},
+		{LoginLink: true, Names: []string{"login_link"}},
+		{MFACode: true, LoginLink: true, Names: []string{"mfa_code", "login_link"}},
+	}
+	if diff := cmp.Diff(wantFlags, gotFlags, compare.Options); diff != "" {
+		t.Errorf("content flags (-want +got):\n%s", diff)
+	}
+	var gotStates []string
+	for _, s := range []sensitivity.ScanState{sensitivity.Pending(), sensitivity.Scanned(), sensitivity.SkippedGate(), sensitivity.SkippedRestricted(), sensitivity.Refused()} {
+		if back := sensitivity.ScanStateNamed(s.String()); back != s {
+			t.Errorf("the scan state %s reads back as %s", s, back)
+		}
+		gotStates = append(gotStates, s.String())
+	}
+	if diff := cmp.Diff([]string{"pending", "scanned", "skipped_gate", "skipped_restricted", "refused"}, gotStates); diff != "" {
+		t.Errorf("scan state names (-want +got):\n%s", diff)
+	}
+	type classCase struct {
+		Name       string
+		Restricted bool
+		Named      bool
+	}
+	var gotClasses []classCase
+	for _, name := range []string{"normal", "restricted", "Normal", ""} {
+		c, named := sensitivity.SenderClassNamed(name)
+		gotClasses = append(gotClasses, classCase{Name: c.String(), Restricted: c.Restricted(), Named: named})
+	}
+	wantClasses := []classCase{
+		{Name: "normal", Named: true},
+		{Name: "restricted", Restricted: true, Named: true},
+		{Name: "restricted", Restricted: true},
+		{Name: "restricted", Restricted: true},
+	}
+	if diff := cmp.Diff(wantClasses, gotClasses, compare.Options); diff != "" {
+		t.Errorf("sender classes (-want +got):\n%s", diff)
 	}
 }

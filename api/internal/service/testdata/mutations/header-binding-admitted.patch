@@ -5,15 +5,15 @@ tests: TestTheSurfaceRefusesWhatItCannotCarry/x-mcp-header_in_the_input TestTheS
 scheduled-count: no
 
 
-diff --git a/api/internal/service/surface.go b/api/internal/service/surface.go
-index ce64c76..28ee507 100644
---- a/api/internal/service/surface.go
-+++ b/api/internal/service/surface.go
-@@ -182,7 +182,7 @@ func surfaceProblems(op Operation) []string {
- 	if op.Effect != Read && op.Effect != StructuredRead && holdsKey(op.Input, "status") {
+diff --git a/api/internal/core/operation/operation.go b/api/internal/core/operation/operation.go
+index 241f1681..e878c259 100644
+--- a/api/internal/core/operation/operation.go
++++ b/api/internal/core/operation/operation.go
+@@ -259,7 +259,7 @@ func surface(op Facts) []string {
+ 	if op.Effect != Read && op.Effect != StructuredRead && op.Input.Status {
  		problems = append(problems, "changes the mailbox and declares a property named status in its input")
  	}
--	if holdsKey(op.Input, "x-mcp-header") || holdsKey(op.Output, "x-mcp-header") {
+-	if op.Input.MCPHeader || op.Output.MCPHeader {
 +	if false {
  		problems = append(problems, "has a schema carrying x-mcp-header")
  	}

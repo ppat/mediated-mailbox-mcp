@@ -7,15 +7,14 @@ integration: yes
 
 
 diff --git a/api/internal/service/reads.go b/api/internal/service/reads.go
-index 90399bd8..4fb0654d 100644
+index 5679e209..1867f265 100644
 --- a/api/internal/service/reads.go
 +++ b/api/internal/service/reads.go
-@@ -265,7 +265,7 @@ func (s Sources) listMessages(ctx context.Context, account string, input json.Ra
+@@ -294,6 +294,7 @@ func (s Sources) listMessages(ctx context.Context, account string, input json.Ra
+ 		out = append(out, present(account, fromRow(messages.MessageRow(r)), p))
  	}
- 	var next *string
- 	if len(rows) == pageSize {
--		last := rows[len(rows)-1]
-+		last := rows[0]
- 		c := encodeCursor(position{Listing: "list_messages", Account: account, At: formatUTC(last.SentAt.Time), Key: last.MessageID})
- 		next = &c
- 	}
+ 	next := nextCursor(rows, func(last messages.MessagePageRow) position {
++		last = rows[0]
+ 		return position{Listing: "list_messages", Account: account, At: formatUTC(last.SentAt.Time), Key: last.MessageID}
+ 	})
+ 	return ok(struct {

@@ -1,6 +1,6 @@
 // Package release holds the API server's release step for a body the Redaction Gate has released and
 // the provider has returned, already converted to Markdown by content/markdown. It makes two
-// decisions and returns them as one value the shell enacts (ADR-0040).
+// decisions and returns them as a verdict and the body the shell serves (ADR-0040).
 //
 //   - The serve-time pattern check (ADR-0002). A body released without being scanned, because the
 //     scan gate skipped it, passes the scanner's tier 1 structural patterns, and so do the snippet
@@ -18,8 +18,14 @@
 //     match, so a body written in them can still spell the words. The delimiters raise the bar for
 //     an injection and enforce nothing.
 //
-// Fail closed. A scan state the gate never releases, and content the check must read with no scanner
-// to read it, withhold the body. The zero Decision withholds it too.
+// The verdict carries no content, so nothing it withholds can travel in it, which is ADR-0009's
+// technique as ADR-0040's verdict rule applies it. What a client receives is a Body, whose fields no
+// code outside the package can set, so the one Body holding text is one Decide built from the very
+// texts its pattern check read, for a message whose sensitivity releases a body (ADR-0093). A body
+// value carrying a restricted sender, a content flag or a denying scan state cannot be constructed.
+//
+// Fail closed. A sensitivity the gate never releases, and content the check must read with no scanner
+// to read it, withhold the body. The zero Verdict withholds it too, and the zero Body holds no text.
 package release
 
 import (
@@ -48,9 +54,12 @@ const (
 type Reason uint8
 
 const (
-	// Undecided is a Decision nobody made.
+	// Undecided is a Verdict nobody made.
 	Undecided Reason = iota
-	// NotReleasable is a scan state the gate never releases, pending or skipped as restricted.
+	// NotReleasable is a sensitivity the gate never releases, a restricted sender, a content flag, or
+	// a scan state other than scanned and skipped by the scan gate. The gate denies each of them
+	// before the release step is reached, so the release step's refusal of one is the fence a Body
+	// rests on rather than a denial a client sees.
 	NotReleasable
 	// NoScanner is a gate-skipped body with no scanner to run the pattern check.
 	NoScanner
@@ -61,7 +70,7 @@ const (
 )
 
 // String names the reason by its token, the one the client surface returns and the audit row and the
-// metrics record (ADR-0101). Undecided's is no token, since nothing serves or records a decision
+// metrics record (ADR-0101). Undecided's is no token, since nothing serves or records a verdict
 // nobody made.
 func (r Reason) String() string {
 	switch r {
@@ -80,67 +89,80 @@ func (r Reason) String() string {
 	}
 }
 
-// Content is what a release hands the client from one message, each text in the Markdown form it is
-// released in, the body and the snippet and attachment filenames that follow it (ADR-0001, ADR-0100).
-// An empty snippet is no snippet.
+// Content is one message's content as the shell hands it to the release step, each text in the
+// Markdown form it would be released in, the body and the snippet and attachment filenames that
+// follow it (ADR-0001, ADR-0100). An empty snippet is no snippet.
 type Content struct {
 	Body            string
 	Snippet         string
 	AttachmentNames []string
 }
 
-// Decision is the release step's decision on one message's content. The zero value withholds it.
-type Decision struct {
-	reason  Reason
-	content Content
-	rules   []string
+// Verdict is the release step's decision on one message's content, why it was released or withheld
+// and the rules that withheld it. It holds no text of the message. The zero value is a verdict
+// nobody made, which withholds the body.
+type Verdict struct {
+	reason Reason
+	rules  []string
 }
 
 // Reason returns why the body was released or withheld.
-func (d Decision) Reason() Reason { return d.reason }
+func (v Verdict) Reason() Reason { return v.reason }
 
-// Rules returns the identifiers of the pattern rules that withheld a gate-skipped message's content,
-// each once, sorted, and none for any other decision. They name rules and hold no text.
-func (d Decision) Rules() []string { return slices.Clone(d.rules) }
+// Rules returns the identifiers of the pattern rules that withheld a message's content, each once,
+// sorted, and none for any other verdict. They name rules and hold no text.
+func (v Verdict) Rules() []string { return slices.Clone(v.rules) }
 
-// Released returns what the client receives and true, or the zero Content and false when the content
-// is withheld. The body is wrapped in the delimiters, and the snippet and filenames are not.
-func (d Decision) Released() (Content, bool) {
-	switch d.reason {
+// Releases reports whether the client receives the body.
+func (v Verdict) Releases() bool {
+	switch v.reason {
 	case Released:
-		return Content{Body: d.content.Body, Snippet: d.content.Snippet, AttachmentNames: slices.Clone(d.content.AttachmentNames)}, true
+		return true
 	case Undecided, NotReleasable, NoScanner, PatternMatched:
-		return Content{}, false
+		return false
 	default:
-		return Content{}, false
+		return false
 	}
 }
 
-// Body returns the body the client receives, wrapped in the delimiters, and true, or an empty string
-// and false when the body is withheld.
-func (d Decision) Body() (string, bool) {
-	c, ok := d.Released()
-	return c.Body, ok
+// Body is what a client receives of one message the release step released, the body wrapped in the
+// delimiters, and the snippet and filenames beside it, outside the wrapping. Only Decide builds one
+// holding text. The zero value holds no text.
+type Body struct {
+	text            string
+	snippet         string
+	attachmentNames []string
 }
 
-// Decide returns the release decision on c, the content of a message the gate released, in scan
-// state state. s runs the pattern check over every text of a gate-skipped message's content, and over
-// the filenames of a scanned one.
-func Decide(c Content, state sensitivity.ScanState, s scan.Scanner) Decision {
-	var checked []string
-	switch state {
-	case sensitivity.Scanned():
+// Text returns the body wrapped in the delimiters.
+func (b Body) Text() string { return b.text }
+
+// Snippet returns the snippet, empty for a message with none.
+func (b Body) Snippet() string { return b.snippet }
+
+// AttachmentNames returns the attachment filenames.
+func (b Body) AttachmentNames() []string { return slices.Clone(b.attachmentNames) }
+
+// Decide returns the release verdict on c, the content of a message of sensitivity s, and the Body
+// the client receives, which holds text only when the verdict releases it. A sensitivity that does
+// not release a body withholds it unread. Otherwise s's scan state says what the pattern check reads,
+// run by sc, every text of a gate-skipped message's content and the filenames of a scanned one. The
+// Body is built from the texts the check read.
+func Decide(c Content, s sensitivity.Sensitivity, sc scan.Scanner) (Verdict, Body) {
+	if !s.ReleasesBody() {
+		return Verdict{reason: NotReleasable}, Body{}
+	}
+	// A sensitivity that releases a body is scanned or skipped by the scan gate. The scanner read a
+	// scanned message's body and snippet, so the check reads its filenames alone.
+	checked := append([]string{c.Body, c.Snippet}, c.AttachmentNames...)
+	if s.Scan() == sensitivity.Scanned() {
 		checked = c.AttachmentNames
-	case sensitivity.SkippedGate():
-		checked = append([]string{c.Body, c.Snippet}, c.AttachmentNames...)
-	default:
-		return Decision{reason: NotReleasable}
 	}
 	var rules []string
 	for _, text := range checked {
-		v := s.ScanPatterns(text)
+		v := sc.ScanPatterns(text)
 		if v.Version() == 0 {
-			return Decision{reason: NoScanner}
+			return Verdict{reason: NoScanner}, Body{}
 		}
 		if v.Flags().Any() {
 			rules = append(rules, v.Rules()...)
@@ -148,13 +170,13 @@ func Decide(c Content, state sensitivity.ScanState, s scan.Scanner) Decision {
 	}
 	if len(rules) > 0 {
 		slices.Sort(rules)
-		return Decision{reason: PatternMatched, rules: slices.Compact(rules)}
+		return Verdict{reason: PatternMatched, rules: slices.Compact(rules)}, Body{}
 	}
 	names := make([]string, 0, len(c.AttachmentNames))
 	for _, n := range c.AttachmentNames {
 		names = append(names, neutralize(n))
 	}
-	return Decision{reason: Released, content: Content{Body: wrap(c.Body), Snippet: neutralize(c.Snippet), AttachmentNames: names}}
+	return Verdict{reason: Released}, Body{text: wrap(c.Body), snippet: neutralize(c.Snippet), attachmentNames: names}
 }
 
 // wrap returns markdown between the delimiters, after the directive, with the delimiters' words

@@ -5,16 +5,16 @@ tests: TestTheSurfaceRefusesWhatItCannotCarry/a_path_outside_the_account
 scheduled-count: no
 
 
-diff --git a/api/internal/service/surface.go b/api/internal/service/surface.go
-index 1225e3e..f708cf9 100644
---- a/api/internal/service/surface.go
-+++ b/api/internal/service/surface.go
-@@ -118,7 +118,7 @@ func surfaceProblems(op Operation) []string {
+diff --git a/api/internal/core/operation/operation.go b/api/internal/core/operation/operation.go
+index 241f1681..0cd7655b 100644
+--- a/api/internal/core/operation/operation.go
++++ b/api/internal/core/operation/operation.go
+@@ -210,7 +210,7 @@ func surface(op Facts) []string {
  	switch {
  	case listing && op.Effect != Read:
  		problems = append(problems, "takes the accounts listing's path without being a read")
--	case !listing && !strings.HasPrefix(op.Path, accountPrefix):
+-	case !listing && !strings.HasPrefix(op.Path, AccountPrefix):
 +	case false:
- 		problems = append(problems, "has a path not under "+accountPrefix+", so it names no account in its path")
+ 		problems = append(problems, "has a path not under "+AccountPrefix+", so it names no account in its path")
  	}
- 	segments := strings.Split(strings.TrimPrefix(op.Path, "/"), "/")
+ 	literal, wildcard := literalSegment(), wildcardSegment()

@@ -36,6 +36,16 @@ and reloaded exactly as the accounts are, in the one reload the Session owns. Th
 the one place the steps around an account's credential are written, which every program that calls
 a provider would otherwise write for itself.
 
+The domain lookups sit here as repeated assembly, logic several programs would otherwise repeat,
+which [ADR-0050](../docs/adr/engineering/0050-shared-code-pure-or-narrow.md) places in its
+concept's family, as it places the unit of work here. They are the conversions every program
+classifies a sender's domain with, the normalization
+[ADR-0004](../docs/adr/classification/0004-sender-list-decides.md) has each caller pass to the
+classifier, so a domain reads as one name to every program that classifies it
+([ADR-0136](../docs/adr/redaction/0136-the-index-stores-no-sender-class-and-every-reader-classifies-when-it-reads.md)).
+They are not a shared thing a process holds. `domains.Lookups()` takes nothing from the process,
+keeps no slot and returns a new value on each call, and the UI calls it without a Session.
+
 | Package | Holds |
 | --- | --- |
 | `process` itself | The spec and the process, `Spec`, `Endpoint`, `Job`, `Task`, `Capabilities`, `State` and `OnePerProcess`, `process.Run` and `process.RunContext`, the option a test substitutes a shared thing through, the revision of a top-level key read from the process, and an owner's upkeep on the scheduler, the build and the run, the servers, the operations endpoints, the runtime series, the stop order and the readiness reports ([ADR-0142](../docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md)) |
@@ -47,6 +57,7 @@ a provider would otherwise write for itself.
 | `policies/` | Each account's policy, the base policy included, the load concurrent body requests share, and the reload-failure alarm |
 | `connections/` | Each account's connection to its provider, one record per account, the unit of work, the compare-and-set write-back of a rotated credential, and delta sync's re-seal |
 | `scanner/` | The scanner, built once per process, and the body-processing histogram |
+| `domains/` | The domain lookups every program classifies senders with, the IDNA conversions and the public suffix list, which the policies a Session holds and the UI's policy management prepare their policies with, since the sender classifier's pure core cannot import them ([ADR-0136](../docs/adr/redaction/0136-the-index-stores-no-sender-class-and-every-reader-classifies-when-it-reads.md)) |
 | `logging/` | The logger every program that runs as a process writes its JSON records to standard output through, and the reading of its `log_level` |
 | `version/` | The release version every binary reports through `--version` and every process's start banner shows |
 | `host/` | The host each program ran on before it was on its spec, which no program runs on now ([ADR-0138](../docs/adr/engineering/0138-one-host-runs-each-process-and-each-component-provides-its-parts.md)). It opens its pools through `database` and refuses the database driver's password variables through `process`, so neither is written twice |

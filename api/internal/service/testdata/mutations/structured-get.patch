@@ -5,16 +5,16 @@ tests: TestTheSurfaceRefusesWhatItCannotCarry/a_GET_taking_an_object TestTheSurf
 scheduled-count: no
 
 
-diff --git a/api/internal/service/surface.go b/api/internal/service/surface.go
-index 1225e3e..d7d64fe 100644
---- a/api/internal/service/surface.go
-+++ b/api/internal/service/surface.go
-@@ -158,7 +158,7 @@ func surfaceProblems(op Operation) []string {
+diff --git a/api/internal/core/operation/operation.go b/api/internal/core/operation/operation.go
+index 241f1681..35ffa41b 100644
+--- a/api/internal/core/operation/operation.go
++++ b/api/internal/core/operation/operation.go
+@@ -249,7 +249,7 @@ func surface(op Facts) []string {
  			problems = append(problems, "has the path variable "+v+", which is not a required string argument")
  		}
  	}
 -	if op.Effect == Read {
 +	if false {
- 		for name, p := range facts.Properties {
- 			if t, ok := p.Type.(string); !ok || !slices.Contains(scalarTypes, t) {
+ 		for name, t := range op.Input.Types {
+ 			if !scalar(t) {
  				problems = append(problems, "is a GET whose argument "+name+" is not a scalar")

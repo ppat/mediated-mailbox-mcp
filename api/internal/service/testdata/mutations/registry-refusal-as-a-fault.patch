@@ -4,16 +4,16 @@ packages: ./api/internal/api ./api/internal/mcp
 tests: TestEachFailureNamesItsOrigin TestTheRootRefusesWhatItCannotBind TestAToolCallRunsTheOperation
 scheduled-count: no
 
-diff --git a/api/internal/service/failure.go b/api/internal/service/failure.go
-index c2cba09..ed3077d 100644
---- a/api/internal/service/failure.go
-+++ b/api/internal/service/failure.go
-@@ -71,7 +71,7 @@ func Classify(err error) (Origin, string) {
- 	if errors.As(err, &arg) {
- 		return OriginClient, arg.Error()
- 	}
--	for _, refusal := range refusals {
-+	for _, refusal := range refusals[:0] {
- 		if errors.Is(err, refusal) {
+diff --git a/api/internal/core/failure/failure.go b/api/internal/core/failure/failure.go
+index 05592fdf..24b89bec 100644
+--- a/api/internal/core/failure/failure.go
++++ b/api/internal/core/failure/failure.go
+@@ -112,7 +112,7 @@ func Classify(err error) (Origin, string) {
+ 		ErrMissingAccount, ErrUnknownAccount, ErrAmbiguousAccount, ErrRepeatedArgument, ErrTooManyArguments,
+ 		ErrNotAnObject, ErrNoOperation,
+ 	} {
+-		if errors.Is(err, refusal) {
++		if false && errors.Is(err, refusal) {
  			return OriginClient, refusal.Error()
  		}
+ 	}

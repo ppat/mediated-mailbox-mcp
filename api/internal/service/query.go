@@ -2,13 +2,12 @@ package service
 
 import (
 	"encoding/json"
-	"slices"
 	"strings"
 
 	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
-	"github.com/ppat/mediated-mailbox-mcp/core/index"
+	"github.com/ppat/mediated-mailbox-mcp/core/sensitivity"
 	"github.com/ppat/mediated-mailbox-mcp/db/messages"
 )
 
@@ -69,7 +68,7 @@ const queryDescription = "query selects messages by every term it holds, and an 
 // which a cursor is bound to. The sender class term is not yet resolved to domains.
 type selection struct {
 	params messages.SearchSummaryParams
-	class  *string
+	class  *sensitivity.SenderClass
 	text   string
 }
 
@@ -111,7 +110,7 @@ func readQuery(raw json.RawMessage) (selection, error) {
 		sel.params.FromEmails = []string{*q.From}
 	}
 	if q.FromDomain != nil {
-		sel.params.FromDomains = []string{index.StoredDomain(*q.FromDomain)}
+		sel.params.FromDomains = []string{classify.StoredDomain(*q.FromDomain)}
 	}
 	sel.params.Labels = q.Labels
 	sel.params.ExcludedLabels = q.ExcludedLabels
@@ -123,10 +122,11 @@ func readQuery(raw json.RawMessage) (selection, error) {
 	sel.params.Starred = oneOf(q.Starred)
 	sel.params.HasAttachments = oneOf(q.HasAttachments)
 	if q.SenderClass != nil {
-		if *q.SenderClass != "normal" && *q.SenderClass != "restricted" {
+		class, named := sensitivity.SenderClassNamed(*q.SenderClass)
+		if !named {
 			return selection{}, Refuse("query.sender_class must be normal or restricted")
 		}
-		sel.class = q.SenderClass
+		sel.class = &class
 	}
 	text, err := json.Marshal(q)
 	if err != nil {
@@ -142,22 +142,20 @@ func strictObject(raw json.RawMessage, v any, name string, names ...string) erro
 	if string(raw) == "null" {
 		return Refuse(name + " may not be null")
 	}
-	var members map[string]json.RawMessage
-	if err := json.Unmarshal(raw, &members); err != nil {
+	switch problem, key := decodeStrictly(raw, v, names); problem {
+	case notAnObject:
 		return Refuse(name + " is not an object")
-	}
-	for key, value := range members {
-		if !slices.Contains(names, key) {
-			return Refuse(name + " holds a term the operation does not take")
-		}
-		if strings.TrimSpace(string(value)) == "null" {
-			return Refuse(name + "." + key + " may not be null")
-		}
-	}
-	if err := json.Unmarshal(raw, v); err != nil {
+	case unknownKey:
+		return Refuse(name + " holds a term the operation does not take")
+	case nullValue:
+		return Refuse(name + "." + key + " may not be null")
+	case notItsSchema:
 		return Refuse(name + " does not match its schema")
+	case decoded:
+		return nil
+	default:
+		return nil
 	}
-	return nil
 }
 
 // likeEscape escapes the characters a LIKE pattern gives a meaning, so the subject term matches its
@@ -176,7 +174,7 @@ func oneOf(b *bool) []bool {
 
 // classes are the sender classes the policy a call took gives the sender domains the account's
 // statistics hold, decided as the Redaction Gate decides a message's (ADR-0002). The classifier reads
-// only the domain of an address, and the index stores it in the form index.StoredDomain gives, which keeps
+// only the domain of an address, and the index stores it in the form classify.StoredDomain gives, which keeps
 // what the classifier reads, so a domain's class is the class of every address at it (ADR-0108).
 type classes struct {
 	// normal are the domains classified normal. A statement counts every other domain as restricted,
@@ -200,7 +198,7 @@ func classifyDomains(domains []string, p classify.Policy) classes {
 func (s selection) resolve(c classes) messages.SearchSummaryParams {
 	p := s.params
 	if s.class != nil {
-		p.Restricted = []bool{*s.class == "restricted"}
+		p.Restricted = []bool{s.class.Restricted()}
 		p.NormalDomains = c.normal
 	}
 	return p

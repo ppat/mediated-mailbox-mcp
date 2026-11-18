@@ -16,7 +16,7 @@ import (
 // states is exactly the tokens the operation can return, every reason of the gate and of the release
 // step a decision can reach, the conversion's refusal and the port's (ADR-0131), so the contract
 // neither lists a token nothing returns nor misses one a client may receive (ADR-0101). The release
-// step's undecided reason is no token, since nothing returns a decision nobody made. The test reads
+// step's undecided reason is no token, since nothing returns a verdict nobody made. The test reads
 // unexported names, so it sits in the package.
 func TestTheReasonEnumIsTheTokensABodyDecisionReturns(t *testing.T) {
 	var returned []string

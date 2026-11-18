@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
+	"github.com/ppat/mediated-mailbox-mcp/core/sensitivity"
 	"github.com/ppat/mediated-mailbox-mcp/db/messages"
 	"github.com/ppat/mediated-mailbox-mcp/db/senders"
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
@@ -164,9 +165,7 @@ func (s Sources) searchMessages(ctx context.Context, account string, input json.
 	for _, r := range rows {
 		out = append(out, present(account, fromRow(messages.MessageRow(r)), p))
 	}
-	var next *string
-	if len(rows) == pageSize {
-		last := rows[len(rows)-1]
+	next := nextCursor(rows, func(last messages.SearchPageRow) position {
 		pos := position{Listing: "search_messages", Account: account, Filter: filter, Key: last.MessageID}
 		switch sortBy {
 		case "date":
@@ -176,9 +175,8 @@ func (s Sources) searchMessages(ctx context.Context, account string, input json.
 		default:
 			pos.Text = last.Subject.String
 		}
-		c := encodeCursor(pos)
-		next = &c
-	}
+		return pos
+	})
 	return ok(struct {
 		Messages   []message `json:"messages"`
 		NextCursor *string   `json:"next_cursor"`
@@ -283,15 +281,13 @@ func (s Sources) countMessages(ctx context.Context, account string, input json.R
 		if !sqlPaged {
 			groups = pageOf(groups, from, found)
 		}
-		if len(groups) == pageSize {
-			last := groups[len(groups)-1]
+		next = nextCursor(groups, func(last group) position {
 			pos := position{Listing: "count_messages", Account: account, Filter: filter, Count: last.Messages, Null: last.Key == nil}
 			if last.Key != nil {
 				pos.Key = *last.Key
 			}
-			c := encodeCursor(pos)
-			next = &c
-		}
+			return pos
+		})
 		return nil
 	})
 	if err != nil {
@@ -381,19 +377,19 @@ func (s Sources) wholeGroups(ctx context.Context, q *messages.Queries, by string
 			out = append(out, counted(&key, r.Messages, r.Threads, r.Unread, r.WithAttachments, r.OldestAt, r.NewestAt))
 		}
 	default:
-		for _, class := range []string{"normal", "restricted"} {
+		for _, class := range []sensitivity.SenderClass{sensitivity.NormalSender(), sensitivity.RestrictedSender()} {
 			if sel.class != nil && *sel.class != class {
 				continue
 			}
 			one := f
-			one.Restricted = []bool{class == "restricted"}
+			one.Restricted = []bool{class.Restricted()}
 			one.NormalDomains = c.normal
 			row, err := q.SearchSummary(ctx, one)
 			if err != nil {
 				return nil, err
 			}
 			if row.Messages > 0 {
-				key := class
+				key := class.String()
 				out = append(out, counted(&key, row.Messages, row.Threads, row.Unread, row.WithAttachments, row.OldestAt, row.NewestAt))
 			}
 		}
@@ -482,13 +478,8 @@ func (s Sources) listSenders(ctx context.Context, account string, input json.Raw
 	for _, r := range rows {
 		// A domain's class is the class of every address at it, and one the classifier cannot read is
 		// restricted (ADR-0109).
-		restricted := classify.Classify(p, "@"+r.Domain).Class().Restricted()
-		class := "normal"
-		if restricted {
-			class = "restricted"
-		}
 		row := senderStats{
-			Domain: r.Domain, SenderClass: class, Messages: r.MessageCount,
+			Domain: r.Domain, SenderClass: classify.Classify(p, "@"+r.Domain).Class().String(), Messages: r.MessageCount,
 			FirstSeen: timestamp(r.FirstSeen), LastSeen: timestamp(r.LastSeen),
 			LabelDistribution: json.RawMessage(`{}`),
 			DisplayNames:      nonNil(r.DisplayNames), LocalPartSample: nonNil(r.LocalPartSample),
@@ -505,12 +496,9 @@ func (s Sources) listSenders(ctx context.Context, account string, input json.Raw
 		}
 		out = append(out, row)
 	}
-	var next *string
-	if len(rows) == pageSize {
-		last := rows[len(rows)-1]
-		c := encodeCursor(position{Listing: "list_senders", Account: account, Count: last.MessageCount, Key: last.Domain})
-		next = &c
-	}
+	next := nextCursor(rows, func(last senders.SenderPageRow) position {
+		return position{Listing: "list_senders", Account: account, Count: last.MessageCount, Key: last.Domain}
+	})
 	return ok(struct {
 		Senders    []senderStats `json:"senders"`
 		NextCursor *string       `json:"next_cursor"`

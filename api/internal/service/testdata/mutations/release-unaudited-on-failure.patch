@@ -6,7 +6,7 @@ scheduled-count: no
 integration: yes
 
 diff --git a/api/internal/service/body.go b/api/internal/service/body.go
-index 491a559c..556655f8 100644
+index d6ef1a64..d62fda19 100644
 --- a/api/internal/service/body.go
 +++ b/api/internal/service/body.go
 @@ -232,9 +232,7 @@ func (s bodySources) getMessageBody(ctx context.Context, account string, input j
@@ -18,5 +18,5 @@ index 491a559c..556655f8 100644
 -	}
 +	_ = s.audit(ctx, account, args.MessageID, actionRead, StageServe, releasedReason, g, check)
  	s.Bodies.Observe(account, Outcome{Reason: releasedReason})
+ 	text, snippet := out.Text(), out.Snippet()
  	result := bodyResult{
- 		AccountID: account, MessageID: args.MessageID, Released: true, Reason: releasedReason,

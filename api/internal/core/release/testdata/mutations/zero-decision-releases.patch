@@ -1,22 +1,22 @@
 control: The release step withholds a body it cannot decide on
-removes: the zero Decision reports a released body
+removes: the zero Verdict reports a released body
 packages: ./api/internal/core/release
-tests: TestFailClosed/the_zero_decision
+tests: TestFailClosed/the_zero_verdict
 scheduled-count: no
 
 diff --git a/api/internal/core/release/release.go b/api/internal/core/release/release.go
-index 4bf31da..d46e005 100644
+index 941b336e..ac5b9b8f 100644
 --- a/api/internal/core/release/release.go
 +++ b/api/internal/core/release/release.go
-@@ -103,9 +103,9 @@ func (d Decision) Rules() []string { return slices.Clone(d.rules) }
- // is withheld. The body is wrapped in the delimiters, and the snippet and filenames are not.
- func (d Decision) Released() (Content, bool) {
- 	switch d.reason {
+@@ -116,9 +116,9 @@ func (v Verdict) Rules() []string { return slices.Clone(v.rules) }
+ // Releases reports whether the client receives the body.
+ func (v Verdict) Releases() bool {
+ 	switch v.reason {
 -	case Released:
 +	case Released, Undecided:
- 		return Content{Body: d.content.Body, Snippet: d.content.Snippet, AttachmentNames: slices.Clone(d.content.AttachmentNames)}, true
+ 		return true
 -	case Undecided, NotReleasable, NoScanner, PatternMatched:
 +	case NotReleasable, NoScanner, PatternMatched:
- 		return Content{}, false
+ 		return false
  	default:
- 		return Content{}, false
+ 		return false

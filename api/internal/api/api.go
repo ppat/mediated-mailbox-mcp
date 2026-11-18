@@ -12,7 +12,6 @@ import (
 	"math"
 	"net/http"
 	"net/url"
-	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -41,9 +40,6 @@ func Build(ctx context.Context, p process.Capabilities, c config.API) (http.Hand
 // maxRequestBytes bounds a request body.
 const maxRequestBytes = 1 << 20
 
-// pathVariable is a path template segment standing for one argument.
-var pathVariable = regexp.MustCompile(`^\{([a-z][a-z0-9_]*)\}$`)
-
 // Handler returns the API root generated from reg (ADR-0087). Each operation is served at its
 // derived method and its path template, and nothing else is served. A HEAD request is refused on
 // every route. The root rebuilds the operation's one argument object from the path, the query string
@@ -59,10 +55,7 @@ func Handler(reg service.Registry, logger *slog.Logger) (h http.Handler, err err
 		}
 	}()
 	for _, op := range reg.Operations() {
-		route, err := newRoute(op, logger)
-		if err != nil {
-			return nil, err
-		}
+		route := route{op: op, logger: logger}
 		mux.Handle(op.Method+" "+op.Path, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			route.serve(reg, w, r)
 		}))
@@ -70,37 +63,11 @@ func Handler(reg service.Registry, logger *slog.Logger) (h http.Handler, err err
 	return mux, nil
 }
 
-// route is one operation's binding from a request to its argument object.
+// route is one operation's binding from a request to its argument object, which reads the path
+// variables and the declared argument types the registry read from the operation.
 type route struct {
 	op     service.Descriptor
 	logger *slog.Logger
-	// pathVars are the arguments the path names, in order.
-	pathVars []string
-	// types are the declared JSON types of the input's properties.
-	types map[string]string
-}
-
-func newRoute(op service.Descriptor, logger *slog.Logger) (route, error) {
-	var schema struct {
-		Properties map[string]struct {
-			Type any `json:"type"`
-		} `json:"properties"`
-	}
-	if err := json.Unmarshal(op.Input, &schema); err != nil {
-		return route{}, fmt.Errorf("operation %s: reading its input schema: %w", op.Name, err)
-	}
-	r := route{op: op, logger: logger, types: map[string]string{}}
-	for name, p := range schema.Properties {
-		if t, ok := p.Type.(string); ok {
-			r.types[name] = t
-		}
-	}
-	for _, seg := range strings.Split(op.Path, "/") {
-		if m := pathVariable.FindStringSubmatch(seg); m != nil {
-			r.pathVars = append(r.pathVars, m[1])
-		}
-	}
-	return r, nil
 }
 
 // member is one member of the argument object, its key and its JSON value.
@@ -125,9 +92,9 @@ func (rt route) serve(reg service.Registry, w http.ResponseWriter, r *http.Reque
 	}
 	out, err := reg.Call(r.Context(), rt.op.Name, input)
 	if err != nil {
-		rt.logger.Log(r.Context(), service.FailureLevel(err), "operation failed", "operation", rt.op.Name, "error", err)
+		failure := service.Failed(r.Context(), rt.logger, rt.op.Name, err)
 		origin, _ := service.Classify(err)
-		writeFailure(w, rt.logger, status(origin), service.Failure(err))
+		writeFailure(w, rt.logger, status(origin), failure)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -143,7 +110,7 @@ func (rt route) serve(reg service.Registry, w http.ResponseWriter, r *http.Reque
 // ambiguous account. Any other argument given twice is refused here.
 func (rt route) arguments(w http.ResponseWriter, r *http.Request) (json.RawMessage, error) {
 	var members []member
-	for _, name := range rt.pathVars {
+	for _, name := range rt.op.PathVariables {
 		value, err := json.Marshal(r.PathValue(name))
 		if err != nil {
 			return nil, fmt.Errorf("%w: path variable %s", errBadRequest, name)
@@ -213,7 +180,7 @@ func (rt route) queryValue(key, text string) (json.RawMessage, error) {
 	if strings.EqualFold(key, "account_id") && rt.isPathVar("account_id") {
 		return json.Marshal(text)
 	}
-	t, declared := rt.types[key]
+	t, declared := rt.op.ArgumentTypes[key]
 	if !declared || rt.op.Method != http.MethodGet || rt.isPathVar(key) {
 		return nil, fmt.Errorf("the query parameter %q is not an argument the query string carries", key)
 	}
@@ -243,35 +210,24 @@ func (rt route) queryValue(key, text string) (json.RawMessage, error) {
 	}
 }
 
-func (rt route) isPathVar(key string) bool { return slices.Contains(rt.pathVars, key) }
+func (rt route) isPathVar(key string) bool { return slices.Contains(rt.op.PathVariables, key) }
 
 // objectMembers returns a JSON object's members in order, keys as written, or an error when body is
 // not one JSON object.
 func objectMembers(body []byte) ([]member, error) {
-	dec := json.NewDecoder(bytes.NewReader(body))
-	if tok, err := dec.Token(); err != nil || tok != json.Delim('{') {
+	obj, ok := service.OpenObject(body)
+	if !ok {
 		return nil, errBadRequest
 	}
 	var members []member
-	for dec.More() {
-		tok, err := dec.Token()
-		if err != nil {
-			return nil, errBadRequest
-		}
-		key, ok := tok.(string)
+	for obj.More() {
+		key, value, ok := obj.Next()
 		if !ok {
-			return nil, errBadRequest
-		}
-		var value json.RawMessage
-		if err := dec.Decode(&value); err != nil {
 			return nil, errBadRequest
 		}
 		members = append(members, member{key, value})
 	}
-	if _, err := dec.Token(); err != nil {
-		return nil, errBadRequest
-	}
-	if _, err := dec.Token(); !errors.Is(err, io.EOF) {
+	if !obj.End() {
 		return nil, errBadRequest
 	}
 	return members, nil

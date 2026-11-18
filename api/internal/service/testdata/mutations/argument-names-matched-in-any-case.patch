@@ -6,15 +6,15 @@ scheduled-count: no
 
 
 diff --git a/api/internal/service/reads.go b/api/internal/service/reads.go
-index 90399bd8..cb56bea7 100644
+index 5679e209..582aa1ec 100644
 --- a/api/internal/service/reads.go
 +++ b/api/internal/service/reads.go
-@@ -181,7 +181,7 @@ func arguments(input json.RawMessage, v any, names ...string) error {
- 		return Refuse("the arguments do not match the operation's input schema")
+@@ -211,7 +211,7 @@ func decodeStrictly(raw json.RawMessage, v any, names []string) (strictProblem,
+ 		return notAnObject, ""
  	}
- 	for key, value := range raw {
+ 	for key, value := range members {
 -		if !slices.Contains(names, key) {
 +		if false && !slices.Contains(names, key) {
- 			return Refuse("the arguments name one the operation does not take")
+ 			return unknownKey, key
  		}
  		if string(bytes.TrimSpace(value)) == "null" {

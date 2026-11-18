@@ -6,12 +6,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"regexp"
 	"slices"
-	"strconv"
 	"strings"
 	"sync/atomic"
 	"unicode"
+
+	"github.com/ppat/mediated-mailbox-mcp/api/internal/core/operation"
 )
 
 // Operation is one operation of the client surface, carrying everything both roots need (ADR-0053,
@@ -44,8 +44,8 @@ type Operation struct {
 }
 
 // Descriptor is what a root is generated from, an operation without its handler, with the method
-// and annotations its effect derives. A root runs an operation only through Registry.Call, so every
-// call passes the account check.
+// and annotations its effect derives and the facts the registry read from its path and input schema.
+// A root runs an operation only through Registry.Call, so every call passes the account check.
 type Descriptor struct {
 	Name        string
 	Description string
@@ -55,57 +55,24 @@ type Descriptor struct {
 	Annotations Annotations
 	Input       json.RawMessage
 	Output      json.RawMessage
+	// PathVariables are the arguments the path names, in order.
+	PathVariables []string
+	// ArgumentTypes are the declared types of the input's properties, for each property whose type
+	// is one string.
+	ArgumentTypes map[string]string
 }
-
-// ErrMissingAccount is returned for a call whose arguments carry no account_id string.
-var ErrMissingAccount = errors.New("the operation needs account_id, and the call carries none")
-
-// ErrUnknownAccount is returned for a call whose account_id names no account the API server serves.
-var ErrUnknownAccount = errors.New("the operation's account_id names no account the API server serves")
-
-// ErrAmbiguousAccount is returned for a call whose arguments hold account_id more than once, or a
-// key that differs from account_id only in case. A reader matching keys without regard to case, or
-// keeping the last of two, would take a different account from the one checked.
-var ErrAmbiguousAccount = errors.New("the call's arguments name the account more than once")
-
-// ArgumentError is an operation's refusal of an argument the client sent, such as a timestamp that is
-// not UTC (ADR-0033). Its message reaches the client, so it names the argument and never echoes
-// stored content.
-type ArgumentError struct{ message string }
-
-// Refuse returns an ArgumentError with message.
-func Refuse(message string) *ArgumentError { return &ArgumentError{message: message} }
-
-func (e *ArgumentError) Error() string { return e.message }
-
-// ErrRepeatedArgument is returned for a call whose arguments hold two top-level keys equal under
-// case folding, other than the account's. A reader matching keys without regard to case, or keeping
-// the last of two, would take a different argument from the one the other reader took.
-var ErrRepeatedArgument = errors.New("the call's arguments name an argument more than once")
-
-// ErrTooManyArguments is returned for a call whose arguments hold more than maxArguments top-level
-// keys.
-var ErrTooManyArguments = errors.New("the call's arguments hold more keys than any operation takes")
 
 // maxArguments is the most top-level keys a call's arguments may hold. No operation takes near this
 // many, and the bound keeps the work of reading a call's keys fixed whatever a client sends.
 const maxArguments = 1024
 
-// ErrNotAnObject is returned for a call whose arguments are not one JSON object.
-var ErrNotAnObject = errors.New("the call's arguments are not a JSON object")
-
-// ErrNoOperation is returned for a call naming an operation the registry does not hold.
-var ErrNoOperation = errors.New("no such operation")
-
 // Registry is the client surface's operation set, validated. Both roots are generated from it, and a
 // root serves exactly its operations. The zero value holds no operation.
 type Registry struct {
-	ops   []Operation
-	known *atomic.Pointer[map[string]bool]
+	ops         []Operation
+	descriptors []Descriptor
+	known       *atomic.Pointer[map[string]bool]
 }
-
-// validName is the shape of an operation's name.
-var validName = regexp.MustCompile(`^[a-z][a-z0-9_]{0,63}$`)
 
 // NewRegistry validates ops and returns the registry holding them, or every problem found. An
 // operation with no name, no description, no handler or an input or output that is not an object
@@ -113,56 +80,32 @@ var validName = regexp.MustCompile(`^[a-z][a-z0-9_]{0,63}$`)
 //
 // Every operation but the accounts listing names its account in its path, so it takes account_id
 // as a required string argument (ADR-0087). The generation checks of ADR-0087 refuse an operation
-// the surface could not carry or that could express approval, as surfaceProblems states. The
-// accounts parameter holds the accounts the API server serves, and Call checks every call's account
+// the surface could not carry or that could express approval, as the operation core's Problems
+// states, over the facts the registry reads from each operation once. The accounts parameter holds the accounts the API server serves, and Call checks every call's account
 // against them. Both roots run an operation only through Call, so the check is one check for both.
 func NewRegistry(accounts []string, ops ...Operation) (Registry, error) {
-	var problems []string
-	seen := map[string]bool{}
-	routes := map[string]bool{}
-	for i, op := range ops {
-		where := "operation " + strconv.Itoa(i) + " (" + strconv.Quote(op.Name) + ")"
-		if !validName.MatchString(op.Name) {
-			problems = append(problems, where+" has a name that is not lowercase letters, digits and underscores starting with a letter, at most 64 characters")
-		}
-		if seen[op.Name] {
-			problems = append(problems, where+" repeats a name")
-		}
-		seen[op.Name] = true
-		if strings.TrimSpace(op.Description) == "" {
-			problems = append(problems, where+" has no description")
-		}
-		if err := objectSchema(op.Input); err != nil {
-			problems = append(problems, where+" has an input schema that "+err.Error())
-		} else {
-			for _, problem := range surfaceProblems(op) {
-				problems = append(problems, where+" "+problem)
-			}
-		}
-		if method, _, ok := derive(op.Effect); ok {
-			route := method + " " + op.Path
-			if routes[route] {
-				problems = append(problems, where+" repeats the route "+route)
-			}
-			routes[route] = true
-		}
-		if err := objectSchema(op.Output); err != nil {
-			problems = append(problems, where+" has an output schema that "+err.Error())
-		}
-		if op.Handle == nil {
-			problems = append(problems, where+" has no handler")
-		}
+	all := make([]operation.Facts, 0, len(ops))
+	for _, op := range ops {
+		all = append(all, facts(op))
 	}
-	if len(problems) > 0 {
+	if problems := operation.Problems(all); len(problems) > 0 {
 		return Registry{}, errors.New("the operation registry does not generate: " + strings.Join(problems, "; "))
 	}
-	sorted := slices.Clone(ops)
-	slices.SortFunc(sorted, func(a, b Operation) int { return strings.Compare(a.Name, b.Name) })
-	for i := range sorted {
-		sorted[i].Input = compact(sorted[i].Input)
-		sorted[i].Output = compact(sorted[i].Output)
+	byName := make([]int, len(ops))
+	for i := range byName {
+		byName[i] = i
 	}
-	r := Registry{ops: sorted, known: &atomic.Pointer[map[string]bool]{}}
+	slices.SortFunc(byName, func(a, b int) int { return strings.Compare(ops[a].Name, ops[b].Name) })
+	sorted := make([]Operation, 0, len(ops))
+	descriptors := make([]Descriptor, 0, len(ops))
+	for _, i := range byName {
+		op := ops[i]
+		op.Input = compact(op.Input)
+		op.Output = compact(op.Output)
+		sorted = append(sorted, op)
+		descriptors = append(descriptors, describe(op, all[i].Input))
+	}
+	r := Registry{ops: sorted, descriptors: descriptors, known: &atomic.Pointer[map[string]bool]{}}
 	r.Serve(accounts)
 	return r, nil
 }
@@ -219,25 +162,17 @@ func (r Registry) Call(ctx context.Context, name string, input json.RawMessage) 
 // ambiguous account. Each key is looked up by its folded form, so the work grows with the number of
 // keys and not with its square.
 func distinctKeys(input json.RawMessage) error {
-	dec := json.NewDecoder(bytes.NewReader(input))
-	if tok, err := dec.Token(); err != nil || tok != json.Delim('{') {
+	obj, ok := OpenObject(input)
+	if !ok {
 		return ErrNotAnObject
 	}
 	seen := make(map[string]bool)
-	for dec.More() {
+	for obj.More() {
 		if len(seen) == maxArguments {
 			return ErrTooManyArguments
 		}
-		tok, err := dec.Token()
-		if err != nil {
-			return ErrNotAnObject
-		}
-		key, ok := tok.(string)
+		key, _, ok := obj.Next()
 		if !ok {
-			return ErrNotAnObject
-		}
-		var value json.RawMessage
-		if err := dec.Decode(&value); err != nil {
 			return ErrNotAnObject
 		}
 		folded := foldKey(key)
@@ -272,24 +207,16 @@ func foldKey(key string) string {
 // account_id only in case is refused rather than read. Call has already refused an object naming the
 // account twice, through distinctKeys.
 func splitAccount(input json.RawMessage) (string, json.RawMessage, error) {
-	dec := json.NewDecoder(bytes.NewReader(input))
-	if tok, err := dec.Token(); err != nil || tok != json.Delim('{') {
+	obj, ok := OpenObject(input)
+	if !ok {
 		return "", nil, ErrMissingAccount
 	}
 	var account json.RawMessage
 	var rest bytes.Buffer
 	rest.WriteByte('{')
-	for dec.More() {
-		tok, err := dec.Token()
-		if err != nil {
-			return "", nil, ErrMissingAccount
-		}
-		key, ok := tok.(string)
+	for obj.More() {
+		key, value, ok := obj.Next()
 		if !ok {
-			return "", nil, ErrMissingAccount
-		}
-		var value json.RawMessage
-		if err := dec.Decode(&value); err != nil {
 			return "", nil, ErrMissingAccount
 		}
 		if strings.EqualFold(key, "account_id") {
@@ -318,38 +245,111 @@ func splitAccount(input json.RawMessage) (string, json.RawMessage, error) {
 	return *id, rest.Bytes(), nil
 }
 
+// Object reads one JSON object's members in order, keys as written, which is how every reader of a
+// call's arguments, on either root or in this layer, walks an object. Each reader stops where it
+// needs to and says a malformed object in its own words.
+type Object struct {
+	input []byte
+	dec   *json.Decoder
+}
+
+// OpenObject returns a reader of the JSON object input begins, or false when input does not begin
+// one.
+func OpenObject(input []byte) (Object, bool) {
+	dec := json.NewDecoder(bytes.NewReader(input))
+	if tok, err := dec.Token(); err != nil || tok != json.Delim('{') {
+		return Object{}, false
+	}
+	return Object{input: input, dec: dec}, true
+}
+
+// More reports whether another member follows.
+func (o Object) More() bool { return o.dec.More() }
+
+// Next returns the next member's key and value, or false when the object is malformed there.
+func (o Object) Next() (string, json.RawMessage, bool) {
+	tok, err := o.dec.Token()
+	if err != nil {
+		return "", nil, false
+	}
+	key, ok := tok.(string)
+	if !ok {
+		return "", nil, false
+	}
+	var value json.RawMessage
+	if err := o.dec.Decode(&value); err != nil {
+		return "", nil, false
+	}
+	return key, value, true
+}
+
+// End reports whether, after its last member, the object closes and nothing but JSON's white space
+// follows it.
+func (o Object) End() bool {
+	if tok, err := o.dec.Token(); err != nil || tok != json.Delim('}') {
+		return false
+	}
+	return len(bytes.Trim(o.input[o.dec.InputOffset():], " \t\r\n")) == 0
+}
+
 // Operations returns the registry's operations without their handlers, sorted by name.
 func (r Registry) Operations() []Descriptor {
-	out := make([]Descriptor, 0, len(r.ops))
-	for _, op := range r.ops {
-		out = append(out, describe(op))
+	out := make([]Descriptor, 0, len(r.descriptors))
+	for _, d := range r.descriptors {
+		out = append(out, cloned(d))
 	}
 	return out
 }
 
-func describe(op Operation) Descriptor {
-	method, annotations, _ := derive(op.Effect)
+// describe returns op without its handler, with the method and annotations its effect derives and
+// the facts read from its path and from input, its input schema as the registry read and checked it.
+func describe(op Operation, input operation.Schema) Descriptor {
+	method, annotations, _ := operation.Derive(op.Effect)
+	types := map[string]string{}
+	for name, t := range input.Types {
+		if t != "" {
+			types[name] = t
+		}
+	}
 	return Descriptor{
 		Name: op.Name, Description: op.Description, Effect: op.Effect, Path: op.Path,
 		Method: method, Annotations: annotations, Input: op.Input, Output: op.Output,
+		PathVariables: operation.PathVariables(op.Path), ArgumentTypes: types,
 	}
+}
+
+// cloned returns d with its own copies of the lists and the map, so a root changing what it was
+// handed changes no other root's.
+func cloned(d Descriptor) Descriptor {
+	d.PathVariables = slices.Clone(d.PathVariables)
+	types := make(map[string]string, len(d.ArgumentTypes))
+	for name, t := range d.ArgumentTypes {
+		types[name] = t
+	}
+	d.ArgumentTypes = types
+	return d
 }
 
 // Lookup returns the description of the operation named name.
 func (r Registry) Lookup(name string) (Descriptor, bool) {
-	op, found := r.lookup(name)
+	i, found := r.index(name)
 	if !found {
 		return Descriptor{}, false
 	}
-	return describe(op), true
+	return cloned(r.descriptors[i]), true
 }
 
 func (r Registry) lookup(name string) (Operation, bool) {
-	i, found := slices.BinarySearchFunc(r.ops, name, func(op Operation, n string) int { return strings.Compare(op.Name, n) })
+	i, found := r.index(name)
 	if !found {
 		return Operation{}, false
 	}
 	return r.ops[i], true
+}
+
+// index returns the position of the operation named name among the registry's operations.
+func (r Registry) index(name string) (int, bool) {
+	return slices.BinarySearchFunc(r.ops, name, func(op Operation, n string) int { return strings.Compare(op.Name, n) })
 }
 
 // objectSchema returns an error unless schema is a JSON object whose type is object, which MCP

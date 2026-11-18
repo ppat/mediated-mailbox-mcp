@@ -5,13 +5,13 @@ tests: TestARepeatedRouteFailsGeneration
 scheduled-count: no
 
 
-diff --git a/api/internal/service/registry.go b/api/internal/service/registry.go
-index 6d37edb..6b03ae4 100644
---- a/api/internal/service/registry.go
-+++ b/api/internal/service/registry.go
-@@ -117,7 +117,7 @@ func NewRegistry(accounts []string, ops ...Operation) (Registry, error) {
+diff --git a/api/internal/core/operation/operation.go b/api/internal/core/operation/operation.go
+index 241f1681..9f8f655a 100644
+--- a/api/internal/core/operation/operation.go
++++ b/api/internal/core/operation/operation.go
+@@ -177,7 +177,7 @@ func Problems(ops []Facts) []string {
  		}
- 		if method, _, ok := derive(op.Effect); ok {
+ 		if method, _, ok := Derive(op.Effect); ok {
  			route := method + " " + op.Path
 -			if routes[route] {
 +			if false && routes[route] {

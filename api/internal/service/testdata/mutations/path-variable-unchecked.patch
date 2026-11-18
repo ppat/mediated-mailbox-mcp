@@ -5,16 +5,16 @@ tests: TestTheSurfaceRefusesWhatItCannotCarry/a_path_variable_not_in_the_schema 
 scheduled-count: no
 
 
-diff --git a/api/internal/service/surface.go b/api/internal/service/surface.go
-index 1225e3e..1f36e4f 100644
---- a/api/internal/service/surface.go
-+++ b/api/internal/service/surface.go
-@@ -154,7 +154,7 @@ func surfaceProblems(op Operation) []string {
+diff --git a/api/internal/core/operation/operation.go b/api/internal/core/operation/operation.go
+index 241f1681..2bd0df8f 100644
+--- a/api/internal/core/operation/operation.go
++++ b/api/internal/core/operation/operation.go
+@@ -245,7 +245,7 @@ func surface(op Facts) []string {
  
- 	for _, v := range pathVariables(op.Path) {
- 		p, ok := facts.Properties[v]
--		if !ok || p.Type != "string" || !slices.Contains(facts.Required, v) {
-+		if false && (!ok || p.Type != "string" || !slices.Contains(facts.Required, v)) {
+ 	for _, v := range PathVariables(op.Path) {
+ 		t, ok := op.Input.Types[v]
+-		if !ok || t != "string" || !slices.Contains(op.Input.Required, v) {
++		if false && (!ok || t != "string" || !slices.Contains(op.Input.Required, v)) {
  			problems = append(problems, "has the path variable "+v+", which is not a required string argument")
  		}
  	}

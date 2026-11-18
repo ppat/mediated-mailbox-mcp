@@ -7,15 +7,15 @@ integration: yes
 
 
 diff --git a/api/internal/service/reads.go b/api/internal/service/reads.go
-index 90399bd8..8ad1d1fd 100644
+index 5679e209..7f892925 100644
 --- a/api/internal/service/reads.go
 +++ b/api/internal/service/reads.go
-@@ -331,7 +331,7 @@ func (s Sources) listThreads(ctx context.Context, account string, input json.Raw
+@@ -357,7 +357,7 @@ func (s Sources) listThreads(ctx context.Context, account string, input json.Raw
+ 	for _, r := range rows {
  		out = append(out, thread{ThreadID: r.ThreadID, Messages: r.Messages, LatestAt: formatUTC(r.LatestAt.Time)})
  	}
- 	var next *string
--	if len(rows) == pageSize {
-+	if false && len(rows) == pageSize {
- 		last := rows[len(rows)-1]
- 		c := encodeCursor(position{Listing: "list_threads", Account: account, At: formatUTC(last.LatestAt.Time), Key: last.ThreadID})
- 		next = &c
+-	next := nextCursor(rows, func(last messages.ThreadPageRow) position {
++	next := nextCursor(rows[:0], func(last messages.ThreadPageRow) position {
+ 		return position{Listing: "list_threads", Account: account, At: formatUTC(last.LatestAt.Time), Key: last.ThreadID}
+ 	})
+ 	return ok(struct {

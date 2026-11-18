@@ -6,15 +6,20 @@ scheduled-count: no
 integration: yes
 
 diff --git a/api/internal/service/index.go b/api/internal/service/index.go
-index f4ae8478..5a1f4714 100644
+index acd57dfb..276ff76c 100644
 --- a/api/internal/service/index.go
 +++ b/api/internal/service/index.go
-@@ -482,7 +482,7 @@ func (s Sources) listSenders(ctx context.Context, account string, input json.Raw
+@@ -475,11 +475,12 @@ func (s Sources) listSenders(ctx context.Context, account string, input json.Raw
+ 		return nil, err
+ 	}
+ 	out := make([]senderStats, 0, len(rows))
++	_ = p
  	for _, r := range rows {
  		// A domain's class is the class of every address at it, and one the classifier cannot read is
  		// restricted (ADR-0109).
--		restricted := classify.Classify(p, "@"+r.Domain).Class().Restricted()
-+		restricted := false && classify.Classify(p, "@"+r.Domain).Class().Restricted()
- 		class := "normal"
- 		if restricted {
- 			class = "restricted"
+ 		row := senderStats{
+-			Domain: r.Domain, SenderClass: classify.Classify(p, "@"+r.Domain).Class().String(), Messages: r.MessageCount,
++			Domain: r.Domain, SenderClass: sensitivity.NormalSender().String(), Messages: r.MessageCount,
+ 			FirstSeen: timestamp(r.FirstSeen), LastSeen: timestamp(r.LastSeen),
+ 			LabelDistribution: json.RawMessage(`{}`),
+ 			DisplayNames:      nonNil(r.DisplayNames), LocalPartSample: nonNil(r.LocalPartSample),

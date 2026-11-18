@@ -1,18 +1,19 @@
 control: The release step withholds a body it cannot decide on
-removes: a scan state the gate never releases falls through to release
+removes: the release step reads the sender class and the content flags but not the scan state, so a scan state the gate never releases falls through to the pattern check
 packages: ./api/internal/core/release
-tests: TestFailClosed/a_pending_scan TestFailClosed/the_zero_scan_state TestFailClosed/skipped_as_restricted
+tests: TestFailClosed/a_pending_scan TestFailClosed/refused
 scheduled-count: no
 
 diff --git a/api/internal/core/release/release.go b/api/internal/core/release/release.go
-index 8fdca71..8449214 100644
+index 941b336e..cce82b77 100644
 --- a/api/internal/core/release/release.go
 +++ b/api/internal/core/release/release.go
-@@ -132,7 +132,6 @@ func Decide(c Content, state sensitivity.ScanState, s scan.Scanner) Decision {
- 	case sensitivity.SkippedGate():
- 		checked = append([]string{c.Body, c.Snippet}, c.AttachmentNames...)
- 	default:
--		return Decision{reason: NotReleasable}
+@@ -149,7 +149,7 @@ func (b Body) AttachmentNames() []string { return slices.Clone(b.attachmentNames
+ // run by sc, every text of a gate-skipped message's content and the filenames of a scanned one. The
+ // Body is built from the texts the check read.
+ func Decide(c Content, s sensitivity.Sensitivity, sc scan.Scanner) (Verdict, Body) {
+-	if !s.ReleasesBody() {
++	if s.Class().Restricted() || s.Flags().Any() {
+ 		return Verdict{reason: NotReleasable}, Body{}
  	}
- 	var rules []string
- 	for _, text := range checked {
+ 	// A sensitivity that releases a body is scanned or skipped by the scan gate. The scanner read a

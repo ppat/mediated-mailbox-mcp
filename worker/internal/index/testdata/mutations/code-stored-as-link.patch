@@ -5,16 +5,16 @@ tests: TestAPassDecidesAndRecordsEveryWaitingMessage TestTheReleasedPartOfABodyI
 scheduled-count: no
 integration: yes
 
-diff --git a/worker/internal/index/index.go b/worker/internal/index/index.go
-index 0407d282..dd4351c0 100644
---- a/worker/internal/index/index.go
-+++ b/worker/internal/index/index.go
-@@ -170,7 +170,7 @@ func recordOutcome(ctx context.Context, messages *scanstore.Queries, gate *gater
- 	case o.Scanned != nil:
- 		flags := []string{}
- 		if o.Scanned.Flags.MFACode() {
--			flags = append(flags, "mfa_code")
-+			flags = append(flags, "login_link")
- 		}
- 		if o.Scanned.Flags.LoginLink() {
- 			flags = append(flags, "login_link")
+diff --git a/core/sensitivity/sensitivity.go b/core/sensitivity/sensitivity.go
+index 264fd5f3..fcef5de8 100644
+--- a/core/sensitivity/sensitivity.go
++++ b/core/sensitivity/sensitivity.go
+@@ -79,7 +79,7 @@ func (f ContentFlags) Any() bool { return f.MFACode() || f.LoginLink() }
+ func (f ContentFlags) Names() []string {
+ 	names := []string{}
+ 	if f.MFACode() {
+-		names = append(names, "mfa_code")
++		names = append(names, "login_link")
+ 	}
+ 	if f.LoginLink() {
+ 		names = append(names, "login_link")

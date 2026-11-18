@@ -39,8 +39,8 @@ func StampOf(s scan.Scanner) Stamp {
 type Message struct {
 	ID, ThreadID string
 	From         mail.Address
-	// Domain is the part of the sender's address after its last @, in the form StoredDomain gives
-	// it, or empty for an address without one.
+	// Domain is the part of the sender's address after its last @, in the form
+	// classify.StoredDomain gives it, or empty for an address without one.
 	Domain string
 	// Subject is the subject masked at rest (ADR-0003).
 	Subject        string
@@ -118,28 +118,14 @@ func Decide(items []mail.MessageMetadata, p classify.Policy, s scan.Scanner) Pag
 }
 
 // domain returns the stored form of the part of address after its last @, or empty when there is
-// none. A caller holding a bare domain passes it to StoredDomain instead, since through domain it would
-// become empty and match nothing.
+// none. A caller holding a bare domain passes it to classify.StoredDomain instead, since through
+// domain it would become empty and match nothing.
 func domain(address string) string {
 	at := strings.LastIndexByte(address, '@')
 	if at < 0 {
 		return ""
 	}
-	return StoredDomain(address[at+1:])
-}
-
-// StoredDomain returns a sender domain in the one form the index stores it in, which every workload
-// writes and every statement that matches a sender domain is given (ADR-0016). It applies Go's simple
-// lowercase mapping, strings.ToLower, after taking U+0130 (İ) to i followed by U+0307, as the one
-// unconditional entry of Unicode's SpecialCasing.txt whose lowercase differs from the simple
-// mapping's plain i does. It applies none of that file's conditional entries, such as the final
-// sigma, because the sender classifier's UTS #46 mapping maps each character the same wherever it
-// stands and takes no language, and maps U+0130 the same way. So a stored domain classifies as the
-// address it came from, which classifying senders by their stored domain relies on (ADR-0108). With
-// the simple mapping alone, a rule listing a domain written with U+0130 would restrict the address
-// but not the stored domain.
-func StoredDomain(domain string) string {
-	return strings.ToLower(strings.ReplaceAll(domain, "\u0130", "i\u0307"))
+	return classify.StoredDomain(address[at+1:])
 }
 
 // StoredFlags returns a message's flags in the form the index stores them, an object keyed read and

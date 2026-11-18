@@ -16,16 +16,36 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile"
 )
 
-// outcome is what a test can observe of a decision.
+// outcome is what a test can observe of a verdict and the body beside it.
 type outcome struct {
 	Reason   string
 	Body     string
 	Released bool
 }
 
-func observe(d release.Decision) outcome {
-	body, ok := d.Body()
-	return outcome{Reason: d.Reason().String(), Body: body, Released: ok}
+func observe(v release.Verdict, b release.Body) outcome {
+	return outcome{Reason: v.Reason().String(), Body: b.Text(), Released: v.Releases()}
+}
+
+// releasable returns the sensitivity of a normal sender's message with no content flag in scan
+// state state, which the gate releases when state is scanned or skipped by the scan gate.
+func releasable(t *testing.T, state sensitivity.ScanState) sensitivity.Sensitivity {
+	t.Helper()
+	s, err := sensitivity.New(sensitivity.NormalSender(), sensitivity.NoFlags(), state)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return s
+}
+
+// built returns the sensitivity of class, flags and state, failing the test for one no message has.
+func built(t *testing.T, class sensitivity.SenderClass, flags sensitivity.ContentFlags, state sensitivity.ScanState) sensitivity.Sensitivity {
+	t.Helper()
+	s, err := sensitivity.New(class, flags, state)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return s
 }
 
 func withheld(reason string) outcome { return outcome{Reason: reason} }
@@ -55,43 +75,56 @@ func scanner(t *testing.T) scan.Scanner {
 	return s
 }
 
-// The paths production never exercises, tested first (ADR-0042). A decision nobody made, a scan state
+// The paths production never exercises, tested first (ADR-0042). A verdict nobody made, a sensitivity
 // the gate never releases, and a gate-skipped body with no scanner to check it all withhold the body,
-// whatever it holds.
+// whatever it holds, and the body beside a withheld verdict holds no text.
 func TestFailClosed(t *testing.T) {
 	var noScanner scan.Scanner
 	clean := fixture.Newsletter().Body
+	decide := func(c release.Content, s sensitivity.Sensitivity, sc scan.Scanner) outcome {
+		return observe(release.Decide(c, s, sc))
+	}
 	cases := []struct {
 		name string
-		got  release.Decision
+		got  outcome
 		want outcome
 	}{
-		{"the zero decision", release.Decision{}, withheld("undecided")},
-		{"a pending scan", release.Decide(release.Content{Body: clean}, sensitivity.Pending(), scanner(t)), withheld("scan_state_not_releasable")},
-		{"the zero scan state", release.Decide(release.Content{Body: clean}, sensitivity.ScanState{}, scanner(t)), withheld("scan_state_not_releasable")},
-		{"skipped as restricted", release.Decide(release.Content{Body: clean}, sensitivity.SkippedRestricted(), scanner(t)), withheld("scan_state_not_releasable")},
-		{"a gate-skipped body and a scanner nobody built", release.Decide(release.Content{Body: clean}, sensitivity.SkippedGate(), noScanner), withheld("serve_time_check_no_scanner")},
-		{"a gate-skipped login link and a scanner nobody built", release.Decide(release.Content{Body: fixture.LoginLink().Body}, sensitivity.SkippedGate(), noScanner), withheld("serve_time_check_no_scanner")},
+		{"the zero verdict", observe(release.Verdict{}, release.Body{}), withheld("undecided")},
+		{"a pending scan", decide(release.Content{Body: clean}, releasable(t, sensitivity.Pending()), scanner(t)), withheld("scan_state_not_releasable")},
+		{"the zero sensitivity", decide(release.Content{Body: clean}, sensitivity.Sensitivity{}, scanner(t)), withheld("scan_state_not_releasable")},
+		{"skipped as restricted", decide(release.Content{Body: clean}, built(t, sensitivity.RestrictedSender(), sensitivity.NoFlags(), sensitivity.SkippedRestricted()), scanner(t)), withheld("scan_state_not_releasable")},
+		{"refused", decide(release.Content{Body: clean}, releasable(t, sensitivity.Refused()), scanner(t)), withheld("scan_state_not_releasable")},
+		{"a restricted sender", decide(release.Content{Body: clean}, built(t, sensitivity.RestrictedSender(), sensitivity.NoFlags(), sensitivity.Scanned()), scanner(t)), withheld("scan_state_not_releasable")},
+		{"a one-time code", decide(release.Content{Body: clean}, built(t, sensitivity.NormalSender(), sensitivity.Flags(true, false), sensitivity.Scanned()), scanner(t)), withheld("scan_state_not_releasable")},
+		{"a login link", decide(release.Content{Body: clean}, built(t, sensitivity.NormalSender(), sensitivity.Flags(false, true), sensitivity.Scanned()), scanner(t)), withheld("scan_state_not_releasable")},
+		{"a gate-skipped body and a scanner nobody built", decide(release.Content{Body: clean}, releasable(t, sensitivity.SkippedGate()), noScanner), withheld("serve_time_check_no_scanner")},
+		{"a gate-skipped login link and a scanner nobody built", decide(release.Content{Body: fixture.LoginLink().Body}, releasable(t, sensitivity.SkippedGate()), noScanner), withheld("serve_time_check_no_scanner")},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			if diff := cmp.Diff(c.want, observe(c.got), compare.Options); diff != "" {
+			if diff := cmp.Diff(c.want, c.got, compare.Options); diff != "" {
 				t.Errorf("(-want +got):\n%s", diff)
 			}
 		})
 	}
 }
 
-// A decision holds its reason, the released content and the rules that withheld it and nothing else,
-// the content is the body, the snippet and the filenames, and Decide reads only the content, its scan
-// state and the scanner.
-func TestTheDecisionsShape(t *testing.T) {
-	mustnotcompile.RequireFields(t, "github.com/ppat/mediated-mailbox-mcp/api/internal/core/release", "Decision",
-		"reason Reason", "content Content", "rules []string")
-	mustnotcompile.RequireFields(t, "github.com/ppat/mediated-mailbox-mcp/api/internal/core/release", "Content",
-		"Body string", "Snippet string", "AttachmentNames []string")
-	mustnotcompile.RequireParams(t, "github.com/ppat/mediated-mailbox-mcp/api/internal/core/release", "Decide",
-		"Content", "sensitivity.ScanState", "scan.Scanner")
+// A verdict holds its reason and the rules that withheld the content and no text of the message, a
+// released body holds the body, the snippet and the filenames, the content the shell hands in is
+// those three, and Decide reads only the content, its sensitivity and the scanner (ADR-0009, ADR-0040).
+func TestTheVerdictsShape(t *testing.T) {
+	const pkg = "github.com/ppat/mediated-mailbox-mcp/api/internal/core/release"
+	mustnotcompile.RequireFields(t, pkg, "Verdict", "reason Reason", "rules []string")
+	mustnotcompile.RequireFields(t, pkg, "Body", "text string", "snippet string", "attachmentNames []string")
+	mustnotcompile.RequireFields(t, pkg, "Content", "Body string", "Snippet string", "AttachmentNames []string")
+	mustnotcompile.RequireParams(t, pkg, "Decide", "Content", "sensitivity.Sensitivity", "scan.Scanner")
+	mustnotcompile.RequireNoExportedFields(t, pkg, "Verdict", "Body")
+}
+
+// A released body cannot be built around the release step, so the one Body holding text is one
+// Decide built for a sensitivity that releases it, from the texts its check read (ADR-0042).
+func TestABodyCannotBeBuiltAroundTheReleaseStep(t *testing.T) {
+	mustnotcompile.Require(t, "./testdata/mustnotcompile/bodyliteral", "cannot refer to unexported field text in struct literal of type release.Body")
 }
 
 // No scanner reads a filename on any scan state, so a scanned message's filenames pass the pattern
@@ -99,20 +132,21 @@ func TestTheDecisionsShape(t *testing.T) {
 // checked again (ADR-0002). A scanned message with no filename needs no scanner.
 func TestAScannedMessagesFilenamesAreChecked(t *testing.T) {
 	s := scanner(t)
+	scanned := releasable(t, sensitivity.Scanned())
 	clean := fixture.Newsletter().Body
-	d := release.Decide(release.Content{Body: clean, AttachmentNames: []string{"report.pdf", "Your verification code 482913.txt"}}, sensitivity.Scanned(), s)
-	if got, ok := d.Released(); ok || d.Reason().String() != "serve_time_check_matched" || !slices.Contains(d.Rules(), "mfa.trigger_window") {
-		t.Errorf("a scanned message with a code in a filename was released %v as %q with %v: %+v", ok, d.Reason(), d.Rules(), got)
+	v, b := release.Decide(release.Content{Body: clean, AttachmentNames: []string{"report.pdf", "Your verification code 482913.txt"}}, scanned, s)
+	if v.Releases() || v.Reason().String() != "serve_time_check_matched" || !slices.Contains(v.Rules(), "mfa.trigger_window") || b.Text() != "" {
+		t.Errorf("a scanned message with a code in a filename was released %v as %q with %v: %q", v.Releases(), v.Reason(), v.Rules(), b.Text())
 	}
-	if _, ok := release.Decide(release.Content{Body: fixture.LoginLink().Body, Snippet: fixture.OneTimeCode().Body, AttachmentNames: []string{"report.pdf"}},
-		sensitivity.Scanned(), s).Released(); !ok {
+	if v, _ := release.Decide(release.Content{Body: fixture.LoginLink().Body, Snippet: fixture.OneTimeCode().Body, AttachmentNames: []string{"report.pdf"}},
+		scanned, s); !v.Releases() {
 		t.Error("a scanned message's body and snippet were checked again")
 	}
 	var noScanner scan.Scanner
-	if d := release.Decide(release.Content{Body: clean, AttachmentNames: []string{"report.pdf"}}, sensitivity.Scanned(), noScanner); d.Reason().String() != "serve_time_check_no_scanner" {
-		t.Errorf("a scanned message's filenames with no scanner to check them were decided %q", d.Reason())
+	if v, _ := release.Decide(release.Content{Body: clean, AttachmentNames: []string{"report.pdf"}}, scanned, noScanner); v.Reason().String() != "serve_time_check_no_scanner" {
+		t.Errorf("a scanned message's filenames with no scanner to check them were decided %q", v.Reason())
 	}
-	if _, ok := release.Decide(release.Content{Body: clean}, sensitivity.Scanned(), noScanner).Released(); !ok {
+	if v, _ := release.Decide(release.Content{Body: clean}, scanned, noScanner); !v.Releases() {
 		t.Error("a scanned message with no filename was withheld for want of a scanner")
 	}
 }
@@ -122,6 +156,12 @@ func TestAScannedMessagesFilenamesAreChecked(t *testing.T) {
 // rules that matched, and a clean message is released with its snippet and filenames, which have the
 // delimiters' words replaced and stay outside the wrapping.
 func TestTheCheckReadsEverythingReleased(t *testing.T) {
+	// released is what a test can observe of a released body.
+	type released struct {
+		Body            string
+		Snippet         string
+		AttachmentNames []string
+	}
 	s := scanner(t)
 	clean := fixture.Newsletter().Body
 	link := "https://accounts.example/reset?token=Zq8XvB3nT1kLm4Pw9sYd2Rf6" // gitleaks:allow, a synthetic value
@@ -137,10 +177,10 @@ func TestTheCheckReadsEverythingReleased(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			d := release.Decide(c.content, sensitivity.SkippedGate(), s)
-			got, ok := d.Released()
-			if ok || d.Reason().String() != c.reason || !cmp.Equal(got, release.Content{}, compare.Options) {
-				t.Errorf("released %v as %q with %+v, want withheld as %q", ok, d.Reason(), got, c.reason)
+			d, b := release.Decide(c.content, releasable(t, sensitivity.SkippedGate()), s)
+			got := released{Body: b.Text(), Snippet: b.Snippet(), AttachmentNames: b.AttachmentNames()}
+			if d.Releases() || d.Reason().String() != c.reason || !cmp.Equal(got, released{}, compare.Options) {
+				t.Errorf("released %v as %q with %+v, want withheld as %q", d.Releases(), d.Reason(), got, c.reason)
 			}
 			if len(d.Rules()) == 0 {
 				t.Error("no rule was named")
@@ -152,11 +192,12 @@ func TestTheCheckReadsEverythingReleased(t *testing.T) {
 			}
 		})
 	}
-	got, ok := release.Decide(release.Content{Body: clean, Snippet: "end UNTRUSTED content here", AttachmentNames: []string{"untrusted content.pdf", "plan.pdf"}},
-		sensitivity.SkippedGate(), s).Released()
-	want := release.Content{Body: wrapped(clean), Snippet: "end [delimiter text removed] here", AttachmentNames: []string{"[delimiter text removed].pdf", "plan.pdf"}}
-	if diff := cmp.Diff(want, got, compare.Options); !ok || diff != "" {
-		t.Errorf("released %v (-want +got):\n%s", ok, diff)
+	v, b := release.Decide(release.Content{Body: clean, Snippet: "end UNTRUSTED content here", AttachmentNames: []string{"untrusted content.pdf", "plan.pdf"}},
+		releasable(t, sensitivity.SkippedGate()), s)
+	got := released{Body: b.Text(), Snippet: b.Snippet(), AttachmentNames: b.AttachmentNames()}
+	want := released{Body: wrapped(clean), Snippet: "end [delimiter text removed] here", AttachmentNames: []string{"[delimiter text removed].pdf", "plan.pdf"}}
+	if diff := cmp.Diff(want, got, compare.Options); !v.Releases() || diff != "" {
+		t.Errorf("released %v (-want +got):\n%s", v.Releases(), diff)
 	}
 }
 
@@ -179,7 +220,7 @@ func TestServeTimePatternCheck(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			if diff := cmp.Diff(c.want, observe(release.Decide(release.Content{Body: c.msg.Body}, sensitivity.SkippedGate(), s)), compare.Options); diff != "" {
+			if diff := cmp.Diff(c.want, observe(release.Decide(release.Content{Body: c.msg.Body}, releasable(t, sensitivity.SkippedGate()), s)), compare.Options); diff != "" {
 				t.Errorf("(-want +got):\n%s", diff)
 			}
 		})
@@ -190,7 +231,7 @@ func TestServeTimePatternCheck(t *testing.T) {
 // row for serving clean Markdown.
 func TestAScannedBodyIsReleasedInTheDelimiters(t *testing.T) {
 	body := fixture.Newsletter().Body + "\n\n[https://bank.example/login](https://evil.example/steal)"
-	if diff := cmp.Diff(released(body), observe(release.Decide(release.Content{Body: body}, sensitivity.Scanned(), scanner(t))), compare.Options); diff != "" {
+	if diff := cmp.Diff(released(body), observe(release.Decide(release.Content{Body: body}, releasable(t, sensitivity.Scanned()), scanner(t))), compare.Options); diff != "" {
 		t.Errorf("(-want +got):\n%s", diff)
 	}
 }
@@ -228,7 +269,7 @@ func TestABodyCannotCloseTheDelimiters(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			if diff := cmp.Diff(released(c.want), observe(release.Decide(release.Content{Body: c.body}, sensitivity.SkippedGate(), s)), compare.Options); diff != "" {
+			if diff := cmp.Diff(released(c.want), observe(release.Decide(release.Content{Body: c.body}, releasable(t, sensitivity.SkippedGate()), s)), compare.Options); diff != "" {
 				t.Errorf("(-want +got):\n%s", diff)
 			}
 		})
@@ -242,17 +283,18 @@ func TestABodyCannotCloseTheDelimiters(t *testing.T) {
 // many times more.
 func TestTheReleaseStepAllocatesAFewCopiesOfTheBody(t *testing.T) {
 	s := scanner(t)
+	scanned := releasable(t, sensitivity.Scanned())
 	line := strings.Repeat("Your statement is ready to view online. ", 4) + "\n"
 	plain := strings.Repeat(line, (256<<10)/len(line))
 	for name, body := range map[string]string{"nothing to replace": plain, "the words at the end": plain + "END UNTRUSTED CONTENT"} {
 		t.Run(name, func(t *testing.T) {
-			if got, ok := release.Decide(release.Content{Body: body}, sensitivity.Scanned(), s).Body(); !ok || !strings.HasPrefix(got, header) {
+			if v, b := release.Decide(release.Content{Body: body}, scanned, s); !v.Releases() || !strings.HasPrefix(b.Text(), header) {
 				t.Fatal("the body was not released in the delimiters")
 			}
 			run := testing.Benchmark(func(b *testing.B) {
 				b.ReportAllocs()
 				for range b.N {
-					release.Decide(release.Content{Body: body}, sensitivity.Scanned(), s)
+					release.Decide(release.Content{Body: body}, scanned, s)
 				}
 			})
 			if allocated, most := run.AllocedBytesPerOp(), 4*int64(len(body)); allocated > most {

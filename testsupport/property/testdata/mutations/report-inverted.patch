@@ -1,6 +1,6 @@
 control: The generator report fails a generator that misses its stated mix
 removes: a kind is reported short when it reaches its minimum and passed when it misses it
-packages: ./testsupport/property ./core/sensitivity
+packages: ./testsupport/property ./api/internal/core/release
 tests: TestTheReportFailsAGeneratorThatMissesItsMix TestNoBodyCarriesADenyingSensitivityMix
 scheduled-count: no
 

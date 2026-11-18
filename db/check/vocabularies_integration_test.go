@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ppat/mediated-mailbox-mcp/core/index"
+	"github.com/ppat/mediated-mailbox-mcp/core/classify"
 )
 
 // The SQLSTATE codes a check and a not-null column raise.
@@ -194,7 +194,7 @@ func TestASenderDomainIsStoredInTheNormalizersForm(t *testing.T) {
 			}
 		}
 		for _, domain := range []string{"Example.com", "ÉXAMPLE.İT", "xn--bcher-kva.example"} {
-			stored := index.StoredDomain(domain)
+			stored := classify.StoredDomain(domain)
 			if code := attempt(t, tx, insert, stored); code != "" {
 				t.Errorf("storing the normalizer's %q for %q in %s: %q, want it stored", stored, domain, column, code)
 			}

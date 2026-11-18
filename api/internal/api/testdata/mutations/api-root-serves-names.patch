@@ -6,10 +6,10 @@ scheduled-count: no
 
 
 diff --git a/api/internal/api/api.go b/api/internal/api/api.go
-index cc14950..a525da0 100644
+index 0e0e07bb..ad35b430 100644
 --- a/api/internal/api/api.go
 +++ b/api/internal/api/api.go
-@@ -47,6 +47,9 @@ func Handler(reg service.Registry) (h http.Handler, err error) {
+@@ -59,6 +59,9 @@ func Handler(reg service.Registry, logger *slog.Logger) (h http.Handler, err err
  		mux.Handle(op.Method+" "+op.Path, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
  			route.serve(reg, w, r)
  		}))

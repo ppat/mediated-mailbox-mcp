@@ -55,6 +55,7 @@ on:
     - process/*
     - process/database/*
     - process/database/core/*
+    - process/domains/*
     - process/logging/*
     - process/probes/*
     - process/runtimemetrics/*

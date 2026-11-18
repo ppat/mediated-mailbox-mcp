@@ -154,8 +154,7 @@ func call(reg service.Registry, name string, logger *slog.Logger) sdk.ToolHandle
 		}
 		out, err := reg.Call(ctx, name, input)
 		if err != nil {
-			logger.Log(ctx, service.FailureLevel(err), "operation failed", "operation", name, "error", err)
-			failure := service.Failure(err)
+			failure := service.Failed(ctx, logger, name, err)
 			return &sdk.CallToolResult{
 				IsError:           true,
 				StructuredContent: failure,

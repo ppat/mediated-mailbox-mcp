@@ -34,6 +34,16 @@ func encodeCursor(p position) string {
 	return base64.RawURLEncoding.EncodeToString(text)
 }
 
+// nextCursor returns the cursor of the page after rows, bound to the position at gives the last of
+// them, or nil when rows is not a full page, so the listing has no page after it.
+func nextCursor[R any](rows []R, at func(last R) position) *string {
+	if len(rows) != pageSize {
+		return nil
+	}
+	c := encodeCursor(at(rows[len(rows)-1]))
+	return &c
+}
+
 // decodeCursor reads the cursor the client sent to the listing for account and filter. An empty
 // cursor starts from the first row. A cursor that does not decode, or that another listing, account
 // or filter returned, is refused with an ArgumentError.
