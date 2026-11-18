@@ -1,6 +1,7 @@
 package setup
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"maps"
@@ -13,18 +14,11 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
 	"github.com/ppat/mediated-mailbox-mcp/db/accounts"
 	clientsetup "github.com/ppat/mediated-mailbox-mcp/db/oauthclients/setup"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/refusal"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/schema"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/setup"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/registry"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/server"
-)
-
-// The constraints whose refusals name a client mistake (ADR-0016, ADR-0106).
-const (
-	clientNameKey    = "oauth_clients_pkey"
-	clientIDKey      = "oauth_clients_provider_client_id_key"
-	accountKey       = "accounts_pkey"
-	accountReachable = "accounts_account_id_addressable"
 )
 
 // installationResponse is the installation endpoint, what the installation screens show of the
@@ -120,7 +114,7 @@ func (s *handlers) installation(ctx context.Context) (installationResponse, erro
 func (s *handlers) consentFor(w http.ResponseWriter, r *http.Request, provider string) (mail.Consent[context.Context], bool) {
 	c, ok := s.opts.Consents[provider]
 	if !ok {
-		server.WriteFailure(w, r, server.ClientFault(http.StatusNotFound, "unknown_provider", "no provider of this name authenticates through an OAuth client"))
+		server.WriteFailure(w, r, server.ClientFault(refusal.UnknownProvider, "no provider of this name authenticates through an OAuth client"))
 	}
 	return c, ok
 }
@@ -190,27 +184,18 @@ func (s *handlers) addClient(w http.ResponseWriter, r *http.Request) {
 	if !server.ReadBody(w, r, &body) {
 		return
 	}
-	if refusal := setup.ClientName(body.Name); refusal != setup.None {
-		server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, string(refusal), "a client's name is 6 to 30 lowercase letters, digits and hyphens starting with a letter, and never new"))
+	if refused := cmp.Or(setup.ClientName(body.Name), setup.NewClient(body.ClientID, body.ClientSecret, body.ProjectID)); refused != nil {
+		server.WriteFailure(w, r, server.Refused(refused))
 		return
 	}
-	if !s.validClient(w, r, body.ClientID, body.ClientSecret, body.ProjectID) {
-		return
-	}
-	stored, err := clientsetup.New(s.opts.Database).SetupClients(r.Context())
+	stored, err := s.clients(r.Context())
 	if err != nil {
 		server.DatabaseFailure(w, r, err)
 		return
 	}
-	for _, c := range stored {
-		if c.ClientName == body.Name {
-			server.WriteFailure(w, r, server.ClientFault(http.StatusConflict, "name_taken", "another client holds this name"))
-			return
-		}
-		if c.Provider == provider && c.ClientID == body.ClientID {
-			server.WriteFailure(w, r, server.ClientFault(http.StatusConflict, "client_exists", "this client is already set up as "+c.ClientName))
-			return
-		}
+	if refused := setup.Added(stored, setup.Client{Name: body.Name, Provider: provider, ID: body.ClientID}); refused != nil {
+		server.WriteFailure(w, r, server.Refused(refused))
+		return
 	}
 	if !s.checkClient(w, r, consent, body.ClientID, body.ClientSecret) {
 		return
@@ -246,23 +231,18 @@ func (s *handlers) replaceClient(w http.ResponseWriter, r *http.Request) {
 	if !server.ReadBody(w, r, &body) {
 		return
 	}
-	if !s.validClient(w, r, body.ClientID, body.ClientSecret, body.ProjectID) {
+	if refused := setup.NewClient(body.ClientID, body.ClientSecret, body.ProjectID); refused != nil {
+		server.WriteFailure(w, r, server.Refused(refused))
 		return
 	}
-	stored, err := clientsetup.New(s.opts.Database).SetupClients(r.Context())
+	stored, err := s.clients(r.Context())
 	if err != nil {
 		server.DatabaseFailure(w, r, err)
 		return
 	}
-	if !slices.ContainsFunc(stored, func(c clientsetup.SetupClientsRow) bool { return c.ClientName == name && c.Provider == provider }) {
-		server.WriteFailure(w, r, server.ClientFault(http.StatusNotFound, "unknown_client", "no client of this provider holds this name"))
+	if refused := setup.Replaced(stored, setup.Client{Name: name, Provider: provider, ID: body.ClientID}); refused != nil {
+		server.WriteFailure(w, r, server.Refused(refused))
 		return
-	}
-	for _, c := range stored {
-		if c.ClientName != name && c.Provider == provider && c.ClientID == body.ClientID {
-			server.WriteFailure(w, r, server.ClientFault(http.StatusConflict, "client_exists", "this client is already set up as "+c.ClientName))
-			return
-		}
 	}
 	if !s.checkClient(w, r, consent, body.ClientID, body.ClientSecret) {
 		return
@@ -284,7 +264,7 @@ func (s *handlers) replaceClient(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if n == 0 {
-		server.WriteFailure(w, r, server.ClientFault(http.StatusNotFound, "unknown_client", "no client of this provider holds this name"))
+		server.WriteFailure(w, r, server.Refused(setup.UnknownClient()))
 		return
 	}
 	server.WriteJSON(w, r, clientAnswer{Client: clientIdentity{Name: name, Provider: provider, ClientID: body.ClientID, ProjectID: body.ProjectID}})
@@ -307,7 +287,7 @@ func (s *handlers) removeClient(w http.ResponseWriter, r *http.Request) {
 	}
 	n, err := clientsetup.New(s.opts.Database).RemoveClient(r.Context(), clientsetup.RemoveClientParams{ClientName: name, Provider: provider})
 	if _, ok := server.Violated(err, server.ForeignKeyBlocked); ok {
-		server.WriteFailure(w, r, server.ClientFault(http.StatusConflict, "client_in_use", "an account connects through this client"))
+		server.WriteFailure(w, r, server.ClientFault(refusal.ClientInUse, "an account connects through this client"))
 		return
 	}
 	if err != nil {
@@ -315,23 +295,10 @@ func (s *handlers) removeClient(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if n == 0 {
-		server.WriteFailure(w, r, server.ClientFault(http.StatusNotFound, "unknown_client", "no client of this provider holds this name"))
+		server.WriteFailure(w, r, server.Refused(setup.UnknownClient()))
 		return
 	}
 	server.WriteJSON(w, r, removedAnswer{Removed: name})
-}
-
-// validClient refuses an empty identifier or secret and a project ID not shaped like one.
-func (s *handlers) validClient(w http.ResponseWriter, r *http.Request, id, secret string, project *string) bool {
-	switch {
-	case id == "" || secret == "":
-		server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, "client_refused", "the client identifier and the client secret are both required"))
-		return false
-	case setup.ProjectID(project) != setup.None:
-		server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, string(setup.ProjectRefused), "a project ID is 6 to 30 lowercase letters, digits and hyphens starting with a letter"))
-		return false
-	}
-	return true
 }
 
 // checkClient asks the provider whether it recognises the client, and answers the request when it
@@ -343,7 +310,7 @@ func (s *handlers) checkClient(w http.ResponseWriter, r *http.Request, consent m
 		return true
 	case errors.Is(err, mail.ErrClientRefused):
 		server.RequestLogOf(r.Context()).Err = err
-		server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, "client_refused", "the provider does not recognise this client identifier and secret"))
+		server.WriteFailure(w, r, server.ClientFault(refusal.ClientRefused, "the provider does not recognise this client identifier and secret"))
 	default:
 		s.providerFailure(w, r, err)
 	}
@@ -352,14 +319,11 @@ func (s *handlers) checkClient(w http.ResponseWriter, r *http.Request, consent m
 
 // clientConflict answers a client the table's keys refused, when another setup stored one meanwhile.
 func (s *handlers) clientConflict(w http.ResponseWriter, r *http.Request, key string) {
-	switch key {
-	case clientNameKey:
-		server.WriteFailure(w, r, server.ClientFault(http.StatusConflict, "name_taken", "another client holds this name"))
-	case clientIDKey:
-		server.WriteFailure(w, r, server.ClientFault(http.StatusConflict, "client_exists", "this client is already set up under another name"))
-	default:
-		server.WriteFailure(w, r, server.DatabaseFault())
+	if refused := setup.ClientConflict(key); refused != nil {
+		server.WriteFailure(w, r, server.Refused(refused))
+		return
 	}
+	server.WriteFailure(w, r, server.DatabaseFault())
 }
 
 // providerFailure reports a provider that did not answer a setup request. A cancelled request is the

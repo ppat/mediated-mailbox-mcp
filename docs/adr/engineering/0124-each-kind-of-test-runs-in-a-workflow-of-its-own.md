@@ -75,7 +75,11 @@ stale.
   of that class are `set +e` before the line, a `shell:` without `-e` or pipefail, a quoted `'if':`
   key, a `GOENV` file setting go's flags, a process substitution as the `tee` target, and the
   arguments filled from a narrowed ask. The program fails a step whose run has no test, so a
-  workflow never passes having selected nothing.
+  workflow never passes having selected nothing. For the recorded-fixtures run, whose workflow, `ui`,
+  starts only for the paths its pull-request trigger lists, the check also refuses that list when it
+  leaves unwatched a file of the module the run's tests compile or embed, as `go list -deps -test`
+  reads them, so a change that can change what those tests see starts the workflow that runs them.
+  Another run whose workflow narrows its list joins the check by an entry in it.
 - **One workflow per role, and its triggers alone decide when it runs.** A workflow holds one role,
   and no job in it exists to decide whether another job runs or whether it gates.
 

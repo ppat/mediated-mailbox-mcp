@@ -9,6 +9,7 @@ import (
 
 	"github.com/ppat/mediated-mailbox-mcp/db/jobruns"
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/refusal"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/schema"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/registry"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/server"
@@ -127,7 +128,7 @@ func (s *handlers) getRun(w http.ResponseWriter, r *http.Request) {
 		return nil
 	})
 	if errors.Is(err, errUnknownRun) {
-		server.WriteFailure(w, r, server.ClientFault(http.StatusNotFound, "unknown_run", "the account holds no such run"))
+		server.WriteFailure(w, r, server.ClientFault(refusal.UnknownRun, "the account holds no such run"))
 		return
 	}
 	if err != nil {

@@ -135,7 +135,7 @@ func AccountSenders(ctx context.Context, q *senderclassification.Queries, stored
 	for _, s := range read {
 		senders = append(senders, rules.Stored{Domain: s.Domain, Messages: s.MessageCount})
 	}
-	return rules.NewSenders(senders, rules.Names(Composed(stored), l), l), nil
+	return rules.NewSenders(senders, Classifier(stored, l), l), nil
 }
 
 // ruleRow is a stored rule with its counts in the account.
@@ -145,16 +145,6 @@ func ruleRow(r StoredRule, senders rules.Senders) RuleRow {
 		Scope: scopeOf(r.Base), RuleID: r.ID, Class: r.Class, Suffixes: slices.Clone(r.Suffixes), Source: r.Source,
 		CreatedAt: Stamp(r.CreatedAt), CreatedBy: r.CreatedBy, Senders: c.Senders, Messages: c.Messages,
 	}
-}
-
-// matchesSearch reports whether a rule's identifier or one of its suffixes holds search, compared
-// without case (docs/UI.md section 5).
-func matchesSearch(r StoredRule, search string) bool {
-	s := strings.ToLower(search)
-	if strings.Contains(strings.ToLower(r.ID), s) {
-		return true
-	}
-	return slices.ContainsFunc(r.Suffixes, func(x string) bool { return strings.Contains(strings.ToLower(x), s) })
 }
 
 // filtered returns the account's rules the read's range and search keep, in the policy screen's
@@ -167,7 +157,7 @@ func filtered(stored []StoredRule, r Read) []StoredRule {
 		if r.Bounds.Start != nil && rule.CreatedAt.Before(*r.Bounds.Start) || r.Bounds.End != nil && !rule.CreatedAt.Before(*r.Bounds.End) {
 			continue
 		}
-		if searched && !matchesSearch(rule, search.Values[0]) {
+		if searched && !rules.Matches(rules.Rule{ID: rule.ID, Suffixes: rule.Suffixes}, search.Values[0]) {
 			continue
 		}
 		out = append(out, rule)
@@ -282,7 +272,8 @@ type Counts struct {
 	Messages int64 `json:"messages"`
 }
 
-func countsType() schema.Type {
+// CountsType is Counts' declaration, which every answer carrying counts names.
+func CountsType() schema.Type {
 	return schema.Obj("Counts", schema.F("senders", schema.Int()), schema.F("messages", schema.Int()))
 }
 
@@ -352,9 +343,9 @@ func ruleDetailType() schema.Type {
 			schema.F("suffix", schema.Str()),
 			schema.F("senders", schema.Int()),
 			schema.F("messages", schema.Int()),
-			schema.F("released", countsType()),
+			schema.F("released", CountsType()),
 		))),
-		schema.F("released", countsType()),
+		schema.F("released", CountsType()),
 		schema.F("matched", schema.ArrayOf(schema.Obj("SenderMatch",
 			schema.F("domain", schema.Str()),
 			schema.F("sender_class", schema.Str()),
@@ -802,11 +793,12 @@ func senderRows(ctx context.Context, q Queries, r Read, l classify.Lookups) (any
 	if err != nil {
 		return nil, err
 	}
-	policy := rules.Names(Composed(stored), l)
+	classifier := Classifier(stored, l)
 	for _, row := range rows {
-		restricted, by := rules.ClassOf(row.Domain, policy, l)
+		verdict := rules.Classify(classifier, row.Domain)
+		by := verdict.Rule()
 		s := SenderRow{
-			Domain: row.Domain, SenderClass: className(restricted), MessageCount: row.MessageCount,
+			Domain: row.Domain, SenderClass: className(verdict.Class().Restricted()), MessageCount: row.MessageCount,
 			FirstSeen: optionalStamp(row.FirstSeen), LastSeen: optionalStamp(row.LastSeen), ScanHits: row.ScanHitCount,
 		}
 		if row.HasListIDRatio.Valid {

@@ -4,10 +4,10 @@ packages: ./ui/internal/server
 tests: TestThePolicyScanReportsEachPlantedViolation
 scheduled-count: no
 
-diff --git a/ui/internal/server/scan.go b/ui/internal/server/scan.go
+diff --git a/ui/internal/server/cspscan/scan.go b/ui/internal/server/cspscan/scan.go
 index f61f845f..b37c1dd4 100644
---- a/ui/internal/server/scan.go
-+++ b/ui/internal/server/scan.go
+--- a/ui/internal/server/cspscan/scan.go
++++ b/ui/internal/server/cspscan/scan.go
 @@ -92,7 +92,7 @@ func NeedsLooserPolicy(name, text string) []string {
  		}
  		for _, m := range stylesheetURL.FindAllStringSubmatch(text, -1) {

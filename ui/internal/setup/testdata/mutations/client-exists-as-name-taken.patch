@@ -5,16 +5,15 @@ tests: TestAClientsNameReachesOneClient
 scheduled-count: no
 integration: yes
 
-diff --git a/ui/internal/setup/setup.go b/ui/internal/setup/setup.go
-index 2bd0ea88..a8d84b14 100644
---- a/ui/internal/setup/setup.go
-+++ b/ui/internal/setup/setup.go
-@@ -208,7 +208,7 @@ func (s *handlers) addClient(w http.ResponseWriter, r *http.Request) {
- 			return
+diff --git a/ui/internal/core/setup/setup.go b/ui/internal/core/setup/setup.go
+--- a/ui/internal/core/setup/setup.go
++++ b/ui/internal/core/setup/setup.go
+@@ -149,7 +149,7 @@ func Added(stored []Client, c Client) *refusal.Refusal {
+ 			return refusal.Of(refusal.NameTaken, "another client holds this name")
  		}
- 		if c.Provider == provider && c.ClientID == body.ClientID {
--			server.WriteFailure(w, r, server.ClientFault(http.StatusConflict, "client_exists", "this client is already set up as "+c.ClientName))
-+			server.WriteFailure(w, r, server.ClientFault(http.StatusConflict, "name_taken", "another client holds this name"))
- 			return
+ 		if s.Provider == c.Provider && s.ID == c.ID {
+-			return refusal.Of(refusal.ClientExists, "this client is already set up as "+s.Name)
++			return refusal.Of(refusal.NameTaken, "another client holds this name")
  		}
  	}
+ 	return nil

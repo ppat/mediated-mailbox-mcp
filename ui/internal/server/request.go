@@ -8,6 +8,8 @@ import (
 	"net/http"
 
 	"github.com/jackc/pgx/v5/pgconn"
+
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/refusal"
 )
 
 // maxBody bounds how much of a request body a state-changing route reads.
@@ -20,7 +22,7 @@ func ReadBody(w http.ResponseWriter, r *http.Request, v any) bool {
 	d.DisallowUnknownFields()
 	if err := d.Decode(v); err != nil {
 		RequestLogOf(r.Context()).Err = err
-		WriteFailure(w, r, ClientFault(http.StatusBadRequest, "malformed_body", "the request body is not the JSON this request takes"))
+		WriteFailure(w, r, ClientFault(refusal.MalformedBody, "the request body is not the JSON this request takes"))
 		return false
 	}
 	return true
@@ -57,17 +59,4 @@ func Violated(err error, code string) (string, bool) {
 		return pgErr.ConstraintName, true
 	}
 	return "", false
-}
-
-// Fault is a test's fault at a named point between a write's statements, which proves the statements
-// land together or not at all (ADR-0060). The setups and policy management call it between their
-// writes, and every build that ships leaves it nil.
-type Fault func(at string) error
-
-// At returns the fault injected at the named point, nil when no test injected one.
-func (f Fault) At(at string) error {
-	if f == nil {
-		return nil
-	}
-	return f(at)
 }

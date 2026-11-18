@@ -117,13 +117,13 @@ var identifierCases = func() []identifierCase {
 // identifier grammar row and the identifier agreement row).
 func TestTheServerCheckKeepsToTheIdentifierTable(t *testing.T) {
 	for _, c := range identifierCases {
-		if got := setup.Identifier(c.Identifier) == setup.None; got != c.Server {
+		if got := setup.Identifier(c.Identifier) == nil; got != c.Server {
 			t.Errorf("%q: the server's check accepts it %v, the table says %v", c.Identifier, got, c.Server)
 		}
 		if c.Server != c.Database {
 			t.Errorf("%q: the table's server verdict %v is not its database verdict %v", c.Identifier, c.Server, c.Database)
 		}
-		if got := setup.Identifier(c.Proposal); got != setup.None || slices.Contains(c.Taken, c.Proposal) {
+		if got := setup.Identifier(c.Proposal); got != nil || slices.Contains(c.Taken, c.Proposal) {
 			t.Errorf("%q: the proposal %q is refused with %q or taken", c.Identifier, c.Proposal, got)
 		}
 	}

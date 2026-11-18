@@ -5,13 +5,12 @@ tests: TestTxHelper
 scheduled-count: no
 
 diff --git a/testsupport/analysis/txhelper.go b/testsupport/analysis/txhelper.go
-index cbb80af2..b1ec1df8 100644
 --- a/testsupport/analysis/txhelper.go
 +++ b/testsupport/analysis/txhelper.go
-@@ -70,7 +70,6 @@ const txBasePath = modulePath + "/db/policyrules/base"
+@@ -68,7 +68,6 @@ const txBasePath = modulePath + "/db/policyrules/base"
  var txHelperExceptions = map[string][]string{
  	modulePath + "/db/accounts":            {"Accounts"},
- 	modulePath + "/db/oauthclients":        {"OAuthClients"},
+ 	modulePath + "/db/oauthclients":        {"OAuthClients", "SealedClient"},
 -	modulePath + "/db/oauthclients/secret": {"ReplaceSealedClient"},
  	modulePath + "/db/oauthclients/setup":  {"SetupClients", "AddClient", "ReplaceClient", "RemoveClient"},
  	modulePath + "/db/schemacompatibility": {"SchemaVersions"},

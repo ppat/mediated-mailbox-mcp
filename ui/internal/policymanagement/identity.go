@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/refusal"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/server"
 )
 
@@ -27,7 +28,7 @@ func (s *handlers) identity(w http.ResponseWriter, r *http.Request) (string, boo
 	// operator name configured empty, is refused rather than recorded.
 	v = strings.TrimSpace(v)
 	if v == "" {
-		server.WriteFailure(w, r, server.ClientFault(http.StatusForbidden, "identity_missing", "No identity was forwarded, so the change was not recorded"))
+		server.WriteFailure(w, r, server.ClientFault(refusal.IdentityMissing, "No identity was forwarded, so the change was not recorded"))
 		return "", false
 	}
 	return v, true

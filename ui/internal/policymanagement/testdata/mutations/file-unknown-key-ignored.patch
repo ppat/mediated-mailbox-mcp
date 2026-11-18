@@ -6,14 +6,13 @@ scheduled-count: no
 integration: yes
 
 diff --git a/ui/internal/policymanagement/policyfile.go b/ui/internal/policymanagement/policyfile.go
-index 2144f12e..3336db70 100644
 --- a/ui/internal/policymanagement/policyfile.go
 +++ b/ui/internal/policymanagement/policyfile.go
-@@ -93,7 +93,6 @@ func parseFile(text string) ([]fileRule, *fileProblem) {
+@@ -82,7 +82,6 @@ func parseFile(text string) ([]fileRule, *refusal.Refusal) {
  					r.rule.Suffixes = append(r.rule.Suffixes, suffix.Value)
  				}
  			default:
--				return nil, &fileProblem{kind: kindNotTheForm, line: key.Line}
+-				return nil, notAFile(refusal.NotTheForm, key.Line)
  			}
  		}
  		if !seen["id"] || !seen["class"] || !seen["domain_suffix"] {

@@ -521,7 +521,7 @@ The demonstrations of the controls whose patches sit in `testsupport/`. [MUTATIO
 
 ## The txhelper analyser holds every generated data-access function to the transaction helper, except the accounts listing, the read of oauth_clients, delta sync's re-seal of a client secret, the UI's client setup and the start check's read of the schema's versions
 
-- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-13 at RAPID_SEED=1, after the rename of the API server and the migrator moved the code, tests or patches the row rests on · [pull request #376](https://github.com/ppat/mediated-mailbox-mcp/pull/376), in run [38440944897](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/38440944897) of the `mutation-demonstrations` workflow · and breaks (16) and (18) again on 2026-11-12 at RAPID_SEED=1, after the start check's exception moved the patches they rest on, with break (23) new · [pull request #421](https://github.com/ppat/mediated-mailbox-mcp/pull/421)
+- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-13 at RAPID_SEED=1, after the rename of the API server and the migrator moved the code, tests or patches the row rests on · [pull request #376](https://github.com/ppat/mediated-mailbox-mcp/pull/376), in run [38440944897](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/38440944897) of the `mutation-demonstrations` workflow · and breaks (16) and (18) again on 2026-11-12 at RAPID_SEED=1, after the start check's exception moved the patches they rest on, with break (23) new · [pull request #421](https://github.com/ppat/mediated-mailbox-mcp/pull/421), and every break again on 2026-11-18 at RAPID_SEED=1, after the UI's decisions moved into its pure cores, a refused request became one type and its test hooks left shipped code, which changed the code, tests or patches the row rests on · [pull request #471](https://github.com/ppat/mediated-mailbox-mcp/pull/471)
 - **Break (1):** taking the transaction parameter's address is not reported
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestTxHelper`
 - **Break (2):** taking the address of any variable is reported, not only of the transaction parameter
@@ -568,16 +568,30 @@ The demonstrations of the controls whose patches sit in `testsupport/`. [MUTATIO
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestTxHelper`
 - **Break (23):** the start check's read of the schema's versions is no longer exempt, so a composition root's check outside an account's transaction is reported
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestTxHelper`
+- **Break (24):** the UI's read of one client's sealed secret by its name is no longer exempt, so its read outside an account's transaction is reported
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestTxHelper`
 
 ## The txhelper analyser holds the base policy's subsection and tx.RunBase to each other
 
-- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-13 at RAPID_SEED=1, after the rename of the API server and the migrator moved the code, tests or patches the row rests on · [pull request #376](https://github.com/ppat/mediated-mailbox-mcp/pull/376), in run [38440944897](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/38440944897) of the `mutation-demonstrations` workflow
+- **Date · evidence:** 2026-10-03 · [pull request #258](https://github.com/ppat/mediated-mailbox-mcp/pull/258), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-13 at RAPID_SEED=1, after the rename of the API server and the migrator moved the code, tests or patches the row rests on · [pull request #376](https://github.com/ppat/mediated-mailbox-mcp/pull/376), in run [38440944897](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/38440944897) of the `mutation-demonstrations` workflow, and every break again on 2026-11-18 at RAPID_SEED=1, after the UI's decisions moved into its pure cores, a refused request became one type and its test hooks left shipped code, which changed the code, tests or patches the row rests on · [pull request #471](https://github.com/ppat/mediated-mailbox-mcp/pull/471)
 - **Break (1):** the base policy's subsection built in an account's transaction is accepted
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestTxHelper`
 - **Break (2):** another subsection built in a base-policy transaction is accepted
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestTxHelper`
 - **Break (3):** a literal passed to tx.RunBase is not a transaction literal, so every subsection built in one is reported as outside the helper
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestTxHelper`
+
+## The ui workflow's path list watches every file its fixtures tests compile or embed
+
+- **Date · evidence:** 2026-11-18 · [pull request #471](https://github.com/ppat/mediated-mailbox-mcp/pull/471)
+- **Break (1):** the files a linked package embeds are left out, so a filter missing an embedded file passes
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/cmd/testkinds`:** `TestAFilteredWorkflowWatchesEveryFileItsTestsLink`, `TestAFilteredWorkflowWatchesEveryFileItsTestsLink/its_embedded_file_excluded`, `TestAFilteredWorkflowWatchesEveryFileItsTestsLink/its_embedded_file_unwatched`
+- **Break (2):** a pattern starting with ! is read as one more pattern to watch, so an excluded file still reads as watched
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/cmd/testkinds`:** `TestAFilteredWorkflowWatchesEveryFileItsTestsLink`, `TestAFilteredWorkflowWatchesEveryFileItsTestsLink/its_embedded_file_excluded`
+- **Break (3):** a pattern holding ?, +, [ or ] is read with each character standing for itself, which is not GitHub's reading of it
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/cmd/testkinds`:** `TestAFilteredWorkflowWatchesEveryFileItsTestsLink`
+- **Break (4):** a single star in a path pattern matches across a slash, so a pattern for one directory watches every directory below it too
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/cmd/testkinds`:** `TestAFilteredWorkflowWatchesEveryFileItsTestsLink`, `TestAFilteredWorkflowWatchesEveryFileItsTestsLink/a_single_star_stops_at_a_slash`
 
 ## The unsafe analyser refuses an import of unsafe, and a use of reflect's unsafe pointers, in this module's code
 

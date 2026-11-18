@@ -6,15 +6,14 @@ scheduled-count: no
 integration: yes
 
 diff --git a/ui/internal/setup/setup.go b/ui/internal/setup/setup.go
-index 2bd0ea88..04eb449a 100644
 --- a/ui/internal/setup/setup.go
 +++ b/ui/internal/setup/setup.go
-@@ -306,7 +306,7 @@ func (s *handlers) removeClient(w http.ResponseWriter, r *http.Request) {
+@@ -286,7 +286,7 @@ func (s *handlers) removeClient(w http.ResponseWriter, r *http.Request) {
  		return
  	}
  	n, err := clientsetup.New(s.opts.Database).RemoveClient(r.Context(), clientsetup.RemoveClientParams{ClientName: name, Provider: provider})
 -	if _, ok := server.Violated(err, server.ForeignKeyBlocked); ok {
 +	if _, ok := server.Violated(err, server.ForeignKeyBlocked); ok && false {
- 		server.WriteFailure(w, r, server.ClientFault(http.StatusConflict, "client_in_use", "an account connects through this client"))
+ 		server.WriteFailure(w, r, server.ClientFault(refusal.ClientInUse, "an account connects through this client"))
  		return
  	}

@@ -4,7 +4,6 @@ package api_test
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 	"net/url"
 	"slices"
@@ -177,28 +176,37 @@ func TestAPolicyWriteLeavesItsHistoryRowOrNothing(t *testing.T) {
 	b := r.browser()
 	before := r.changes()
 
-	failing := func(at string) error {
-		if at == "between a rule's write and its history row" {
-			return errors.New("an injected fault")
-		}
-		return nil
-	}
-	r.fault = failing
 	stored := r.stored()
-	for name, res := range map[string]response{
-		"add":      b.post("/ui/api/accounts/personal/policy/rules", map[string]any{"scope": "account", "rule_id": "operator.shop.example", "suffixes": []string{"shop.example"}}),
-		"edit":     b.post("/ui/api/accounts/personal/policy/rules/operator.lender.example", map[string]any{"scope": "account", "suffixes_before": []string{"lender.example"}, "suffixes": []string{"lender.example", "loans.example"}, "confirmation": nil}),
-		"lift":     b.post("/ui/api/accounts/personal/policy/rules/operator.lender.example/lift", map[string]any{"scope": "account", "suffixes_before": []string{"lender.example"}, "confirmation": nil}),
-		"base add": b.post("/ui/api/setup/policy/rules", map[string]any{"rule_id": "base.shop", "suffixes": []string{"shop.example"}}),
-	} {
+	writes := []struct {
+		name, history string
+		do            func() response
+	}{
+		{"add", "RecordChange", func() response {
+			return b.post("/ui/api/accounts/personal/policy/rules", map[string]any{"scope": "account", "rule_id": "operator.shop.example", "suffixes": []string{"shop.example"}})
+		}},
+		{"edit", "RecordChange", func() response {
+			return b.post("/ui/api/accounts/personal/policy/rules/operator.lender.example", map[string]any{"scope": "account", "suffixes_before": []string{"lender.example"}, "suffixes": []string{"lender.example", "loans.example"}, "confirmation": nil})
+		}},
+		{"lift", "RecordChange", func() response {
+			return b.post("/ui/api/accounts/personal/policy/rules/operator.lender.example/lift", map[string]any{"scope": "account", "suffixes_before": []string{"lender.example"}, "confirmation": nil})
+		}},
+		{"base add", "RecordBaseChange", func() response {
+			return b.post("/ui/api/setup/policy/rules", map[string]any{"rule_id": "base.shop", "suffixes": []string{"shop.example"}})
+		}},
+	}
+	for _, w := range writes {
+		r.fault.arm(w.history, 1)
+		res := w.do()
+		if n := r.fault.disarm(); n != 1 {
+			t.Errorf("%s ran its history row's write %d times, want the one the fault failed", w.name, n)
+		}
 		if res.status != http.StatusServiceUnavailable {
-			t.Errorf("%s failed between its writes answered %d, want the database's 503:\n%s", name, res.status, res.body)
+			t.Errorf("%s failed between its writes answered %d, want the database's 503:\n%s", w.name, res.status, res.body)
 		}
 	}
 	if got := r.stored(); got != stored {
 		t.Fatalf("a write failed between its rule and its history row left:\nbefore %s\nafter  %s", stored, got)
 	}
-	r.fault = nil
 
 	decode[map[string]any](t, b.post("/ui/api/accounts/personal/policy/rules", map[string]any{"scope": "account", "rule_id": "operator.shop.example", "suffixes": []string{"shop.example"}}))
 	decode[map[string]any](t, b.post("/ui/api/accounts/personal/policy/rules/operator.shop.example", map[string]any{"scope": "account", "suffixes_before": []string{"shop.example"}, "suffixes": []string{"shop.example", "store.example"}, "confirmation": nil}))
@@ -414,16 +422,14 @@ func TestAnImportIsAppliedWholeOrNotAtAll(t *testing.T) {
 	file := policyFile([]string{"operator.lender.example", "lender.example", "loans.example"}, []string{"operator.shop.example", "shop.example"}, []string{"operator.store.example", "store.example"})
 	p := decode[preview](t, b.post("/ui/api/accounts/personal/policy/import/preview", map[string]any{"file": file}))
 	stored := r.stored()
-	r.fault = func(at string) error {
-		if at == "after an import's first change" {
-			return errors.New("an injected fault")
-		}
-		return nil
-	}
+	// The second change's first write fails, after the first change wrote its rule and its history row.
+	r.fault.arm("AddRule", 2)
 	if res := b.post("/ui/api/accounts/personal/policy/import", map[string]any{"file": file, "computed_against": p.ComputedAgainst, "confirmation": nil}); res.status != http.StatusServiceUnavailable {
 		t.Errorf("the import failed after its first change answered %d:\n%s", res.status, res.body)
 	}
-	r.fault = nil
+	if n := r.fault.disarm(); n != 2 {
+		t.Fatalf("the import added %d rules before the fault, want the first and the one the fault failed", n)
+	}
 	if got := r.stored(); got != stored {
 		t.Fatalf("a failed import left:\nbefore %s\nafter  %s", stored, got)
 	}

@@ -5,16 +5,15 @@ tests: TestAWriteTheValidationRefusesIsRefusedBeforeItIsWritten
 scheduled-count: no
 integration: yes
 
-diff --git a/ui/internal/policymanagement/rules.go b/ui/internal/policymanagement/rules.go
-index e7c377d0..ade64bfc 100644
---- a/ui/internal/policymanagement/rules.go
-+++ b/ui/internal/policymanagement/rules.go
-@@ -282,7 +282,7 @@ func toRules(stored []registry.StoredRule) []rules.Rule {
- // with the rule at index i, the one the write changes.
- func checked(scope string, after []rules.Rule, i int) error {
- 	var mine []rules.Problem
--	for _, p := range rules.Check(after) {
-+	for _, p := range rules.Check(after[:i]) {
+diff --git a/ui/internal/core/rules/rules.go b/ui/internal/core/rules/rules.go
+--- a/ui/internal/core/rules/rules.go
++++ b/ui/internal/core/rules/rules.go
+@@ -146,7 +146,7 @@ func held(stored []Rule, id string, before []string) (int, *refusal.Refusal) {
+ // with the rule at index i, the one the write changes, naming each with the rule's identifier.
+ func checked(after []Rule, i int) *refusal.Refusal {
+ 	var mine []refusal.Problem
+-	for _, p := range Check(after) {
++	for _, p := range Check(after[:i]) {
  		if p.Rule == i {
- 			mine = append(mine, p)
+ 			mine = append(mine, refusal.Problem{Kind: p.Kind, Rule: after[i].ID, Suffix: p.Suffix})
  		}

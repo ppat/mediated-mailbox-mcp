@@ -11,18 +11,18 @@ import (
 	"github.com/google/go-cmp/cmp"
 
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/pages"
-	"github.com/ppat/mediated-mailbox-mcp/ui/internal/server"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/server/cspscan"
 )
 
 // The policy's static half (ADR-0062, with the proof split ADR-0064 records). The entry template and
 // the built bundle hold no inline script and no reference to another origin, and every stylesheet
 // takes its fonts from the UI's own origin, so nothing the UI ships needs a looser policy. The scan is
-// server.NeedsLooserPolicy. That a browser enforces the header is the drill of the policy row, performed
+// cspscan.NeedsLooserPolicy. That a browser enforces the header is the drill of the policy row, performed
 // by a person.
 
 // TestTheEntryTemplateNeedsNoLooserPolicy scans the entry document's template.
 func TestTheEntryTemplateNeedsNoLooserPolicy(t *testing.T) {
-	if findings := server.NeedsLooserPolicy("entry.html", pages.EntryTemplate()); len(findings) > 0 {
+	if findings := cspscan.NeedsLooserPolicy("entry.html", pages.EntryTemplate()); len(findings) > 0 {
 		t.Fatalf("the entry template needs a looser policy: %v", findings)
 	}
 }
@@ -42,7 +42,7 @@ func TestTheBundleNeedsNoLooserPolicy(t *testing.T) {
 			return err
 		}
 		scanned++
-		if findings := server.NeedsLooserPolicy(p, string(b)); len(findings) > 0 {
+		if findings := cspscan.NeedsLooserPolicy(p, string(b)); len(findings) > 0 {
 			t.Errorf("%s needs a looser policy: %v", p, findings)
 		}
 		return nil
@@ -101,7 +101,7 @@ func TestThePolicyScanReportsEachPlantedViolation(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if d := cmp.Diff(findings, server.NeedsLooserPolicy(name, string(b))); d != "" {
+		if d := cmp.Diff(findings, cspscan.NeedsLooserPolicy(name, string(b))); d != "" {
 			t.Errorf("%s (-want +got):\n%s", name, d)
 		}
 	}

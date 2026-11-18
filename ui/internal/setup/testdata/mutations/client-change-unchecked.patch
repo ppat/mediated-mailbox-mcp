@@ -5,25 +5,24 @@ tests: TestAClientReplacedMidAttemptFailsTheFinish
 scheduled-count: no
 integration: yes
 
-diff --git a/ui/internal/setup/connect.go b/ui/internal/setup/connect.go
-index 2b6d3f2f..4dd329c5 100644
---- a/ui/internal/setup/connect.go
-+++ b/ui/internal/setup/connect.go
-@@ -388,7 +388,7 @@ func (s *handlers) stillFree(w http.ResponseWriter, r *http.Request, a attempt)
- 		return false
+diff --git a/ui/internal/core/setup/setup.go b/ui/internal/core/setup/setup.go
+--- a/ui/internal/core/setup/setup.go
++++ b/ui/internal/core/setup/setup.go
+@@ -279,7 +279,7 @@ func StillFree(kind, account string, listed []string, stored []Client, attempt C
+ 	if kind == Connect && slices.Contains(listed, account) {
+ 		return IdentifierTaken()
  	}
- 	if !slices.ContainsFunc(stored, func(c clientsetup.SetupClientsRow) bool {
--		return c.ClientName == a.Client && c.Provider == a.Provider && c.ClientID == a.ClientID
-+		return c.ClientName == a.Client && c.Provider == a.Provider
- 	}) {
- 		server.WriteFailure(w, r, server.ClientFault(http.StatusConflict, "client_changed", "the client "+a.Client+" changed while this was in progress"))
- 		return false
-@@ -425,7 +425,7 @@ func (s *handlers) store(ctx context.Context, clients *clientsetup.Queries, q *a
- 	if err != nil {
- 		return err
+-	if !slices.Contains(stored, attempt) {
++	if !slices.ContainsFunc(stored, func(c Client) bool { return c.Name == attempt.Name && c.Provider == attempt.Provider }) {
+ 		return refusal.Of(refusal.ClientChanged, "the client "+attempt.Name+" changed while this was in progress")
  	}
--	if len(identity) != 1 || identity[0].Provider != a.Provider || identity[0].ClientID != a.ClientID {
-+	if len(identity) != 1 || identity[0].Provider != a.Provider {
- 		return errClientChanged
- 	}
- 	client := pgtype.Text{String: a.Client, Valid: true}
+ 	return nil
+@@ -295,7 +295,7 @@ func IdentifierTaken() *refusal.Refusal {
+ // started, read again in the transaction that writes, so a client replaced or removed meanwhile
+ // writes nothing. identity is the stored client of the attempt's name, none when it was removed.
+ func ClientChanged(identity []Client, attempt Client) bool {
+-	return len(identity) != 1 || identity[0] != attempt
++	return len(identity) != 1 || identity[0].Provider != attempt.Provider
+ }
+ 
+ // Violation is the database's refusal of a write by a constraint, the constraint's name and whether

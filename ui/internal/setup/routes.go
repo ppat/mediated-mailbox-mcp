@@ -34,8 +34,8 @@ type Database interface {
 }
 
 // Options are everything the setup routes read. Build builds them from the configuration and the
-// process, and the read API endpoint's tests build them by hand, with a fixed clock, the provider
-// fake's consents and a fault between a setup's writes, which no configuration carries.
+// process, and the read API endpoint's tests build them by hand, with a fixed clock and the provider
+// fake's consents, which no configuration carries.
 type Options struct {
 	Database Database
 	// AttemptCipher is what the consent attempt is sealed with, which the UI's checks derive from
@@ -58,9 +58,6 @@ type Options struct {
 	// installation's read (ADR-0112). It is policy management's, which the read API endpoint hands the
 	// setups.
 	BaseRules func(ctx context.Context, db tx.Beginner) (int, error)
-	// Fault is a test's fault between a setup's writes, which proves the writes land together or not
-	// at all (ADR-0060). Build leaves it nil.
-	Fault server.Fault
 }
 
 // handlers are the setup routes' handlers over what they read.

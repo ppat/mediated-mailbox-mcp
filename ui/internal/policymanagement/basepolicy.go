@@ -5,23 +5,17 @@ import (
 	"errors"
 	"net/http"
 	"slices"
-	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/ppat/mediated-mailbox-mcp/db/accounts"
-	"github.com/ppat/mediated-mailbox-mcp/db/auditlog"
-	"github.com/ppat/mediated-mailbox-mcp/db/jobruns"
-	"github.com/ppat/mediated-mailbox-mcp/db/policycandidates"
-	"github.com/ppat/mediated-mailbox-mcp/db/policychanges"
 	"github.com/ppat/mediated-mailbox-mcp/db/policyrules/base"
-	"github.com/ppat/mediated-mailbox-mcp/db/policyrules/manage"
-	"github.com/ppat/mediated-mailbox-mcp/db/reorgplans"
-	senderclassification "github.com/ppat/mediated-mailbox-mcp/db/senders/classification"
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/lens"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/refusal"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/rules"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/schema"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/registry"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/server"
@@ -31,14 +25,7 @@ import (
 // and the policy reads run, built from that transaction, so the policy and the senders it classifies
 // are read in one state (ADR-0136).
 func (s *handlers) inAccount(ctx context.Context, account string, fn func(q registry.Queries) error) error {
-	return tx.Run(ctx, s.snapshot(), account, func(t pgx.Tx) error {
-		// The statements are built here, from the transaction that set the account (ADR-0047).
-		return fn(registry.Queries{
-			Plans: reorgplans.New(t), Candidates: policycandidates.New(t),
-			Runs: jobruns.New(t), Failures: jobruns.New(t), Audit: auditlog.New(t),
-			Rules: manage.New(t), Changes: policychanges.New(t), Senders: senderclassification.New(t), Accounts: accounts.New(t),
-		})
-	})
+	return registry.InAccount(ctx, s.snapshot(), account, fn)
 }
 
 // listAccountIDs reads every account's identifier, the accounts listing, which belongs to no account
@@ -96,7 +83,7 @@ func basePolicyType() schema.Type {
 // account and reads no account's rows (ADR-0112). The search is a case-insensitive substring of a
 // rule's identifier or one of its suffixes.
 func (s *handlers) getBasePolicy(w http.ResponseWriter, r *http.Request) {
-	search := strings.ToLower(r.URL.Query().Get("search"))
+	search := r.URL.Query().Get("search")
 	out := BasePolicy{Rules: []BaseRule{}}
 	err := tx.RunBase(r.Context(), s.opts.Database, func(t pgx.Tx) error {
 		q := base.New(t)
@@ -106,8 +93,7 @@ func (s *handlers) getBasePolicy(w http.ResponseWriter, r *http.Request) {
 		}
 		out.Total = len(stored)
 		for _, rule := range stored {
-			if search != "" && !strings.Contains(strings.ToLower(rule.ID), search) &&
-				!slices.ContainsFunc(rule.Suffixes, func(x string) bool { return strings.Contains(strings.ToLower(x), search) }) {
+			if !rules.Matches(rules.Rule{ID: rule.ID, Suffixes: rule.Suffixes}, search) {
 				continue
 			}
 			out.Rules = append(out.Rules, BaseRule{
@@ -150,7 +136,7 @@ func (s *handlers) getBaseHistory(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	for name, values := range query {
 		if name != "range" && name != "rule" || len(values) != 1 {
-			server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, "unknown_parameter", "the base policy's history takes range and rule, each once"))
+			server.WriteFailure(w, r, server.ClientFault(refusal.UnknownParameter, "the base policy's history takes range and rule, each once"))
 			return
 		}
 	}
@@ -159,9 +145,9 @@ func (s *handlers) getBaseHistory(w http.ResponseWriter, r *http.Request) {
 		rangeText = "30d"
 	}
 	rng, err := lens.ParseRange(rangeText)
-	var refusal *lens.Refusal
-	if errors.As(err, &refusal) {
-		server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, refusal.Code, refusal.Message))
+	var refused *refusal.Refusal
+	if errors.As(err, &refused) {
+		server.WriteFailure(w, r, server.Refused(refused))
 		return
 	}
 	if err != nil {

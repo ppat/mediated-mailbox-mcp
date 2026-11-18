@@ -45,6 +45,15 @@
 // args itself refuses to print a selection when a contract run compiles at a level in its own
 // environment, wherever go's flags come from.
 //
+// check also requires the pull_request path list of the workflow of each run in filtered, which
+// today is only the ui workflow's fixtures run, to watch every file of this module the run's tests
+// compile or embed, as go list -deps -test reads them. A change that can change what those tests
+// see then starts the workflow that runs them. It reads the list in the one form the workflows
+// write it, a block list under paths: below pull_request:, and matches each pattern with the subset
+// of GitHub's syntax the workflows use, a * stopping at a slash, a ** crossing it, and a pattern
+// starting with ! excluding. It refuses a pattern holding ?, +, [ or ], which it does not read. A
+// file the tests read at run time, rather than compile or embed, is left to review.
+//
 // The check guards a workflow edit against honest mistakes and reads each workflow's text only for
 // the forms named above. It parses neither YAML nor the shell, so a step whose shell, error
 // handling, environment or selection is changed by any other means is left to review, as is a go
@@ -59,6 +68,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"slices"
 )
 
 func main() {
@@ -108,7 +118,11 @@ func run(args []string) error {
 		if err != nil {
 			return err
 		}
-		problems := append(tree.check(), checkWorkflows(tree, files)...)
+		filters, err := checkFilters(".", tree, files)
+		if err != nil {
+			return err
+		}
+		problems := slices.Concat(tree.check(), checkWorkflows(tree, files), filters)
 		for _, p := range problems {
 			fmt.Fprintln(os.Stderr, p)
 		}

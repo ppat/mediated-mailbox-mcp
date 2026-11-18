@@ -6,15 +6,14 @@ scheduled-count: no
 integration: yes
 
 diff --git a/ui/internal/policymanagement/rules.go b/ui/internal/policymanagement/rules.go
-index e7c377d0..41aa3af8 100644
 --- a/ui/internal/policymanagement/rules.go
 +++ b/ui/internal/policymanagement/rules.go
-@@ -397,7 +397,7 @@ func (s *handlers) liftRule(ctx context.Context, account string, isBase bool, id
- 		if err := s.opts.Fault.At("between a rule's write and its history row"); err != nil {
- 			return err
+@@ -340,7 +340,7 @@ func (s *handlers) liftRule(ctx context.Context, account string, isBase bool, id
+ 		if n == 0 {
+ 			return rules.StaleRule()
  		}
--		return w.record(ctx, actionLifted, id, stored[i].Suffixes, nil, actor)
-+		return w.record(ctx, actionEdited, id, stored[i].Suffixes, nil, actor)
+-		return w.record(ctx, actionLifted, id, req.SuffixesBefore, nil, actor)
++		return w.record(ctx, actionEdited, id, req.SuffixesBefore, nil, actor)
  	})
  }
  

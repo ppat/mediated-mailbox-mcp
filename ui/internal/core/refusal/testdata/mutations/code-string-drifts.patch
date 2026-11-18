@@ -1,0 +1,18 @@
+control: Every refusal is sent with the code and the status the error contract gives it
+removes: a code's constant spells it with a hyphen, so the browser's branch on it and the recorded fixtures no longer match
+packages: ./ui/internal/core/refusal
+tests: TestEveryCodeIsItsWireString
+scheduled-count: no
+
+diff --git a/ui/internal/core/refusal/refusal.go b/ui/internal/core/refusal/refusal.go
+--- a/ui/internal/core/refusal/refusal.go
++++ b/ui/internal/core/refusal/refusal.go
+@@ -52,7 +52,7 @@ const (
+ 	ScopeMissing         Code = "scope_missing"
+ 	ScopeRefused         Code = "scope_refused"
+ 	StalePage            Code = "stale_page"
+-	StalePreview         Code = "stale_preview"
++	StalePreview         Code = "stale-preview"
+ 	StaleRule            Code = "stale_rule"
+ 	TargetRefused        Code = "target_refused"
+ 	UnknownAccount       Code = "unknown_account"

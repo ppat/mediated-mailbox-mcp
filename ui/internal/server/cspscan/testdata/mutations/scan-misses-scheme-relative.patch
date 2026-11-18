@@ -4,10 +4,10 @@ packages: ./ui/internal/server
 tests: TestThePolicyScanReportsEachPlantedViolation
 scheduled-count: no
 
-diff --git a/ui/internal/server/scan.go b/ui/internal/server/scan.go
+diff --git a/ui/internal/server/cspscan/scan.go b/ui/internal/server/cspscan/scan.go
 index f61f845f..c7f54643 100644
---- a/ui/internal/server/scan.go
-+++ b/ui/internal/server/scan.go
+--- a/ui/internal/server/cspscan/scan.go
++++ b/ui/internal/server/cspscan/scan.go
 @@ -17,7 +17,7 @@ var (
  	// eventHandler is an inline event handler attribute, which the policy would also block.
  	eventHandler = regexp.MustCompile(`(?i)<[a-z][^>]*\son[a-z]+\s*=`)

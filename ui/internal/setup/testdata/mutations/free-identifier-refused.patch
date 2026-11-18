@@ -5,16 +5,15 @@ tests: TestAConnectedAccountHoldsItsSealedGrant
 scheduled-count: no
 integration: yes
 
-diff --git a/ui/internal/setup/connect.go b/ui/internal/setup/connect.go
-index 2b6d3f2f..0b78887f 100644
---- a/ui/internal/setup/connect.go
-+++ b/ui/internal/setup/connect.go
-@@ -377,7 +377,7 @@ func (s *handlers) stillFree(w http.ResponseWriter, r *http.Request, a attempt)
- 			server.DatabaseFailure(w, r, err)
- 			return false
- 		}
--		if slices.ContainsFunc(listed, func(l accounts.AccountsRow) bool { return l.AccountID == a.Account }) {
-+		if !slices.ContainsFunc(listed, func(l accounts.AccountsRow) bool { return l.AccountID == a.Account }) {
- 			server.WriteFailure(w, r, server.ClientFault(http.StatusConflict, "identifier_taken", "an account was connected under this identifier while this one was in progress"))
- 			return false
- 		}
+diff --git a/ui/internal/core/setup/setup.go b/ui/internal/core/setup/setup.go
+--- a/ui/internal/core/setup/setup.go
++++ b/ui/internal/core/setup/setup.go
+@@ -276,7 +276,7 @@ func Reauthorization(held Held, client Client, mailbox *string) (kind, address s
+ // client no stored client holds as it was when the attempt started, since it was replaced or removed.
+ // listed is read for a connection alone.
+ func StillFree(kind, account string, listed []string, stored []Client, attempt Client) *refusal.Refusal {
+-	if kind == Connect && slices.Contains(listed, account) {
++	if kind == Connect && !slices.Contains(listed, account) {
+ 		return IdentifierTaken()
+ 	}
+ 	if !slices.Contains(stored, attempt) {

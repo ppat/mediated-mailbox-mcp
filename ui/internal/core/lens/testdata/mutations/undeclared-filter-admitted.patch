@@ -5,15 +5,14 @@ tests: TestParseRefusesWhatTheEntryDoesNotDeclare TestParseRefusesWhatTheEntryDo
 scheduled-count: no
 
 diff --git a/ui/internal/core/lens/lens.go b/ui/internal/core/lens/lens.go
-index 9304b2e..80d4de0 100644
 --- a/ui/internal/core/lens/lens.go
 +++ b/ui/internal/core/lens/lens.go
-@@ -279,7 +279,7 @@ func Parse(catalogue []Descriptor, query map[string][]string) (Request, error) {
+@@ -322,7 +322,7 @@ func Parse(catalogue []Descriptor, query map[string][]string) (Request, error) {
  			continue
  		}
  		dim, ok := d.Dimension(key)
 -		if !ok || !dim.Filterable {
 +		if false && (!ok || !dim.Filterable) {
- 			return Request{}, refuse("unknown_dimension", "the dataset %s declares no filter %s", d.Name, strconv.Quote(key))
+ 			return Request{}, refuse(refusal.UnknownDimension, "the dataset %s declares no filter %s", d.Name, strconv.Quote(key))
  		}
  		f, err := parseFilter(dim, value)

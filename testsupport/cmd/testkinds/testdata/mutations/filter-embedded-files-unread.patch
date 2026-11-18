@@ -1,0 +1,18 @@
+control: The ui workflow's path list watches every file its fixtures tests compile or embed
+removes: the files a linked package embeds are left out, so a filter missing an embedded file passes
+packages: ./testsupport/cmd/testkinds
+tests: TestAFilteredWorkflowWatchesEveryFileItsTestsLink
+scheduled-count: no
+
+diff --git a/testsupport/cmd/testkinds/filter.go b/testsupport/cmd/testkinds/filter.go
+--- a/testsupport/cmd/testkinds/filter.go
++++ b/testsupport/cmd/testkinds/filter.go
+@@ -72,7 +72,7 @@ func linkedFiles(root, level string, pkgs []string) ([]string, error) {
+ 		rel = filepath.ToSlash(rel)
+ 		// A test's own variant of a package, and its external test package, list the test files
+ 		// among their Go files and embedded files.
+-		names := slices.Concat(lp.GoFiles, lp.CgoFiles, lp.EmbedFiles)
++		names := slices.Concat(lp.GoFiles, lp.CgoFiles)
+ 		for _, n := range names {
+ 			if filepath.IsAbs(n) {
+ 				// A file go generates into its build cache for a test, which no change in the

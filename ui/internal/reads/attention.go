@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/url"
-	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -17,6 +16,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/db/messages"
 	"github.com/ppat/mediated-mailbox-mcp/db/tx"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/attention"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/lens"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/schema"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/paths"
 	"github.com/ppat/mediated-mailbox-mcp/ui/internal/registry"
@@ -198,10 +198,10 @@ func (s *handlers) attentionLink(account string, c attention.Card, now time.Time
 		return base + "messages?level=3&scan_state=pending"
 	case attention.Masking:
 		q := "level=3&range=7d"
-		if nameable(c.MaskRule) {
+		if lens.Nameable(c.MaskRule) {
 			q += "&rule=" + url.QueryEscape(c.MaskRule)
 		}
-		if nameable(c.Sender) {
+		if lens.Nameable(c.Sender) {
 			q += "&sender=" + url.QueryEscape(c.Sender)
 		}
 		return base + "masking?" + q
@@ -213,25 +213,11 @@ func (s *handlers) attentionLink(account string, c attention.Card, now time.Time
 	return base
 }
 
-// nameable reports whether the filter grammar can name a value as itself, which a value holding a comma,
-// starting with an exclusion's mark, spelled as the null or the empty group's word, or empty cannot
-// (docs/UI.md section 5).
-func nameable(v string) bool {
-	return v != "" && v != "none" && v != "empty" && !strings.Contains(v, ",") && !strings.HasPrefix(v, "!")
-}
-
 // gapRange is the range covering the sync-gap rule's days, a preset where one matches and otherwise the
 // whole UTC days from the first of them to today.
 func gapRange(days int64, now time.Time) string {
-	switch days {
-	case 1:
-		return "24h"
-	case 7:
-		return "7d"
-	case 30:
-		return "30d"
-	case 90:
-		return "90d"
+	if preset, ok := lens.PresetFor(days); ok {
+		return preset
 	}
 	from := now.UTC().AddDate(0, 0, -int(days))
 	return from.Format(time.DateOnly) + "," + now.UTC().Format(time.DateOnly)

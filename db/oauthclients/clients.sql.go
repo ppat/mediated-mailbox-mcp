@@ -53,3 +53,18 @@ func (q *Queries) OAuthClients(ctx context.Context) ([]OAuthClientsRow, error) {
 	}
 	return items, nil
 }
+
+const sealedClient = `-- name: SealedClient :one
+SELECT client_secret AS sealed_client_secret
+FROM oauth_clients
+WHERE name = $1
+`
+
+// The named client's sealed secret, which the UI's client-secret package opens for a consent's code
+// exchange (ADR-0081). The table belongs to no account, and a name no client holds reads no row.
+func (q *Queries) SealedClient(ctx context.Context, clientName string) ([]byte, error) {
+	row := q.db.QueryRow(ctx, sealedClient, clientName)
+	var sealed_client_secret []byte
+	err := row.Scan(&sealed_client_secret)
+	return sealed_client_secret, err
+}

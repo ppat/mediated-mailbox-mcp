@@ -1,24 +1,19 @@
 control: A write that reaches no row because the rule is another account's is reported as a rule the account does not hold
-removes: an edit of a rule the account does not hold is reported as a stale conflict
+removes: an edit or a lift of a rule the account does not hold is reported as a stale conflict
 packages: ./ui/internal/api
 tests: TestAnotherAccountsRuleIsUnknown
 scheduled-count: no
 integration: yes
 
-diff --git a/ui/internal/policymanagement/rules.go b/ui/internal/policymanagement/rules.go
-index e7c377d0..484841ad 100644
---- a/ui/internal/policymanagement/rules.go
-+++ b/ui/internal/policymanagement/rules.go
-@@ -339,11 +339,11 @@ func (s *handlers) editRule(ctx context.Context, account string, isBase bool, id
- 		if err != nil {
- 			return err
- 		}
- 		i := slices.IndexFunc(stored, func(r registry.StoredRule) bool { return r.ID == id })
- 		if i < 0 {
--			return errUnknownRule
-+			return errStaleRule
- 		}
- 		if !slices.Equal(stored[i].Suffixes, req.SuffixesBefore) {
- 			return errStaleRule
- 		}
- 		after := toRules(stored)
+diff --git a/ui/internal/core/rules/rules.go b/ui/internal/core/rules/rules.go
+--- a/ui/internal/core/rules/rules.go
++++ b/ui/internal/core/rules/rules.go
+@@ -134,7 +134,7 @@ func Lifting(stored []Rule, id string, before []string, base bool, confirmation
+ func held(stored []Rule, id string, before []string) (int, *refusal.Refusal) {
+ 	i := slices.IndexFunc(stored, func(r Rule) bool { return r.ID == id })
+ 	if i < 0 {
+-		return -1, UnknownRule()
++		return -1, StaleRule()
+ 	}
+ 	if !slices.Equal(stored[i].Suffixes, before) {
+ 		return -1, StaleRule()

@@ -307,3 +307,49 @@ func TestCheckWorkflows(t *testing.T) {
 		}
 	}
 }
+
+// The module under testdata/linked holds a recording test in r, which links l, and l embeds a file,
+// and one in s, a package of test files alone. The ui workflow's path list must watch every file of
+// the module the tests compile or embed.
+func TestAFilteredWorkflowWatchesEveryFileItsTestsLink(t *testing.T) {
+	tr, err := load("testdata/linked")
+	if err != nil {
+		t.Fatal(err)
+	}
+	workflow := func(paths ...string) map[string]string {
+		return map[string]string{"ui.yaml": "on:\n  pull_request:\n    paths:\n    - " + strings.Join(paths, "\n    - ") + "\n  workflow_dispatch:\n"}
+	}
+	missing := func(dir string) string {
+		return ".github/workflows/ui.yaml: its pull_request paths leave " + dir + " unwatched, which the fixtures integration tests link, so a change there would not run them"
+	}
+	cases := []struct {
+		name  string
+		paths []string
+		want  []string
+	}{
+		{"every file watched", []string{"r/**", "l/*", "s/*"}, nil},
+		{"a quoted pattern", []string{"'r/**'", `"l/*"`, "s/*"}, nil},
+		{"the linked package unwatched", []string{"r/**", "s/*"}, []string{missing("l")}},
+		{"its embedded file unwatched", []string{"r/**", "l/*.go", "s/*"}, []string{missing("l")}},
+		{"its embedded file excluded", []string{"r/**", "l/*", "!l/rules.txt", "s/*"}, []string{missing("l")}},
+		{"a single star stops at a slash", []string{"*", "l/*", "s/*"}, []string{missing("r")}},
+		{"a package of test files alone unwatched", []string{"r/**", "l/*"}, []string{missing("s")}},
+		{"the test's own package unwatched", []string{"l/*", "s/*"}, []string{missing("r")}},
+	}
+	for _, pattern := range []string{"r/?.go", "r/a+", "r/[ab].go", "r/]"} {
+		if _, err := checkFilters("testdata/linked", tr, workflow("l/*", "s/*", pattern)); err == nil {
+			t.Errorf("%q was read, though the check does not read GitHub's meaning of it", pattern)
+		}
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			got, err := checkFilters("testdata/linked", tr, workflow(c.paths...))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if diff := cmp.Diff(c.want, got, compare.Options); diff != "" {
+				t.Errorf("problems (-want +got):\n%s", diff)
+			}
+		})
+	}
+}

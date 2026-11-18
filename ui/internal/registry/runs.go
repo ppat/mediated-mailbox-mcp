@@ -49,6 +49,18 @@ type Run struct {
 	LastError       *string         `json:"last_error"`
 }
 
+// RunOf is a recorded run as the read API writes it, which the jobs cards, the stream's run event and
+// the runs dataset's rows each build through it.
+func RunOf(row jobruns.LatestRunsRow) Run {
+	return Run{
+		RunID: row.RunID, Workload: row.Workload, Pass: &row.Pass, State: row.State,
+		PlanID: uuid(row.PlanID), PlanDescription: OptionalText(row.PlanDescription),
+		PlanStatus: OptionalText(row.PlanStatus), ResumedFrom: OptionalText(row.ResumedFrom),
+		StartedAt: stamp(row.StartedAt), FinishedAt: optionalStamp(row.FinishedAt), HeartbeatAt: optionalStamp(row.HeartbeatAt),
+		Checkpoint: RawJSON(row.Checkpoint), Counters: RawJSON(row.Counters), LastError: OptionalText(row.LastError),
+	}
+}
+
 // RunType is Run's declaration.
 func RunType() schema.Type {
 	return schema.Obj("Run", runFields()...)
@@ -187,13 +199,12 @@ func runRows(ctx context.Context, q Queries, r Read) (any, error) {
 		return nil, err
 	}
 	for _, row := range rows {
-		out = append(out, RunRow{Run: Run{
-			RunID: row.RunID, Workload: row.Workload, Pass: &row.Pass, State: row.State,
-			PlanID: uuid(row.PlanID), PlanDescription: text(row.PlanDescription.Valid, row.PlanDescription.String),
-			PlanStatus: text(row.PlanStatus.Valid, row.PlanStatus.String), ResumedFrom: text(row.ResumedFrom.Valid, row.ResumedFrom.String),
-			StartedAt: stamp(row.StartedAt), FinishedAt: optionalStamp(row.FinishedAt), HeartbeatAt: optionalStamp(row.HeartbeatAt),
-			Checkpoint: RawJSON(row.Checkpoint), Counters: RawJSON(row.Counters), LastError: text(row.LastError.Valid, row.LastError.String),
-		}, Failures: row.Failures})
+		out = append(out, RunRow{Run: RunOf(jobruns.LatestRunsRow{
+			RunID: row.RunID, Workload: row.Workload, Pass: row.Pass, State: row.State,
+			PlanID: row.PlanID, PlanDescription: row.PlanDescription, PlanStatus: row.PlanStatus, ResumedFrom: row.ResumedFrom,
+			StartedAt: row.StartedAt, FinishedAt: row.FinishedAt, HeartbeatAt: row.HeartbeatAt,
+			Checkpoint: row.Checkpoint, Counters: row.Counters, LastError: row.LastError,
+		}), Failures: row.Failures})
 	}
 	return out, nil
 }

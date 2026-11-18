@@ -1,7 +1,7 @@
 // Package rules is the pure rules of the UI's policy management (docs/UI.md sections 8.7 and 8.14).
 // The shell reads the request, the scope's stored rules and the account's senders, and these decide
-// what a write may hold, what an import changes and lifts, and what each rule matches and would
-// release, as values (ADR-0040).
+// whether a write is refused and why, what an import changes and lifts, what a search keeps, and what
+// each rule matches and would release, as values (ADR-0040).
 //
 // A write is checked by the policy snapshot's own validation, core/policy's Validate, over the scope's
 // rules as the write would leave them, so no write the UI makes fails a reload's validation (ADR-0041).
@@ -16,6 +16,7 @@ import (
 
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
 	"github.com/ppat/mediated-mailbox-mcp/core/policy"
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/refusal"
 )
 
 // The two scopes a rule belongs to, the base policy every account inherits and one account's own
@@ -39,24 +40,11 @@ func Unreachable(id string) bool {
 	return id == "." || id == ".." || strings.Contains(id, "/")
 }
 
-// Kind names what is wrong with one rule of a write.
-type Kind string
-
-// The kinds of problem, the snapshot validation's and the UI's own.
-const (
-	BlankIdentifier    Kind = "blank_identifier"
-	RepeatedIdentifier Kind = "repeated_identifier"
-	NoSuffix           Kind = "no_suffix"
-	InvalidSuffix      Kind = "invalid_suffix"
-	OtherClass         Kind = "other_class"
-	ReservedIdentifier Kind = "reserved_identifier"
-)
-
 // Problem is one problem with the rule at index Rule of the rules checked, with the suffix an invalid
-// suffix names.
+// suffix names. Its kind is the snapshot validation's or the UI's own.
 type Problem struct {
 	Rule   int
-	Kind   Kind
+	Kind   refusal.Kind
 	Suffix string
 }
 
@@ -76,12 +64,12 @@ func CheckClasses(rules []Rule, classes []string) []Problem {
 	for i, r := range rules {
 		rows[i] = policy.Row{ID: r.ID, Class: classes[i], DomainSuffixes: r.Suffixes}
 	}
-	kinds := map[policy.ProblemKind]Kind{
-		policy.BlankIdentifier:    BlankIdentifier,
-		policy.RepeatedIdentifier: RepeatedIdentifier,
-		policy.OtherClass:         OtherClass,
-		policy.NoSuffix:           NoSuffix,
-		policy.InvalidSuffix:      InvalidSuffix,
+	kinds := map[policy.ProblemKind]refusal.Kind{
+		policy.BlankIdentifier:    refusal.BlankIdentifier,
+		policy.RepeatedIdentifier: refusal.RepeatedIdentifier,
+		policy.OtherClass:         refusal.OtherClass,
+		policy.NoSuffix:           refusal.NoSuffix,
+		policy.InvalidSuffix:      refusal.InvalidSuffix,
 	}
 	var out []Problem
 	for _, p := range policy.Validate(rows) {
@@ -89,11 +77,121 @@ func CheckClasses(rules []Rule, classes []string) []Problem {
 	}
 	for i, r := range rules {
 		if Unreachable(r.ID) {
-			out = append(out, Problem{Rule: i, Kind: ReservedIdentifier})
+			out = append(out, Problem{Rule: i, Kind: refusal.ReservedIdentifier})
 		}
 	}
 	slices.SortStableFunc(out, func(a, b Problem) int { return a.Rule - b.Rule })
 	return out
+}
+
+// Adding decides adding r to a scope whose rules are stored, refusing an identifier the scope holds as
+// taken, and a rule the policy's checks refuse, over the scope's rules as the write would leave them,
+// with its problems (ADR-0041).
+func Adding(stored []Rule, r Rule) *refusal.Refusal {
+	if slices.ContainsFunc(stored, func(s Rule) bool { return s.ID == r.ID }) {
+		return Taken()
+	}
+	after := append(slices.Clone(stored), r)
+	return checked(after, len(after)-1)
+}
+
+// Editing decides setting the suffixes of the rule id of a scope whose rules are stored to after, made
+// against before, the suffixes the page read. A rule the scope does not hold is unknown and never a
+// stale conflict (ADR-0084), and one whose suffixes are not before is stale. A rule the policy's
+// checks refuse is refused with its problems, which refuses an edit removing every suffix, and an
+// edit removing a suffix of a base rule needs the rule's identifier as its confirmation.
+func Editing(stored []Rule, id string, before, after []string, base bool, confirmation *string) *refusal.Refusal {
+	i, r := held(stored, id, before)
+	if r != nil {
+		return r
+	}
+	next := slices.Clone(stored)
+	next[i] = Rule{ID: id, Suffixes: after}
+	if r := checked(next, i); r != nil {
+		return r
+	}
+	removes := slices.ContainsFunc(stored[i].Suffixes, func(x string) bool { return !slices.Contains(after, x) })
+	if base && removes && !Confirms(confirmation, id) {
+		return confirmationRequired()
+	}
+	return nil
+}
+
+// Lifting decides removing the rule id of a scope whose rules are stored, read first as an edit is. A
+// base rule's lift needs the rule's identifier as its confirmation.
+func Lifting(stored []Rule, id string, before []string, base bool, confirmation *string) *refusal.Refusal {
+	if _, r := held(stored, id, before); r != nil {
+		return r
+	}
+	if base && !Confirms(confirmation, id) {
+		return confirmationRequired()
+	}
+	return nil
+}
+
+// held returns the index of the rule id among stored, refusing a rule stored does not hold as unknown
+// and one whose suffixes are not before as stale.
+func held(stored []Rule, id string, before []string) (int, *refusal.Refusal) {
+	i := slices.IndexFunc(stored, func(r Rule) bool { return r.ID == id })
+	if i < 0 {
+		return -1, UnknownRule()
+	}
+	if !slices.Equal(stored[i].Suffixes, before) {
+		return -1, StaleRule()
+	}
+	return i, nil
+}
+
+// checked refuses a scope's rules as a write would leave them, when the policy's checks find a problem
+// with the rule at index i, the one the write changes, naming each with the rule's identifier.
+func checked(after []Rule, i int) *refusal.Refusal {
+	var mine []refusal.Problem
+	for _, p := range Check(after) {
+		if p.Rule == i {
+			mine = append(mine, refusal.Problem{Kind: p.Kind, Rule: after[i].ID, Suffix: p.Suffix})
+		}
+	}
+	if len(mine) == 0 {
+		return nil
+	}
+	return &refusal.Refusal{Code: refusal.RuleRefused, Message: "the rule fails the policy's checks", Problems: mine}
+}
+
+// Taken is the refusal of a rule whose identifier its scope holds, which the table's key also refuses
+// when another write added one meanwhile (ADR-0110).
+func Taken() *refusal.Refusal {
+	return refusal.Of(refusal.IdentifierTaken, "the scope already holds a rule of this identifier")
+}
+
+// UnknownRule is the refusal of a rule its scope does not hold.
+func UnknownRule() *refusal.Refusal {
+	return refusal.Of(refusal.UnknownRule, "the policy holds no rule of this identifier in this scope")
+}
+
+// StaleRule is the refusal of a write whose rule changed since the page read it, which the write's
+// own statement also finds when another write changed it meanwhile.
+func StaleRule() *refusal.Refusal {
+	return refusal.Of(refusal.StaleRule, "the rule changed since the page read it")
+}
+
+func confirmationRequired() *refusal.Refusal {
+	return refusal.Of(refusal.ConfirmationRequired, "lifting a base rule's restriction needs the rule's identifier typed")
+}
+
+// Confirms reports whether a typed confirmation is want, compared after trimming surrounding space as
+// the screen's field compares it (docs/UI.md section 8.7).
+func Confirms(confirmation *string, want string) bool {
+	return confirmation != nil && strings.TrimSpace(*confirmation) == want
+}
+
+// Matches reports whether a rule's identifier or one of its suffixes holds search, compared without
+// case, the policy screens' search (docs/UI.md sections 5 and 8.14).
+func Matches(r Rule, search string) bool {
+	s := strings.ToLower(search)
+	if strings.Contains(strings.ToLower(r.ID), s) {
+		return true
+	}
+	return slices.ContainsFunc(r.Suffixes, func(x string) bool { return strings.Contains(strings.ToLower(x), s) })
 }
 
 // Edit is one rule an import keeps whose suffixes change, with the suffixes it gains and loses.
@@ -202,17 +300,23 @@ type Senders struct {
 	lookups classify.Lookups
 }
 
-// NewSenders returns stored with their names and each one's class under policy, the composed policy's
-// rules in the order the classifier meets them, read in the same transaction as stored. A domain the
-// classifier cannot classify matches no rule and is restricted, as Classify restricts it with no rule
-// (ADR-0004, ADR-0136).
-func NewSenders(stored []Stored, policy []Named, l classify.Lookups) Senders {
+// NewSenders returns stored with their names and each one's class as Classify decides it under p, the
+// composed policy read in the same transaction as stored, prepared with l. A domain the classifier
+// cannot classify matches no rule and is restricted (ADR-0004, ADR-0136).
+func NewSenders(stored []Stored, p classify.Policy, l classify.Lookups) Senders {
 	s := Senders{senders: make([]Sender, len(stored)), names: make([]classify.Name, len(stored)), ok: make([]bool, len(stored)), lookups: l}
 	for i, x := range stored {
 		s.names[i], s.ok[i] = classify.SenderName(x.Domain, l)
-		s.senders[i] = Sender{Domain: x.Domain, Messages: x.Messages, Restricted: !s.ok[i] || ruleOf(s.names[i], policy) != ""}
+		s.senders[i] = Sender{Domain: x.Domain, Messages: x.Messages, Restricted: Classify(p, x.Domain).Class().Restricted()}
 	}
 	return s
+}
+
+// Classify returns the class of the sender at a stored domain under p, as the classifier decides it
+// for an address at that domain. A stored domain is the part of an address after its last @, so it
+// holds no @ of its own (ADR-0016).
+func Classify(p classify.Policy, domain string) classify.Verdict {
+	return classify.Classify(p, "@"+domain)
 }
 
 // Count is what a set of rules or suffixes matches among the account's senders.
@@ -312,45 +416,6 @@ func (s Senders) Released(before, after []string) Count {
 		}
 	}
 	return c
-}
-
-// Named is a rule with its suffixes in the form the classifier compares, converted once for every
-// sender a request decides against it.
-type Named struct {
-	ID       string
-	suffixes []classify.Name
-}
-
-// Names returns rules, in order, each with its suffixes converted once.
-func Names(rules []Rule, l classify.Lookups) []Named {
-	out := make([]Named, len(rules))
-	for i, r := range rules {
-		out[i] = Named{ID: r.ID, suffixes: SuffixNames(r.Suffixes, l)}
-	}
-	return out
-}
-
-// ClassOf returns whether the composed policy rules restricts the sender at domain, and the identifier
-// of the first rule that matches it in the order the classifier meets them, the base rules then the
-// account's own, or the empty string for none. A domain the classifier cannot read is restricted with
-// no rule, as Classify decides it (ADR-0004, ADR-0136).
-func ClassOf(domain string, rules []Named, l classify.Lookups) (restricted bool, rule string) {
-	name, ok := classify.SenderName(domain, l)
-	if !ok {
-		return true, ""
-	}
-	rule = ruleOf(name, rules)
-	return rule != "", rule
-}
-
-// ruleOf returns the identifier of the first of rules that matches name, or the empty string for none.
-func ruleOf(name classify.Name, rules []Named) string {
-	for _, r := range rules {
-		if slices.ContainsFunc(r.suffixes, name.Under) {
-			return r.ID
-		}
-	}
-	return ""
 }
 
 // Covers reports whether a rule whose suffixes are names already matches suffix, the suffix being one

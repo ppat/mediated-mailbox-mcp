@@ -6,15 +6,14 @@ scheduled-count: no
 integration: yes
 
 diff --git a/ui/internal/setup/connect.go b/ui/internal/setup/connect.go
-index 2b6d3f2f..f61cf947 100644
 --- a/ui/internal/setup/connect.go
 +++ b/ui/internal/setup/connect.go
-@@ -406,7 +406,7 @@ func (s *handlers) consentFailure(w http.ResponseWriter, r *http.Request, a atte
- 		server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, "scope_missing", "the provider granted no access to the mailbox"))
+@@ -394,7 +394,7 @@ func (s *handlers) consentFailure(w http.ResponseWriter, r *http.Request, a atte
+ 		server.WriteFailure(w, r, server.ClientFault(refusal.ScopeMissing, "the provider granted no access to the mailbox"))
  	case errors.Is(err, mail.ErrScopeRefused):
- 		server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, "scope_refused", "the provider granted more than the one permission asked for"))
+ 		server.WriteFailure(w, r, server.ClientFault(refusal.ScopeRefused, "the provider granted more than the one permission asked for"))
 -	case errors.Is(err, mail.ErrAPIDisabled):
 +	case errors.Is(err, mail.ErrAPIDisabled) && false:
- 		server.WriteFailure(w, r, server.ClientFault(http.StatusBadRequest, "api_disabled", "the provider's API is not enabled in the project of the client "+a.Client))
+ 		server.WriteFailure(w, r, server.ClientFault(refusal.APIDisabled, "the provider's API is not enabled in the project of the client "+a.Client))
  	default:
  		s.providerFailure(w, r, err)

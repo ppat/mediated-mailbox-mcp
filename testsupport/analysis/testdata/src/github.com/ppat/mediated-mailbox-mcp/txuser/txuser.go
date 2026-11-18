@@ -60,6 +60,9 @@ func Exceptions(ctx context.Context, p pool) error {
 	if err := oauthclients.New(p).OAuthClients(ctx); err != nil {
 		return err
 	}
+	if err := oauthclients.New(p).SealedClient(ctx); err != nil {
+		return err
+	}
 	if err := secret.New(p).ReplaceSealedClient(ctx); err != nil {
 		return err
 	}

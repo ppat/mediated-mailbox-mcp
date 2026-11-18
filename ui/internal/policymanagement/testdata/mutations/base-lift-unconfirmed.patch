@@ -5,17 +5,16 @@ tests: TestABaseLiftNeedsTheIdentifierTyped
 scheduled-count: no
 integration: yes
 
-diff --git a/ui/internal/policymanagement/rules.go b/ui/internal/policymanagement/rules.go
-index e7c377d0..36091a46 100644
---- a/ui/internal/policymanagement/rules.go
-+++ b/ui/internal/policymanagement/rules.go
-@@ -384,9 +384,6 @@ func (s *handlers) liftRule(ctx context.Context, account string, isBase bool, id
- 		if !slices.Equal(stored[i].Suffixes, req.SuffixesBefore) {
- 			return errStaleRule
- 		}
--		if isBase && !confirms(req.Confirmation, id) {
--			return errConfirmationRequired
--		}
- 		n, err := w.lift(ctx, id, stored[i].Suffixes)
- 		if err != nil {
- 			return err
+diff --git a/ui/internal/core/rules/rules.go b/ui/internal/core/rules/rules.go
+--- a/ui/internal/core/rules/rules.go
++++ b/ui/internal/core/rules/rules.go
+@@ -123,9 +123,6 @@ func Lifting(stored []Rule, id string, before []string, base bool, confirmation
+ 	if _, r := held(stored, id, before); r != nil {
+ 		return r
+ 	}
+-	if base && !Confirms(confirmation, id) {
+-		return confirmationRequired()
+-	}
+ 	return nil
+ }
+ 

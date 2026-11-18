@@ -16,9 +16,9 @@ import (
 // readAPI mounts the routes of reads, setup and policymanagement over db behind checks, as New mounts
 // them, and fills in each package's options what New fills from the pool, the checks and the others,
 // the registry, the account check, the attempt's cipher and the count of the base rules. A test sets
-// the rest, which New reads from the configuration, and what no configuration carries, a fixed clock,
-// the provider fake's consents and a fault between a write's statements. A setup's or policy
-// management's clock left nil is the reads' clock.
+// the rest, which New reads from the configuration, and what no configuration carries, a fixed clock
+// and the provider fake's consents. A setup's or policy management's clock left nil is the reads'
+// clock.
 func readAPI(t *testing.T, db api.Database, checks *uiserver.Checks, r reads.Options, s setup.Options, p policymanagement.Options) *api.Endpoint {
 	t.Helper()
 	datasets := registry.Datasets(lookups)

@@ -8,6 +8,8 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+
+	"github.com/ppat/mediated-mailbox-mcp/ui/internal/core/refusal"
 )
 
 // RowsPerPage is the one page size the endpoint serves (docs/UI.md section 5).
@@ -21,8 +23,50 @@ const (
 	Rows         = 3
 )
 
-// Presets are the range presets, in the order the range control offers them.
-func Presets() []string { return []string{"24h", "7d", "30d", "90d", "all"} }
+// Preset is a range preset, by the name the URL writes it with, and how far back from now it reaches in
+// seconds, 0 for all, which reaches back to the first record.
+type Preset struct {
+	Name    string
+	Seconds int64
+}
+
+// day is a day in seconds.
+const day = 24 * 60 * 60
+
+// RangePresets are the range presets with how far back each reaches, in the order the range control
+// offers them.
+func RangePresets() []Preset {
+	return []Preset{{"24h", day}, {"7d", 7 * day}, {"30d", 30 * day}, {"90d", 90 * day}, {"all", 0}}
+}
+
+// Presets are the range presets' names, in the order the range control offers them.
+func Presets() []string {
+	presets := RangePresets()
+	out := make([]string, len(presets))
+	for i, p := range presets {
+		out[i] = p.Name
+	}
+	return out
+}
+
+// Reach returns how far back from now the named preset reaches in seconds, and false for all and for
+// a name no preset has, neither of which bounds a range's start.
+func Reach(preset string) (int64, bool) {
+	i := slices.IndexFunc(RangePresets(), func(p Preset) bool { return p.Name == preset })
+	if i < 0 || RangePresets()[i].Seconds == 0 {
+		return 0, false
+	}
+	return RangePresets()[i].Seconds, true
+}
+
+// PresetFor returns the preset reaching back exactly days whole days, and false when none does.
+func PresetFor(days int64) (string, bool) {
+	i := slices.IndexFunc(RangePresets(), func(p Preset) bool { return p.Seconds > 0 && p.Seconds == days*day })
+	if i < 0 {
+		return "", false
+	}
+	return RangePresets()[i].Name, true
+}
 
 // Dimension is one column a dataset declares.
 type Dimension struct {
@@ -151,20 +195,14 @@ func (r Request) Filter(dimension string) (Filter, bool) {
 	return r.Filters[i], true
 }
 
-// Refusal is a request the entry does not allow, with the error contract's code.
-type Refusal struct {
-	Code    string
-	Message string
-}
-
-func (r *Refusal) Error() string { return r.Code + ": " + r.Message }
-
-func refuse(code, format string, args ...string) *Refusal {
+// refuse returns a request the entry does not allow, its message format with each %s replaced by the
+// next of args.
+func refuse(code refusal.Code, format string, args ...string) *refusal.Refusal {
 	msg := format
 	for _, a := range args {
 		msg = strings.Replace(msg, "%s", a, 1)
 	}
-	return &Refusal{Code: code, Message: msg}
+	return refusal.Of(code, msg)
 }
 
 // The common parameters, which every other parameter must not be named.
@@ -189,7 +227,7 @@ func Parameters() []string {
 func Parse(catalogue []Descriptor, query map[string][]string) (Request, error) {
 	for name, values := range query {
 		if len(values) != 1 {
-			return Request{}, refuse("repeated_parameter", "the parameter %s is given more than once", name)
+			return Request{}, refuse(refusal.RepeatedParameter, "the parameter %s is given more than once", name)
 		}
 	}
 	one := func(name string) (string, bool) {
@@ -201,11 +239,11 @@ func Parse(catalogue []Descriptor, query map[string][]string) (Request, error) {
 	}
 	name, ok := one(paramDataset)
 	if !ok || name == "" {
-		return Request{}, refuse("missing_dataset", "the request names no dataset")
+		return Request{}, refuse(refusal.MissingDataset, "the request names no dataset")
 	}
 	i := slices.IndexFunc(catalogue, func(d Descriptor) bool { return d.Name == name })
 	if i < 0 {
-		return Request{}, refuse("unknown_dataset", "the registry declares no dataset %s", strconv.Quote(name))
+		return Request{}, refuse(refusal.UnknownDataset, "the registry declares no dataset %s", strconv.Quote(name))
 	}
 	d := catalogue[i]
 	req := Request{Dataset: d.Name, Level: d.Default.Level, Sort: d.Default.Sort, Page: 1}
@@ -213,7 +251,7 @@ func Parse(catalogue []Descriptor, query map[string][]string) (Request, error) {
 	if v, ok := one(paramLevel); ok {
 		level, err := strconv.Atoi(v)
 		if err != nil || level < Summary || level > Rows {
-			return Request{}, refuse("invalid_level", "level %s is not 0, 1, 2 or 3", strconv.Quote(v))
+			return Request{}, refuse(refusal.InvalidLevel, "level %s is not 0, 1, 2 or 3", strconv.Quote(v))
 		}
 		req.Level = level
 	}
@@ -223,21 +261,21 @@ func Parse(catalogue []Descriptor, query map[string][]string) (Request, error) {
 	if hasGroup {
 		dim, ok := d.Dimension(group)
 		if !ok || !dim.Groupable {
-			return Request{}, refuse("unknown_group", "the dataset %s declares no groupable dimension %s", d.Name, strconv.Quote(group))
+			return Request{}, refuse(refusal.UnknownGroup, "the dataset %s declares no groupable dimension %s", d.Name, strconv.Quote(group))
 		}
 	} else {
 		group = d.Default.Group
 	}
 	if req.Level == Distribution || req.Level == Cohort {
 		if group == "" {
-			return Request{}, refuse("missing_group", "level %s requires exactly one group", strconv.Itoa(req.Level))
+			return Request{}, refuse(refusal.MissingGroup, "level %s requires exactly one group", strconv.Itoa(req.Level))
 		}
 		req.Group = group
 	}
 
 	if v, ok := one(paramRange); ok || d.Ranged {
 		if !d.Ranged {
-			return Request{}, refuse("unknown_dimension", "the dataset %s takes no range", d.Name)
+			return Request{}, refuse(refusal.UnknownDimension, "the dataset %s takes no range", d.Name)
 		}
 		if !ok {
 			v = d.Default.Range
@@ -260,7 +298,7 @@ func Parse(catalogue []Descriptor, query map[string][]string) (Request, error) {
 	if v, ok := one(paramPage); ok {
 		page, err := strconv.Atoi(v)
 		if err != nil || page < 1 || strconv.Itoa(page) != v {
-			return Request{}, refuse("invalid_page", "page %s is not a whole number from 1", strconv.Quote(v))
+			return Request{}, refuse(refusal.InvalidPage, "page %s is not a whole number from 1", strconv.Quote(v))
 		}
 		req.Page = page
 	}
@@ -278,14 +316,14 @@ func Parse(catalogue []Descriptor, query map[string][]string) (Request, error) {
 		value := query[key][0]
 		if d.Parent != "" && key == d.Parent {
 			if value == "" {
-				return Request{}, refuse("invalid_filter", "the parent filter %s is empty", key)
+				return Request{}, refuse(refusal.InvalidFilter, "the parent filter %s is empty", key)
 			}
 			req.ParentID = value
 			continue
 		}
 		dim, ok := d.Dimension(key)
 		if !ok || !dim.Filterable {
-			return Request{}, refuse("unknown_dimension", "the dataset %s declares no filter %s", d.Name, strconv.Quote(key))
+			return Request{}, refuse(refusal.UnknownDimension, "the dataset %s declares no filter %s", d.Name, strconv.Quote(key))
 		}
 		f, err := parseFilter(dim, value)
 		if err != nil {
@@ -294,10 +332,10 @@ func Parse(catalogue []Descriptor, query map[string][]string) (Request, error) {
 		req.Filters = append(req.Filters, f)
 	}
 	if d.Parent != "" && req.ParentID == "" {
-		return Request{}, refuse("missing_parent", "the dataset %s requires the parent filter %s", d.Name, d.Parent)
+		return Request{}, refuse(refusal.MissingParent, "the dataset %s requires the parent filter %s", d.Name, d.Parent)
 	}
 	if req.Level == Cohort && len(req.Filters) == 0 {
-		return Request{}, refuse("missing_filter", "level 2 requires at least one dimension filter")
+		return Request{}, refuse(refusal.MissingFilter, "level 2 requires at least one dimension filter")
 	}
 	return req, nil
 }
@@ -306,11 +344,11 @@ func Parse(catalogue []Descriptor, query map[string][]string) (Request, error) {
 func parseSort(d Descriptor, v string) (Sort, error) {
 	column, direction, ok := strings.Cut(v, ",")
 	if !ok || direction != "asc" && direction != "desc" {
-		return Sort{}, refuse("invalid_sort", "sort %s is not column,asc or column,desc", strconv.Quote(v))
+		return Sort{}, refuse(refusal.InvalidSort, "sort %s is not column,asc or column,desc", strconv.Quote(v))
 	}
 	dim, found := d.Dimension(column)
 	if !found || !dim.Sortable {
-		return Sort{}, refuse("unknown_sort", "the dataset %s declares no sortable column %s", d.Name, strconv.Quote(column))
+		return Sort{}, refuse(refusal.UnknownSort, "the dataset %s declares no sortable column %s", d.Name, strconv.Quote(column))
 	}
 	return Sort{Column: column, Descending: direction == "desc"}, nil
 }
@@ -322,6 +360,13 @@ const None = "none"
 // one. The statements compare it as the empty string.
 const Empty = "empty"
 
+// Nameable reports whether the filter grammar can name v as itself, which a value holding a comma,
+// starting with an exclusion's mark, spelled as the null group's or the empty group's word, or empty
+// cannot, since parseFilter would read it as something else (docs/UI.md section 5).
+func Nameable(v string) bool {
+	return v != "" && v != None && v != Empty && !strings.Contains(v, ",") && !strings.HasPrefix(v, "!")
+}
+
 // parseFilter reads the filter grammar. A search filter's value is the text searched for, whole.
 // Otherwise dim=value is equality, dim=a,b any of, dim=!value exclusion.
 // none names a dimension's null group, and is refused on a dimension that has none. empty names the
@@ -332,37 +377,37 @@ func parseFilter(dim Dimension, value string) (Filter, error) {
 	f := Filter{Dimension: dim.Name}
 	if dim.Search {
 		if value == "" {
-			return Filter{}, refuse("invalid_filter", "the filter %s holds an empty value", dim.Name)
+			return Filter{}, refuse(refusal.InvalidFilter, "the filter %s holds an empty value", dim.Name)
 		}
 		f.Values = []string{value}
 		return f, nil
 	}
 	if rest, ok := strings.CutPrefix(value, "!"); ok {
 		if rest == "" || strings.Contains(rest, ",") {
-			return Filter{}, refuse("invalid_filter", "the exclusion %s names one value", strconv.Quote(value))
+			return Filter{}, refuse(refusal.InvalidFilter, "the exclusion %s names one value", strconv.Quote(value))
 		}
 		f.Values, f.Exclude = []string{rest}, true
 	} else {
 		f.Values = strings.Split(value, ",")
 		if slices.Contains(f.Values, "") {
-			return Filter{}, refuse("invalid_filter", "the filter %s holds an empty value", dim.Name)
+			return Filter{}, refuse(refusal.InvalidFilter, "the filter %s holds an empty value", dim.Name)
 		}
 	}
 	for _, v := range f.Values {
 		if v == None {
 			if dim.NullWording == "" {
-				return Filter{}, refuse("invalid_filter", "the filter %s names none, and the dimension has no null group", dim.Name)
+				return Filter{}, refuse(refusal.InvalidFilter, "the filter %s names none, and the dimension has no null group", dim.Name)
 			}
 			continue
 		}
 		if v == Empty {
 			if !dim.Empty {
-				return Filter{}, refuse("invalid_filter", "the filter %s names empty, and the dimension holds no value stored empty", dim.Name)
+				return Filter{}, refuse(refusal.InvalidFilter, "the filter %s names empty, and the dimension holds no value stored empty", dim.Name)
 			}
 			continue
 		}
 		if !ofStorage(dim.Storage, v) {
-			return Filter{}, refuse("invalid_filter", "the filter %s holds %s, which is not a value of its kind", dim.Name, strconv.Quote(v))
+			return Filter{}, refuse(refusal.InvalidFilter, "the filter %s holds %s, which is not a value of its kind", dim.Name, strconv.Quote(v))
 		}
 	}
 	return f, nil
@@ -409,27 +454,27 @@ type RowRequest struct {
 func ParseRow(catalogue []Descriptor, dataset, row string, query map[string][]string) (RowRequest, error) {
 	i := slices.IndexFunc(catalogue, func(d Descriptor) bool { return d.Name == dataset && d.Identity != nil })
 	if i < 0 {
-		return RowRequest{}, refuse("unknown_dataset", "the registry declares no row detail for %s", strconv.Quote(dataset))
+		return RowRequest{}, refuse(refusal.UnknownDataset, "the registry declares no row detail for %s", strconv.Quote(dataset))
 	}
 	d := catalogue[i]
 	if row == "" || !ofRowStorage(d.Identity.Storage, row) {
-		return RowRequest{}, refuse("invalid_row", "%s is not a %s of %s", strconv.Quote(row), d.Identity.Name, d.Name)
+		return RowRequest{}, refuse(refusal.InvalidRow, "%s is not a %s of %s", strconv.Quote(row), d.Identity.Name, d.Name)
 	}
 	req := RowRequest{Dataset: d.Name, Row: row}
 	for name, values := range query {
 		if name != d.Parent || d.Parent == "" {
-			return RowRequest{}, refuse("unknown_parameter", "the row detail of %s takes no parameter %s", d.Name, strconv.Quote(name))
+			return RowRequest{}, refuse(refusal.UnknownParameter, "the row detail of %s takes no parameter %s", d.Name, strconv.Quote(name))
 		}
 		if len(values) != 1 {
-			return RowRequest{}, refuse("repeated_parameter", "the parameter %s is given more than once", name)
+			return RowRequest{}, refuse(refusal.RepeatedParameter, "the parameter %s is given more than once", name)
 		}
 		if values[0] == "" {
-			return RowRequest{}, refuse("invalid_filter", "the parent filter %s is empty", name)
+			return RowRequest{}, refuse(refusal.InvalidFilter, "the parent filter %s is empty", name)
 		}
 		req.ParentID = values[0]
 	}
 	if d.Parent != "" && req.ParentID == "" {
-		return RowRequest{}, refuse("missing_parent", "the dataset %s requires the parent filter %s", d.Name, d.Parent)
+		return RowRequest{}, refuse(refusal.MissingParent, "the dataset %s requires the parent filter %s", d.Name, d.Parent)
 	}
 	return req, nil
 }
@@ -444,7 +489,7 @@ func parseRange(v string) (Range, error) {
 	}
 	from, to, ok := strings.Cut(v, ",")
 	if !ok || !isDate(from) || !isDate(to) || to < from {
-		return Range{}, refuse("invalid_range", "range %s is not a preset or two UTC dates from,to", strconv.Quote(v))
+		return Range{}, refuse(refusal.InvalidRange, "range %s is not a preset or two UTC dates from,to", strconv.Quote(v))
 	}
 	return Range{From: from, To: to}, nil
 }

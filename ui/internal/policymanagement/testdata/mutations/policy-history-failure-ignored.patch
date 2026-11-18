@@ -1,0 +1,20 @@
+control: Every policy write leaves its history row or nothing
+removes: an add whose history row fails is committed with its rule, so the rule lands unrecorded
+packages: ./ui/internal/api
+tests: TestAPolicyWriteLeavesItsHistoryRowOrNothing
+scheduled-count: no
+integration: yes
+
+diff --git a/ui/internal/policymanagement/rules.go b/ui/internal/policymanagement/rules.go
+--- a/ui/internal/policymanagement/rules.go
++++ b/ui/internal/policymanagement/rules.go
+@@ -290,7 +290,8 @@ func (s *handlers) addRule(ctx context.Context, account string, isBase bool, req
+ 			}
+ 			return err
+ 		}
+-		return w.record(ctx, actionAdded, rule.ID, nil, rule.Suffixes, actor)
++		_ = w.record(ctx, actionAdded, rule.ID, nil, rule.Suffixes, actor)
++		return nil
+ 	})
+ }
+ 

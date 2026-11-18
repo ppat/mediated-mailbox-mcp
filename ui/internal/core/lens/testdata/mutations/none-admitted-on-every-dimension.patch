@@ -5,15 +5,14 @@ tests: TestParseRefusesWhatTheEntryDoesNotDeclare TestParseRefusesWhatTheEntryDo
 scheduled-count: no
 
 diff --git a/ui/internal/core/lens/lens.go b/ui/internal/core/lens/lens.go
-index 94c9e30..a831233 100644
 --- a/ui/internal/core/lens/lens.go
 +++ b/ui/internal/core/lens/lens.go
-@@ -339,9 +339,6 @@ func parseFilter(dim Dimension, value string) (Filter, error) {
+@@ -395,9 +395,6 @@ func parseFilter(dim Dimension, value string) (Filter, error) {
  	}
  	for _, v := range f.Values {
  		if v == None {
 -			if dim.NullWording == "" {
--				return Filter{}, refuse("invalid_filter", "the filter %s names none, and the dimension has no null group", dim.Name)
+-				return Filter{}, refuse(refusal.InvalidFilter, "the filter %s names none, and the dimension has no null group", dim.Name)
 -			}
  			continue
  		}

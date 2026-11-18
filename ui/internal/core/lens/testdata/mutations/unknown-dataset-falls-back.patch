@@ -5,16 +5,15 @@ tests: TestParseRefusesWhatTheEntryDoesNotDeclare TestParseRefusesWhatTheEntryDo
 scheduled-count: no
 
 diff --git a/ui/internal/core/lens/lens.go b/ui/internal/core/lens/lens.go
-index 9304b2e..2bc7509 100644
 --- a/ui/internal/core/lens/lens.go
 +++ b/ui/internal/core/lens/lens.go
-@@ -199,6 +199,9 @@ func Parse(catalogue []Descriptor, query map[string][]string) (Request, error) {
- 		return Request{}, refuse("missing_dataset", "the request names no dataset")
+@@ -242,6 +242,9 @@ func Parse(catalogue []Descriptor, query map[string][]string) (Request, error) {
+ 		return Request{}, refuse(refusal.MissingDataset, "the request names no dataset")
  	}
  	i := slices.IndexFunc(catalogue, func(d Descriptor) bool { return d.Name == name })
 +	if i < 0 {
 +		i = 0
 +	}
  	if i < 0 {
- 		return Request{}, refuse("unknown_dataset", "the registry declares no dataset %s", strconv.Quote(name))
+ 		return Request{}, refuse(refusal.UnknownDataset, "the registry declares no dataset %s", strconv.Quote(name))
  	}

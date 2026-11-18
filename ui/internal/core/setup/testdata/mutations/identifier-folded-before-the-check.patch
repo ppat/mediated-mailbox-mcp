@@ -5,14 +5,13 @@ tests: TestTheServerCheckKeepsToTheIdentifierTable
 scheduled-count: no
 
 diff --git a/ui/internal/core/setup/setup.go b/ui/internal/core/setup/setup.go
-index cf20776..cc6894d 100644
 --- a/ui/internal/core/setup/setup.go
 +++ b/ui/internal/core/setup/setup.go
-@@ -68,6 +68,7 @@ func ProjectID(id *string) Refusal {
+@@ -52,6 +52,7 @@ func ProjectID(id *string) *refusal.Refusal {
  // spreads (ADR-0128). It reads id as it arrives, trimming and folding nothing, so it accepts nothing
  // the database refuses. An identifier another account holds is refused by the store.
- func Identifier(id string) Refusal {
+ func Identifier(id string) *refusal.Refusal {
 +	id = strings.ToLower(strings.TrimSpace(id))
  	if !identifierShaped(id) {
- 		return IdentifierRefused
+ 		return IdentifierRefusal()
  	}

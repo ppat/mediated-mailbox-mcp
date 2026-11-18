@@ -5,15 +5,14 @@ tests: TestParseRefusesWhatTheEntryDoesNotDeclare TestParseRefusesWhatTheEntryDo
 scheduled-count: no
 
 diff --git a/ui/internal/core/lens/lens.go b/ui/internal/core/lens/lens.go
-index 9304b2e..bd0ffe8 100644
 --- a/ui/internal/core/lens/lens.go
 +++ b/ui/internal/core/lens/lens.go
-@@ -217,7 +217,7 @@ func Parse(catalogue []Descriptor, query map[string][]string) (Request, error) {
+@@ -260,7 +260,7 @@ func Parse(catalogue []Descriptor, query map[string][]string) (Request, error) {
  	group, hasGroup := one(paramGroup)
  	if hasGroup {
  		dim, ok := d.Dimension(group)
 -		if !ok || !dim.Groupable {
 +		if !ok || !dim.Groupable && false {
- 			return Request{}, refuse("unknown_group", "the dataset %s declares no groupable dimension %s", d.Name, strconv.Quote(group))
+ 			return Request{}, refuse(refusal.UnknownGroup, "the dataset %s declares no groupable dimension %s", d.Name, strconv.Quote(group))
  		}
  	} else {
