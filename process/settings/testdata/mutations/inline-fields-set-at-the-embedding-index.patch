@@ -1,19 +1,20 @@
 control: An inline section's values sit at the paths of the section that embeds it
-removes: an inline section's fields are reached at their index in the inline section, taken as the embedding section's own, so a value lands in another field
+removes: an inline section that is not the embedding type's first field has its own first field reached through the field before the section, so that value and the first field of the field before share one place and neither sits at its own path
 packages: ./process/settings
 tests: TestAnInlineSectionsValuesSitBesideTheSectionsOwn
 scheduled-count: no
 
 diff --git a/process/settings/declaration.go b/process/settings/declaration.go
-index 6c7a7aaa..321d5b88 100644
+index 6c7a7aaa..183a91e8 100644
 --- a/process/settings/declaration.go
 +++ b/process/settings/declaration.go
-@@ -166,7 +166,7 @@ func declareInline(n *node, f reflect.StructField, i int, path string, inValue b
- 		if _, ok := n.field(g.name); ok {
+@@ -167,6 +167,9 @@ func declareInline(n *node, f reflect.StructField, i int, path string, inValue b
  			return fmt.Errorf("%s is declared twice", join(path, g.name))
  		}
--		g.index = append([]int{i}, g.index...)
-+		g.index = append([]int{}, g.index...)
+ 		g.index = append([]int{i}, g.index...)
++		if i > 0 && g.index[1] == 0 {
++			g.index[0] = i - 1
++		}
  		n.fields = append(n.fields, g)
  	}
  	return nil

@@ -51,10 +51,12 @@ type ledgerEntry struct {
 // ledgerRows returns one row of the ledger docs/MUTATIONS.md defines per control, in the order the
 // controls first appear, each in the form that file states, which is a section headed by the
 // control, a line for the date and evidence, and under each removal of the control a line per
-// package naming the tests it turned red. A surviving mutant marks the row open, as the ledger
-// keeps it until the tests are fixed or the mechanism is deleted as redundant. A control gets a row
-// only when every one of its patches held or survived. The others are returned as incomplete. The
-// evidence pointer is left for the author to fill in.
+// package naming the tests it turned red. A control's removals are numbered in the order its
+// patches were given, which matches the ledger's numbering when the author gives them in the byte
+// order of their paths. A surviving mutant marks the row open, as the ledger keeps it until the
+// tests are fixed or the mechanism is deleted as redundant. A control gets a row only when every one
+// of its patches held or survived. The others are returned as incomplete. The evidence pointer is
+// left for the author to fill in.
 func ledgerRows(entries []ledgerEntry) (rows, incomplete []string) {
 	var controls []string
 	byControl := map[string][]ledgerEntry{}
