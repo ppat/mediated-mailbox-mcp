@@ -7,6 +7,6 @@ package main
 // the UI that opens a stored value, while the list for non-test code admits both everywhere, so only
 // the component's lists report them, and no other code of the UI can open a credential (ADR-0081).
 import (
-	_ "github.com/ppat/mediated-mailbox-mcp/credential/open" // want depguard "list 'ui'" depguard "list 'ui-outside-setup'"
-	_ "github.com/ppat/mediated-mailbox-mcp/db/oauthclients" // want depguard "list 'ui'" depguard "list 'ui-outside-setup'"
+	_ "github.com/ppat/mediated-mailbox-mcp/credential/open" // want depguard "list 'ui-outside-setup'"
+	_ "github.com/ppat/mediated-mailbox-mcp/db/oauthclients" // want depguard "list 'ui-outside-setup'"
 )

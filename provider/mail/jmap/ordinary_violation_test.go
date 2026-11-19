@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	co "github.com/google/go-cmp/cmp/cmpopts"
-	_ "github.com/jackc/pgx/v5/pgconn" //nolint:gosec // reason // want depguard "import 'github.com/jackc/pgx/v5/pgconn' is not allowed from list 'provider'"
+	_ "github.com/jackc/pgx/v5/pgconn" //nolint:gosec // reason // want depguard "import 'github.com/jackc/pgx/v5/pgconn' is not allowed from list 'provider-tests'"
 )
 
 // This file names only ordinary linters in suppression directives on violations of controls. The search

@@ -9,8 +9,8 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/process/version"
 )
 
-// The start writes a banner naming the UI, its release version and where it serves to the
-// writer main.go hands in as standard error, and standard output carries only JSON records, the
+// The start writes a banner naming the UI, its release version and where it serves to standard
+// error, which the process writes its banner to, and standard output carries only JSON records, the
 // banner never among them (ADR-0122). The public key file does not exist, so the start stops at it,
 // after the banner and before any connection is made.
 func TestTheStartBannerGoesToStandardErrorAndStandardOutputStaysJSON(t *testing.T) {

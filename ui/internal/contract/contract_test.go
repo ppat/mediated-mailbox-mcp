@@ -53,7 +53,7 @@ func bespoke(t *testing.T) []server.Route {
 // documentPath is the checked-in document, relative to this package's directory.
 var documentPath = filepath.Join("..", "..", "contract", "openapi.json")
 
-// generate builds the document from the registry and the handler list, the two sources ADR-0057
+// generate builds the document from the registry and the bespoke routes, the two sources ADR-0057
 // names, by populating kin-openapi's document types explicitly (ADR-0065). It refuses a path both
 // sources claim.
 func generate(datasets []registry.Dataset, bespoke []server.Route) (*openapi3.T, error) {
@@ -396,7 +396,7 @@ func render(t *testing.T, doc *openapi3.T) []byte {
 	return append(out, '\n')
 }
 
-// TestDocument generates the document from the registry and the handler list, requires it valid, and
+// TestDocument generates the document from the registry and the bespoke routes, requires it valid, and
 // compares it with the checked-in file, the first of the pipeline's three drift checks (ADR-0065). Run
 // with -update, it writes the file.
 func TestDocument(t *testing.T) {

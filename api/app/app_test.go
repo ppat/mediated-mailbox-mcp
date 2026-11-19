@@ -82,8 +82,8 @@ func TestAPasswordVariableRefusesTheStart(t *testing.T) {
 }
 
 // The start writes every effective value at info whatever log_level says, writes a banner naming the
-// API server, its release version and where it serves to the writer main.go hands in as standard
-// error, and keeps standard output to JSON records (ADR-0122). The start stops at the password file,
+// API server, its release version and where it serves to standard error, which the process writes
+// its banner to, and keeps standard output to JSON records (ADR-0122). The start stops at the password file,
 // before the API server writes any record of its own, so no record at info follows the configuration
 // whatever the level. That the level holds back the API server's records below it is
 // TestTheConfiguredLevelGovernsTheLog's, among the integration tests.

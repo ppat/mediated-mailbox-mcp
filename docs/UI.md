@@ -2604,7 +2604,8 @@ ui/
   and it writes the account's rows. `policymanagement` holds every policy read and write, an
   account's and the base policy's, and reads the identity header that its writes record. Which of
   them holds the decisions' routes is decided where the decisions are built. The three import none
-  of one another. The read API endpoint hands `reads` its account check, which the dataset
+  of one another, and their import lists hold it, since the read API endpoint's list alone admits
+  them ([ADR-0071](./adr/engineering/0071-static-enforcement-toolchain.md)). The read API endpoint hands `reads` its account check, which the dataset
   endpoint and the row details run after the pure core has read the request, and hands `setup`
   policy management's count of the base rules, which the installation's read shows. What more than
   one of them reads of the stored rows, an account's progress, its rate state and the shape a

@@ -1,12 +1,12 @@
-// Package logging builds the logger every deployable writes its records through, as JSON to the
-// writer its main.go gives, standard output, at the level a level variable holds, and reads the
-// level's name from the configuration (ADR-0122, ADR-0051). Its case is argued in
-// process/README.md.
+// Package logging builds the logger every program that runs as a process writes its records
+// through, as JSON to the writer the process gives, standard output, at the level a level variable
+// holds, and reads the level's name from the configuration (ADR-0122, ADR-0051). Its case is argued
+// in process/README.md.
 //
-// A deployable's main.go builds the level variable and the logger, makes the logger the process
-// default for code the project does not own, and hands both to its entry package. The entry reads
-// log_level through ParseLevel once the configuration has loaded and sets the variable, so every
-// logger derived from the handed one follows it.
+// The process builds the level variable and the logger before the configuration exists, makes the
+// logger the default for code the project does not own, reads log_level through ParseLevel once the
+// configuration has loaded and sets the variable, so every logger derived from it follows it, and
+// hands the logger to each part it builds through its capabilities.
 package logging
 
 import (

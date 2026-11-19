@@ -8,6 +8,6 @@ package main
 // rate state, which the application user it connects as is granted for other programs' code (ADR-0084,
 // ADR-0091, ADR-0143).
 import (
-	_ "github.com/ppat/mediated-mailbox-mcp/db/accountstate/credential" // want depguard "list 'ui'" depguard "list 'ui-outside-setup'"
-	_ "github.com/ppat/mediated-mailbox-mcp/db/ratestate/limiter"       // want depguard "list 'ui'" depguard "list 'ui-outside-setup'"
+	_ "github.com/ppat/mediated-mailbox-mcp/db/accountstate/credential" // want depguard "list 'ui-outside-setup'"
+	_ "github.com/ppat/mediated-mailbox-mcp/db/ratestate/limiter"       // want depguard "list 'ui-outside-setup'"
 )

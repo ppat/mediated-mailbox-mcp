@@ -49,9 +49,13 @@ var (
 		migrations:  []string{"../migrations"},
 		bootstrap:   "../bootstrap",
 		importLists: "../../.golangci.yaml",
-		// The data-access library's own lists, the test tooling lists over code that never ships, and the
-		// lists over all non-test code and all ordinary tests, which leave each component to its own list.
-		libraryWide:  []string{"db", "db-migrate", "non-test-code", "ordinary-tests", "testsupport", "testsupport-without-rapid"},
+		// The data-access library's own lists over its non-test files and its test files, the test tooling
+		// lists over code that never ships, and the lists over all non-test code and all ordinary tests,
+		// which leave each component to its own list.
+		libraryWide: []string{
+			"db", "db-tests", "db-migrate", "db-migrate-tests", "non-test-code", "ordinary-tests",
+			"testsupport", "testsupport-tests", "testsupport-without-rapid", "testsupport-without-rapid-tests",
+		},
 		crossCutting: []string{"provider-test-code", "pure-core", "pure-core-tests", "residual", "ui-shipped-crypto"},
 	}
 	testLibrary = library{

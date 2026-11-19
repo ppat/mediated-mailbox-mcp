@@ -12,7 +12,7 @@ The demonstrations of the controls whose patches sit in `core/`. [MUTATIONS.md](
 
 ## A deployable's configuration type is pinned field by field
 
-- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
+- **Date · evidence:** 2026-11-19 · [pull request #477](https://github.com/ppat/mediated-mailbox-mcp/pull/477), at RAPID_SEED=1
 - **Break (1):** a value is added to the API server's configuration without updating the pinned field list
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/config`:** `TestTheProgramTypesArePinned`
 - **Break (2):** a value of the database part is renamed without updating the pinned field list

@@ -143,43 +143,50 @@ whether to run the analysers individually or under one command. Everything else 
     the list over all non-test code are wider lists, and admit this project's packages by prefix,
     the provider fake apart, which the list over all non-test code refuses. So a wider list refuses
     no fenced package, even where it leaves the importers' files out. Each fence is proven by a
-    violation file. Every other list
-    of a component or a package names this project's packages by exact entries, with two
-    exceptions, each an entry by prefix that the build-graph check below covers. They are a
-    deployable's list admitting the deployable's own directory, and a list admitting the pure-core
-    `core/`. The lists over test files admit by prefix as well, among them the whole data-access
+    violation file. Where the import a violation file needs would make an import cycle, in the code
+    or in the ban-proof build, which compiles every violation file, the list's refusal is held by
+    the compiler or by the list's exact entries alone, and [docs/VERIFICATIONS.md](../../VERIFICATIONS.md)
+    names each such refusal. A refusal is held so only when every package its list governs that
+    may hold a violation file would make the cycle. Every other list of a component or a package names this project's
+    packages by exact entries, with two exceptions, each an entry by prefix that the build-graph
+    check below covers. They are a deployable's list admitting the deployable's own directory, and a
+    list admitting the pure-core `core/`. A job kind's list admitting its job kind's directory, and
+    the API server's list over its packages outside the protocol roots admitting its pure cores
+    under `api/internal/core/`, are each a deployable's list admitting part of the deployable's own
+    directory. The lists over test files admit by prefix as well, among them the whole data-access
     library, as the list over all non-test code does. The pure-core list does not admit the
     standard library's `time` for `core/config`, the programs' configuration types, which use a
     length-of-time type of their own.
 
     | May import | Only | Refused outside them by |
     | --- | --- | --- |
-    | An adapter, such as `provider/mail/gmail` | `provider` | The programs' lists, which name no adapter, a list over the provider library's non-test code that leaves `provider`'s files out, which the code ticket that builds the fence writes, and every other list of a component or a package, which names it nowhere |
-    | An adapter's pure core, such as `provider/mail/gmail/core` | That adapter | The pure-core list, for other pure cores, a list over the provider library's non-test code that leaves the adapter's files out, which the code ticket that builds the fence writes, and every other list of a component or a package, which names it nowhere |
-    | `provider/ratelimit` | `provider`, and `api/internal/registry` for the rate-state collector | A list over the provider library's non-test code that leaves `provider`'s files out, and the API server's one list over its non-test code that leaves `api/internal/bodies` and `api/internal/registry` out, each written by the code ticket that builds the fence, `api/internal/bodies`' own list, the other programs' lists, and every other list of a component or a package, each naming it nowhere |
-    | `provider/ratelimit/core`, the rate limiter's pure rules, reached only by the limiter and the caller that builds it | `provider` and `provider/ratelimit` | The pure-core list, for other pure cores, the programs' lists, a list over the provider library's non-test code that leaves the importers' files out, which the code ticket that builds the fence writes, and every other list of a component or a package, which names it nowhere |
-    | `credential/open` | `process/connections`, `ui/internal/setup/clientsecret`, and the test tool `testsupport/cmd/keypaircheck`. `ui/internal/setup` is refused it ([ADR-0081](../operability/0081-credentials-sealed-to-a-public-key.md), [ADR-0143](../data/0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)) | The UI's exact list over its non-test code, whose file patterns leave out the opener's directory, the test support's lists over its non-test code, which leave out `testsupport/cmd/keypaircheck`, the lists of the API server, the worker and the command-line program, which imports `credential/seal`, the lists of the process family's other packages, and every other list of a component or a package, each naming it nowhere. The UI's wider list outside its opening part admits it by prefix and refuses it nowhere |
-    | `process/connections` | `api/internal/bodies`, and the packages of a job kind that calls a provider | The API server's one list over its non-test code that leaves `api/internal/bodies` and `api/internal/registry` out, which the code ticket that builds the fence writes, `api/internal/registry`'s own list, the worker's list over its non-test code outside its job kinds, which leaves them out, its test files taking the connections only for the one option the connections export for a test ([ADR-0142](./0142-each-program-is-a-spec-that-one-process-runs.md)), the list of each job kind that calls no provider, `process/sessions`' list, which keeps the Session from the connections, the lists of the UI, the migrator and the command-line program, and every other list of a component or a package, each naming it nowhere |
-    | `provider/consent` | `ui/internal/setup` | A list over the UI's non-test code that leaves `ui/internal/setup` out, which the code ticket that builds the fence writes, the other programs' lists, and every other list of a component or a package, each naming it nowhere |
-    | `net/http` and the MCP library, in the API server's code under `api/internal/` | The generator file of each root, `api.go` in `api/internal/api` and `mcp.go` in `api/internal/mcp`, each through a list of its own beside the rest of its package. The MCP library goes to `mcp.go` alone. `net/http` also goes to `api/internal/bearer`, which is no root, as a whole package. Bearer's list admits none of `api/internal/service`, `api/internal/registry` or `api/internal/bodies` and no data-access subsection, so the bearer-token check wraps a root's handler and reaches no operation ([ADR-0053](./0053-parity-by-construction.md), [ADR-0086](./0086-mcp-root-on-the-official-go-sdk.md)) | A list over the non-test code under `api/internal/` that leaves out the two roots and `api/internal/bearer`, which the code ticket that builds the fence writes, and each root's list over its files outside the generator file |
+    | An adapter, such as `provider/mail/gmail` | `provider` | The programs' lists, which name no adapter, the provider library's list over its non-test code, `provider`, which leaves `provider`'s files out, and every other list of a component or a package, which names it nowhere |
+    | An adapter's pure core, such as `provider/mail/gmail/core` | That adapter | The pure-core list, for other pure cores, the provider library's list over its non-test code, `provider`, which leaves the adapter's files out, and every other list of a component or a package, which names it nowhere |
+    | `provider/ratelimit` | `provider`, and `api/internal/registry` for the rate-state collector | The provider library's list over its non-test code, `provider`, which leaves `provider`'s files out, the API server's one list over its non-test code, `api`, which leaves `api/internal/bodies` and `api/internal/registry` out, `api/internal/bodies`' own list, the other programs' lists, and every other list of a component or a package, each naming it nowhere |
+    | `provider/ratelimit/core`, the rate limiter's pure rules, reached only by the limiter and the caller that builds it | `provider` and `provider/ratelimit` | The pure-core list, for other pure cores, the programs' lists, the provider library's list over its non-test code, `provider`, which leaves the importers' files out, and every other list of a component or a package, which names it nowhere |
+    | `credential/open` | `process/connections`, `ui/internal/setup/clientsecret`, and the test tool `testsupport/cmd/keypaircheck`. `ui/internal/setup` is refused it ([ADR-0081](../operability/0081-credentials-sealed-to-a-public-key.md), [ADR-0143](../data/0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)) | The UI's exact lists over its non-test code, whose file patterns leave out the opener's directory, the test support's lists over its non-test code, which leave out `testsupport/cmd/keypaircheck`, the lists of the API server, the worker and the command-line program, which imports `credential/seal`, the lists of the process family's other packages, and every other list of a component or a package, each naming it nowhere. The UI's wider list outside its opening part admits it by prefix and refuses it nowhere |
+    | `process/connections` | `api/internal/bodies`, and the packages of a job kind that calls a provider | The API server's one list over its non-test code, `api`, which leaves `api/internal/bodies` and `api/internal/registry` out, `api/internal/registry`'s own list, the worker's list over its non-test code outside its job kinds, which leaves them out, its test files taking the connections only for the one option the connections export for a test ([ADR-0142](./0142-each-program-is-a-spec-that-one-process-runs.md)), the list of each job kind that calls no provider, `process/sessions`' list, which keeps the Session from the connections, the lists of the UI, the migrator and the command-line program, and every other list of a component or a package, each naming it nowhere |
+    | `provider/consent` | `ui/internal/setup` | The UI's lists over its non-test code that leave `ui/internal/setup` out, `ui-outside-setup` and those of the read API endpoint, the reads and policy management, the other programs' lists, and every other list of a component or a package, each naming it nowhere |
+    | `net/http` and the MCP library, in the API server's code under `api/internal/` | The generator file of each root, `api.go` in `api/internal/api` and `mcp.go` in `api/internal/mcp`, each through a list of its own beside the rest of its package. Each generator's list also matches one violation file beside the generator, which the root's other lists leave out with the generator, so a violation file proves what the generator's list refuses. The MCP library goes to `mcp.go` alone. `net/http` also goes to `api/internal/bearer`, which is no root, as a whole package. Bearer's list admits none of `api/internal/service`, `api/internal/registry` or `api/internal/bodies` and no data-access subsection, so the bearer-token check wraps a root's handler and reaches no operation ([ADR-0053](./0053-parity-by-construction.md), [ADR-0086](./0086-mcp-root-on-the-official-go-sdk.md)) | The list over the non-test code under `api/internal/` that leaves out the two roots and `api/internal/bearer`, `api-no-http`, and each root's list over its files outside the generator file |
     | `provider/mail/fake` | Test files | The list over all non-test code |
 
   - **The API server's two protocol roots**, each admitting the service layer and nothing below it
     ([ADR-0030](../operability/0030-api-core-mcp-thin-adapter.md)).
   - **The UI's non-test code outside its one opening part.** It admits the standard library and
-    names exactly the seven packages under `crypto/` that code uses, `crypto/aes`, `crypto/cipher`,
-    `crypto/hkdf`, `crypto/hmac`, `crypto/rand`, `crypto/sha256` and `crypto/tls`. Since each
-    import is compared with the entry sorted just before it, it refuses every other package under
-    `crypto/`, the public-key code an opening is built on, `crypto/hpke`, `crypto/mlkem` and
-    `crypto/ecdh`, among them
-    ([ADR-0081](../operability/0081-credentials-sealed-to-a-public-key.md)). The root `crypto`
+    names exactly the six packages under `crypto/` that code uses, `crypto/aes`, `crypto/cipher`,
+    `crypto/hkdf`, `crypto/hmac`, `crypto/rand` and `crypto/sha256`. Since each import is compared
+    with the entry sorted just before it, it refuses every other package under `crypto/`, the
+    public-key code an opening is built on, `crypto/hpke`, `crypto/mlkem` and `crypto/ecdh`, among
+    them ([ADR-0081](../operability/0081-credentials-sealed-to-a-public-key.md)). The root `crypto`
     package, which holds interfaces and the hash registry and no algorithm, stays admitted. Test
     files are outside it, because a test opens what the UI sealed to check it and is never served.
   - **Non-test code everywhere.** It refuses the shared test support, the provider fake, the
     contract suite, the property-testing library and the comparison library, so none of them reaches
     code that ships.
   - **Test files.** They are matched by lists of their own, because a test imports what its
-    package's non-test files may not. A test file may import what its package's non-test files may,
+    package's non-test files may not. So each list of a component or a package matches either its
+    non-test files or its test files, never both, and admits nothing to the one that only the other
+    uses. A test file may import what its package's non-test files may,
     the standard library's `testing` package, the comparison support of
     [ADR-0070](./0070-unit-comparison-through-one-options-value.md), the provider fake and the
     contract suite of [ADR-0043](./0043-no-mocking.md), the test support an integration test needs

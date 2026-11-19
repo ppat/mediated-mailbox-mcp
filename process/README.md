@@ -62,8 +62,9 @@ keeps no slot and returns a new value on each call, and the UI calls it without 
 | `version/` | The release version every binary reports through `--version` and every process's start banner shows |
 
 Each package is admitted to each component by its own entry in that component's import list, and
-each has a list of its own in `.golangci.yaml`, so joining this family never widens what any
-component may import. A package added here without a list of its own falls under the list over
+each has a list of its own over its non-test files in `.golangci.yaml`, and one over its test
+files beside it where it has tests, so joining this family never widens what any component may
+import. A package added here without a list of its own falls under the list over
 files outside every component, which admits only the standard library.
 
 ## What does not belong
@@ -165,8 +166,8 @@ kind, through `process.JobKind`, and keeps the pools in a slot of the process, c
 other slots hold.
 
 The connection renders every connection setting into the connection string, caps each pool at the
-section's pool size, which in the worker sizes each job kind's pool alike
-([ADR-0078](../docs/adr/engineering/0078-configuration-layers-through-an-owned-library.md)), and
+section's pool size, which in the worker sizes each job kind's pool and the process's own pool
+alike ([ADR-0078](../docs/adr/engineering/0078-configuration-layers-through-an-owned-library.md)), and
 reads the password from the mounted password file
 ([ADR-0079](../docs/adr/operability/0079-secrets-arrive-as-mounted-files.md)). The API server, the
 UI and the worker connect as the application user, and the migrator as the migrator's user. Each

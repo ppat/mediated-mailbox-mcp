@@ -133,8 +133,10 @@ flowchart LR
   | `p` | What the process offers the one part being built, below |
   | `c` | The program's whole configuration, of which the part reads what it needs |
 
-  The parameters are fixed by the spec's type, which the compiler holds, so no `Build` can be
-  handed anything else. What is fenced is the code that acts on a setting, by the import lists
+  The parameters are fixed by the spec's type, so the compiler refuses a spec that lists a `Build`
+  taking anything else. Review alone holds that a spec does not wrap an exported `Build` that takes
+  more in a function handing it the extra input, which the compiler accepts. What is fenced is the
+  code that acts on a setting, by the import lists
   ([ADR-0071](./0071-static-enforcement-toolchain.md)), not the setting.
 - **`p` is the process's offer to the part being built**, the interface `process.Capabilities`.
 
@@ -357,7 +359,8 @@ The start, in order.
   function, one that needs a pool asks `process/database`, and none builds anything of its own.
 - Every `Build` takes the same parameters, the build's context, `p` and `c`, fixed by the spec's
   type. So what an endpoint's or a job kind's code can reach is its parameters and its import list,
-  and no program's code can hand one an extra input
+  and a program's spec hands none an extra input, which the compiler holds for a `Build` the spec
+  lists and review for a function the spec wraps one in
   ([ADR-0117](../operability/0117-one-background-worker-runs-every-job-kind.md)).
 - Every series an endpoint or job kind registers carries `component`, and the worker's job kinds
   carry `job_kind` beneath it. Every endpoint carries the same label names as every other, and every

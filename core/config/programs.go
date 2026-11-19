@@ -243,8 +243,8 @@ type Worker struct {
 	Accounts `yaml:",inline"`
 	Backfill Backfill `yaml:"backfill"`
 	Sync     Sync     `yaml:"sync"`
-	// Database is the one database part. Its pool size sizes each job kind's pool alike (ADR-0078,
-	// ADR-0119).
+	// Database is the one database part. Its pool size sizes each job kind's pool and the process's
+	// own pool alike (ADR-0078, ADR-0119).
 	Database   Database `yaml:"database"`
 	Credential Keys     `yaml:"credential"`
 	// Scanner is the scanner's part, one for every job kind that masks or scans (ADR-0120).
@@ -274,8 +274,9 @@ type Sync struct {
 
 // DefaultWorker is the worker's defaults. The reload interval is the API server's, the sync interval
 // ADR-0018's, the first window ADR-0105's, and the bound on the waiting messages a tick decides the
-// top of ADR-0018's steady-state tick. The pool size, which sizes each job kind's pool alike, is 4,
-// since the driver's default follows the node's processors and not the worker's limit (ADR-0078).
+// top of ADR-0018's steady-state tick. The pool size, which sizes each job kind's pool and the
+// process's own pool alike, is 4, since the driver's default follows the node's processors and not
+// the worker's limit (ADR-0078).
 // The scanner's vocabulary and tuning are the ones the application ships.
 func DefaultWorker() Worker {
 	return Worker{
