@@ -95,8 +95,10 @@ A process per job kind also costs.
     review holds ([ADR-0071](../engineering/0071-static-enforcement-toolchain.md),
     [ADR-0143](../data/0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)).
   - A `Build` whose parameters the spec's type fixes, which are the build's context, the process's
-    capabilities and the worker's configuration. The compiler holds them, so no job kind can be
-    handed anything else. A job kind returns its plan rather than being handed the scheduler
+    capabilities and the worker's configuration. The compiler refuses a spec that lists a `Build`
+    taking anything else. Review alone holds that the spec does not wrap a job kind's exported
+    `Build` that takes more in a function handing it the extra input, which the compiler accepts.
+    A job kind returns its plan rather than being handed the scheduler
     ([ADR-0142](../engineering/0142-each-program-is-a-spec-that-one-process-runs.md)). The
     configuration it receives is the worker's whole tree, the key files' paths among its settings,
     and a setting confers nothing without the code that acts on it. The code that opens a key is

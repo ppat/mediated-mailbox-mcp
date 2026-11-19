@@ -136,7 +136,8 @@ calls for one and the second because policy lives in the database.
     optional and holds the path of a mounted CA file. `pool_size` is the most connections a pool of
     the process opens, a positive number. The API server, the UI and the migrator default it to the
     driver's own default, the larger of 4 and the processor count. In the worker the one
-    `pool_size` sizes each job kind's pool alike, and defaults to 4 connections.
+    `pool_size` sizes each job kind's pool and the process's own pool alike, so the worker opens up
+    to three pools of that size, and defaults to 4 connections.
   - Every job kind of the worker connects as the one application user
     ([ADR-0143](../data/0143-the-programs-connect-as-one-application-user-beside-the-migrators.md)),
     so the worker's `database` section names one user and one password file, as the API server's,

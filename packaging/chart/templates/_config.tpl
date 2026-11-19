@@ -90,7 +90,7 @@ file, since no ConfigMap of the release exists at pre-install (ADR-0129, ADR-013
 {{- toYaml $c }}
 {{- end }}
 
-{{/* The worker's file. Its one database section's pool size sizes each job kind's pool alike (ADR-0078). */}}
+{{/* The worker's file. Its one database section's pool size sizes each job kind's pool and the process's own pool alike (ADR-0078). */}}
 {{- define "mm.config.worker" -}}
 {{- $c := deepCopy .Values.worker.config }}
 {{- $_ := set $c "log_level" (default .Values.sharedConfig.log_level (index .Values.worker.config "log_level")) }}

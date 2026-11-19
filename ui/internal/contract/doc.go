@@ -1,5 +1,5 @@
 // Package contract generates the UI's OpenAPI document, ui/contract/openapi.json, from the dataset
-// registry and the handler list (ADR-0065).
+// registry and the bespoke routes (ADR-0065).
 //
 // The generator is test code, so kin-openapi never reaches the binary. The non-test import list refuses
 // it in every shipping file. TestDocument builds the document and fails when the checked-in file differs,

@@ -21,12 +21,13 @@ top-level library of its own rather than a part of any one of them.
 | `open/` | The private keys, the keyring, opening, the refusals and the re-seal, and the opening of OAuth clients' secrets alone, `ClientSecrets`, which the UI's `ui/internal/setup/clientsecret` holds in place of the keyring |
 
 Each package is admitted to each component by its own entry in that component's import list, and
-each has a list of its own in `.golangci.yaml`, so joining this family never widens what any
-component may import. A package added here without a list of its own falls under the list over
+each has a list over its non-test files and a list over its test files in `.golangci.yaml`, so
+joining this family never widens what any component may import. A package added here without a list of its own falls under the list over
 files outside every component, which admits only the standard library. Opening is admitted to the
 connections, `process/connections`, to the UI's `ui/internal/setup/clientsecret` and to the test
-tool `testsupport/cmd/keypaircheck` alone
-([ADR-0071](../docs/adr/engineering/0071-static-enforcement-toolchain.md)).
+tool `testsupport/cmd/keypaircheck` alone among non-test code, and among test files to the
+connections' own, the opening half's own and the command-line program's, which opens the pair its
+`keygen` subcommand writes ([ADR-0071](../docs/adr/engineering/0071-static-enforcement-toolchain.md)).
 
 **What does not belong.**
 

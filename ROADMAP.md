@@ -270,6 +270,7 @@ its part, and the rows it added. Which rows it proved are the rows whose Status 
 | [#474](https://github.com/ppat/mediated-mailbox-mcp/pull/474) | F9 | F9's later work, ticket [#460](https://github.com/ppat/mediated-mailbox-mcp/issues/460). Nothing shipped changed. It adds three mutation patches under `worker/app/testdata/mutations`, and the ledger's rule that every statement in a row is true of the current code | — | The worker's three breaks of the effective configuration logged at start, each value with its source, each over `process/run.go` under the worker's tests |
 | [#475](https://github.com/ppat/mediated-mailbox-mcp/pull/475) | F9 | F9's later work, ticket [#463](https://github.com/ppat/mediated-mailbox-mcp/issues/463), each program's start seen to go red when the process never applies the configured log level. The part the process's start test builds writes a record at `info` and one at `warn`, and the UI and the worker each have an integration test that runs the program on its spec under `warn` until it reports ready, as the API server's does. The worker's unit test that reads the configuration under `warn` stays, its comment no longer claiming the level held a record back, and the comments and [ADR-0139](./docs/adr/data/0139-the-migration-runner-is-goose-linked-into-the-migrator.md)'s sentence on goose's logging say goose writes to the logger it is handed only when made verbose, which the migrator does not make it. No behaviour changed ([ADR-0046](./docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md), [ADR-0122](./docs/adr/engineering/0122-logs-through-slog-at-a-configured-level-handed-to-shells.md)) | It proves the log level's row again for the part that no `info` record follows the configuration under `warn`, for `process` and for the API server, the UI and the worker on their specs, each by a test that went red with the level never set and with it set from the default, the migrator having no record for the level to hold back, and corrects the row's earlier entries that cited a test for a part it could not fail on | The log level's row's two breaks over `process/run.go`, the level never set and the level set from the default `log_level`, demonstrated again with their packages widened to `process`, `ui/app` and `worker/app`, and the patch of the chain's grants row whose context a comment edit in `db/migrate` changed, rebuilt and demonstrated again |
 | [#476](https://github.com/ppat/mediated-mailbox-mcp/pull/476) | F9 | F9's later work, ticket [#465](https://github.com/ppat/mediated-mailbox-mcp/issues/465). Nothing shipped changed. The API server's test that its readiness report is not ready until it reads the bearer token file answers the report's reads of its named pipe until the process has stopped, then holds the pipe open for reading itself until every write has ended, so no write outlives the test or reports to it after it ends ([ADR-0046](./docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md)) | — | The bearer token file readiness row's seven breaks, demonstrated again over the changed test, each red in the tests the row names, so the row is unchanged |
+| [#477](https://github.com/ppat/mediated-mailbox-mcp/pull/477) | F9 | F9's later work, ticket [#441](https://github.com/ppat/mediated-mailbox-mcp/issues/441), the refactor's last step. Every import list of a component or a package governs non-test files or test files, never both, and each list over non-test files names this project's packages by exact entries apart from ADR-0071's prefix exceptions, the wide lists and the test lists admitting by prefix, the UI's read API endpoint, its reads and its policy management each have a list of their own, and the chainsaw suite runs on pull requests again and passed on this pull request. The test pinning each job kind's `Build` to its parameters is deleted, and review holds that a spec wraps no `Build` in a function handing it more. No behaviour changed ([ADR-0071](./docs/adr/engineering/0071-static-enforcement-toolchain.md), [ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md)) | It proves every part of the rows for the adapters' pure cores, the adapter and the rate limiter, the consents, the opening code and the UI's setups that was pending in it, by a violation file per list, and names the refusals held by exact entries alone because a violation file's import would make a cycle | The row on the pinned configuration types rewritten from one demonstration of its six patches, after its worker patch, whose context a comment edit in `core/config` changed, was rebuilt, and the row on each job kind's `Build` parameters retired with its two patches and its test |
 | [#478](https://github.com/ppat/mediated-mailbox-mcp/pull/478) | F9 | F9's later work, ticket [#466](https://github.com/ppat/mediated-mailbox-mcp/issues/466). Nothing shipped changed. The mutation ledger holds every mutation of the current code base and no history. Each patch under a `testdata/mutations` directory is one break of its control's row, and each row's date line holds one date and one evidence pointer, those of the latest demonstration the row was written from, which ran every one of its current patches. A row is rewritten only when its patches change or need to change, or when a statement in it would otherwise be false of the current code. The Glossary and ADR-0046 tell the demonstration, the run, apart from its row, the record, with ADR-0046 pointing to docs/MUTATIONS.md for when a row is written ([docs/MUTATIONS.md](./docs/MUTATIONS.md), [ADR-0046](./docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md)) | — | Every row of the ledger. 516 rows written from one run of the `mutation-demonstrations` workflow started by hand on the pull request's branch, and the rows of the two controls whose demonstration did not hold in that run, the rendered part's size bound and an inline section's values, written from the pull request's own demonstration of every patch of each, after the patch rendering both parts was rebuilt over `content/markdown/core` and the patch misplacing an inline section's field index was rebuilt so the control's own test fails on its values rather than an earlier test panicking |
 
 ### What each program runs
@@ -1320,8 +1321,8 @@ Every program, the migrator, the UI, the worker and the API server, runs on its 
     superseding
     [ADR-0118](./docs/adr/data/0118-each-job-kind-connects-as-a-runtime-role-of-its-own.md)).
   - Both records are Accepted. Every other record in which the refactor makes a sentence false is
-    reworded in place, and every document of the set states the refactored design ahead of the
-    code.
+    reworded in place, and every document of the set states the refactored design, which the
+    code then built.
 
   **What it did not deliver.** Any code, which the tickets
   [#428](https://github.com/ppat/mediated-mailbox-mcp/issues/428),
@@ -1342,14 +1343,10 @@ Every program, the migrator, the UI, the worker and the API server, runs on its 
   the controls it lands or changes
   ([ADR-0046](./docs/adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md)).
 
-  Until #441 merges, the code on `main` and the documents disagree, which the operator accepted for
-  the length of the refactor. So the build state this document records, [the table by
-  program](#what-each-program-runs) among it, describes the code on `main` and not the
-  documents. The chainsaw suite, the chart's system test, does not run on pull requests from #428,
-  which turns its pull-request trigger off, until #441 turns it back on and has it pass against the
-  images built from `main`. So a pull request in that window that touches `packaging/` lands
-  without it. [ADR-0052](./docs/adr/engineering/0052-kubernetes-deployment-helm-chart.md) and
-  [TESTING.md](./TESTING.md) go on describing the run on a pull request for that window.
+  While the refactor was under way the code on `main` and the documents disagreed, which the
+  operator accepted for its length, and the chainsaw suite, the chart's system test, did not run on
+  pull requests from #428, which turned its pull-request trigger off, until #441 turned it back on.
+  Since #441 the code and the documents state the same design.
 
   Pull request [#450](https://github.com/ppat/mediated-mailbox-mcp/pull/450), which closes its
   ticket [#429](https://github.com/ppat/mediated-mailbox-mcp/issues/429), is the refactor's step for
@@ -1747,6 +1744,37 @@ Every program, the migrator, the UI, the worker and the API server, runs on its 
   waiting for a reader ends, and keeps the pipe until every write has ended. Before the change a
   write could outlive the test and fail it after it ended, which panicked the package's test binary.
   What the test proves is unchanged, and nothing shipped changed.
+
+  Pull request [#477](https://github.com/ppat/mediated-mailbox-mcp/pull/477), which closes its
+  ticket [#441](https://github.com/ppat/mediated-mailbox-mcp/issues/441), the refactor's last step,
+  makes every import list exact and proves its fences. Every list that governed a component's test
+  and non-test files together is split into a list over its non-test files and a list over its test
+  files, so a package only a test needs is admitted to no shipped code beside it. That closes two
+  admissions no fence allowed, `credential/open` to the command-line program's shipped code and
+  `provider/consent` to the provider library's, each admitted for a test alone. Each list over
+  non-test files names this project's packages by exact entries, apart from a deployable's own
+  directory, a job kind's own directory, the API server's pure cores and the pure-core `core/`, and
+  the entries no file imported are gone, `crypto/tls` among them. The UI's read API endpoint,
+  `ui/internal/api`, has a list of its own, the one list of the UI's code admitting the setups, the
+  reads and policy management, and the reads and policy management each have a list naming no other
+  handler package. Each protocol root's generator keeps its list of one file, which now also matches
+  one violation file beside the generator, so what the list refuses is proven. A `fence_violation.go`
+  in a package of each list that is the only one refusing a fenced package somewhere proves that
+  refusal, and [docs/VERIFICATIONS.md](./docs/VERIFICATIONS.md) names the few refusals a violation
+  file cannot carry, because the import would make a cycle in the ban-proof build. The test that
+  pinned each job kind's `Build` to the three parameters,
+  `TestEachJobKindsBuildTakesOnlyWhatTheSpecHandsIt`, is deleted with its two mutation patches and
+  its ledger row, as the refactor's design decided, every `Build` taking the same three
+  parameters. The compiler refuses a spec listing a `Build` that takes more, and
+  [ADR-0117](./docs/adr/operability/0117-one-background-worker-runs-every-job-kind.md) and
+  [ADR-0142](./docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md) now say
+  plainly that review alone holds a spec from wrapping an exported `Build` that takes more in a
+  function handing it the extra input. The chainsaw suite's pull-request trigger is back, and the
+  suite passed on this pull request against `main`'s `latest` images, built from the refactored
+  code, the first run of the two database users in its values. The documents read against `main`
+  gained the worker's third pool, the process's own, in the sizing of `pool_size`, the importers of
+  `process/connections` and `credential/open` in test files, and the code comments that still
+  described a `main.go` building the logger. No behaviour changed.
 
 - [x] **F8 — Logging levels** → [O2](./USE_CASES.md#o2--observable) ·
   [V3](#v3--the-agent-arrives-read-only) · finished at image

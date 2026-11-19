@@ -47,8 +47,8 @@ func TestAPasswordVariableRefusesTheStart(t *testing.T) {
 }
 
 // A start writes the effective configuration at info whatever log_level says, writes a banner naming
-// the migrator and its release version to the writer main.go hands in as standard error, and keeps
-// standard output to JSON records (ADR-0122). The password file does not exist, so the start stops at
+// the migrator and its release version to standard error, which the process writes its banner to,
+// and keeps standard output to JSON records (ADR-0122). The password file does not exist, so the start stops at
 // reading it, after the banner and before any connection is made. The migrator writes no record below
 // warn of its own, since goose logs nothing unless it is made verbose, so no run of it shows the level
 // holding a record back.

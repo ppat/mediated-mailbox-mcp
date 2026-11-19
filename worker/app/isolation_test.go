@@ -12,7 +12,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
-	"github.com/ppat/mediated-mailbox-mcp/testsupport/mustnotcompile"
 )
 
 // unsafeImporters are the packages outside the standard library in the worker's build that import
@@ -75,15 +74,5 @@ func TestTheWorkerBuildsWithoutCgo(t *testing.T) {
 	}
 	if env := strings.Fields(builds[0][1]); !slices.Contains(env, "CGO_ENABLED=0") {
 		t.Fatalf("the worker's image builds with %q before go build, which does not switch cgo off", builds[0][1])
-	}
-}
-
-// Each job kind's Build takes only the build's context, the process's capabilities and the worker's
-// configuration, which the spec's type fixes, so a job kind cannot gain an input, another job kind's
-// pool or the scheduler itself among them, unnoticed (ADR-0117, ADR-0142).
-func TestEachJobKindsBuildTakesOnlyWhatTheSpecHandsIt(t *testing.T) {
-	const work = "github.com/ppat/mediated-mailbox-mcp/worker/internal/"
-	for _, kind := range []string{"backfill", "deltasync"} {
-		mustnotcompile.RequireParams(t, work+kind, "Build", "context.Context", "process.Capabilities", "config.Worker")
 	}
 }

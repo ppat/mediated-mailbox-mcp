@@ -42,8 +42,7 @@ formatting to Tools and versions. These are the tripwires:
   (ADR-0124).
 - **The chainsaw workflow builds no images**, deploys `main`'s `latest` images on a pull request
   and a release's images when given its version, and runs on packaging and suite changes only
-  (ADR-0052). Its pull-request trigger is off while the refactor ROADMAP.md records is under way,
-  so it runs only by hand until then, as CLAUDE.md's workflow table states.
+  (ADR-0052).
 - **`latest` has two writers.** The `images` workflow's one job per image builds, signs and pushes
   it as `latest` on a push to `main` that matches its publish list, and on a pull request builds it
   without pushing, watching only Dockerfiles, `go.mod`, `go.sum` and itself. The publish list names

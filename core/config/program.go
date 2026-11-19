@@ -55,7 +55,8 @@ func (c API) DatabasePart() Database { return c.Database }
 // DatabasePart returns the UI's database part.
 func (c UI) DatabasePart() Database { return c.Database }
 
-// DatabasePart returns the worker's one database part, which sizes each job kind's pool alike.
+// DatabasePart returns the worker's one database part, which sizes each job kind's pool and the
+// process's own pool alike.
 func (c Worker) DatabasePart() Database { return c.Database }
 
 // DatabasePart returns the migrator's database part.

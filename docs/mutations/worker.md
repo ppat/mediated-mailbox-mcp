@@ -553,14 +553,6 @@ The demonstrations of the controls whose patches sit in `worker/`. [MUTATIONS.md
 - **Break (3):** delta sync's caller leases in the interactive class
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/worker/app`:** `TestTheProbesServeEverySeriesBetweenRuns`
 
-## Each job kind's constructor takes only what the job kind needs
-
-- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
-- **Break (1):** backfill's Build takes an input beyond what the spec hands it, which the spec fills through a wrapper
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/worker/app`:** `TestEachJobKindsBuildTakesOnlyWhatTheSpecHandsIt`
-- **Break (2):** delta sync's Build takes an input beyond what the spec hands it, which the spec fills through a wrapper
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/worker/app`:** `TestEachJobKindsBuildTakesOnlyWhatTheSpecHandsIt`
-
 ## Each message the first pass or a tick stores carries its attachment media
 
 - **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow

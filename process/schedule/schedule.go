@@ -1,6 +1,7 @@
-// Package schedule is the worker's scheduler (ADR-0119). It decides when each job is asked whether
-// there is work, and the job's own due decision, inside its run, decides whether there is. It stores
-// nothing outside the process: which jobs exist, when each was last asked, which wakes are pending
+// Package schedule is the process's scheduler, which runs the worker's jobs and the process's upkeep,
+// such as the reload of the Session (ADR-0119). It decides when each job is asked whether there is
+// work, and the job's own due decision, inside its run, decides whether there is. It stores nothing
+// outside the process: which jobs exist, when each was last asked, which wakes are pending
 // and each job's backoff live in memory and are rebuilt from recorded state after a restart.
 //
 // A job is one key, a job kind and the account it serves, and the run its job kind's plan built for

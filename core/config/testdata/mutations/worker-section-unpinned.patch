@@ -5,7 +5,7 @@ tests: TestTheProgramTypesArePinned
 scheduled-count: no
 
 diff --git a/core/config/programs.go b/core/config/programs.go
-index b8a3a69f..5efb49ff 100644
+index a1ca1125..5dd9f6df 100644
 --- a/core/config/programs.go
 +++ b/core/config/programs.go
 @@ -243,6 +243,7 @@ type Worker struct {
@@ -13,6 +13,6 @@ index b8a3a69f..5efb49ff 100644
  	Backfill Backfill `yaml:"backfill"`
  	Sync     Sync     `yaml:"sync"`
 +	Extra    Backfill `yaml:"extra"`
- 	// Database is the one database part. Its pool size sizes each job kind's pool alike (ADR-0078,
- 	// ADR-0119).
+ 	// Database is the one database part. Its pool size sizes each job kind's pool and the process's
+ 	// own pool alike (ADR-0078, ADR-0119).
  	Database   Database `yaml:"database"`

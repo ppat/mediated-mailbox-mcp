@@ -1,4 +1,4 @@
-// Package settings reads a deployable's configuration, layering built-in defaults, one optional
+// Package settings reads a program's configuration, layering built-in defaults, one optional
 // YAML file, environment variables and command-line flags per value, in that order, and refusing
 // every mistake in any layer at start (ADR-0078). process/README.md argues why the process family is
 // a shared library.

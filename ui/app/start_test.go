@@ -36,8 +36,8 @@ func TestAPasswordVariableRefusesTheStart(t *testing.T) {
 }
 
 // A start writes the effective configuration at info whatever log_level says, writes a banner naming
-// the UI and its release version to the writer main.go hands in as standard error, and keeps standard
-// output to JSON records (ADR-0122). The public key file does not exist, so the start stops at it,
+// the UI and its release version to standard error, which the process writes its banner to, and
+// keeps standard output to JSON records (ADR-0122). The public key file does not exist, so the start stops at it,
 // after the banner and before any connection and any record of the UI's own. That the level then holds
 // back the UI's records below it is TestTheConfiguredLevelGovernsTheLog's, among the integration tests.
 func TestTheStartLogsItsConfigurationThenSetsItsLevelAndWritesItsBanner(t *testing.T) {
