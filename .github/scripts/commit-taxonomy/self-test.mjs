@@ -279,7 +279,7 @@ const CASES = [
   {
     id: 'I14b', check: 'empty-scope', expect: /type 'feat' asserts a shipped artifact changed, but no changed path ships/,
     defect: 'a claim type over files a Dockerfile copies in with their directory but no binary links: a test, a violation file, a patch and a README',
-    overrides: { commits: () => [commit('feat: rework the account snapshot\n', ['executioncontext/accountload/load_integration_test.go', 'executioncontext/accountload/import_violation.go', 'executioncontext/accountload/testdata/mutations/anything.patch', 'executioncontext/README.md'])] },
+    overrides: { commits: () => [commit('feat: rework the policies\n', ['process/policies/load_integration_test.go', 'process/policies/import_violation.go', 'process/policies/testdata/mutations/anything.patch', 'process/README.md'])] },
   },
   {
     id: 'I14c', check: 'empty-scope', guard: true,

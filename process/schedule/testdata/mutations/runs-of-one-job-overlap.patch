@@ -5,7 +5,7 @@ tests: TestARunIsAskedAgainOnlyAfterItReturns
 scheduled-count: no
 
 diff --git a/process/schedule/schedule.go b/process/schedule/schedule.go
-index 28c25206..4cb635fd 100644
+index 47abffeb..12bb64b3 100644
 --- a/process/schedule/schedule.go
 +++ b/process/schedule/schedule.go
 @@ -346,7 +346,8 @@ func (s *Scheduler) loop(ctx context.Context, key Key, job Job, st *state) {

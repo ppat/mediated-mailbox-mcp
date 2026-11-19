@@ -1,0 +1,20 @@
+control: A timed job is asked on its interval's phase, and a job with no interval only when woken
+removes: a job with an interval waits its interval before its first ask, so the Session's first reload waits a whole interval after the process starts
+packages: ./process/schedule ./process/sessions
+tests: TestATimedJobIsAskedOnTheIntervalsPhase TestTheSessionIsReadyOnceAReloadHasLoadedEverything
+scheduled-count: no
+integration: yes
+
+diff --git a/process/schedule/schedule.go b/process/schedule/schedule.go
+index 47abffeb..1da1217a 100644
+--- a/process/schedule/schedule.go
++++ b/process/schedule/schedule.go
+@@ -299,7 +299,7 @@ func (s *Scheduler) loop(ctx context.Context, key Key, job Job, st *state) {
+ 	anchor := time.Now()
+ 	// point is the latest time on the phase the timer has answered, and due when the timer next fires.
+ 	point := anchor
+-	due, timed := anchor, true
++	due, timed := anchor.Add(job.Interval), true
+ 	failures := 0
+ 	backingOff := false
+ 	timer := time.NewTimer(0)

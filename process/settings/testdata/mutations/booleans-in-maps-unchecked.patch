@@ -5,10 +5,10 @@ tests: TestABooleanInsideAValueIsTrueOrFalse/in_a_map_in_a_list TestABooleanInsi
 scheduled-count: no
 
 diff --git a/process/settings/settings.go b/process/settings/settings.go
-index 6bcf5a72..bd59502b 100644
+index 07990f9a..dfeb091f 100644
 --- a/process/settings/settings.go
 +++ b/process/settings/settings.go
-@@ -422,11 +422,6 @@ func checkBooleans(n *yaml.Node, t reflect.Type) error {
+@@ -421,11 +421,6 @@ func checkBooleans(n *yaml.Node, t reflect.Type) error {
  			}
  		}
  	case reflect.Map:

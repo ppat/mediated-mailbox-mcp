@@ -5,9 +5,10 @@ tests: TestAlertingRules
 scheduled-count: no
 
 diff --git a/packaging/chart/rules/alerting-rules.yaml b/packaging/chart/rules/alerting-rules.yaml
+index 9cc9ffa4..820cf578 100644
 --- a/packaging/chart/rules/alerting-rules.yaml
 +++ b/packaging/chart/rules/alerting-rules.yaml
-@@ -49,7 +49,7 @@
+@@ -80,7 +80,7 @@ groups:
    # Missing data never reads as a healthy account. The API server runs continuously and emits every account's series,
    # while the job workloads' series are absent between their runs by design and are not read here.
    - alert: MediatedMailboxRateSeriesAbsent

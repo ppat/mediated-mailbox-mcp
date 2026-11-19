@@ -27,8 +27,8 @@ const (
 	hardCapName     = "mediated_mailbox_provider_hard_cap"
 )
 
-// reloadFailedName is the policy loader's reload-failure series, which the policy reload rule reads.
-const reloadFailedName = "mediated_mailbox_policyload_reload_failed"
+// reloadFailedName is the policies' reload-failure series, which the policy reload rule reads.
+const reloadFailedName = "mediated_mailbox_policy_reload_failed"
 
 // cursorGapsName is delta sync's count of cursor gaps, which the cursor gap rule reads.
 const cursorGapsName = "mediated_mailbox_sync_cursor_gaps_total"
@@ -270,9 +270,9 @@ func TestTheCollectorFailsTheScrapeWhenItCannotRead(t *testing.T) {
 }
 
 // Every series the alerting rules read, apart from the two the provider adapters emit, the
-// reload-failure series the policy loader emits, delta sync's count of cursor gaps and the worker's
+// reload-failure series the policies emit, delta sync's count of cursor gaps and the worker's
 // series of a job's last success and its bound, is one the collector or a Limiter emits under that
-// exact name, so a rule never watches a name nothing emits (ADR-0076). The policy loader's, delta
+// exact name, so a rule never watches a name nothing emits (ADR-0076). The policies', delta
 // sync's and the worker's scheduler's own tests hold their series to the same check.
 func TestTheRulesReadOnlyEmittedRateSeries(t *testing.T) {
 	conn := superuser(t)

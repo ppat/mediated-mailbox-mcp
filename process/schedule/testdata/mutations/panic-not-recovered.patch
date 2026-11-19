@@ -5,10 +5,10 @@ tests: TestAPanicIsItsRunsFailureAndStopsNothingElse/in_the_run
 scheduled-count: no
 
 diff --git a/process/schedule/schedule.go b/process/schedule/schedule.go
-index 41b5d3ba..9995c861 100644
+index 47abffeb..b54ea274 100644
 --- a/process/schedule/schedule.go
 +++ b/process/schedule/schedule.go
-@@ -357,10 +357,5 @@ func (s *Scheduler) ask(ctx context.Context, key Key, job Job, at time.Time) (Ou
+@@ -433,10 +433,5 @@ func (s *Scheduler) ask(ctx context.Context, key Key, st *state, job Job, at, ph
  
  // call runs run, recovering a panic in it as an error wrapping ErrPanicked.
  func call(ctx context.Context, run Run, ask Ask) (panicked bool, err error) {

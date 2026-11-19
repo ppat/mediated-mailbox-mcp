@@ -5,9 +5,10 @@ tests: TestAGoroutineStartedThroughGoIsTheProcesss
 scheduled-count: no
 
 diff --git a/process/process.go b/process/process.go
+index 4a6da3fc..38916f3d 100644
 --- a/process/process.go
 +++ b/process/process.go
-@@ -182,7 +182,6 @@ func (p *proc) joinGoroutines() error {
+@@ -180,7 +180,6 @@ func (p *proc) joinGoroutines() error {
  	p.goMu.Lock()
  	p.joining = true
  	p.goMu.Unlock()

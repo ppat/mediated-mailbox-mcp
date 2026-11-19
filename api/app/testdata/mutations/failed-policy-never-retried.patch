@@ -6,7 +6,7 @@ scheduled-count: no
 integration: yes
 
 diff --git a/process/sessions/sessions.go b/process/sessions/sessions.go
-index 0d04cbc6..d0594325 100644
+index 0f7b87f4..e4765c4d 100644
 --- a/process/sessions/sessions.go
 +++ b/process/sessions/sessions.go
 @@ -85,6 +85,7 @@ type Session struct {

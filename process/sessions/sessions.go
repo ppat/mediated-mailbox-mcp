@@ -42,7 +42,7 @@ var ErrNotRead = fmt.Errorf("no reload has read the accounts and loaded their co
 var ErrPolicyNotLoaded = errors.New("the policy was not loaded")
 
 // reloadDurationName is the series timing each reload of the Session, K12 of ADR-0125.
-const reloadDurationName = "mediated_mailbox_executioncontext_reload_duration_seconds"
+const reloadDurationName = "mediated_mailbox_session_reload_duration_seconds"
 
 // firstRetry is how soon a reload is tried again while no reload has loaded the accounts, their
 // connections and their policy, so a process whose first reload fails after its start's schema check

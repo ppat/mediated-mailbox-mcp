@@ -5,9 +5,10 @@ tests: TestTheFakeReportingATotalPassesTheContract/pages_of_2/enumeration_return
 scheduled-count: no
 
 diff --git a/provider/mail/fake/fake.go b/provider/mail/fake/fake.go
+index 21212cd6..dfcab425 100644
 --- a/provider/mail/fake/fake.go
 +++ b/provider/mail/fake/fake.go
-@@ -416,7 +416,7 @@ func (f *Fake) EnumerateAll(ctx context.Context, page mail.PageToken) (mail.Page
+@@ -439,7 +439,7 @@ func (f *Fake) EnumerateAll(ctx context.Context, page mail.PageToken) (mail.Page
  		out.Items = append(out.Items, clone(s.meta))
  	}
  	if f.totals {

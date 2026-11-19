@@ -5,9 +5,10 @@ tests: TestAProgramThatRunsOnceDoesItsWorkAndClosesItsSlots
 scheduled-count: no
 
 diff --git a/process/serve.go b/process/serve.go
+index b637c343..589dba82 100644
 --- a/process/serve.go
 +++ b/process/serve.go
-@@ -26,7 +26,7 @@ func runTask[C any](ctx context.Context, p *proc, spec Spec[C], c C) error {
+@@ -25,7 +25,7 @@ func runTask[C any](ctx context.Context, p *proc, spec Spec[C], c C) error {
  	p.task = true
  	p.upkeepMu.Unlock()
  	stopBuild := context.AfterFunc(ctx, p.stopRun)

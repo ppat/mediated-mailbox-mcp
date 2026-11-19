@@ -5,10 +5,10 @@ tests: TestTheFakePassesTheContract
 scheduled-count: no
 
 diff --git a/provider/mail/fake/fake.go b/provider/mail/fake/fake.go
-index f9e55002..636a090d 100644
+index 21212cd6..fc1fc4f6 100644
 --- a/provider/mail/fake/fake.go
 +++ b/provider/mail/fake/fake.go
-@@ -262,7 +262,7 @@ func (f *Fake) GetMessageBody(ctx context.Context, id string, part mail.BodyPart
+@@ -264,7 +264,7 @@ func (f *Fake) GetMessageBody(ctx context.Context, id string, part mail.BodyPart
  	switch {
  	case part != "" && part != named:
  		return mail.MessageBody{}, fmt.Errorf("fake: body part %q of message %q: %w", part, id, mail.ErrInvalid)

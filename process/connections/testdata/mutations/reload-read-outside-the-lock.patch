@@ -6,9 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/process/connections/connections.go b/process/connections/connections.go
+index 463d796a..abc380f4 100644
 --- a/process/connections/connections.go
 +++ b/process/connections/connections.go
-@@ -200,9 +200,9 @@ type row struct {
+@@ -201,9 +201,9 @@ type row struct {
  // Each connected account's lowered rate target is read again, and one that cannot be read is logged and
  // kept, so no unit of work begins on that account until a load reads it (ADR-0024).
  func (c *Connections) Load(ctx context.Context, listed []accounts.Account) error {

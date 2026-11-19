@@ -5,10 +5,10 @@ tests: TestAnOpChangingNothingReadsItsMessage
 scheduled-count: no
 
 diff --git a/provider/mail/gmail/adapter.go b/provider/mail/gmail/adapter.go
-index 418a827..51e4945 100644
+index 46815924..6421f23e 100644
 --- a/provider/mail/gmail/adapter.go
 +++ b/provider/mail/gmail/adapter.go
-@@ -387,12 +387,7 @@ func (c *call) apply(ctx context.Context, op mail.MutationOp, labels labelTable)
+@@ -505,12 +505,7 @@ func (c *call) apply(ctx context.Context, op mail.MutationOp, labels labelTable)
  		return fmt.Errorf("gmail: message %q: %w", id, mail.ErrNotFound)
  	}
  	if change.none() {

@@ -5,10 +5,10 @@ tests: TestEveryMistakeIsRefusedAtStart/an_unknown_environment_variable_under_th
 scheduled-count: no
 
 diff --git a/process/settings/settings.go b/process/settings/settings.go
-index 4299ed0..31483a5 100644
+index 07990f9a..b5a80ab6 100644
 --- a/process/settings/settings.go
 +++ b/process/settings/settings.go
-@@ -312,7 +312,7 @@ func readEnvironment(root *node, environ []string) ([]assignment, string, error)
+@@ -325,7 +325,7 @@ func readEnvironment(root *node, environ []string) ([]assignment, string, error)
  		path := strings.Split(strings.ToLower(rest), "__")
  		value, err := resolve(root, path, text)
  		if err != nil {

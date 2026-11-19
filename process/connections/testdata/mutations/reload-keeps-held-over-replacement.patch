@@ -1,0 +1,20 @@
+control: A reload keeps an account's token while its own current credential equals the stored one and its client is unchanged
+removes: a reload keeps what the record holds even when someone else replaced the stored bytes
+packages: ./process/connections
+tests: TestAStoredCredentialSomeoneElseReplacedWins
+scheduled-count: no
+integration: yes
+
+diff --git a/process/connections/connections.go b/process/connections/connections.go
+index 463d796a..e967a8bf 100644
+--- a/process/connections/connections.go
++++ b/process/connections/connections.go
+@@ -313,7 +313,7 @@ func (c *Connections) adopt(rec *record, a accounts.Account, opened map[string]c
+ 		rec.disconnect()
+ 		return false
+ 	}
+-	plaintext, same := rec.current(), rec.stored != nil && bytes.Equal(rec.stored, stored)
++	plaintext, same := rec.current(), rec.stored != nil
+ 	if !same {
+ 		var err error
+ 		if plaintext, err = c.keys.Open(stored, seal.AccountCredential(a.ID)); err != nil {

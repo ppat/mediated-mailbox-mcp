@@ -100,7 +100,7 @@ func ParsePublicKey(b []byte) (PublicKey, error) {
 
 // LoadPublicKey reads the public key from its mounted file (ADR-0079).
 func LoadPublicKey(path string) (PublicKey, error) {
-	b, err := os.ReadFile(path) //nolint:gosec // the path is the mounted key file the composition root names
+	b, err := os.ReadFile(path) //nolint:gosec // the path is the mounted key file the configuration names
 	if err != nil {
 		return PublicKey{}, fmt.Errorf("credential: reading the public key file: %w", err)
 	}

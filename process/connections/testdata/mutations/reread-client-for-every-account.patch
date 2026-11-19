@@ -1,0 +1,21 @@
+control: An account is connected through the OAuth client it names, and an account that names none through none
+removes: a client read again after a refused re-seal is handed to every account that names a client, the ones naming another client included
+packages: ./process/connections
+tests: TestAReSealNeverPutsBackAReplacedSecret
+scheduled-count: no
+integration: yes
+
+diff --git a/process/connections/reseal.go b/process/connections/reseal.go
+index 2eb9dada..47610320 100644
+--- a/process/connections/reseal.go
++++ b/process/connections/reseal.go
+@@ -165,7 +165,8 @@ func (c *Connections) readClientAgain(ctx context.Context, name string) error {
+ 	for _, account := range slices.Sorted(maps.Keys(records)) {
+ 		rec := records[account]
+ 		rec.mu.Lock()
+-		if rec.clientName == name {
++		if rec.clientName != "" {
++			rec.clientName = name
+ 			c.repair(account, rec)
+ 		}
+ 		rec.mu.Unlock()

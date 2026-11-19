@@ -16,7 +16,7 @@ func TestPlacement(t *testing.T) {
 
 // The cases under testdata/src/github.com/ppat/mediated-mailbox-mcp stand for a pure core, a
 // deployable's internal pure core, a library's pure core, a pure core whose core element sits at
-// depth three, a composition root writing and linking to them from outside, and two directories
+// depth three, a program's shell code writing and linking to them from outside, and two directories
 // whose names only start or end with core, which are not pure cores.
 func TestGlobals(t *testing.T) {
 	const m = "github.com/ppat/mediated-mailbox-mcp/"
@@ -25,10 +25,10 @@ func TestGlobals(t *testing.T) {
 		m+"corex/lookalike", m+"tools/hardcore/lookalike", m+"tools/extra/core/nested")
 }
 
-// The cases under testdata/src stand for a deployable's composition root and the rest of its
-// package, its internal code, a shared library with its test file, the test tooling, an operator
-// command, the module's root, functions of other packages named like the readers, and a package
-// outside this module.
+// The cases under testdata/src stand for a deployable's main.go and the rest of its package, its
+// internal code, a shared library with its test file, the test tooling, an operator command, the
+// module's root, functions of other packages named like the readers, and a package outside this
+// module.
 func TestEnvironment(t *testing.T) {
 	const m = "github.com/ppat/mediated-mailbox-mcp"
 	analysistest.Run(t, analysistest.TestData(), analysis.Environment,
@@ -45,7 +45,7 @@ func TestTxHelper(t *testing.T) {
 
 // The cases under testdata/src/github.com/ppat/mediated-mailbox-mcp stand for the UI's server with its
 // recording mux and a test file, another UI package declaring a type named like the recording mux, the
-// UI's composition root, a directory whose name only starts with ui, and the API server.
+// UI's main.go, a directory whose name only starts with ui, and the API server.
 func TestRoutes(t *testing.T) {
 	const m = "github.com/ppat/mediated-mailbox-mcp"
 	analysistest.Run(t, analysistest.TestData(), analysis.Routes,

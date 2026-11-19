@@ -5,10 +5,10 @@ tests: TestCeilingThrottlesAboveTheRate
 scheduled-count: no
 
 diff --git a/provider/mail/fake/throttle.go b/provider/mail/fake/throttle.go
-index c72b9e8..d120541 100644
+index e6f854a6..de6cd03b 100644
 --- a/provider/mail/fake/throttle.go
 +++ b/provider/mail/fake/throttle.go
-@@ -61,11 +61,10 @@ func Ceiling(weightPerSecond float64, signal mail.ThrottleSignal) Schedule {
+@@ -63,11 +63,10 @@ func Ceiling(weightPerSecond float64, signal mail.ThrottleSignal) Schedule {
  				total += s.weight
  			}
  		}

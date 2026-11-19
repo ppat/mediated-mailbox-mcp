@@ -5,7 +5,7 @@ tests: TestEnvironment
 scheduled-count: no
 
 diff --git a/testsupport/analysis/environment.go b/testsupport/analysis/environment.go
-index 2ae095e..825955c 100644
+index 29642746..d5d61e31 100644
 --- a/testsupport/analysis/environment.go
 +++ b/testsupport/analysis/environment.go
 @@ -42,7 +42,6 @@ var environmentReaders = map[string]string{

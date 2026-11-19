@@ -5,9 +5,10 @@ tests: TestTheApplicationServerGivenNoKeyPairIsPlain
 scheduled-count: no
 
 diff --git a/process/serve.go b/process/serve.go
+index b637c343..86df0bc3 100644
 --- a/process/serve.go
 +++ b/process/serve.go
-@@ -180,7 +180,7 @@ func (p *proc) serveOn(ctx context.Context, app, probeListener net.Listener, s c
+@@ -179,7 +179,7 @@ func (p *proc) serveOn(ctx context.Context, app, probeListener net.Listener, s c
  		}()
  	}
  	serving.Store(true)

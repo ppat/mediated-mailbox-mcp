@@ -5,9 +5,10 @@ tests: TestAGoroutineStartedThroughGoIsTheProcesss
 scheduled-count: no
 
 diff --git a/process/process.go b/process/process.go
+index 4a6da3fc..a16aa8d6 100644
 --- a/process/process.go
 +++ b/process/process.go
-@@ -154,9 +154,6 @@ func (p *proc) notReady() (string, bool) {
+@@ -152,9 +152,6 @@ func (p *proc) notReady() (string, bool) {
  func (p *proc) goroutine(owner, name string, run func(context.Context)) bool {
  	p.goMu.Lock()
  	defer p.goMu.Unlock()

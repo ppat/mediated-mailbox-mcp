@@ -5,8 +5,8 @@ tests: TestAFailedReadNeverReplacesTheActivePolicy/the_first_account's_read_fail
 scheduled-count: no
 integration: yes
 
-
 diff --git a/process/policies/metrics.go b/process/policies/metrics.go
+index 70272369..2b5994a6 100644
 --- a/process/policies/metrics.go
 +++ b/process/policies/metrics.go
 @@ -49,4 +49,4 @@ func (m *metrics) took(start time.Time) { m.reloadDuration.Observe(time.Since(st

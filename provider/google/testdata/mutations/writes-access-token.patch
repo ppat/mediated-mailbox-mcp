@@ -5,7 +5,7 @@ tests: TestARotatedRefreshTokenIsHeldSentAndHandedOver TestARefreshThatDoesNotRo
 scheduled-count: no
 
 diff --git a/provider/google/tokensource.go b/provider/google/tokensource.go
-index 7eee30ce..a71b17dc 100644
+index 1ac8e55a..57432a5e 100644
 --- a/provider/google/tokensource.go
 +++ b/provider/google/tokensource.go
 @@ -60,7 +60,7 @@ func NewTokenSource(client *http.Client, creds Credentials) *TokenSource {

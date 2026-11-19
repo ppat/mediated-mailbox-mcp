@@ -1,0 +1,53 @@
+control: Only the body fetch returns a body, and no metadata type has a field for it
+removes: thread listing is retyped to return bodies, with the provider fake changed to match, as a real change of the port changes every implementation
+packages: ./provider/mail
+tests: TestOnlyTheBodyFetchReturnsABody
+scheduled-count: no
+
+diff --git a/provider/mail/fake/fake.go b/provider/mail/fake/fake.go
+index 21212cd6..9b0cf9d3 100644
+--- a/provider/mail/fake/fake.go
++++ b/provider/mail/fake/fake.go
+@@ -190,7 +190,12 @@ func snippet(text string) string {
+ }
+ 
+ // ListThreads implements the port.
+-func (f *Fake) ListThreads(ctx context.Context, q mail.Query, page mail.PageToken) (mail.Page[mail.ThreadMetadata], error) {
++func (f *Fake) ListThreads(ctx context.Context, q mail.Query, page mail.PageToken) (mail.Page[mail.MessageBody], error) {
++	v, err := f.listThreads(ctx, q, page)
++	return mail.Page[mail.MessageBody]{Next: v.Next}, err
++}
++
++func (f *Fake) listThreads(ctx context.Context, q mail.Query, page mail.PageToken) (mail.Page[mail.ThreadMetadata], error) {
+ 	if err := ctx.Err(); err != nil {
+ 		return mail.Page[mail.ThreadMetadata]{}, err
+ 	}
+diff --git a/provider/mail/fake/throttle.go b/provider/mail/fake/throttle.go
+index e6f854a6..40a2c2a8 100644
+--- a/provider/mail/fake/throttle.go
++++ b/provider/mail/fake/throttle.go
+@@ -106,9 +106,9 @@ func (t *Throttled) admit(ctx context.Context, op mail.Operation, messages int)
+ }
+ 
+ // ListThreads implements the port.
+-func (t *Throttled) ListThreads(ctx context.Context, q mail.Query, page mail.PageToken) (mail.Page[mail.ThreadMetadata], error) {
++func (t *Throttled) ListThreads(ctx context.Context, q mail.Query, page mail.PageToken) (mail.Page[mail.MessageBody], error) {
+ 	if err := t.admit(ctx, mail.OpListThreads, 0); err != nil {
+-		return mail.Page[mail.ThreadMetadata]{}, err
++		return mail.Page[mail.MessageBody]{}, err
+ 	}
+ 	return t.inner.ListThreads(ctx, q, page)
+ }
+diff --git a/provider/mail/mail.go b/provider/mail/mail.go
+index de25cfda..af9ea699 100644
+--- a/provider/mail/mail.go
++++ b/provider/mail/mail.go
+@@ -23,7 +23,7 @@ type Mailbox interface {
+ 	// ListThreads returns a page of the threads holding at least one message that q selects, each
+ 	// with every one of its messages. A message in the trash or marked as spam is listed like any
+ 	// other. It returns ErrInvalid for a query Valid refuses.
+-	ListThreads(ctx context.Context, q coremail.Query, page coremail.PageToken) (coremail.Page[coremail.ThreadMetadata], error)
++	ListThreads(ctx context.Context, q coremail.Query, page coremail.PageToken) (coremail.Page[coremail.MessageBody], error)
+ 	// GetThreadMetadata returns one thread with every one of its messages, or ErrNotFound.
+ 	GetThreadMetadata(ctx context.Context, threadID string) (coremail.ThreadMetadata, error)
+ 	// GetMessageMetadata returns the metadata of each message ids names, in the order of ids, one in

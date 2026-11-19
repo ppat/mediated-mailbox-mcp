@@ -110,7 +110,7 @@ type parts struct {
 // then sets the level from log_level, runs the configuration's checks and the spec's Init, and writes
 // the start banner to stderr. started is false with a nil error once --help or --version is answered.
 func start[C config.Program[C]](args, environ []string, stdout, stderr io.Writer, logger *slog.Logger, level *slog.LevelVar, spec Spec[C]) (l loaded[C], started bool, err error) {
-	if err := RefusePasswordVariables(environ); err != nil {
+	if err := refusePasswordVariables(environ); err != nil {
 		return l, false, err
 	}
 	var zero C
@@ -180,11 +180,11 @@ func partsOf[C any](spec Spec[C], c C) (parts, []string, error) {
 	return p, append(lines, "probes  http on "+p.operations.ProbeListen), nil
 }
 
-// RefusePasswordVariables refuses a start while PGPASSWORD or PGSSLPASSWORD is set, an empty value
+// refusePasswordVariables refuses a start while PGPASSWORD or PGSSLPASSWORD is set, an empty value
 // included, since the database driver reads either on every parse and a stray one would win over
-// the mounted password file (ADR-0078, ADR-0139). Run calls it before the configuration is read for
-// every program, and process/host calls it until the host is deleted.
-func RefusePasswordVariables(environ []string) error {
+// the mounted password file (ADR-0078, ADR-0139). The start calls it before the configuration is read
+// for every program.
+func refusePasswordVariables(environ []string) error {
 	for _, entry := range environ {
 		name, _, _ := strings.Cut(entry, "=")
 		if name == "PGPASSWORD" || name == "PGSSLPASSWORD" {

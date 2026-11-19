@@ -56,7 +56,7 @@ func ParsePrivateKey(b []byte) (PrivateKey, error) {
 
 // LoadPrivateKey reads a private key from its mounted file (ADR-0079).
 func LoadPrivateKey(path string) (PrivateKey, error) {
-	b, err := os.ReadFile(path) //nolint:gosec // the path is the mounted key file the composition root names
+	b, err := os.ReadFile(path) //nolint:gosec // the path is the mounted key file the configuration names
 	if err != nil {
 		return PrivateKey{}, fmt.Errorf("credential: reading a private key file: %w", err)
 	}

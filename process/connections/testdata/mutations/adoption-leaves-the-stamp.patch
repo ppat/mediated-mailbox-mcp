@@ -6,9 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/process/connections/connections.go b/process/connections/connections.go
+index 463d796a..eb433783 100644
 --- a/process/connections/connections.go
 +++ b/process/connections/connections.go
-@@ -343,9 +343,7 @@ func (c *Connections) adopt(rec *record, a accounts.Account, opened map[string]c
+@@ -344,9 +344,7 @@ func (c *Connections) adopt(rec *record, a accounts.Account, opened map[string]c
  // adopted gives the record a new stamp for a value adopted from the account's row, when it is not
  // the value the record already held. The caller holds the record's lock.
  func (c *Connections) adopted(rec *record, same bool) {

@@ -5,10 +5,10 @@ tests: TestEveryMistakeIsRefusedAtStart/a_flag_given_twice
 scheduled-count: no
 
 diff --git a/process/settings/settings.go b/process/settings/settings.go
-index 4299ed0..3ff33c2 100644
+index 07990f9a..c27cc9a8 100644
 --- a/process/settings/settings.go
 +++ b/process/settings/settings.go
-@@ -333,8 +333,6 @@ func readFlags(root *node, args []string) ([]assignment, string, error) {
+@@ -346,8 +346,6 @@ func readFlags(root *node, args []string) ([]assignment, string, error) {
  		switch {
  		case !ok:
  			return nil, "", fmt.Errorf("flag --%s: it has no value, and flags are written --%s=VALUE", name, name)

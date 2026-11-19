@@ -22,6 +22,7 @@ import (
 
 	"github.com/ppat/mediated-mailbox-mcp/core/authorize"
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
+	"github.com/ppat/mediated-mailbox-mcp/provider/internal/adapters"
 	providermail "github.com/ppat/mediated-mailbox-mcp/provider/mail"
 )
 
@@ -88,10 +89,7 @@ type change struct {
 	kind changeKind
 }
 
-var (
-	_ mail.Port[context.Context] = (*Fake)(nil)
-	_ providermail.Mailbox       = (*Fake)(nil)
-)
+var _ adapters.Mailbox = (*Fake)(nil)
 
 // apartPrefix starts the part the Fake names for a rendered part it holds apart.
 const apartPrefix mail.BodyPart = "fake.part."

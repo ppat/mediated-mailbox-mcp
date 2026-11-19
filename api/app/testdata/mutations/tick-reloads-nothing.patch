@@ -6,10 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/process/sessions/sessions.go b/process/sessions/sessions.go
-index 60398e3d..f8185d04 100644
+index 0f7b87f4..b37de7e2 100644
 --- a/process/sessions/sessions.go
 +++ b/process/sessions/sessions.go
-@@ -126,6 +126,9 @@ func (s *Session) upkeep() schedule.Job {
+@@ -134,6 +134,9 @@ func (s *Session) upkeep() schedule.Job {
  		Backoff:  schedule.Backoff{Base: retry, Max: retry},
  		Logger:   s.logger,
  		Run: func(ctx context.Context, _ schedule.Ask) error {

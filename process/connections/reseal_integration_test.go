@@ -103,8 +103,8 @@ func TestAStaleReSealIsRefused(t *testing.T) {
 
 // F6's part of VERIFICATIONS' row for a re-seal that never puts back a replaced secret, and for an
 // account served without its client. A client secret the operator replaced after the connections
-// loaded it stays the operator's. The connections read it again and make each account's token from
-// it, and when the replacement does not open, the accounts naming the client are left not connected
+// loaded it stays the operator's. The connections read it again and make the token of each account
+// naming it from it, while an account naming another client keeps its own, and when the replacement does not open, the accounts naming the client are left not connected
 // rather than connected with no client (ADR-0106, ADR-0089).
 func TestAReSealNeverPutsBackAReplacedSecret(t *testing.T) {
 	conn := superuser(t)
@@ -113,6 +113,9 @@ func TestAReSealNeverPutsBackAReplacedSecret(t *testing.T) {
 	client(t, conn, "household", "gmail", "household-id", sealed(t, old, "household-secret", seal.ClientSecret("household")))
 	account(t, conn, "personal", "gmail", sealed(t, current, "personal-token", seal.AccountCredential("personal")))
 	through(t, conn, "personal", "household")
+	client(t, conn, "employer", "gmail", "employer-id", sealed(t, current, "employer-secret", seal.ClientSecret("employer")))
+	account(t, conn, "work", "gmail", sealed(t, current, "work-token", seal.AccountCredential("work")))
+	through(t, conn, "work", "employer")
 	r := start(t, current, old)
 
 	replaced := sealed(t, old, "replaced-secret", seal.ClientSecret("household"))
@@ -126,6 +129,9 @@ func TestAReSealNeverPutsBackAReplacedSecret(t *testing.T) {
 	}
 	if got := r.token(t, "personal"); got != "personal-token through household-id replaced-secret" {
 		t.Errorf("the account's token is %q, want it made from the secret read again", got)
+	}
+	if got := r.token(t, "work"); got != "work-token through employer-id employer-secret" {
+		t.Errorf("the token of an account naming another client is %q, want it made from its own client", got)
 	}
 
 	must(t, conn, "UPDATE oauth_clients SET client_secret = $1 WHERE name = 'household'", sealed(t, old, "unopenable", seal.ClientSecret("another-row")))

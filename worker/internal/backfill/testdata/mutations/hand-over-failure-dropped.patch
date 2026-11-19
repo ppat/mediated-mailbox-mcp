@@ -1,4 +1,4 @@
-control: A rotated refresh token is handed to the account snapshot library after every page, a page that failed included, and a failed write-back ends the pass in an error
+control: A rotated refresh token is written back at the end of every page's unit of work, a page that failed included, and a failed write-back ends the pass in an error
 removes: a hand-over that fails is dropped, so the pass ends without an error
 packages: ./worker/internal/backfill
 tests: TestAFailedHandOverFailsThePassAtItsEnd

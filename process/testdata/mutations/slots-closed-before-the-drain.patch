@@ -5,9 +5,10 @@ tests: TestTheProcessStopsInOrder
 scheduled-count: no
 
 diff --git a/process/serve.go b/process/serve.go
+index b637c343..cba0ed72 100644
 --- a/process/serve.go
 +++ b/process/serve.go
-@@ -190,6 +190,7 @@ func (p *proc) serveOn(ctx context.Context, app, probeListener net.Listener, s c
+@@ -189,6 +189,7 @@ func (p *proc) serveOn(ctx context.Context, app, probeListener net.Listener, s c
  	}
  	serving.Store(false)
  	p.drain()

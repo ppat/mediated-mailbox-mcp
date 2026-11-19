@@ -5,6 +5,7 @@ tests: TestASpecThatCannotRunIsRefused
 scheduled-count: no
 
 diff --git a/process/run.go b/process/run.go
+index 7edb03f4..b3543102 100644
 --- a/process/run.go
 +++ b/process/run.go
 @@ -84,8 +84,6 @@ func refuseSpec[C any](spec Spec[C]) error {

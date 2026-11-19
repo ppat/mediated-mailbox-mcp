@@ -32,7 +32,7 @@ func observe(v redact.Verdict) outcome {
 	}
 }
 
-// lookups are the real functions a composition root passes in (ADR-0043).
+// lookups are the real functions `process/domains` hands the classifier (ADR-0043).
 var lookups = classify.Lookups{
 	ToUnicode:   idna.Lookup.ToUnicode,
 	ToASCII:     idna.Lookup.ToASCII,

@@ -566,7 +566,7 @@ The demonstrations of the controls whose patches sit in `testsupport/`. [MUTATIO
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestTxHelper`
 - **Break (22):** WithTx is not reported
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestTxHelper`
-- **Break (23):** the start check's read of the schema's versions is no longer exempt, so a composition root's check outside an account's transaction is reported
+- **Break (23):** the start check's read of the schema's versions is no longer exempt, so the schema check outside an account's transaction is reported
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestTxHelper`
 - **Break (24):** the UI's read of one client's sealed secret by its name is no longer exempt, so its read outside an account's transaction is reported
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/testsupport/analysis`:** `TestTxHelper`

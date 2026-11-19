@@ -6,9 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/process/connections/connections.go b/process/connections/connections.go
+index 463d796a..b6360c82 100644
 --- a/process/connections/connections.go
 +++ b/process/connections/connections.go
-@@ -347,7 +347,7 @@ func (c *Connections) servable(account string, rec *record) bool {
+@@ -382,7 +382,7 @@ func (c *Connections) servable(account string, rec *record) bool {
  	case !ok:
  		c.log.Warn("there is no adapter for an account's provider, so it is not connected", slog.String("account", account), slog.String("provider", rec.provider))
  		return false

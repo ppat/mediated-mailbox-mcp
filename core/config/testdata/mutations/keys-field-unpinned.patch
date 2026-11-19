@@ -5,6 +5,7 @@ tests: TestThePartsArePinned
 scheduled-count: no
 
 diff --git a/core/config/keys.go b/core/config/keys.go
+index ca07b78e..5a5ca16d 100644
 --- a/core/config/keys.go
 +++ b/core/config/keys.go
 @@ -16,6 +16,7 @@ type Keys struct {

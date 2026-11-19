@@ -5,10 +5,10 @@ tests: TestTheFakePassesTheContract/the_trash_and_spam_are_listed_and_read_like_
 scheduled-count: no
 
 diff --git a/provider/mail/fake/fake.go b/provider/mail/fake/fake.go
-index 247cd2f..6ec8a4f 100644
+index 21212cd6..95cc0af9 100644
 --- a/provider/mail/fake/fake.go
 +++ b/provider/mail/fake/fake.go
-@@ -232,7 +232,7 @@ func (f *Fake) GetMessageMetadata(ctx context.Context, ids []string) ([]mail.Mes
+@@ -242,7 +242,7 @@ func (f *Fake) GetMessageMetadata(ctx context.Context, ids []string) ([]mail.Mes
  	defer f.mu.Unlock()
  	var out []mail.MessageMetadata
  	for _, id := range ids {

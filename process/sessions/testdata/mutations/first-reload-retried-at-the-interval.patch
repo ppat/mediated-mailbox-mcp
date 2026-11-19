@@ -6,9 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/process/sessions/sessions.go b/process/sessions/sessions.go
+index 0f7b87f4..ce7d2a9c 100644
 --- a/process/sessions/sessions.go
 +++ b/process/sessions/sessions.go
-@@ -120,7 +120,7 @@ func Get(ctx context.Context, p process.Capabilities, c config.HasAccounts) (*Se
+@@ -128,7 +128,7 @@ func Get(ctx context.Context, p process.Capabilities, c config.HasAccounts) (*Se
  // in force what was, is logged, and is tried again at the next interval, so it is answered as not due
  // rather than failed, whose backoff would try it sooner (ADR-0090).
  func (s *Session) upkeep() schedule.Job {

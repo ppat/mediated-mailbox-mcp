@@ -6,9 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/process/connections/work.go b/process/connections/work.go
+index bee4427e..4fb426b6 100644
 --- a/process/connections/work.go
 +++ b/process/connections/work.go
-@@ -249,6 +249,7 @@ func (w *Work) writeBack(ctx context.Context, stamp uint64, current []byte) erro
+@@ -255,6 +255,7 @@ func (w *Work) writeBack(ctx context.Context, stamp uint64, current []byte) erro
  		rec.mu.Lock()
  		if rec.stamp == stamp && bytes.Equal(rec.stored, known) {
  			rec.stored, rec.baseline = sealed, current

@@ -5,9 +5,10 @@ tests: TestATickThatCannotRunRefusesTheStart TestATickThatCannotRunRefusesTheSta
 scheduled-count: no
 
 diff --git a/core/config/programs.go b/core/config/programs.go
+index b8a3a69f..674c7300 100644
 --- a/core/config/programs.go
 +++ b/core/config/programs.go
-@@ -296,9 +296,9 @@ func (c Worker) Check() error {
+@@ -299,9 +299,9 @@ func (c Worker) Check() error {
  		c.Database.Check,
  		func() error {
  			switch {
@@ -19,7 +20,7 @@ diff --git a/core/config/programs.go b/core/config/programs.go
  				return errors.New("backfill.concurrency " + strconv.Itoa(c.Backfill.Concurrency) + " is not positive")
  			case c.Sync.SyncInterval <= 0:
  				return errors.New("sync.sync_interval is not positive")
-@@ -306,7 +306,7 @@ func (c Worker) Check() error {
+@@ -309,7 +309,7 @@ func (c Worker) Check() error {
  				return errors.New("sync.first_window is not positive")
  			case c.Sync.DecisionsPerTick <= 0:
  				return errors.New("sync.decisions_per_tick " + strconv.Itoa(c.Sync.DecisionsPerTick) + " is not positive")

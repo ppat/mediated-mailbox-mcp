@@ -5,10 +5,10 @@ tests: TestGlobals
 scheduled-count: no
 
 diff --git a/testsupport/analysis/globals.go b/testsupport/analysis/globals.go
-index f293bbb..2a20f70 100644
+index 94124426..480b4f88 100644
 --- a/testsupport/analysis/globals.go
 +++ b/testsupport/analysis/globals.go
-@@ -76,7 +76,7 @@ func runGlobals(pass *analysis.Pass) (any, error) {
+@@ -77,7 +77,7 @@ func runGlobals(pass *analysis.Pass) (any, error) {
  				if len(fields) < 3 || fields[0] != "//go:linkname" {
  					continue
  				}

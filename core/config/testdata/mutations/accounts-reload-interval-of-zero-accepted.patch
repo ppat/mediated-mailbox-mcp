@@ -5,6 +5,7 @@ tests: TestTheAccountsPartIsChecked/a_reload_interval_of_zero TestTheAPIConfigur
 scheduled-count: no
 
 diff --git a/core/config/keys.go b/core/config/keys.go
+index ca07b78e..2ae1330f 100644
 --- a/core/config/keys.go
 +++ b/core/config/keys.go
 @@ -49,7 +49,7 @@ func DefaultAccounts() Accounts {

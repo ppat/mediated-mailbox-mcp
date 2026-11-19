@@ -1,0 +1,20 @@
+control: An account of a provider that authenticates through an OAuth client is connected only through its own client
+removes: an account of a provider that authenticates through a client and names none is connected
+packages: ./process/connections
+tests: TestAnAccountOfAClientProviderWithoutItsClientIsNotConnected
+scheduled-count: no
+integration: yes
+
+diff --git a/process/connections/connections.go b/process/connections/connections.go
+index 463d796a..bd85b912 100644
+--- a/process/connections/connections.go
++++ b/process/connections/connections.go
+@@ -382,7 +382,7 @@ func (c *Connections) servable(account string, rec *record) bool {
+ 	case !ok:
+ 		c.log.Warn("there is no adapter for an account's provider, so it is not connected", slog.String("account", account), slog.String("provider", rec.provider))
+ 		return false
+-	case facts.UsesClient && !rec.hasClient:
++	case facts.UsesClient && !rec.hasClient && rec.clientName != "":
+ 		c.log.Warn("an account's provider authenticates through an OAuth client and the account has none that opened, so it is not connected",
+ 			slog.String("account", account), slog.String("provider", rec.provider), slog.String("client", rec.clientName))
+ 		return false

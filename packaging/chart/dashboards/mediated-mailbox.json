@@ -546,7 +546,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "mediated_mailbox_policyload_reload_failed{namespace=\"$namespace\"}",
+          "expr": "mediated_mailbox_policy_reload_failed{namespace=\"$namespace\"}",
           "legendFormat": "{{pod}}"
         }
       ]

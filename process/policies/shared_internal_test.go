@@ -243,7 +243,8 @@ func TestARefusedStartFailsItsCallers(t *testing.T) {
 }
 
 // A load that panics answers its callers and every caller waiting for the next load with ErrPanicked,
-// and the panic reaches the starter's owner, which recovers it as the component's failure.
+// and the panic reaches the starter's owner, the process's Go, which recovers it as the failure of
+// what started it.
 func TestAPanickedLoadFailsItsCallers(t *testing.T) {
 	g := newGated()
 	panicked := make(chan any, 1)

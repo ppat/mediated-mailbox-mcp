@@ -5,9 +5,10 @@ tests: TestTheWorkerBuildsWithoutCgo
 scheduled-count: no
 
 diff --git a/worker/Dockerfile b/worker/Dockerfile
+index 0c29f271..42ea6b7d 100644
 --- a/worker/Dockerfile
 +++ b/worker/Dockerfile
-@@ -16,7 +16,7 @@
+@@ -15,7 +15,7 @@ COPY provider provider
  COPY worker/main.go worker/main.go
  COPY worker/app worker/app
  COPY worker/internal worker/internal

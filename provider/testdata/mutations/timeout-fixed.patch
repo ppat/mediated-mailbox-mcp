@@ -1,11 +1,12 @@
 control: A call through the provider library's mailbox answers within its caller's timeout
-removes: every call has the rate limiter's fixed thirty seconds to answer, whatever its caller's timeout
+removes: every call has a fixed thirty seconds to answer, whatever its caller's timeout
 packages: ./provider
 tests: TestACallIsCutOffAtTheCallersTimeoutAsTheProvidersFailure
 scheduled-count: no
 integration: yes
 
 diff --git a/provider/caller.go b/provider/caller.go
+index a830cc86..37322f71 100644
 --- a/provider/caller.go
 +++ b/provider/caller.go
 @@ -112,6 +112,6 @@ func (c *Caller) Mailbox(conn Connection) (mail.Mailbox, error) {
@@ -13,6 +14,6 @@ diff --git a/provider/caller.go b/provider/caller.go
  	return &mailbox{
  		port: port, build: build, again: conn.Again, limiter: limiter,
 -		spend: ratelimit.Spend{Account: conn.Account, Class: c.class, WaitUntil: conn.WaitUntil, Timeout: c.timeout},
-+		spend: ratelimit.Spend{Account: conn.Account, Class: c.class, WaitUntil: conn.WaitUntil, Timeout: ratelimit.CallTimeout},
++		spend: ratelimit.Spend{Account: conn.Account, Class: c.class, WaitUntil: conn.WaitUntil, Timeout: 30 * time.Second},
  	}, nil
  }

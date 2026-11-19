@@ -6,6 +6,7 @@ scheduled-count: no
 integration: yes
 
 diff --git a/process/connections/work.go b/process/connections/work.go
+index bee4427e..e67d0f6b 100644
 --- a/process/connections/work.go
 +++ b/process/connections/work.go
 @@ -156,8 +156,6 @@ func (w *Work) again(ctx context.Context) (*provider.Token, error) {

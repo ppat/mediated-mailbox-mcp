@@ -6,9 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/process/connections/connections.go b/process/connections/connections.go
+index 463d796a..5faf6153 100644
 --- a/process/connections/connections.go
 +++ b/process/connections/connections.go
-@@ -126,7 +126,11 @@ func Of(ctx context.Context, p process.Capabilities, c config.HasConnections, s
+@@ -133,7 +133,11 @@ func Of(ctx context.Context, p process.Capabilities, c config.HasConnections, s
  			return nil, nil, err
  		}
  		k := c.KeysPart()

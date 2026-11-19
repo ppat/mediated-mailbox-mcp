@@ -5,10 +5,10 @@ tests: TestTheFakePassesTheContract/a_change_is_reported_once,_as_a_modification
 scheduled-count: no
 
 diff --git a/provider/mail/fake/fake.go b/provider/mail/fake/fake.go
-index 22535f7..879afa3 100644
+index 21212cd6..90499740 100644
 --- a/provider/mail/fake/fake.go
 +++ b/provider/mail/fake/fake.go
-@@ -355,7 +355,7 @@ func (f *Fake) CurrentCursor(ctx context.Context) (mail.Cursor, error) {
+@@ -377,7 +377,7 @@ func (f *Fake) CurrentCursor(ctx context.Context) (mail.Cursor, error) {
  	}
  	f.mu.Lock()
  	defer f.mu.Unlock()

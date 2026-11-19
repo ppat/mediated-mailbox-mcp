@@ -5,10 +5,10 @@ tests: TestTheFakePassesTheContract/a_query_selects_exactly_the_threads_it_names
 scheduled-count: no
 
 diff --git a/provider/mail/fake/fake.go b/provider/mail/fake/fake.go
-index 22535f7..9065f75 100644
+index 21212cd6..f14e36ca 100644
 --- a/provider/mail/fake/fake.go
 +++ b/provider/mail/fake/fake.go
-@@ -492,7 +492,7 @@ func matches(q mail.Query, m mail.MessageMetadata) bool {
+@@ -512,7 +512,7 @@ func matches(q mail.Query, m mail.MessageMetadata) bool {
  	case mail.QueryBefore:
  		return m.Date < q.Instant()
  	case mail.QueryInLabel:

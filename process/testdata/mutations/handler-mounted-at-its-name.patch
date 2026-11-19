@@ -1,0 +1,19 @@
+control: Each endpoint's handler is served at its pattern and nowhere else
+removes: each handler is mounted at a pattern made from the program's name and its endpoint's pattern, rather than at the endpoint's pattern
+packages: ./process
+tests: TestEachEndpointIsServedAtItsPattern
+scheduled-count: no
+
+diff --git a/process/serve.go b/process/serve.go
+index b637c343..186248d6 100644
+--- a/process/serve.go
++++ b/process/serve.go
+@@ -157,7 +157,7 @@ func (p *proc) serveOn(ctx context.Context, app, probeListener net.Listener, s c
+ 	if app != nil {
+ 		mux := http.NewServeMux()
+ 		for _, m := range b.handlers {
+-			mux.Handle(m.pattern, m.handler)
++			mux.Handle("/"+p.name+m.pattern, m.handler)
+ 		}
+ 		appServer = newServer(mux, p.logger)
+ 		appServer.TLSConfig = tlsConf

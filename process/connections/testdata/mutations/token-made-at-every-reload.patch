@@ -6,9 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/process/connections/connections.go b/process/connections/connections.go
+index 463d796a..b0a6a88a 100644
 --- a/process/connections/connections.go
 +++ b/process/connections/connections.go
-@@ -328,7 +328,7 @@ func (c *Connections) adopt(rec *record, a accounts.Account, opened map[string]c
+@@ -327,7 +327,7 @@ func (c *Connections) adopt(rec *record, a accounts.Account, opened map[string]c
  		rec.stored, rec.baseline, rec.token, rec.connected = stored, baselineOf(rec, same, plaintext), nil, false
  		return true
  	}

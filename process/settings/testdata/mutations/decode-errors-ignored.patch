@@ -5,6 +5,7 @@ tests: TestEveryMistakeIsRefusedAtStart/an_environment_variable_of_the_wrong_typ
 scheduled-count: no
 
 diff --git a/process/settings/settings.go b/process/settings/settings.go
+index 07990f9a..781e957e 100644
 --- a/process/settings/settings.go
 +++ b/process/settings/settings.go
 @@ -397,7 +397,7 @@ func resolve(root *node, path []string, text string) (reflect.Value, error) {

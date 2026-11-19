@@ -5,10 +5,10 @@ tests: TestLayersApplyPerValueInOrder TestAListFromALaterLayerReplacesTheWholeLi
 scheduled-count: no
 
 diff --git a/process/settings/settings.go b/process/settings/settings.go
-index 4299ed0..95f2c53 100644
+index 07990f9a..826ad677 100644
 --- a/process/settings/settings.go
 +++ b/process/settings/settings.go
-@@ -152,6 +152,8 @@ func Load[T any](defaults T, args, environ []string) (Loaded[T], error) {
+@@ -163,6 +163,8 @@ func Load[T any](defaults T, args, environ []string) (Loaded[T], error) {
  	if err != nil {
  		return loaded, err
  	}
@@ -17,7 +17,7 @@ index 4299ed0..95f2c53 100644
  	switch {
  	case fileFromFlag != "":
  		layers, err = readFile[T](root, fileFromFlag, layers)
-@@ -161,7 +163,8 @@ func Load[T any](defaults T, args, environ []string) (Loaded[T], error) {
+@@ -172,7 +174,8 @@ func Load[T any](defaults T, args, environ []string) (Loaded[T], error) {
  	if err != nil {
  		return loaded, err
  	}

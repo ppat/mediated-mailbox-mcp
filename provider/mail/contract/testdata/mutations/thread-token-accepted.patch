@@ -5,10 +5,10 @@ tests: TestTheFakePassesTheContract/thread_listing_refuses_a_page_token_it_did_n
 scheduled-count: no
 
 diff --git a/provider/mail/fake/fake.go b/provider/mail/fake/fake.go
-index 22535f7..5a49159 100644
+index 21212cd6..4cf72604 100644
 --- a/provider/mail/fake/fake.go
 +++ b/provider/mail/fake/fake.go
-@@ -181,10 +181,7 @@ func (f *Fake) ListThreads(ctx context.Context, q mail.Query, page mail.PageToke
+@@ -197,10 +197,7 @@ func (f *Fake) ListThreads(ctx context.Context, q mail.Query, page mail.PageToke
  	if !q.Valid() {
  		return mail.Page[mail.ThreadMetadata]{}, fmt.Errorf("fake: the query is not valid: %w", mail.ErrInvalid)
  	}

@@ -14,7 +14,6 @@ import (
 
 	"github.com/ppat/mediated-mailbox-mcp/core/config"
 	"github.com/ppat/mediated-mailbox-mcp/process/logging"
-	"github.com/ppat/mediated-mailbox-mcp/process/probes"
 	"github.com/ppat/mediated-mailbox-mcp/process/schedule"
 )
 
@@ -153,7 +152,7 @@ func (p *proc) serveOn(ctx context.Context, app, probeListener net.Listener, s c
 		line, notReady := p.notReady()
 		return !notReady, line
 	}
-	probeServer := newServer(probes.Handler(p.registry, ready, p.logger), p.logger)
+	probeServer := newServer(probesHandler(p.registry, ready, p.logger), p.logger)
 	var appServer *http.Server
 	if app != nil {
 		mux := http.NewServeMux()

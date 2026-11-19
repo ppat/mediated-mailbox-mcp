@@ -1,13 +1,48 @@
 control: Only the body fetch returns a body, and no metadata type has a field for it
-removes: the port for mail gains a second operation that returns a message's body as text
+removes: the port for mail gains a second operation that returns a message's body as text, with the provider fake implementing it, as a real change of the port changes every implementation
 packages: ./provider/mail
 tests: TestOnlyTheBodyFetchReturnsABody
 scheduled-count: no
 
+diff --git a/provider/mail/fake/fake.go b/provider/mail/fake/fake.go
+index 21212cd6..7c5f09dd 100644
+--- a/provider/mail/fake/fake.go
++++ b/provider/mail/fake/fake.go
+@@ -416,6 +416,12 @@ func (f *Fake) ChangesSince(ctx context.Context, c mail.Cursor) (mail.ChangeSet,
+ 
+ func cursor(n int) mail.Cursor { return mail.Cursor("h" + strconv.Itoa(n)) }
+ 
++// GetMessageText implements the port.
++func (f *Fake) GetMessageText(ctx context.Context, id string) (string, error) {
++	b, err := f.GetMessageBody(ctx, id, "")
++	return b.Text, err
++}
++
+ // EnumerateAll implements the port.
+ func (f *Fake) EnumerateAll(ctx context.Context, page mail.PageToken) (mail.Page[mail.MessageMetadata], error) {
+ 	if err := ctx.Err(); err != nil {
+diff --git a/provider/mail/fake/throttle.go b/provider/mail/fake/throttle.go
+index e6f854a6..c75d0d5d 100644
+--- a/provider/mail/fake/throttle.go
++++ b/provider/mail/fake/throttle.go
+@@ -177,6 +177,12 @@ func (t *Throttled) ChangesSince(ctx context.Context, c mail.Cursor) (mail.Chang
+ 	return t.inner.ChangesSince(ctx, c)
+ }
+ 
++// GetMessageText implements the port.
++func (t *Throttled) GetMessageText(ctx context.Context, id string) (string, error) {
++	b, err := t.GetMessageBody(ctx, id, "")
++	return b.Text, err
++}
++
+ // EnumerateAll implements the port.
+ func (t *Throttled) EnumerateAll(ctx context.Context, page mail.PageToken) (mail.Page[mail.MessageMetadata], error) {
+ 	if err := t.admit(ctx, mail.OpEnumerateAll, 0); err != nil {
 diff --git a/provider/mail/mail.go b/provider/mail/mail.go
+index de25cfda..625d3966 100644
 --- a/provider/mail/mail.go
 +++ b/provider/mail/mail.go
-@@ -44,6 +44,8 @@ type Mailbox interface {
+@@ -40,6 +40,8 @@ type Mailbox interface {
  	// provider declares one, or for one it cannot decode (ADR-0131). It is the only operation that
  	// returns body content, and the gate guards every call to it (ADR-0002).
  	GetMessageBody(ctx context.Context, id string, part coremail.BodyPart) (coremail.MessageBody, error)

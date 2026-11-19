@@ -1,0 +1,24 @@
+control: An account is connected through the OAuth client it names, and an account that names none through none
+removes: an account that names no client is handed the client named after its provider
+packages: ./process/connections
+tests: TestEachAccountIsLoadedWithTheClientItNamesAndNoOther
+scheduled-count: no
+integration: yes
+
+diff --git a/process/connections/connections.go b/process/connections/connections.go
+index 463d796a..3bde95cb 100644
+--- a/process/connections/connections.go
++++ b/process/connections/connections.go
+@@ -306,7 +306,11 @@ func storedOn(ctx context.Context, db tx.Beginner, account string) ([]byte, erro
+ func (c *Connections) adopt(rec *record, a accounts.Account, opened map[string]coremail.OAuthClient, stored []byte) bool {
+ 	rec.mu.Lock()
+ 	defer rec.mu.Unlock()
+-	client, hasClient := pair(a.Client, opened)
++	name := a.Client
++	if name == "" {
++		name = a.Provider
++	}
++	client, hasClient := pair(name, opened)
+ 	clientChanged := rec.hasClient != hasClient || rec.client != client
+ 	rec.provider, rec.clientName, rec.client, rec.hasClient = a.Provider, a.Client, client, hasClient
+ 	if stored == nil {

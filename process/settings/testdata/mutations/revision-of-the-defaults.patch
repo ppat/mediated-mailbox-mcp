@@ -5,6 +5,7 @@ tests: TestASectionsRevisionFollowsItsEffectiveValue/the_file_changes_a_trigger_
 scheduled-count: no
 
 diff --git a/process/settings/settings.go b/process/settings/settings.go
+index 07990f9a..6c650fbd 100644
 --- a/process/settings/settings.go
 +++ b/process/settings/settings.go
 @@ -195,7 +195,7 @@ func Load[T any](defaults T, args, environ []string) (Loaded[T], error) {

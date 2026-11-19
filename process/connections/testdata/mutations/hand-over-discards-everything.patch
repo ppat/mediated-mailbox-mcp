@@ -1,0 +1,20 @@
+control: A unit of work's end writes back only while the record's adoption stamp is the one it read with the credential, and the process's own write-back leaves the stamp as it is
+removes: every end writes nothing back, a rotation of the credential the record holds included
+packages: ./process/connections
+tests: TestARotatedCredentialSurvivesARestart TestOverlappingRotationsEachLand TestTwoEndsWhoseWritesInterleaveBothLand
+scheduled-count: no
+integration: yes
+
+diff --git a/process/connections/work.go b/process/connections/work.go
+index bee4427e..633fa855 100644
+--- a/process/connections/work.go
++++ b/process/connections/work.go
+@@ -234,7 +234,7 @@ func (w *Work) writeBack(ctx context.Context, stamp uint64, current []byte) erro
+ 	c.mu.Lock()
+ 	defer c.mu.Unlock()
+ 	rec.mu.Lock()
+-	if rec.stamp != stamp {
++	if rec.stamp != stamp || true {
+ 		rec.mu.Unlock()
+ 		return nil
+ 	}

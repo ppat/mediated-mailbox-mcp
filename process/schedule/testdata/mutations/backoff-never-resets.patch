@@ -5,10 +5,10 @@ tests: TestASuccessResetsTheBackoff
 scheduled-count: no
 
 diff --git a/process/schedule/schedule.go b/process/schedule/schedule.go
-index 5a62353c..efdd0849 100644
+index 47abffeb..4f51c2e1 100644
 --- a/process/schedule/schedule.go
 +++ b/process/schedule/schedule.go
-@@ -318,7 +318,6 @@ func (s *Scheduler) loop(ctx context.Context, key Key, job Job, st *state) {
+@@ -354,7 +354,6 @@ func (s *Scheduler) loop(ctx context.Context, key Key, job Job, st *state) {
  		case Cancelled:
  			return
  		case Succeeded:

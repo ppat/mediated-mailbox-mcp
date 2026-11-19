@@ -5,6 +5,7 @@ tests: TestAnUnusableKeysValueIsRefused/an_empty_public_key_path
 scheduled-count: no
 
 diff --git a/core/config/keys.go b/core/config/keys.go
+index ca07b78e..785c6550 100644
 --- a/core/config/keys.go
 +++ b/core/config/keys.go
 @@ -22,8 +22,6 @@ type Keys struct {

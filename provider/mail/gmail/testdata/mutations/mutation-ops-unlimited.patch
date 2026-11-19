@@ -5,10 +5,10 @@ tests: TestCallerSizedCallsPastTheSecondAreRefused
 scheduled-count: no
 
 diff --git a/provider/mail/gmail/adapter.go b/provider/mail/gmail/adapter.go
-index c8479f2..0414c85 100644
+index 46815924..e6f6adb8 100644
 --- a/provider/mail/gmail/adapter.go
 +++ b/provider/mail/gmail/adapter.go
-@@ -348,7 +348,7 @@ func (a *Adapter) Mutate(ctx context.Context, ops []mail.MutationOp) (mail.Mutat
+@@ -466,7 +466,7 @@ func (a *Adapter) Mutate(ctx context.Context, ops []mail.MutationOp) (mail.Mutat
  			return mail.MutationResult{}, fmt.Errorf("gmail: op %d was not built by a constructor: %w", i, mail.ErrInvalid)
  		}
  	}

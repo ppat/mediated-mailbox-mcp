@@ -1,5 +1,5 @@
 control: The txhelper analyser holds every generated data-access function to the transaction helper, except the accounts listing, the read of oauth_clients, delta sync's re-seal of a client secret, the UI's client setup and the start check's read of the schema's versions
-removes: the start check's read of the schema's versions is no longer exempt, so a composition root's check outside an account's transaction is reported
+removes: the start check's read of the schema's versions is no longer exempt, so the schema check outside an account's transaction is reported
 packages: ./testsupport/analysis
 tests: TestTxHelper
 scheduled-count: no

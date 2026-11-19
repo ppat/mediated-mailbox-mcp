@@ -5,10 +5,10 @@ tests: TestLayersApplyPerValueInOrder TestEachValueRecordsTheLayerThatSetIt
 scheduled-count: no
 
 diff --git a/process/settings/settings.go b/process/settings/settings.go
-index 4299ed0..b0c2996 100644
+index 07990f9a..65e09f18 100644
 --- a/process/settings/settings.go
 +++ b/process/settings/settings.go
-@@ -163,6 +163,7 @@ func Load[T any](defaults T, args, environ []string) (Loaded[T], error) {
+@@ -174,6 +174,7 @@ func Load[T any](defaults T, args, environ []string) (Loaded[T], error) {
  	}
  	layers = append(layers, env...)
  	layers = append(layers, flags...)
@@ -16,7 +16,7 @@ index 4299ed0..b0c2996 100644
  
  	result := reflect.ValueOf(&loaded.Config).Elem()
  	sources := map[string]Source{}
-@@ -398,6 +399,38 @@ func describePath(path []string) string {
+@@ -450,6 +451,38 @@ func describePath(path []string) string {
  	return strings.Join(path, ".")
  }
  

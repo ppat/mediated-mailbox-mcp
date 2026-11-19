@@ -6,9 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/process/connections/connections.go b/process/connections/connections.go
+index 463d796a..41ea2e32 100644
 --- a/process/connections/connections.go
 +++ b/process/connections/connections.go
-@@ -369,11 +369,13 @@ func (c *Connections) openClient(cl oauthclients.OAuthClientsRow) (coremail.OAut
+@@ -404,11 +404,13 @@ func (c *Connections) openClient(cl oauthclients.OAuthClientsRow) (coremail.OAut
  // pair returns the client an account's row names, from the clients whose secrets opened, keyed on
  // their names. An account that names none has none, and no client is looked up by provider (ADR-0106).
  func pair(name string, opened map[string]coremail.OAuthClient) (coremail.OAuthClient, bool) {

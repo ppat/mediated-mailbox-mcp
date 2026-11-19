@@ -5,6 +5,7 @@ tests: TestTheProgramTypesArePinned
 scheduled-count: no
 
 diff --git a/core/config/programs.go b/core/config/programs.go
+index b8a3a69f..5efb49ff 100644
 --- a/core/config/programs.go
 +++ b/core/config/programs.go
 @@ -243,6 +243,7 @@ type Worker struct {

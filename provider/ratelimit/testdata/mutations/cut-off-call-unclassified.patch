@@ -1,7 +1,7 @@
 control: A worker's provider call that does not answer within the deadline is cut off as the provider's failure
 removes: a call cut off at the deadline fails with the context's error, which the controller does not count as the provider's failure
-packages: ./provider/ratelimit
-tests: TestACallThatDoesNotAnswerIsCutOffAsTheProvidersFailure
+packages: ./provider
+tests: TestACallIsCutOffAtTheCallersTimeoutAsTheProvidersFailure
 scheduled-count: no
 integration: yes
 

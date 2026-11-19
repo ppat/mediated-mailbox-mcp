@@ -5,10 +5,10 @@ tests: TestCapped
 scheduled-count: no
 
 diff --git a/provider/mail/gmail/adapter.go b/provider/mail/gmail/adapter.go
-index 1f399b56..d82e84f0 100644
+index 46815924..9dc63230 100644
 --- a/provider/mail/gmail/adapter.go
 +++ b/provider/mail/gmail/adapter.go
-@@ -172,7 +172,7 @@ func responseCap(limit int) (int, error) {
+@@ -209,7 +209,7 @@ func readCapOf(req *http.Request) (readCap, bool) {
  func capped(r io.Reader, ceiling int) ([]byte, bool, error) {
  	data, err := io.ReadAll(io.LimitReader(r, int64(ceiling)+1))
  	if err == nil && len(data) > ceiling {

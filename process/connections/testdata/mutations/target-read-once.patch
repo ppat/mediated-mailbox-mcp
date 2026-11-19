@@ -6,9 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/process/connections/connections.go b/process/connections/connections.go
+index 463d796a..7aeff6a6 100644
 --- a/process/connections/connections.go
 +++ b/process/connections/connections.go
-@@ -388,7 +388,10 @@ func (c *Connections) readTarget(ctx context.Context, account string, rec *recor
+@@ -423,7 +423,10 @@ func (c *Connections) readTarget(ctx context.Context, account string, rec *recor
  	rec.mu.Lock()
  	connected := rec.connected
  	rec.mu.Unlock()

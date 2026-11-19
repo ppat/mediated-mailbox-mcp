@@ -5,10 +5,10 @@ tests: TestRoutes
 scheduled-count: no
 
 diff --git a/testsupport/analysis/routes.go b/testsupport/analysis/routes.go
-index 58aeac0..3a166fb 100644
+index 942e4233..015353f8 100644
 --- a/testsupport/analysis/routes.go
 +++ b/testsupport/analysis/routes.go
-@@ -56,7 +56,7 @@ func runRoutes(pass *analysis.Pass) (any, error) {
+@@ -57,7 +57,7 @@ func runRoutes(pass *analysis.Pass) (any, error) {
  		}
  		for _, decl := range file.Decls {
  			if fd, ok := decl.(*ast.FuncDecl); ok {

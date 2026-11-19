@@ -5,7 +5,7 @@ tests: TestAJobsWaitForASlotIsReported
 scheduled-count: no
 
 diff --git a/process/schedule/schedule.go b/process/schedule/schedule.go
-index 28c25206..6e5ed645 100644
+index 47abffeb..335f4b4c 100644
 --- a/process/schedule/schedule.go
 +++ b/process/schedule/schedule.go
 @@ -390,11 +390,7 @@ func (s *Scheduler) take(ctx context.Context, key Key, st *state, limit *Limit)

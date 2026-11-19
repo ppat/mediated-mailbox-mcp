@@ -5,10 +5,10 @@ tests: TestTheFakePassesTheContract/the_trash_and_spam_are_listed_and_read_like_
 scheduled-count: no
 
 diff --git a/provider/mail/fake/fake.go b/provider/mail/fake/fake.go
-index 247cd2f..1faff25 100644
+index 21212cd6..2cd8a873 100644
 --- a/provider/mail/fake/fake.go
 +++ b/provider/mail/fake/fake.go
-@@ -196,7 +196,8 @@ func (f *Fake) ListThreads(ctx context.Context, q mail.Query, page mail.PageToke
+@@ -206,7 +206,8 @@ func (f *Fake) ListThreads(ctx context.Context, q mail.Query, page mail.PageToke
  	var out mail.Page[mail.ThreadMetadata]
  	for _, th := range f.threads() {
  		first := th[0].seq

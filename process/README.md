@@ -60,8 +60,6 @@ keeps no slot and returns a new value on each call, and the UI calls it without 
 | `domains/` | The domain lookups every program classifies senders with, the IDNA conversions and the public suffix list, which the policies a Session holds and the UI's policy management prepare their policies with, since the sender classifier's pure core cannot import them ([ADR-0136](../docs/adr/redaction/0136-the-index-stores-no-sender-class-and-every-reader-classifies-when-it-reads.md)) |
 | `logging/` | The logger every program that runs as a process writes its JSON records to standard output through, and the reading of its `log_level` |
 | `version/` | The release version every binary reports through `--version` and every process's start banner shows |
-| `host/` | The host each program ran on before it was on its spec, which no program runs on now ([ADR-0138](../docs/adr/engineering/0138-one-host-runs-each-process-and-each-component-provides-its-parts.md)). It opens its pools through `database` and refuses the database driver's password variables through `process`, so neither is written twice |
-| `probes/`, `runtimemetrics/` | The operations endpoints' handler and the registration of the runtime series, which `process` and `host/` share until the host is deleted |
 
 Each package is admitted to each component by its own entry in that component's import list, and
 each has a list of its own in `.golangci.yaml`, so joining this family never widens what any
@@ -148,7 +146,7 @@ the schema check.
 | --- | --- |
 | `database.Get` | A pool for the part that asks, opened the first time that pool is asked for and kept in the process. In a process that runs until it is told to stop, it runs the schema check on the pool before returning it, so a schema the process cannot run on stops the start before anything serves ([ADR-0140](../docs/adr/data/0140-each-migration-declares-the-oldest-chain-that-runs-on-it.md)) |
 | `database.ReportReadiness` | Nothing but an error. It starts the readiness report of the process's one pool, the pool `database.Get` gives an endpoint, a task or a shared thing, so a program whose readiness rests on the database, the UI's, is ready only while it answers. The pool is pinged at once and then every five seconds, a ping that has not answered within two seconds counts as failed, and the report reads not ready from the moment it is asked for until a ping answers, and again from the first that fails, under the pools' own name, `database`. The ping runs on a goroutine of the process, which the process waits for before it closes the pools, and asked for again the report is not started twice. For a job kind's part it reports the job kind's own pool instead, under the job kind's name, so the worker is ready only while each job kind's pool answers and each pool's report is told apart from the others. The API server's pool does not run it, since the API server's readiness rests on its bearer token and the Session ([ADR-0142](../docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md)) |
-| `database.ForMigration` | The migrator's pool, with no schema check. It takes only a configuration type with an unexported method that only `config.Migrator` has, so the compiler refuses a deployable's own configuration there. Left to review are a `Build` that makes a `config.Migrator` value of its own, by a literal, by its defaults or as a zero value, and, until `process/host` is deleted, `database.Open`, the opening the host uses with no schema check, `database.OpenPool`, which `database.Open` opens through and this package's own tests call, and a pool a deployable's code opens through the driver itself ([ADR-0142](../docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md)) |
+| `database.ForMigration` | The migrator's pool, with no schema check. It takes only a configuration type with an unexported method that only `config.Migrator` has, so the compiler refuses a deployable's own configuration there. Left to review are a `Build` that makes a `config.Migrator` value of its own, by a literal, by its defaults or as a zero value, and a pool a deployable's code opens through the driver itself. The opening both functions open through runs no schema check and is unexported, so nothing outside the package can call it ([ADR-0142](../docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md)) |
 
 A process holds one or more pools, and every one of them is this package's. In the worker each job
 kind has a pool of its own, built for it and labelled with it, so one job kind cannot starve
@@ -162,10 +160,9 @@ description yields nothing, so pools whose series carry different label names sh
 A scrape still fails on two series of one name and one set of label values. The cost is the
 registry's check against registering one collector twice, which it makes only for a checked
 collector. So each pool `database.Get` or `database.ForMigration` gives is opened once, under the
-pools' lock, and each pool the host opens through `database.Open` or `database.OpenPool` is opened
-once by its root, until the host is deleted. `database.Get` reads from the
-capabilities it is handed whether the part is a job kind, through `process.JobKind`, and keeps the
-pools in a slot of the process, closed with what the other slots hold.
+pools' lock. `database.Get` reads from the capabilities it is handed whether the part is a job
+kind, through `process.JobKind`, and keeps the pools in a slot of the process, closed with what the
+other slots hold.
 
 The connection renders every connection setting into the connection string, caps each pool at the
 section's pool size, which in the worker sizes each job kind's pool alike
@@ -287,10 +284,11 @@ The process registers them on its registry itself, which carries no label, rathe
 registerer, which adds the program's name and for a job kind the job kind. So these series carry
 neither a component nor a job kind.
 
-The case for one package over per-deployable glue is the set of runtime metrics. It is named by one
-expression, and a copy in each program whose expression drifted would serve a different set from
-one deployable with every gate green. Written once, with the test that pins which runtime metrics
-are added and which are left out, the set is the same in every deployable.
+The case for registering them once in `process` over per-deployable glue is the set of runtime
+metrics. It is named by one expression, and a copy in each program whose expression drifted would
+serve a different set from one deployable with every gate green. Written once, with the test that
+pins which runtime metrics are added and which are left out, the set is the same in every
+deployable.
 
 ## The scheduler, `schedule`
 
@@ -631,10 +629,10 @@ the series is defined once, in this package.
 
 | Series | Kind | Emitted by | Read by |
 | --- | --- | --- | --- |
-| `mediated_mailbox_policyload_reload_failed` | Gauge, 1 while the latest reload failed and 0 once one succeeds | Each process, once, from its Session's policies, on the process's own registerer, which labels it with `component` ([ADR-0142](../docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md)) | `MediatedMailboxPolicyReloadFailed` in `packaging/chart/rules/alerting-rules.yaml`, whose promtool tests sit in `policies/testdata/` |
+| `mediated_mailbox_policy_reload_failed` | Gauge, 1 while the latest reload failed and 0 once one succeeds | Each process, once, from its Session's policies, on the process's own registerer, which labels it with `component` ([ADR-0142](../docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md)) | `MediatedMailboxPolicyReloadFailed` in `packaging/chart/rules/alerting-rules.yaml`, whose promtool tests sit in `policies/testdata/` |
 
 The package also times one load per reload, every one its caller did not cancel, succeeded or
-failed, as `mediated_mailbox_policyload_reload_duration_seconds`, a histogram on the same registry
+failed, as `mediated_mailbox_policy_reload_duration_seconds`, a histogram on the same registry
 that no rule reads
 ([ADR-0125](../docs/adr/engineering/0125-performance-is-measured-once-at-each-place-time-goes.md)).
 

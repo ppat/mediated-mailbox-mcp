@@ -5,10 +5,10 @@ tests: TestRemoveAndStopCancelTheirRunsAndWaitForThem
 scheduled-count: no
 
 diff --git a/process/schedule/schedule.go b/process/schedule/schedule.go
-index 6ce1069b..0a49bd28 100644
+index 47abffeb..bc43b8a0 100644
 --- a/process/schedule/schedule.go
 +++ b/process/schedule/schedule.go
-@@ -245,7 +245,6 @@ func (s *Scheduler) Remove(key Key) {
+@@ -262,7 +262,6 @@ func (s *Scheduler) Remove(key Key) {
  		return
  	}
  	st.cancel()

@@ -5,10 +5,10 @@ tests: TestEveryMistakeIsRefusedAtStart/a_required_value_of_an_empty_keyed_entry
 scheduled-count: no
 
 diff --git a/process/settings/settings.go b/process/settings/settings.go
-index 4299ed0..af5be74 100644
+index 07990f9a..1d000034 100644
 --- a/process/settings/settings.go
 +++ b/process/settings/settings.go
-@@ -270,7 +270,6 @@ func collectFile(n *node, doc *yaml.Node, v reflect.Value, path []string, name s
+@@ -283,7 +283,6 @@ func collectFile(n *node, doc *yaml.Node, v reflect.Value, path []string, name s
  				return fmt.Errorf("line %d: %w", doc.Content[i].Line, err)
  			}
  			at := append(slices.Clone(path), key)

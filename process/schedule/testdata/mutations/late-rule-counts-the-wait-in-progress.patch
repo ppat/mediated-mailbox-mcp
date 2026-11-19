@@ -5,10 +5,10 @@ tests: TestAlertingRules
 scheduled-count: no
 
 diff --git a/packaging/chart/rules/alerting-rules.yaml b/packaging/chart/rules/alerting-rules.yaml
-index f084d381..9886f77a 100644
+index 9cc9ffa4..921316a6 100644
 --- a/packaging/chart/rules/alerting-rules.yaml
 +++ b/packaging/chart/rules/alerting-rules.yaml
-@@ -150,9 +150,7 @@ groups:
+@@ -152,9 +152,7 @@ groups:
    - alert: MediatedMailboxJobLate
      expr: |
        time() - mediated_mailbox_job_last_success_timestamp_seconds -

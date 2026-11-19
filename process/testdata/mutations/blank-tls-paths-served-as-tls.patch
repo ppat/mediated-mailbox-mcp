@@ -1,0 +1,18 @@
+control: The application server serves TLS when given a key pair, read from its mounted files on each handshake, and a pair that does not load refuses the start
+removes: a TLS path of spaces counts as set when the process chooses its transport, so a process given two blank paths tries TLS and never serves
+packages: ./process ./core/config
+tests: TestTheApplicationServerGivenNoKeyPairIsPlain TestTheServingPartIsChecked
+scheduled-count: no
+
+diff --git a/core/config/process.go b/core/config/process.go
+--- a/core/config/process.go
++++ b/core/config/process.go
+@@ -69,7 +69,7 @@ func DefaultServing() Serving {
+ // ServesTLS reports whether s names a key pair. Check refuses one that names only one of its two
+ // files, so the certificate alone decides.
+ func (s Serving) ServesTLS() bool {
+-	return strings.TrimSpace(s.TLSCert) != ""
++	return s.TLSCert != ""
+ }
+ 
+ // Check refuses an empty listen, and one of the two TLS files set without the other, a blank path

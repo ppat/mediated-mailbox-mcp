@@ -5,10 +5,10 @@ tests: TestMetadataTypesHaveNoBodyField
 scheduled-count: no
 
 diff --git a/core/mail/model.go b/core/mail/model.go
-index d111c4f..b8d393f 100644
+index df026da0..271d4bda 100644
 --- a/core/mail/model.go
 +++ b/core/mail/model.go
-@@ -77,6 +77,7 @@ type MessageMetadata struct {
+@@ -83,6 +83,7 @@ type MessageMetadata struct {
  	// ListID is the RFC 2919 list identifier without its angle brackets, empty when there is none.
  	ListID      string
  	AuthResults AuthResults

@@ -5,10 +5,10 @@ tests: TestAPanicIsItsRunsFailureAndStopsNothingElse/in_a_goroutine_it_started
 scheduled-count: no
 
 diff --git a/process/schedule/schedule.go b/process/schedule/schedule.go
-index 5a62353c..0f8ee014 100644
+index 47abffeb..4f010783 100644
 --- a/process/schedule/schedule.go
 +++ b/process/schedule/schedule.go
-@@ -87,12 +87,7 @@ func Go(f func() error) (wait func() error) {
+@@ -92,12 +92,7 @@ func Go(f func() error) (wait func() error) {
  	done := make(chan error, 1)
  	go func() {
  		var err error

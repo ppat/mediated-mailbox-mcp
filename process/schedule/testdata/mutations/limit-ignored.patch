@@ -5,7 +5,7 @@ tests: TestALimitBoundsTheRunsOfAJobKindAtOnce
 scheduled-count: no
 
 diff --git a/process/schedule/schedule.go b/process/schedule/schedule.go
-index 28c25206..f935f901 100644
+index 47abffeb..59227b77 100644
 --- a/process/schedule/schedule.go
 +++ b/process/schedule/schedule.go
 @@ -339,7 +339,7 @@ func (s *Scheduler) loop(ctx context.Context, key Key, job Job, st *state) {

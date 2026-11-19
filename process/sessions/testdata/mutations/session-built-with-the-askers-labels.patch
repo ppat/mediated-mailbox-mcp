@@ -6,9 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/process/sessions/sessions.go b/process/sessions/sessions.go
+index 0f7b87f4..6d5dc080 100644
 --- a/process/sessions/sessions.go
 +++ b/process/sessions/sessions.go
-@@ -102,7 +102,7 @@ func Get(ctx context.Context, p process.Capabilities, c config.HasAccounts) (*Se
+@@ -110,7 +110,7 @@ func Get(ctx context.Context, p process.Capabilities, c config.HasAccounts) (*Se
  			}),
  			interval: time.Duration(c.AccountsPart().AccountReloadInterval),
  		}

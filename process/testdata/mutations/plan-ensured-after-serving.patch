@@ -5,9 +5,10 @@ tests: TestASchedulerThatRefusesAPlanStopsTheProcessInOrder
 scheduled-count: no
 
 diff --git a/process/serve.go b/process/serve.go
+index b637c343..e9714c49 100644
 --- a/process/serve.go
 +++ b/process/serve.go
-@@ -127,23 +127,6 @@ func (p *proc) serveOn(ctx context.Context, app, probeListener net.Listener, s c
+@@ -126,23 +126,6 @@ func (p *proc) serveOn(ctx context.Context, app, probeListener net.Listener, s c
  		}
  		tlsConf = tlsConfig(s.TLSCert, s.TLSKey)
  	}
@@ -31,7 +32,7 @@ diff --git a/process/serve.go b/process/serve.go
  
  	var serving atomic.Bool
  	ready := func(*http.Request) (bool, string) {
-@@ -181,6 +164,23 @@ func (p *proc) serveOn(ctx context.Context, app, probeListener net.Listener, s c
+@@ -180,6 +163,23 @@ func (p *proc) serveOn(ctx context.Context, app, probeListener net.Listener, s c
  	}
  	serving.Store(true)
  	p.logger.Info("serving", "listen", address(app), "probe_listen", probeListener.Addr().String(), "tls", tlsConf != nil)

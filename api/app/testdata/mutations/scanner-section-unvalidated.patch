@@ -18,7 +18,7 @@ index 34e389f8..02d21795 100644
  	}
  	observe, err := outcomes(p.Metrics())
 diff --git a/core/config/programs.go b/core/config/programs.go
-index 6e86908e..bbf203a4 100644
+index b8a3a69f..409d4e62 100644
 --- a/core/config/programs.go
 +++ b/core/config/programs.go
 @@ -67,7 +67,6 @@ func (c API) Check() error {

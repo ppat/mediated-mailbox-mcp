@@ -9,8 +9,6 @@ import (
 	"sync"
 
 	"github.com/prometheus/client_golang/prometheus"
-
-	"github.com/ppat/mediated-mailbox-mcp/process/runtimemetrics"
 )
 
 // The label names every endpoint and job kind carries, so two of them may register one series name
@@ -72,7 +70,7 @@ func newProcess(name string, logger *slog.Logger, revisions map[string]string) (
 	registry := prometheus.NewRegistry()
 	// The runtime series are the process's, registered on the registry itself, so they carry no
 	// component and no job kind (ADR-0125).
-	if err := runtimemetrics.Register(registry); err != nil {
+	if err := registerRuntimeMetrics(registry); err != nil {
 		return nil, err
 	}
 	p := &proc{

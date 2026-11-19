@@ -5,9 +5,10 @@ tests: TestAlertingRules
 scheduled-count: no
 
 diff --git a/packaging/chart/rules/alerting-rules.yaml b/packaging/chart/rules/alerting-rules.yaml
+index 9cc9ffa4..6ab60d80 100644
 --- a/packaging/chart/rules/alerting-rules.yaml
 +++ b/packaging/chart/rules/alerting-rules.yaml
-@@ -28,7 +28,6 @@
+@@ -59,7 +59,6 @@ groups:
    - alert: MediatedMailboxRateCollapsed
      expr: |
        mediated_mailbox_ratelimit_account_rate <= on (account) mediated_mailbox_ratelimit_account_floor

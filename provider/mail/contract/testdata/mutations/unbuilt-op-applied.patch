@@ -5,10 +5,10 @@ tests: TestTheFakePassesTheContract/a_batch_holding_an_op_no_constructor_built_a
 scheduled-count: no
 
 diff --git a/provider/mail/fake/fake.go b/provider/mail/fake/fake.go
-index 22535f7..3f9bea3 100644
+index 21212cd6..54062367 100644
 --- a/provider/mail/fake/fake.go
 +++ b/provider/mail/fake/fake.go
-@@ -287,7 +287,7 @@ func (f *Fake) Mutate(ctx context.Context, ops []mail.MutationOp) (mail.Mutation
+@@ -316,7 +316,7 @@ func (f *Fake) Mutate(ctx context.Context, ops []mail.MutationOp) (mail.Mutation
  		return mail.MutationResult{}, err
  	}
  	for i, op := range ops {

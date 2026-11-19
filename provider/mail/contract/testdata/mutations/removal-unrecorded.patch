@@ -5,10 +5,10 @@ tests: TestTheFakePassesTheContract/removed_mail_is_removed TestTheFakePassesThe
 scheduled-count: no
 
 diff --git a/provider/mail/fake/fake.go b/provider/mail/fake/fake.go
-index 22535f7..1428afb 100644
+index 21212cd6..d148be4b 100644
 --- a/provider/mail/fake/fake.go
 +++ b/provider/mail/fake/fake.go
-@@ -125,7 +125,7 @@ func (f *Fake) Remove(id string) error {
+@@ -141,7 +141,7 @@ func (f *Fake) Remove(id string) error {
  		return fmt.Errorf("fake: message %q: %w", id, mail.ErrNotFound)
  	}
  	delete(f.byID, id)

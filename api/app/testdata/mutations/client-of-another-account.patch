@@ -6,7 +6,7 @@ scheduled-count: no
 integration: yes
 
 diff --git a/process/connections/connections.go b/process/connections/connections.go
-index 72d60326..ac2e4ec2 100644
+index 463d796a..709887be 100644
 --- a/process/connections/connections.go
 +++ b/process/connections/connections.go
 @@ -307,6 +307,11 @@ func (c *Connections) adopt(rec *record, a accounts.Account, opened map[string]c

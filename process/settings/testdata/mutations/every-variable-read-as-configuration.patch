@@ -5,10 +5,10 @@ tests: TestLayersApplyPerValueInOrder
 scheduled-count: no
 
 diff --git a/process/settings/settings.go b/process/settings/settings.go
-index 4299ed0..194e2d9 100644
+index 07990f9a..e1010b33 100644
 --- a/process/settings/settings.go
 +++ b/process/settings/settings.go
-@@ -291,7 +291,7 @@ func readEnvironment(root *node, environ []string) ([]assignment, string, error)
+@@ -304,7 +304,7 @@ func readEnvironment(root *node, environ []string) ([]assignment, string, error)
  	for _, entry := range sorted {
  		name, text, _ := strings.Cut(entry, "=")
  		upper := strings.ToUpper(name)

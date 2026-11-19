@@ -167,12 +167,16 @@ func TestAValueCopiedToAnotherRowOrPurposeDoesNotOpen(t *testing.T) {
 	var refused []string
 	for _, rec := range r.logs.records(t, "ERROR") {
 		if strings.Contains(rec["msg"], "did not open") {
-			refused = append(refused, rec["account"]+rec["client"])
+			if rec["client"] != "" {
+				refused = append(refused, "client "+rec["client"])
+			} else {
+				refused = append(refused, "account "+rec["account"])
+			}
 		}
 	}
 	slices.Sort(refused)
 	refused = slices.Compact(refused)
-	if diff := cmp.Diff([]string{"copied", "household"}, refused, compare.Options); diff != "" {
+	if diff := cmp.Diff([]string{"account copied", "account household", "client household"}, refused, compare.Options); diff != "" {
 		t.Errorf("clients and accounts logged as not opening (-want +got):\n%s", diff)
 	}
 	for _, value := range []string{"personal-token", "client-secret", "account-token"} {

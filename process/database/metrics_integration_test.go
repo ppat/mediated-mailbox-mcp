@@ -19,8 +19,8 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/postgres"
 )
 
-// measured returns a pool of at most one connection to the test database, opened through OpenPool on
-// reg as the host opens one for a composition root.
+// measured returns a pool of at most one connection to the test database, opened through the
+// package's opening on reg, as Get and ForMigration open one.
 func measured(t *testing.T, reg prometheus.Registerer) *pgxpool.Pool {
 	t.Helper()
 	config, err := pgxpool.ParseConfig(postgres.URL(t))

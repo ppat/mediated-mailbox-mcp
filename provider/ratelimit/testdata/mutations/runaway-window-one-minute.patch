@@ -5,9 +5,10 @@ tests: TestAlertingRules
 scheduled-count: no
 
 diff --git a/packaging/chart/rules/alerting-rules.yaml b/packaging/chart/rules/alerting-rules.yaml
+index 9cc9ffa4..ba95f274 100644
 --- a/packaging/chart/rules/alerting-rules.yaml
 +++ b/packaging/chart/rules/alerting-rules.yaml
-@@ -23,8 +23,8 @@ groups:
+@@ -28,8 +28,8 @@ groups:
    # ceiling beside a new one judges by the higher.
    - alert: MediatedMailboxRateRunaway
      expr: |

@@ -1,0 +1,66 @@
+control: Only the body fetch returns a body, and no metadata type has a field for it
+removes: the port's body fetch returns the message's metadata beside its body, so body and metadata travel together, with the provider fake and Body changed to match, as a real change of the port changes every implementation and caller
+packages: ./provider/mail
+tests: TestOnlyTheBodyFetchReturnsABody
+scheduled-count: no
+
+diff --git a/provider/mail/body.go b/provider/mail/body.go
+index 9d2f25f9..c8fda0e0 100644
+--- a/provider/mail/body.go
++++ b/provider/mail/body.go
+@@ -14,7 +14,7 @@ import (
+ func Body(ctx context.Context, m Mailbox, id string) (coremail.MessageBody, error) {
+ 	var part coremail.BodyPart
+ 	for {
+-		body, err := m.GetMessageBody(ctx, id, part)
++		_, body, err := m.GetMessageBody(ctx, id, part)
+ 		next, due := coremail.NextBodyPart(part, err)
+ 		if !due {
+ 			return body, err
+diff --git a/provider/mail/fake/fake.go b/provider/mail/fake/fake.go
+index 21212cd6..ae08bc56 100644
+--- a/provider/mail/fake/fake.go
++++ b/provider/mail/fake/fake.go
+@@ -250,7 +250,12 @@ func (f *Fake) GetMessageMetadata(ctx context.Context, ids []string) ([]mail.Mes
+ }
+ 
+ // GetMessageBody implements the port.
+-func (f *Fake) GetMessageBody(ctx context.Context, id string, part mail.BodyPart) (mail.MessageBody, error) {
++func (f *Fake) GetMessageBody(ctx context.Context, id string, part mail.BodyPart) (mail.MessageMetadata, mail.MessageBody, error) {
++	v, err := f.getMessageBody(ctx, id, part)
++	return mail.MessageMetadata{}, v, err
++}
++
++func (f *Fake) getMessageBody(ctx context.Context, id string, part mail.BodyPart) (mail.MessageBody, error) {
+ 	if err := ctx.Err(); err != nil {
+ 		return mail.MessageBody{}, err
+ 	}
+diff --git a/provider/mail/fake/throttle.go b/provider/mail/fake/throttle.go
+index e6f854a6..a376f2ae 100644
+--- a/provider/mail/fake/throttle.go
++++ b/provider/mail/fake/throttle.go
+@@ -130,9 +130,9 @@ func (t *Throttled) GetMessageMetadata(ctx context.Context, ids []string) ([]mai
+ }
+ 
+ // GetMessageBody implements the port.
+-func (t *Throttled) GetMessageBody(ctx context.Context, id string, part mail.BodyPart) (mail.MessageBody, error) {
++func (t *Throttled) GetMessageBody(ctx context.Context, id string, part mail.BodyPart) (mail.MessageMetadata, mail.MessageBody, error) {
+ 	if err := t.admit(ctx, mail.OpGetMessageBody, 1); err != nil {
+-		return mail.MessageBody{}, err
++		return mail.MessageMetadata{}, mail.MessageBody{}, err
+ 	}
+ 	return t.inner.GetMessageBody(ctx, id, part)
+ }
+diff --git a/provider/mail/mail.go b/provider/mail/mail.go
+index de25cfda..e04ea69b 100644
+--- a/provider/mail/mail.go
++++ b/provider/mail/mail.go
+@@ -39,7 +39,7 @@ type Mailbox interface {
+ 	// MaxBodyBytes, decided from the part's declared size before anything is fetched where the
+ 	// provider declares one, or for one it cannot decode (ADR-0131). It is the only operation that
+ 	// returns body content, and the gate guards every call to it (ADR-0002).
+-	GetMessageBody(ctx context.Context, id string, part coremail.BodyPart) (coremail.MessageBody, error)
++	GetMessageBody(ctx context.Context, id string, part coremail.BodyPart) (coremail.MessageMetadata, coremail.MessageBody, error)
+ 	// ListLabels returns every label the account has, Inbox, Trash and Spam included.
+ 	ListLabels(ctx context.Context) ([]coremail.Label, error)
+ 	// EnsureLabel returns the label at path, creating it when the account lacks it. It returns

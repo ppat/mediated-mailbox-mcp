@@ -1,7 +1,7 @@
 control: A refusal is not the provider's failure, so it never reaches the rate controller as a server error
-removes: a worker's leased call tells the controller of a refused body as a server error
-packages: ./provider/ratelimit
-tests: TestABodyIsFetchedByPartAndARefusalTellsTheControllerNothing
+removes: the leased call tells the controller of a refused body as a server error, as a caller's mailbox reaches it
+packages: ./provider
+tests: TestEachCallTellsTheLimiterHowItWent
 scheduled-count: no
 integration: yes
 

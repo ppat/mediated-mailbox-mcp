@@ -5,6 +5,7 @@ tests: TestTheConsentRedirectIsALoopbackAddressWithAPort
 scheduled-count: no
 
 diff --git a/core/config/programs.go b/core/config/programs.go
+index b8a3a69f..a3f9ceee 100644
 --- a/core/config/programs.go
 +++ b/core/config/programs.go
 @@ -204,7 +204,7 @@ func loopbackRedirect(s string) bool {

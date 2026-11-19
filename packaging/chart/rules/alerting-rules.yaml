@@ -5,7 +5,7 @@
 # is the platform's.
 #
 # provider/ratelimit/testdata/alerting-rules-test.yaml holds the promtool tests of the rate limiter's rules,
-# executioncontext/policyload/testdata/alerting-rules-test.yaml those of the policy reload rule,
+# process/policies/testdata/alerting-rules-test.yaml those of the policy reload rule,
 # worker/internal/deltasync/tick/testdata/alerting-rules-test.yaml those of the cursor gap rule, and
 # process/schedule/testdata/alerting-rules-test.yaml those of the worker's rules, each run from a Go test in its
 # package.
@@ -89,12 +89,12 @@ groups:
 
 - name: mediated-mailbox-policy
   rules:
-  # A failed policy reload (ADR-0041), in any process that loads policy. The policy loader sets its series to 1 when a
+  # A failed policy reload (ADR-0041), in any process that loads policy. The policies set their series to 1 when a
   # reload fails, in its read of the policy tables or in their validation, and back to 0 when one succeeds. The rule
   # fires at the first evaluation that sees the failure and stays firing until a reload succeeds. Meanwhile a process
   # whose earlier reload succeeded keeps that snapshot, and one whose first load failed restricts every sender.
   - alert: MediatedMailboxPolicyReloadFailed
-    expr: mediated_mailbox_policyload_reload_failed > 0
+    expr: mediated_mailbox_policy_reload_failed > 0
     labels:
       severity: page
     annotations:

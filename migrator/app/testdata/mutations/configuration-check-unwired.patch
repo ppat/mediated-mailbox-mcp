@@ -5,6 +5,7 @@ tests: TestAnUnusableConfigurationIsRefused
 scheduled-count: no
 
 diff --git a/process/run.go b/process/run.go
+index 7edb03f4..534041dd 100644
 --- a/process/run.go
 +++ b/process/run.go
 @@ -138,9 +138,6 @@ func start[C config.Program[C]](args, environ []string, stdout, stderr io.Writer

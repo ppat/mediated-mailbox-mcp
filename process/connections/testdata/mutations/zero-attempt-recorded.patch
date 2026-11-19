@@ -6,9 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/process/connections/work.go b/process/connections/work.go
+index bee4427e..e5ca0f51 100644
 --- a/process/connections/work.go
 +++ b/process/connections/work.go
-@@ -305,7 +305,7 @@ func (c *Connections) readAgain(account string, rec *record, stored []byte) {
+@@ -334,7 +334,7 @@ func (c *Connections) readAgain(account string, rec *record, stored []byte) {
  // returned, and the next unit of work records the attempt again.
  func recordAttempt(ctx context.Context, db tx.Beginner, account string, attempt coremail.AuthAttempt) error {
  	if attempt == (coremail.AuthAttempt{}) {

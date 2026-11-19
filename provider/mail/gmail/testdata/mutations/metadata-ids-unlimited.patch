@@ -5,10 +5,10 @@ tests: TestCallerSizedCallsPastTheSecondAreRefused
 scheduled-count: no
 
 diff --git a/provider/mail/gmail/adapter.go b/provider/mail/gmail/adapter.go
-index c8479f2..60b8099 100644
+index 46815924..5c9c9808 100644
 --- a/provider/mail/gmail/adapter.go
 +++ b/provider/mail/gmail/adapter.go
-@@ -261,7 +261,7 @@ func (a *Adapter) GetMessageMetadata(ctx context.Context, ids []string) ([]mail.
+@@ -364,7 +364,7 @@ func (a *Adapter) GetMessageMetadata(ctx context.Context, ids []string) ([]mail.
  	if err := ctx.Err(); err != nil {
  		return nil, err
  	}

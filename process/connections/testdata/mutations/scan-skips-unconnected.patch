@@ -1,0 +1,22 @@
+control: The connections' scan has an entry for every listed account and every OAuth client, true while its value is on an old key or does not open
+removes: an account with no stored credential has no entry, so the scan is silent on it
+packages: ./process/connections
+tests: TestReSealingMovesCredentialsToTheCurrentKeyAndTheScanFollows
+scheduled-count: no
+integration: yes
+
+diff --git a/process/connections/connections.go b/process/connections/connections.go
+index 463d796a..ac92830f 100644
+--- a/process/connections/connections.go
++++ b/process/connections/connections.go
+@@ -228,7 +228,9 @@ func (c *Connections) Load(ctx context.Context, listed []accounts.Account) error
+ 			rec = &record{}
+ 		}
+ 		adopted := c.adopt(rec, r.account, opened, r.stored)
+-		scan.Accounts[r.account.ID] = r.stored != nil && (!adopted || c.onOldKey(r.stored))
++		if r.stored != nil {
++			scan.Accounts[r.account.ID] = !adopted || c.onOldKey(r.stored)
++		}
+ 		next[r.account.ID] = rec
+ 	}
+ 	for _, r := range rows {

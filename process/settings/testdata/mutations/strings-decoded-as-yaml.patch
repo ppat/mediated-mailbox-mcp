@@ -5,6 +5,7 @@ tests: TestAValueFromTheEnvironmentOrAFlag/a_string_takes_the_text_verbatim Test
 scheduled-count: no
 
 diff --git a/process/settings/settings.go b/process/settings/settings.go
+index 07990f9a..d3fed127 100644
 --- a/process/settings/settings.go
 +++ b/process/settings/settings.go
 @@ -390,11 +390,6 @@ func resolve(root *node, path []string, text string) (reflect.Value, error) {

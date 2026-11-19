@@ -1,0 +1,20 @@
+control: Each deployable logs at the level its configuration sets
+removes: the process sets the level from the default log_level, so the level the configuration names never applies
+packages: ./api/app
+tests: TestTheConfiguredLevelGovernsTheLog
+scheduled-count: no
+integration: yes
+
+diff --git a/process/run.go b/process/run.go
+index 7edb03f4..737dde86 100644
+--- a/process/run.go
++++ b/process/run.go
+@@ -133,7 +133,7 @@ func start[C config.Program[C]](args, environ []string, stdout, stderr io.Writer
+ 		logger.Info("configuration", "path", v.Path, "source", v.Source.String(), "value", v.Value)
+ 	}
+ 	c := got.Config
+-	lv, err := logging.ParseLevel(c.ProcessPart().LogLevel)
++	lv, err := logging.ParseLevel(zero.Defaults(runtime.NumCPU()).ProcessPart().LogLevel)
+ 	if err != nil {
+ 		return l, false, fmt.Errorf("validating the configuration: %w", err)
+ 	}

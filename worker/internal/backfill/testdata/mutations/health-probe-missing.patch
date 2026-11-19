@@ -5,16 +5,16 @@ tests: TestTheProbesServeEverySeriesBetweenRuns
 scheduled-count: no
 integration: yes
 
-diff --git a/process/probes/probes.go b/process/probes/probes.go
-index 42170765..1d0c9bfa 100644
---- a/process/probes/probes.go
-+++ b/process/probes/probes.go
-@@ -18,7 +18,7 @@ import (
- // a line saying why, which the readiness probe answers with 503.
- func Handler(gatherer prometheus.Gatherer, ready func(*http.Request) (bool, string), logger *slog.Logger) http.Handler {
+diff --git a/process/probes.go b/process/probes.go
+index 9642e96c..6854444c 100644
+--- a/process/probes.go
++++ b/process/probes.go
+@@ -17,7 +17,7 @@ import (
+ // healthcheck and scraper, which carry no credential and read no page.
+ func probesHandler(gatherer prometheus.Gatherer, ready func(*http.Request) (bool, string), logger *slog.Logger) http.Handler {
  	mux := http.NewServeMux()
 -	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
 +	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
- 		answer(w, r, logger, http.StatusOK, "ok")
+ 		answerProbe(w, r, logger, http.StatusOK, "ok")
  	})
  	mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, r *http.Request) {

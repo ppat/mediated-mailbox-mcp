@@ -5,7 +5,7 @@ tests: TestARotatedRefreshTokenIsHeldSentAndHandedOver
 scheduled-count: no
 
 diff --git a/provider/google/tokensource.go b/provider/google/tokensource.go
-index 7eee30ce..30aeef79 100644
+index 1ac8e55a..7f4c4384 100644
 --- a/provider/google/tokensource.go
 +++ b/provider/google/tokensource.go
 @@ -141,7 +141,7 @@ func (s *TokenSource) receive(body []byte, now time.Time) error {

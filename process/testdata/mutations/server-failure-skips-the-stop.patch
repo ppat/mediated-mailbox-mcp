@@ -5,9 +5,10 @@ tests: TestAServerThatFailsWhileServingStopsTheProcessInOrder
 scheduled-count: no
 
 diff --git a/process/serve.go b/process/serve.go
+index b637c343..c0ab8c11 100644
 --- a/process/serve.go
 +++ b/process/serve.go
-@@ -185,6 +185,7 @@ func (p *proc) serveOn(ctx context.Context, app, probeListener net.Listener, s c
+@@ -184,6 +184,7 @@ func (p *proc) serveOn(ctx context.Context, app, probeListener net.Listener, s c
  	var err error
  	select {
  	case err = <-failed:

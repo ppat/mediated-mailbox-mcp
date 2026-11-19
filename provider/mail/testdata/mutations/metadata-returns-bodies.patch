@@ -1,13 +1,45 @@
 control: Only the body fetch returns a body, and no metadata type has a field for it
-removes: the port's metadata fetch returns each message's body in place of its metadata
+removes: the port's metadata fetch returns each message's body in place of its metadata, with the provider fake changed to match, as a real change of the port changes every implementation
 packages: ./provider/mail
 tests: TestOnlyTheBodyFetchReturnsABody
 scheduled-count: no
 
+diff --git a/provider/mail/fake/fake.go b/provider/mail/fake/fake.go
+index 21212cd6..1bd718ce 100644
+--- a/provider/mail/fake/fake.go
++++ b/provider/mail/fake/fake.go
+@@ -234,7 +234,12 @@ func (f *Fake) GetThreadMetadata(ctx context.Context, threadID string) (mail.Thr
+ }
+ 
+ // GetMessageMetadata implements the port.
+-func (f *Fake) GetMessageMetadata(ctx context.Context, ids []string) ([]mail.MessageMetadata, error) {
++func (f *Fake) GetMessageMetadata(ctx context.Context, ids []string) ([]mail.MessageBody, error) {
++	v, err := f.getMessageMetadata(ctx, ids)
++	return make([]mail.MessageBody, len(v)), err
++}
++
++func (f *Fake) getMessageMetadata(ctx context.Context, ids []string) ([]mail.MessageMetadata, error) {
+ 	if err := ctx.Err(); err != nil {
+ 		return nil, err
+ 	}
+diff --git a/provider/mail/fake/throttle.go b/provider/mail/fake/throttle.go
+index e6f854a6..53ac82d2 100644
+--- a/provider/mail/fake/throttle.go
++++ b/provider/mail/fake/throttle.go
+@@ -122,7 +122,7 @@ func (t *Throttled) GetThreadMetadata(ctx context.Context, threadID string) (mai
+ }
+ 
+ // GetMessageMetadata implements the port.
+-func (t *Throttled) GetMessageMetadata(ctx context.Context, ids []string) ([]mail.MessageMetadata, error) {
++func (t *Throttled) GetMessageMetadata(ctx context.Context, ids []string) ([]mail.MessageBody, error) {
+ 	if err := t.admit(ctx, mail.OpGetMessageMetadata, len(ids)); err != nil {
+ 		return nil, err
+ 	}
 diff --git a/provider/mail/mail.go b/provider/mail/mail.go
+index de25cfda..d89bc7d0 100644
 --- a/provider/mail/mail.go
 +++ b/provider/mail/mail.go
-@@ -34,7 +34,7 @@ type Mailbox interface {
+@@ -30,7 +30,7 @@ type Mailbox interface {
  	// the trash or marked as spam included. An identifier naming no message, such as one the mailbox
  	// no longer holds, is left out of the result rather than failing the call. A caller names no more
  	// identifiers in one call than MetadataCallSize gives.

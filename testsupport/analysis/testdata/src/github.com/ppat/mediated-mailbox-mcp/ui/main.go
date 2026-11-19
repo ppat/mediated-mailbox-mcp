@@ -1,4 +1,4 @@
-// Command ui stands for the UI's composition root, which the rule covers too.
+// Command ui stands for the UI's main.go, which the rule covers too.
 package main
 
 import "net/http"

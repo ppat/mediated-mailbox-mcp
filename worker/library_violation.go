@@ -10,14 +10,10 @@ package main
 import (
 	_ "github.com/JohannesKaufmann/html-to-markdown/v2/converter" // want depguard "list 'worker'"
 
-	_ "github.com/ppat/mediated-mailbox-mcp/content/markdown"             // want depguard "list 'worker'"
-	_ "github.com/ppat/mediated-mailbox-mcp/credential/open"              // want depguard "list 'worker'"
-	_ "github.com/ppat/mediated-mailbox-mcp/executioncontext/accountload" // want depguard "list 'worker'"
-	_ "github.com/ppat/mediated-mailbox-mcp/executioncontext/assembly"    // want depguard "list 'worker'"
-	_ "github.com/ppat/mediated-mailbox-mcp/executioncontext/session"     // want depguard "list 'worker'"
-	_ "github.com/ppat/mediated-mailbox-mcp/process/connections"          // want depguard "list 'worker'"
-	_ "github.com/ppat/mediated-mailbox-mcp/process/host"                 // want depguard "list 'worker'"
-	_ "github.com/ppat/mediated-mailbox-mcp/process/sessions"             // want depguard "list 'worker'"
-	_ "github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail/core"     // want depguard "list 'worker'"
-	_ "github.com/ppat/mediated-mailbox-mcp/provider/ratelimit"           // want depguard "list 'worker'"
+	_ "github.com/ppat/mediated-mailbox-mcp/content/markdown"         // want depguard "list 'worker'"
+	_ "github.com/ppat/mediated-mailbox-mcp/credential/open"          // want depguard "list 'worker'"
+	_ "github.com/ppat/mediated-mailbox-mcp/process/connections"      // want depguard "list 'worker'"
+	_ "github.com/ppat/mediated-mailbox-mcp/process/sessions"         // want depguard "list 'worker'"
+	_ "github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail/core" // want depguard "list 'worker'"
+	_ "github.com/ppat/mediated-mailbox-mcp/provider/ratelimit"       // want depguard "list 'worker'"
 )

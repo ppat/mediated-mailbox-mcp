@@ -165,7 +165,7 @@ func mailbox(t tb, account string, messages ...fake.Message) *fake.Fake {
 // direct is a Provider that calls a port with no lease, so a test reaches the tick's logic without the
 // rate limiter. It counts the bodies asked for, and fails the calls a test sets it to fail.
 type direct struct {
-	port mail.Port[context.Context]
+	port *fake.Fake
 	// bodies are the messages whose bodies were asked for, in order.
 	bodies []string
 	// failBody fails the body fetch of a message with the error it maps it to.

@@ -5,9 +5,10 @@ tests: TestASchedulerThatRefusesAPlanStopsTheProcessInOrder
 scheduled-count: no
 
 diff --git a/process/serve.go b/process/serve.go
+index b637c343..4c531c4c 100644
 --- a/process/serve.go
 +++ b/process/serve.go
-@@ -137,7 +137,7 @@ func (p *proc) serveOn(ctx context.Context, app, probeListener net.Listener, s c
+@@ -136,7 +136,7 @@ func (p *proc) serveOn(ctx context.Context, app, probeListener net.Listener, s c
  			name := l.kind + " listing"
  			p.report(name, NotReady, "no listing has succeeded yet")
  			err := scheduler.EnsurePlan(l.kind, l.plan, l.p.Logger(), func() { p.report(name, Ready, "") })

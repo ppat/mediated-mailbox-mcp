@@ -6,9 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/process/connections/work.go b/process/connections/work.go
+index bee4427e..701dfd44 100644
 --- a/process/connections/work.go
 +++ b/process/connections/work.go
-@@ -93,6 +93,9 @@ func (w *Work) Mailbox() mail.Mailbox { return w.mailbox }
+@@ -96,6 +96,9 @@ func (w *Work) Mailbox() mail.Mailbox { return w.mailbox }
  // back. An account the row leaves without a credential, or without the client its provider
  // authenticates through, loses its connection.
  func (w *Work) again(ctx context.Context) (*provider.Token, error) {

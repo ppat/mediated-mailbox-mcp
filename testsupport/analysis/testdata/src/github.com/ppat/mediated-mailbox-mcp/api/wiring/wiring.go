@@ -1,4 +1,4 @@
-// Package wiring stands for a composition root, which is not a pure core.
+// Package wiring stands for a program's shell code, which is not a pure core.
 package wiring // want `links to github.com/ppat/mediated-mailbox-mcp/core/state.ErrRefused in a pure core`
 
 import (
@@ -9,7 +9,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/api/internal/core/plan"
 )
 
-// A composition root may hold its own variables.
+// Shell code may hold its own variables.
 var client = "c"
 
 //go:linkname refused github.com/ppat/mediated-mailbox-mcp/core/state.ErrRefused

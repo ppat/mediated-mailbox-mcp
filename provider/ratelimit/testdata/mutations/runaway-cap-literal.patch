@@ -5,9 +5,10 @@ tests: TestAlertingRules
 scheduled-count: no
 
 diff --git a/packaging/chart/rules/alerting-rules.yaml b/packaging/chart/rules/alerting-rules.yaml
+index 9cc9ffa4..e500aea8 100644
 --- a/packaging/chart/rules/alerting-rules.yaml
 +++ b/packaging/chart/rules/alerting-rules.yaml
-@@ -24,7 +24,7 @@ groups:
+@@ -29,7 +29,7 @@ groups:
    - alert: MediatedMailboxRateRunaway
      expr: |
        sum by (account) (increase(mediated_mailbox_provider_request_cost_total[2m]))

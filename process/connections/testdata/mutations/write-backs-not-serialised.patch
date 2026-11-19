@@ -6,9 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/process/connections/work.go b/process/connections/work.go
+index bee4427e..5ac1c41d 100644
 --- a/process/connections/work.go
 +++ b/process/connections/work.go
-@@ -230,8 +230,6 @@ func (w *Work) writeBack(ctx context.Context, stamp uint64, current []byte) erro
+@@ -231,8 +231,6 @@ func (w *Work) writeBack(ctx context.Context, stamp uint64, current []byte) erro
  	if len(current) == 0 {
  		return fmt.Errorf("account %s: the adapter holds an empty credential", account)
  	}

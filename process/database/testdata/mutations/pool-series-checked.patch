@@ -6,10 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/process/database/pool.go b/process/database/pool.go
-index c6442f21..8e1f61aa 100644
+index 46525a72..7a931103 100644
 --- a/process/database/pool.go
 +++ b/process/database/pool.go
-@@ -55,7 +55,7 @@ type unchecked struct {
+@@ -53,7 +53,7 @@ type unchecked struct {
  }
  
  // Describe yields nothing, which makes the collector unchecked.

@@ -14,7 +14,7 @@ import (
 )
 
 // reloadDurationName is the series timing each reload (ADR-0125).
-const reloadDurationName = "mediated_mailbox_policyload_reload_duration_seconds"
+const reloadDurationName = "mediated_mailbox_policy_reload_duration_seconds"
 
 // reloadsTimed returns how many reloads the reload duration series on reg has observed.
 func reloadsTimed(t *testing.T, reg prometheus.Gatherer) uint64 {

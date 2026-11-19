@@ -5,10 +5,10 @@ tests: TestABooleanIsTrueOrFalse/false TestABooleanInsideAValueIsTrueOrFalse/tru
 scheduled-count: no
 
 diff --git a/process/settings/settings.go b/process/settings/settings.go
-index 0e4fc65..124d73f 100644
+index 07990f9a..47e45559 100644
 --- a/process/settings/settings.go
 +++ b/process/settings/settings.go
-@@ -401,7 +401,7 @@ func resolve(root *node, path []string, text string) (reflect.Value, error) {
+@@ -411,7 +411,7 @@ func resolve(root *node, path []string, text string) (reflect.Value, error) {
  func checkBooleans(n *yaml.Node, t reflect.Type) error {
  	switch t.Kind() {
  	case reflect.Bool:

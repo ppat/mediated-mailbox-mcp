@@ -6,9 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/process/sessions/sessions.go b/process/sessions/sessions.go
+index 0f7b87f4..e9c0df03 100644
 --- a/process/sessions/sessions.go
 +++ b/process/sessions/sessions.go
-@@ -293,7 +293,7 @@ func (s *Session) with(also func(string) bool) []string {
+@@ -318,7 +318,7 @@ func (s *Session) with(also func(string) bool) []string {
  	snapshot := s.policies.Snapshot()
  	var out []string
  	for _, a := range s.Accounts() {

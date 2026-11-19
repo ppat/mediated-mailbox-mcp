@@ -6,9 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/process/sessions/sessions.go b/process/sessions/sessions.go
+index 0f7b87f4..5ef94973 100644
 --- a/process/sessions/sessions.go
 +++ b/process/sessions/sessions.go
-@@ -60,6 +60,9 @@ type Connections interface {
+@@ -65,6 +65,9 @@ type Connections interface {
  // held is the slot the process keeps its one Session in.
  var held = process.NewOnePerProcess[*Session]("session")
  
@@ -18,7 +19,7 @@ diff --git a/process/sessions/sessions.go b/process/sessions/sessions.go
  // Session is all the user state one process holds. It is safe for concurrent use.
  type Session struct {
  	pool     *pgxpool.Pool
-@@ -87,7 +90,7 @@ type Session struct {
+@@ -95,7 +98,7 @@ type Session struct {
  // first reload runs once the process serves, on the process's scheduler, and then on the interval c's
  // accounts part sets. It reports not ready until a reload has loaded everything once.
  func Get(ctx context.Context, p process.Capabilities, c config.HasAccounts) (*Session, error) {

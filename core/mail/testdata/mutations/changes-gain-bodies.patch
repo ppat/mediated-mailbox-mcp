@@ -1,14 +1,14 @@
 control: Only the body fetch returns a body, and no metadata type has a field for it
 removes: a change set gains a field holding the bodies of the added messages
 packages: ./core/mail
-tests: TestOnlyTheBodyFetchReturnsABody TestMetadataTypesHaveNoBodyField
+tests: TestMetadataTypesHaveNoBodyField
 scheduled-count: no
 
 diff --git a/core/mail/model.go b/core/mail/model.go
-index d111c4f..8876088 100644
+index df026da0..958f4618 100644
 --- a/core/mail/model.go
 +++ b/core/mail/model.go
-@@ -124,4 +124,5 @@ type ChangeSet struct {
+@@ -145,4 +145,5 @@ type ChangeSet struct {
  	Modified  []string
  	Removed   []string
  	Next      Cursor

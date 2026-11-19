@@ -5,10 +5,10 @@ tests: TestACallIsHeldToItsDeclaredCost TestWithin
 scheduled-count: no
 
 diff --git a/provider/mail/gmail/adapter.go b/provider/mail/gmail/adapter.go
-index c8479f2..46dd7b1 100644
+index 46815924..b5a3ed99 100644
 --- a/provider/mail/gmail/adapter.go
 +++ b/provider/mail/gmail/adapter.go
-@@ -71,7 +71,7 @@ func (a *Adapter) begin(op mail.Operation, messages int) *call {
+@@ -87,7 +87,7 @@ func (a *Adapter) begin(op mail.Operation, messages int) *call {
  
  // within reports whether a request costing units keeps a call that has spent spent within its
  // declared cost.

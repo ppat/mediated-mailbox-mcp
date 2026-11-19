@@ -5,6 +5,7 @@ tests: TestNoConfigurationValueWeakensTheGate/a_flag_disabling_the_gate TestTheP
 scheduled-count: no
 
 diff --git a/core/config/programs.go b/core/config/programs.go
+index b8a3a69f..6778a931 100644
 --- a/core/config/programs.go
 +++ b/core/config/programs.go
 @@ -24,6 +24,9 @@ type API struct {

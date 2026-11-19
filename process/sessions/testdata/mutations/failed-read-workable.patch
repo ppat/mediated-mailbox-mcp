@@ -6,6 +6,7 @@ scheduled-count: no
 integration: yes
 
 diff --git a/process/sessions/sessions.go b/process/sessions/sessions.go
+index 0f7b87f4..f797e099 100644
 --- a/process/sessions/sessions.go
 +++ b/process/sessions/sessions.go
 @@ -297,9 +297,6 @@ func (s *Session) Workable() ([]string, error) {

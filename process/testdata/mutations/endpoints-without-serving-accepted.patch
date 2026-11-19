@@ -5,6 +5,7 @@ tests: TestASpecThatCannotRunIsRefused
 scheduled-count: no
 
 diff --git a/process/run.go b/process/run.go
+index 7edb03f4..70d17373 100644
 --- a/process/run.go
 +++ b/process/run.go
 @@ -170,11 +170,9 @@ func partsOf[C any](spec Spec[C], c C) (parts, []string, error) {

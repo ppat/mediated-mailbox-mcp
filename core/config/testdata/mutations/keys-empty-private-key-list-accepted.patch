@@ -5,6 +5,7 @@ tests: TestAnUnusableKeysValueIsRefused/no_private_key TestAnUnusableKeysValueIs
 scheduled-count: no
 
 diff --git a/core/config/keys.go b/core/config/keys.go
+index ca07b78e..42122c33 100644
 --- a/core/config/keys.go
 +++ b/core/config/keys.go
 @@ -24,8 +24,6 @@ func (k Keys) Check() error {

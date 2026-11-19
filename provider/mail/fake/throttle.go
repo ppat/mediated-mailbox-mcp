@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
+	"github.com/ppat/mediated-mailbox-mcp/provider/internal/adapters"
 	providermail "github.com/ppat/mediated-mailbox-mcp/provider/mail"
 )
 
@@ -77,22 +78,19 @@ func Ceiling(weightPerSecond float64, signal mail.ThrottleSignal) Schedule {
 // after that decision and outside its lock, so calls made at the same time may take effect in an
 // order other than the one they were decided in.
 type Throttled struct {
-	inner    mail.Port[context.Context]
+	inner    adapters.Mailbox
 	schedule Schedule
 	clock    func() time.Time
 	mu       sync.Mutex
 	seq      int
 }
 
-var (
-	_ mail.Port[context.Context] = (*Throttled)(nil)
-	_ providermail.Mailbox       = (*Throttled)(nil)
-)
+var _ adapters.Mailbox = (*Throttled)(nil)
 
 // Throttle wraps inner so every call first passes schedule. The clock stamps each call, and a test
 // passes its own clock, so the schedule's decisions depend only on the calls and the times the test
 // chose.
-func Throttle(inner mail.Port[context.Context], schedule Schedule, clock func() time.Time) *Throttled {
+func Throttle(inner adapters.Mailbox, schedule Schedule, clock func() time.Time) *Throttled {
 	return &Throttled{inner: inner, schedule: schedule, clock: clock}
 }
 

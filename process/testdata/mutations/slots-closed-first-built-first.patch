@@ -5,9 +5,10 @@ tests: TestTheProcessStopsInOrder
 scheduled-count: no
 
 diff --git a/process/process.go b/process/process.go
+index 4a6da3fc..d08cf6b4 100644
 --- a/process/process.go
 +++ b/process/process.go
-@@ -194,7 +194,7 @@ func (p *proc) closeSlots() {
+@@ -192,7 +192,7 @@ func (p *proc) closeSlots() {
  	closers := p.closers
  	p.closers = nil
  	p.slotsMu.Unlock()

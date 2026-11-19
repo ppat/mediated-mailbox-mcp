@@ -5,10 +5,10 @@ tests: TestARequiredValueIsMetByAnyLayer/the_environment TestARequiredValueIsMet
 scheduled-count: no
 
 diff --git a/process/settings/settings.go b/process/settings/settings.go
-index 4299ed0..a73a74b 100644
+index 07990f9a..5487f0f7 100644
 --- a/process/settings/settings.go
 +++ b/process/settings/settings.go
-@@ -448,7 +448,7 @@ func checkRequired(n *node, v reflect.Value, path []string, sources map[string]S
+@@ -500,7 +500,7 @@ func checkRequired(n *node, v reflect.Value, path []string, sources map[string]S
  		for _, f := range n.fields {
  			at := append(slices.Clone(path), f.name)
  			if f.required {

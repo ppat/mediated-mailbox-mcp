@@ -5,6 +5,7 @@ tests: TestTheEffectiveConfigurationIsLogged TestTheProgramTypesArePinned
 scheduled-count: no
 
 diff --git a/core/config/programs.go b/core/config/programs.go
+index b8a3a69f..8c031373 100644
 --- a/core/config/programs.go
 +++ b/core/config/programs.go
 @@ -99,7 +99,8 @@ type UI struct {

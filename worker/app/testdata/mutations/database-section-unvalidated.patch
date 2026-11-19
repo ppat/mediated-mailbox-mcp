@@ -5,9 +5,10 @@ tests: TestAnEmptyHostRefusesTheStart TestTheWorkerConfigurationIsChecked/an_emp
 scheduled-count: no
 
 diff --git a/core/config/programs.go b/core/config/programs.go
+index b8a3a69f..30ff5130 100644
 --- a/core/config/programs.go
 +++ b/core/config/programs.go
-@@ -293,7 +293,6 @@ func (c Worker) Check() error {
+@@ -296,7 +296,6 @@ func (c Worker) Check() error {
  	return first(
  		c.Process.Check,
  		c.Operations.Check,

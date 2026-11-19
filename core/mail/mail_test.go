@@ -224,31 +224,15 @@ func TestThePortsErrorsAreDistinct(t *testing.T) {
 	}
 }
 
-// The body arrives only through the body fetch (ADR-0010). The port has exactly these operations with
-// exactly these signatures, so an operation added to return the body in any form, a string
-// included, fails. Of them, GetMessageBody alone returns a value through which a MessageBody can be
-// reached, and it returns the body and an error and nothing else. The rate profile the port returns
-// is pinned the same way.
-func TestOnlyTheBodyFetchReturnsABody(t *testing.T) {
-	mustnotcompile.RequireMethods(t, pkg, "Port",
-		"ChangesSince func(ctx C, cursor Cursor) (ChangeSet, error)",
-		"CurrentCursor func(ctx C) (Cursor, error)",
-		"EnsureLabel func(ctx C, path string) (Label, error)",
-		"EnumerateAll func(ctx C, page PageToken) (Page[MessageMetadata], error)",
-		"GetMessageBody func(ctx C, id string, part BodyPart) (MessageBody, error)",
-		"GetMessageMetadata func(ctx C, ids []string) ([]MessageMetadata, error)",
-		"GetThreadMetadata func(ctx C, threadID string) (ThreadMetadata, error)",
-		"ListLabels func(ctx C) ([]Label, error)",
-		"ListThreads func(ctx C, q Query, page PageToken) (Page[ThreadMetadata], error)",
-		"Mutate func(ctx C, ops []MutationOp) (MutationResult, error)",
-		"RateProfile func() RateLimitProfile[C]")
+// The rate profile an adapter declares has exactly these methods with exactly these signatures, so a
+// method added to return the body in any form, a string included, fails. The Provider Port's
+// operations are provider/mail's and its tests pin them (ADR-0010, ADR-0023).
+func TestTheRateProfileHasExactlyItsMethods(t *testing.T) {
 	mustnotcompile.RequireMethods(t, pkg, "RateLimitProfile",
 		"BudgetPerSecond func() float64",
 		"Cost func(op ProviderOp) OpCost",
 		"ParseThrottle func(err error) (ThrottleSignal, bool)",
 		"RefreshLimits func(ctx C) error")
-	mustnotcompile.RequireReturning(t, pkg, "Port", "MessageBody", "GetMessageBody")
-	mustnotcompile.RequireResults(t, pkg, "Port", "GetMessageBody", "MessageBody", "error")
 }
 
 // No metadata type has a field for the full body. Each type a metadata operation returns holds

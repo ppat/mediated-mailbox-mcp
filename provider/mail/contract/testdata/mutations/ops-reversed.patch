@@ -5,10 +5,10 @@ tests: TestTheFakePassesTheContract/each_verb_changes_exactly_what_it_names/two_
 scheduled-count: no
 
 diff --git a/provider/mail/fake/fake.go b/provider/mail/fake/fake.go
-index 22535f7..d56a423 100644
+index 21212cd6..0b5c083d 100644
 --- a/provider/mail/fake/fake.go
 +++ b/provider/mail/fake/fake.go
-@@ -294,8 +294,8 @@ func (f *Fake) Mutate(ctx context.Context, ops []mail.MutationOp) (mail.Mutation
+@@ -323,8 +323,8 @@ func (f *Fake) Mutate(ctx context.Context, ops []mail.MutationOp) (mail.Mutation
  	f.mu.Lock()
  	defer f.mu.Unlock()
  	result := mail.MutationResult{Errors: make([]error, len(ops))}

@@ -23,6 +23,7 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
 	"github.com/ppat/mediated-mailbox-mcp/process"
 	"github.com/ppat/mediated-mailbox-mcp/process/connections"
+	providermail "github.com/ppat/mediated-mailbox-mcp/provider/mail"
 	"github.com/ppat/mediated-mailbox-mcp/provider/mail/fake"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/postgres"
 	"github.com/ppat/mediated-mailbox-mcp/worker/app"
@@ -177,7 +178,7 @@ type world struct {
 	mu sync.Mutex
 	// ports are each account's mailbox behind the fake's adapter, a Fake with no mail unless the test
 	// set one, and schedules what each account's calls are refused with, none unless set.
-	ports     map[string]mail.Port[context.Context]
+	ports     map[string]adapterMailbox
 	schedules map[string]fake.Schedule
 	// tokens are the tokens each account's mailboxes were built over, newest last.
 	tokens map[string][]*fake.Token
@@ -196,7 +197,7 @@ func newWorld(t *testing.T) *world {
 	t.Helper()
 	w := &world{
 		t: t, conn: superuser(t), keys: generate(t), logs: &lockedBuffer{},
-		ports: map[string]mail.Port[context.Context]{}, schedules: map[string]fake.Schedule{}, tokens: map[string][]*fake.Token{},
+		ports: map[string]adapterMailbox{}, schedules: map[string]fake.Schedule{}, tokens: map[string][]*fake.Token{},
 	}
 	for _, table := range []string{
 		"masking_events", "scan_gate_decisions", "job_run_events", "job_run_failures", "job_runs", "messages", "senders",
@@ -218,8 +219,15 @@ func (w *world) connect(account, credential string, ended bool) {
 		account, sealed(w.t, w.keys, credential, seal.AccountCredential(account)), ended)
 }
 
+// adapterMailbox is an account's mailbox as the fake's adapter builds it, the Provider Port's operations
+// and the rate profile the adapter declares for them, which fake.Throttle wraps.
+type adapterMailbox interface {
+	providermail.Mailbox
+	RateProfile() mail.RateLimitProfile[context.Context]
+}
+
 // port sets the account's mailbox behind the fake's adapter.
-func (w *world) port(account string, p mail.Port[context.Context]) {
+func (w *world) port(account string, p adapterMailbox) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	w.ports[account] = p

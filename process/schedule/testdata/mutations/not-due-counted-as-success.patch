@@ -5,10 +5,10 @@ tests: TestANotDueAnswerChangesNeitherFailuresNorSuccess TestTheJobSeriesFollowE
 scheduled-count: no
 
 diff --git a/process/schedule/schedule.go b/process/schedule/schedule.go
-index 5a62353c..750fb478 100644
+index 47abffeb..7baccbe5 100644
 --- a/process/schedule/schedule.go
 +++ b/process/schedule/schedule.go
-@@ -344,7 +344,7 @@ func (s *Scheduler) ask(ctx context.Context, key Key, job Job, at time.Time) (Ou
+@@ -419,7 +419,7 @@ func (s *Scheduler) ask(ctx context.Context, key Key, st *state, job Job, at, ph
  	case panicked || errors.Is(err, ErrPanicked):
  		outcome = Panic
  	case errors.Is(err, ErrNotDue):

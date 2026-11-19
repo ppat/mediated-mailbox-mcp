@@ -3,11 +3,12 @@ removes: a request is sent with its cap's size and not whether past it refuses, 
 packages: ./provider/mail/gmail
 tests: TestEachRequestIsSentWithItsBuildersCap
 scheduled-count: no
+
 diff --git a/provider/mail/gmail/adapter.go b/provider/mail/gmail/adapter.go
-index eb35c3fb..c5c24567 100644
+index 46815924..8bcec413 100644
 --- a/provider/mail/gmail/adapter.go
 +++ b/provider/mail/gmail/adapter.go
-@@ -105,7 +105,7 @@ func (a *Adapter) send(ctx context.Context, r request) ([]byte, error) {
+@@ -115,7 +115,7 @@ func (a *Adapter) send(ctx context.Context, r request) ([]byte, error) {
  	if r.Body != "" {
  		body = strings.NewReader(r.Body)
  	}

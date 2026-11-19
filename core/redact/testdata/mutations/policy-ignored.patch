@@ -1,5 +1,5 @@
 control: The Redaction Gate classifies the sender against the policy it is given
-removes: the sender is classified against an empty policy instead of the one given, prepared with the real lookups a composition root passes in, so only the policy changes
+removes: the sender is classified against an empty policy instead of the one given, prepared with the real lookups `process/domains` hands the classifier, so only the policy changes
 packages: ./core/redact
 tests: TestAJustListedDomainDeniesOnTheNextDecision TestDecide/a_restricted_sender,_scanned_before_it_was_listed
 scheduled-count: no

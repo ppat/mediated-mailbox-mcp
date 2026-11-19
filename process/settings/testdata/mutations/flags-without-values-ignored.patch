@@ -5,10 +5,10 @@ tests: TestEveryMistakeIsRefusedAtStart/a_flag_with_no_value,_last
 scheduled-count: no
 
 diff --git a/process/settings/settings.go b/process/settings/settings.go
-index 4299ed0..58dc027 100644
+index 07990f9a..34a8cf15 100644
 --- a/process/settings/settings.go
 +++ b/process/settings/settings.go
-@@ -332,7 +332,7 @@ func readFlags(root *node, args []string) ([]assignment, string, error) {
+@@ -345,7 +345,7 @@ func readFlags(root *node, args []string) ([]assignment, string, error) {
  		name, text, ok := strings.Cut(spec, "=")
  		switch {
  		case !ok:

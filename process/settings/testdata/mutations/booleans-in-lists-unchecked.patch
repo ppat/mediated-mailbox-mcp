@@ -5,10 +5,10 @@ tests: TestABooleanInsideAValueIsTrueOrFalse/in_a_list,_from_a_flag TestABoolean
 scheduled-count: no
 
 diff --git a/process/settings/settings.go b/process/settings/settings.go
-index 0e4fc65..3753d09 100644
+index 07990f9a..1a2a104e 100644
 --- a/process/settings/settings.go
 +++ b/process/settings/settings.go
-@@ -405,11 +405,6 @@ func checkBooleans(n *yaml.Node, t reflect.Type) error {
+@@ -415,11 +415,6 @@ func checkBooleans(n *yaml.Node, t reflect.Type) error {
  			return fmt.Errorf("line %d: %q is not a boolean, and a boolean is true or false", n.Line, n.Value)
  		}
  	case reflect.Slice:

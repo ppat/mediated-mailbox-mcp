@@ -58,10 +58,7 @@ type Adapter struct {
 	metrics Metrics
 }
 
-var (
-	_ mail.Port[context.Context] = (*Adapter)(nil)
-	_ providermail.Mailbox       = (*Adapter)(nil)
-)
+var _ providermail.Mailbox = (*Adapter)(nil)
 
 // New returns an Adapter for cfg.
 func New(cfg Config) (*Adapter, error) {

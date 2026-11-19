@@ -6,9 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/process/connections/work.go b/process/connections/work.go
+index bee4427e..e80b9c52 100644
 --- a/process/connections/work.go
 +++ b/process/connections/work.go
-@@ -218,7 +218,8 @@ func (w *Work) End(ctx context.Context) (writeBack, record error) {
+@@ -222,7 +222,8 @@ func (w *Work) End(ctx context.Context) (writeBack, record error) {
  		return fmt.Errorf("account %s: %w", w.account, ErrNotConnected), nil
  	}
  	attempt := token.LastAttempt()

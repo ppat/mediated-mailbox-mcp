@@ -37,8 +37,8 @@ func (k Keys) Check() error {
 
 // Accounts is the accounts part, embedded inline so its one key sits at the top of the tree.
 type Accounts struct {
-	// AccountReloadInterval is how often the process's execution context reloads its account
-	// snapshot and their policy (ADR-0090).
+	// AccountReloadInterval is how often the process's Session reloads its list of accounts, their
+	// connections and their policy (ADR-0090).
 	AccountReloadInterval Duration `yaml:"account_reload_interval"`
 }
 

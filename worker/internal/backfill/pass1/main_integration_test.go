@@ -280,7 +280,7 @@ func (w *world) rescan(t tb) {
 
 // newWorld builds a world over store, enumerating the mailbox s generates. port turns the throttled
 // fake into the Fetch and the Metadata the pass uses.
-func newWorld(t tb, s setup, account string, store pass1.Store, inspect func(tb) state, port func(mail.Port[context.Context]) (pass1.Fetch, pass1.Metadata)) *world {
+func newWorld(t tb, s setup, account string, store pass1.Store, inspect func(tb) state, port func(*fake.Throttled) (pass1.Fetch, pass1.Metadata)) *world {
 	t.Helper()
 	messages, want := mailbox(s)
 	f, err := fake.New(fake.Config{Account: account, PageSize: max(s.PageSize, 1), BudgetPerSecond: 10_000, ReportsTotal: s.Totals}, messages...)
@@ -597,7 +597,7 @@ func realWorld(t testing.TB, s setup) *world {
 	pool := backfillPool(t)
 	url := postgres.URL(t)
 	return newWorld(t, s, account, pass1.NewPostgres(pool, "backfill"), func(t tb) state { return inspectPostgres(t, url, account) },
-		func(p mail.Port[context.Context]) (pass1.Fetch, pass1.Metadata) {
+		func(p *fake.Throttled) (pass1.Fetch, pass1.Metadata) {
 			m := leasedMailbox(t, pool, account, p)
 			return m.EnumerateAll, m.GetMessageMetadata
 		})
@@ -607,7 +607,7 @@ func realWorld(t testing.TB, s setup) *world {
 // caller of the provider library in the batch class over the provider fake's list of adapters, so
 // each call is leased from the account's budget on pool and a throttle reaches the rate limiter's
 // controller (ADR-0025, ADR-0117). The fake's list declares its own ceiling, 100 a second.
-func leasedMailbox(t tb, pool *pgxpool.Pool, account string, p mail.Port[context.Context]) providermail.Mailbox {
+func leasedMailbox(t tb, pool *pgxpool.Pool, account string, p *fake.Throttled) providermail.Mailbox {
 	t.Helper()
 	list := fake.Adapters(func(string, *fake.Token) (*fake.Throttled, error) {
 		return fake.Throttle(p, fake.Never(), time.Now), nil
@@ -940,7 +940,7 @@ func (m *memory) inspect(tb) state {
 func modelWorld(t tb, s setup) *world {
 	t.Helper()
 	m := newMemory()
-	return newWorld(t, s, "personal", m, m.inspect, func(p mail.Port[context.Context]) (pass1.Fetch, pass1.Metadata) {
+	return newWorld(t, s, "personal", m, m.inspect, func(p *fake.Throttled) (pass1.Fetch, pass1.Metadata) {
 		return p.EnumerateAll, p.GetMessageMetadata
 	})
 }

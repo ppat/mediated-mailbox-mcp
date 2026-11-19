@@ -5,9 +5,10 @@ tests: TestEachEndpointIsServedAtItsPattern
 scheduled-count: no
 
 diff --git a/process/serve.go b/process/serve.go
+index b637c343..8f288bb6 100644
 --- a/process/serve.go
 +++ b/process/serve.go
-@@ -158,7 +158,7 @@ func (p *proc) serveOn(ctx context.Context, app, probeListener net.Listener, s c
+@@ -157,7 +157,7 @@ func (p *proc) serveOn(ctx context.Context, app, probeListener net.Listener, s c
  	if app != nil {
  		mux := http.NewServeMux()
  		for _, m := range b.handlers {

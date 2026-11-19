@@ -6,9 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/process/connections/work.go b/process/connections/work.go
+index bee4427e..85134fce 100644
 --- a/process/connections/work.go
 +++ b/process/connections/work.go
-@@ -208,7 +208,7 @@ func (c *Connections) readClientOf(ctx context.Context, account string) (*accoun
+@@ -212,7 +212,7 @@ func (c *Connections) readClientOf(ctx context.Context, account string) (*accoun
  func (w *Work) End(ctx context.Context) (writeBack, record error) {
  	rec := w.record
  	rec.mu.Lock()

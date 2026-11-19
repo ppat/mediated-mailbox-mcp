@@ -11,12 +11,12 @@ import (
 // It is a gauge of the latest reload's outcome rather than a counter of failures. A process loads
 // policy first as it starts, usually before its first scrape, and a counter whose first sample is
 // already 1 shows no increase, so a rule over a counter would never see that failure.
-const reloadFailedName = "mediated_mailbox_policyload_reload_failed"
+const reloadFailedName = "mediated_mailbox_policy_reload_failed"
 
 // reloadDurationName is the series timing one load per reload its caller did not cancel, which no
 // rule reads. A body request waits for one or two such loads, so it answers how much of the request
 // the policy load takes (ADR-0099, ADR-0125).
-const reloadDurationName = "mediated_mailbox_policyload_reload_duration_seconds"
+const reloadDurationName = "mediated_mailbox_policy_reload_duration_seconds"
 
 // metrics is one process's reload series (ADR-0076, ADR-0077, ADR-0125).
 type metrics struct {

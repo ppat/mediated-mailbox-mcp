@@ -31,11 +31,11 @@ func newFake(t *testing.T, account string, mailbox []contract.Message) *fake.Fak
 	return f
 }
 
-// both is the fake in both forms of the Provider Port, so one value is passed as the mailbox the
-// contract runs against and as the source of the rate profile it reads.
+// both is the fake's mailbox with the rate profile it declares, so one value is passed as the mailbox
+// the contract runs against and as the source of the rate profile it reads.
 type both interface {
 	providermail.Mailbox
-	mail.Port[context.Context]
+	RateProfile() mail.RateLimitProfile[context.Context]
 }
 
 // harness builds a fake for each case, with pages of two, offered behind the port wrap returns,
