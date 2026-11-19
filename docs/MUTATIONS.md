@@ -14,12 +14,12 @@ those files hold the rows.
 
 **A row.** One control, one demonstration. It names how the mechanism was broken, the tests that
 went red, the date, and an evidence pointer. The rows are the whole artifact, never a pass rate.
-Every mechanism is broken at least both ways, once so it does less and once so it does the wrong
-thing, one patch per break, and the row numbers each break and names the tests each turned red. A
-surviving mutant holds its row open as a defect until the tests are fixed or the mechanism is
-deliberately deleted as redundant, and the row says so beside its date. The runner that applies a
-demonstration's patches, `go tool mutproof` ([testsupport/README.md](../testsupport/README.md)),
-prints each row in this shape.
+Every statement in a row must be true of the current code. Every mechanism is broken at least both
+ways, once so it does less and once so it does the wrong thing, one patch per break, and the row
+numbers each break and names the tests each turned red. A surviving mutant holds its row open as a
+defect until the tests are fixed or the mechanism is deliberately deleted as redundant, and the row
+says so beside its date. The runner that applies a demonstration's patches, `go tool mutproof`
+([testsupport/README.md](../testsupport/README.md)), prints each row in this shape.
 
 **A row's form.** A row is a section whose heading is the control, so each control has an anchor
 of its own. Each field sits on a line of its own, so reproducing a row edits only the lines whose
