@@ -355,28 +355,68 @@ func TestTheReportIsNotReadyUntilItReadsTheFile(t *testing.T) {
 		t.Fatal(err)
 	}
 	// write gives one reader of the pipe token and closes it, so that read returns.
-	write := func(token string) {
+	write := func(token string) error {
 		f, err := os.OpenFile(pipe, os.O_WRONLY, 0) //nolint:gosec // the test's own pipe
+		if err != nil {
+			return err
+		}
+		_, err = f.WriteString(token)
+		return errors.Join(err, f.Close())
+	}
+	// A write on its own goroutine waits in its open until a reader opens the pipe, and the process
+	// may stop with none left to read it. Once the process has stopped, and before the pipe's directory
+	// is removed, the test closes stopped so no further write begins, opens the pipe for reading
+	// itself, an open that waits for no writer, so a writer still waiting is let through, and keeps it
+	// open until every writer has ended, so none outlives the test or reports to it after it ends.
+	// Cleanups run last registered first, so this one, registered before start's, runs after the
+	// process has stopped.
+	var writers sync.WaitGroup
+	stopped := make(chan struct{})
+	t.Cleanup(func() {
+		close(stopped)
+		f, err := os.OpenFile(pipe, os.O_RDONLY|syscall.O_NONBLOCK, 0) //nolint:gosec // the test's own pipe
 		if err != nil {
 			t.Error(err)
 			return
 		}
-		_, err = f.WriteString(token)
-		if err := errors.Join(err, f.Close()); err != nil {
+		writers.Wait()
+		if err := f.Close(); err != nil {
 			t.Error(err)
 		}
-	}
-	go write("s3cret")
+	})
+	writers.Go(func() {
+		if err := write("s3cret"); err != nil {
+			t.Error(err)
+		}
+	})
 	r := start(t, args(pipe))
 	status, body := r.ready(t)
 	if status != http.StatusServiceUnavailable || !strings.Contains(body, "not ready: bearer token: the bearer token file has not been read yet") {
 		t.Errorf("before its first read the readiness probe answered %d %q", status, body)
 	}
-	write("s3cret")
+	if err := write("s3cret"); err != nil {
+		t.Error(err)
+	}
 	r.await(t, http.StatusOK, "")
-	// The report reads the pipe again at its next interval, which the test answers so the process can
-	// stop.
-	t.Cleanup(func() { go write("s3cret") })
+	// The report may be waiting to read the pipe again when the process is told to stop, and may read
+	// it once more after, so the test answers every read until the process has stopped.
+	t.Cleanup(func() {
+		writers.Go(func() {
+			for {
+				select {
+				case <-stopped:
+					return
+				default:
+				}
+				// A read that ends between this write's open and its write leaves the pipe with no reader,
+				// which fails no read, since the next write answers the next one.
+				if err := write("s3cret"); err != nil && !errors.Is(err, syscall.EPIPE) {
+					t.Error(err)
+					return
+				}
+			}
+		})
+	})
 }
 
 // The two endpoints share one report, so one loop reads the file and each failed read is logged once
