@@ -1919,7 +1919,7 @@ data rather than a build, each with its trigger point.
   - **Standing:** Review discipline. The invariant alone passes on a mechanism that produced nothing, and whether a companion exists is visible only by reading the test
 
 - **Check:** **[ADR-0055](./adr/engineering/0055-property-based-safety-invariants.md)'s mutation break for a metamorphic relation**, under which the demonstration breaks whatever would let the rule pass without the code doing its job, such as the reverse step of a round trip
-  - **Standing:** Rides [ADR-0046](./adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md)'s mutation obligation above. The demonstration itself is the row in the mutation ledger, [MUTATIONS.md](./MUTATIONS.md) and the files it lists, and which break was made is what a reviewer checks there
+  - **Standing:** Rides [ADR-0046](./adr/engineering/0046-tests-are-evidence-once-seen-to-fail.md)'s mutation obligation above. The demonstration's record is the control's row in the mutation ledger, [MUTATIONS.md](./MUTATIONS.md) and the files it lists, and which break was made is what a reviewer checks there
 
 - **Check:** **[ADR-0069](./adr/engineering/0069-property-and-crash-sequences-from-rapid.md)'s written-out reduced example**, under which every reduced failing case is also written out as an ordinary example-based test
   - **Standing:** Review discipline, with no injection. The failing-case store survives an ordinary edit to a generator, and its own row in §1 proves that. The written-out test covers what the store cannot, because it states its own expected answer and depends on no generator at all

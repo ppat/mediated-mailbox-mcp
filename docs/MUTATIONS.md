@@ -14,31 +14,41 @@ those files hold the rows.
 
 **A row.** One control, one demonstration. It names how the mechanism was broken, the tests that
 went red, the date, and an evidence pointer. The rows are the whole artifact, never a pass rate.
-Every statement in a row must be true of the current code. Every mechanism is broken at least both
-ways, once so it does less and once so it does the wrong thing, one patch per break, and the row
-numbers each break and names the tests each turned red. A surviving mutant holds its row open as a
-defect until the tests are fixed or the mechanism is deliberately deleted as redundant, and the row
-says so beside its date. The runner that applies a demonstration's patches, `go tool mutproof`
-([testsupport/README.md](../testsupport/README.md)), prints each row in this shape.
+Every statement in a row must be true of the current code, and a row holds no history. The ledger
+holds every mutation of the current code base. Each patch under a `testdata/mutations` directory,
+apart from the runner's own fixtures under `testsupport/cmd/mutproof/testdata/fixture/`, is one
+break of its control's row, and no break is without its patch. Every mechanism is broken at least
+both ways, once so it does less and once so it does the wrong thing, one patch per break, and the
+row numbers each break and names the tests each turned red. A surviving mutant holds its row open
+as a defect until the tests are fixed or the mechanism is deliberately deleted as redundant, and
+the row says so beside its date. The runner that applies a demonstration's patches,
+`go tool mutproof` ([testsupport/README.md](../testsupport/README.md)), prints each row in this
+shape. It numbers a control's breaks in the order its patches are given, so the author gives each
+control's patches in the byte order of their paths, for example by running `export LC_ALL=C` in
+the shell before it expands the patches' glob.
 
 **A row's form.** A row is a section whose heading is the control, so each control has an anchor
-of its own. Each field sits on a line of its own, so reproducing a row edits only the lines whose
+of its own. Each field sits on a line of its own, so rewriting a row edits only the lines whose
 content changed.
 
 | Line | Holds |
 | --- | --- |
 | `## <control>` | The control |
-| `- **Date · evidence:** <date> · <evidence>` | The date of the demonstration and its evidence pointer, with any later reproduction of some or all breaks and its own pointer after it, and `· open, a surviving mutant` while a mutant survives |
-| `- **Break (<n>):** <how the mechanism was broken>` | One line per break, numbered from 1 in the order the patches were run. A control broken by one patch alone has `- **Break:**` |
+| `- **Date · evidence:** <date> · <evidence>` | One date and one evidence pointer, those of the latest demonstration the row was written from, which ran every one of the row's current patches, and `· open, a surviving mutant` while a mutant survives. No earlier demonstration and no reason for running one again is kept |
+| `- **Break (<n>):** <how the mechanism was broken>` | One line per break, numbered from 1 in the order of the patches' paths compared byte by byte. A control broken by one patch alone has `- **Break:**` |
 | `- **Went red in <package>:** <tests>` | Nested under its break, one line per package whose tests went red, with the tests by the names the test runner reports. A surviving mutant has the nested line `- **Went red:** none, a surviving mutant` instead |
 
-**Lifecycle.** A row is produced when its control lands and reproduced when the control, its
-tests, or a generator its tests draw from changes. Between those events it is a claim about its
-date, while the permanent CI tests keep the control's green continuously earned. Each
-demonstration is recorded with the implementation work that touches the surface area its control
-interacts with. Apart from those events, the `mutation-demonstrations` workflow runs every
-demonstration weekly and when started by hand, and fails when one no longer holds, which writes no
-row ([ADR-0124](./adr/engineering/0124-each-kind-of-test-runs-in-a-workflow-of-its-own.md)). Whether
+**Lifecycle.** A row is written when its control lands. Its demonstration runs again when the
+control, its tests, or a generator its tests draw from changes, with the implementation work that
+touches the surface area its control interacts with, while the permanent CI tests keep the
+control's green continuously earned. A row is rewritten only when its patches change or need to
+change, or when a statement in it would otherwise be false of the current code, such as a test
+that went red being renamed or moved to another package. A row being rewritten has every patch of
+its control run again in one demonstration, so its one date covers every break. Apart from those
+events, the `mutation-demonstrations` workflow runs every demonstration weekly and when started by
+hand, and fails when one no longer holds. Such a run writes no row by itself. A row is written from
+one only by a change that rewrites the row, and the change's evidence pointer names the run
+([ADR-0124](./adr/engineering/0124-each-kind-of-test-runs-in-a-workflow-of-its-own.md)). Whether
 each demonstration's patch still applies, and applies at one place only, is checked on every pull
 request by the `mutation-patches` workflow ([CLAUDE.md](../CLAUDE.md#ci-workflows)).
 

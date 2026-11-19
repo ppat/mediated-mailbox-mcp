@@ -33,7 +33,7 @@ Classify what you are about to write, before opening any file:
 | How work moves through the repository: a change's release type, how a ticket is cut and when it is done | `CLAUDE.md`, its Repository process section | Every agent working here needs it, and it is process, not design or build state |
 | A change to which test kinds exist, when each applies, or how proof works | A decision record first, then `TESTING.md` in the same change | TESTING.md assembles the strategy and links the records that decide it |
 | A deliberate violation that would prove a control works | `docs/VERIFICATIONS.md` | It is a test plan, keyed to a work unit |
-| A control's mutation demonstration, the record that its tests went red with the mechanism broken | The mutation ledger, `docs/MUTATIONS.md` and the files it lists | It is the implementation-time ledger, one row per control |
+| The record of a control's mutation demonstration, that its tests went red with the mechanism broken | The mutation ledger, `docs/MUTATIONS.md` and the files it lists | It is the implementation-time ledger, one row per control |
 | Orientation for a newcomer (what the project is, where facts live) | `README.md` / `CLAUDE.md` | Front doors point, and hold no fact about the system. CLAUDE.md also holds the code's conventions |
 
 The ambiguous cases, resolved the way this document set resolves them:

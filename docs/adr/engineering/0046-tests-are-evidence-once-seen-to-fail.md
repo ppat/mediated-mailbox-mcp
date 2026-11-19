@@ -54,11 +54,12 @@ that stands in for a control.
 - **A surviving mutant is a defect on the spot.** Either the tests are vacuous or the
   mechanism is redundant, and each finding demands its own action. A mechanism not worth
   testing well is a candidate for removal.
-- **The demonstration is event-driven per control, never a standing gate.** The table is produced
-  when the control lands and reproduced when the control, its tests, or a generator its tests
-  draw from changes. A generator is named because one edited until its report
-  passed moved a planted failure out of the gating run's reach while every test stayed green
-  ([ADR-0069](./0069-property-and-crash-sequences-from-rapid.md)). A move of the control's
+- **The demonstration is event-driven per control, never a standing gate.** It runs when the
+  control lands and runs again when the control, its tests, or a generator its tests draw from
+  changes, and its table, the control's row in the ledger, is written and rewritten as
+  [docs/MUTATIONS.md](../../MUTATIONS.md) states. A generator is named because one edited until
+  its report passed moved a planted failure out of the gating run's reach while every test stayed
+  green ([ADR-0069](./0069-property-and-crash-sequences-from-rapid.md)). A move of the control's
   code or its tests is a change, a move of a path alone included, so the affected tests and
   mutation demonstrations run again after it. There is no exemption for a move that changes only
   paths. Apart from those events, the `mutation-demonstrations` workflow runs every demonstration

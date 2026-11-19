@@ -4,7 +4,7 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## A call through the provider library's mailbox answers within its caller's timeout
 
-- **Date · evidence:** 2026-11-17 at RAPID_SEED=1 · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450), and break (1) again on 2026-11-17 at RAPID_SEED=1, after the Session, the connections and the unit of work in the process family changed the code, tests or patches the row rests on · [pull request #455](https://github.com/ppat/mediated-mailbox-mcp/pull/455), and every break again on 2026-11-18 at RAPID_SEED=1, after the deletion of the host, the execution context, `mail.Port` in `core/mail` and the leased call that took it changed the code, tests or patches the row rests on · [pull request #473](https://github.com/ppat/mediated-mailbox-mcp/pull/473)
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break (1):** every call has a fixed thirty seconds to answer, whatever its caller's timeout
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider`:** `TestACallIsCutOffAtTheCallersTimeoutAsTheProvidersFailure`
 - **Break (2):** a call cut off by the caller's timeout returns the context's error rather than the provider's failure, which tells the controller nothing
@@ -12,19 +12,19 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## A call through the provider library's mailbox is made once more over a credential read again when the provider refuses its own
 
-- **Date · evidence:** 2026-11-17 at RAPID_SEED=1 · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450)
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break (1):** a label's creation is leased and reported but never read again and made once more over a refused credential
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider`:** `TestEveryOperationIsLeasedAtItsCostReportedAndTriedOnceMore`, `TestEveryOperationIsLeasedAtItsCostReportedAndTriedOnceMore/EnsureLabel`
 - **Break (2):** a refused credential is never read again, so the refusal stands over a credential the operator replaced
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider`:** `TestARefusedCredentialIsReadAgainAndTheCallMadeOnceMore`, `TestARefusedCredentialIsReadAgainAndTheCallMadeOnceMore/a_read_that_fails`, `TestARefusedCredentialIsReadAgainAndTheCallMadeOnceMore/another_credential`, `TestARefusedCredentialIsReadAgainAndTheCallMadeOnceMore/another_credential_refused_too`, `TestARefusedCredentialIsReadAgainAndTheCallMadeOnceMore/the_refused_credential_again`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider`:** `TestARefusedCredentialIsReadAgainAndTheCallMadeOnceMore`, `TestARefusedCredentialIsReadAgainAndTheCallMadeOnceMore/a_read_that_fails`, `TestARefusedCredentialIsReadAgainAndTheCallMadeOnceMore/another_credential`, `TestARefusedCredentialIsReadAgainAndTheCallMadeOnceMore/another_credential_refused_too`, `TestARefusedCredentialIsReadAgainAndTheCallMadeOnceMore/the_refused_credential_again`, `TestEveryOperationIsLeasedAtItsCostReportedAndTriedOnceMore`, `TestEveryOperationIsLeasedAtItsCostReportedAndTriedOnceMore/ChangesSince`, `TestEveryOperationIsLeasedAtItsCostReportedAndTriedOnceMore/CurrentCursor`, `TestEveryOperationIsLeasedAtItsCostReportedAndTriedOnceMore/EnsureLabel`, `TestEveryOperationIsLeasedAtItsCostReportedAndTriedOnceMore/EnumerateAll`, `TestEveryOperationIsLeasedAtItsCostReportedAndTriedOnceMore/GetMessageBody`, `TestEveryOperationIsLeasedAtItsCostReportedAndTriedOnceMore/GetMessageMetadata`, `TestEveryOperationIsLeasedAtItsCostReportedAndTriedOnceMore/GetThreadMetadata`, `TestEveryOperationIsLeasedAtItsCostReportedAndTriedOnceMore/ListLabels`, `TestEveryOperationIsLeasedAtItsCostReportedAndTriedOnceMore/ListThreads`, `TestEveryOperationIsLeasedAtItsCostReportedAndTriedOnceMore/Mutate`
 - **Break (3):** the call is made once more over the token the provider refused rather than the one made from the credential read again
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider`:** `TestARefusedCredentialIsReadAgainAndTheCallMadeOnceMore`, `TestARefusedCredentialIsReadAgainAndTheCallMadeOnceMore/another_credential`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider`:** `TestARefusedCredentialIsReadAgainAndTheCallMadeOnceMore`, `TestARefusedCredentialIsReadAgainAndTheCallMadeOnceMore/another_credential`, `TestEveryOperationIsLeasedAtItsCostReportedAndTriedOnceMore`, `TestEveryOperationIsLeasedAtItsCostReportedAndTriedOnceMore/ChangesSince`, `TestEveryOperationIsLeasedAtItsCostReportedAndTriedOnceMore/CurrentCursor`, `TestEveryOperationIsLeasedAtItsCostReportedAndTriedOnceMore/EnsureLabel`, `TestEveryOperationIsLeasedAtItsCostReportedAndTriedOnceMore/EnumerateAll`, `TestEveryOperationIsLeasedAtItsCostReportedAndTriedOnceMore/GetMessageBody`, `TestEveryOperationIsLeasedAtItsCostReportedAndTriedOnceMore/GetMessageMetadata`, `TestEveryOperationIsLeasedAtItsCostReportedAndTriedOnceMore/GetThreadMetadata`, `TestEveryOperationIsLeasedAtItsCostReportedAndTriedOnceMore/ListLabels`, `TestEveryOperationIsLeasedAtItsCostReportedAndTriedOnceMore/ListThreads`, `TestEveryOperationIsLeasedAtItsCostReportedAndTriedOnceMore/Mutate`
 - **Break (4):** the token made from the credential read again serves the call made once more and no later call
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider`:** `TestARefusedCredentialIsReadAgainAndTheCallMadeOnceMore`, `TestARefusedCredentialIsReadAgainAndTheCallMadeOnceMore/another_credential`
 
 ## A call through the provider library's mailbox leases its cost in its caller's class at the account's target
 
-- **Date · evidence:** 2026-11-17 at RAPID_SEED=1 · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450), and breaks (2) and (3) again on 2026-11-17 at RAPID_SEED=1, after the Session, the connections and the unit of work in the process family changed the code, tests or patches the row rests on · [pull request #455](https://github.com/ppat/mediated-mailbox-mcp/pull/455)
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break (1):** a change listing is leased at the price of a label listing
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider`:** `TestEveryOperationIsLeasedAtItsCostReportedAndTriedOnceMore`, `TestEveryOperationIsLeasedAtItsCostReportedAndTriedOnceMore/ChangesSince`
 - **Break (2):** every lease is asked in the batch class, whatever the caller's class
@@ -32,7 +32,7 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 - **Break (3):** the mailbox's limiter spends every account at the default target, the lowered one ignored
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider`:** `TestEachCallLeasesItsCostInTheCallersClassAtTheAccountsTarget`, `TestEachCallLeasesItsCostInTheCallersClassAtTheAccountsTarget/interactive_at_a_lowered_target`
 - **Break (4):** a metadata fetch is leased at the cost of a call naming no message, whatever the identifiers it names
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider`:** `TestACallersSeriesAreOnTheRegistererItWasGiven`, `TestEachCallLeasesItsCostInTheCallersClassAtTheAccountsTarget`, `TestEachCallLeasesItsCostInTheCallersClassAtTheAccountsTarget/batch_at_the_default_target`, `TestEachCallLeasesItsCostInTheCallersClassAtTheAccountsTarget/interactive_at_a_lowered_target`, `TestEachCallLeasesItsCostInTheCallersClassAtTheAccountsTarget/sync_at_the_default_target`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider`:** `TestACallersSeriesAreOnTheRegistererItWasGiven`, `TestEachCallLeasesItsCostInTheCallersClassAtTheAccountsTarget`, `TestEachCallLeasesItsCostInTheCallersClassAtTheAccountsTarget/batch_at_the_default_target`, `TestEachCallLeasesItsCostInTheCallersClassAtTheAccountsTarget/interactive_at_a_lowered_target`, `TestEachCallLeasesItsCostInTheCallersClassAtTheAccountsTarget/sync_at_the_default_target`, `TestEveryOperationIsLeasedAtItsCostReportedAndTriedOnceMore`, `TestEveryOperationIsLeasedAtItsCostReportedAndTriedOnceMore/GetMessageMetadata`
 - **Break (5):** a mutation reaches the provider with no lease, so it spends nothing and tells the limiter nothing
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider`:** `TestEveryOperationIsLeasedAtItsCostReportedAndTriedOnceMore`, `TestEveryOperationIsLeasedAtItsCostReportedAndTriedOnceMore/Mutate`
 - **Break (6):** a mutation is leased at the price of one carrying no op, whatever the ops it carries
@@ -42,9 +42,9 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## A call through the provider library's mailbox tells the rate limiter how it went
 
-- **Date · evidence:** 2026-11-17 at RAPID_SEED=1 · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450)
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break (1):** a call the provider failed tells the controller nothing, so the account's rate is never cut
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider`:** `TestACallIsCutOffAtTheCallersTimeoutAsTheProvidersFailure`, `TestEachCallTellsTheLimiterHowItWent`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider`:** `TestACallIsCutOffAtTheCallersTimeoutAsTheProvidersFailure`, `TestEachCallTellsTheLimiterHowItWent`, `TestEveryOperationIsLeasedAtItsCostReportedAndTriedOnceMore`, `TestEveryOperationIsLeasedAtItsCostReportedAndTriedOnceMore/ChangesSince`, `TestEveryOperationIsLeasedAtItsCostReportedAndTriedOnceMore/CurrentCursor`, `TestEveryOperationIsLeasedAtItsCostReportedAndTriedOnceMore/EnsureLabel`, `TestEveryOperationIsLeasedAtItsCostReportedAndTriedOnceMore/EnumerateAll`, `TestEveryOperationIsLeasedAtItsCostReportedAndTriedOnceMore/GetMessageBody`, `TestEveryOperationIsLeasedAtItsCostReportedAndTriedOnceMore/GetMessageMetadata`, `TestEveryOperationIsLeasedAtItsCostReportedAndTriedOnceMore/GetThreadMetadata`, `TestEveryOperationIsLeasedAtItsCostReportedAndTriedOnceMore/ListLabels`, `TestEveryOperationIsLeasedAtItsCostReportedAndTriedOnceMore/ListThreads`, `TestEveryOperationIsLeasedAtItsCostReportedAndTriedOnceMore/Mutate`
 - **Break (2):** every error the call returns is told to the controller as a server error, a refused body included
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider`:** `TestEachCallTellsTheLimiterHowItWent`
 - **Break (3):** a call that succeeded tells the controller nothing, so its latency never joins the account's window
@@ -54,7 +54,7 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## A call through the provider library's mailbox waits for its lease no later than its unit's deadline
 
-- **Date · evidence:** 2026-11-17 at RAPID_SEED=1 · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450), and break (1) again on 2026-11-17 at RAPID_SEED=1, after the Session, the connections and the unit of work in the process family changed the code, tests or patches the row rests on · [pull request #455](https://github.com/ppat/mediated-mailbox-mcp/pull/455)
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break (1):** the unit's deadline never reaches the lease, so the lease is waited for as long as the caller's context allows
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider`:** `TestALeaseIsWaitedForNoLaterThanTheUnitsDeadline`
 - **Break (2):** a lease cut off by the unit's deadline is reported as the provider failing the call
@@ -62,7 +62,7 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## A caller registers the rate limiter's and the shared provider series on the registerer it is given
 
-- **Date · evidence:** 2026-11-17 at RAPID_SEED=1 · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450), and every break again on 2026-11-17 at RAPID_SEED=1, after the Session, the connections and the unit of work in the process family changed the code, tests or patches the row rests on · [pull request #455](https://github.com/ppat/mediated-mailbox-mcp/pull/455)
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break (1):** the caller's rate limiter series are registered on a registry no one was given
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider`:** `TestACallersSeriesAreOnTheRegistererItWasGiven`
 - **Break (2):** the shared provider series the caller hands its adapters are registered on a registry no one was given
@@ -70,7 +70,7 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## A canonical value cannot change the Gmail request it is written into
 
-- **Date · evidence:** 2026-09-25 · [pull request #158](https://github.com/ppat/mediated-mailbox-mcp/pull/158), and every break again on 2026-10-11 at RAPID_SEED=1, after the performance measurements changed the code, tests or patches the row rests on · [pull request #341](https://github.com/ppat/mediated-mailbox-mcp/pull/341), and every break again on 2026-10-13 at RAPID_SEED=1, after the body fetch by part added tests the row rests on · [pull request #369](https://github.com/ppat/mediated-mailbox-mcp/pull/369), and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450)
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break (1):** any non-empty identifier is written into a request path
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail`:** `TestMessageBodyRefusesAPartItCannotRead`, `TestMessageBodyRefusesAPartItCannotRead/an_unreadable_reference`, `TestReadBodyPartRefusesAForeignPart`, `TestReadBodyPartRefusesAForeignPart/a_reference_that_is_not_an_identifier`, `TestValidID`
 - **Break (2):** an address is written into the search text whatever characters it holds
@@ -82,7 +82,7 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## A ceiling that is not a finite positive number fixes no budget
 
-- **Date · evidence:** 2026-09-25 · [pull request #161](https://github.com/ppat/mediated-mailbox-mcp/pull/161), and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450)
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break (1):** an infinite ceiling fixes an infinite budget
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit/core`:** `TestIssueRefuses`, `TestIssueRefuses/an_infinite_ceiling`, `TestLimitsFor`, `TestLimitsFor/positive_infinity`, `TestNoBudgetHoldsTheRateAtZero`, `TestNoRunIssuesPastTheHardCap`
 - **Break (2):** a negative ceiling fixes negative limits rather than none
@@ -90,7 +90,7 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## A Gmail port call sends no request past the cost it declares, and a caller-sized call fits one lease
 
-- **Date · evidence:** 2026-09-25 · [pull request #158](https://github.com/ppat/mediated-mailbox-mcp/pull/158), and every break again on 2026-10-11 at RAPID_SEED=1, after the performance measurements changed the code, tests or patches the row rests on · [pull request #341](https://github.com/ppat/mediated-mailbox-mcp/pull/341), and every break again on 2026-10-13 at RAPID_SEED=1, after the body fetch by part and the refused scan state changed the code, tests or patches the row rests on · [pull request #369](https://github.com/ppat/mediated-mailbox-mcp/pull/369), and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450), and every break again on 2026-11-18 at RAPID_SEED=1, after the deletion of the host, the execution context, `mail.Port` in `core/mail` and the leased call that took it changed the code, tests or patches the row rests on · [pull request #473](https://github.com/ppat/mediated-mailbox-mcp/pull/473)
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break (1):** a call compares what it spent before the request with its declared cost, so the request that takes it past is sent
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail`:** `TestACallIsHeldToItsDeclaredCost`, `TestWithin`
 - **Break (2):** a call sends every request whatever it has spent
@@ -102,17 +102,17 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## A lease counts against its class's share until it expires one second after it was issued
 
-- **Date · evidence:** 2026-09-25 · [pull request #161](https://github.com/ppat/mediated-mailbox-mcp/pull/161), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and every break again on 2026-10-11 at RAPID_SEED=1, after the performance measurements changed the code, tests or patches the row rests on · [pull request #341](https://github.com/ppat/mediated-mailbox-mcp/pull/341), and breaks 1 and 3 again on 2026-10-13 at RAPID_SEED=1, with their patches regenerated after every statement came to read its account from the transaction · [pull request #370](https://github.com/ppat/mediated-mailbox-mcp/pull/370), and every break again on 2026-10-13 at RAPID_SEED=1, after the rename of the API server and the migrator moved the code, tests or patches the row rests on · [pull request #376](https://github.com/ppat/mediated-mailbox-mcp/pull/376), in run [38440944897](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/38440944897) of the `mutation-demonstrations` workflow, and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450)
-- **Break (1):** a stored grant is kept for a minute and its lease counts against its class's share all that time
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit`:** `TestACrashedWorkersLeaseStopsCountingAtItsExpiry`
-- **Break (2):** a stored grant's lease expires the instant it is issued, so it never counts against its class's share
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
+- **Break (1):** every grant is stored as batch's, so a lease counts against the wrong class's share
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit`:** `TestACrashedWorkersLeaseStopsCountingAtItsExpiry`, `TestALiveLeaseCountsAgainstItsClassShare`
-- **Break (3):** every grant is stored as batch's, so a lease counts against the wrong class's share
+- **Break (2):** a stored grant is kept for a minute and its lease counts against its class's share all that time
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit`:** `TestACrashedWorkersLeaseStopsCountingAtItsExpiry`, `TestACutComesOutOfBatchWhileInteractiveKeepsItsShare`
+- **Break (3):** a stored grant's lease expires the instant it is issued, so it never counts against its class's share
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit`:** `TestACrashedWorkersLeaseStopsCountingAtItsExpiry`, `TestALiveLeaseCountsAgainstItsClassShare`
 
 ## A lease holds the whole request, and a request larger than the bucket can ever hold is refused
 
-- **Date · evidence:** 2026-09-25 · [pull request #161](https://github.com/ppat/mediated-mailbox-mcp/pull/161), and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450)
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break (1):** a request larger than the bucket can ever hold is left waiting
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit/core`:** `TestIssue`, `TestIssue/a_request_past_one_second's_worth_at_the_hard_cap_is_refused_and_changes_nothing`, `TestIssueRefuses`, `TestIssueRefuses/a_ceiling_of_zero`, `TestIssueRefuses/a_ceiling_that_is_not_a_number`, `TestIssueRefuses/a_negative_ceiling`, `TestIssueRefuses/an_infinite_ceiling`, `TestIssueRefuses/infinite_tokens`
 - **Break (2):** a request the bucket cannot cover is granted what the bucket holds
@@ -122,7 +122,7 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## A list of adapters and a token expose nothing a program could add an adapter or reach a token's source through
 
-- **Date · evidence:** 2026-11-17 · [pull request #455](https://github.com/ppat/mediated-mailbox-mcp/pull/455), at RAPID_SEED=1
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break (1):** the list's adapters are an exported field, which any code holding a list can add to
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/internal/adapters`:** `TestAListAndATokenExposeNoField`
 - **Break (2):** a token's source is an exported field, so code holding a token reaches the adapter's source
@@ -130,23 +130,23 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## A part held apart is decoded from its declared charset, and a label the table does not name is refused
 
-- **Date · evidence:** 2026-10-13 · [pull request #369](https://github.com/ppat/mediated-mailbox-mcp/pull/369), at RAPID_SEED=1, and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450)
-- **Break (1):** a label the table maps to its replacement encoding is decoded, so the part reads as one replacement character
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail/core`:** `TestPartText`, `TestPartText/a_charset_that_decodes_to_replacement`
-- **Break (2):** a part held apart is read as UTF-8 whatever charset it declares
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
+- **Break (1):** a part held apart is read as UTF-8 whatever charset it declares
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail/core`:** `TestPartText`, `TestPartText/decoded_text_past_the_bound`
+- **Break (2):** a label the table maps to its replacement encoding is decoded, so the part reads as one replacement character
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail/core`:** `TestPartText`, `TestPartText/a_charset_that_decodes_to_replacement`
 - **Break (3):** a label the table does not name is read as UTF-8 rather than refused
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail/core`:** `TestPartText`, `TestPartText/a_charset_the_standard_does_not_name`
-- **Break (4):** a part declaring UTF-16 is decoded, so a big-endian part reads as text it does not hold
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail/core`:** `TestPartText`, `TestPartText/a_UTF-16BE_part`, `TestPartText/a_UTF-16_part`
+- **Break (4):** a Content-Type that does not parse is read as declaring no charset, so the part is decoded as us-ascii whatever charset it names
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail/core`:** `TestMessageBodyOfAPartHeldApartReadsItsContentType`, `TestMessageBodyOfAPartHeldApartReadsItsContentType/a_comment`, `TestMessageBodyOfAPartHeldApartReadsItsContentType/a_parameter_given_twice`, `TestMessageBodyOfAPartHeldApartReadsItsContentType/an_empty_parameter`
 - **Break (5):** a part declaring x-user-defined is decoded, so its high bytes read as private-use characters
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail/core`:** `TestPartText`, `TestPartText/a_user-defined_part`
-- **Break (6):** a Content-Type that does not parse is read as declaring no charset, so the part is decoded as us-ascii whatever charset it names
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail/core`:** `TestMessageBodyOfAPartHeldApartReadsItsContentType`, `TestMessageBodyOfAPartHeldApartReadsItsContentType/a_comment`, `TestMessageBodyOfAPartHeldApartReadsItsContentType/a_parameter_given_twice`, `TestMessageBodyOfAPartHeldApartReadsItsContentType/an_empty_parameter`
+- **Break (6):** a part declaring UTF-16 is decoded, so a big-endian part reads as text it does not hold
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail/core`:** `TestPartText`, `TestPartText/a_UTF-16BE_part`, `TestPartText/a_UTF-16_part`
 
 ## A request costing more than one second's worth at the hard cap is refused at once, never left waiting
 
-- **Date · evidence:** 2026-09-24 · [pull request #157](https://github.com/ppat/mediated-mailbox-mcp/pull/157), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and every break again on 2026-10-11 at RAPID_SEED=1, after the performance measurements changed the code, tests or patches the row rests on · [pull request #341](https://github.com/ppat/mediated-mailbox-mcp/pull/341), and every break again on 2026-10-13 at RAPID_SEED=1, after the rename of the API server and the migrator moved the code, tests or patches the row rests on · [pull request #376](https://github.com/ppat/mediated-mailbox-mcp/pull/376), in run [38440944897](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/38440944897) of the `mutation-demonstrations` workflow, and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450)
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break (1):** a refused request returns an empty lease and no error, as if granted
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit`:** `TestARefusedLeaseIsNotTimed`, `TestARequestPastTheHardCapIsRefusedAtOnce`
 - **Break (2):** a refused request is left waiting like one the bucket cannot yet fill
@@ -154,7 +154,7 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## A request draws all but what the classes that outrank it and asked within the last lease period have still to draw of their shares, so an idle class's share is lent
 
-- **Date · evidence:** 2026-09-25 · [pull request #161](https://github.com/ppat/mediated-mailbox-mcp/pull/161), and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450)
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break (1):** a class's leases do not count against its share, so its whole share stays reserved however much it holds
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit/core`:** `TestIssueSplitsByClass`, `TestIssueSplitsByClass/interactive's_live_lease_counts_against_its_share`
 - **Break (2):** every other class that asked reserves its share, so interactive waits on the classes it outranks
@@ -164,25 +164,25 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## A rotated refresh token is held, sent on the next refresh and handed to the deployable
 
-- **Date · evidence:** 2026-10-02 · [pull request #256](https://github.com/ppat/mediated-mailbox-mcp/pull/256), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-11 at RAPID_SEED=1, after the performance measurements changed the code, tests or patches the row rests on · [pull request #341](https://github.com/ppat/mediated-mailbox-mcp/pull/341), and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450), and the break that hands the deployable the access token again on 2026-11-18, after the source's one method of answering its credential replaced two · [pull request #469](https://github.com/ppat/mediated-mailbox-mcp/pull/469), and breaks 1, 2, 3, 5, 6 and 7 again on 2026-11-18 at RAPID_SEED=1, after a comment naming the execution context or the account session in the file the patch edits was corrected with their deletion · [pull request #473](https://github.com/ppat/mediated-mailbox-mcp/pull/473)
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break (1):** a refresh response that leaves the refresh token out counts as rotating it to an empty token
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/google`:** `TestARefreshThatDoesNotRotateKeepsTheToken`, `TestARefreshThatDoesNotRotateKeepsTheToken/field_left_out`, `TestARotatedRefreshTokenIsHeldSentAndHandedOver`, `TestAnAccessTokenIsUsedUntilItNearlyExpires`
 - **Break (2):** a rotation holds the new access token as the refresh token
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/google`:** `TestARotatedRefreshTokenIsHeldSentAndHandedOver`
 - **Break (3):** a returned refresh token counts as a rotation only when it equals the held one
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/google`:** `TestARotatedRefreshTokenIsHeldSentAndHandedOver`
-- **Break (4):** the token response's refresh token is read from a field Google does not send, so no rotation is ever seen
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/google`:** `TestARotatedRefreshTokenIsHeldSentAndHandedOver`, `TestGrantFrom`, `TestParseTokenResponse`, `TestParseTokenResponse/refresh_that_rotates`
-- **Break (5):** no refresh response counts as a rotation
+- **Break (4):** no refresh response counts as a rotation
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/google`:** `TestARotatedRefreshTokenIsHeldSentAndHandedOver`
-- **Break (6):** a rotation is detected but the source goes on with the refresh token it started with
+- **Break (5):** a rotation is detected but the source goes on with the refresh token it started with
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/google`:** `TestARotatedRefreshTokenIsHeldSentAndHandedOver`
-- **Break (7):** the source hands the deployable its access token rather than its refresh token
+- **Break (6):** the source hands the deployable its access token rather than its refresh token
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/google`:** `TestARefreshThatDoesNotRotateKeepsTheToken`, `TestARefreshThatDoesNotRotateKeepsTheToken/field_left_out`, `TestARefreshThatDoesNotRotateKeepsTheToken/same_token`, `TestARotatedRefreshTokenIsHeldSentAndHandedOver`, `TestAnAccessTokenIsUsedUntilItNearlyExpires`, `TestTheSourceHoldsOnlyTheCredentialItIsGiven`, `TestTheSourceHoldsOnlyTheCredentialItIsGiven/a_refresh_token`
+- **Break (7):** the token response's refresh token is read from a field Google does not send, so no rotation is ever seen
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/google`:** `TestARotatedRefreshTokenIsHeldSentAndHandedOver`, `TestGrantFrom`, `TestParseTokenResponse`, `TestParseTokenResponse/refresh_that_rotates`
 
 ## A stored grant stamped later than the request that sees it counts for one second from that request and then leaves the window
 
-- **Date · evidence:** 2026-09-25 · [pull request #161](https://github.com/ppat/mediated-mailbox-mcp/pull/161), and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450)
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break (1):** a stored grant's stamp is held to the stored latest instant rather than the request's, so a stored instant that came back behind moves every real grant out of the window
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit/core`:** `TestAFutureStampCountsForOneSecondFromTheRequestThatSeesIt`, `TestIssue`, `TestIssue/a_stored_grant_stamped_past_the_request_is_taken_as_issued_at_the_request`, `TestIssue/a_stored_instant_that_came_back_behind_the_grants_leaves_them_in_the_window`, `TestNoRunIssuesPastTheHardCap`
 - **Break (2):** a stored grant keeps its stamp however far ahead it lies, so it fills the window until the clock reaches it
@@ -190,7 +190,7 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## A stored latest instant ahead of the clock never moves a real grant out of the one-second window
 
-- **Date · evidence:** 2026-09-25 · [pull request #161](https://github.com/ppat/mediated-mailbox-mcp/pull/161), and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450)
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break (1):** window membership is judged from the instant issuance raised the request to, so a stored instant ahead of the clock moves every real grant out of the window
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit/core`:** `TestAStoredInstantAheadOfTheClockKeepsTheWindow`, `TestAStoredInstantAheadOfTheClockKeepsTheWindow/a_second_and_a_half_ahead`, `TestAStoredInstantAheadOfTheClockKeepsTheWindow/an_hour_ahead`, `TestAStoredInstantAheadOfTheClockKeepsTheWindow/at_the_clock's_limit`, `TestNoRunIssuesPastTheHardCap`
 - **Break (2):** window membership is judged from the stored latest instant rather than the request's own, so a stored instant ahead of the clock moves every real grant out of the window
@@ -198,7 +198,7 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## A throttle halves the rate, a server error cuts it to 80% and a latency median above twice the baseline cuts it to 90%
 
-- **Date · evidence:** 2026-09-25 · [pull request #161](https://github.com/ppat/mediated-mailbox-mcp/pull/161), and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450)
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break (1):** a latency median above the baseline itself cuts the rate, not only one above twice it
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit/core`:** `TestALastingRiseBecomesTheBaseline`, `TestLatencyMeasured`, `TestLatencyMeasured/below_twice_the_baseline_does_not`, `TestLatencyMeasured/exactly_twice_the_baseline_does_not`
 - **Break (2):** a latency median never cuts the rate
@@ -210,7 +210,7 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## A throttle waits out the provider's retry-after when it gives one and a full-jitter draw otherwise
 
-- **Date · evidence:** 2026-09-25 · [pull request #161](https://github.com/ppat/mediated-mailbox-mcp/pull/161), and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450)
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break (1):** a retry-after of zero or in the past is honored, so the backoff ends at once or before it starts
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit/core`:** `TestThrottled`, `TestThrottled/a_retry-after_in_the_past_counts_as_absent`, `TestThrottled/a_zero_retry-after_counts_as_absent`, `TestThrottled/the_smallest_retry-after_counts_as_absent`
 - **Break (2):** a success no longer ends the run of throttles, so the bound keeps doubling across successes
@@ -228,31 +228,31 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## A throttle's cut is stored, and batch absorbs it while interactive keeps its share
 
-- **Date · evidence:** 2026-09-29 · [pull request #196](https://github.com/ppat/mediated-mailbox-mcp/pull/196), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and every break again on 2026-10-11 at RAPID_SEED=1, after the performance measurements changed the code, tests or patches the row rests on · [pull request #341](https://github.com/ppat/mediated-mailbox-mcp/pull/341), and every break again on 2026-10-13 at RAPID_SEED=1, after the rename of the API server and the migrator moved the code, tests or patches the row rests on · [pull request #376](https://github.com/ppat/mediated-mailbox-mcp/pull/376), in run [38440944897](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/38440944897) of the `mutation-demonstrations` workflow, and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450)
-- **Break (1):** a throttle stores the state it read, so the rate is never cut
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit`:** `TestACutComesOutOfBatchWhileInteractiveKeepsItsShare`, `TestAFloorRateReadsAsAtTheFloor`, `TestTheControllerConvergesBelowARealCeilingAndRecovers`, `TestTheLimiterEmitsItsProcesssSeries`
-- **Break (2):** a throttle is stored as a server error, cutting the rate to 80% rather than half
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
+- **Break (1):** a throttle is stored as a server error, cutting the rate to 80% rather than half
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit`:** `TestACutComesOutOfBatchWhileInteractiveKeepsItsShare`, `TestAFloorRateReadsAsAtTheFloor`, `TestTheLimiterEmitsItsProcesssSeries`
+- **Break (2):** a throttle stores the state it read, so the rate is never cut
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit`:** `TestACutComesOutOfBatchWhileInteractiveKeepsItsShare`, `TestAFloorRateReadsAsAtTheFloor`, `TestTheControllerConvergesBelowARealCeilingAndRecovers`, `TestTheLimiterEmitsItsProcesssSeries`
 
 ## A token request the provider refuses is reported as refused, one that gets no answer as failed, and a cancelled request or a held access token as no attempt
 
-- **Date · evidence:** 2026-10-02 · [pull request #256](https://github.com/ppat/mediated-mailbox-mcp/pull/256), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-11 at RAPID_SEED=1, after the performance measurements changed the code, tests or patches the row rests on · [pull request #341](https://github.com/ppat/mediated-mailbox-mcp/pull/341), and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450), and breaks 3, 4, 5 and 6 again on 2026-11-18 at RAPID_SEED=1, after a comment naming the execution context or the account session in the file the patch edits was corrected with their deletion · [pull request #473](https://github.com/ppat/mediated-mailbox-mcp/pull/473)
-- **Break (1):** every token endpoint answer other than success counts as a refusal, whatever its status
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/google`:** `TestARefreshsOutcome`
-- **Break (2):** the token endpoint's answer loses its status, so a refusal reads as an attempt that failed
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/google`:** `TestARefreshsOutcome`, `TestTheClientChecksAnswer`
-- **Break (3):** a refresh is never held as an attempt, so the source reports none
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
+- **Break (1):** a refresh is never held as an attempt, so the source reports none
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/google`:** `TestARefreshPastItsDeadlineIsAFailedAttempt`, `TestARefreshThatGetsNoAnswerIsAFailedAttempt`
-- **Break (4):** a refresh its caller cancelled is held as an attempt that failed
+- **Break (2):** a refresh its caller cancelled is held as an attempt that failed
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/google`:** `TestACancelledRefreshIsNoAttempt`
-- **Break (5):** a refresh whose deadline passed is held as no attempt, like a cancelled one
+- **Break (3):** a refresh whose deadline passed is held as no attempt, like a cancelled one
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/google`:** `TestARefreshPastItsDeadlineIsAFailedAttempt`
-- **Break (6):** handing out a held access token is held as an attempt that succeeded
+- **Break (4):** every token endpoint answer other than success counts as a refusal, whatever its status
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/google`:** `TestARefreshsOutcome`
+- **Break (5):** handing out a held access token is held as an attempt that succeeded
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/google`:** `TestAHeldAccessTokenIsNoAttempt`
+- **Break (6):** the token endpoint's answer loses its status, so a refusal reads as an attempt that failed
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/google`:** `TestARefreshsOutcome`, `TestTheClientChecksAnswer`
 
 ## A token request the provider refuses surfaces as a refused credential, and one that fails any other way before the call is cancelled or its deadline passes as a provider failure
 
-- **Date · evidence:** 2026-10-02 · [pull request #256](https://github.com/ppat/mediated-mailbox-mcp/pull/256), and every break again on 2026-10-11 at RAPID_SEED=1, after the performance measurements changed the code, tests or patches the row rests on · [pull request #341](https://github.com/ppat/mediated-mailbox-mcp/pull/341), and every break again on 2026-10-13 at RAPID_SEED=1, after the body fetch by part and the refused scan state changed the code, tests or patches the row rests on · [pull request #369](https://github.com/ppat/mediated-mailbox-mcp/pull/369), and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450), and every break again on 2026-11-18 at RAPID_SEED=1, after the deletion of the host, the execution context, `mail.Port` in `core/mail` and the leased call that took it changed the code, tests or patches the row rests on · [pull request #473](https://github.com/ppat/mediated-mailbox-mcp/pull/473)
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break (1):** every failure to obtain an access token is a refused credential, whatever its outcome
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail`:** `TestATokenFailureIsThePortErrorItsOutcomeNames`, `TestATokenRequestThatGetsNoAnswerIsAProviderError`
 - **Break (2):** a port call reports every failure to obtain an access token as a provider failure, without reading its outcome
@@ -266,23 +266,23 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## A worker that waited on the account's lock is stamped with the clock read after it got the lock
 
-- **Date · evidence:** 2026-09-24 · [pull request #157](https://github.com/ppat/mediated-mailbox-mcp/pull/157), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and every break again on 2026-10-11 at RAPID_SEED=1, after the performance measurements changed the code, tests or patches the row rests on · [pull request #341](https://github.com/ppat/mediated-mailbox-mcp/pull/341), and breaks 1 and 2 again on 2026-10-13 at RAPID_SEED=1, with their patches regenerated after every statement came to read its account from the transaction · [pull request #370](https://github.com/ppat/mediated-mailbox-mcp/pull/370), and every break again on 2026-10-13 at RAPID_SEED=1, over the statement form that reads the account from the transaction and the body fetch by part, which changed the code, tests or patches the row rests on · [pull request #369](https://github.com/ppat/mediated-mailbox-mcp/pull/369), and every break again on 2026-10-13 at RAPID_SEED=1, after the rename of the API server and the migrator moved the code, tests or patches the row rests on · [pull request #376](https://github.com/ppat/mediated-mailbox-mcp/pull/376), in run [38440944897](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/38440944897) of the `mutation-demonstrations` workflow, and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450)
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break (1):** the clock is read before the lock is taken, so a worker that waited is stamped early
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit`:** `TestAWorkerThatWaitedOnTheLockIsStampedAfterIt`
 - **Break (2):** no lock is taken, so issuers for one account do not take turns
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit`:** `TestACrashedWorkersLeaseStopsCountingAtItsExpiry`, `TestACutComesOutOfBatchWhileInteractiveKeepsItsShare`, `TestAStoredCapAboveTheCeilingDoesNotRaiseIssuance`, `TestAWorkerThatWaitedOnTheLockIsStampedAfterIt`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit`:** `TestACutComesOutOfBatchWhileInteractiveKeepsItsShare`, `TestAStoredCapAboveTheCeilingDoesNotRaiseIssuance`, `TestAWorkerThatWaitedOnTheLockIsStampedAfterIt`
 
 ## A worker's provider call that does not answer within the deadline is cut off as the provider's failure
 
-- **Date · evidence:** 2026-10-13 · [pull request #369](https://github.com/ppat/mediated-mailbox-mcp/pull/369), at RAPID_SEED=1, and every break again on 2026-10-13 at RAPID_SEED=1, after the rename of the API server and the migrator moved the code, tests or patches the row rests on · [pull request #376](https://github.com/ppat/mediated-mailbox-mcp/pull/376), in run [38440944897](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/38440944897) of the `mutation-demonstrations` workflow, and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450), and every break again on 2026-11-18 at RAPID_SEED=1, after the deletion of the host, the execution context, `mail.Port` in `core/mail` and the leased call that took it changed the code, tests or patches the row rests on · [pull request #473](https://github.com/ppat/mediated-mailbox-mcp/pull/473)
-- **Break (1):** a call cut off at the deadline fails with the context's error, which the controller does not count as the provider's failure
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
+- **Break (1):** a call its caller gave up on is read as the provider's failure and cuts the rate
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider`:** `TestACallIsCutOffAtTheCallersTimeoutAsTheProvidersFailure`
-- **Break (2):** a call its caller gave up on is read as the provider's failure and cuts the rate
+- **Break (2):** a call cut off at the deadline fails with the context's error, which the controller does not count as the provider's failure
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider`:** `TestACallIsCutOffAtTheCallersTimeoutAsTheProvidersFailure`
 
 ## Additive increase grows the rate by 2% of the target times the call's cost over the current rate
 
-- **Date · evidence:** 2026-09-25 · [pull request #161](https://github.com/ppat/mediated-mailbox-mcp/pull/161), and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450)
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break (1):** the step is no longer divided by the current rate, so growth per second rises with the rate
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit/core`:** `TestSucceeded`, `TestSucceeded/a_cost_of_the_whole_rate_grows_it_by_2%_of_the_target`, `TestSucceeded/a_success_ends_a_run_of_throttles_and_keeps_the_backoff`, `TestSucceeded/from_the_floor`, `TestSucceeded/from_twice_the_floor`, `TestTheClimbHoldsForManySmallSuccesses`, `TestTheControllerHoldsALoweredTarget`, `TestTheControllerHoldsALoweredTarget/a_success_grows_the_rate_by_2%_of_the_lowered_target`, `TestTheRateClimbsFromTheFloorToTheTargetIn45Seconds`, `TestTheRateClimbsToALoweredTargetAndNoFurther`
 - **Break (2):** the step ignores the call's cost, so a costly success grows the rate no more than a cheap one
@@ -290,7 +290,7 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## An account may lower its target to any value above the floor, and nothing may raise it above half the ceiling
 
-- **Date · evidence:** 2026-09-25 · [pull request #161](https://github.com/ppat/mediated-mailbox-mcp/pull/161), and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450)
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break (1):** a target at the floor is accepted, so the rate is held at the floor
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit/core`:** `TestLimitsWithTarget`, `TestLimitsWithTarget/at_the_floor_under_a_ceiling_that_fixes_no_budget`
 - **Break (2):** a target at the floor or below it is accepted
@@ -304,7 +304,7 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## An expired lease stops counting against its class's share, and nothing it drew is put back into the bucket
 
-- **Date · evidence:** 2026-09-25 · [pull request #161](https://github.com/ppat/mediated-mailbox-mcp/pull/161), and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450)
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break (1):** a lease stops counting half a second before it expires
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit/core`:** `TestIssueSplitsByClass`, `TestIssueSplitsByClass/interactive's_live_lease_counts_against_its_share`, `TestLive`
 - **Break (2):** a lease never expires, so a crashed worker's tokens never return to its class's share
@@ -314,7 +314,7 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## An idle account is reported at the target it will spend under, and a stored target the limiter refuses fails the scrape
 
-- **Date · evidence:** 2026-11-18 · [pull request #469](https://github.com/ppat/mediated-mailbox-mcp/pull/469), at RAPID_SEED=1
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break (1):** the collector reports an account with no rate state at the default target, ignoring its lowered target
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit`:** `TestTheCollectorReportsAnIdleAccountAtItsLoweredTarget`
 - **Break (2):** a stored lowered target the limiter refuses is reported at the default target rather than failing the scrape
@@ -322,7 +322,7 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## Cost counted for an account with no hard cap emitted fires the missing-threshold rule
 
-- **Date · evidence:** 2026-09-25 · [pull request #161](https://github.com/ppat/mediated-mailbox-mcp/pull/161), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-12, after the rules file moved under `packaging/chart/rules/` · [pull request #357](https://github.com/ppat/mediated-mailbox-mcp/pull/357), and every break again on 2026-10-13 at RAPID_SEED=1, after the rename of the API server and the migrator moved the code, tests or patches the row rests on · [pull request #376](https://github.com/ppat/mediated-mailbox-mcp/pull/376), in run [38440944897](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/38440944897) of the `mutation-demonstrations` workflow, and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450), and every break again on 2026-11-17 at RAPID_SEED=1, after the process package, with the scheduler and the database code moved into the process family, changed the code, tests or patches the row rests on · [pull request #453](https://github.com/ppat/mediated-mailbox-mcp/pull/453), and every break again on 2026-11-18 at RAPID_SEED=1, after the deletion of the host, the execution context, `mail.Port` in `core/mail` and the leased call that took it changed the code, tests or patches the row rests on · [pull request #473](https://github.com/ppat/mediated-mailbox-mcp/pull/473)
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break (1):** the cost's window is two minutes, so one missed scrape at a one-minute scrape empties the condition and resets the five minutes it must hold
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit`:** `TestAlertingRules`
 - **Break (2):** the rule fires on its first evaluation rather than after the condition has held for five minutes
@@ -336,7 +336,7 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## Each account spends under the lowered target its state row sets, and a target outside its range stops the run
 
-- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-08, after the logger hand-off moved the code, tests or patches the row rests on · [pull request #323](https://github.com/ppat/mediated-mailbox-mcp/pull/323), and every break again on 2026-10-09, after the logger hand-off was rebased onto the sender-domain normalizer and the re-mask from the store · [pull request #323](https://github.com/ppat/mediated-mailbox-mcp/pull/323), and breaks 2 and 3 again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and break 1 again on 2026-10-10, after the worker merged backfill and delta sync into one deployable, which moved its code, tests and patch · [pull request #328](https://github.com/ppat/mediated-mailbox-mcp/pull/328), and every break again on 2026-10-11 at RAPID_SEED=1, after the performance measurements changed the code, tests or patches the row rests on · [pull request #341](https://github.com/ppat/mediated-mailbox-mcp/pull/341), and every break again on 2026-10-13 at RAPID_SEED=1, after the body fetch by part and the refused scan state changed the code, tests or patches the row rests on · [pull request #369](https://github.com/ppat/mediated-mailbox-mcp/pull/369), and every break again on 2026-10-13 at RAPID_SEED=1, after the rename of the API server and the migrator moved the code, tests or patches the row rests on · [pull request #376](https://github.com/ppat/mediated-mailbox-mcp/pull/376), in run [38440944897](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/38440944897) of the `mutation-demonstrations` workflow, and breaks 3 and 4 again on 2026-10-14 and 2026-10-15 at RAPID_SEED=1, after one execution context per process changed the code, tests or patches the row rests on · [pull request #394](https://github.com/ppat/mediated-mailbox-mcp/pull/394), and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450), and breaks 3 and 4 again on 2026-11-17 at RAPID_SEED=1, after the API server's move onto its spec changed the code, tests or patches the row rests on · [pull request #457](https://github.com/ppat/mediated-mailbox-mcp/pull/457), and breaks 3 and 4 in the earlier entries of this line, the execution context keeping an earlier target and never reading the stored one, retired on 2026-11-18 with the execution context, whose same breaks of the connections the row headed "Each account's units of work lease under the lowered target its state row held at the latest reload" demonstrates, so the row's patches sit in `provider/` alone and the row moved here from cross-component.md · [pull request #473](https://github.com/ppat/mediated-mailbox-mcp/pull/473)
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break (1):** a target outside its range is taken as it is given
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit`:** `TestAnOutOfRangeTargetRefusesTheLimiter`
 - **Break (2):** every account spends under the default target, whatever target it was given
@@ -344,15 +344,15 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## Every ask records its class's ask instant, and a waiting worker asks again within each lease period
 
-- **Date · evidence:** 2026-09-29 · [pull request #196](https://github.com/ppat/mediated-mailbox-mcp/pull/196), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and every break again on 2026-10-11 at RAPID_SEED=1, after the performance measurements changed the code, tests or patches the row rests on · [pull request #341](https://github.com/ppat/mediated-mailbox-mcp/pull/341), and every break again on 2026-10-13 at RAPID_SEED=1, over the statement form that reads the account from the transaction and the body fetch by part, which changed the code, tests or patches the row rests on · [pull request #369](https://github.com/ppat/mediated-mailbox-mcp/pull/369), and every break again on 2026-10-13 at RAPID_SEED=1, after the rename of the API server and the migrator moved the code, tests or patches the row rests on · [pull request #376](https://github.com/ppat/mediated-mailbox-mcp/pull/376), in run [38440944897](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/38440944897) of the `mutation-demonstrations` workflow, and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450)
-- **Break (1):** a request left waiting stores nothing, so its ask is never recorded
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
+- **Break (1):** a waiting worker asks again every two seconds, longer than a lease period
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit`:** `TestACutComesOutOfBatchWhileInteractiveKeepsItsShare`, `TestAStoredCapAboveTheCeilingDoesNotRaiseIssuance`, `TestAnAskIsRecordedAndRenewedUntilTheWorkerStops`
+- **Break (2):** a request left waiting stores nothing, so its ask is never recorded
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit`:** `TestACrashedWorkersLeaseStopsCountingAtItsExpiry`, `TestAnAskIsRecordedAndRenewedUntilTheWorkerStops`
-- **Break (2):** a waiting worker asks again every two seconds, longer than a lease period
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit`:** `TestAStoredCapAboveTheCeilingDoesNotRaiseIssuance`, `TestAnAskIsRecordedAndRenewedUntilTheWorkerStops`
 
 ## Every call the Gmail rate profile sizes fits one second's worth at the hard cap, read from the hard-cap fraction
 
-- **Date · evidence:** 2026-10-01 · [pull request #222](https://github.com/ppat/mediated-mailbox-mcp/pull/222), which regenerates break (2) against the profile read an enumeration page makes and demonstrates the row again, first demonstrated by [pull request #161](https://github.com/ppat/mediated-mailbox-mcp/pull/161), and every break again on 2026-10-08, after the call size moved beside the hard-cap fraction and break (1) was regenerated against it · [pull request #321](https://github.com/ppat/mediated-mailbox-mcp/pull/321), and every break again on 2026-10-11 at RAPID_SEED=1, after the performance measurements changed the code, tests or patches the row rests on · [pull request #341](https://github.com/ppat/mediated-mailbox-mcp/pull/341), and every break again on 2026-10-13 at RAPID_SEED=1, after the body fetch by part added a case to the tests the row rests on · [pull request #369](https://github.com/ppat/mediated-mailbox-mcp/pull/369), and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450)
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break (1):** the hard-cap fraction falls to 0.60 while the Gmail pages stay sized for 0.80, so an enumeration page no longer fits
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail`:** `TestTheProfileMeetsTheContract`, `TestTheProfileMeetsTheContract/every_call_the_rate_profile_sizes_fits_one_second_at_the_hard_cap`
 - **Break (2):** an enumeration page holds four messages, 87 units, past the hard cap of 80
@@ -360,47 +360,47 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## Every grant of the last second is stored and counted in the one-second window
 
-- **Date · evidence:** 2026-09-29 · [pull request #196](https://github.com/ppat/mediated-mailbox-mcp/pull/196), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and every break again on 2026-10-11 at RAPID_SEED=1, after the performance measurements changed the code, tests or patches the row rests on · [pull request #341](https://github.com/ppat/mediated-mailbox-mcp/pull/341), and break (2) again on 2026-10-13 at RAPID_SEED=1, with its patch regenerated after every statement came to read its account from the transaction · [pull request #370](https://github.com/ppat/mediated-mailbox-mcp/pull/370), and every break again on 2026-10-13 at RAPID_SEED=1, after the rename of the API server and the migrator moved the code, tests or patches the row rests on · [pull request #376](https://github.com/ppat/mediated-mailbox-mcp/pull/376), in run [38440944897](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/38440944897) of the `mutation-demonstrations` workflow, and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450)
-- **Break (1):** the stored grants are not read into the window, so it counts none of them
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit`:** `TestAStoredCapAboveTheCeilingDoesNotRaiseIssuance`, `TestAWorkerThatWaitedOnTheLockIsStampedAfterIt`
-- **Break (2):** the grants of the last second are deleted with the old ones, so the window loses them
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
+- **Break (1):** the grants of the last second are deleted with the old ones, so the window loses them
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit`:** `TestACrashedWorkersLeaseStopsCountingAtItsExpiry`, `TestAStoredCapAboveTheCeilingDoesNotRaiseIssuance`, `TestAWorkerThatWaitedOnTheLockIsStampedAfterIt`
+- **Break (2):** the stored grants are not read into the window, so it counts none of them
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit`:** `TestAStoredCapAboveTheCeilingDoesNotRaiseIssuance`, `TestAWorkerThatWaitedOnTheLockIsStampedAfterIt`
 
 ## Every request the Gmail adapter sends is counted at its cost where it is sent, failed requests included
 
-- **Date · evidence:** 2026-10-01 · [pull request #232](https://github.com/ppat/mediated-mailbox-mcp/pull/232), demonstrated again after it changed the tests the row names, first demonstrated by [pull request #161](https://github.com/ppat/mediated-mailbox-mcp/pull/161), and every break again on 2026-10-11 at RAPID_SEED=1, after the performance measurements changed the code, tests or patches the row rests on · [pull request #341](https://github.com/ppat/mediated-mailbox-mcp/pull/341), and every break again on 2026-10-13 at RAPID_SEED=1, after the body fetch by part and the refused scan state changed the code, tests or patches the row rests on · [pull request #369](https://github.com/ppat/mediated-mailbox-mcp/pull/369), and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450), and breaks (3) and (4) again on 2026-11-17 at RAPID_SEED=1, after the Session, the connections and the unit of work in the process family changed the code, tests or patches the row rests on · [pull request #455](https://github.com/ppat/mediated-mailbox-mcp/pull/455), and every break again on 2026-11-18 at RAPID_SEED=1, after the deletion of the host, the execution context, `mail.Port` in `core/mail` and the leased call that took it changed the code, tests or patches the row rests on · [pull request #473](https://github.com/ppat/mediated-mailbox-mcp/pull/473)
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break (1):** a call is counted at the cost it declares when it begins, what its lease covers, rather than each request at what it costs when it is sent
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail`:** `TestARequestNeverSentIsNotCounted`, `TestAnOpChangingNothingReadsItsMessage`, `TestEveryRequestSentIsCounted`, `TestEveryRequestSentIsCounted/a_thread`, `TestEveryRequestSentIsCounted/an_enumeration`, `TestEveryRequestSentIsCounted/changes`
 - **Break (2):** a request is counted only once Gmail answers it with success, so a failed request goes uncounted
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail`:** `TestACallIsHeldToItsDeclaredCost`, `TestAnOpChangingNothingReadsItsMessage`, `TestEveryRequestSentIsCounted`, `TestEveryRequestSentIsCounted/a_body`, `TestEveryRequestSentIsCounted/a_body's_part_held_apart`, `TestEveryRequestSentIsCounted/a_cursor`, `TestEveryRequestSentIsCounted/a_label_listing`, `TestEveryRequestSentIsCounted/a_thread`, `TestEveryRequestSentIsCounted/an_enumeration`, `TestEveryRequestSentIsCounted/changes`
-- **Break (3):** each request is counted as one, whatever Gmail charges for it
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider`:** `TestEveryRequestTheAdapterSendsIsOnTheSharedSeries`
-- **Break (4):** the count is labelled with a provider value other than the adapter's own name
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider`:** `TestEveryRequestTheAdapterSendsIsOnTheSharedSeries`
-- **Break (5):** a thread read carries the price of a thread listing, so it is counted and held at a quarter of what Gmail charges
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail`:** `TestACallIsHeldToItsDeclaredCost`, `TestEveryRequestSentIsCounted`, `TestEveryRequestSentIsCounted/a_thread`, `TestRequests`, `TestRequests/threads.get`
-- **Break (6):** a read of a part held apart is counted at no cost
+- **Break (3):** a read of a part held apart is counted at no cost
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail`:** `TestEveryRequestSentIsCounted`, `TestEveryRequestSentIsCounted/a_body's_part_held_apart`, `TestRequests`, `TestRequests/messages.attachments.get_for_a_body_part_held_apart`
+- **Break (4):** a thread read carries the price of a thread listing, so it is counted and held at a quarter of what Gmail charges
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail`:** `TestACallIsHeldToItsDeclaredCost`, `TestEveryRequestSentIsCounted`, `TestEveryRequestSentIsCounted/a_thread`, `TestRequests`, `TestRequests/threads.get`
+- **Break (5):** each request is counted as one, whatever Gmail charges for it
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider`:** `TestEveryRequestTheAdapterSendsIsOnTheSharedSeries`
+- **Break (6):** the count is labelled with a provider value other than the adapter's own name
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider`:** `TestEveryRequestTheAdapterSendsIsOnTheSharedSeries`
 
 ## Gmail's cost profile declares each call's worst case, every read of the label table included, and sizes its pages to one second's worth at the hard cap
 
-- **Date · evidence:** 2026-10-01 · [pull request #222](https://github.com/ppat/mediated-mailbox-mcp/pull/222), which adds break (5) and demonstrates again the four breaks of [pull request #158](https://github.com/ppat/mediated-mailbox-mcp/pull/158), and every break again on 2026-10-11 at RAPID_SEED=1, after the performance measurements changed the code, tests or patches the row rests on · [pull request #341](https://github.com/ppat/mediated-mailbox-mcp/pull/341), and every break again on 2026-10-13 at RAPID_SEED=1, after the body fetch by part and the refused scan state changed the code, tests or patches the row rests on · [pull request #369](https://github.com/ppat/mediated-mailbox-mcp/pull/369), and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450)
-- **Break (1):** EnsureLabel's second read of the label table, after Gmail answers that the label exists, is left out of its cost
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
+- **Break (1):** a body call is declared at both methods' price, so every body declares the cost of its rarest path
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail`:** `TestCostDeclaresEachCallsWorstCase`, `TestCostDeclaresEachCallsWorstCase/{4_0}`, `TestCostDeclaresEachCallsWorstCase/{4_1}`
+- **Break (2):** EnsureLabel's second read of the label table, after Gmail answers that the label exists, is left out of its cost
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail`:** `TestCostDeclaresEachCallsWorstCase`, `TestCostDeclaresEachCallsWorstCase/{6_0}`, `TestEachOperationsDearestPathFitsItsCall`, `TestEachOperationsDearestPathFitsItsCall/EnsureLabel`
-- **Break (2):** a metadata fetch naming no identifier is declared to cost nothing, so the rate limiter refuses it
+- **Break (3):** a metadata fetch naming no identifier is declared to cost nothing, so the rate limiter refuses it
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail`:** `TestCostDeclaresEachCallsWorstCase`, `TestCostDeclaresEachCallsWorstCase/{3_-1}`, `TestCostDeclaresEachCallsWorstCase/{3_0}`, `TestTheProfileMeetsTheContract`, `TestTheProfileMeetsTheContract/the_rate_profile_declares_a_budget_and_a_cost_for_every_operation`
-- **Break (3):** a metadata fetch's read of the label table is left out of its cost, so four fetches seem to fit
+- **Break (4):** a metadata fetch's read of the label table is left out of its cost, so four fetches seem to fit
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail`:** `TestCostDeclaresEachCallsWorstCase`, `TestCostDeclaresEachCallsWorstCase/{3_-1}`, `TestCostDeclaresEachCallsWorstCase/{3_0}`, `TestCostDeclaresEachCallsWorstCase/{3_3}`, `TestEachOperationsDearestPathFitsItsCall`, `TestEachOperationsDearestPathFitsItsCall/GetMessageMetadata`, `TestEveryPageFitsAndCallerSizedCallsSplitWhereTheSecondEnds`, `TestTheProfileMeetsTheContract`, `TestTheProfileMeetsTheContract/the_rate_profile_declares_a_budget_and_a_cost_for_every_operation`
-- **Break (4):** a page of threads holds two threads, whose worst case passes one second's worth at the hard cap
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail`:** `TestCostDeclaresEachCallsWorstCase`, `TestCostDeclaresEachCallsWorstCase/{1_0}`, `TestEveryPageFitsAndCallerSizedCallsSplitWhereTheSecondEnds`, `TestTheProfileMeetsTheContract`, `TestTheProfileMeetsTheContract/every_call_the_rate_profile_sizes_fits_one_second_at_the_hard_cap`
 - **Break (5):** EnumerateAll's read of the profile for its page's total is left out of its cost
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail`:** `TestCostDeclaresEachCallsWorstCase`, `TestCostDeclaresEachCallsWorstCase/{10_0}`, `TestEachOperationsDearestPathFitsItsCall`, `TestEachOperationsDearestPathFitsItsCall/EnumerateAll`
-- **Break (6):** a body call is declared at both methods' price, so every body declares the cost of its rarest path
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail`:** `TestCostDeclaresEachCallsWorstCase`, `TestCostDeclaresEachCallsWorstCase/{4_0}`, `TestCostDeclaresEachCallsWorstCase/{4_1}`
+- **Break (6):** a page of threads holds two threads, whose worst case passes one second's worth at the hard cap
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail`:** `TestCostDeclaresEachCallsWorstCase`, `TestCostDeclaresEachCallsWorstCase/{1_0}`, `TestEveryPageFitsAndCallerSizedCallsSplitWhereTheSecondEnds`, `TestTheProfileMeetsTheContract`, `TestTheProfileMeetsTheContract/every_call_the_rate_profile_sizes_fits_one_second_at_the_hard_cap`
 
 ## Interactive keeps 30% of the target and sync 20% while a cut comes out of batch, then sync, then interactive
 
-- **Date · evidence:** 2026-09-25 · [pull request #161](https://github.com/ppat/mediated-mailbox-mcp/pull/161), and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450)
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break (1):** a cut comes out of interactive first and batch keeps its half of the target
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit/core`:** `TestInteractiveKeepsItsShareThroughACut`, `TestShare`, `TestShare/a_cut_past_batch_comes_out_of_sync`, `TestShare/a_cut_past_sync_comes_out_of_interactive`, `TestShare/a_halving_comes_out_of_batch_alone`, `TestShare/a_small_cut_comes_out_of_batch`, `TestShare/at_the_floor_interactive_has_it_all`
 - **Break (2):** the shares are fractions of the budget, so every cut takes from interactive in proportion
@@ -408,7 +408,7 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## Issuance holds to the hard cap the declared ceiling gives, whatever the rate state stores
 
-- **Date · evidence:** 2026-09-29 · [pull request #196](https://github.com/ppat/mediated-mailbox-mcp/pull/196), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and every break again on 2026-10-11 at RAPID_SEED=1, after the performance measurements changed the code, tests or patches the row rests on · [pull request #341](https://github.com/ppat/mediated-mailbox-mcp/pull/341), and breaks 1 and 2 again on 2026-10-13 at RAPID_SEED=1, with their patches regenerated after every statement came to read its account from the transaction · [pull request #370](https://github.com/ppat/mediated-mailbox-mcp/pull/370), and every break again on 2026-10-13 at RAPID_SEED=1, after the rename of the API server and the migrator moved the code, tests or patches the row rests on · [pull request #376](https://github.com/ppat/mediated-mailbox-mcp/pull/376), in run [38440944897](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/38440944897) of the `mutation-demonstrations` workflow, and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450)
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break (1):** the ceiling is read back from the stored hard cap, and the limits it gives are written back, so the cap column is the cap
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit`:** `TestAStoredCapAboveTheCeilingDoesNotRaiseIssuance`
 - **Break (2):** the ceiling is read back from the stored target, and the limits it gives are written back, so raising the target raises the cap
@@ -416,19 +416,19 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## Issuance never refills the bucket past a lowered target
 
-- **Date · evidence:** 2026-09-25 · [pull request #161](https://github.com/ppat/mediated-mailbox-mcp/pull/161), and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450)
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break:** the bucket refills at the stored rate held at half the ceiling rather than at the account's lowered target
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit/core`:** `TestIssueUnderALoweredTarget`, `TestIssueUnderALoweredTarget/a_second_refills_the_lowered_target's_worth`, `TestIssueUnderALoweredTarget/and_no_more_than_that`, `TestNoRunIssuesPastTheHardCap`
 
 ## Limits carries no exported field, so no code outside the package can build one and raise its target
 
-- **Date · evidence:** 2026-09-25 · [pull request #161](https://github.com/ppat/mediated-mailbox-mcp/pull/161), and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450)
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break:** the hard cap becomes an exported field, so code outside the package can build a Limits around its constructors
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit/core`:** `TestLimitsIsBuiltOnlyByItsConstructors`
 
 ## Missing account-level series fire the absence rule rather than reading as a healthy account
 
-- **Date · evidence:** 2026-09-24 · [pull request #157](https://github.com/ppat/mediated-mailbox-mcp/pull/157), and (2) again with its description reworded 2026-10-07 · [pull request #270](https://github.com/ppat/mediated-mailbox-mcp/pull/270), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and break 1 again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and the breaks that edit the rules file again on 2026-10-12, after it moved under `packaging/chart/rules/` · [pull request #357](https://github.com/ppat/mediated-mailbox-mcp/pull/357), and every break again on 2026-10-13 at RAPID_SEED=1, after the rename of the API server and the migrator moved the code, tests or patches the row rests on · [pull request #376](https://github.com/ppat/mediated-mailbox-mcp/pull/376), in run [38440944897](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/38440944897) of the `mutation-demonstrations` workflow, and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450), and break (2) again on 2026-11-17 at RAPID_SEED=1, after the process package, with the scheduler and the database code moved into the process family, changed the code, tests or patches the row rests on · [pull request #453](https://github.com/ppat/mediated-mailbox-mcp/pull/453), and the break of a failed read of the accounts reporting no series again on 2026-11-18, after the collector came to read an account's lowered target · [pull request #NNN](https://github.com/ppat/mediated-mailbox-mcp/pull/NNN), and every break again on 2026-11-18 at RAPID_SEED=1, after the deletion of the host, the execution context, `mail.Port` in `core/mail` and the leased call that took it changed the code, tests or patches the row rests on · [pull request #473](https://github.com/ppat/mediated-mailbox-mcp/pull/473)
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break (1):** a failed read of the accounts reports no series and a successful scrape
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit`:** `TestTheCollectorFailsTheScrapeWhenItCannotRead`
 - **Break (2):** the absence rule watches a job workload's series rather than the API server's account-level ones
@@ -436,23 +436,23 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## No credential is read from the environment
 
-- **Date · evidence:** 2026-09-26 · [pull request #178](https://github.com/ppat/mediated-mailbox-mcp/pull/178), and again on 2026-10-01 after an import the token source gained moved the context its patches carry, with all six patches regenerated, [pull request #227](https://github.com/ppat/mediated-mailbox-mcp/pull/227), and every break again on 2026-10-07, after the account session and the entry packages moved the code, tests or patches the row rests on · [pull request #272](https://github.com/ppat/mediated-mailbox-mcp/pull/272), and every break again on 2026-10-11 at RAPID_SEED=1, after the performance measurements changed the code, tests or patches the row rests on · [pull request #341](https://github.com/ppat/mediated-mailbox-mcp/pull/341), and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450), and every break again on 2026-11-18 at RAPID_SEED=1, after a comment naming the execution context or the account session in the file the patch edits was corrected with their deletion · [pull request #473](https://github.com/ppat/mediated-mailbox-mcp/pull/473)
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break (1):** an empty refresh token falls back to an environment variable, read through a dot import
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/google`:** `TestNoSourceFileReadsTheEnvironment`
-- **Break (2):** an empty refresh token falls back to an environment variable, read inside the receiver of a method call
+- **Break (2):** an empty refresh token falls back to an environment variable, read inside a composite literal whose field is selected
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/google`:** `TestNoSourceFileReadsTheEnvironment`
-- **Break (3):** an empty refresh token falls back to an environment variable under a name no test sets
+- **Break (3):** an empty refresh token falls back to an environment variable, read inside the receiver of a method call
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/google`:** `TestNoSourceFileReadsTheEnvironment`
-- **Break (4):** an empty refresh token falls back to an environment variable
+- **Break (4):** an empty refresh token falls back to an environment variable under a name no test sets
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/google`:** `TestNoSourceFileReadsTheEnvironment`
+- **Break (5):** an empty refresh token falls back to an environment variable
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/google`:** `TestNoSourceFileReadsTheEnvironment`, `TestTheSourceHoldsOnlyTheCredentialItIsGiven`, `TestTheSourceHoldsOnlyTheCredentialItIsGiven/no_refresh_token`
-- **Break (5):** an empty refresh token falls back to an environment variable, read inside a composite literal whose field is selected
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/google`:** `TestNoSourceFileReadsTheEnvironment`
 - **Break (6):** the refresh token is read from an environment variable rather than taken from the deployable
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/google`:** `TestARefreshThatDoesNotRotateKeepsTheToken`, `TestARefreshThatDoesNotRotateKeepsTheToken/field_left_out`, `TestAnAccessTokenIsUsedUntilItNearlyExpires`, `TestNoSourceFileReadsTheEnvironment`, `TestTheRefreshRequest`, `TestTheSourceHoldsOnlyTheCredentialItIsGiven`, `TestTheSourceHoldsOnlyTheCredentialItIsGiven/a_refresh_token`, `TestTheSourceHoldsOnlyTheCredentialItIsGiven/no_refresh_token`
 
 ## Nothing is issued during a backoff, and the bucket does not fill during one
 
-- **Date · evidence:** 2026-09-25 · [pull request #161](https://github.com/ppat/mediated-mailbox-mcp/pull/161), and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450)
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break (1):** the bucket fills during a backoff
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit/core`:** `TestIssue`, `TestIssue/after_a_backoff_the_bucket_fills_only_from_its_end`, `TestIssue/nothing_is_issued_during_a_backoff,_and_the_bucket_does_not_fill`
 - **Break (2):** a request during a backoff is decided as if there were none
@@ -460,44 +460,44 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## Nothing past the bound is downloaded where the provider declares a part's size, nothing past it is returned, and a response past its cap is refused
 
-- **Date · evidence:** 2026-10-13 · [pull request #369](https://github.com/ppat/mediated-mailbox-mcp/pull/369), at RAPID_SEED=1, and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450), and every break again on 2026-11-18 at RAPID_SEED=1, after the deletion of the host, the execution context, `mail.Port` in `core/mail` and the leased call that took it changed the code, tests or patches the row rests on · [pull request #473](https://github.com/ppat/mediated-mailbox-mcp/pull/473)
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break (1):** the provider fake returns a body past the bound rather than refusing it
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/mail/fake`:** `TestTheFakePassesTheContract`, `TestTheFakePassesTheContract/a_body_past_the_bound_is_refused_at_its_first_call`, `TestTheFakePassesTheContractOnOnePage`, `TestTheFakePassesTheContractOnOnePage/a_body_past_the_bound_is_refused_at_its_first_call`, `TestTheFakeReportingATotalPassesTheContract`, `TestTheFakeReportingATotalPassesTheContract/pages_of_100`, `TestTheFakeReportingATotalPassesTheContract/pages_of_100/a_body_past_the_bound_is_refused_at_its_first_call`, `TestTheFakeReportingATotalPassesTheContract/pages_of_2`, `TestTheFakeReportingATotalPassesTheContract/pages_of_2/a_body_past_the_bound_is_refused_at_its_first_call`, `TestTheScopedSuitePassesOverMailItDidNotAdd`, `TestTheThrottledFakePassesTheContract`, `TestTheThrottledFakePassesTheContract/a_body_past_the_bound_is_refused_at_its_first_call`
 - **Break (2):** a part held apart is named for a second call whatever size it declares, so a part past the bound is downloaded
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail/core`:** `TestMessageBodyOfAPartHeldApartOrPastTheBound`, `TestMessageBodyOfAPartHeldApartOrPastTheBound/held_apart_past_the_bound`
-- **Break (3):** a response past its read cap is returned cut at the cap and read as whole
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail`:** `TestABodyReadsAnswerPastItsCapIsRefused`, `TestABodyReadsAnswerPastItsCapIsRefused/the_message_read`, `TestABodyReadsAnswerPastItsCapIsRefused/the_read_of_a_part_held_apart`, `TestCapped`
-- **Break (4):** the Gmail adapter returns a part's text whatever its length, inline or fetched apart
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail/core`:** `TestMessageBodyOfAPartHeldApartOrPastTheBound`, `TestMessageBodyOfAPartHeldApartOrPastTheBound/inline_past_the_bound`, `TestPartText`, `TestPartText/decoded_text_past_the_bound`
-- **Break (5):** an answer past a body read's cap is returned cut at the cap, so the part is read from a truncated answer rather than refused
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail`:** `TestABodyReadsAnswerPastItsCapIsRefused`, `TestABodyReadsAnswerPastItsCapIsRefused/the_message_read`, `TestABodyReadsAnswerPastItsCapIsRefused/the_read_of_a_part_held_apart`
-- **Break (6):** a body read is capped at every other request's cap rather than its own, so an answer past the body read's cap is returned whole
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail`:** `TestABodyReadsAnswerPastItsCapIsRefused`, `TestABodyReadsAnswerPastItsCapIsRefused/the_message_read`, `TestEachRequestIsSentWithItsBuildersCap`, `TestEachRequestIsSentWithItsBuildersCap/the_body_read`, `TestRequests`, `TestRequests/messages.get_for_the_body,_through_the_body_mask`
-- **Break (7):** an answer past a body read's cap is read as the provider's failure, so the message is fetched again on every tick rather than recorded refused
+- **Break (3):** the message read is capped for one part at the bound rather than two, so a body whose rendered part and its alternative both come inline within the bound is refused
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail/core`:** `TestTheReadCapsFollowTheBound`
+- **Break (4):** an answer past a body read's cap is read as the provider's failure, so the message is fetched again on every tick rather than recorded refused
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail`:** `TestABodyReadsAnswerPastItsCapIsRefused`, `TestABodyReadsAnswerPastItsCapIsRefused/the_message_read`, `TestABodyReadsAnswerPastItsCapIsRefused/the_read_of_a_part_held_apart`, `TestEachRequestIsSentWithItsBuildersCap`, `TestEachRequestIsSentWithItsBuildersCap/the_body_read`, `TestEachRequestIsSentWithItsBuildersCap/the_part_read`, `TestRequests`, `TestRequests/messages.attachments.get_for_a_body_part_held_apart`, `TestRequests/messages.get_for_the_body,_through_the_body_mask`
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail/core`:** `TestTheReadCapsFollowTheBound`
-- **Break (8):** the message read is capped for one part at the bound rather than two, so a body whose rendered part and its alternative both come inline within the bound is refused
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail/core`:** `TestTheReadCapsFollowTheBound`
-- **Break (9):** a request is sent without the read cap its builder gave it, so every request is refused before it is sent
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail`:** `TestACallIsHeldToItsDeclaredCost`, `TestARequestIsTimedForItsExchange`, `TestAnOpChangingNothingReadsItsMessage`, `TestEachRequestIsSentWithItsBuildersCap`, `TestEachRequestIsSentWithItsBuildersCap/the_body_read`, `TestEachRequestIsSentWithItsBuildersCap/the_cursor_read`, `TestEachRequestIsSentWithItsBuildersCap/the_label_listing`, `TestEachRequestIsSentWithItsBuildersCap/the_metadata_read`, `TestEachRequestIsSentWithItsBuildersCap/the_part_read`, `TestEveryRequestSentIsCounted`, `TestEveryRequestSentIsCounted/a_body`, `TestEveryRequestSentIsCounted/a_body's_part_held_apart`, `TestEveryRequestSentIsCounted/a_cursor`, `TestEveryRequestSentIsCounted/a_label_listing`, `TestEveryRequestSentIsCounted/a_thread`, `TestEveryRequestSentIsCounted/an_enumeration`, `TestEveryRequestSentIsCounted/changes`, `TestEveryRequestSentIsTimedByItsEndpoint`, `TestEveryRequestSentIsTimedByItsEndpoint/a_body`, `TestEveryRequestSentIsTimedByItsEndpoint/a_body's_part_held_apart`, `TestEveryRequestSentIsTimedByItsEndpoint/a_cursor`, `TestEveryRequestSentIsTimedByItsEndpoint/a_label_listing`, `TestEveryRequestSentIsTimedByItsEndpoint/a_thread`, `TestEveryRequestSentIsTimedByItsEndpoint/changes`
-- **Break (10):** a request carrying no read cap is sent, so its answer is read to no cap it was given
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail`:** `TestARequestWithNoReadCapIsNeverSent`, `TestARequestWithNoReadCapIsNeverSent/a_cap_of_no_bytes`, `TestARequestWithNoReadCapIsNeverSent/no_cap`
-- **Break (11):** the body read is built with no read cap, so every body read is refused as the provider's failure before it is sent
+- **Break (5):** the Gmail adapter returns a part's text whatever its length, inline or fetched apart
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail/core`:** `TestMessageBodyOfAPartHeldApartOrPastTheBound`, `TestMessageBodyOfAPartHeldApartOrPastTheBound/inline_past_the_bound`, `TestPartText`, `TestPartText/decoded_text_past_the_bound`
+- **Break (6):** a body read is capped at every other request's cap rather than its own, so an answer past the body read's cap is returned whole
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail`:** `TestABodyReadsAnswerPastItsCapIsRefused`, `TestABodyReadsAnswerPastItsCapIsRefused/the_message_read`, `TestEachRequestIsSentWithItsBuildersCap`, `TestEachRequestIsSentWithItsBuildersCap/the_body_read`, `TestRequests`, `TestRequests/messages.get_for_the_body,_through_the_body_mask`
+- **Break (7):** the body read is built with no read cap, so every body read is refused as the provider's failure before it is sent
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail`:** `TestABodyReadsAnswerPastItsCapIsRefused`, `TestABodyReadsAnswerPastItsCapIsRefused/the_message_read`, `TestEachRequestIsSentWithItsBuildersCap`, `TestEachRequestIsSentWithItsBuildersCap/the_body_read`, `TestEveryRequestSentIsCounted`, `TestEveryRequestSentIsCounted/a_body`, `TestEveryRequestSentIsTimedByItsEndpoint`, `TestEveryRequestSentIsTimedByItsEndpoint/a_body`, `TestRequests`, `TestRequests/messages.get_for_the_body,_through_the_body_mask`
-- **Break (12):** a request is sent carrying every other request's cap whatever its builder gave it, so a body read is read to maxResponse and past it is the provider's failure
+- **Break (8):** an answer past a body read's cap is returned cut at the cap, so the part is read from a truncated answer rather than refused
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail`:** `TestABodyReadsAnswerPastItsCapIsRefused`, `TestABodyReadsAnswerPastItsCapIsRefused/the_message_read`, `TestABodyReadsAnswerPastItsCapIsRefused/the_read_of_a_part_held_apart`
+- **Break (9):** a response past its read cap is returned cut at the cap and read as whole
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail`:** `TestABodyReadsAnswerPastItsCapIsRefused`, `TestABodyReadsAnswerPastItsCapIsRefused/the_message_read`, `TestABodyReadsAnswerPastItsCapIsRefused/the_read_of_a_part_held_apart`, `TestCapped`
+- **Break (10):** a request is sent carrying every other request's cap whatever its builder gave it, so a body read is read to maxResponse and past it is the provider's failure
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail`:** `TestEachRequestIsSentWithItsBuildersCap`, `TestEachRequestIsSentWithItsBuildersCap/the_body_read`, `TestEachRequestIsSentWithItsBuildersCap/the_part_read`
-- **Break (13):** a request is sent with its cap's size and not whether past it refuses, so a body read past its cap is the provider's failure
+- **Break (11):** a request is sent without the read cap its builder gave it, so every request is refused before it is sent
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail`:** `TestACallIsHeldToItsDeclaredCost`, `TestARequestIsTimedForItsExchange`, `TestAnOpChangingNothingReadsItsMessage`, `TestEachRequestIsSentWithItsBuildersCap`, `TestEachRequestIsSentWithItsBuildersCap/the_body_read`, `TestEachRequestIsSentWithItsBuildersCap/the_cursor_read`, `TestEachRequestIsSentWithItsBuildersCap/the_label_listing`, `TestEachRequestIsSentWithItsBuildersCap/the_metadata_read`, `TestEachRequestIsSentWithItsBuildersCap/the_part_read`, `TestEveryRequestSentIsCounted`, `TestEveryRequestSentIsCounted/a_body`, `TestEveryRequestSentIsCounted/a_body's_part_held_apart`, `TestEveryRequestSentIsCounted/a_cursor`, `TestEveryRequestSentIsCounted/a_label_listing`, `TestEveryRequestSentIsCounted/a_thread`, `TestEveryRequestSentIsCounted/an_enumeration`, `TestEveryRequestSentIsCounted/changes`, `TestEveryRequestSentIsTimedByItsEndpoint`, `TestEveryRequestSentIsTimedByItsEndpoint/a_body`, `TestEveryRequestSentIsTimedByItsEndpoint/a_body's_part_held_apart`, `TestEveryRequestSentIsTimedByItsEndpoint/a_cursor`, `TestEveryRequestSentIsTimedByItsEndpoint/a_label_listing`, `TestEveryRequestSentIsTimedByItsEndpoint/a_thread`, `TestEveryRequestSentIsTimedByItsEndpoint/changes`
+- **Break (12):** a request is sent with its cap's size and not whether past it refuses, so a body read past its cap is the provider's failure
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail`:** `TestEachRequestIsSentWithItsBuildersCap`, `TestEachRequestIsSentWithItsBuildersCap/the_body_read`, `TestEachRequestIsSentWithItsBuildersCap/the_part_read`
+- **Break (13):** a request carrying no read cap is sent, so its answer is read to no cap it was given
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail`:** `TestARequestWithNoReadCapIsNeverSent`, `TestARequestWithNoReadCapIsNeverSent/a_cap_of_no_bytes`, `TestARequestWithNoReadCapIsNeverSent/no_cap`
 
 ## One runaway rule serves every provider, from the hard cap each spending process emits for its account
 
-- **Date · evidence:** 2026-09-25 · [pull request #161](https://github.com/ppat/mediated-mailbox-mcp/pull/161), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-12, after the rules file moved under `packaging/chart/rules/` · [pull request #357](https://github.com/ppat/mediated-mailbox-mcp/pull/357), and every break again on 2026-10-13 at RAPID_SEED=1, after the rename of the API server and the migrator moved the code, tests or patches the row rests on · [pull request #376](https://github.com/ppat/mediated-mailbox-mcp/pull/376), in run [38440944897](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/38440944897) of the `mutation-demonstrations` workflow, and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450), and every break again on 2026-11-17 at RAPID_SEED=1, after the process package, with the scheduler and the database code moved into the process family, changed the code, tests or patches the row rests on · [pull request #453](https://github.com/ppat/mediated-mailbox-mcp/pull/453), and every break again on 2026-11-18 at RAPID_SEED=1, after the deletion of the host, the execution context, `mail.Port` in `core/mail` and the leased call that took it changed the code, tests or patches the row rests on · [pull request #473](https://github.com/ppat/mediated-mailbox-mcp/pull/473)
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break:** the runaway rule ignores the emitted hard cap and compares against Gmail's hard cap of 80 units a second written into the rule
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit`:** `TestAlertingRules`
 
 ## Only the consent's own redirect address finishes a consent
 
-- **Date · evidence:** 2026-10-02 · [pull request #256](https://github.com/ppat/mediated-mailbox-mcp/pull/256), and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450)
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break (1):** a pasted address on any host is read as the redirect
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/google`:** `TestParseRedirect`, `TestTheUIsConsentRedirectsToItsGivenAddress`
 - **Break (2):** the consent's own address pasted without its path, as a browser shows it, is refused
@@ -505,7 +505,7 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## The chart ships the tested alerting rules where the Prometheus Operator's API is served
 
-- **Date · evidence:** 2026-09-24 · [pull request #157](https://github.com/ppat/mediated-mailbox-mcp/pull/157), for the switch off by default the chart had then, and every break again on 2026-10-12, after the rules came to render where the operator's API is served · [pull request #357](https://github.com/ppat/mediated-mailbox-mcp/pull/357), and every break again on 2026-10-13 at RAPID_SEED=1, after the rename of the API server and the migrator moved the code, tests or patches the row rests on · [pull request #376](https://github.com/ppat/mediated-mailbox-mcp/pull/376), in run [38440944897](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/38440944897) of the `mutation-demonstrations` workflow, and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450)
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break (1):** the template renders the rules whether or not the operator's API is served
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit`:** `TestTheChartShipsTheRulesWhereTheOperatorsAPIIsServed`
 - **Break (2):** the resource carries no rules rather than the tested file
@@ -513,23 +513,23 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## The collapse rules fire on five minutes at the floor or with nothing granted, and only while a class asks
 
-- **Date · evidence:** 2026-09-25 · [pull request #161](https://github.com/ppat/mediated-mailbox-mcp/pull/161), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and breaks 1 and 2 again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and the breaks that edit the rules file again on 2026-10-12, after it moved under `packaging/chart/rules/` · [pull request #357](https://github.com/ppat/mediated-mailbox-mcp/pull/357), and every break again on 2026-10-13 at RAPID_SEED=1, after the rename of the API server and the migrator moved the code, tests or patches the row rests on · [pull request #376](https://github.com/ppat/mediated-mailbox-mcp/pull/376), in run [38440944897](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/38440944897) of the `mutation-demonstrations` workflow, and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450), and breaks (3), (4), (5) and (6) again on 2026-11-17 at RAPID_SEED=1, after the process package, with the scheduler and the database code moved into the process family, changed the code, tests or patches the row rests on · [pull request #453](https://github.com/ppat/mediated-mailbox-mcp/pull/453), and the breaks of the floor at full precision and of a never-granted account reading as recent again on 2026-11-18, after the collector came to read an account's lowered target · [pull request #NNN](https://github.com/ppat/mediated-mailbox-mcp/pull/NNN), and every break again on 2026-11-18 at RAPID_SEED=1, after the deletion of the host, the execution context, `mail.Port` in `core/mail` and the leased call that took it changed the code, tests or patches the row rests on · [pull request #473](https://github.com/ppat/mediated-mailbox-mcp/pull/473)
-- **Break (1):** the floor is emitted at full precision, so a rate held at a floor a four-byte float rounds up reads as above it
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
+- **Break (1):** the floor rule fires whether or not a class asked in the last minute
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit`:** `TestAlertingRules`
+- **Break (2):** the floor rule waits ten minutes at the floor before it fires
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit`:** `TestAlertingRules`
+- **Break (3):** the floor is emitted at full precision, so a rate held at a floor a four-byte float rounds up reads as above it
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit`:** `TestAFloorRateReadsAsAtTheFloor`
-- **Break (2):** an instant never set reads as just now, so an account waiting on its first grant reads as healthy
+- **Break (4):** the stall rule fires after one second with nothing granted
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit`:** `TestAlertingRules`
+- **Break (5):** an instant never set reads as just now, so an account waiting on its first grant reads as healthy
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit`:** `TestTheCollectorReportsEachAccountsRateState`
-- **Break (3):** the stall rule fires only after fifty minutes with nothing granted
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit`:** `TestAlertingRules`
-- **Break (4):** the floor rule waits ten minutes at the floor before it fires
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit`:** `TestAlertingRules`
-- **Break (5):** the stall rule fires after one second with nothing granted
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit`:** `TestAlertingRules`
-- **Break (6):** the floor rule fires whether or not a class asked in the last minute
+- **Break (6):** the stall rule fires only after fifty minutes with nothing granted
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit`:** `TestAlertingRules`
 
 ## The consent accepts a grant of the modify scope alone
 
-- **Date · evidence:** 2026-10-02 · [pull request #256](https://github.com/ppat/mediated-mailbox-mcp/pull/256), and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450)
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break (1):** the code exchange's response is read as a grant without checking its scope
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/google`:** `TestGrantFrom`, `TestGrantFrom/modify_and_the_full_scope`, `TestGrantFrom/no_scope`, `TestGrantFrom/the_full_mail_scope`
 - **Break (2):** a grant holding the modify scope among others is accepted
@@ -541,7 +541,7 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## The consent and the contract run refuse a grant belonging to an account other than the one named, and name neither account
 
-- **Date · evidence:** 2026-10-02 · [pull request #256](https://github.com/ppat/mediated-mailbox-mcp/pull/256), and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450)
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break (1):** a grant is accepted whatever account it belongs to
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/google`:** `TestRequireAccount`, `TestRequireAccount/an_account_sharing_a_prefix`, `TestRequireAccount/another_account`, `TestRequireAccount/no_account_granted`, `TestRequireAccount/no_account_wanted`
 - **Break (2):** the refusal names the account the grant belongs to
@@ -551,7 +551,7 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## The consent redirect hands over a code only with the consent's state
 
-- **Date · evidence:** 2026-10-02 · [pull request #256](https://github.com/ppat/mediated-mailbox-mcp/pull/256), and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450)
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break (1):** a redirect carrying an error is handed over as a code
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/google`:** `TestTheConsentRedirectRefusesAnErrorOrNoCode`, `TestTheConsentRedirectRefusesAnErrorOrNoCode/error`
 - **Break (2):** a redirect with the right state and no code is handed over as an empty code
@@ -563,7 +563,7 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## The contract suite compares, changes and prints only the mail each case added, and a scoped case's listings return only threads carrying its own label
 
-- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450)
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break (1):** each page of an enumeration is logged whole, the mail the case did not add included
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/mail/fake`:** `TestTheScopedSuitePassesOverMailItDidNotAdd`
 - **Break (2):** the change feed keeps the changes to mail the case did not add
@@ -579,7 +579,7 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## The contract suite fails an implementation that breaks a promise of the port
 
-- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450), and every break again on 2026-11-18 at RAPID_SEED=1, after the deletion of the host, the execution context, `mail.Port` in `core/mail` and the leased call that took it changed the code, tests or patches the row rests on · [pull request #473](https://github.com/ppat/mediated-mailbox-mcp/pull/473)
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break (1):** the fake's After selects the messages dated at or before the instant
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/mail/fake`:** `TestTheFakePassesTheContract`, `TestTheFakePassesTheContract/a_query_selects_exactly_the_threads_it_names`, `TestTheFakePassesTheContract/a_query_selects_exactly_the_threads_it_names/a_window`, `TestTheFakePassesTheContract/a_query_selects_exactly_the_threads_it_names/after_an_instant,_selecting_a_thread_through_its_newest_message`, `TestTheFakePassesTheContract/a_query_selects_exactly_the_threads_it_names/after_the_instant_a_message_is_dated,_which_it_includes`, `TestTheFakePassesTheContract/the_trash_and_spam_are_listed_and_read_like_any_other_mail`, `TestTheFakePassesTheContractOnOnePage`, `TestTheFakePassesTheContractOnOnePage/a_query_selects_exactly_the_threads_it_names`, `TestTheFakePassesTheContractOnOnePage/a_query_selects_exactly_the_threads_it_names/a_window`, `TestTheFakePassesTheContractOnOnePage/a_query_selects_exactly_the_threads_it_names/after_an_instant,_selecting_a_thread_through_its_newest_message`, `TestTheFakePassesTheContractOnOnePage/a_query_selects_exactly_the_threads_it_names/after_the_instant_a_message_is_dated,_which_it_includes`, `TestTheFakePassesTheContractOnOnePage/the_trash_and_spam_are_listed_and_read_like_any_other_mail`, `TestTheFakeReportingATotalPassesTheContract`, `TestTheFakeReportingATotalPassesTheContract/pages_of_100`, `TestTheFakeReportingATotalPassesTheContract/pages_of_100/a_query_selects_exactly_the_threads_it_names`, `TestTheFakeReportingATotalPassesTheContract/pages_of_100/a_query_selects_exactly_the_threads_it_names/a_window`, `TestTheFakeReportingATotalPassesTheContract/pages_of_100/a_query_selects_exactly_the_threads_it_names/after_an_instant,_selecting_a_thread_through_its_newest_message`, `TestTheFakeReportingATotalPassesTheContract/pages_of_100/a_query_selects_exactly_the_threads_it_names/after_the_instant_a_message_is_dated,_which_it_includes`, `TestTheFakeReportingATotalPassesTheContract/pages_of_100/the_trash_and_spam_are_listed_and_read_like_any_other_mail`, `TestTheFakeReportingATotalPassesTheContract/pages_of_2`, `TestTheFakeReportingATotalPassesTheContract/pages_of_2/a_query_selects_exactly_the_threads_it_names`, `TestTheFakeReportingATotalPassesTheContract/pages_of_2/a_query_selects_exactly_the_threads_it_names/a_window`, `TestTheFakeReportingATotalPassesTheContract/pages_of_2/a_query_selects_exactly_the_threads_it_names/after_an_instant,_selecting_a_thread_through_its_newest_message`, `TestTheFakeReportingATotalPassesTheContract/pages_of_2/a_query_selects_exactly_the_threads_it_names/after_the_instant_a_message_is_dated,_which_it_includes`, `TestTheFakeReportingATotalPassesTheContract/pages_of_2/the_trash_and_spam_are_listed_and_read_like_any_other_mail`, `TestTheScopedSuitePassesOverMailItDidNotAdd`, `TestTheThrottledFakePassesTheContract`, `TestTheThrottledFakePassesTheContract/a_query_selects_exactly_the_threads_it_names`, `TestTheThrottledFakePassesTheContract/a_query_selects_exactly_the_threads_it_names/a_window`, `TestTheThrottledFakePassesTheContract/a_query_selects_exactly_the_threads_it_names/after_an_instant,_selecting_a_thread_through_its_newest_message`, `TestTheThrottledFakePassesTheContract/a_query_selects_exactly_the_threads_it_names/after_the_instant_a_message_is_dated,_which_it_includes`, `TestTheThrottledFakePassesTheContract/the_trash_and_spam_are_listed_and_read_like_any_other_mail`
 - **Break (2):** the fake's After excludes a message dated at the instant
@@ -625,7 +625,7 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## The contract suite fails an implementation whose enumeration reports a total it was not configured to, reports none when configured to, passes its page limit, or counts fewer messages than the case added
 
-- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450), and every break again on 2026-11-18 at RAPID_SEED=1, after the deletion of the host, the execution context, `mail.Port` in `core/mail` and the leased call that took it changed the code, tests or patches the row rests on · [pull request #473](https://github.com/ppat/mediated-mailbox-mcp/pull/473)
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break (1):** the fake reports a page limit one below the most items its pages hold
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/mail/fake`:** `TestTheFakeReportingATotalPassesTheContract`, `TestTheFakeReportingATotalPassesTheContract/pages_of_2`, `TestTheFakeReportingATotalPassesTheContract/pages_of_2/enumeration_resumes_from_any_page_token`, `TestTheFakeReportingATotalPassesTheContract/pages_of_2/enumeration_returns_every_message_once_with_what_was_seeded`
 - **Break (2):** the fake reports a total whether or not it is configured to
@@ -637,7 +637,7 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## The contract suite stops a reserve before its test's deadline, inside a case as well as between cases, so every case it ran cleans up
 
-- **Date · evidence:** 2026-10-01 · [pull request #239](https://github.com/ppat/mediated-mailbox-mcp/pull/239), and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450)
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break (1):** the suite starts every case whatever time is left
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/mail/fake`:** `TestTheSuiteStopsAReserveBeforeItsDeadline`
 - **Break (2):** an enumeration pages on past the reserve
@@ -645,7 +645,7 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## The controller converges below a real ceiling and recovers after throttling
 
-- **Date · evidence:** 2026-09-29 · [pull request #196](https://github.com/ppat/mediated-mailbox-mcp/pull/196), and every break again on 2026-10-09, over the schema baseline that flattened the migration chain · [pull request #326](https://github.com/ppat/mediated-mailbox-mcp/pull/326), and every break again on 2026-10-11 at RAPID_SEED=1, after the performance measurements changed the code, tests or patches the row rests on · [pull request #341](https://github.com/ppat/mediated-mailbox-mcp/pull/341), and every break again on 2026-10-13 at RAPID_SEED=1, after the rename of the API server and the migrator moved the code, tests or patches the row rests on · [pull request #376](https://github.com/ppat/mediated-mailbox-mcp/pull/376), in run [38440944897](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/38440944897) of the `mutation-demonstrations` workflow, and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450)
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break (1):** a success stores no additive increase, so the rate never climbs back after a cut
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit`:** `TestTheControllerConvergesBelowARealCeilingAndRecovers`
 - **Break (2):** a throttle stores the state it read, so the rate stays at the target above the real ceiling
@@ -653,7 +653,7 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## The controller keeps the rate between the floor and the target
 
-- **Date · evidence:** 2026-09-25 · [pull request #161](https://github.com/ppat/mediated-mailbox-mcp/pull/161), and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450)
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break (1):** a throttle's halving is no longer held at the floor, so the rate falls below it
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit/core`:** `TestNoRunIssuesPastTheHardCap`, `TestThrottled`, `TestThrottled/held_at_the_floor`
 - **Break (2):** additive increase is no longer held at the target
@@ -663,13 +663,13 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## The controller never raises the rate above a lowered target
 
-- **Date · evidence:** 2026-09-25 · [pull request #161](https://github.com/ppat/mediated-mailbox-mcp/pull/161), and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450)
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break:** the additive increase stops at half the ceiling rather than at the account's lowered target
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit/core`:** `TestNoRunIssuesPastTheHardCap`, `TestTheControllerHoldsALoweredTarget`, `TestTheControllerHoldsALoweredTarget/a_huge_success_reaches_only_the_lowered_target`, `TestTheControllerHoldsALoweredTarget/a_stored_rate_at_the_default_target_is_brought_down_to_it`, `TestTheControllerHoldsALoweredTarget/a_success_stops_at_the_lowered_target`, `TestTheRateClimbsToALoweredTargetAndNoFurther`
 
 ## The Gmail adapter emits its account's hard cap beside the count of request cost, from the ceiling its rate profile declares
 
-- **Date · evidence:** 2026-10-01 · [pull request #222](https://github.com/ppat/mediated-mailbox-mcp/pull/222), demonstrated again after it changed the tests the row names, first demonstrated by [pull request #161](https://github.com/ppat/mediated-mailbox-mcp/pull/161), and every break again on 2026-10-11 at RAPID_SEED=1, after the performance measurements changed the code, tests or patches the row rests on · [pull request #341](https://github.com/ppat/mediated-mailbox-mcp/pull/341), and every break again on 2026-10-12, after the rules file moved under `packaging/chart/rules/` · [pull request #357](https://github.com/ppat/mediated-mailbox-mcp/pull/357), and every break again on 2026-10-13 at RAPID_SEED=1, after the body fetch by part and the refused scan state changed the code, tests or patches the row rests on · [pull request #369](https://github.com/ppat/mediated-mailbox-mcp/pull/369), and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450), and every break again on 2026-11-17 at RAPID_SEED=1, after the Session, the connections and the unit of work in the process family changed the code, tests or patches the row rests on · [pull request #455](https://github.com/ppat/mediated-mailbox-mcp/pull/455)
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break (1):** the adapter emits the declared ceiling rather than the hard cap
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider`:** `TestEveryRequestTheAdapterSendsIsOnTheSharedSeries`
 - **Break (2):** the adapter never sets the hard cap, so the runaway rule has nothing to compare the count against
@@ -677,7 +677,7 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## The Gmail adapter requires only a label an op adds to exist, and an op left with nothing to change still finds its message
 
-- **Date · evidence:** 2026-09-25 · [pull request #158](https://github.com/ppat/mediated-mailbox-mcp/pull/158), and every break again on 2026-10-11 at RAPID_SEED=1, after the performance measurements changed the code, tests or patches the row rests on · [pull request #341](https://github.com/ppat/mediated-mailbox-mcp/pull/341), and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450), and every break again on 2026-11-18 at RAPID_SEED=1, after the deletion of the host, the execution context, `mail.Port` in `core/mail` and the leased call that took it changed the code, tests or patches the row rests on · [pull request #473](https://github.com/ppat/mediated-mailbox-mcp/pull/473)
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break (1):** an op left with nothing to change is reported applied without reading its message, so an unknown message is never found
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/mail/gmail`:** `TestAnOpChangingNothingReadsItsMessage`
 - **Break (2):** a move from a label the account lacks is not found
@@ -687,7 +687,7 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## The Gmail grant requests only the modify scope
 
-- **Date · evidence:** 2026-10-02 · [pull request #256](https://github.com/ppat/mediated-mailbox-mcp/pull/256), and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450)
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break (1):** the consent requests the full mail scope beside the modify scope
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/google`:** `TestTheConsentAsksForAnOfflineGrant`, `TestTheConsentRequestsOnlyTheModifyScope`
 - **Break (2):** the consent asks Google to fold every scope the account granted this client before into the new token
@@ -699,7 +699,7 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## The latency baseline is the lowest of the last ten medians of one-minute windows holding at least 20 samples
 
-- **Date · evidence:** 2026-09-25 · [pull request #161](https://github.com/ppat/mediated-mailbox-mcp/pull/161), and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450)
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break (1):** every remembered median counts, so an early low median holds the baseline down forever
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit/core`:** `TestALastingRiseBecomesTheBaseline`, `TestBaseline`, `TestBaseline/only_the_last_ten_count`, `TestRememberMedian`, `TestRememberMedian/a_longer_stored_list_keeps_its_last_nine`, `TestRememberMedian/the_eleventh_drops_the_oldest`
 - **Break (2):** the baseline is the latest median rather than the lowest, so a rise becomes the baseline at once
@@ -711,7 +711,7 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## The mailbox a grant belongs to is compared as Google identifies a mailbox
 
-- **Date · evidence:** 2026-10-02 · [pull request #256](https://github.com/ppat/mediated-mailbox-mcp/pull/256), and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450)
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break (1):** the mailboxes are compared with their case
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/google`:** `TestRequireAccount`, `TestSameMailbox`
 - **Break (2):** the mailboxes are compared ignoring case alone
@@ -721,7 +721,7 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## The provider fake throttles on schedule, and a throttled call has no effect
 
-- **Date · evidence:** 2026-09-24 · [pull request #154](https://github.com/ppat/mediated-mailbox-mcp/pull/154), and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450), and every break again on 2026-11-18 at RAPID_SEED=1, after the deletion of the host, the execution context, `mail.Port` in `core/mail` and the leased call that took it changed the code, tests or patches the row rests on · [pull request #473](https://github.com/ppat/mediated-mailbox-mcp/pull/473)
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break (1):** the ceiling counts the calls it refuses as spent
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/mail/fake`:** `TestCeilingThrottlesAboveTheRate`
 - **Break (2):** a throttled mutation still reaches the wrapped port
@@ -729,7 +729,7 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## The provider library makes an account's token from the OAuth client it connects through and its own credential
 
-- **Date · evidence:** 2026-11-17 at RAPID_SEED=1 · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450), and every break again on 2026-11-17 at RAPID_SEED=1, after the Session, the connections and the unit of work in the process family changed the code, tests or patches the row rests on · [pull request #455](https://github.com/ppat/mediated-mailbox-mcp/pull/455)
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break (1):** the client's identifier and secret are swapped in the token's credentials
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider`:** `TestAGmailTokenIsMadeFromItsClientAndItsCredential`
 - **Break (2):** the client's secret is taken as the account's refresh token
@@ -737,17 +737,17 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## The runaway rule fires on two minutes of provider request cost above the hard cap times 120 seconds, summed over every spending process
 
-- **Date · evidence:** 2026-09-25 · [pull request #161](https://github.com/ppat/mediated-mailbox-mcp/pull/161), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-12, after the rules file moved under `packaging/chart/rules/` · [pull request #357](https://github.com/ppat/mediated-mailbox-mcp/pull/357), and every break again on 2026-10-13 at RAPID_SEED=1, after the rename of the API server and the migrator moved the code, tests or patches the row rests on · [pull request #376](https://github.com/ppat/mediated-mailbox-mcp/pull/376), in run [38440944897](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/38440944897) of the `mutation-demonstrations` workflow, and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450), and every break again on 2026-11-17 at RAPID_SEED=1, after the process package, with the scheduler and the database code moved into the process family, changed the code, tests or patches the row rests on · [pull request #453](https://github.com/ppat/mediated-mailbox-mcp/pull/453), and every break again on 2026-11-18 at RAPID_SEED=1, after the deletion of the host, the execution context, `mail.Port` in `core/mail` and the leased call that took it changed the code, tests or patches the row rests on · [pull request #473](https://github.com/ppat/mediated-mailbox-mcp/pull/473)
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break (1):** the runaway rule takes the busiest process for the account rather than summing them
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit`:** `TestAlertingRules`
-- **Break (2):** the runaway window is one minute, which holds a single sample when the platform scrapes once a minute, so the rule never fires
+- **Break (2):** the runaway threshold is twice the hard cap times 120 seconds
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit`:** `TestAlertingRules`
-- **Break (3):** the runaway threshold is twice the hard cap times 120 seconds
+- **Break (3):** the runaway window is one minute, which holds a single sample when the platform scrapes once a minute, so the rule never fires
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit`:** `TestAlertingRules`
 
 ## The runaway rule judges each account by the highest hard cap its processes emitted over its two minutes, so a process that has gone keeps its threshold
 
-- **Date · evidence:** 2026-09-25 · [pull request #161](https://github.com/ppat/mediated-mailbox-mcp/pull/161), and every break again on 2026-10-08, after the families moved the code, tests or patches the row rests on · [pull request #317](https://github.com/ppat/mediated-mailbox-mcp/pull/317), and every break again on 2026-10-12, after the rules file moved under `packaging/chart/rules/` · [pull request #357](https://github.com/ppat/mediated-mailbox-mcp/pull/357), and every break again on 2026-10-13 at RAPID_SEED=1, after the rename of the API server and the migrator moved the code, tests or patches the row rests on · [pull request #376](https://github.com/ppat/mediated-mailbox-mcp/pull/376), in run [38440944897](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/38440944897) of the `mutation-demonstrations` workflow, and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450), and every break again on 2026-11-17 at RAPID_SEED=1, after the process package, with the scheduler and the database code moved into the process family, changed the code, tests or patches the row rests on · [pull request #453](https://github.com/ppat/mediated-mailbox-mcp/pull/453), and every break again on 2026-11-18 at RAPID_SEED=1, after the deletion of the host, the execution context, `mail.Port` in `core/mail` and the leased call that took it changed the code, tests or patches the row rests on · [pull request #473](https://github.com/ppat/mediated-mailbox-mcp/pull/473)
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break (1):** the hard cap is read at the instant of evaluation, so a process whose series went stale takes the threshold with it
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit`:** `TestAlertingRules`
 - **Break (2):** the account is judged by the lowest hard cap its processes emitted
@@ -757,7 +757,7 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## The tokens issued inside any one-second window sum to at most the hard cap, and over a longer window stay within the hard cap plus the target times its length, while the stored state is kept whole and current, and the clock does not step forward
 
-- **Date · evidence:** 2026-09-25 · [pull request #161](https://github.com/ppat/mediated-mailbox-mcp/pull/161), and every break again on 2026-11-17 at RAPID_SEED=1, after the provider library and the credential family moved the code, tests or patches the row rests on · [pull request #450](https://github.com/ppat/mediated-mailbox-mcp/pull/450)
+- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break (1):** the bucket holds two seconds' worth at the hard cap rather than one
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit/core`:** `TestIssue`, `TestIssue/a_fresh_bucket_fills_to_its_capacity_and_grants`, `TestIssue/a_request_past_one_second's_worth_at_the_hard_cap_is_refused_and_changes_nothing`, `TestIssue/a_stored_grant_stamped_past_the_request_is_taken_as_issued_at_the_request`, `TestIssue/a_stored_instant_that_came_back_behind_the_grants_leaves_them_in_the_window`, `TestIssue/a_stored_level_above_the_capacity_is_brought_down_to_it`, `TestNoRunIssuesPastTheHardCap`
 - **Break (2):** the issuer's clock follows an instant earlier than the last, so a stretch of time fills the bucket twice

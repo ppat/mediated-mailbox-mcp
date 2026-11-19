@@ -62,11 +62,18 @@ Used by nearly every ticket's pull request. Touches `ROADMAP.md` and the ticket 
 ## Mutation-ledger rows
 
 - The ledger's own preamble, in `docs/MUTATIONS.md`, is the format authority. A row names the
-  control, how the mechanism was broken both ways, the tests that went red, the date, and an
-  evidence pointer, in the form `go tool mutproof` prints, and sits in the file under
-  `docs/mutations/` that the preamble names for the component holding the control's patches.
-- A row is written at implementation time, when its control lands, and rewritten only when the
-  control, its tests, or a generator its tests draw from changes.
+  control, how the mechanism was broken both ways, the tests that went red, and one date and one
+  evidence pointer, those of the latest demonstration the row was written from, which ran every one
+  of its current patches, in the form `go tool mutproof` prints, and sits in the file under
+  `docs/mutations/` that the preamble names for the component holding the control's patches. A row
+  holds no history, and every patch of the current code is a break of its control's row. mutproof
+  numbers a control's breaks in the order its patches are given, so give each control's patches in
+  the byte order of their paths, for example by running `export LC_ALL=C` in the shell before it
+  expands the patches' glob.
+- A row is written at implementation time, when its control lands. Its demonstration runs again
+  when the control, its tests, or a generator its tests draw from changes, and the row is rewritten
+  only when its patches change or need to change, or when a statement in it would otherwise be
+  false of the current code, with every patch of its control run again in one demonstration.
 - A surviving mutant keeps its row open as a defect until the tests are fixed or the mechanism
   is deliberately removed as redundant.
 - A control with no standing automated test gets no row. The line is ADR-0046's.

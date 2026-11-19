@@ -5,10 +5,21 @@ tests: TestRenderTakesTheReleasedForm/both_parts
 scheduled-count: no
 
 diff --git a/content/markdown/render.go b/content/markdown/render.go
-index acebc697..a7c5e82a 100644
+index acebc697..1d5a9fdf 100644
 --- a/content/markdown/render.go
 +++ b/content/markdown/render.go
-@@ -8,7 +8,11 @@ import "github.com/ppat/mediated-mailbox-mcp/core/mail"
+@@ -1,6 +1,9 @@
+ package markdown
+ 
+-import "github.com/ppat/mediated-mailbox-mcp/core/mail"
++import (
++	"github.com/ppat/mediated-mailbox-mcp/content/markdown/core"
++	"github.com/ppat/mediated-mailbox-mcp/core/mail"
++)
+ 
+ // Render returns body as the Markdown it is released and scanned as. A body with an HTML part is
+ // that part's conversion, and one without is its text part in the literal form, so the scan reads
+@@ -8,7 +11,11 @@ import "github.com/ppat/mediated-mailbox-mcp/core/mail"
  // ErrUnconvertible, and no Markdown, for a body either form refuses, above MaxInputBytes included.
  func Render(body mail.MessageBody) (string, error) {
  	if body.HTML != "" {
@@ -17,7 +28,7 @@ index acebc697..a7c5e82a 100644
 +		if err != nil || body.Text == "" {
 +			return converted, err
 +		}
-+		return converted + "\n\n" + Literal(body.Text), nil
++		return converted + "\n\n" + core.Literal(body.Text), nil
  	}
  	return LiteralBody(body.Text)
  }

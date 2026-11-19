@@ -787,11 +787,12 @@ top-level documents, a decision record, or a ticket from here without guessing.
   [decision-record index](./docs/adr/README.md)).
 - **Provider fake** — the contract-tested stand-in implementing the provider port in tests
   (rule in ADR-0043, via the [decision-record index](./docs/adr/README.md)).
-- **Mutation demonstration** (also *mutation table*) — the per-control record that breaking a
-  control's mechanism, so it does less and so it does the wrong thing, made its tests go red, kept in
-  the mutation ledger, [docs/MUTATIONS.md](./docs/MUTATIONS.md) and the files it lists (rule in
-  ADR-0046, via the [decision-record index](./docs/adr/README.md)). Mutation here is the test-suite
-  sense, breaking a mechanism, and not the mailbox-write sense of **Mutation Authorizer**.
+- **Mutation demonstration** — breaking a control's mechanism, so it does less and so it does the
+  wrong thing, one patch per break, and seeing its tests go red. Its record, the control's *mutation
+  table*, is the control's row in the mutation ledger, [docs/MUTATIONS.md](./docs/MUTATIONS.md) and
+  the files it lists (rule in ADR-0046, via the [decision-record index](./docs/adr/README.md)).
+  Mutation here is the test-suite sense, breaking a mechanism, and not the mailbox-write sense of
+  **Mutation Authorizer**.
 - **Violation injection** (also *proving injection*) — the acceptance standard. A control is
   proven by deliberately creating the violation it exists to stop and watching it fire, never by
   observing that nothing bad happened. Catalogued in

@@ -71,10 +71,13 @@
 // leaves every test green is reported as a surviving mutant, which ADR-0046 counts as a defect on
 // the spot. After the last patch the runner prints one ledger row per control, as docs/MUTATIONS.md
 // defines a row, naming each removal and the tests it turned red, and a surviving mutant marks the
-// row open. A control gets a row only when every one of its patches given in the run held or
-// survived. When one failed, could not be judged, or never ran because the run was interrupted, the
-// runner prints no row and says the control's demonstration is incomplete. The evidence pointer is
-// left to the author.
+// row open. It numbers a control's removals in the order its patches are given, and the ledger
+// numbers them in the byte order of their paths, so the author gives them in that order, for
+// example by running export LC_ALL=C in the shell before it expands the patches' glob, since a
+// shell sorts a glob in its own locale. A control gets a row only when every one of its patches
+// given in the run held or survived. When one failed, could not be judged, or never ran because the
+// run was interrupted, the runner prints no row and says the control's demonstration is incomplete.
+// The evidence pointer is left to the author.
 //
 // -trimpath is the one build flag a demonstration's go commands get that the gating run's do not.
 // The file paths it compiles in start with the module path, as import paths do, instead of the
