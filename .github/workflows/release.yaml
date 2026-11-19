@@ -41,7 +41,7 @@ jobs:
   # images workflow on main (ADR-0052).
   images:
     if: ${{ github.event_name == 'release' }}
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 30
     permissions:
       contents: read
@@ -69,7 +69,7 @@ jobs:
   chart:
     needs: [images]
     if: ${{ github.event_name == 'release' }}
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
     permissions:
       contents: read
@@ -127,7 +127,7 @@ jobs:
   # the chart. The signature is a Sigstore bundle attached beside its binary (ADR-0088).
   cli:
     if: ${{ github.event_name == 'release' }}
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
     permissions:
       contents: write
@@ -172,7 +172,7 @@ jobs:
   keygen-check:
     needs: [cli]
     if: ${{ github.event_name == 'release' }}
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
     permissions:
       contents: read
