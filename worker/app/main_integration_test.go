@@ -164,6 +164,8 @@ type logRecord struct {
 	Account string `json:"account"`
 	JobKind string `json:"job_kind"`
 	Error   string `json:"error"`
+	Path    string `json:"path"`
+	Source  string `json:"source"`
 }
 
 // world is the database, the key pair and the provider behind one worker a test runs through its spec
@@ -273,17 +275,24 @@ func (w *world) built(account string) []*fake.Token {
 }
 
 // flags returns the flags naming the test database, connected to as the application user, the
-// world's key files and a probe address of the system's choosing. pgrun gives the user the
-// superuser's password, so the password file holds the one postgres.URL carries.
-func (w *world) flags() []string {
+// world's key files and a probe address of the system's choosing, each of more in place of the flag of
+// its name or after them. pgrun gives the user the superuser's password, so the password file holds
+// the one postgres.URL carries.
+func (w *world) flags(more ...string) []string {
 	w.t.Helper()
 	privates := w.privates
 	if privates == nil {
 		privates = []string{w.keys.privateFile}
 	}
-	return append(databaseFlags(w.t, postgres.URL(w.t)),
+	out := append(databaseFlags(w.t, postgres.URL(w.t)),
 		"--credential.public_key_file="+w.keys.publicFile, "--credential.private_key_files=["+strings.Join(privates, ", ")+"]",
 		"--probe_listen=127.0.0.1:0")
+	for _, m := range more {
+		name, _, _ := strings.Cut(m, "=")
+		out = slices.DeleteFunc(out, func(a string) bool { return strings.HasPrefix(a, name+"=") })
+		out = append(out, m)
+	}
+	return out
 }
 
 // databaseFlags returns the flags naming the database url names, connected to as the application
@@ -314,7 +323,7 @@ func (w *world) start(args ...string) {
 	w.stop, w.done = stop, make(chan error, 1)
 	list := fake.Adapters(w.mailbox, gmail)
 	go func() {
-		w.done <- process.RunContext(ctx, append(w.flags(), args...), nil, w.logs, io.Discard, app.Spec(), connections.WithAdapters(list))
+		w.done <- process.RunContext(ctx, w.flags(args...), nil, w.logs, io.Discard, app.Spec(), connections.WithAdapters(list))
 	}()
 	w.t.Cleanup(w.halt)
 	for deadline := time.Now().Add(20 * time.Second); w.probes == ""; time.Sleep(20 * time.Millisecond) {

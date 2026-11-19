@@ -417,8 +417,10 @@ func TestVersionPrintsTheReleaseVersionAndReadsNoConfiguration(t *testing.T) {
 }
 
 // VERIFICATIONS' row for the log level, for the worker on its spec. With log_level set to warn the
-// effective configuration is still written, each value with its source, and no other record below
-// warn is written (ADR-0122).
+// effective configuration is still written, each value with its source (ADR-0122). The start stops
+// at the database before the worker writes a record of its own, so no record below warn follows the
+// configuration whatever the level. That the level holds the worker's records back is
+// TestTheConfiguredLevelGovernsTheLog's, among the integration tests.
 func TestALogLevelOfWarnWritesNoInfoRecordBeyondTheConfiguration(t *testing.T) {
 	var stdout bytes.Buffer
 	err := run(t, slices.Concat(database, absentKeys, []string{"--log_level=warn"}), nil, &stdout, io.Discard)

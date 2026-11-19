@@ -33,7 +33,7 @@ const Placeholder = "application_user"
 // an identifier, in place of every occurrence of Placeholder in the chain's SQL files. It refuses an
 // empty applicationUser. It first takes goose's PostgreSQL advisory lock on a connection of its own,
 // so a second run at the same time waits, then finds the migrations already applied and applies
-// nothing. goose logs each migration it applies through logger.
+// nothing. goose is handed logger and, since it is not made verbose, writes no record through it.
 func Apply(ctx context.Context, db *sql.DB, chain fs.FS, applicationUser string, logger *slog.Logger) error {
 	if applicationUser == "" {
 		return errors.New("the application user's name is empty, so the chain's grants name no one")

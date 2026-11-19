@@ -20,8 +20,9 @@ import (
 )
 
 // Build opens the migrator's pool, with no schema check, since the migrator moves the schema, and
-// returns the work that applies the chain this build carries. goose logs through the logger the
-// process hands the task, which carries the program's name (ADR-0122).
+// returns the work that applies the chain this build carries. goose is handed the logger the process
+// hands the task, which carries the program's name, and writes no record through it, since
+// db/migrate does not make it verbose (ADR-0122).
 func Build(ctx context.Context, p process.Capabilities, c config.Migrator) (func(context.Context) error, error) {
 	pool, err := database.ForMigration(ctx, p, c)
 	if err != nil {

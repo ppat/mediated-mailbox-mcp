@@ -35,10 +35,11 @@ func TestAPasswordVariableRefusesTheStart(t *testing.T) {
 	}
 }
 
-// A start writes the effective configuration at info whatever log_level says, sets the level from
-// log_level only then, writes a banner naming the UI and its release version to the writer main.go
-// hands in as standard error, and keeps standard output to JSON records (ADR-0122). The public key
-// file does not exist, so the start stops at it, after the banner and before any connection.
+// A start writes the effective configuration at info whatever log_level says, writes a banner naming
+// the UI and its release version to the writer main.go hands in as standard error, and keeps standard
+// output to JSON records (ADR-0122). The public key file does not exist, so the start stops at it,
+// after the banner and before any connection and any record of the UI's own. That the level then holds
+// back the UI's records below it is TestTheConfiguredLevelGovernsTheLog's, among the integration tests.
 func TestTheStartLogsItsConfigurationThenSetsItsLevelAndWritesItsBanner(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	err := run(t.Context(), append([]string{"--log_level=error"}, database...), nil, &stdout, &stderr)
@@ -58,8 +59,7 @@ func TestTheStartLogsItsConfigurationThenSetsItsLevelAndWritesItsBanner(t *testi
 		case record.Msg == "configuration":
 			logged = append(logged, record.Path)
 		case record.Level != "ERROR":
-			// Past the configuration, the level log_level names holds, so nothing below error is
-			// written, the key identifier's line at info among it.
+			// Past the configuration only the refusal is written, at error.
 			t.Errorf("the run wrote %q at %s, below the level log_level names", record.Msg, record.Level)
 		}
 	}

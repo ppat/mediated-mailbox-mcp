@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	neturl "net/url"
@@ -22,10 +23,13 @@ import (
 
 	"github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/credential/seal"
+	"github.com/ppat/mediated-mailbox-mcp/process"
+	"github.com/ppat/mediated-mailbox-mcp/process/connections"
 	"github.com/ppat/mediated-mailbox-mcp/provider/mail/fake"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/marker"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/postgres"
+	"github.com/ppat/mediated-mailbox-mcp/worker/app"
 )
 
 // both is every job kind of the worker, sorted, as jobs returns them.
@@ -782,6 +786,63 @@ func TestTheDriversVariablesNameNothingTheWorkerConnectsTo(t *testing.T) {
 	})
 	w.eventually(20*time.Second, "the worker serving", func() bool { w.probes = probeAddress(w.logs.String()); return w.probes != "" })
 	w.ready()
+}
+
+// VERIFICATIONS' row for the log level, for the worker on its spec. Under log_level set to warn the
+// worker writes every effective value with its source, serves and reports ready, and writes no record
+// at info past the configuration, so its serving record is held back. With no log_level it writes its
+// serving record at info, so the run under warn holds back a record the worker writes (ADR-0122).
+func TestTheConfiguredLevelGovernsTheLog(t *testing.T) {
+	w := newWorld(t)
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	probes := ln.Addr().String()
+	if err := ln.Close(); err != nil {
+		t.Fatal(err)
+	}
+	ctx, stop := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	list := fake.Adapters(w.mailbox, gmail)
+	go func() {
+		done <- process.RunContext(ctx, w.flags("--log_level=warn", "--probe_listen="+probes), nil, w.logs, io.Discard, app.Spec(), connections.WithAdapters(list))
+	}()
+	// The serving record names the probes' address at info, which warn holds back, so the probes listen
+	// where the flag puts them and the readiness probe is asked until it answers 200.
+	w.eventually(20*time.Second, "the worker under warn reporting ready", func() bool {
+		req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "http://"+probes+"/readyz", http.NoBody)
+		if err != nil {
+			t.Fatal(err)
+		}
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return false
+		}
+		return res.Body.Close() == nil && res.StatusCode == http.StatusOK
+	})
+	stop()
+	if err := <-done; err != nil {
+		t.Fatalf("the worker under warn ended with %v", err)
+	}
+	var sources []string
+	for _, r := range w.records("") {
+		switch {
+		case r.Msg == "configuration":
+			sources = append(sources, r.Path+" "+r.Source)
+		case r.Level == "INFO" || r.Level == "DEBUG":
+			t.Errorf("under warn the worker wrote %q at %s", r.Msg, r.Level)
+		}
+	}
+	if !slices.Contains(sources, "log_level flag --log_level") || !slices.Contains(sources, "sync.concurrency default") {
+		t.Errorf("under warn the configuration written is %v, want every value with its source", sources)
+	}
+
+	loud := newWorld(t)
+	loud.start()
+	if !slices.ContainsFunc(loud.records("INFO"), func(r logRecord) bool { return r.Msg == "serving" }) {
+		t.Errorf("with no log_level the worker wrote no serving record at info:\n%s", loud.logs.String())
+	}
 }
 
 // bodyMarkers returns every body marker found in the account's rows of every table that has an

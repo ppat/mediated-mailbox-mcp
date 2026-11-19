@@ -8,11 +8,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	neturl "net/url"
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -61,38 +63,11 @@ type running struct {
 	done   chan error
 }
 
-// start runs the UI from its spec until the test ends or stop is called, configured through flags
-// alone, with the database url names, the password in a mounted file, plain HTTP on an ephemeral
-// loopback port, and the configured consent redirect another than the default. One account,
-// personal, is listed.
+// start runs the UI from its spec until the test ends or stop is called, configured through the flags
+// flags returns with its probes on an ephemeral loopback port, and returns once it serves.
 func start(t *testing.T, url string) *running {
 	t.Helper()
-	u, err := neturl.Parse(url)
-	if err != nil {
-		t.Fatal(err)
-	}
-	conn, err := pgx.Connect(t.Context(), url)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := conn.Exec(t.Context(), "INSERT INTO accounts (account_id, provider) VALUES ('personal', 'gmail') ON CONFLICT DO NOTHING"); err != nil {
-		t.Fatal(err)
-	}
-	if err := conn.Close(t.Context()); err != nil {
-		t.Fatal(err)
-	}
-	password, _ := u.User.Password()
-	passwordFile := filepath.Join(t.TempDir(), "password")
-	if err := os.WriteFile(passwordFile, []byte(password), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	publicKeyFile, privateKeyFile, _ := writeKeys(t)
-	args := []string{
-		"--database.host=" + u.Hostname(), "--database.port=" + u.Port(), "--database.name=" + strings.TrimPrefix(u.Path, "/"),
-		"--database.user=" + u.User.Username(), "--database.sslmode=disable", "--database.password_file=" + passwordFile,
-		"--listen=127.0.0.1:0", "--probe_listen=127.0.0.1:0", "--credential.public_key_file=" + publicKeyFile,
-		"--credential.private_key_files=[" + privateKeyFile + "]", "--consent_redirect=http://[::1]:5000/", "--stream_interval=50ms",
-	}
+	args := flags(t, url, "127.0.0.1:0")
 	ctx, cancel := context.WithCancel(t.Context())
 	r := &running{t: t, logs: &lockedBuffer{}, stop: cancel, done: make(chan error, 1)}
 	go func() { r.done <- run(ctx, args, nil, r.logs, io.Discard) }()
@@ -117,6 +92,39 @@ func start(t *testing.T, url string) *running {
 		t.Fatalf("the UI wrote no serving record:\n%s", r.logs.String())
 	}
 	return r
+}
+
+// flags lists personal as an account and returns the flags that configure the UI with the database
+// url names, the password in a mounted file, plain HTTP on an ephemeral loopback port, its probes on
+// probes, and the configured consent redirect another than the default.
+func flags(t *testing.T, url, probes string) []string {
+	t.Helper()
+	u, err := neturl.Parse(url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	conn, err := pgx.Connect(t.Context(), url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := conn.Exec(t.Context(), "INSERT INTO accounts (account_id, provider) VALUES ('personal', 'gmail') ON CONFLICT DO NOTHING"); err != nil {
+		t.Fatal(err)
+	}
+	if err := conn.Close(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	password, _ := u.User.Password()
+	passwordFile := filepath.Join(t.TempDir(), "password")
+	if err := os.WriteFile(passwordFile, []byte(password), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	publicKeyFile, privateKeyFile, _ := writeKeys(t)
+	return []string{
+		"--database.host=" + u.Hostname(), "--database.port=" + u.Port(), "--database.name=" + strings.TrimPrefix(u.Path, "/"),
+		"--database.user=" + u.User.Username(), "--database.sslmode=disable", "--database.password_file=" + passwordFile,
+		"--listen=127.0.0.1:0", "--probe_listen=" + probes, "--credential.public_key_file=" + publicKeyFile,
+		"--credential.private_key_files=[" + privateKeyFile + "]", "--consent_redirect=http://[::1]:5000/", "--stream_interval=50ms",
+	}
 }
 
 // answer is one response the UI gave.
@@ -393,6 +401,79 @@ func TestAPublicKeyMatchingNoPrivateKeyStopsTheUIsStart(t *testing.T) {
 	if strings.Contains(logs.String(), `"msg":"serving"`) {
 		t.Errorf("the UI served with a public key matching none of its private keys:\n%s", logs.String())
 	}
+}
+
+// VERIFICATIONS' row for the log level, for the UI on its spec. Under log_level set to warn the UI
+// writes every effective value with its source, serves and reports ready, and writes no record at info
+// past the configuration, so the setups' record of the public key they seal to and the serving record
+// are held back. With no log_level it writes both at info, so the run under warn holds back records
+// the UI writes (ADR-0122).
+func TestTheConfiguredLevelGovernsTheLog(t *testing.T) {
+	url := postgres.URL(t)
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	probes := ln.Addr().String()
+	if err := ln.Close(); err != nil {
+		t.Fatal(err)
+	}
+	var logs lockedBuffer
+	ctx, cancel := context.WithCancel(t.Context())
+	done := make(chan error, 1)
+	args := append(flags(t, url, probes), "--log_level=warn")
+	go func() { done <- run(ctx, args, nil, &logs, io.Discard) }()
+	// The serving record names the probes' address at info, which warn holds back, so the probes listen
+	// where the flag puts them and the readiness probe is asked until it answers 200.
+	for deadline := time.Now().Add(10 * time.Second); ; time.Sleep(20 * time.Millisecond) {
+		if time.Now().After(deadline) {
+			t.Fatalf("the UI under warn did not report ready:\n%s", logs.String())
+		}
+		if ready(t, "http://"+probes) {
+			break
+		}
+	}
+	cancel()
+	if err := <-done; err != nil {
+		t.Fatalf("the UI under warn stopped with %v", err)
+	}
+	var sources []string
+	for line := range strings.Lines(logs.String()) {
+		var record struct{ Msg, Level, Path, Source string }
+		if err := json.Unmarshal([]byte(line), &record); err != nil {
+			t.Fatalf("the log holds a line that is not a JSON record: %q", line)
+		}
+		switch {
+		case record.Msg == "configuration":
+			sources = append(sources, record.Path+" "+record.Source)
+		case record.Level == "INFO" || record.Level == "DEBUG":
+			t.Errorf("under warn the UI wrote %q at %s", record.Msg, record.Level)
+		}
+	}
+	if !slices.Contains(sources, "log_level flag --log_level") || !slices.Contains(sources, "stream_interval flag --stream_interval") {
+		t.Errorf("under warn the configuration written is %v, want every value with its source", sources)
+	}
+
+	loud := start(t, url)
+	for _, msg := range []string{"sealing to the public key", "serving"} {
+		if !strings.Contains(loud.logs.String(), `"level":"INFO","msg":"`+msg+`"`) {
+			t.Errorf("with no log_level the UI wrote no %q record at info:\n%s", msg, loud.logs.String())
+		}
+	}
+}
+
+// ready reports whether the readiness probe at probes answers 200, false while nothing listens.
+func ready(t *testing.T, probes string) bool {
+	t.Helper()
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, probes+"/readyz", http.NoBody)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return false
+	}
+	return res.Body.Close() == nil && res.StatusCode == http.StatusOK
 }
 
 // The UI runs no job kind, so its pool's series carry the program's label alone and no job_kind

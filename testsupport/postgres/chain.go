@@ -33,8 +33,8 @@ const ApplicationUser = "mediated_mailbox_app"
 // to applicationUser (ADR-0139, ADR-0143). Nothing runs in the database before the chain, since the
 // schema needs only trusted extensions, which the chain's first migration creates as the migrator's
 // user. admin is a superuser URL and migrator a URL connecting as the migrator's user, and
-// ApplyChain points both at name. goose logs its progress to stderr, and a migration that fails
-// fails the whole application.
+// ApplyChain points both at name. goose is handed a logger to stderr and, not being made verbose,
+// writes nothing to it, and a migration that fails fails the whole application.
 func ApplyChain(ctx context.Context, admin, migrator, name string, chain fs.FS, applicationUser string) (err error) {
 	conn, err := pgx.Connect(ctx, admin)
 	if err != nil {

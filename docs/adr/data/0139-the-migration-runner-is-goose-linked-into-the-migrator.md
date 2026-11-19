@@ -68,12 +68,13 @@ its grid and reading carry over unchanged.
 - **The migration chain stays plain SQL in `db/migrations/`, and the migrator's binary embeds it.**
   The Go package `db/migrations` embeds every SQL file of its directory. The code generator reads
   only the SQL files there as its schema, and goose reads only the embedded SQL files.
-- **One package applies a chain, `db/migrate`, and goose is admitted to it alone.** It applies
-  every migration the database does not yet hold through goose's provider, with goose's PostgreSQL
-  session locker and goose's own global registry of Go migrations switched off, logging through
-  the logger it is handed. The session locker takes a PostgreSQL advisory lock on a connection of
-  its own before it reads what is applied, so a second run at the same time waits for the first
-  and then finds nothing pending.
+- **One package applies a chain, `db/migrate`, and goose is admitted to it alone.** It applies every
+  migration the database does not yet hold through goose's provider, with goose's PostgreSQL session
+  locker and goose's own global registry of Go migrations switched off. It hands goose the logger it
+  is handed, which goose writes to only when made verbose, and the migrator does not make it
+  verbose. The session locker takes a PostgreSQL advisory lock on a connection of its own before it
+  reads what is applied, so a second run at the same time waits for the first and then finds nothing
+  pending.
 - **The migrator is a Go program with a spec like every program's,** `migrator/main.go` and
   `migrator/app`, and the process of
   [ADR-0142](../engineering/0142-each-program-is-a-spec-that-one-process-runs.md) runs it, as it
