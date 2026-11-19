@@ -1,0 +1,19 @@
+control: The operations endpoints answer the health probe, the readiness probe and the metrics endpoint as plain text, and nothing else
+removes: the readiness probe answers 200 whatever the readiness it is handed says
+packages: ./process
+tests: TestTheProbesAnswerFromWhatWasReported TestTheProbesRunNothingWhenAsked TestTheProcessStopsInOrder
+scheduled-count: no
+
+diff --git a/process/probes.go b/process/probes.go
+index 9642e96c..2408e971 100644
+--- a/process/probes.go
++++ b/process/probes.go
+@@ -21,7 +21,7 @@ func probesHandler(gatherer prometheus.Gatherer, ready func(*http.Request) (bool
+ 		answerProbe(w, r, logger, http.StatusOK, "ok")
+ 	})
+ 	mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, r *http.Request) {
+-		if ok, why := ready(r); !ok {
++		if ok, why := ready(r); false && !ok {
+ 			answerProbe(w, r, logger, http.StatusServiceUnavailable, why)
+ 			return
+ 		}

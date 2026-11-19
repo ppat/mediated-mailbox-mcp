@@ -5,10 +5,10 @@ tests: TestRoutes
 scheduled-count: no
 
 diff --git a/testsupport/analysis/routes.go b/testsupport/analysis/routes.go
-index 58aeac0..a305fc5 100644
+index 942e4233..1dbc748c 100644
 --- a/testsupport/analysis/routes.go
 +++ b/testsupport/analysis/routes.go
-@@ -51,7 +51,7 @@ func runRoutes(pass *analysis.Pass) (any, error) {
+@@ -52,7 +52,7 @@ func runRoutes(pass *analysis.Pass) (any, error) {
  	for _, file := range pass.Files {
  		// A file not named .go is one the go command generates, such as a test binary's main.
  		base := filepath.Base(pass.Fset.File(file.Pos()).Name())

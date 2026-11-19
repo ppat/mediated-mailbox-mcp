@@ -264,7 +264,7 @@ func (s state) latest() (run, bool) {
 
 // seedPostgres creates the account and runs the first pass over its mailbox for real, so the second
 // pass starts from what the first stores (ADR-0133).
-func seedPostgres(t testing.TB, account string, f mail.Port[context.Context]) {
+func seedPostgres(t testing.TB, account string, f *fake.Fake) {
 	t.Helper()
 	conn := superuser(t)
 	for _, q := range []string{
@@ -803,7 +803,7 @@ func (w *world) widen() {
 
 // newWorld builds a world over store for the mailbox s generates. body turns the throttled fake into
 // the body fetch the pass uses.
-func newWorld(t tb, s setup, account string, messages []fake.Message, store pass2.Store, starting start.Store, inspect func(tb) state, body func(mail.Port[context.Context]) pass2.Body) *world {
+func newWorld(t tb, s setup, account string, messages []fake.Message, store pass2.Store, starting start.Store, inspect func(tb) state, body func(*fake.Throttled) pass2.Body) *world {
 	t.Helper()
 	f, err := fake.New(fake.Config{Account: account, BudgetPerSecond: 10_000}, messages...)
 	if err != nil {
@@ -1117,7 +1117,7 @@ func realWorldOf(t testing.TB, pageSize int, messages []fake.Message) *world {
 	pool := backfillPool(t)
 	url := postgres.URL(t)
 	return newWorld(t, s, account, messages, pass2.NewPostgres(pool, "backfill"), start.NewPostgres(pool), func(t tb) state { return inspectPostgres(t, url, account) },
-		func(p mail.Port[context.Context]) pass2.Body {
+		func(p *fake.Throttled) pass2.Body {
 			m := leasedMailbox(t, pool, account, p)
 			return func(ctx context.Context, id string) (mail.MessageBody, error) { return providermail.Body(ctx, m, id) }
 		})
@@ -1127,7 +1127,7 @@ func realWorldOf(t testing.TB, pageSize int, messages []fake.Message) *world {
 // caller of the provider library in the batch class over the provider fake's list of adapters, so
 // each call is leased from the account's budget on pool and a throttle reaches the rate limiter's
 // controller (ADR-0025, ADR-0117). The fake's list declares its own ceiling, 100 a second.
-func leasedMailbox(t tb, pool *pgxpool.Pool, account string, p mail.Port[context.Context]) providermail.Mailbox {
+func leasedMailbox(t tb, pool *pgxpool.Pool, account string, p *fake.Throttled) providermail.Mailbox {
 	t.Helper()
 	list := fake.Adapters(func(string, *fake.Token) (*fake.Throttled, error) {
 		return fake.Throttle(p, fake.Never(), time.Now), nil
@@ -1152,7 +1152,7 @@ func modelWorld(t tb, s setup) *world {
 	t.Helper()
 	messages := mailbox(s)
 	m := newMemory(t, messages)
-	return newWorld(t, s, "personal", messages, m, m, m.inspect, func(p mail.Port[context.Context]) pass2.Body {
+	return newWorld(t, s, "personal", messages, m, m, m.inspect, func(p *fake.Throttled) pass2.Body {
 		return func(ctx context.Context, id string) (mail.MessageBody, error) { return p.GetMessageBody(ctx, id, "") }
 	})
 }

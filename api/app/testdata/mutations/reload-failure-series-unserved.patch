@@ -6,10 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/process/sessions/sessions.go b/process/sessions/sessions.go
-index 60398e3d..92e16608 100644
+index 0f7b87f4..85525837 100644
 --- a/process/sessions/sessions.go
 +++ b/process/sessions/sessions.go
-@@ -94,7 +94,7 @@ func Get(ctx context.Context, p process.Capabilities, c config.HasAccounts) (*Se
+@@ -102,7 +102,7 @@ func Get(ctx context.Context, p process.Capabilities, c config.HasAccounts) (*Se
  		}
  		s := &Session{
  			pool: pool, logger: shared.Logger(), report: shared.Report,

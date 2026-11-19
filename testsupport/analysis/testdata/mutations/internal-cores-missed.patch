@@ -5,7 +5,7 @@ tests: TestGlobals
 scheduled-count: no
 
 diff --git a/testsupport/analysis/globals.go b/testsupport/analysis/globals.go
-index 6b298328..6b69cc25 100644
+index 94124426..38103d30 100644
 --- a/testsupport/analysis/globals.go
 +++ b/testsupport/analysis/globals.go
 @@ -46,7 +46,7 @@ const modulePath = "github.com/ppat/mediated-mailbox-mcp"

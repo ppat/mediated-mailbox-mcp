@@ -5,6 +5,7 @@ tests: TestTheStartLogsItsConfigurationThenSetsItsLevelAndRunsItsChecks/until_st
 scheduled-count: no
 
 diff --git a/process/run.go b/process/run.go
+index 7edb03f4..b7e9c9fb 100644
 --- a/process/run.go
 +++ b/process/run.go
 @@ -138,14 +138,14 @@ func start[C config.Program[C]](args, environ []string, stdout, stderr io.Writer

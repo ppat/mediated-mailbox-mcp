@@ -58,8 +58,6 @@ on:
     - process/database/core/*
     - process/domains/*
     - process/logging/*
-    - process/probes/*
-    - process/runtimemetrics/*
     - process/schedule/*
     - process/settings/*
     - process/version/*

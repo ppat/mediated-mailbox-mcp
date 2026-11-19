@@ -6,6 +6,7 @@ scheduled-count: no
 integration: yes
 
 diff --git a/process/sessions/sessions.go b/process/sessions/sessions.go
+index 0f7b87f4..9b15f39c 100644
 --- a/process/sessions/sessions.go
 +++ b/process/sessions/sessions.go
 @@ -295,7 +295,7 @@ func (s *Session) FreshPolicy(ctx context.Context) error { return s.policies.Fre

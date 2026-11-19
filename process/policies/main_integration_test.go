@@ -25,7 +25,7 @@ func TestMain(m *testing.M) {
 }
 
 // reloadFailedName is the series the reload-failure alarm reads.
-const reloadFailedName = "mediated_mailbox_policyload_reload_failed"
+const reloadFailedName = "mediated_mailbox_policy_reload_failed"
 
 // backfill returns a pool connecting as the application user, as backfill, the first deployable that
 // loads policy, does. Its grants apply to it, as they do in production.

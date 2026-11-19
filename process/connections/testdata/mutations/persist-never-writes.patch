@@ -1,0 +1,20 @@
+control: At the end of a unit of work a rotated credential is written back by compare-and-set on the stored bytes the record knew, and an unchanged one is not
+removes: a rotated credential is reported as written without the write running
+packages: ./process/connections
+tests: TestARotatedCredentialSurvivesARestart TestAFailedWriteBackIsHeldLoggedAndKeptByAReload TestOverlappingRotationsEachLand
+scheduled-count: no
+integration: yes
+
+diff --git a/process/connections/work.go b/process/connections/work.go
+index bee4427e..734dbc80 100644
+--- a/process/connections/work.go
++++ b/process/connections/work.go
+@@ -247,7 +247,7 @@ func (w *Work) writeBack(ctx context.Context, stamp uint64, current []byte) erro
+ 	if err != nil {
+ 		return c.failed(account, err)
+ 	}
+-	landed, err := replace(ctx, w.pool, account, known, sealed)
++	landed, err := true, error(nil)
+ 	if err != nil {
+ 		return c.failed(account, err)
+ 	}

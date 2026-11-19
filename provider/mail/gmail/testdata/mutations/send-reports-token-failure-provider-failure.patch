@@ -5,10 +5,10 @@ tests: TestAPortCallWhoseTokenRequestWasRefusedIsARefusedCredential
 scheduled-count: no
 
 diff --git a/provider/mail/gmail/adapter.go b/provider/mail/gmail/adapter.go
-index bf90bfe..7afedc8 100644
+index 46815924..f923889d 100644
 --- a/provider/mail/gmail/adapter.go
 +++ b/provider/mail/gmail/adapter.go
-@@ -96,7 +96,7 @@ func (a *Adapter) send(ctx context.Context, r request) ([]byte, error) {
+@@ -109,7 +109,7 @@ func (a *Adapter) send(ctx context.Context, r request) ([]byte, error) {
  		if ctx.Err() != nil {
  			return nil, ctx.Err()
  		}

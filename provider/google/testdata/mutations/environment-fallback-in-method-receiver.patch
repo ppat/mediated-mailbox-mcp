@@ -5,7 +5,7 @@ tests: TestNoSourceFileReadsTheEnvironment
 scheduled-count: no
 
 diff --git a/provider/google/tokensource.go b/provider/google/tokensource.go
-index 7eee30ce..e84b69e4 100644
+index 1ac8e55a..3124db5c 100644
 --- a/provider/google/tokensource.go
 +++ b/provider/google/tokensource.go
 @@ -3,6 +3,8 @@ package google

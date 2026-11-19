@@ -207,10 +207,11 @@ flowchart LR
   `database.ForMigration`, which opens the migrator's pool with no schema check, takes a
   configuration type that has an unexported method only `config.Migrator` has, so the compiler
   refuses a deployable's own configuration there. Left to review are a `Build` that makes a
-  `config.Migrator` value of its own, by a literal, by its defaults or as a zero value, and, until
-  `process/host` is deleted, the lower-level opening the host opens its pools through, which runs
-  no schema check, and a pool a deployable's code opens through the driver itself. A pool apart for
-  a later need is a further function of `process/database`.
+  `config.Migrator` value of its own, by a literal, by its defaults or as a zero value, and a pool a
+  deployable's code opens through the driver itself. The lower-level opening `database.Get` and
+  `database.ForMigration` open through runs no schema check and is unexported, so nothing outside
+  `process/database` can call it. A pool apart for a later need is a further function of
+  `process/database`.
 - **The spec and each `Build` are the program's wiring**, written by hand in ordinary code, as
   [ADR-0040](./0040-pure-core-decisions-as-values.md) requires. The order the parts start in is the
   stages below. A part's pool comes from `process/database`, and the API server, the UI and the

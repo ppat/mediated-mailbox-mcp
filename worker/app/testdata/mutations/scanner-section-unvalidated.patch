@@ -5,6 +5,7 @@ tests: TestAnInvalidScannerSectionRefusesTheStart TestTheWorkerConfigurationIsCh
 scheduled-count: no
 
 diff --git a/core/config/programs.go b/core/config/programs.go
+index b8a3a69f..d103f1cb 100644
 --- a/core/config/programs.go
 +++ b/core/config/programs.go
 @@ -316,7 +316,6 @@ func (c Worker) Check() error {

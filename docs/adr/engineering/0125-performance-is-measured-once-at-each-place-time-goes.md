@@ -109,7 +109,7 @@ labelled by `operation`, the name of each operation the registry holds, with buc
 - **No outcome label.** A denied body is a successful call, which the body counters already split,
   and an argument refusal is timed with the operation's other calls and logged.
 
-**K2. Policy load duration.** `mediated_mailbox_policyload_reload_duration_seconds`, a histogram
+**K2. Policy load duration.** `mediated_mailbox_policy_reload_duration_seconds`, a histogram
 with no label of its own, with buckets at 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1 and 5 seconds.
 
 - **Question.** How much of a body request is the coalesced policy load it waits for, and does it
@@ -299,9 +299,7 @@ a shared thing's series carry no job kind, in every process
 ([ADR-0142](./0142-each-program-is-a-spec-that-one-process-runs.md)). A scrape still fails on
 two series of one name and one set of label values. The cost is the library's check against
 registering one collector twice, which it makes only for a checked collector. So each pool
-`process/database` gives a part is opened once, under its lock, and each pool the host opens
-through `process/database`'s lower-level opening is opened once by the root that asks for it,
-while the host remains.
+`process/database` gives a part is opened once, under its lock.
 
 The tracer and the collector are written in this project rather than taken from a library.
 
@@ -354,9 +352,8 @@ descriptors and start time.
 
 ### The Session
 
-**K12. Session reload duration.**
-`mediated_mailbox_executioncontext_reload_duration_seconds`, a histogram with no label of its own,
-with buckets at 0.01, 0.05, 0.1, 0.5, 1, 5, 10 and 30 seconds.
+**K12. Session reload duration.** `mediated_mailbox_session_reload_duration_seconds`, a histogram
+with no label of its own, with buckets at 0.01, 0.05, 0.1, 0.5, 1, 5, 10 and 30 seconds.
 
 - **Question.** How long does a process take to reload its accounts, open their credentials, read
   their lowered targets and load their policy, and is it creeping toward its reload interval?

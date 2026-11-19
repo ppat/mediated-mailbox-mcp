@@ -5,10 +5,10 @@ tests: TestGlobals
 scheduled-count: no
 
 diff --git a/testsupport/analysis/globals.go b/testsupport/analysis/globals.go
-index f293bbb..2c40f14 100644
+index 94124426..c2350aed 100644
 --- a/testsupport/analysis/globals.go
 +++ b/testsupport/analysis/globals.go
-@@ -198,7 +198,7 @@ func pureCoreVar(pass *analysis.Pass, obj types.Object) *types.Var {
+@@ -199,7 +199,7 @@ func pureCoreVar(pass *analysis.Pass, obj types.Object) *types.Var {
  		return nil
  	}
  	own := pass.Pkg.Path() == v.Pkg().Path() || pass.Pkg.Path() == v.Pkg().Path()+"_test"

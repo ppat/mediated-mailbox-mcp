@@ -1,0 +1,20 @@
+control: An account of a provider that authenticates through an OAuth client is connected only through its own client
+removes: an account a load finds without its client is logged as not connected but connected all the same, with a token over its credential
+packages: ./process/connections
+tests: TestAnAccountOfAClientProviderWithoutItsClientIsNotConnected
+scheduled-count: no
+integration: yes
+
+diff --git a/process/connections/connections.go b/process/connections/connections.go
+index 463d796a..afe7f3ed 100644
+--- a/process/connections/connections.go
++++ b/process/connections/connections.go
+@@ -323,7 +323,7 @@ func (c *Connections) adopt(rec *record, a accounts.Account, opened map[string]c
+ 		}
+ 	}
+ 	c.adopted(rec, same)
+-	if !c.servable(a.ID, rec) {
++	if !c.servable(a.ID, rec) && false {
+ 		rec.stored, rec.baseline, rec.token, rec.connected = stored, baselineOf(rec, same, plaintext), nil, false
+ 		return true
+ 	}

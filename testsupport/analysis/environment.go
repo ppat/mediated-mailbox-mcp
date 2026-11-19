@@ -14,7 +14,7 @@ import (
 // covers the deployables and the shared libraries by covering every package of this module outside
 // testsupport, the test tooling. It exempts test files, and a deployable's or the migrator's main.go,
 // the file main.go of a package main one directory below the module's root, which hands the
-// environment to its composition root, its entry package, and so to the library.
+// environment to process.Run with the program's spec, and so to the library.
 //
 // The refused functions are every standard-library function that returns an environment
 // variable's value by a name its caller gives, or returns the environment as a whole. Those are
@@ -31,7 +31,7 @@ var Environment = &analysis.Analyzer{
 	Run:  runEnvironment,
 }
 
-const environmentMessage = "%s outside a deployable's main.go, so the setting would bypass the configuration library's layers and refusals. Take it from the configuration the composition root loads (ADR-0078)"
+const environmentMessage = "%s outside a deployable's main.go, so the setting would bypass the configuration library's layers and refusals. Take it from the configuration the process loads (ADR-0078)"
 
 // environmentReaders are the refused functions by their full names, each with the finding's
 // opening words.

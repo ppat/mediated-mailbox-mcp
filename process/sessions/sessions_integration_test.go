@@ -152,7 +152,7 @@ func TestTheSessionIsOnePerProcessBuiltFromTheProcess(t *testing.T) {
 	}
 	r.waitReady(t, 10*time.Second)
 	_, metrics := r.probe(t, "/metrics")
-	if !strings.Contains(metrics, `mediated_mailbox_executioncontext_reload_duration_seconds_count{component="test"}`) {
+	if !strings.Contains(metrics, `mediated_mailbox_session_reload_duration_seconds_count{component="test"}`) {
 		t.Errorf("the Session's reload series is not labelled with the program alone:\n%s", grepLines(metrics, "reload_duration"))
 	}
 	for _, kind := range []string{`job_kind="session"`, `job_kind=""`} {
@@ -177,7 +177,7 @@ func grepLines(text, s string) string {
 func timedReloads(t *testing.T, r *running) int {
 	t.Helper()
 	_, metrics := r.probe(t, "/metrics")
-	m := regexp.MustCompile(`mediated_mailbox_executioncontext_reload_duration_seconds_count\{[^}]*\} (\d+)`).FindStringSubmatch(metrics)
+	m := regexp.MustCompile(`mediated_mailbox_session_reload_duration_seconds_count\{[^}]*\} (\d+)`).FindStringSubmatch(metrics)
 	if m == nil {
 		t.Fatalf("the Session's reload series is not served:\n%s", grepLines(metrics, "reload_duration"))
 	}

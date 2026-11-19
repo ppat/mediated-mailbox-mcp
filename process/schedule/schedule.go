@@ -3,8 +3,8 @@
 // nothing outside the process: which jobs exist, when each was last asked, which wakes are pending
 // and each job's backoff live in memory and are rebuilt from recorded state after a restart.
 //
-// A job is one key, a job kind and the account it serves, and the run its job kind built for it in
-// the composition root, a plain typed function. Each job runs on a goroutine of its own, never on a
+// A job is one key, a job kind and the account it serves, and the run its job kind's plan built for
+// it, a plain typed function. Each job runs on a goroutine of its own, never on a
 // goroutine another job shares, so a blocked run blocks only its own job. The scheduler keeps these
 // rules.
 //

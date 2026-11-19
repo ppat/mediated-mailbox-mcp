@@ -1,38 +1,37 @@
 package mail_test
 
 import (
-	"context"
 	"errors"
 	"testing"
+	"time"
 
 	coremail "github.com/ppat/mediated-mailbox-mcp/core/mail"
 	"github.com/ppat/mediated-mailbox-mcp/provider/mail"
 	"github.com/ppat/mediated-mailbox-mcp/provider/mail/fake"
 )
 
-// counting is a mailbox that counts the body calls it is asked and the parts they name.
-type counting struct {
-	*fake.Fake
-	parts []coremail.BodyPart
-}
-
-func (c *counting) GetMessageBody(ctx context.Context, id string, part coremail.BodyPart) (coremail.MessageBody, error) {
-	c.parts = append(c.parts, part)
-	return c.Fake.GetMessageBody(ctx, id, part)
-}
-
-// apartAgain answers every body call that its part is held apart, the part named included.
-type apartAgain struct{ counting }
-
-func (a *apartAgain) GetMessageBody(_ context.Context, id string, part coremail.BodyPart) (coremail.MessageBody, error) {
-	a.parts = append(a.parts, part)
-	return coremail.MessageBody{}, coremail.HeldApartError{Part: coremail.BodyPart("again-" + id)}
+// counted wraps f so it counts the body calls it is asked in calls, and answers each body call after
+// the first that the part is held apart again when again is set. It is the provider fake alone, with
+// no method of the port's written here, so a change to the port's operations is a change to the fake.
+func counted(f *fake.Fake, calls *int, again bool) *fake.Throttled {
+	return fake.Throttle(f, func(c fake.Call) error {
+		if c.Op.Operation != coremail.OpGetMessageBody {
+			return nil
+		}
+		*calls++
+		if again && *calls > 1 {
+			return coremail.HeldApartError{Part: coremail.BodyPart("again")}
+		}
+		return nil
+	}, time.Now)
 }
 
 // The second call for a part held apart has one home, Body, which every caller fetches a body through. A
 // body the provider returns whole takes one call naming no part, one whose rendered part it holds
 // apart takes a second call naming that part, and a part named that answers it is held apart again
-// takes no third (ADR-0131).
+// takes no third (ADR-0131). The fake refuses a call naming a part it did not issue for the message,
+// so a body that comes back whole was asked for with no part first and with the part the fake named
+// second.
 func TestABodyTakesOneCallOrOneMoreForAPartHeldApart(t *testing.T) {
 	f, err := fake.New(fake.Config{Account: "personal"},
 		fake.Message{Metadata: coremail.MessageMetadata{ID: "inline", ThreadID: "t1"}, Body: coremail.MessageBody{HTML: "<p>inline</p>"}},
@@ -44,20 +43,20 @@ func TestABodyTakesOneCallOrOneMoreForAPartHeldApart(t *testing.T) {
 		id, html string
 		calls    int
 	}{{"inline", "<p>inline</p>", 1}, {"apart", "<p>apart</p>", 2}} {
-		m := &counting{Fake: f}
-		body, err := mail.Body(t.Context(), m, c.id)
+		var calls int
+		body, err := mail.Body(t.Context(), counted(f, &calls, false), c.id)
 		if err != nil || body.HTML != c.html {
 			t.Errorf("the body of %s is %+v, %v, want its HTML part", c.id, body, err)
 		}
-		if len(m.parts) != c.calls || m.parts[0] != "" {
-			t.Errorf("the body of %s took the calls naming %q, want %d, the first naming no part", c.id, m.parts, c.calls)
+		if calls != c.calls {
+			t.Errorf("the body of %s took %d calls, want %d", c.id, calls, c.calls)
 		}
 	}
-	again := &apartAgain{counting{Fake: f}}
-	if _, err := mail.Body(t.Context(), again, "apart"); !errors.Is(err, coremail.ErrHeldApart) {
+	var calls int
+	if _, err := mail.Body(t.Context(), counted(f, &calls, true), "apart"); !errors.Is(err, coremail.ErrHeldApart) {
 		t.Errorf("a part held apart again returned %v, want it held apart", err)
 	}
-	if want := []coremail.BodyPart{"", "again-apart"}; len(again.parts) != 2 || again.parts[0] != want[0] || again.parts[1] != want[1] {
-		t.Errorf("a part held apart again took the calls naming %q, want %q", again.parts, want)
+	if calls != 2 {
+		t.Errorf("a part held apart again took %d calls, want 2", calls)
 	}
 }

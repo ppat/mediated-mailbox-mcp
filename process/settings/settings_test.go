@@ -1010,8 +1010,8 @@ func TestHelpQuotesAnEmptyOrMultiLineStringDefault(t *testing.T) {
 }
 
 type (
-	// composed is a root built from sections, two of them inline, as a composition root builds its
-	// configuration from the process's section and a component's.
+	// composed is a root built from sections, two of them inline, as a program's configuration type
+	// embeds the process's sections beside its own.
 	composed struct {
 		Common `yaml:",inline"`
 		Own    ownSection `yaml:"own"`

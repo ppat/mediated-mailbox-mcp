@@ -21,9 +21,9 @@ import (
 	"github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/pass2/core"
 )
 
-// active is the policy a running pass takes at each page's entry, as the worker's policy loader holds
-// it. Each reload builds a new snapshot whether or not a rule changed (ADR-0041), so a reload here is
-// a fresh load of the rows the policy tables hold.
+// active is the policy a running pass takes at each page's entry, as the worker's Session holds it.
+// Each reload builds a new snapshot whether or not a rule changed (ADR-0041), so a reload here is a
+// fresh load of the rows the policy tables hold.
 type active struct {
 	t       *testing.T
 	account string

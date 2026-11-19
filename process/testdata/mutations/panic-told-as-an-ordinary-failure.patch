@@ -1,0 +1,20 @@
+control: A goroutine started through Go is the process's, its panic the failure of what started it, waited for before the slots close, and refused once the process waits
+removes: a goroutine's panic is returned as an ordinary error, without the stack and not marked as a panic
+packages: ./process
+tests: TestAGoroutineStartedThroughGoIsTheProcesss
+scheduled-count: no
+
+diff --git a/process/serve.go b/process/serve.go
+index b637c343..84e90e92 100644
+--- a/process/serve.go
++++ b/process/serve.go
+@@ -208,7 +208,8 @@ func (p *proc) serveOn(ctx context.Context, app, probeListener net.Listener, s c
+ func recovered(f func() error) (err error) {
+ 	defer func() {
+ 		if r := recover(); r != nil {
+-			err = fmt.Errorf("%w: %v\n%s", ErrPanicked, r, debug.Stack())
++			_ = debug.Stack
++			err = fmt.Errorf("%v", r)
+ 		}
+ 	}()
+ 	return f()

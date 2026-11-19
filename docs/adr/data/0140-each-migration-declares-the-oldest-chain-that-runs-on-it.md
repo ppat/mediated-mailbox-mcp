@@ -81,11 +81,12 @@ newer release migrated. Beyond that, each falls back to restoring a backup.
   `database.ForMigration`, which opens a pool with no check, is the migrator's alone. It takes only
   a configuration type with an unexported method `config.Migrator` alone has, so the compiler
   refuses a deployable's own configuration there. Left to review are a `Build` that makes a
-  `config.Migrator` value of its own, by a literal, by its defaults or as a zero value, and, until
-  `process/host` is deleted, the lower-level opening the host opens its pools through, and a pool a
-  deployable's code opens through the driver itself. The
-  comparison is one function beside the embedded chain, the statement a data-access subsection of
-  its own ([ADR-0066](./0066-data-access-generated-from-sql.md)), and `process/database`'s check reads the
+  `config.Migrator` value of its own, by a literal, by its defaults or as a zero value, and a pool a
+  deployable's code opens through the driver itself. The lower-level opening `database.Get` and
+  `database.ForMigration` open through is unexported, so nothing outside `process/database` can
+  open a pool with no check through it. The comparison is one function beside the embedded chain,
+  the statement a data-access subsection of its own
+  ([ADR-0066](./0066-data-access-generated-from-sql.md)), and `process/database`'s check reads the
   one through the other. The migrator, which moves V, does not check.
 
 ## Alternatives considered

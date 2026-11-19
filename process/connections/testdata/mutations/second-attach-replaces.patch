@@ -6,9 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/process/sessions/sessions.go b/process/sessions/sessions.go
+index 0f7b87f4..7972d417 100644
 --- a/process/sessions/sessions.go
 +++ b/process/sessions/sessions.go
-@@ -146,8 +146,6 @@ func (s *Session) Attach(c Connections) error {
+@@ -154,8 +154,6 @@ func (s *Session) Attach(c Connections) error {
  	switch {
  	case c == nil:
  		return errors.New("no connections to attach")

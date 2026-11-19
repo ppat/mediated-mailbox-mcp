@@ -5,6 +5,7 @@ tests: TestTheAPIConfigurationIsChecked/an_empty_database_host TestTheAPIConfigu
 scheduled-count: no
 
 diff --git a/core/config/programs.go b/core/config/programs.go
+index b8a3a69f..1e16e89e 100644
 --- a/core/config/programs.go
 +++ b/core/config/programs.go
 @@ -65,7 +65,6 @@ func (c API) Check() error {

@@ -6,10 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/process/sessions/sessions.go b/process/sessions/sessions.go
-index 60398e3d..3a7555f6 100644
+index 0f7b87f4..80b1a418 100644
 --- a/process/sessions/sessions.go
 +++ b/process/sessions/sessions.go
-@@ -122,7 +122,7 @@ func Get(ctx context.Context, p process.Capabilities, c config.HasAccounts) (*Se
+@@ -130,7 +130,7 @@ func Get(ctx context.Context, p process.Capabilities, c config.HasAccounts) (*Se
  func (s *Session) upkeep() schedule.Job {
  	retry := min(firstRetry, s.interval)
  	return schedule.Job{

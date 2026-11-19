@@ -6,9 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/process/connections/work.go b/process/connections/work.go
+index bee4427e..4bf31bf2 100644
 --- a/process/connections/work.go
 +++ b/process/connections/work.go
-@@ -243,6 +243,9 @@ func (w *Work) writeBack(ctx context.Context, stamp uint64, current []byte) erro
+@@ -249,6 +249,9 @@ func (w *Work) writeBack(ctx context.Context, stamp uint64, current []byte) erro
  	}
  	landed, err := replace(ctx, w.pool, account, known, sealed)
  	if err != nil {

@@ -1,0 +1,19 @@
+control: The connections' scan has an entry for every listed account and every OAuth client, true while its value is on an old key or does not open
+removes: no OAuth client has an entry, so the scan is silent on client secrets
+packages: ./process/connections
+tests: TestReSealingMovesCredentialsToTheCurrentKeyAndTheScanFollows
+scheduled-count: no
+integration: yes
+
+diff --git a/process/connections/connections.go b/process/connections/connections.go
+index 463d796a..3514d6c5 100644
+--- a/process/connections/connections.go
++++ b/process/connections/connections.go
+@@ -213,7 +213,6 @@ func (c *Connections) Load(ctx context.Context, listed []accounts.Account) error
+ 	scan := newScan()
+ 	for _, cl := range clients {
+ 		client, ok := c.openClient(cl)
+-		scan.Clients[cl.ClientName] = !ok || c.onOldKey(cl.SealedClientSecret)
+ 		if !ok {
+ 			continue
+ 		}

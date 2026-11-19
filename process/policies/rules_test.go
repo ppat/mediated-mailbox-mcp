@@ -39,7 +39,7 @@ func TestTheRulesReadOnlyEmittedSeries(t *testing.T) {
 	for _, f := range families {
 		emitted[f.GetName()] = true
 	}
-	alertingrules.RequireReadOnlyEmitted(t, rulesFile, `mediated_mailbox_policyload_[a-z_]+`, 1, emitted)
+	alertingrules.RequireReadOnlyEmitted(t, rulesFile, `mediated_mailbox_policy_[a-z_]+`, 1, emitted)
 }
 
 // unreachable is a database every transaction of which fails to begin.

@@ -1,0 +1,19 @@
+control: The operations endpoints answer the health probe, the readiness probe and the metrics endpoint as plain text, and nothing else
+removes: the probes answer as HTML rather than plain text
+packages: ./process
+tests: TestTheProbesAnswerFromWhatWasReported
+scheduled-count: no
+
+diff --git a/process/probes.go b/process/probes.go
+index 9642e96c..f951322b 100644
+--- a/process/probes.go
++++ b/process/probes.go
+@@ -34,7 +34,7 @@ func probesHandler(gatherer prometheus.Gatherer, ready func(*http.Request) (bool
+ // answerProbe writes a plain-text probe answer. A failed write means the prober went away, which leaves
+ // the operator nothing to act on, so it is detail.
+ func answerProbe(w http.ResponseWriter, r *http.Request, logger *slog.Logger, status int, text string) {
+-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
++	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+ 	w.WriteHeader(status)
+ 	if _, err := fmt.Fprintln(w, text); err != nil {
+ 		logger.DebugContext(r.Context(), "writing a probe answer failed", "error", err)

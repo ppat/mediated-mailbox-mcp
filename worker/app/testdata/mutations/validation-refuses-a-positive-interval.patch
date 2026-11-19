@@ -5,9 +5,10 @@ tests: TestATickThatCannotRunRefusesTheStart TestATickThatCannotRunRefusesTheSta
 scheduled-count: no
 
 diff --git a/core/config/programs.go b/core/config/programs.go
+index b8a3a69f..3bc8e31a 100644
 --- a/core/config/programs.go
 +++ b/core/config/programs.go
-@@ -300,7 +300,7 @@ func (c Worker) Check() error {
+@@ -303,7 +303,7 @@ func (c Worker) Check() error {
  				return errors.New("reload_interval is not positive")
  			case c.Backfill.Concurrency <= 0:
  				return errors.New("backfill.concurrency " + strconv.Itoa(c.Backfill.Concurrency) + " is not positive")

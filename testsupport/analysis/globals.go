@@ -12,8 +12,8 @@ import (
 )
 
 // Globals reports package-level state in a pure core, the rule ADR-0071 sets for ADR-0040's pure
-// cores. A package-level variable a composition root sets would be a dependency no parameter shows,
-// and one a core writes would be state carried from one call to the next.
+// cores. A package-level variable a program's shell code sets would be a dependency no parameter
+// shows, and one a core writes would be state carried from one call to the next.
 //
 // Four rules follow. A non-test file of a pure-core package declares no package-level variable
 // other than the blank identifier and an error value, and an error value has no initial value or

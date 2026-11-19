@@ -5,10 +5,10 @@ tests: TestAUnitMadeDurableIsASuccess TestTheJobSeriesFollowEveryWayARunEnds
 scheduled-count: no
 
 diff --git a/process/schedule/schedule.go b/process/schedule/schedule.go
-index 5a62353c..f29f4100 100644
+index 47abffeb..8373f727 100644
 --- a/process/schedule/schedule.go
 +++ b/process/schedule/schedule.go
-@@ -54,9 +54,7 @@ type Ask struct {
+@@ -59,9 +59,7 @@ type Ask struct {
  // Progressed records that the run made a unit of work durable, which is the job's latest success,
  // as the end of a run that succeeded is.
  func (a Ask) Progressed() {

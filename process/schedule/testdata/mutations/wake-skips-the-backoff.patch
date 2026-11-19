@@ -5,10 +5,10 @@ tests: TestAWakeDuringABackoffWaitsForItsEnd
 scheduled-count: no
 
 diff --git a/process/schedule/schedule.go b/process/schedule/schedule.go
-index 5a62353c..704b32e2 100644
+index 47abffeb..653c8e0d 100644
 --- a/process/schedule/schedule.go
 +++ b/process/schedule/schedule.go
-@@ -270,9 +270,7 @@ func (s *Scheduler) loop(ctx context.Context, key Key, job Job, st *state) {
+@@ -306,9 +306,7 @@ func (s *Scheduler) loop(ctx context.Context, key Key, job Job, st *state) {
  	defer timer.Stop()
  	for {
  		wake := st.wake

@@ -1,7 +1,7 @@
 control: A worker's provider call that does not answer within the deadline is cut off as the provider's failure
 removes: a call its caller gave up on is read as the provider's failure and cuts the rate
-packages: ./provider/ratelimit ./provider
-tests: TestACallThatDoesNotAnswerIsCutOffAsTheProvidersFailure TestACallIsCutOffAtTheCallersTimeoutAsTheProvidersFailure
+packages: ./provider
+tests: TestACallIsCutOffAtTheCallersTimeoutAsTheProvidersFailure
 scheduled-count: no
 integration: yes
 

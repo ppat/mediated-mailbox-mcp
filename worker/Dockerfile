@@ -10,7 +10,6 @@ COPY content content
 COPY core core
 COPY credential credential
 COPY db db
-COPY executioncontext executioncontext
 COPY process process
 COPY provider provider
 COPY worker/main.go worker/main.go

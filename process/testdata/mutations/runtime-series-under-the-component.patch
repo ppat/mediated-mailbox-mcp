@@ -5,14 +5,15 @@ tests: TestEverySeriesIsLabelledWithWhatRegisteredIt
 scheduled-count: no
 
 diff --git a/process/process.go b/process/process.go
+index 4a6da3fc..6c16dca0 100644
 --- a/process/process.go
 +++ b/process/process.go
-@@ -72,7 +72,7 @@ func newProcess(name string, logger *slog.Logger, revisions map[string]string) (
+@@ -70,7 +70,7 @@ func newProcess(name string, logger *slog.Logger, revisions map[string]string) (
  	registry := prometheus.NewRegistry()
  	// The runtime series are the process's, registered on the registry itself, so they carry no
  	// component and no job kind (ADR-0125).
--	if err := runtimemetrics.Register(registry); err != nil {
-+	if err := runtimemetrics.Register(prometheus.WrapRegistererWith(prometheus.Labels{componentLabel: name}, registry)); err != nil {
+-	if err := registerRuntimeMetrics(registry); err != nil {
++	if err := registerRuntimeMetrics(prometheus.WrapRegistererWith(prometheus.Labels{componentLabel: name}, registry)); err != nil {
  		return nil, err
  	}
  	p := &proc{

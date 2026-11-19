@@ -1,0 +1,19 @@
+control: The application server serves TLS when given a key pair, read from its mounted files on each handshake, and a pair that does not load refuses the start
+removes: the application server is built without its TLS configuration, so a process given both TLS files never answers a handshake
+packages: ./process
+tests: TestTheApplicationServerServesTLSWhenGivenAKeyPair
+scheduled-count: no
+
+diff --git a/process/serve.go b/process/serve.go
+index b637c343..66aef502 100644
+--- a/process/serve.go
++++ b/process/serve.go
+@@ -160,7 +160,7 @@ func (p *proc) serveOn(ctx context.Context, app, probeListener net.Listener, s c
+ 			mux.Handle(m.pattern, m.handler)
+ 		}
+ 		appServer = newServer(mux, p.logger)
+-		appServer.TLSConfig = tlsConf
++		appServer.TLSConfig = nil
+ 		// A request's context ends once the jobs are told to stop, after the drain, so a request still
+ 		// running then is told to stop rather than outliving the slots.
+ 		appServer.BaseContext = func(net.Listener) context.Context { return p.run }

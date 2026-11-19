@@ -5,7 +5,7 @@ tests: TestAConfigurationTheAPIServerCannotServeWithRefusesTheStart
 scheduled-count: no
 
 diff --git a/process/run.go b/process/run.go
-index 2f0b7b36..06e6ee5c 100644
+index 7edb03f4..a55d65c9 100644
 --- a/process/run.go
 +++ b/process/run.go
 @@ -138,7 +138,7 @@ func start[C config.Program[C]](args, environ []string, stdout, stderr io.Writer

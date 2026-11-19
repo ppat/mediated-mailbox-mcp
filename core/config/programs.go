@@ -90,7 +90,7 @@ type UI struct {
 	AttentionServeFactor  float64 `yaml:"attention_serve_factor"`
 	AttentionGapDays      int64   `yaml:"attention_gap_days"`
 	// TokenKeyFile names a mounted key behind the request token and the consent attempt's seal, which
-	// replicas share. Unset, the UI generates one at its assembly (ADR-0061, ADR-0111).
+	// replicas share. Unset, the UI generates one at its start (ADR-0061, ADR-0111).
 	TokenKeyFile string `yaml:"token_key_file"`
 	// ConsentRedirect is the loopback address a consent redirects the browser to, where nothing
 	// listens (docs/UI.md sections 8.12 and 18.1).

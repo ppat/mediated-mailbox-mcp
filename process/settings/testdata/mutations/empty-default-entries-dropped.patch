@@ -5,10 +5,10 @@ tests: TestAnEmptyKeyedEntryOfTheDefaultsIsKept/its_required_values_are_demanded
 scheduled-count: no
 
 diff --git a/process/settings/settings.go b/process/settings/settings.go
-index 25ba519..657cd02 100644
+index 07990f9a..958de686 100644
 --- a/process/settings/settings.go
 +++ b/process/settings/settings.go
-@@ -220,7 +220,6 @@ func collectDefaults(n *node, v reflect.Value, path []string, out *[]assignment)
+@@ -231,7 +231,6 @@ func collectDefaults(n *node, v reflect.Value, path []string, out *[]assignment)
  				return fmt.Errorf("the default of %s: %w", strings.Join(path, "."), err)
  			}
  			at := append(slices.Clone(path), k.String())

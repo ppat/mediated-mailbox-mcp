@@ -5,10 +5,10 @@ tests: TestEveryMistakeIsRefusedAtStart/an_environment_variable_set_twice
 scheduled-count: no
 
 diff --git a/process/settings/settings.go b/process/settings/settings.go
-index 4299ed0..99b48f8 100644
+index 07990f9a..d080a164 100644
 --- a/process/settings/settings.go
 +++ b/process/settings/settings.go
-@@ -297,8 +297,6 @@ func readEnvironment(root *node, environ []string) ([]assignment, string, error)
+@@ -310,8 +310,6 @@ func readEnvironment(root *node, environ []string) ([]assignment, string, error)
  		switch {
  		case name != upper:
  			return nil, "", fmt.Errorf("environment variable %s: its name is not upper case, and names under %s are", name, Prefix)

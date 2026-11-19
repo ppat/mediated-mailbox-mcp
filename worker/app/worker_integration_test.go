@@ -546,14 +546,14 @@ func TestTheProbesServeEverySeriesBetweenRuns(t *testing.T) {
 		`mediated_mailbox_sync_cursor_gaps_total{account="personal",component="worker",job_kind="sync"} 0`,
 		`mediated_mailbox_unclassified_senders_total{account="personal",component="worker",job_kind="backfill"} 0`,
 		`mediated_mailbox_index_messages_total{account="personal",component="worker",job_kind="backfill",stage="indexed"} 3`,
-		`mediated_mailbox_policyload_reload_failed{component="worker"} 0`,
+		`mediated_mailbox_policy_reload_failed{component="worker"} 0`,
 		`mediated_mailbox_ratelimit_granted_total{account="personal",class="batch",component="worker",job_kind="backfill"}`,
 		`mediated_mailbox_ratelimit_granted_total{account="personal",class="sync",component="worker",job_kind="sync"}`,
 		`mediated_mailbox_ratelimit_lease_wait_seconds_count{class="sync",component="worker",job_kind="sync"}`,
 		`mediated_mailbox_ratelimit_lease_wait_seconds_count{class="batch",component="worker",job_kind="backfill"}`,
 		`mediated_mailbox_body_processing_duration_seconds_count{component="worker",job_kind="backfill",step="scan"}`,
-		`mediated_mailbox_executioncontext_reload_duration_seconds_count{component="worker"}`,
-		`mediated_mailbox_policyload_reload_duration_seconds_count{component="worker"}`,
+		`mediated_mailbox_session_reload_duration_seconds_count{component="worker"}`,
+		`mediated_mailbox_policy_reload_duration_seconds_count{component="worker"}`,
 		`mediated_mailbox_job_run_duration_seconds_count{component="worker",job="reload",job_kind="backfill"}`,
 		`mediated_mailbox_job_run_duration_seconds_count{component="worker",job="reload",job_kind="sync"}`,
 		`mediated_mailbox_job_run_duration_seconds_count{component="worker",job="account",job_kind="backfill"}`,
@@ -573,7 +573,7 @@ func TestTheProbesServeEverySeriesBetweenRuns(t *testing.T) {
 	}
 	_, body := w.probe("/metrics")
 	for line := range strings.Lines(body) {
-		if strings.HasPrefix(line, "mediated_mailbox_policyload_reload_failed{") && strings.Contains(line, "job_kind") {
+		if strings.HasPrefix(line, "mediated_mailbox_policy_reload_failed{") && strings.Contains(line, "job_kind") {
 			t.Errorf("the reload-failure series is served under a job kind: %s", line)
 		}
 	}

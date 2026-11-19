@@ -5,7 +5,7 @@ tests: TestARemovedLoopReportsNothingOnTheJobEnsuredInItsPlace
 scheduled-count: no
 
 diff --git a/process/schedule/schedule.go b/process/schedule/schedule.go
-index 28c25206..9f352f41 100644
+index 47abffeb..75a2c8ad 100644
 --- a/process/schedule/schedule.go
 +++ b/process/schedule/schedule.go
 @@ -375,9 +375,8 @@ func (s *Scheduler) loop(ctx context.Context, key Key, job Job, st *state) {

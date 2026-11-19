@@ -6,9 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/process/database/database.go b/process/database/database.go
+index 6bd05532..32683ed7 100644
 --- a/process/database/database.go
 +++ b/process/database/database.go
-@@ -128,8 +128,7 @@
+@@ -126,8 +126,7 @@ func (s *pools) open(ctx context.Context, name string, c config.Database, reg pr
  	}
  	if check != nil {
  		if err := check(ctx, pool); err != nil {

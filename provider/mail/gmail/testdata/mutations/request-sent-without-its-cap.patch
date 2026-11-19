@@ -3,11 +3,12 @@ removes: a request is sent without the read cap its builder gave it, so every re
 packages: ./provider/mail/gmail
 tests: TestEveryRequestSentIsCounted TestARequestIsTimedForItsExchange
 scheduled-count: no
+
 diff --git a/provider/mail/gmail/adapter.go b/provider/mail/gmail/adapter.go
-index edeea894..71da7917 100644
+index 46815924..d19f1a78 100644
 --- a/provider/mail/gmail/adapter.go
 +++ b/provider/mail/gmail/adapter.go
-@@ -105,7 +105,7 @@ func (a *Adapter) send(ctx context.Context, r request) ([]byte, error) {
+@@ -115,7 +115,7 @@ func (a *Adapter) send(ctx context.Context, r request) ([]byte, error) {
  	if r.Body != "" {
  		body = strings.NewReader(r.Body)
  	}

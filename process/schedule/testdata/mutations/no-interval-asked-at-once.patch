@@ -5,10 +5,10 @@ tests: TestAJobWithNoIntervalIsAskedOnlyWhenWoken
 scheduled-count: no
 
 diff --git a/process/schedule/schedule.go b/process/schedule/schedule.go
-index 5a62353c..7f184cdf 100644
+index 47abffeb..c4e7a2e4 100644
 --- a/process/schedule/schedule.go
 +++ b/process/schedule/schedule.go
-@@ -328,7 +328,7 @@ func (s *Scheduler) loop(ctx context.Context, key Key, job Job, st *state) {
+@@ -364,7 +364,7 @@ func (s *Scheduler) loop(ctx context.Context, key Key, job Job, st *state) {
  			continue
  		case NotDue:
  		}

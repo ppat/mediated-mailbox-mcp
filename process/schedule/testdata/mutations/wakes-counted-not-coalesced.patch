@@ -5,7 +5,7 @@ tests: TestWakesDuringARunCoalesceIntoOneRun
 scheduled-count: no
 
 diff --git a/process/schedule/schedule.go b/process/schedule/schedule.go
-index 23d24f2b..7d779212 100644
+index 47abffeb..7b4d4697 100644
 --- a/process/schedule/schedule.go
 +++ b/process/schedule/schedule.go
 @@ -228,7 +228,7 @@ func (s *Scheduler) Ensure(key Key, job Job) error {

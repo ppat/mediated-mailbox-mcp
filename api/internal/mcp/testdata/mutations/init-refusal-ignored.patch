@@ -5,7 +5,7 @@ tests: TestMCPGODEBUGStopsTheStart
 scheduled-count: no
 
 diff --git a/process/run.go b/process/run.go
-index 2f0b7b36..1d03e8dd 100644
+index 7edb03f4..ee313fa2 100644
 --- a/process/run.go
 +++ b/process/run.go
 @@ -142,9 +142,7 @@ func start[C config.Program[C]](args, environ []string, stdout, stderr io.Writer

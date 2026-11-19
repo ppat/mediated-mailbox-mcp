@@ -6,9 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/process/connections/work.go b/process/connections/work.go
+index bee4427e..604e5162 100644
 --- a/process/connections/work.go
 +++ b/process/connections/work.go
-@@ -109,7 +109,7 @@ func (w *Work) again(ctx context.Context) (*provider.Token, error) {
+@@ -112,7 +112,7 @@ func (w *Work) again(ctx context.Context) (*provider.Token, error) {
  	defer rec.mu.Unlock()
  	name := rec.clientName
  	if listed != nil {

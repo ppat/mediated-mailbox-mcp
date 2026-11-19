@@ -4,14 +4,14 @@ packages: ./process/policies
 tests: TestAlertingRules
 scheduled-count: no
 
-
 diff --git a/packaging/chart/rules/alerting-rules.yaml b/packaging/chart/rules/alerting-rules.yaml
+index 9cc9ffa4..a00e52e5 100644
 --- a/packaging/chart/rules/alerting-rules.yaml
 +++ b/packaging/chart/rules/alerting-rules.yaml
 @@ -95,6 +95,7 @@ groups:
    # whose earlier reload succeeded keeps that snapshot, and one whose first load failed restricts every sender.
    - alert: MediatedMailboxPolicyReloadFailed
-     expr: mediated_mailbox_policyload_reload_failed > 0
+     expr: mediated_mailbox_policy_reload_failed > 0
 +    for: 5m
      labels:
        severity: page

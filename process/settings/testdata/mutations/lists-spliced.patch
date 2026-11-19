@@ -5,10 +5,10 @@ tests: TestAListFromALaterLayerReplacesTheWholeList TestLayersApplyPerValueInOrd
 scheduled-count: no
 
 diff --git a/process/settings/settings.go b/process/settings/settings.go
-index 4299ed0..d836c17 100644
+index 07990f9a..3da61891 100644
 --- a/process/settings/settings.go
 +++ b/process/settings/settings.go
-@@ -403,6 +403,9 @@ func describePath(path []string) string {
+@@ -455,6 +455,9 @@ func describePath(path []string) string {
  func set(v reflect.Value, n *node, path []string, value reflect.Value) {
  	if len(path) == 0 {
  		if value.IsValid() {

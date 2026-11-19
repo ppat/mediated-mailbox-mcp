@@ -230,8 +230,13 @@ func TestThePasswordVariablesAreRefusedBeforeTheConfigurationIsRead(t *testing.T
 			}
 		}
 	}
-	if err := process.RefusePasswordVariables([]string{"PGHOST=elsewhere", "PGPASSFILE=/tmp/pass", "PGSSLMODE=disable", "HOME=/"}); err != nil {
-		t.Errorf("the driver's other variables refused the start: %v", err)
+	// The driver's other variables pass the refusal, so the start goes on to read the configuration and
+	// fails on the missing file instead.
+	for _, s := range starts {
+		environ := []string{"MEDIATED_MAILBOX_CONFIG=/absent/config.yaml", "PGHOST=elsewhere", "PGPASSFILE=/tmp/pass", "PGSSLMODE=disable", "HOME=/"}
+		if _, err := s.run(t, nil, nil, environ, io.Discard, io.Discard); err == nil || strings.Contains(err.Error(), "the environment sets") {
+			t.Errorf("%s: the run returned %v, want the driver's other variables let through to the configuration's read", s.name, err)
+		}
 	}
 }
 

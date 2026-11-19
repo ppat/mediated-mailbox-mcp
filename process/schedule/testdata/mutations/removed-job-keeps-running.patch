@@ -5,10 +5,10 @@ tests: TestEnsuringAndRemovingAJobRapidlyLeavesNoLoopRunning TestRemoveAndStopCa
 scheduled-count: no
 
 diff --git a/process/schedule/schedule.go b/process/schedule/schedule.go
-index 6ce1069b..8bac2010 100644
+index 47abffeb..9a5419fc 100644
 --- a/process/schedule/schedule.go
 +++ b/process/schedule/schedule.go
-@@ -244,8 +244,7 @@ func (s *Scheduler) Remove(key Key) {
+@@ -261,8 +261,7 @@ func (s *Scheduler) Remove(key Key) {
  	if !ok {
  		return
  	}

@@ -3,11 +3,12 @@ removes: an answer past a body read's cap is returned cut at the cap, so the par
 packages: ./provider/mail/gmail
 tests: TestABodyReadsAnswerPastItsCapIsRefused
 scheduled-count: no
+
 diff --git a/provider/mail/gmail/adapter.go b/provider/mail/gmail/adapter.go
-index edeea894..862f6d22 100644
+index 46815924..e78b0525 100644
 --- a/provider/mail/gmail/adapter.go
 +++ b/provider/mail/gmail/adapter.go
-@@ -167,7 +167,8 @@ func answer(res *http.Response) ([]byte, error) {
+@@ -177,7 +177,8 @@ func answer(res *http.Response) ([]byte, error) {
  	}
  	switch {
  	case over && c.Refuses:

@@ -1,0 +1,27 @@
+control: An account is connected through the OAuth client it names, and an account that names none through none
+removes: an account is handed the first client of its provider rather than the one it names
+packages: ./process/connections
+tests: TestEachAccountIsLoadedWithTheClientItNamesAndNoOther
+scheduled-count: no
+integration: yes
+
+diff --git a/process/connections/connections.go b/process/connections/connections.go
+index 463d796a..00a47070 100644
+--- a/process/connections/connections.go
++++ b/process/connections/connections.go
+@@ -227,7 +227,14 @@ func (c *Connections) Load(ctx context.Context, listed []accounts.Account) error
+ 		if !ok {
+ 			rec = &record{}
+ 		}
+-		adopted := c.adopt(rec, r.account, opened, r.stored)
++		a := r.account
++		for _, cl := range clients {
++			if cl.Provider == a.Provider {
++				a.Client = cl.ClientName
++				break
++			}
++		}
++		adopted := c.adopt(rec, a, opened, r.stored)
+ 		scan.Accounts[r.account.ID] = r.stored != nil && (!adopted || c.onOldKey(r.stored))
+ 		next[r.account.ID] = rec
+ 	}

@@ -5,10 +5,10 @@ tests: TestTheFakePassesTheContract/delivered_mail_is_added TestTheFakePassesThe
 scheduled-count: no
 
 diff --git a/provider/mail/fake/fake.go b/provider/mail/fake/fake.go
-index 22535f7..c843fae 100644
+index 21212cd6..1da34b85 100644
 --- a/provider/mail/fake/fake.go
 +++ b/provider/mail/fake/fake.go
-@@ -112,7 +112,7 @@ func (f *Fake) Deliver(m Message) error {
+@@ -128,7 +128,7 @@ func (f *Fake) Deliver(m Message) error {
  	if err := f.insert(m); err != nil {
  		return err
  	}

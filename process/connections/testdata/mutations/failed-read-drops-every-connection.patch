@@ -6,9 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/process/connections/connections.go b/process/connections/connections.go
+index 463d796a..baee9d97 100644
 --- a/process/connections/connections.go
 +++ b/process/connections/connections.go
-@@ -186,6 +186,7 @@ func (c *Connections) Load(ctx context.Context, listed []accounts.Account) error
+@@ -206,6 +206,7 @@ func (c *Connections) Load(ctx context.Context, listed []accounts.Account) error
  	rows, clients, err := c.read(ctx, listed)
  	if err != nil {
  		c.log.Error("the connections were not reloaded, so the previous ones stay", slog.Any("error", err))

@@ -5,9 +5,10 @@ tests: TestAServerThatFailsWhileServingStopsTheProcessInOrder
 scheduled-count: no
 
 diff --git a/process/serve.go b/process/serve.go
+index b637c343..56e0957d 100644
 --- a/process/serve.go
 +++ b/process/serve.go
-@@ -274,7 +274,7 @@ func serverFailed(server string, err error) error {
+@@ -273,7 +273,7 @@ func serverFailed(server string, err error) error {
  	if errors.Is(err, http.ErrServerClosed) {
  		return nil
  	}

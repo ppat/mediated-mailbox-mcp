@@ -5,9 +5,10 @@ tests: TestAJobKindsPlanRunsOnTheScheduler
 scheduled-count: no
 
 diff --git a/process/serve.go b/process/serve.go
+index b637c343..6c55a65f 100644
 --- a/process/serve.go
 +++ b/process/serve.go
-@@ -136,7 +136,7 @@ func (p *proc) serveOn(ctx context.Context, app, probeListener net.Listener, s c
+@@ -135,7 +135,7 @@ func (p *proc) serveOn(ctx context.Context, app, probeListener net.Listener, s c
  		for _, l := range b.plans {
  			name := l.kind + " listing"
  			p.report(name, NotReady, "no listing has succeeded yet")

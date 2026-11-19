@@ -18,8 +18,8 @@
 // The file is named by --config-file or MEDIATED_MAILBOX_CONFIG_FILE, the flag winning, and no file
 // is read otherwise. A flag is written --path=VALUE, and an argument of any other form is refused,
 // since no deployable has a mode. --help or -h returns a HelpRequested error holding the help text,
-// and --version returns a VersionRequested error, which the composition root answers by printing the
-// release version. Neither is a mode, and neither reads any layer (ADR-0078).
+// and --version returns a VersionRequested error, which the process answers by printing the release
+// version. Neither is a mode, and neither reads any layer (ADR-0078).
 //
 // # Values from the environment and flags
 //

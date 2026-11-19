@@ -6,9 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/process/connections/connections.go b/process/connections/connections.go
+index 463d796a..a192a9be 100644
 --- a/process/connections/connections.go
 +++ b/process/connections/connections.go
-@@ -222,10 +222,7 @@ func (c *Connections) Load(ctx context.Context, listed []accounts.Account) error
+@@ -242,10 +242,7 @@ func (c *Connections) Load(ctx context.Context, listed []accounts.Account) error
  // read reads the OAuth clients and each listed account's stored credential. It returns nothing with
  // any error.
  func (c *Connections) read(ctx context.Context, listed []accounts.Account) ([]row, []oauthclients.OAuthClientsRow, error) {

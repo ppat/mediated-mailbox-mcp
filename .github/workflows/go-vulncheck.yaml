@@ -19,7 +19,6 @@ on:
     - core/**
     - credential/**
     - db/**
-    - executioncontext/**
     - api/**
     - migrator/**
     - process/**

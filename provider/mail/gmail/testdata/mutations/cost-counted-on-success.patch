@@ -3,10 +3,12 @@ removes: a request is counted only once Gmail answers it with success, so a fail
 packages: ./provider/mail/gmail
 tests: TestEveryRequestSentIsCounted TestACallIsHeldToItsDeclaredCost
 scheduled-count: no
+
 diff --git a/provider/mail/gmail/adapter.go b/provider/mail/gmail/adapter.go
+index 46815924..63209bc0 100644
 --- a/provider/mail/gmail/adapter.go
 +++ b/provider/mail/gmail/adapter.go
-@@ -126,10 +126,12 @@ func (a *Adapter) send(ctx context.Context, r request) ([]byte, error) {
+@@ -123,10 +123,12 @@ func (a *Adapter) send(ctx context.Context, r request) ([]byte, error) {
  	if body != nil {
  		req.Header.Set("Content-Type", "application/json")
  	}

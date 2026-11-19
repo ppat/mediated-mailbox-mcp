@@ -1,6 +1,7 @@
-// Package mail holds the canonical mail model, the Provider Port interface the adapters implement,
-// the canonical query, and the rate profile types adapters declare with the hard-cap fraction every
-// call is sized within (ADR-0010, ADR-0023, ADR-0024).
+// Package mail holds the canonical mail model the Provider Port speaks, the canonical query, the
+// port's errors, the decision on a second body call, and the rate profile types adapters declare with
+// the hard-cap fraction every call is sized within (ADR-0010, ADR-0023, ADR-0024). The port itself,
+// mail.Mailbox, is provider/mail's.
 //
 // Everything above the port speaks these types, and only an adapter knows a provider's own shapes.
 // The package is a pure core, so it holds types, constructors and the interfaces and nothing that
@@ -8,8 +9,9 @@
 // nor the time package, because time reads the environment and the zone files, and that shapes two
 // things.
 //
-//   - The port is generic in the value each call carries for cancellation, because the context
-//     package is not on the list. Adapters and their callers use Port[context.Context].
+//   - The rate profile is generic in the value its refresh carries for cancellation, because the
+//     context package is not on the list. Adapters and their callers use
+//     RateLimitProfile[context.Context].
 //   - An instant is a UnixMilli, milliseconds since the Unix epoch, because the time package is not
 //     on the list either. An integer count from the epoch has no offset, so every instant the model
 //     holds is UTC by construction (ADR-0033).

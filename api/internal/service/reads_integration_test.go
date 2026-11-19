@@ -17,12 +17,10 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prometheus/client_golang/prometheus"
-	"golang.org/x/net/idna"
-	"golang.org/x/net/publicsuffix"
 
 	"github.com/ppat/mediated-mailbox-mcp/api/internal/service"
 	"github.com/ppat/mediated-mailbox-mcp/core/classify"
-	"github.com/ppat/mediated-mailbox-mcp/executioncontext/policyload"
+	"github.com/ppat/mediated-mailbox-mcp/process/policies"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/compare"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/fixture"
 	"github.com/ppat/mediated-mailbox-mcp/testsupport/marker"
@@ -123,12 +121,8 @@ func reads(t *testing.T, accounts ...string) service.Registry {
 // loaded through pool.
 func readsOver(t *testing.T, pool *pgxpool.Pool, db service.Database, accounts ...string) service.Registry {
 	t.Helper()
-	lookups := classify.Lookups{ToUnicode: idna.Lookup.ToUnicode, ToASCII: idna.Lookup.ToASCII, Registrable: publicsuffix.EffectiveTLDPlusOne}
-	policies, err := policyload.New(pool, accounts, prometheus.NewRegistry(), lookups)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := policies.Reload(t.Context()); err != nil {
+	loaded := policies.New(pool, prometheus.NewRegistry(), nil)
+	if err := loaded.Load(t.Context(), accounts); err != nil {
 		t.Fatal(err)
 	}
 	var listed []service.Account
@@ -138,7 +132,7 @@ func readsOver(t *testing.T, pool *pgxpool.Pool, db service.Database, accounts .
 	reg, err := service.NewRegistry(accounts, service.Operations(service.Sources{
 		DB:       db,
 		Accounts: func() []service.Account { return listed },
-		Policy:   func(account string) classify.Policy { return policies.Snapshot().For(account) },
+		Policy:   func(account string) classify.Policy { return loaded.Snapshot().For(account) },
 		Now:      func() time.Time { return time.Date(2026, 7, 22, 0, 0, 0, 0, time.UTC) },
 	}, service.Bodies{})...)
 	if err != nil {

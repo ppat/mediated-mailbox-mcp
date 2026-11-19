@@ -5,9 +5,10 @@ tests: TestTheProbesRunNothingWhenAsked
 scheduled-count: no
 
 diff --git a/process/serve.go b/process/serve.go
+index b637c343..60a0a4a3 100644
 --- a/process/serve.go
 +++ b/process/serve.go
-@@ -150,6 +150,7 @@ func (p *proc) serveOn(ctx context.Context, app, probeListener net.Listener, s c
+@@ -149,6 +149,7 @@ func (p *proc) serveOn(ctx context.Context, app, probeListener net.Listener, s c
  		if !serving.Load() {
  			return false, "not ready"
  		}

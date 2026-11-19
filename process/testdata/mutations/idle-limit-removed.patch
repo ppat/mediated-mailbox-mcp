@@ -5,9 +5,10 @@ tests: TestTheConnectionLimits TestTheServersCloseIdleAndSlowConnectionsAndNever
 scheduled-count: no
 
 diff --git a/process/serve.go b/process/serve.go
+index b637c343..7e7a7722 100644
 --- a/process/serve.go
 +++ b/process/serve.go
-@@ -263,7 +263,6 @@ func newServer(h http.Handler, logger *slog.Logger) *http.Server {
+@@ -262,7 +262,6 @@ func newServer(h http.Handler, logger *slog.Logger) *http.Server {
  		Handler:           h,
  		ReadHeaderTimeout: connectionLimits.Header,
  		ReadTimeout:       connectionLimits.Read,

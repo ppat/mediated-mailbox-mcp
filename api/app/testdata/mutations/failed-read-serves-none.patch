@@ -6,7 +6,7 @@ scheduled-count: no
 integration: yes
 
 diff --git a/process/sessions/sessions.go b/process/sessions/sessions.go
-index 0d04cbc6..36b55470 100644
+index 0f7b87f4..fb4848f7 100644
 --- a/process/sessions/sessions.go
 +++ b/process/sessions/sessions.go
 @@ -206,6 +206,10 @@ func (s *Session) Reload(ctx context.Context) error {

@@ -26,7 +26,7 @@ type Credentials struct {
 
 // NewCredentials returns the credentials of an account that connects through the OAuth client
 // clientID with clientSecret and holds refreshToken, from the plain values the deployable opened.
-// The adapter knows no account, so a deployable's account session builds each source through it.
+// The adapter knows no account, so the connections build each source through it.
 func NewCredentials(clientID string, clientSecret, refreshToken []byte) Credentials {
 	return Credentials{ClientID: clientID, ClientSecret: string(clientSecret), RefreshToken: string(refreshToken)}
 }

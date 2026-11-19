@@ -67,17 +67,15 @@ func ForMigration(ctx context.Context, p process.Capabilities, c config.HasMigra
 	return set.open(ctx, "migration", c.DatabasePart(), set.shared.Metrics(), nil)
 }
 
-// Open opens a pool from c, connecting as c's user, with every statement it runs timed and its
+// open opens a pool from c, connecting as c's user, with every statement it runs timed and its
 // statistics collected on reg. It opens no connection until the pool's first use and runs no schema
-// check. Get and ForMigration open through it. It is exported only for process/host, which opens its
-// pools through it and runs its root's schema check itself, until every program is on its spec and
-// the host is deleted, so a deployable's Build calling it is left to review until then.
-func Open(ctx context.Context, c config.Database, reg prometheus.Registerer) (*pgxpool.Pool, error) {
+// check. Get and ForMigration open through it, and nothing outside the package can.
+func open(ctx context.Context, c config.Database, reg prometheus.Registerer) (*pgxpool.Pool, error) {
 	conf, err := poolConfig(c)
 	if err != nil {
 		return nil, fmt.Errorf("configuring the database connection of %s: %w", c.User, err)
 	}
-	pool, err := OpenPool(ctx, conf, reg)
+	pool, err := openPool(ctx, conf, reg)
 	if err != nil {
 		return nil, fmt.Errorf("configuring the database connection of %s: %w", c.User, err)
 	}
@@ -122,7 +120,7 @@ func (s *pools) open(ctx context.Context, name string, c config.Database, reg pr
 	if pool, ok := s.byName[name]; ok {
 		return pool, nil
 	}
-	pool, err := Open(ctx, c, reg)
+	pool, err := open(ctx, c, reg)
 	if err != nil {
 		return nil, err
 	}

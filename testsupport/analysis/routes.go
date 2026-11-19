@@ -22,8 +22,8 @@ import (
 // Not reported are a registration through reflection, one an imported package makes on the default
 // mux when it is initialised, such as net/http/pprof's, and one through an interface method one of
 // whose parameter types is a type parameter, which ADR-0071 leaves to review. The API server is out of
-// scope. Its registrations are its roots' generators and its composition root, which ADR-0071 leaves
-// to its import lists and review.
+// scope. Its registrations are its roots' generators and the process mounting each endpoint its
+// spec lists, which ADR-0071 leaves to its import lists and review.
 var Routes = &analysis.Analyzer{
 	Name: "routes",
 	Doc:  "reports a route the UI registers on a mux other than through its recording mux",

@@ -5,10 +5,10 @@ tests: TestNextBodyPart TestTheFakePassesTheContract
 scheduled-count: no
 
 diff --git a/core/mail/port.go b/core/mail/port.go
-index a2e31ac5..e641a290 100644
+index f9d9ed81..cf0a55a6 100644
 --- a/core/mail/port.go
 +++ b/core/mail/port.go
-@@ -104,7 +104,7 @@ func (e HeldApartError) Unwrap() error { return ErrHeldApart }
+@@ -50,7 +50,7 @@ func (e HeldApartError) Unwrap() error { return ErrHeldApart }
  // itself held apart again included, so a body takes at most two calls.
  func NextBodyPart(asked BodyPart, err error) (BodyPart, bool) {
  	var apart HeldApartError

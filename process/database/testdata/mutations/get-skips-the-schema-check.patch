@@ -6,9 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/process/database/database.go b/process/database/database.go
+index 6bd05532..0b9ca778 100644
 --- a/process/database/database.go
 +++ b/process/database/database.go
-@@ -45,7 +45,7 @@
+@@ -52,7 +52,7 @@ func Get(ctx context.Context, p process.Capabilities, c config.HasDatabase) (*pg
  	if kind != "" {
  		reg = p.Metrics()
  	}

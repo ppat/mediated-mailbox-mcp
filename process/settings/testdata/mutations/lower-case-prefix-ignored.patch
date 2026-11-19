@@ -5,10 +5,10 @@ tests: TestEveryMistakeIsRefusedAtStart/an_environment_variable_with_the_prefix_
 scheduled-count: no
 
 diff --git a/process/settings/settings.go b/process/settings/settings.go
-index 4299ed0..f5a2df1 100644
+index 07990f9a..0501f6b3 100644
 --- a/process/settings/settings.go
 +++ b/process/settings/settings.go
-@@ -291,7 +291,7 @@ func readEnvironment(root *node, environ []string) ([]assignment, string, error)
+@@ -304,7 +304,7 @@ func readEnvironment(root *node, environ []string) ([]assignment, string, error)
  	for _, entry := range sorted {
  		name, text, _ := strings.Cut(entry, "=")
  		upper := strings.ToUpper(name)

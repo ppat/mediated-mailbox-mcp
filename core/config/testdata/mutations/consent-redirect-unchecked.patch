@@ -5,6 +5,7 @@ tests: TestTheConsentRedirectIsALoopbackAddressWithAPort TestANonLoopbackConsent
 scheduled-count: no
 
 diff --git a/core/config/programs.go b/core/config/programs.go
+index b8a3a69f..1ad164f3 100644
 --- a/core/config/programs.go
 +++ b/core/config/programs.go
 @@ -169,7 +169,7 @@ func (c UI) Check() error {

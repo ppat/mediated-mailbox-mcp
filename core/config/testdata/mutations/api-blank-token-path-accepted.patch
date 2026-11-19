@@ -5,6 +5,7 @@ tests: TestTheAPIConfigurationIsChecked/a_blank_token_file_path
 scheduled-count: no
 
 diff --git a/core/config/programs.go b/core/config/programs.go
+index b8a3a69f..bc276a94 100644
 --- a/core/config/programs.go
 +++ b/core/config/programs.go
 @@ -53,7 +53,7 @@ func (c API) Check() error {

@@ -5,9 +5,10 @@ tests: TestATokenFailureIsThePortErrorItsOutcomeNames TestATokenRequestThatGetsN
 scheduled-count: no
 
 diff --git a/provider/mail/gmail/adapter.go b/provider/mail/gmail/adapter.go
+index 46815924..c545bea0 100644
 --- a/provider/mail/gmail/adapter.go
 +++ b/provider/mail/gmail/adapter.go
-@@ -228,7 +228,7 @@ func tokenError(err error) error {
+@@ -225,7 +225,7 @@ func tokenError(err error) error {
  	if google.Outcome(err) == mail.AuthRefused {
  		return errors.Join(mail.ErrAuthentication, err)
  	}

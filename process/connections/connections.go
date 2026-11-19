@@ -66,9 +66,9 @@ type Connections struct {
 	session  *sessions.Session
 	log      *slog.Logger
 
-	// mu serialises loads, re-reads, write-backs and re-seals across their database statements, as the
-	// loader's lock did, so what the connections know of a stored value moves with one of them at a
-	// time and no read takes the process's own write for someone else's (ADR-0089). Beginning a unit
+	// mu serialises loads, re-reads, write-backs and re-seals across their database statements, so
+	// what the connections know of a stored value moves with one of them at a time and no read takes
+	// the process's own write for someone else's (ADR-0089). Beginning a unit
 	// of work never takes it, and a unit's calls take it only for the re-read a refused call makes.
 	// Where both are held it is taken before a record's lock.
 	mu sync.Mutex

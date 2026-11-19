@@ -6,9 +6,10 @@ scheduled-count: no
 integration: no
 
 diff --git a/core/config/programs.go b/core/config/programs.go
+index b8a3a69f..80303140 100644
 --- a/core/config/programs.go
 +++ b/core/config/programs.go
-@@ -324,13 +324,13 @@ type Migrator struct {
+@@ -328,13 +328,13 @@ type Migrator struct {
  	// ApplicationUser is the name of the user the API server, the UI and the worker connect as, which
  	// every grant of the chain is made to. The project names no database user, so it has no default
  	// (ADR-0048, ADR-0139, ADR-0143).
@@ -24,7 +25,7 @@ diff --git a/core/config/programs.go b/core/config/programs.go
  }
  
  // Check refuses an empty application user's name, which would name no grantee, and every part that
-@@ -338,12 +338,6 @@ func DefaultMigrator(processors int) Migrator {
+@@ -342,12 +342,6 @@ func DefaultMigrator(processors int) Migrator {
  func (c Migrator) Check() error {
  	return first(
  		c.Process.Check,

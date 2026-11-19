@@ -1,4 +1,4 @@
-control: Units of work begun through every caller of a process share each account's token
+control: Units of work begun through every caller of a process share each account's token, each calling through its own caller
 removes: each unit of work makes a token of its own from the record's credential, so a rotation one unit sees is lost to the others
 packages: ./process/connections
 tests: TestUnitsOfWorkThroughTwoCallersShareTheAccountsToken TestOverlappingRotationsEachLand TestATokenServesItsAccountUntilItsCredentialOrClientChanges
@@ -6,6 +6,7 @@ scheduled-count: no
 integration: yes
 
 diff --git a/process/connections/work.go b/process/connections/work.go
+index bee4427e..8009d890 100644
 --- a/process/connections/work.go
 +++ b/process/connections/work.go
 @@ -67,6 +67,9 @@ func (c *Connections) Begin(account string, caller *Caller, until time.Time) (*W

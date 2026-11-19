@@ -1,0 +1,22 @@
+control: An account of a provider that authenticates through an OAuth client is connected only through its own client
+removes: a client read again that does not open is taken from its accounts without leaving them not connected
+packages: ./process/connections
+tests: TestAReSealNeverPutsBackAReplacedSecret
+scheduled-count: no
+integration: yes
+
+diff --git a/process/connections/reseal.go b/process/connections/reseal.go
+index 2eb9dada..d86b3ed5 100644
+--- a/process/connections/reseal.go
++++ b/process/connections/reseal.go
+@@ -183,10 +183,6 @@ func (c *Connections) repair(account string, rec *record) {
+ 	if rec.stored == nil || !changed {
+ 		return
+ 	}
+-	if !c.servable(account, rec) {
+-		rec.token, rec.connected = nil, false
+-		return
+-	}
+ 	token, err := c.adapters.NewToken(rec.provider, client, rec.current())
+ 	if err != nil {
+ 		c.log.Error("an account's token could not be made, so it is not connected", slog.String("account", account), slog.Any("error", err))

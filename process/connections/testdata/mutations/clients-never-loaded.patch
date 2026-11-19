@@ -1,0 +1,20 @@
+control: An account is connected through the OAuth client it names, and an account that names none through none
+removes: no OAuth client is loaded
+packages: ./process/connections
+tests: TestAnOAuthClientIsLoadedOnlyForAProviderThatHasOne TestEachAccountIsLoadedWithTheClientItNamesAndNoOther
+scheduled-count: no
+integration: yes
+
+diff --git a/process/connections/connections.go b/process/connections/connections.go
+index 463d796a..e3d6128a 100644
+--- a/process/connections/connections.go
++++ b/process/connections/connections.go
+@@ -211,7 +211,7 @@ func (c *Connections) Load(ctx context.Context, listed []accounts.Account) error
+ 	opened := map[string]coremail.OAuthClient{}
+ 	sealedClients := map[string][]byte{}
+ 	scan := newScan()
+-	for _, cl := range clients {
++	for _, cl := range clients[:0] {
+ 		client, ok := c.openClient(cl)
+ 		scan.Clients[cl.ClientName] = !ok || c.onOldKey(cl.SealedClientSecret)
+ 		if !ok {

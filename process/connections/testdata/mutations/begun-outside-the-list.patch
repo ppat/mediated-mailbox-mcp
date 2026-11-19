@@ -6,6 +6,7 @@ scheduled-count: no
 integration: yes
 
 diff --git a/process/connections/work.go b/process/connections/work.go
+index bee4427e..f4931491 100644
 --- a/process/connections/work.go
 +++ b/process/connections/work.go
 @@ -48,7 +48,7 @@ type Work struct {

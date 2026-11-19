@@ -206,7 +206,7 @@ func (c *Connections) readClientOf(ctx context.Context, account string) (*accoun
 // and a reload keeps it while the stored bytes stay the same. A restart before a write lands loses
 // it. The write-back holds the connections' lock from its stamp check through its compare-and-set and
 // its re-read to the record's update, so it takes turns with every other write-back, every reload's
-// read and adoption, every re-read after a refusal and the re-seal, as the loader's hand-over did.
+// read and adoption, every re-read after a refusal and the re-seal.
 // Beginning a unit of work never waits on that lock, and its calls wait on it only for the re-read a
 // refused call makes.
 func (w *Work) End(ctx context.Context) (writeBack, record error) {

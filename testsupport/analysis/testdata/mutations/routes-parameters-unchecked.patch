@@ -5,10 +5,10 @@ tests: TestRoutes
 scheduled-count: no
 
 diff --git a/testsupport/analysis/routes.go b/testsupport/analysis/routes.go
-index 58aeac0..6934643 100644
+index 942e4233..57a1fcda 100644
 --- a/testsupport/analysis/routes.go
 +++ b/testsupport/analysis/routes.go
-@@ -97,7 +97,7 @@ func interfaceRegistrar(fn *types.Func) bool {
+@@ -98,7 +98,7 @@ func interfaceRegistrar(fn *types.Func) bool {
  	if !ok || sig.Recv() == nil || !types.IsInterface(sig.Recv().Type()) || sig.Results().Len() != 0 || sig.Variadic() {
  		return false
  	}

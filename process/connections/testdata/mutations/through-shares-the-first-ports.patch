@@ -1,0 +1,36 @@
+control: Units of work begun through every caller of a process share each account's token, each calling through its own caller
+removes: every part after the first is handed the first part's caller, so a later job kind's or operation's units call through the first one's series, class and pool
+packages: ./worker/app
+tests: TestTheProbesServeEverySeriesBetweenRuns
+scheduled-count: no
+integration: yes
+
+diff --git a/process/connections/connections.go b/process/connections/connections.go
+index 463d796a..52212c4d 100644
+--- a/process/connections/connections.go
++++ b/process/connections/connections.go
+@@ -83,6 +83,7 @@ type Connections struct {
+ 	// records is replaced whole at each load, so a Begin reads a whole map. A record listed in two
+ 	// loads is the same record.
+ 	records atomic.Pointer[map[string]*record]
++	first   *Caller
+ }
+ 
+ // record is one account's connection. Its fields are guarded by its lock, so a unit of work's end
+@@ -162,11 +163,15 @@ type Caller struct {
+ // a job kind's or an operation's provider calls are counted on its own series and its leases,
+ // write-backs and recorded attempts run on its own pool. A job kind hands its own.
+ func (c *Connections) Caller(p process.Capabilities, pool tx.Beginner, o provider.Options) (*Caller, error) {
++	if c.first != nil {
++		return c.first, nil
++	}
+ 	calls, err := provider.NewCaller(c.adapters, p.Metrics(), pool, o)
+ 	if err != nil {
+ 		return nil, err
+ 	}
+-	return &Caller{calls: calls, pool: pool}, nil
++	c.first = &Caller{calls: calls, pool: pool}
++	return c.first, nil
+ }
+ 
+ // Connected reports whether a unit of work may begin on the account, which the Session reads to say

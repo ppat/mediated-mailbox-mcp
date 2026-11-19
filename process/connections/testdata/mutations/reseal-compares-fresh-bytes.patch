@@ -1,0 +1,23 @@
+control: A write of a sealed value by a deployable is a compare-and-set on the bytes it last knew
+removes: the re-seal compares against bytes it reads just before writing rather than the bytes it last knew, so it puts back a value the operator replaced
+packages: ./process/connections
+tests: TestAStaleReSealIsRefused
+scheduled-count: no
+integration: yes
+
+diff --git a/process/connections/reseal.go b/process/connections/reseal.go
+index 2eb9dada..fe9f351f 100644
+--- a/process/connections/reseal.go
++++ b/process/connections/reseal.go
+@@ -64,7 +64,10 @@ func (c *Connections) resealAccount(ctx context.Context, account string, rec *re
+ 	_, resealed, changed, err := c.keys.Reseal(known, seal.AccountCredential(account))
+ 	if err == nil && changed {
+ 		var landed bool
+-		landed, err = c.replace(ctx, account, known, resealed)
++		var fresh []byte
++		if fresh, err = c.stored(ctx, account); err == nil {
++			landed, err = c.replace(ctx, account, fresh, resealed)
++		}
+ 		switch {
+ 		case err != nil:
+ 		case landed:

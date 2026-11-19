@@ -5,9 +5,10 @@ tests: TestTheProgramTypesArePinned
 scheduled-count: no
 
 diff --git a/core/config/programs.go b/core/config/programs.go
+index b8a3a69f..9b38e389 100644
 --- a/core/config/programs.go
 +++ b/core/config/programs.go
-@@ -325,6 +325,8 @@ type Migrator struct {
+@@ -329,6 +329,8 @@ type Migrator struct {
  	// every grant of the chain is made to. The project names no database user, so it has no default
  	// (ADR-0048, ADR-0139, ADR-0143).
  	ApplicationUser string `yaml:"application_user" settings:"required"`

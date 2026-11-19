@@ -6,9 +6,10 @@ scheduled-count: no
 integration: yes
 
 diff --git a/process/connections/work.go b/process/connections/work.go
+index bee4427e..a675327a 100644
 --- a/process/connections/work.go
 +++ b/process/connections/work.go
-@@ -249,7 +249,7 @@ func (c *Connections) writeBack(ctx context.Context, account string, rec *record
+@@ -273,7 +273,7 @@ func (w *Work) writeBack(ctx context.Context, stamp uint64, current []byte) erro
  
  // failed logs a write-back that did not land, without the credential, and returns its error.
  func (c *Connections) failed(account string, err error) error {

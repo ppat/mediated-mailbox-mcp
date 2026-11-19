@@ -5,9 +5,10 @@ tests: TestATokenFailureIsThePortErrorItsOutcomeNames TestAPortCallWhoseTokenReq
 scheduled-count: no
 
 diff --git a/provider/mail/gmail/adapter.go b/provider/mail/gmail/adapter.go
+index 46815924..a5d9f72c 100644
 --- a/provider/mail/gmail/adapter.go
 +++ b/provider/mail/gmail/adapter.go
-@@ -226,7 +226,7 @@ func capped(r io.Reader, ceiling int) ([]byte, bool, error) {
+@@ -223,7 +223,7 @@ func capped(r io.Reader, ceiling int) ([]byte, bool, error) {
  // deadline.
  func tokenError(err error) error {
  	if google.Outcome(err) == mail.AuthRefused {

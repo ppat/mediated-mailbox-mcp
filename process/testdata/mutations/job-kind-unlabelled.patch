@@ -5,9 +5,10 @@ tests: TestEverySeriesIsLabelledWithWhatRegisteredIt
 scheduled-count: no
 
 diff --git a/process/process.go b/process/process.go
+index 4a6da3fc..bc192666 100644
 --- a/process/process.go
 +++ b/process/process.go
-@@ -99,7 +99,6 @@ func (p *proc) part(name, jobKind string) *capabilities {
+@@ -97,7 +97,6 @@ func (p *proc) part(name, jobKind string) *capabilities {
  	labels := prometheus.Labels{componentLabel: p.name}
  	logger := p.logger.With(componentLabel, p.name)
  	if jobKind != "" {

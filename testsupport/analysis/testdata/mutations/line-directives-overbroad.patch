@@ -5,10 +5,10 @@ tests: TestGlobals
 scheduled-count: no
 
 diff --git a/testsupport/analysis/globals.go b/testsupport/analysis/globals.go
-index f293bbb..378e13b 100644
+index 94124426..83f49741 100644
 --- a/testsupport/analysis/globals.go
 +++ b/testsupport/analysis/globals.go
-@@ -140,7 +140,7 @@ func checkDeclarations(pass *analysis.Pass, file *ast.File) {
+@@ -141,7 +141,7 @@ func checkDeclarations(pass *analysis.Pass, file *ast.File) {
  func checkLineDirectives(pass *analysis.Pass, file *ast.File) {
  	for _, group := range file.Comments {
  		for _, c := range group.List {

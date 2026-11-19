@@ -5,6 +5,7 @@ tests: TestASpecThatCannotRunIsRefused
 scheduled-count: no
 
 diff --git a/process/run.go b/process/run.go
+index 7edb03f4..c659b633 100644
 --- a/process/run.go
 +++ b/process/run.go
 @@ -80,8 +80,6 @@ func runSpec[C config.Program[C]](ctx context.Context, args, environ []string, s

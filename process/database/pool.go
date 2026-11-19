@@ -18,12 +18,11 @@ const (
 	maxName              = "mediated_mailbox_db_pool_max_connections"
 )
 
-// OpenPool opens a pool from config with every statement its connections run timed by the tracer
+// openPool opens a pool from config with every statement its connections run timed by the tracer
 // and its statistics collected, both on reg. It opens no connection until the pool's first use, as
-// pgxpool.NewWithConfig does, and runs no schema check. Open opens through it, and it is exported
-// only for this package's own tests, which open a pool from a configuration of their own, until
-// process/host is deleted and Open with it (ADR-0125).
-func OpenPool(ctx context.Context, config *pgxpool.Config, reg prometheus.Registerer) (*pgxpool.Pool, error) {
+// pgxpool.NewWithConfig does, and runs no schema check. open opens through it, and this package's
+// own tests open a pool from a configuration of their own through it (ADR-0125).
+func openPool(ctx context.Context, config *pgxpool.Config, reg prometheus.Registerer) (*pgxpool.Pool, error) {
 	tracer, err := newTracer(reg)
 	if err != nil {
 		return nil, err
@@ -47,8 +46,7 @@ func OpenPool(ctx context.Context, config *pgxpool.Config, reg prometheus.Regist
 // compares label names only between checked collectors, and a scrape does not compare them within
 // a family (ADR-0125). The cost is the registry's check for a collector registered twice, which it
 // makes only for a checked collector. A pool Get or ForMigration gives is opened once, under the
-// pools' lock, and registers once. A pool the host opens through Open or OpenPool is opened once by
-// its root, until the host is deleted. A scrape that met two series of one name and one set of label
+// pools' lock, and registers once. A scrape that met two series of one name and one set of label
 // values would fail, which the tests of a process holding both kinds of pool scrape for.
 type unchecked struct {
 	prometheus.Collector

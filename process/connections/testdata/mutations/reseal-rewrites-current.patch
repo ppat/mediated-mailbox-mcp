@@ -1,0 +1,28 @@
+control: Delta sync's re-seal moves each credential and client secret to the current key by compare-and-set, and a value someone replaced is read again
+removes: every credential is sealed again and written, the ones already on the current key included
+packages: ./process/connections
+tests: TestReSealingMovesCredentialsToTheCurrentKeyAndTheScanFollows
+scheduled-count: no
+integration: yes
+
+diff --git a/process/connections/reseal.go b/process/connections/reseal.go
+index 2eb9dada..8533640a 100644
+--- a/process/connections/reseal.go
++++ b/process/connections/reseal.go
+@@ -58,10 +58,14 @@ func (c *Connections) resealAccount(ctx context.Context, account string, rec *re
+ 	rec.mu.Lock()
+ 	known := rec.stored
+ 	rec.mu.Unlock()
+-	if known == nil || !c.onOldKey(known) {
++	if known == nil {
+ 		return
+ 	}
+-	_, resealed, changed, err := c.keys.Reseal(known, seal.AccountCredential(account))
++	rec.mu.Lock()
++	plaintext := rec.current()
++	rec.mu.Unlock()
++	resealed, err := c.keys.Seal(plaintext, seal.AccountCredential(account))
++	changed := true
+ 	if err == nil && changed {
+ 		var landed bool
+ 		landed, err = c.replace(ctx, account, known, resealed)

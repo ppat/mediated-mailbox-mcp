@@ -6,7 +6,7 @@ scheduled-count: no
 integration: yes
 
 diff --git a/process/connections/connections.go b/process/connections/connections.go
-index 72d60326..b9f09186 100644
+index 463d796a..b6360c82 100644
 --- a/process/connections/connections.go
 +++ b/process/connections/connections.go
 @@ -382,7 +382,7 @@ func (c *Connections) servable(account string, rec *record) bool {

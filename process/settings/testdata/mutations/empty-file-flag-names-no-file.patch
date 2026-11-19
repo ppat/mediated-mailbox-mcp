@@ -5,10 +5,10 @@ tests: TestEveryMistakeIsRefusedAtStart/a_flag_naming_an_empty_file
 scheduled-count: no
 
 diff --git a/process/settings/settings.go b/process/settings/settings.go
-index 4299ed0..21de087 100644
+index 07990f9a..f1617ebf 100644
 --- a/process/settings/settings.go
 +++ b/process/settings/settings.go
-@@ -338,9 +338,6 @@ func readFlags(root *node, args []string) ([]assignment, string, error) {
+@@ -351,9 +351,6 @@ func readFlags(root *node, args []string) ([]assignment, string, error) {
  		}
  		seen[name] = true
  		if name == fileFlag {

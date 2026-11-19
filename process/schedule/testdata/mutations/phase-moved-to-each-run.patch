@@ -5,7 +5,7 @@ tests: TestATimedJobIsAskedOnTheIntervalsPhase
 scheduled-count: no
 
 diff --git a/process/schedule/schedule.go b/process/schedule/schedule.go
-index 23d24f2b..a8164b67 100644
+index 47abffeb..fa5daa15 100644
 --- a/process/schedule/schedule.go
 +++ b/process/schedule/schedule.go
 @@ -332,7 +332,7 @@ func (s *Scheduler) loop(ctx context.Context, key Key, job Job, st *state) {

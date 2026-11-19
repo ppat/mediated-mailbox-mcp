@@ -1,0 +1,21 @@
+control: A read the connections cannot trust never replaces what is in force
+removes: a read that lists no account keeps the list and the connections in force rather than serving none
+packages: ./process/connections
+tests: TestAReloadConnectsWhatItReadAndKeepsWhatWasOnAFailedRead
+scheduled-count: no
+integration: yes
+
+diff --git a/process/sessions/sessions.go b/process/sessions/sessions.go
+index 0f7b87f4..21f56e0b 100644
+--- a/process/sessions/sessions.go
++++ b/process/sessions/sessions.go
+@@ -208,6 +208,9 @@ func (s *Session) reload(ctx context.Context) error {
+ 	if err != nil {
+ 		return s.fail(fmt.Errorf("reading the accounts: %w", err))
+ 	}
++	if len(listed) == 0 {
++		return nil
++	}
+ 	connections, after := s.members()
+ 	if connections != nil {
+ 		if err := connections.Load(ctx, listed); err != nil {

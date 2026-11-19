@@ -112,8 +112,6 @@ list names it.
 | `process/domains` | The domain lookups every program classifies senders with, the IDNA conversions and the public suffix list the sender classifier normalizes domains through, which its pure core cannot import | |
 | `process/logging` | The logger every program that runs as a process writes JSON to standard output through, and the reading of its `log_level` | |
 | `process/version` | The release version every binary's `--version` reports, which the release cut writes | |
-| `process/host` | The host each program ran on before it was on its spec, which no program runs on now, kept beside `process` until the refactor [ROADMAP.md](./ROADMAP.md) records deletes it | |
-| `process/probes`, `process/runtimemetrics` | The operations endpoints' handler, and the registration of the Go runtime's and the process's series, which `process` and `process/host` share until the host is deleted | |
 | `provider` | The calling side, which is the caller, the token, the one wrapper of a mailbox's operations, the list of shipped adapters, the facts about each provider and the shared provider metrics | |
 | `provider/mail` | What any mail provider can do, `mail.Mailbox`, the Provider Port's interface for mail, with its consent contract and the call sizes a caller needs, which backfill and delta sync's tick read. Each is what `core/mail`'s `CallSize` gives within the hard-cap fraction `core/mail` holds. It also holds `mail.Body`, a body's fetch over a `mail.Mailbox` with the second call for a part held apart, which every program that fetches a body uses. The port's errors, the body's part and the canonical model it speaks are `core/mail`'s | |
 | `provider/mail/gmail` | The Gmail adapter and its rate profile | `provider` |

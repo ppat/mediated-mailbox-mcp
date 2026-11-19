@@ -5,10 +5,10 @@ tests: TestTheEffectiveConfigurationIsLogged
 scheduled-count: no
 
 diff --git a/process/run.go b/process/run.go
-index a0a47fa0..1ccc924a 100644
+index 7edb03f4..57a91944 100644
 --- a/process/run.go
 +++ b/process/run.go
-@@ -125,7 +125,7 @@ func start[C config.Program[C]](args, environ []string, stdout, stderr io.Writer
+@@ -130,7 +130,7 @@ func start[C config.Program[C]](args, environ []string, stdout, stderr io.Writer
  	// The effective configuration is written before the level applies, so a refused value's source,
  	// log_level's included, reaches the log whatever level the configuration sets (ADR-0078, ADR-0122).
  	for _, v := range got.Values {

@@ -5,10 +5,10 @@ tests: TestEachValueRecordsTheLayerThatSetIt
 scheduled-count: no
 
 diff --git a/process/settings/settings.go b/process/settings/settings.go
-index 4299ed0..fa010b6 100644
+index 07990f9a..e60ef3f8 100644
 --- a/process/settings/settings.go
 +++ b/process/settings/settings.go
-@@ -172,7 +172,9 @@ func Load[T any](defaults T, args, environ []string) (Loaded[T], error) {
+@@ -183,7 +183,9 @@ func Load[T any](defaults T, args, environ []string) (Loaded[T], error) {
  			continue
  		}
  		set(result, root, a.path, copyValue(a.value))

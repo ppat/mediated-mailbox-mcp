@@ -5,9 +5,10 @@ tests: TestAlertingRules
 scheduled-count: no
 
 diff --git a/packaging/chart/rules/alerting-rules.yaml b/packaging/chart/rules/alerting-rules.yaml
+index 9cc9ffa4..fdc9d0f8 100644
 --- a/packaging/chart/rules/alerting-rules.yaml
 +++ b/packaging/chart/rules/alerting-rules.yaml
-@@ -39,7 +39,7 @@
+@@ -70,7 +70,7 @@ groups:
    # last minute. It catches issuance stopped by anything else, such as a stored fill instant ahead of the clock.
    - alert: MediatedMailboxIssuanceStalled
      expr: |

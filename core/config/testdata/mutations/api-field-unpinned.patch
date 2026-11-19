@@ -5,6 +5,7 @@ tests: TestTheProgramTypesArePinned
 scheduled-count: no
 
 diff --git a/core/config/programs.go b/core/config/programs.go
+index b8a3a69f..940c5c5b 100644
 --- a/core/config/programs.go
 +++ b/core/config/programs.go
 @@ -24,6 +24,7 @@ type API struct {

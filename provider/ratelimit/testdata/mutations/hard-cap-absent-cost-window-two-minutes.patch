@@ -5,9 +5,10 @@ tests: TestAlertingRules
 scheduled-count: no
 
 diff --git a/packaging/chart/rules/alerting-rules.yaml b/packaging/chart/rules/alerting-rules.yaml
+index 9cc9ffa4..83923812 100644
 --- a/packaging/chart/rules/alerting-rules.yaml
 +++ b/packaging/chart/rules/alerting-rules.yaml
-@@ -42,7 +42,7 @@ groups:
+@@ -46,7 +46,7 @@ groups:
    # than a passing gap.
    - alert: MediatedMailboxRateHardCapAbsent
      expr: |

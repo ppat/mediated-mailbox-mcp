@@ -421,7 +421,7 @@ const (
 	bodiesDeniedName      = "mediated_mailbox_api_bodies_denied_total"
 	operationDurationName = "mediated_mailbox_api_operation_duration_seconds"
 	processingName        = "mediated_mailbox_body_processing_duration_seconds"
-	reloadFailedName      = "mediated_mailbox_policyload_reload_failed"
+	reloadFailedName      = "mediated_mailbox_policy_reload_failed"
 	accountRateName       = "mediated_mailbox_ratelimit_account_rate"
 )
 

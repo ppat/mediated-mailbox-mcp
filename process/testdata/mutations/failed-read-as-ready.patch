@@ -5,9 +5,10 @@ tests: TestTheProbesAnswerFromWhatWasReported
 scheduled-count: no
 
 diff --git a/process/process.go b/process/process.go
+index 4a6da3fc..570e7476 100644
 --- a/process/process.go
 +++ b/process/process.go
-@@ -138,9 +138,8 @@ func (p *proc) notReady() (string, bool) {
+@@ -136,9 +136,8 @@ func (p *proc) notReady() (string, bool) {
  	defer p.reportsMu.Unlock()
  	for _, r := range p.reports {
  		switch r.state {

@@ -6,6 +6,7 @@ scheduled-count: no
 integration: yes
 
 diff --git a/process/connections/work.go b/process/connections/work.go
+index bee4427e..85eecc38 100644
 --- a/process/connections/work.go
 +++ b/process/connections/work.go
 @@ -69,7 +69,7 @@ func (c *Connections) Begin(account string, caller *Caller, until time.Time) (*W

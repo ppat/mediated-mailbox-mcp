@@ -1,0 +1,20 @@
+control: The application server serves TLS when given a key pair, read from its mounted files on each handshake, and a pair that does not load refuses the start
+removes: the application server is served over TLS even when the configuration names no key pair, so a process given neither file never serves
+packages: ./process
+tests: TestTheApplicationServerGivenNoKeyPairIsPlain
+scheduled-count: no
+
+diff --git a/process/serve.go b/process/serve.go
+index b637c343..3341731e 100644
+--- a/process/serve.go
++++ b/process/serve.go
+@@ -172,8 +172,7 @@ func (p *proc) serveOn(ctx context.Context, app, probeListener net.Listener, s c
+ 	if appServer != nil {
+ 		go func() {
+ 			if tlsConf == nil {
+-				failed <- serverFailed("the application server", appServer.Serve(app))
+-				return
++				tlsConf = &tls.Config{MinVersion: tls.VersionTLS12}
+ 			}
+ 			failed <- serverFailed("the application server", appServer.ServeTLS(app, "", ""))
+ 		}()
