@@ -89,10 +89,10 @@ type DeltaSync struct {
 }
 
 // Build builds delta sync's job kind from the process's capabilities and the worker's configuration,
-// and returns its plan. It takes the process's scanner, its own pool, which reports whether it
-// answers a ping, and the process's Session and connections, and a caller of its own in the sync class, and
-// registers its series on the registerer p gives it, which labels them with its job kind (ADR-0117,
-// ADR-0119, ADR-0142).
+// and returns its plan. It takes the process's scanner, its own pool, which reports on its database
+// from the work run on it, and the process's Session and connections, and a caller of its own in the
+// sync class, and registers its series on the registerer p gives it, which labels them with its job
+// kind (ADR-0117, ADR-0119, ADR-0142).
 func Build(ctx context.Context, p process.Capabilities, c config.Worker) (schedule.Plan, error) {
 	d, err := assemble(ctx, p, c)
 	if err != nil {
@@ -109,9 +109,6 @@ func assemble(ctx context.Context, p process.Capabilities, c config.Worker) (*De
 	}
 	pool, err := database.Get(ctx, p, c)
 	if err != nil {
-		return nil, err
-	}
-	if err := database.ReportReadiness(ctx, p, c); err != nil {
 		return nil, err
 	}
 	s, err := sessions.Get(ctx, p, c)

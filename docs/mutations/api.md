@@ -489,11 +489,11 @@ The demonstrations of the controls whose patches sit in `api/`. [MUTATIONS.md](.
 
 ## The API server serves the accounts each reload of its Session puts in force, and keeps them when a reload's read fails
 
-- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
+- **Date · evidence:** 2026-11-19 · [pull request #479](https://github.com/ppat/mediated-mailbox-mcp/pull/479), demonstrated with `go tool mutproof` on its branch
 - **Break (1):** a reload whose policy load fails returns before telling the registry, so an account it dropped stays served
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/api/app`:** `TestAFailedPolicyLoadStillFollowsTheList`
 - **Break (2):** a reload loads the policy only when its accounts differ from the ones the last load was tried for, so a load that failed is never retried and a policy edit never reaches the metadata reads
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/api/app`:** `TestAFailedPolicyLoadStillFollowsTheList`, `TestEveryReloadLoadsThePolicy`, `TestReadyOnlyWhileTheSessionHasLoadedAndTheTokenLoads`, `TestTheConfiguredLevelGovernsTheLog`, `TestTheDriversVariablesDoNotMoveTheConnection`, `TestTheMCPRootReportsTheReleaseVersion`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/api/app`:** `TestAFailedPolicyLoadStillFollowsTheList`, `TestEveryReloadLoadsThePolicy`
 - **Break (3):** a reload whose read of the list fails puts no account in force and tells the registry, so it stops serving every account
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/api/app`:** `TestTheAPIServerServesTheAccountsEachReloadLists`
 - **Break (4):** the policy is loaded by the first reload that loads it only, so an account a later reload lists is served under no policy of its own and a policy edit never reaches the metadata reads

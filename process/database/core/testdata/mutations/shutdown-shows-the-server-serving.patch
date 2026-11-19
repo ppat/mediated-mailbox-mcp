@@ -1,0 +1,17 @@
+control: A statement's or a connection attempt's outcome is evidence of the database serving, of a fault, or of nothing
+removes: no error the server returns is a fault, so a shutdown or a connection exception shows the database serving
+packages: ./process/database/core ./process/database
+tests: TestClassify TestThePoolsRecordFollowsItsOutcomes
+scheduled-count: no
+
+diff --git a/process/database/core/evidence.go b/process/database/core/evidence.go
+index ac625acb..86a9fdd4 100644
+--- a/process/database/core/evidence.go
++++ b/process/database/core/evidence.go
+@@ -64,5 +64,5 @@ func Classify(o Outcome) Evidence {
+ // unableToServe reports whether a SQLSTATE says the server cannot serve, rather than refusing one
+ // statement.
+ func unableToServe(code string) bool {
+-	return strings.HasPrefix(code, "08") || strings.HasPrefix(code, "53") || strings.HasPrefix(code, "57P")
++	return strings.HasPrefix(code, "08") && strings.HasPrefix(code, "53") && strings.HasPrefix(code, "57P")
+ }

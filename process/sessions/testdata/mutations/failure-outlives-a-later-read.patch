@@ -6,7 +6,7 @@ scheduled-count: no
 integration: yes
 
 diff --git a/process/sessions/sessions.go b/process/sessions/sessions.go
-index 0f7b87f4..8225dbaa 100644
+index cdcb3768..d0e1a81f 100644
 --- a/process/sessions/sessions.go
 +++ b/process/sessions/sessions.go
 @@ -215,7 +215,6 @@ func (s *Session) reload(ctx context.Context) error {
@@ -14,6 +14,6 @@ index 0f7b87f4..8225dbaa 100644
  	}
  	s.inForce.Store(&listed)
 -	s.failed.Store(nil)
- 	if err = s.policies.Load(ctx, ids(listed)); err != nil {
- 		err = fmt.Errorf("%w: %w", ErrPolicyNotLoaded, err)
- 	} else if !s.loaded.Swap(true) {
+ 	err = s.policies.Load(ctx, ids(listed))
+ 	// A policy the read found invalid is the operator's to fix, and the accounts keep the policy they
+ 	// had, the one that restricts every sender before any was read, so it holds up neither the

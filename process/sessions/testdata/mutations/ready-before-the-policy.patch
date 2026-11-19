@@ -1,4 +1,4 @@
-control: The Session is ready once a reload has loaded the list, the connections and the policy, and stays ready after a later reload whose policy fails
+control: The Session is ready once a reload has read the list, the connections and the policy, and stays ready after a later reload whose policy fails
 removes: the Session reports ready once a reload has read the list, whether or not its policy loaded
 packages: ./process/sessions
 tests: TestTheSessionIsReadyOnceAReloadHasLoadedEverything TestTheSessionIsReadyOnceAReloadHasLoadedEverything/the_policy
@@ -6,7 +6,7 @@ scheduled-count: no
 integration: yes
 
 diff --git a/process/sessions/sessions.go b/process/sessions/sessions.go
-index 0f7b87f4..1d2472f7 100644
+index cdcb3768..28f3b822 100644
 --- a/process/sessions/sessions.go
 +++ b/process/sessions/sessions.go
 @@ -216,6 +216,9 @@ func (s *Session) reload(ctx context.Context) error {
@@ -16,6 +16,6 @@ index 0f7b87f4..1d2472f7 100644
 +	if !s.loaded.Swap(true) {
 +		s.report(process.Ready, "")
 +	}
- 	if err = s.policies.Load(ctx, ids(listed)); err != nil {
- 		err = fmt.Errorf("%w: %w", ErrPolicyNotLoaded, err)
- 	} else if !s.loaded.Swap(true) {
+ 	err = s.policies.Load(ctx, ids(listed))
+ 	// A policy the read found invalid is the operator's to fix, and the accounts keep the policy they
+ 	// had, the one that restricts every sender before any was read, so it holds up neither the

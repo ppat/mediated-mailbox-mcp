@@ -32,7 +32,7 @@ The demonstrations of the controls whose patches sit in `process/`. [MUTATIONS.m
 
 ## A concurrency limit per job kind bounds its runs at once
 
-- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
+- **Date · evidence:** 2026-11-19 · [pull request #479](https://github.com/ppat/mediated-mailbox-mcp/pull/479), demonstrated with `go tool mutproof` on its branch
 - **Break:** a run never takes a slot of its job's limit, so the limit bounds nothing
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/schedule`:** `TestAJobsWaitForASlotIsReported`, `TestALimitBoundsTheRunsOfAJobKindAtOnce`
 
@@ -102,7 +102,7 @@ The demonstrations of the controls whose patches sit in `process/`. [MUTATIONS.m
 
 ## A failed job is asked again after a capped exponential backoff, which a success resets and a wake waits out
 
-- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
+- **Date · evidence:** 2026-11-19 · [pull request #479](https://github.com/ppat/mediated-mailbox-mcp/pull/479), demonstrated with `go tool mutproof` on its branch
 - **Break (1):** a success leaves the count of failures as it was, so the backoff never resets
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/schedule`:** `TestASuccessResetsTheBackoff`
 - **Break (2):** a wake is answered during a backoff, so a failing job woken often runs at the rate it is woken
@@ -233,11 +233,11 @@ The demonstrations of the controls whose patches sit in `process/`. [MUTATIONS.m
 
 ## A process holds one Session, built from the process with its own capabilities, its reload unobserved by the scheduler's series
 
-- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
+- **Date · evidence:** 2026-11-19 · [pull request #479](https://github.com/ppat/mediated-mailbox-mcp/pull/479), demonstrated with `go tool mutproof` on its branch
 - **Break (1):** the Session is built with the capabilities of the part that asked first, so its series carry that part's job kind
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/sessions`:** `TestTheSessionIsOnePerProcessBuiltFromTheProcess`
 - **Break (2):** each part that asks gets a Session built for it, so the process holds more than one
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/sessions`:** `TestAFailedReloadKeepsWhatItCouldNotRead`, `TestEachReloadItsCallerDidNotCancelIsTimed`, `TestOnceLoadedAFailedReloadWaitsForTheNextInterval`, `TestTheSessionIsOnePerProcessBuiltFromTheProcess`, `TestTheSessionIsReadyOnceAReloadHasLoadedEverything`, `TestTheSessionIsReadyOnceAReloadHasLoadedEverything/the_list`, `TestTheSessionIsReadyOnceAReloadHasLoadedEverything/the_policy`, `TestTheWorkableAccountsAnswerFromTheLatestRead`, `TestWithoutConnectionsNoAccountIsWorkable`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/sessions`:** `TestAFailedReloadKeepsWhatItCouldNotRead`, `TestAPolicyThatDoesNotValidateHoldsUpNoProbe`, `TestEachReloadItsCallerDidNotCancelIsTimed`, `TestOnceLoadedAFailedReloadWaitsForTheNextInterval`, `TestTheSessionIsOnePerProcessBuiltFromTheProcess`, `TestTheSessionIsReadyOnceAReloadHasLoadedEverything`, `TestTheSessionIsReadyOnceAReloadHasLoadedEverything/the_list`, `TestTheSessionIsReadyOnceAReloadHasLoadedEverything/the_policy`, `TestTheWorkableAccountsAnswerFromTheLatestRead`, `TestWithoutConnectionsNoAccountIsWorkable`
 
 ## A process starts in order, refusing the password variables before it reads its configuration, logging every value before it sets the level, and running the configuration's checks before Init
 
@@ -387,6 +387,50 @@ The demonstrations of the controls whose patches sit in `process/`. [MUTATIONS.m
 - **Break (4):** a task beside job kinds is accepted and run as a task
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/process`:** `TestASpecThatCannotRunIsRefused`
 
+## A state the operator fixes, no account, an account that cannot connect or a policy that does not validate, fails neither probe
+
+- **Date · evidence:** 2026-11-19 · [pull request #479](https://github.com/ppat/mediated-mailbox-mcp/pull/479), demonstrated with `go tool mutproof` on its branch
+- **Break (1):** an account whose provider needs an OAuth client and that names none fails the connections' load, so the Session never reads its accounts
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/api/app`:** `TestABodyFetchSpendsFromTheInteractiveReservation`, `TestABodyPastTheBoundIsDeniedAsRefused`, `TestABodyTheConversionRefusesIsDenied`, `TestADenialNamesTheScopeOfTheRuleBehindIt`, `TestAFailedPolicyLoadStillFollowsTheList`, `TestAFirstReloadThatFailsLeavesTheAPIServerStartedAndNotReady`, `TestANewlyListedDomainIsDeniedOnTheNextCall`, `TestAPathOutsideBothRootsIsNotFound`, `TestAProviderThatDoesNotAnswerIsTheProvidersFailure`, `TestAReasonTheAuditCheckDoesNotKnowReleasesNothing`, `TestARefusedCredentialIsReadAgainBeforeTheRefusalIsReported`, `TestAReleasedBodyIsCleanMarkdown`, `TestARequestWaitsForItsLeasesNoLongerThanItsDeadline`, `TestARereadAfterAMoveBuildsTheTokenFromTheNewClient`, `TestARereadThatFindsTheAccountNotConnectedReportsTheRefusal`, `TestARereadThatFindsTheAccountNotConnectedReportsTheRefusal/its_credential_removed`, `TestARereadThatFindsTheAccountNotConnectedReportsTheRefusal/moved_to_a_client_that_does_not_open`, `TestARotationWhoseWriteBackFailedIsKept`, `TestAServedBodyFetchesNoImage`, `TestAStaleWriteBackLeavesTheReauthorization`, `TestAnAccountNamingNoClientIsNotConnected`, `TestAnAccountWithoutAStoredCredentialIsNotConnected`, `TestEachBodyRequestWritesBackAndRecordsTheAttempt`, `TestEachOriginIsToldApartOnBothRoots`, `TestEveryReloadLoadsThePolicy`, `TestNoAccountOrAnAccountThatCannotConnectFailsNoProbe`, `TestNoAccountOrAnAccountThatCannotConnectFailsNoProbe/accounts_that_need_an_OAuth_client_and_name_none_or_whose_client_does_not_open`, `TestNoAccountOrAnAccountThatCannotConnectFailsNoProbe/accounts_whose_credentials_cannot_be_opened`, `TestNoAccountOrAnAccountThatCannotConnectFailsNoProbe/an_account_whose_policy_was_never_imported`, `TestNoBodyIsReleasedWithoutItsAuditRow`, `TestTheAPIServerServesTheAccountsEachReloadLists`, `TestTheGateDeniesFromTheIndexWithoutReachingTheProvider`, `TestTheMetricsEndpointCarriesEachServedAccountsRateState`, `TestTheReadOperationsReadTheSession`, `TestTheServeTimeCheckReadsEverythingReleased`, `TestTheSurfaceGivenNoKeyPairIsPlain`, `TestTheSurfaceGivenNoKeyPairIsPlain/both_blank`, `TestTheSurfaceGivenNoKeyPairIsPlain/neither_file`, `TestTheSurfaceIsServedOverTLSWhenGivenAKeyPair`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/worker/app`:** `TestNoAccountOrAnAccountThatCannotConnectFailsNoProbe`, `TestNoAccountOrAnAccountThatCannotConnectFailsNoProbe/accounts_that_cannot_connect`
+- **Break (2):** a credential that does not open fails the connections' load, so the Session never reads its accounts
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/api/app`:** `TestNoAccountOrAnAccountThatCannotConnectFailsNoProbe`, `TestNoAccountOrAnAccountThatCannotConnectFailsNoProbe/accounts_whose_credentials_cannot_be_opened`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/worker/app`:** `TestNoAccountOrAnAccountThatCannotConnectFailsNoProbe`, `TestNoAccountOrAnAccountThatCannotConnectFailsNoProbe/accounts_that_cannot_connect`
+- **Break (3):** an OAuth client whose secret does not open fails the connections' load, so the Session never reads its accounts
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/api/app`:** `TestNoAccountOrAnAccountThatCannotConnectFailsNoProbe`, `TestNoAccountOrAnAccountThatCannotConnectFailsNoProbe/accounts_that_need_an_OAuth_client_and_name_none_or_whose_client_does_not_open`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/worker/app`:** `TestNoAccountOrAnAccountThatCannotConnectFailsNoProbe`, `TestNoAccountOrAnAccountThatCannotConnectFailsNoProbe/accounts_that_cannot_connect`
+- **Break (4):** a policy never imported reads as a read that did not complete, so the Session never reports ready
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/api/app`:** `TestAFirstReloadThatFailsLeavesTheAPIServerStartedAndNotReady`, `TestAPathOutsideBothRootsIsNotFound`, `TestNoAccountOrAnAccountThatCannotConnectFailsNoProbe`, `TestNoAccountOrAnAccountThatCannotConnectFailsNoProbe/accounts_that_need_an_OAuth_client_and_name_none_or_whose_client_does_not_open`, `TestNoAccountOrAnAccountThatCannotConnectFailsNoProbe/accounts_whose_credentials_cannot_be_opened`, `TestNoAccountOrAnAccountThatCannotConnectFailsNoProbe/an_account_whose_policy_was_never_imported`, `TestTheAPIServerServesTheAccountsEachReloadLists`, `TestTheMetricsEndpointCarriesEachServedAccountsRateState`, `TestTheSurfaceGivenNoKeyPairIsPlain`, `TestTheSurfaceGivenNoKeyPairIsPlain/both_blank`, `TestTheSurfaceGivenNoKeyPairIsPlain/neither_file`, `TestTheSurfaceIsServedOverTLSWhenGivenAKeyPair`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/worker/app`:** `TestADroppedAccountsBacklogGoesWithItsJob`, `TestADroppedAccountsRunsAreCancelled`, `TestAFailedRecordingFailsTheJobKindsRun`, `TestAFailedRecordingFailsTheJobKindsRun/backfill`, `TestAFailedRecordingFailsTheJobKindsRun/delta_sync`, `TestAFailedRunStartStepIsMadeAgainAtTheNextAsk`, `TestAFailedTickStillEndsItsUnitOfWork`, `TestAFailedWriteBackFailsTheJobKindsRun`, `TestAFailedWriteBackFailsTheJobKindsRun/backfill`, `TestAFailedWriteBackFailsTheJobKindsRun/delta_sync`, `TestANewAccountIsBackfilledWithNoManualStep`, `TestAPanicInARunFailsThatRunAlone`, `TestARefusedCallUsesTheCredentialTheOperatorStored`, `TestAStartLogsNoErrorAndIsReadyOnlyOnceTheSessionLoads`, `TestATickRecordsABodyTheConversionRefusesAsRefused`, `TestATickScansABodyHeldApart`, `TestATicksMetadataCallsFitTheCallSize`, `TestAnAccountsSeriesGoWithItsWork`, `TestEachAccountIsServedThroughItsOwnClient`, `TestEachJobKindsUnitOfWorkWritesBackAndRecords`, `TestEachJobKindsUnitOfWorkWritesBackAndRecords/backfill`, `TestEachJobKindsUnitOfWorkWritesBackAndRecords/delta_sync`, `TestEachPageTakesThePolicyInForce`, `TestEachSessionReloadWakesTheJobKinds`, `TestEachTickFeedsItsUnclassifiedAndBacklogSeries`, `TestEachTickTakesThePolicyInForce`, `TestNoAccountIsListedBeforeItsPolicyLoads`, `TestNoAccountOrAnAccountThatCannotConnectFailsNoProbe`, `TestNoAccountOrAnAccountThatCannotConnectFailsNoProbe/accounts_that_cannot_connect`, `TestNoAccountOrAnAccountThatCannotConnectFailsNoProbe/an_account_whose_policy_was_never_imported`, `TestNoBodyTextReachesTheIndexOrTheLogs`, `TestTheProbesServeEverySeriesBetweenRuns`, `TestTheRunStartStepIsMadeOnceForEachJobsLife`, `TestTicksHoldTheirTokenUntilTheCredentialIsReplaced`
+- **Break (5):** a policy whose rows do not validate holds the Session not ready
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/sessions`:** `TestAPolicyThatDoesNotValidateHoldsUpNoProbe`
+- **Break (6):** the Session reports ready only once it lists an account, so a process with none is never ready
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/api/app`:** `TestNoAccountOrAnAccountThatCannotConnectFailsNoProbe`, `TestNoAccountOrAnAccountThatCannotConnectFailsNoProbe/no_account`, `TestReadyOnlyWhileTheSessionHasLoadedAndTheTokenLoads`, `TestTheConfiguredLevelGovernsTheLog`, `TestTheDriversVariablesDoNotMoveTheConnection`, `TestTheMCPRootReportsTheReleaseVersion`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/worker/app`:** `TestANewAccountIsBackfilledWithNoManualStep`, `TestNoAccountOrAnAccountThatCannotConnectFailsNoProbe`, `TestNoAccountOrAnAccountThatCannotConnectFailsNoProbe/no_account`, `TestTheConfiguredLevelGovernsTheLog`, `TestTheDriversVariablesNameNothingTheWorkerConnectsTo`, `TestTheWorkerIsNotReadyWhileItsWorkFindsTheDatabaseGone`
+- **Break (7):** a job kind's listing fails while an account is not connected, so the worker is never ready
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/worker/app`:** `TestNoAccountOrAnAccountThatCannotConnectFailsNoProbe`, `TestNoAccountOrAnAccountThatCannotConnectFailsNoProbe/accounts_that_cannot_connect`, `TestTheRunStartStepIsMadeOnceForEachJobsLife`
+
+## A statement's or a connection attempt's outcome is evidence of the database serving, of a fault, or of nothing
+
+- **Date · evidence:** 2026-11-19 · [pull request #479](https://github.com/ppat/mediated-mailbox-mcp/pull/479), demonstrated with `go tool mutproof` on its branch
+- **Break (1):** a failed connection attempt is a fault while the pool holds another connection, so a pool that can still serve reports not ready and nothing clears it without traffic
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/database`:** `TestAFailedAttemptBesideAHeldConnectionShowsNoFault`, `TestThePoolsRecordFollowsItsOutcomes`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/database/core`:** `TestClassify`
+- **Break (2):** a caller that stopped waiting is classified by the error it got, so a cancelled statement that lost its connection is a fault
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/database`:** `TestThePoolsRecordFollowsItsOutcomes`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/database/core`:** `TestClassify`
+- **Break (3):** a failed connection attempt is no evidence, so a database that refuses every connection never makes a pool unready
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/database`:** `TestThePoolsRecordFollowsItsOutcomes`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/database/core`:** `TestClassify`
+- **Break (4):** a statement that lost its connection without the server's answer is no evidence
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/database/core`:** `TestClassify`
+- **Break (5):** every error the server returns is a fault, so a constraint, a statement timeout or a privilege makes a pool unready
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/database`:** `TestThePoolsRecordFollowsItsOutcomes`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/database/core`:** `TestClassify`
+- **Break (6):** no error the server returns is a fault, so a shutdown or a connection exception shows the database serving
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/database`:** `TestThePoolsRecordFollowsItsOutcomes`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/database/core`:** `TestClassify`
+
 ## A stopped worker and a job whose last success has aged are loud
 
 - **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
@@ -407,7 +451,7 @@ The demonstrations of the controls whose patches sit in `process/`. [MUTATIONS.m
 
 ## A timed job is asked on its interval's phase, and a job with no interval only when woken
 
-- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
+- **Date · evidence:** 2026-11-19 · [pull request #479](https://github.com/ppat/mediated-mailbox-mcp/pull/479), demonstrated with `go tool mutproof` on its branch
 - **Break (1):** a job with no interval is asked again at once after every run
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/schedule`:** `TestAJobWithNoIntervalIsAskedOnlyWhenWoken`, `TestAUnitMadeDurableIsASuccess`
 - **Break (2):** a run moves the phase to its own start, so after a run that outlasts the interval the phase never resumes
@@ -415,8 +459,8 @@ The demonstrations of the controls whose patches sit in `process/`. [MUTATIONS.m
 - **Break (3):** an ask carries its own time as its time on the ticker's phase, so an ask at the end of a backoff or at a wake names a time off the phase
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/schedule`:** `TestEachAskCarriesItsTimeOnThePhase`
 - **Break (4):** a job with an interval waits its interval before its first ask, so the Session's first reload waits a whole interval after the process starts
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/schedule`:** `TestAJobsWaitForASlotIsReported`, `TestALimitBoundsTheRunsOfAJobKindAtOnce`, `TestANotDueAnswerChangesNeitherFailuresNorSuccess`, `TestAPanicIsItsRunsFailureAndStopsNothingElse`, `TestAPanicIsItsRunsFailureAndStopsNothingElse/in_a_goroutine_it_started`, `TestAPanicIsItsRunsFailureAndStopsNothingElse/in_the_run`, `TestAPlansListingAddsAndDropsJobsByKey`, `TestAReloadsRunIsTimedApartFromAnAccountJobs`, `TestARunIsAskedAgainOnlyAfterItReturns`, `TestASuccessResetsTheBackoff`, `TestATimedJobIsAskedOnTheIntervalsPhase`, `TestAWakeDuringABackoffWaitsForItsEnd`, `TestEachAskCarriesItsTimeOnThePhase`, `TestRemoveAndStopCancelTheirRunsAndWaitForThem`, `TestTheJobSeriesFollowEveryWayARunEnds`, `TestWakesDuringARunCoalesceIntoOneRun`
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/sessions`:** `TestAFailedReloadKeepsWhatItCouldNotRead`, `TestEachReloadItsCallerDidNotCancelIsTimed`, `TestTheSessionIsOnePerProcessBuiltFromTheProcess`, `TestTheSessionIsReadyOnceAReloadHasLoadedEverything`, `TestTheSessionIsReadyOnceAReloadHasLoadedEverything/the_list`, `TestTheSessionIsReadyOnceAReloadHasLoadedEverything/the_policy`, `TestWithoutConnectionsNoAccountIsWorkable`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/schedule`:** `TestAJobsWaitForASlotIsReported`, `TestALimitBoundsTheRunsOfAJobKindAtOnce`, `TestANotDueAnswerChangesNeitherFailuresNorSuccess`, `TestAPanicIsItsRunsFailureAndStopsNothingElse`, `TestAPanicIsItsRunsFailureAndStopsNothingElse/in_a_goroutine_it_started`, `TestAPanicIsItsRunsFailureAndStopsNothingElse/in_the_run`, `TestAPlansListingAddsAndDropsJobsByKey`, `TestAReloadsRunIsTimedApartFromAnAccountJobs`, `TestARunIsAskedAgainOnlyAfterItReturns`, `TestASuccessResetsTheBackoff`, `TestATimedJobIsAskedOnTheIntervalsPhase`, `TestAWakeDuringABackoffWaitsForItsEnd`, `TestAWedgedLoopIsReportedAndALongRunOrWaitIsNot`, `TestEachAskCarriesItsTimeOnThePhase`, `TestRemoveAndStopCancelTheirRunsAndWaitForThem`, `TestTheJobSeriesFollowEveryWayARunEnds`, `TestWakesDuringARunCoalesceIntoOneRun`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/sessions`:** `TestAFailedReloadKeepsWhatItCouldNotRead`, `TestAPolicyThatDoesNotValidateHoldsUpNoProbe`, `TestEachReloadItsCallerDidNotCancelIsTimed`, `TestTheSessionIsOnePerProcessBuiltFromTheProcess`, `TestTheSessionIsReadyOnceAReloadHasLoadedEverything`, `TestTheSessionIsReadyOnceAReloadHasLoadedEverything/the_list`, `TestTheSessionIsReadyOnceAReloadHasLoadedEverything/the_policy`, `TestWithoutConnectionsNoAccountIsWorkable`
 
 ## A unit of work's end writes back only while the record's adoption stamp is the one it read with the credential, and the process's own write-back leaves the stamp as it is
 
@@ -532,7 +576,7 @@ The demonstrations of the controls whose patches sit in `process/`. [MUTATIONS.m
 
 ## Both of a process's servers close an idle connection and cut off a request that has not arrived within their limits, and bound no answer
 
-- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
+- **Date · evidence:** 2026-11-19 · [pull request #479](https://github.com/ppat/mediated-mailbox-mcp/pull/479), demonstrated with `go tool mutproof` on its branch
 - **Break (1):** the servers bound writing an answer by the read limit, which cuts off a request waiting for its leases and an event stream
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/process`:** `TestTheConnectionLimits`, `TestTheServersCloseIdleAndSlowConnectionsAndNeverCutAnAnswer`
 - **Break (2):** the servers set no idle limit, so an idle keep-alive connection is held until the read limit
@@ -596,11 +640,11 @@ The demonstrations of the controls whose patches sit in `process/`. [MUTATIONS.m
 
 ## Each job kind has a pool of its own and the process one more, every pool closed with the slots
 
-- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
+- **Date · evidence:** 2026-11-19 · [pull request #479](https://github.com/ppat/mediated-mailbox-mcp/pull/479), demonstrated with `go tool mutproof` on its branch
 - **Break (1):** a job kind's pool registers its series on the process's registerer, so the two job kinds' pools serve series of one name and one set of label values and the scrape fails
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/database`:** `TestEachJobKindHasAPoolOfItsOwnAndTheProcessOneMore`
 - **Break (2):** every part shares one pool, so one job kind can starve another of connections
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/database`:** `TestEachJobKindHasAPoolOfItsOwnAndTheProcessOneMore`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/database`:** `TestAJobKindsPoolIsReportedUnderItsOwnName`, `TestEachJobKindHasAPoolOfItsOwnAndTheProcessOneMore`
 - **Break (3):** the pools are not closed with the slots, so they outlive the process, the migrator's task's included
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/database`:** `TestEachJobKindHasAPoolOfItsOwnAndTheProcessOneMore`, `TestGetChecksTheSchemaAndForMigrationDoesNot`
 
@@ -609,6 +653,34 @@ The demonstrations of the controls whose patches sit in `process/`. [MUTATIONS.m
 - **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
 - **Break:** a reload keeps the prepared policies of the snapshot it replaces, so an edit it loads never reaches the classifier
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/policies`:** `TestABaseEditBetweenTwoAccountsReadsIsReadAgain`, `TestAnEmptyPolicyReadWholeIsAccepted`, `TestAnInvalidUpdateNeverDisplacesTheActivePolicy`, `TestEachLoadReadsTheAccountsItNames`, `TestEachReloadPreparesThePolicyItSwapsIn`, `TestTheLoaderComposesEachAccountsPolicy`, `TestTheSharedLoadReadsARuleWrittenSinceTheLastLoad`
+
+## Each pool reports its database from the outcomes of the work run on it, clears on its own attempt to connect, and reports failed after its bound with no connection
+
+- **Date · evidence:** 2026-11-19 · [pull request #479](https://github.com/ppat/mediated-mailbox-mcp/pull/479), demonstrated with `go tool mutproof` on its branch
+- **Break (1):** a connection attempt has no bound of its own, so one the network never answers waits on its caller and counts as nothing
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/database`:** `TestAConnectionAttemptThatIsNeverAnsweredIsAFault`
+- **Break (2):** a pool never reports failed, however long it goes without a connection
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/database`:** `TestThePoolsRecordFollowsItsOutcomes`
+- **Break (3):** a success leaves the first failed connection attempt in place, so a pool that connects again stays failed at its next failed attempt
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/database`:** `TestThePoolsRecordFollowsItsOutcomes`
+- **Break (4):** a statement that shows a fault leaves the pool's other connections open, so a dead idle connection counts toward the one kept and the pool never attempts a new one
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/database`:** `TestAJobKindsPoolIsReportedUnderItsOwnName`
+- **Break (5):** a pool whose latest evidence is a fault reports ready
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/database`:** `TestAConnectionAttemptThatIsNeverAnsweredIsAFault`, `TestAJobKindsPoolIsReportedUnderItsOwnName`, `TestThePoolsRecordFollowsItsOutcomes`, `TestThePoolsReportFollowsTheWorkRunOnIt`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/app`:** `TestReadinessFollowsTheDatabase`
+- **Break (6):** a failed connection attempt is never told the pool holds another connection, so a pool that can still serve reports not ready and nothing clears it without traffic
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/database`:** `TestAFailedAttemptBesideAHeldConnectionShowsNoFault`, `TestAProbeRunsNoCallToTheDatabase`, `TestThePoolsRecordFollowsItsOutcomes`
+- **Break (7):** a job kind's pool reports under the pools' own name, database, so one name stands for every pool
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/database`:** `TestAJobKindsPoolIsReportedUnderItsOwnName`
+- **Break (8):** a pool keeps no connection, so once it has lost its connections it attempts none on its own and a pool taking no traffic stays not ready
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/database`:** `TestAJobKindsPoolIsReportedUnderItsOwnName`, `TestThePoolsReportFollowsTheWorkRunOnIt`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/app`:** `TestReadinessFollowsTheDatabase`
+- **Break (9):** a kept pool reports nothing, so its database's state never reaches the readiness probe
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/database`:** `TestAConnectionAttemptThatIsNeverAnsweredIsAFault`, `TestAJobKindsPoolIsReportedUnderItsOwnName`, `TestThePoolsReportFollowsTheWorkRunOnIt`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/app`:** `TestReadinessFollowsTheDatabase`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/worker/app`:** `TestTheWorkerIsNotReadyWhileItsWorkFindsTheDatabaseGone`
+- **Break (10):** the pool is pinged every second, so the process makes calls to the database that the probes' answers do not need
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/database`:** `TestAProbeRunsNoCallToTheDatabase`, `TestThePoolsReportFollowsTheWorkRunOnIt`
 
 ## Each reload of the Session its caller did not cancel is timed
 
@@ -658,7 +730,7 @@ The demonstrations of the controls whose patches sit in `process/`. [MUTATIONS.m
 
 ## Get runs the schema check on a pool before it first returns it, and ForMigration runs none
 
-- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
+- **Date · evidence:** 2026-11-19 · [pull request #479](https://github.com/ppat/mediated-mailbox-mcp/pull/479), demonstrated with `go tool mutproof` on its branch
 - **Break (1):** Get runs no schema check, so a program starts on a schema its chain cannot run on
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/database`:** `TestGetChecksTheSchemaAndForMigrationDoesNot`
 - **Break (2):** a schema the check refuses is ignored and its pool kept and returned, so the build goes on
@@ -688,7 +760,7 @@ The demonstrations of the controls whose patches sit in `process/`. [MUTATIONS.m
 
 ## One run per job, with wakes coalesced, held in the process
 
-- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
+- **Date · evidence:** 2026-11-19 · [pull request #479](https://github.com/ppat/mediated-mailbox-mcp/pull/479), demonstrated with `go tool mutproof` on its branch
 - **Break (1):** a job ensured again while its removal waits starts its loop at once, beside the removed loop still ending its run
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/schedule`:** `TestAJobEnsuredWhileItIsRemovedNeverRunsTwiceAtOnce`, `TestEnsuringAndRemovingAJobRapidlyLeavesNoLoopRunning`
 - **Break (2):** removing a job neither cancels nor waits for its loop, so the loop keeps asking the job after its removal
@@ -792,6 +864,16 @@ The demonstrations of the controls whose patches sit in `process/`. [MUTATIONS.m
 - **Break (2):** a token that made no attempt records one at the epoch
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/connections`:** `TestAFailedWriteBackIsHeldLoggedAndKeptByAReload`, `TestAStoredCredentialSomeoneElseReplacedWins`, `TestTheEndRecordsTheTokensLatestAttempt`
 
+## The health probe fails only while something reports failed or a job's loop on the scheduler is wedged past its bound, and names it
+
+- **Date · evidence:** 2026-11-19 · [pull request #479](https://github.com/ppat/mediated-mailbox-mcp/pull/479), demonstrated with `go tool mutproof` on its branch
+- **Break (1):** the health probe fails on a part that is not ready, which a restart cannot help
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process`:** `TestTheProbesAnswerFromWhatWasReported`
+- **Break (2):** the health probe ignores a part that reports failed
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process`:** `TestTheProbesAnswerFromWhatWasReported`
+- **Break (3):** the health probe never asks the scheduler, so a wedged loop leaves it 200
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process`:** `TestTheHealthProbeFailsOnAWedgedSchedulerLoop`
+
 ## The load concurrent body requests share runs on the process's goroutines, and a load that cannot run fails its callers
 
 - **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
@@ -870,7 +952,7 @@ The demonstrations of the controls whose patches sit in `process/`. [MUTATIONS.m
 
 ## The probes run nothing when asked, and the readiness probe answers the state last reported
 
-- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
+- **Date · evidence:** 2026-11-19 · [pull request #479](https://github.com/ppat/mediated-mailbox-mcp/pull/479), demonstrated with `go tool mutproof` on its branch
 - **Break (1):** the readiness probe answers from the reports as they stood when serving began, so a later report never reaches it
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/process`:** `TestAJobKindsPlanRunsOnTheScheduler`, `TestTheProbesAnswerFromWhatWasReported`, `TestTheProbesRunNothingWhenAsked`
 - **Break (2):** each ask of the readiness probe starts a check through Go that runs until the process stops
@@ -894,6 +976,20 @@ The demonstrations of the controls whose patches sit in `process/`. [MUTATIONS.m
 - **Break (3):** the readiness probe answers ready whatever was reported
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/process`:** `TestAJobKindsPlanRunsOnTheScheduler`, `TestTheProbesAnswerFromWhatWasReported`, `TestTheProbesRunNothingWhenAsked`
 
+## The scheduler names a job's loop held past due between its run and its next wait, and never a run in flight or a wait
+
+- **Date · evidence:** 2026-11-19 · [pull request #479](https://github.com/ppat/mediated-mailbox-mcp/pull/479), demonstrated with `go tool mutproof` on its branch
+- **Break (1):** a loop never records when it was due, so no loop is ever named wedged
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/schedule`:** `TestAWedgedLoopIsReportedAndALongRunOrWaitIsNot`
+- **Break (2):** a run in flight counts as past due, so a long run is named wedged
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/schedule`:** `TestAWedgedLoopIsReportedAndALongRunOrWaitIsNot`
+- **Break (3):** a wait for a slot of the job's limit counts as past due, so a job waiting its turn is named wedged
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/schedule`:** `TestAWedgedLoopIsReportedAndALongRunOrWaitIsNot`
+- **Break (4):** a job with no timer waiting for a wake counts as due from when it began to wait, so it is named wedged
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/schedule`:** `TestAWedgedLoopIsReportedAndALongRunOrWaitIsNot`
+- **Break (5):** a loop is named wedged as soon as it is past due, whatever the bound
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/schedule`:** `TestAWedgedLoopIsReportedAndALongRunOrWaitIsNot`
+
 ## The scheduler refuses a plan it could never run, and the refusal stops the process in order naming the job kind
 
 - **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
@@ -915,32 +1011,32 @@ The demonstrations of the controls whose patches sit in `process/`. [MUTATIONS.m
 - **Break (2):** the serving record carries no transport
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/process`:** `TestTheApplicationServerGivenNoKeyPairIsPlain`, `TestTheApplicationServerServesTLSWhenGivenAKeyPair`
 
-## The Session is ready once a reload has loaded the list, the connections and the policy, and stays ready after a later reload whose policy fails
+## The Session is ready once a reload has read the list, the connections and the policy, and stays ready after a later reload whose policy fails
 
-- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
+- **Date · evidence:** 2026-11-19 · [pull request #479](https://github.com/ppat/mediated-mailbox-mcp/pull/479), demonstrated with `go tool mutproof` on its branch
 - **Break (1):** a later reload whose policy fails reports the Session not ready again
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/sessions`:** `TestTheSessionIsReadyOnceAReloadHasLoadedEverything`, `TestTheSessionIsReadyOnceAReloadHasLoadedEverything/the_list`, `TestTheSessionIsReadyOnceAReloadHasLoadedEverything/the_policy`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/sessions`:** `TestAPolicyThatDoesNotValidateHoldsUpNoProbe`, `TestTheSessionIsReadyOnceAReloadHasLoadedEverything`, `TestTheSessionIsReadyOnceAReloadHasLoadedEverything/the_list`, `TestTheSessionIsReadyOnceAReloadHasLoadedEverything/the_policy`
 - **Break (2):** the Session reports ready once a reload has read the list, whether or not its policy loaded
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/sessions`:** `TestTheSessionIsReadyOnceAReloadHasLoadedEverything`, `TestTheSessionIsReadyOnceAReloadHasLoadedEverything/the_policy`
 
 ## The Session reloads in one order, and keeps in force what a failed read could not read
 
-- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
+- **Date · evidence:** 2026-11-19 · [pull request #479](https://github.com/ppat/mediated-mailbox-mcp/pull/479), demonstrated with `go tool mutproof` on its branch
 - **Break (1):** a reload whose load of the connections fails puts its list in force all the same, so an account whose credential was never read is held
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/connections`:** `TestAReloadConnectsWhatItReadAndKeepsWhatWasOnAFailedRead`
 - **Break (2):** a reload whose read of the accounts fails puts an empty list in force, as if no account were listed
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/sessions`:** `TestAFailedReloadKeepsWhatItCouldNotRead`, `TestOnceLoadedAFailedReloadWaitsForTheNextInterval`, `TestTheWorkableAccountsAnswerFromTheLatestRead`
 - **Break (3):** a reload whose policy load fails keeps the list of the reload before it in force and tells no one, so an account no longer listed stays held
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/sessions`:** `TestAFailedReloadKeepsWhatItCouldNotRead`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/sessions`:** `TestAFailedReloadKeepsWhatItCouldNotRead`, `TestAPolicyThatDoesNotValidateHoldsUpNoProbe`
 - **Break (4):** those who asked are told after a reload whose read of the accounts failed, though nothing new is in force
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/sessions`:** `TestAFailedReloadKeepsWhatItCouldNotRead`
 
-## The Session's reload is tried again within seconds while no reload has loaded everything, and at the next interval once one has
+## The Session's reload is tried again within seconds while no reload has read everything, and at the next interval once one has
 
-- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
-- **Break (1):** a reload that fails before any has loaded everything is tried again only at the next interval
+- **Date · evidence:** 2026-11-19 · [pull request #479](https://github.com/ppat/mediated-mailbox-mcp/pull/479), demonstrated with `go tool mutproof` on its branch
+- **Break (1):** a reload that fails before any has read everything is tried again only at the next interval
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/sessions`:** `TestTheSessionIsReadyOnceAReloadHasLoadedEverything`, `TestTheSessionIsReadyOnceAReloadHasLoadedEverything/the_list`, `TestTheSessionIsReadyOnceAReloadHasLoadedEverything/the_policy`
-- **Break (2):** a reload that fails once one has loaded everything is answered as failed, so the scheduler tries it again after its backoff rather than at the next interval
+- **Break (2):** a reload that fails once one has read everything is answered as failed, so the scheduler tries it again after its backoff rather than at the next interval
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/sessions`:** `TestOnceLoadedAFailedReloadWaitsForTheNextInterval`
 
 ## The time a job waits for a slot of its kind's limit does not count toward its lateness
@@ -959,7 +1055,7 @@ The demonstrations of the controls whose patches sit in `process/`. [MUTATIONS.m
 
 ## The workable accounts are not due before a reload has read the list, and are the latest read's failure until a later read succeeds
 
-- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
+- **Date · evidence:** 2026-11-19 · [pull request #479](https://github.com/ppat/mediated-mailbox-mcp/pull/479), demonstrated with `go tool mutproof` on its branch
 - **Break (1):** a reload whose read of the list failed leaves the workable accounts answered from the list before it, with no error
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/sessions`:** `TestTheWorkableAccountsAnswerFromTheLatestRead`
 - **Break (2):** a reload that reads the list and loads the connections leaves an earlier reload's failure in place, so the workable accounts stay that failure

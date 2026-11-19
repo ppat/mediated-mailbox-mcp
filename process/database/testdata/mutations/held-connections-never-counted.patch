@@ -1,0 +1,21 @@
+control: Each pool reports its database from the outcomes of the work run on it, clears on its own attempt to connect, and reports failed after its bound with no connection
+removes: a failed connection attempt is never told the pool holds another connection, so a pool that can still serve reports not ready and nothing clears it without traffic
+packages: ./process/database
+tests: TestThePoolsRecordFollowsItsOutcomes TestAFailedAttemptBesideAHeldConnectionShowsNoFault
+scheduled-count: no
+integration: yes
+
+diff --git a/process/database/record.go b/process/database/record.go
+index e9eaf2b4..13f5e4e7 100644
+--- a/process/database/record.go
++++ b/process/database/record.go
+@@ -65,9 +65,6 @@ type record struct {
+ // connection the pool keeps, so the pool then holds none and its maintenance attempts a new
+ // connection every healthCheckPeriod, whose outcome is the evidence the report clears on.
+ func (r *record) observe(ctx context.Context, o core.Outcome, err error) {
+-	if o.Connect && o.Failed {
+-		o.Holding = r.holds()
+-	}
+ 	evidence := core.Classify(o)
+ 	if evidence == core.None {
+ 		return

@@ -1,0 +1,19 @@
+control: The health probe fails only while something reports failed or a job's loop on the scheduler is wedged past its bound, and names it
+removes: the health probe never asks the scheduler, so a wedged loop leaves it 200
+packages: ./process
+tests: TestTheHealthProbeFailsOnAWedgedSchedulerLoop
+scheduled-count: no
+
+diff --git a/process/serve.go b/process/serve.go
+index e9ff2caf..304cc82d 100644
+--- a/process/serve.go
++++ b/process/serve.go
+@@ -162,7 +162,7 @@ func (p *proc) serveOn(ctx context.Context, app, probeListener net.Listener, s c
+ 		if line, failed := p.failedReport(); failed {
+ 			return false, line
+ 		}
+-		if scheduler != nil {
++		if scheduler != nil && false {
+ 			if key, past, wedged := scheduler.Wedged(wedgeBound); wedged {
+ 				job := key.Kind
+ 				if key.ID != "" {

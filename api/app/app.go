@@ -4,8 +4,9 @@
 // from the process's one registry of operations and behind the bearer check (ADR-0030, ADR-0087).
 // The process starts the API server as it starts every program, serves the two endpoints over TLS
 // when the configuration names a key pair and over plain HTTP when it names neither (ADR-0127), and
-// answers any other path as not found. The API server is ready once its Session has loaded the
-// accounts, their connections and their policy, and while its bearer token file holds a token.
+// answers any other path as not found. The API server is ready once its Session has read the
+// accounts, their connections and their policy, while its bearer token file holds a token, and while
+// its pool's latest work found the database serving.
 package app
 
 import (

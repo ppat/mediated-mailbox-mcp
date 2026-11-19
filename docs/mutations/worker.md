@@ -782,14 +782,6 @@ The demonstrations of the controls whose patches sit in `worker/`. [MUTATIONS.md
 - **Break (2):** the second pass is skipped once the first has ended, and runs only before it has
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/worker/internal/backfill/pass2/core`:** `TestBegin`, `TestBegin/a_run_that_failed`, `TestBegin/no_run_yet`, `TestBegin/the_first_pass_has_not_ended`, `TestBegin/the_first_pass_has_not_ended_and_a_run_stopped`
 
-## The worker answers ready only while each job kind's pool answers
-
-- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
-- **Break (1):** backfill's Build starts no readiness report of its pool, so the worker stays ready while that pool cannot answer
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/worker/app`:** `TestEachJobKindsPoolMustAnswerForTheWorkerToBeReady`
-- **Break (2):** delta sync's Build starts no readiness report of its pool, so the worker stays ready while that pool cannot answer
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/worker/app`:** `TestEachJobKindsPoolMustAnswerForTheWorkerToBeReady`
-
 ## The worker refuses a configuration it cannot run its job kinds with
 
 - **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
@@ -799,9 +791,9 @@ The demonstrations of the controls whose patches sit in `worker/`. [MUTATIONS.md
 
 ## The worker serves the health probe
 
-- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
+- **Date · evidence:** 2026-11-19 · [pull request #479](https://github.com/ppat/mediated-mailbox-mcp/pull/479), demonstrated with `go tool mutproof` on its branch
 - **Break:** the health probe is not served
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/worker/app`:** `TestTheProbesServeEverySeriesBetweenRuns`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/worker/app`:** `TestNoAccountOrAnAccountThatCannotConnectFailsNoProbe`, `TestNoAccountOrAnAccountThatCannotConnectFailsNoProbe/accounts_that_cannot_connect`, `TestNoAccountOrAnAccountThatCannotConnectFailsNoProbe/no_account`, `TestTheProbesServeEverySeriesBetweenRuns`, `TestTheWorkerIsNotReadyWhileItsWorkFindsTheDatabaseGone`
 
 ## The worker's spec names the worker and lists both of its job kinds
 

@@ -5,15 +5,15 @@ tests: TestWakesDuringARunCoalesceIntoOneRun
 scheduled-count: no
 
 diff --git a/process/schedule/schedule.go b/process/schedule/schedule.go
-index 47abffeb..7b4d4697 100644
+index b13a5f70..33c17dcf 100644
 --- a/process/schedule/schedule.go
 +++ b/process/schedule/schedule.go
-@@ -228,7 +228,7 @@ func (s *Scheduler) Ensure(key Key, job Job) error {
+@@ -259,7 +259,7 @@ func (s *Scheduler) Ensure(key Key, job Job) error {
  		job.Logger = slog.New(slog.DiscardHandler)
  	}
  	ctx, cancel := context.WithCancel(s.ctx)
--	st := &state{cancel: cancel, wake: make(chan struct{}, 1), done: make(chan struct{})}
-+	st := &state{cancel: cancel, wake: make(chan struct{}, 100), done: make(chan struct{})}
+-	st := &state{cancel: cancel, wake: make(chan struct{}, 1), done: make(chan struct{}), epoch: s.epoch}
++	st := &state{cancel: cancel, wake: make(chan struct{}, 100), done: make(chan struct{}), epoch: s.epoch}
  	s.jobs[key] = st
  	seed := job.LastSuccess
  	if seed.IsZero() {

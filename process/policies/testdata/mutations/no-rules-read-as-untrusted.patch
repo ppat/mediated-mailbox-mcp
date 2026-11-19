@@ -1,0 +1,21 @@
+control: A state the operator fixes, no account, an account that cannot connect or a policy that does not validate, fails neither probe
+removes: a policy never imported reads as a read that did not complete, so the Session never reports ready
+packages: ./api/app ./worker/app
+tests: TestNoAccountOrAnAccountThatCannotConnectFailsNoProbe/an_account_whose_policy_was_never_imported
+scheduled-count: no
+integration: yes
+
+diff --git a/process/policies/loader.go b/process/policies/loader.go
+index 3ddf461f..0707de2c 100644
+--- a/process/policies/loader.go
++++ b/process/policies/loader.go
+@@ -131,6 +131,9 @@ func (l *loader) swap(ctx context.Context) error {
+ 	if errors.Is(err, errTornBase) {
+ 		rows, err = l.read(ctx)
+ 	}
++	if err == nil && len(rows) == 0 {
++		err = errors.New("no policy has been imported")
++	}
+ 	if err != nil && errors.Is(ctx.Err(), context.Canceled) {
+ 		return fmt.Errorf("the policy reload was cancelled before it finished, so the active policy stays: %w", ctx.Err())
+ 	}

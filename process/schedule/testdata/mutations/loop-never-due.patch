@@ -1,0 +1,19 @@
+control: The scheduler names a job's loop held past due between its run and its next wait, and never a run in flight or a wait
+removes: a loop never records when it was due, so no loop is ever named wedged
+packages: ./process/schedule
+tests: TestAWedgedLoopIsReportedAndALongRunOrWaitIsNot
+scheduled-count: no
+
+diff --git a/process/schedule/schedule.go b/process/schedule/schedule.go
+index b13a5f70..2f4473dc 100644
+--- a/process/schedule/schedule.go
++++ b/process/schedule/schedule.go
+@@ -231,7 +231,7 @@ func (st *state) expect(at time.Time) {
+ 		st.due.Store(0)
+ 		return
+ 	}
+-	st.due.Store(int64(at.Sub(st.epoch)) + 1)
++	st.due.Store(0)
+ }
+ 
+ // New returns a scheduler whose runs end when parent ends or Stop is called, reporting to observer.

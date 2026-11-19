@@ -10,10 +10,16 @@
 // pool through ForMigration, which runs no schema check and which only the migrator's configuration
 // type can call.
 //
-// A program that is ready only while the database answers opts the process's one pool, and a job
-// kind whose program is ready only while each job kind's pool answers opts its own pool, into the
-// readiness report the process answers its readiness probe from, through ReportReadiness, which pings
-// the pool every five seconds, each ping bounded by two.
+// Every pool Get gives reports its database's state on the readiness probe, the process's one pool
+// under the pools' own name, database, and a job kind's pool under the job kind's name (ADR-0142).
+// The report is made from the outcome of each statement the pool runs and each connection attempt it
+// makes, which its tracer writes to the pool's record as they end, so nothing runs a statement or a
+// ping to feed it. A failed connection attempt counts only while the pool holds no other
+// connection, and a statement that shows a fault closes the pool's connections, so a pool that is not
+// ready soon holds none. The pool keeps one connection, so while it holds none its own maintenance attempts one every
+// ten seconds, whether or not the process takes traffic, and each attempt is evidence a not-ready
+// report clears on. A pool that has made no connection for longer than a bound reports failed, which
+// fails the health probe.
 //
 // The pools of a process are kept in one slot of the process, apart from what other owners keep,
 // and the process closes them with what the slots hold, last built first, once its servers have
@@ -52,7 +58,11 @@ func Get(ctx context.Context, p process.Capabilities, c config.HasDatabase) (*pg
 	if kind != "" {
 		reg = p.Metrics()
 	}
-	return set.open(ctx, "job kind "+kind, c.DatabasePart(), reg, CheckSchema)
+	reporter := set.shared
+	if kind != "" {
+		reporter = p
+	}
+	return set.open(ctx, "job kind "+kind, c.DatabasePart(), reg, CheckSchema, reporter)
 }
 
 // ForMigration returns the migrator's pool, opened from its database part with no schema check, since
@@ -64,18 +74,25 @@ func ForMigration(ctx context.Context, p process.Capabilities, c config.HasMigra
 	if err != nil {
 		return nil, err
 	}
-	return set.open(ctx, "migration", c.DatabasePart(), set.shared.Metrics(), nil)
+	return set.open(ctx, "migration", c.DatabasePart(), set.shared.Metrics(), nil, nil)
 }
 
 // open opens a pool from c, connecting as c's user, with every statement it runs timed and its
-// statistics collected on reg. It opens no connection until the pool's first use and runs no schema
-// check. Get and ForMigration open through it, and nothing outside the package can.
-func open(ctx context.Context, c config.Database, reg prometheus.Registerer) (*pgxpool.Pool, error) {
+// statistics collected on reg, and the outcome of each statement and connection attempt written to
+// outcomes. A pool that reports keeps one connection, which it opens in the background and, once lost,
+// attempts again every healthCheckPeriod, and bounds each connection attempt by connectTimeout. Any other pool opens no connection until its first use.
+// It runs no schema check. Get and ForMigration open through it, and nothing outside the package can.
+func open(ctx context.Context, c config.Database, reg prometheus.Registerer, outcomes *record, reports bool) (*pgxpool.Pool, error) {
 	conf, err := poolConfig(c)
 	if err != nil {
 		return nil, fmt.Errorf("configuring the database connection of %s: %w", c.User, err)
 	}
-	pool, err := openPool(ctx, conf, reg)
+	if reports {
+		conf.MinConns = 1
+		conf.HealthCheckPeriod = healthCheckPeriod
+		conf.ConnConfig.ConnectTimeout = connectTimeout
+	}
+	pool, err := openPool(ctx, conf, reg, outcomes)
 	if err != nil {
 		return nil, fmt.Errorf("configuring the database connection of %s: %w", c.User, err)
 	}
@@ -102,25 +119,24 @@ type pools struct {
 	mu     sync.Mutex
 	byName map[string]*pgxpool.Pool
 	opened []*pgxpool.Pool
-	// reported holds each pool whose readiness report has started, by the job kind it serves, "" for
-	// the process's one pool.
-	reported map[string]bool
 }
 
 func newPools(_ context.Context, shared process.Capabilities) (*pools, func(), error) {
-	s := &pools{shared: shared, byName: map[string]*pgxpool.Pool{}, reported: map[string]bool{}}
+	s := &pools{shared: shared, byName: map[string]*pgxpool.Pool{}}
 	return s, s.close, nil
 }
 
 // open returns the pool kept under name, opening it from c measured on reg the first time and
-// running check on it before keeping it. A pool check refuses is closed and not kept.
-func (s *pools) open(ctx context.Context, name string, c config.Database, reg prometheus.Registerer, check func(context.Context, *pgxpool.Pool) error) (*pgxpool.Pool, error) {
+// running check on it before keeping it. A pool check refuses is closed and not kept. A kept pool
+// reports its database's state under reporter from then on, and nil reports nothing.
+func (s *pools) open(ctx context.Context, name string, c config.Database, reg prometheus.Registerer, check func(context.Context, *pgxpool.Pool) error, reporter process.Capabilities) (*pgxpool.Pool, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if pool, ok := s.byName[name]; ok {
 		return pool, nil
 	}
-	pool, err := open(ctx, c, reg)
+	outcomes := &record{}
+	pool, err := open(ctx, c, reg, outcomes, reporter != nil)
 	if err != nil {
 		return nil, err
 	}
@@ -132,6 +148,9 @@ func (s *pools) open(ctx context.Context, name string, c config.Database, reg pr
 	}
 	s.byName[name] = pool
 	s.opened = append(s.opened, pool)
+	if reporter != nil {
+		outcomes.start(reporter)
+	}
 	return pool, nil
 }
 

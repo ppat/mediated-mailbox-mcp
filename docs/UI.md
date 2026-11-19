@@ -2714,8 +2714,8 @@ registers ([ADR-0125](./adr/engineering/0125-performance-is-measured-once-at-eac
 Every series the UI registers carries `component` with the value `ui`. The process serves the
 health and readiness probes and the metrics endpoint on their own plain-HTTP listener,
 `probe_listen`, apart from the UI's own listener. They answer as plain text without the content
-security policy, which is for the UI's own responses. The UI reports ready only while the database
-answers a ping
+security policy, which is for the UI's own responses. The UI reports ready while its pool's latest
+statements and connection attempts found the database serving, and never pings it to find out
 ([ADR-0142](./adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md)). No log line
 and no metric label ever carries message-derived text. This is the UI's share of
 [O2](../USE_CASES.md#o2--observable).

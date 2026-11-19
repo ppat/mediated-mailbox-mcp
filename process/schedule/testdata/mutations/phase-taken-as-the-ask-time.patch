@@ -5,15 +5,15 @@ tests: TestEachAskCarriesItsTimeOnThePhase
 scheduled-count: no
 
 diff --git a/process/schedule/schedule.go b/process/schedule/schedule.go
-index 47abffeb..a4d199b8 100644
+index 84821c76..844624ef 100644
 --- a/process/schedule/schedule.go
 +++ b/process/schedule/schedule.go
-@@ -344,7 +344,7 @@ func (s *Scheduler) loop(ctx context.Context, key Key, job Job, st *state) {
+@@ -400,7 +400,7 @@ func (s *Scheduler) loop(ctx context.Context, key Key, job Job, st *state) {
  		}
  		var onPhase time.Time
  		if job.Interval > 0 {
 -			onPhase = anchor.Add(at.Sub(anchor) / job.Interval * job.Interval)
 +			onPhase = at
  		}
- 		outcome, err := s.ask(ctx, key, st, job, at, onPhase)
- 		if job.Limit != nil {
+ 		st.expect(time.Time{})
+ 		if job.Limit != nil && !s.take(ctx, key, st, job.Limit) {

@@ -11,13 +11,18 @@ import (
 
 // probesHandler serves the operations endpoints of every process that runs until it is told to stop,
 // the health probe, the readiness probe and the metrics endpoint, on a listener of their own
-// (ADR-0051). /healthz answers 200 while the process runs, /readyz answers 200 only while ready holds,
-// and when it does not, 503 with the line ready gives saying why, and /metrics serves the process's
-// one registry, between units of work as during them. Every answer is plain text, for a platform's
-// healthcheck and scraper, which carry no credential and read no page.
-func probesHandler(gatherer prometheus.Gatherer, ready func(*http.Request) (bool, string), logger *slog.Logger) http.Handler {
+// (ADR-0051). /healthz answers 200 only while live holds, /readyz only while ready holds, and when
+// either does not, 503 with the line it gives saying why, and /metrics serves the process's one
+// registry, between units of work as during them. live and ready read what the process recorded and
+// run nothing (ADR-0142). Every answer is plain text, for a platform's healthcheck and scraper, which
+// carry no credential and read no page.
+func probesHandler(gatherer prometheus.Gatherer, live, ready func(*http.Request) (bool, string), logger *slog.Logger) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
+		if ok, why := live(r); !ok {
+			answerProbe(w, r, logger, http.StatusServiceUnavailable, why)
+			return
+		}
 		answerProbe(w, r, logger, http.StatusOK, "ok")
 	})
 	mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, r *http.Request) {

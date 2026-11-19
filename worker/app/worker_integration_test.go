@@ -144,12 +144,14 @@ func TestAStartLogsNoErrorAndIsReadyOnlyOnceTheSessionLoads(t *testing.T) {
 	}
 }
 
-// VERIFICATIONS' row for the worker's readiness, the part of each job kind's pool. Once the database
-// refuses the worker's connections, a job kind's pool stops answering its ping and the worker reports
-// not ready naming it, and once the database admits them again the worker reports ready (ADR-0142).
-func TestEachJobKindsPoolMustAnswerForTheWorkerToBeReady(t *testing.T) {
+// VERIFICATIONS' row for the worker's readiness, the part of its pools. Once the database refuses the
+// worker's connections and ends those open, the Session's next reload finds it gone and the worker
+// reports not ready naming the pool, and once the database admits them again the pool's own attempt to
+// connect again reports it ready, with no reload due for an hour. Its health probe answers 200
+// throughout (ADR-0142).
+func TestTheWorkerIsNotReadyWhileItsWorkFindsTheDatabaseGone(t *testing.T) {
 	w := newWorld(t)
-	w.start("--log_level=debug")
+	w.start("--log_level=debug", "--account_reload_interval=1s")
 	w.ready()
 	var database string
 	if err := w.conn.QueryRow(t.Context(), "SELECT current_database()").Scan(&database); err != nil {
@@ -160,23 +162,68 @@ func TestEachJobKindsPoolMustAnswerForTheWorkerToBeReady(t *testing.T) {
 	// Only the worker's own connections end. The other test packages share the server under pgrun, each
 	// on a database of its own, so a connection outside this database is not the test's to end.
 	must(t, w.conn, "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = $1 AND usename = $2", database, role)
-	w.eventually(15*time.Second, "the worker reporting a job kind's pool not ready", func() bool {
+	w.eventually(15*time.Second, "the worker reporting its pool not ready", func() bool {
 		code, body := w.probe("/readyz")
-		return code == http.StatusServiceUnavailable && strings.Contains(body, "backfill: the database does not answer a ping")
+		return code == http.StatusServiceUnavailable && strings.Contains(body, ": the database could not serve the latest statement or connection attempt")
 	})
-	// The probe names the first report that is not ready, so each job kind's own report is read from
-	// the failed pings it logs.
-	w.eventually(15*time.Second, "each job kind's pool logging a failed ping", func() bool {
-		failed := map[string]bool{}
-		for _, r := range w.records("DEBUG") {
-			if r.Msg == "the database did not answer a ping" {
-				failed[r.JobKind] = true
-			}
-		}
-		return failed["backfill"] && failed["sync"]
-	})
+	if code, body := w.probe("/healthz"); code != http.StatusOK {
+		t.Errorf("with the database refusing connections the health probe answers %d %q, want 200", code, body)
+	}
 	must(t, w.conn, fmt.Sprintf("GRANT CONNECT ON DATABASE %q TO PUBLIC", database))
 	w.ready()
+}
+
+// VERIFICATIONS' row for probes a state the operator fixes does not fail, for the worker. With no
+// account, with accounts whose stored credential cannot be opened, whose provider refuses the
+// credential on every call, whose provider needs an OAuth client and that names none, or whose
+// client's secret does not open, and with an account whose policy was never imported, each job
+// kind's runs fail or find nothing to do, and both probes answer 200 throughout (ADR-0142).
+func TestNoAccountOrAnAccountThatCannotConnectFailsNoProbe(t *testing.T) {
+	probes := func(t *testing.T, w *world) {
+		t.Helper()
+		for _, path := range []string{"/readyz", "/healthz"} {
+			if code, body := w.probe(path); code != http.StatusOK {
+				t.Errorf("%s answered %d %q, want 200", path, code, body)
+			}
+		}
+	}
+	t.Run("no account", func(t *testing.T) {
+		w := newWorld(t)
+		w.start("--account_reload_interval=1s", "--reload_interval=1s")
+		w.ready()
+		time.Sleep(2 * time.Second)
+		probes(t, w)
+	})
+	t.Run("accounts that cannot connect", func(t *testing.T) {
+		w := newWorld(t)
+		w.connect("refused", "refused-token", false)
+		w.schedule("refused", func(fake.Call) error { return mail.ErrAuthentication })
+		w.connect("unopenable", "unopenable-token", false)
+		must(t, w.conn, "UPDATE account_state SET credential = $1 WHERE account_id = 'unopenable'", []byte("not a sealed value"))
+		// An account that names no OAuth client, so none is stored for it, and one connecting through
+		// a client whose secret is sealed to another key, so it does not open.
+		must(t, w.conn, "INSERT INTO accounts (account_id, provider) VALUES ('clientless', 'gmail')")
+		must(t, w.conn, "INSERT INTO account_state (account_id, credential) VALUES ('clientless', $1)",
+			sealed(t, w.keys, "clientless-token", seal.AccountCredential("clientless")))
+		must(t, w.conn, "INSERT INTO oauth_clients (name, provider, client_id, client_secret) VALUES ('elsewhere', 'gmail', 'elsewhere-id', $1)",
+			sealed(t, generate(t), "elsewhere-secret", seal.ClientSecret("elsewhere")))
+		must(t, w.conn, "INSERT INTO accounts (account_id, provider, oauth_client) VALUES ('unopened-client', 'gmail', 'elsewhere')")
+		must(t, w.conn, "INSERT INTO account_state (account_id, credential) VALUES ('unopened-client', $1)",
+			sealed(t, w.keys, "unopened-client-token", seal.AccountCredential("unopened-client")))
+		w.start("--account_reload_interval=1s", "--reload_interval=1s", "--sync.sync_interval=1s")
+		w.ready()
+		w.eventually(10*time.Second, "a refused call", func() bool { return len(w.records("ERROR")) > 0 })
+		time.Sleep(2 * time.Second)
+		probes(t, w)
+	})
+	t.Run("an account whose policy was never imported", func(t *testing.T) {
+		w := newWorld(t)
+		w.connect("personal", "personal-token", true)
+		w.start("--account_reload_interval=1s", "--reload_interval=1s")
+		w.ready()
+		time.Sleep(2 * time.Second)
+		probes(t, w)
+	})
 }
 
 // VERIFICATIONS' row for each reload of the worker's Session waking its job kinds. With every listing

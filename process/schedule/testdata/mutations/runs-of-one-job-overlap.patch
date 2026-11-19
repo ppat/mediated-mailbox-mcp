@@ -5,16 +5,16 @@ tests: TestARunIsAskedAgainOnlyAfterItReturns
 scheduled-count: no
 
 diff --git a/process/schedule/schedule.go b/process/schedule/schedule.go
-index 47abffeb..12bb64b3 100644
+index 84821c76..9900afed 100644
 --- a/process/schedule/schedule.go
 +++ b/process/schedule/schedule.go
-@@ -346,7 +346,8 @@ func (s *Scheduler) loop(ctx context.Context, key Key, job Job, st *state) {
- 		if job.Interval > 0 {
- 			onPhase = anchor.Add(at.Sub(anchor) / job.Interval * job.Interval)
+@@ -406,7 +406,8 @@ func (s *Scheduler) loop(ctx context.Context, key Key, job Job, st *state) {
+ 		if job.Limit != nil && !s.take(ctx, key, st, job.Limit) {
+ 			return
  		}
 -		outcome, err := s.ask(ctx, key, st, job, at, onPhase)
 +		go s.ask(ctx, key, st, job, at, onPhase)
 +		outcome, err := Succeeded, error(nil)
+ 		st.expect(time.Now())
  		if job.Limit != nil {
  			<-job.Limit.slots
- 		}

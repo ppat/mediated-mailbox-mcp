@@ -1,0 +1,19 @@
+control: Each pool reports its database from the outcomes of the work run on it, clears on its own attempt to connect, and reports failed after its bound with no connection
+removes: a connection attempt has no bound of its own, so one the network never answers waits on its caller and counts as nothing
+packages: ./process/database
+tests: TestAConnectionAttemptThatIsNeverAnsweredIsAFault
+scheduled-count: no
+integration: yes
+
+diff --git a/process/database/database.go b/process/database/database.go
+index 2a25a4fd..5499e85d 100644
+--- a/process/database/database.go
++++ b/process/database/database.go
+@@ -88,7 +88,6 @@ func open(ctx context.Context, c config.Database, reg prometheus.Registerer, out
+ 	if reports {
+ 		conf.MinConns = 1
+ 		conf.HealthCheckPeriod = healthCheckPeriod
+-		conf.ConnConfig.ConnectTimeout = connectTimeout
+ 	}
+ 	pool, err := openPool(ctx, conf, reg, outcomes)
+ 	if err != nil {

@@ -21,10 +21,10 @@ import (
 // setup routes first, which load the public key the UI seals to and log its identifier before the
 // database is needed, so the key the UI would seal to is in the log whatever the database answers
 // (ADR-0092), and are handed policy management's count of the base rules. It then gets the process's
-// pool, whose schema check refuses a schema the binary cannot run on (ADR-0140), starts the readiness
-// report the UI is ready by, the database answering a ping, gets the checks every endpoint sits
-// behind, builds the read routes, handed the read API's account check, and the policy routes, and
-// mounts the three behind the checks. Its event streams end once the process starts to stop.
+// pool, whose schema check refuses a schema the binary cannot run on (ADR-0140) and whose report on
+// its database the UI is ready by (ADR-0142), gets the checks every endpoint sits behind, builds the
+// read routes, handed the read API's account check, and the policy routes, and mounts the three
+// behind the checks. Its event streams end once the process starts to stop.
 func New(ctx context.Context, p process.Capabilities, c config.UI) (http.Handler, error) {
 	setupRoutes, err := setup.Build(ctx, p, c, policymanagement.BaseRuleCount)
 	if err != nil {
@@ -32,9 +32,6 @@ func New(ctx context.Context, p process.Capabilities, c config.UI) (http.Handler
 	}
 	pool, err := database.Get(ctx, p, c)
 	if err != nil {
-		return nil, err
-	}
-	if err := database.ReportReadiness(ctx, p, c); err != nil {
 		return nil, err
 	}
 	checks, err := server.Get(ctx, p, c)

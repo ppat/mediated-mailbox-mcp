@@ -1,0 +1,19 @@
+control: Each pool reports its database from the outcomes of the work run on it, clears on its own attempt to connect, and reports failed after its bound with no connection
+removes: a pool never reports failed, however long it goes without a connection
+packages: ./process/database
+tests: TestThePoolsRecordFollowsItsOutcomes
+scheduled-count: no
+
+diff --git a/process/database/record.go b/process/database/record.go
+index 6a05845f..44249f72 100644
+--- a/process/database/record.go
++++ b/process/database/record.go
+@@ -113,7 +113,7 @@ func (r *record) publish(now time.Time) {
+ 	}
+ 	state, reason := process.Ready, ""
+ 	switch {
+-	case !r.failingSince.IsZero() && now.Sub(r.failingSince) >= noConnectionBound:
++	case false && !r.failingSince.IsZero() && now.Sub(r.failingSince) >= noConnectionBound:
+ 		state, reason = process.Failed, disconnected
+ 	case r.fault:
+ 		state, reason = process.NotReady, unreachable

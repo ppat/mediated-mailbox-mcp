@@ -19,11 +19,12 @@ const (
 )
 
 // openPool opens a pool from config with every statement its connections run timed by the tracer
-// and its statistics collected, both on reg. It opens no connection until the pool's first use, as
+// and its statistics collected, both on reg, and every statement's and connection attempt's outcome
+// written to outcomes. It opens the connections config's minimum asks for in the background, as
 // pgxpool.NewWithConfig does, and runs no schema check. open opens through it, and this package's
-// own tests open a pool from a configuration of their own through it (ADR-0125).
-func openPool(ctx context.Context, config *pgxpool.Config, reg prometheus.Registerer) (*pgxpool.Pool, error) {
-	tracer, err := newTracer(reg)
+// own tests open a pool from a configuration of their own through it (ADR-0125, ADR-0142).
+func openPool(ctx context.Context, config *pgxpool.Config, reg prometheus.Registerer, outcomes *record) (*pgxpool.Pool, error) {
+	tracer, err := newTracer(reg, outcomes)
 	if err != nil {
 		return nil, err
 	}
@@ -32,6 +33,10 @@ func openPool(ctx context.Context, config *pgxpool.Config, reg prometheus.Regist
 	if err != nil {
 		return nil, err
 	}
+	outcomes.attach(pool.Reset, func() bool {
+		s := pool.Stat()
+		return s.AcquiredConns()+s.IdleConns() > 0
+	})
 	if err := registerPool(reg, pool); err != nil {
 		pool.Close()
 		return nil, err

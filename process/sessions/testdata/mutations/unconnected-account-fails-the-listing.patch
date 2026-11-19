@@ -1,0 +1,23 @@
+control: A state the operator fixes, no account, an account that cannot connect or a policy that does not validate, fails neither probe
+removes: a job kind's listing fails while an account is not connected, so the worker is never ready
+packages: ./worker/app
+tests: TestNoAccountOrAnAccountThatCannotConnectFailsNoProbe/accounts_that_cannot_connect
+scheduled-count: no
+integration: yes
+
+diff --git a/process/sessions/sessions.go b/process/sessions/sessions.go
+index cdcb3768..b6736bcb 100644
+--- a/process/sessions/sessions.go
++++ b/process/sessions/sessions.go
+@@ -309,6 +309,11 @@ func (s *Session) Workable() ([]string, error) {
+ 	if connections == nil {
+ 		return nil, nil
+ 	}
++	for _, a := range s.Accounts() {
++		if !connections.Connected(a.ID) {
++			return nil, errors.New("an account is not connected")
++		}
++	}
+ 	return s.with(func(id string) bool { return connections.Connected(id) }), nil
+ }
+ 

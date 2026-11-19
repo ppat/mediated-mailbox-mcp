@@ -6,7 +6,7 @@ scheduled-count: no
 integration: yes
 
 diff --git a/process/sessions/sessions.go b/process/sessions/sessions.go
-index 0f7b87f4..5ef94973 100644
+index cdcb3768..ec69ede8 100644
 --- a/process/sessions/sessions.go
 +++ b/process/sessions/sessions.go
 @@ -65,6 +65,9 @@ type Connections interface {
@@ -21,7 +21,7 @@ index 0f7b87f4..5ef94973 100644
  	pool     *pgxpool.Pool
 @@ -95,7 +98,7 @@ type Session struct {
  // first reload runs once the process serves, on the process's scheduler, and then on the interval c's
- // accounts part sets. It reports not ready until a reload has loaded everything once.
+ // accounts part sets. It reports not ready until a reload has read everything once.
  func Get(ctx context.Context, p process.Capabilities, c config.HasAccounts) (*Session, error) {
 -	return held.Get(ctx, p, func(ctx context.Context, shared process.Capabilities) (*Session, func(), error) {
 +	return fresh().Get(ctx, p, func(ctx context.Context, shared process.Capabilities) (*Session, func(), error) {

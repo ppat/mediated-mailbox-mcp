@@ -413,7 +413,7 @@ func TestAFirstReloadThatFailsLeavesTheAPIServerStartedAndNotReady(t *testing.T)
 }
 
 // D3's part of VERIFICATIONS' row for the API server's readiness. It is ready once the Session has
-// loaded the accounts, their connections and their policy and while its bearer token file holds a
+// read the accounts, their connections and their policy and while its bearer token file holds a
 // token, and it reads no key pair while serving plain HTTP. Its token file emptied while it runs
 // leaves it not ready, naming the bearer token (ADR-0051, ADR-0127, ADR-0142).
 func TestReadyOnlyWhileTheSessionHasLoadedAndTheTokenLoads(t *testing.T) {
@@ -434,6 +434,52 @@ func TestReadyOnlyWhileTheSessionHasLoadedAndTheTokenLoads(t *testing.T) {
 	}
 	if status != http.StatusServiceUnavailable || !strings.Contains(body, "not ready: bearer token: ") {
 		t.Errorf("with its token file emptied the readiness probe answered %d %s", status, body)
+	}
+}
+
+// VERIFICATIONS' row for probes a state the operator fixes does not fail, for the API server. With no
+// account, with accounts whose stored credentials cannot be opened, one holding bytes that are no
+// sealed value and one sealed to another key, with accounts of a provider that needs an OAuth client,
+// one naming none and one whose client's secret, sealed to another key, does not open, and with an
+// account whose policy was never imported, the API server's reloads succeed and both probes answer 200 (ADR-0142).
+func TestNoAccountOrAnAccountThatCannotConnectFailsNoProbe(t *testing.T) {
+	for _, c := range []struct {
+		name  string
+		plant func(t *testing.T, conn *pgx.Conn, k keyPair)
+	}{
+		{"no account", func(*testing.T, *pgx.Conn, keyPair) {}},
+		{"accounts whose credentials cannot be opened", func(t *testing.T, conn *pgx.Conn, k keyPair) {
+			accounts := newAccounts(t, conn)
+			must(t, conn, "INSERT INTO account_state (account_id, credential) VALUES ($1, $2)", accounts[0], []byte("not a sealed value"))
+			connect(t, conn, newKeyPair(t), accounts[1])
+		}},
+		{"accounts that need an OAuth client and name none or whose client does not open", func(t *testing.T, conn *pgx.Conn, k keyPair) {
+			accounts := newAccounts(t, conn)
+			connect(t, conn, k, accounts[0])
+			client(t, conn, newKeyPair(t), "elsewhere", "elsewhere-id", "elsewhere-secret")
+			through(t, conn, accounts[1], "elsewhere")
+			connect(t, conn, k, accounts[1])
+		}},
+		{"an account whose policy was never imported", func(t *testing.T, conn *pgx.Conn, k keyPair) {
+			account := newAccounts(t, conn)[0]
+			client(t, conn, k, household, "household-id", "household-secret")
+			through(t, conn, account, household)
+			connect(t, conn, k, account)
+		}},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			conn := superuser(t)
+			reset(t, conn)
+			k := newKeyPair(t)
+			c.plant(t, conn, k)
+			s := serve(t, k, 200*time.Millisecond)
+			time.Sleep(time.Second)
+			for _, path := range []string{"/readyz", "/healthz"} {
+				if status, body, _ := s.get(t, "http://"+s.probes+path, ""); status != http.StatusOK {
+					t.Errorf("%s answered %d %q, want 200", path, status, body)
+				}
+			}
+		})
 	}
 }
 

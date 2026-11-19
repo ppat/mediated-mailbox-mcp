@@ -1,0 +1,18 @@
+control: The scheduler names a job's loop held past due between its run and its next wait, and never a run in flight or a wait
+removes: a run in flight counts as past due, so a long run is named wedged
+packages: ./process/schedule
+tests: TestAWedgedLoopIsReportedAndALongRunOrWaitIsNot
+scheduled-count: no
+
+diff --git a/process/schedule/schedule.go b/process/schedule/schedule.go
+index 84821c76..01d035ba 100644
+--- a/process/schedule/schedule.go
++++ b/process/schedule/schedule.go
+@@ -406,6 +406,7 @@ func (s *Scheduler) loop(ctx context.Context, key Key, job Job, st *state) {
+ 		if job.Limit != nil && !s.take(ctx, key, st, job.Limit) {
+ 			return
+ 		}
++		st.expect(time.Now())
+ 		outcome, err := s.ask(ctx, key, st, job, at, onPhase)
+ 		st.expect(time.Now())
+ 		if job.Limit != nil {

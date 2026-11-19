@@ -150,7 +150,10 @@ flowchart LR
   }
   ```
 
-  The labels are `component`, the program's name, and `job_kind` for a job kind. Every endpoint
+  A part reports not ready for a fault that stops its work and that the work it does anyway clears,
+  and failed for a fault only a restart clears, which fails the health probe as well
+  ([What makes a probe fail](#what-makes-a-probe-fail)). The labels are `component`, the program's
+  name, and `job_kind` for a job kind. Every endpoint
   carries the same label names as every other, and every job kind the same as every other, so two
   endpoints or two job kinds may register one series name. Once the
   process has begun to wait for its goroutines at stop, `Go` starts nothing and returns false. `p`
@@ -213,7 +216,9 @@ flowchart LR
   deployable's code opens through the driver itself. The lower-level opening `database.Get` and
   `database.ForMigration` open through runs no schema check and is unexported, so nothing outside
   `process/database` can call it. A pool apart for a later need is a further function of
-  `process/database`.
+  `process/database`. Every pool `database.Get` gives reports its database's state, the process's
+  one pool under the pools' own name, `database`, and a job kind's pool under the job kind's name,
+  from the work run on it, as [What makes a probe fail](#what-makes-a-probe-fail) states.
 - **The spec and each `Build` are the program's wiring**, written by hand in ordinary code, as
   [ADR-0040](./0040-pure-core-decisions-as-values.md) requires. The order the parts start in is the
   stages below. A part's pool comes from `process/database`, and the API server, the UI and the
@@ -245,9 +250,11 @@ flowchart LR
   It holds the accounts, each account's policy and each account's connection to its provider, and
   owns their reload, which runs on the interval `account_reload_interval` sets
   ([ADR-0090](../operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md)). The first
-  reload does not hold up the start. Until a reload has loaded the list, the connections where the
-  process has them, and the policy, the Session reports not ready and the reload is tried again. The
-  UI never holds the Session.
+  reload does not hold up the start. Until a reload has read the list, loaded the connections where
+  the process has them, and completed its read of the policy, the Session reports not ready and the
+  reload is tried again. A policy whose rows do not validate holds up neither, since it is the
+  operator's to fix and the accounts keep the policy they had
+  ([ADR-0041](./0041-policy-as-immutable-snapshots.md)). The UI never holds the Session.
 
 ### What the process does, start to stop
 
@@ -258,7 +265,7 @@ process does in that stage, for every program.
 | --- | --- |
 | Start | Sets up its logs, loads and checks the configuration, and announces itself, in the steps listed below the table |
 | Build | Builds the process's one metrics registry and registers the runtime series once. Calls each `Build` in the spec, handing each a registerer that labels every series it registers. Opens each pool when its owner's function is first called. In a process that runs until it is told to stop, `database.Get` runs the schema check on each pool before returning it, so a schema the process cannot run on stops the start before anything serves ([ADR-0140](../data/0140-each-migration-declares-the-oldest-chain-that-runs-on-it.md)) |
-| Run | Serves `/healthz`, `/readyz` and `/metrics` on the probe listener as plain text. The probes answer from what was reported and run nothing. `/readyz` answers 200 only while the process serves and everything that reports is ready, and names the first that is not. Serves the application server on one listener, with TLS when the configuration names a key pair, which is loaded before anything is served ([ADR-0127](../operability/0127-tls-when-given-a-key-pair-plain-http-otherwise.md)), mounting each endpoint's handler at its pattern and serving nothing else. Runs every job kind's plan on the process's scheduler, which recovers a panic in each run as that run's failure ([ADR-0119](../operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md)) |
+| Run | Serves `/healthz`, `/readyz` and `/metrics` on the probe listener as plain text. The probes answer from what was reported and recorded, and run no statement, no ping and no call to any dependency. `/readyz` answers 200 only while the process serves and everything that reports is ready, and names the first that is not. `/healthz` answers 200 unless something reports a fault only a restart clears or a job's loop on the scheduler is wedged, and names it. Serves the application server on one listener, with TLS when the configuration names a key pair, which is loaded before anything is served ([ADR-0127](../operability/0127-tls-when-given-a-key-pair-plain-http-otherwise.md)), mounting each endpoint's handler at its pattern and serving nothing else. Runs every job kind's plan on the process's scheduler, which recovers a panic in each run as that run's failure ([ADR-0119](../operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md)) |
 | Stop | Begins when the process is told to stop, when a server fails, or when a goroutine started through `Go` panics. A job's failure fails its run and stops nothing else, and a listing that fails is asked again after its backoff ([ADR-0119](../operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md)), so the scheduler has no failure of its own while it runs. A plan the scheduler refuses fails the start before anything serves. Answers not ready, ends what `Draining` returned, drains the application server's requests for ten seconds, ends the jobs' context and waits for every job and every started goroutine. Then stops the operations server and closes what the slots hold |
 
 The start, in order.
@@ -287,13 +294,70 @@ The start, in order.
 
   | Program | Ready when |
   | --- | --- |
-  | The API server | Its bearer token file holds a token, and the Session has loaded the accounts, their connections and their policy once ([ADR-0090](../operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md)) |
-  | The UI | The database answers a ping |
-  | The worker | Each job kind's pool answers a ping, the Session has loaded the accounts, their connections and their policy once, and each job kind's first listing of what it runs for has succeeded ([ADR-0119](../operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md)) |
+  | The API server | Its bearer token file holds a token, the Session has read the accounts, their connections and their policy once ([ADR-0090](../operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md)), and its pool's latest statements and connection attempts found the database serving |
+  | The UI | Its pool's latest statements and connection attempts, its event streams' polls among them, found the database serving |
+  | The worker | The Session has read the accounts, their connections and their policy once, each job kind's first listing of what it runs for has succeeded ([ADR-0119](../operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md)), and the latest statements and connection attempts of its pool and of each job kind's pool found the database serving |
 
 - **The UI's event stream ends when draining begins**, through the context `Draining` returns. So
   a stopping process drains its other requests rather than waiting out an answer that never ends. A
   request's own context ends once the jobs are told to stop, after the drain.
+
+### What makes a probe fail
+
+Liveness answers whether the process is held by a fault only a restart clears. Readiness answers
+whether the process should take traffic now. Each probe reads state the process already holds,
+recorded by the work it does anyway, and runs no statement, no ping and no call to any dependency,
+so the platform's probing never becomes load on a dependency that is struggling.
+
+- **A state the operator fixes fails neither probe.** No account set up yet, an account whose
+  credential cannot be opened or was refused by its provider and waits to be connected again, an
+  account whose provider needs an OAuth client and that names none, or whose client's secret does
+  not open, and a policy never imported or whose rows do not validate are each the operator's to fix
+  through the UI, and no restart or other replica serves better. They stay per account, in the
+  recorded authentication attempts
+  ([ADR-0097](../operability/0097-authentication-outcome-reported-by-the-adapter-recorded-by-the-deployable.md)),
+  the system status ([ADR-0034](../operability/0034-system-status-operation.md)) and the alerts
+  ([ADR-0077](../operability/0077-conditions-raised-as-alerting-rules.md)), whose conditions stay
+  alerts and never become a restart.
+- **Readiness fails on a fault that stops the process's work**, as the table of what each program
+  reports as ready lists. A process with no evidence of a fault is ready.
+- **Every pool records its database's state from the work run on it.** `process/database` sees each
+  statement end and each connection attempt return, and its pure core classifies the outcome.
+
+  | Outcome | Evidence |
+  | --- | --- |
+  | A statement or a connection attempt that succeeded | The database serves |
+  | A statement the server refused for its own reasons, such as a constraint, its statement timeout or a missing privilege | The database serves |
+  | A statement or a connection attempt whose caller stopped waiting | None |
+  | A connection attempt that failed while the pool holds another connection, idle or in use | None, since the pool can still serve on what it holds |
+  | A connection attempt that failed while the pool holds no other connection, the server's refusal of the credentials included | A fault |
+  | A statement the server refused as unable to serve, a connection exception, insufficient resources or an operator's intervention such as a shutdown | A fault |
+  | A statement that failed without the server's answer and lost its connection | A fault |
+  | A statement that failed without losing its connection, such as a result the client could not read | None |
+
+  A pool reports not ready while its latest evidence is a fault. A failed connection attempt counts
+  only while the pool holds no other connection, and a statement that shows a fault closes the
+  pool's other connections, idle ones at once and those in use once they are released, since they
+  have most likely lost the database too. So a pool that is not ready soon holds no connection, and a
+  held connection that has lost the database shows it at its next statement. The pool keeps one
+  connection, so while it holds none its own maintenance attempts one every ten seconds whether or
+  not the process takes traffic, each attempt bounded by ten seconds. That attempt is the evidence a
+  not-ready report clears on, which a UI taking no traffic while not ready needs, and it is the most
+  a pool asks of a database that does not answer.
+- **Liveness fails only for a fault a restart clears.**
+
+  | Fault | Record | Bound |
+  | --- | --- | --- |
+  | A pool that holds no connection, has made none, and has run no statement the database answered, since its first failed connection attempt | The pool reports failed, which a later success clears. Attempts that fail while it holds a connection count for nothing, so a pool still serving on old connections, such as after its password was rotated, is not restarted until they end | Fifteen minutes. A restart rebuilds the pool and reads its password file and its server's name again |
+  | A job's loop on the scheduler held between being due and reaching its run or its next wait | The time each loop was due, read against the monotonic clock when the probe is asked, so a step of the wall clock moves neither | Two minutes. A run in flight, a wait for a slot of its job kind's limit and a wait for a wake with no timer never count, however long |
+  | The operations server, or the whole runtime, wedged | None. The probe then goes unanswered, which the platform counts as a failure | The platform's probe timeout |
+
+  A dependency that does not answer but is tried again, a slow operation, memory pressure and a
+  configuration fault never fail liveness. The first is readiness's, the second is no hang, the
+  third is `GOMEMLIMIT`'s and the kernel's, and the fourth refuses the start. The pool's bound is
+  long because a database outage that outlasts it restarts every process that connects, and a
+  process that restarts while its database cannot be reached fails its start's schema check and
+  waits out the platform's growing restart delay.
 
 ### Tests, and where a rule binds
 
@@ -345,6 +409,18 @@ The start, in order.
   it is handed.** The case for it is fewer values passed back. Not chosen, because the routes
   analyser holds the UI's routes to its recording mux, and a goroutine started outside `p.Go`, or
   outside `schedule.Go` in the worker's job code, is one the process can neither recover nor join.
+- **A readiness report fed by pinging the database on an interval.** The case for it is a report
+  as fresh as the interval whatever traffic the process takes. Not chosen, because the operator
+  ruled that no probe may result in a database ping, which turns a steady cadence into load on a
+  database that is struggling. The pool's own statements and its attempts to connect again give the
+  same evidence with no call made to feed it.
+- **The UI's readiness not resting on the database.** The case for it is that an unready UI takes no
+  traffic, so its requests' statements could never clear the report. Not chosen, because a pool
+  that is not ready soon holds no connection, and while it holds none its own attempts to connect
+  clear the report without traffic, and a UI whose database cannot serve serves nothing.
+- **Liveness failing while a dependency does not answer.** The case for it is that a restart is the
+  platform's one remedy. Not chosen, because a restart does not bring a dependency back, and every
+  process that depends on it would restart together and keep restarting until it returns.
 - **The `component` label applied by each program's code.** The case for it is that each program's
   series name their owner without the process. Not chosen, because a program would then know how it
   is packaged, and a series would take its shape from whoever wrote the code rather than from one
@@ -376,7 +452,7 @@ The start, in order.
   ([ADR-0119](../operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md)). The
   analyser does not read the process family's own code, so a shared thing's goroutine is held to
   the process's `Go` by review.
-- The API server starts while its first reload of the accounts has not succeeded, and reports not
+- The API server starts while its first reload of the accounts has not read them, and reports not
   ready until one has. The worker answers readiness, so the chart can probe it.
 - The probes carry no content security policy. They are plain text for a platform's healthcheck
   and scraper, and the UI's policy stays on every response of its own

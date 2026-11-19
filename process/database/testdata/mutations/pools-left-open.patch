@@ -6,13 +6,13 @@ scheduled-count: no
 integration: yes
 
 diff --git a/process/database/database.go b/process/database/database.go
-index 6bd05532..86648319 100644
+index 2a25a4fd..efde0596 100644
 --- a/process/database/database.go
 +++ b/process/database/database.go
-@@ -109,7 +109,7 @@ type pools struct {
+@@ -121,7 +121,7 @@ type pools struct {
  
  func newPools(_ context.Context, shared process.Capabilities) (*pools, func(), error) {
- 	s := &pools{shared: shared, byName: map[string]*pgxpool.Pool{}, reported: map[string]bool{}}
+ 	s := &pools{shared: shared, byName: map[string]*pgxpool.Pool{}}
 -	return s, s.close, nil
 +	return s, nil, nil
  }
