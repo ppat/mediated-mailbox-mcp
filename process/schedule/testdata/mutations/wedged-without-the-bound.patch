@@ -1,0 +1,19 @@
+control: The scheduler names a job's loop held past due between its run and its next wait, and never a run in flight or a wait
+removes: a loop is named wedged as soon as it is past due, whatever the bound
+packages: ./process/schedule
+tests: TestAWedgedLoopIsReportedAndALongRunOrWaitIsNot
+scheduled-count: no
+
+diff --git a/process/schedule/schedule.go b/process/schedule/schedule.go
+index b13a5f70..d5749764 100644
+--- a/process/schedule/schedule.go
++++ b/process/schedule/schedule.go
+@@ -344,7 +344,7 @@ func (s *Scheduler) Wedged(bound time.Duration) (Key, time.Duration, bool) {
+ 	defer s.watchMu.Unlock()
+ 	for st, key := range s.watched {
+ 		due := st.due.Load()
+-		if past := now - time.Duration(due-1); due != 0 && past > bound {
++		if past := now - time.Duration(due-1); due != 0 && past > 0 {
+ 			return key, past, true
+ 		}
+ 	}

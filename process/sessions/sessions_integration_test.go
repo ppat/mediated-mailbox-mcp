@@ -105,7 +105,7 @@ func TestAFailedReloadKeepsWhatItCouldNotRead(t *testing.T) {
 }
 
 // VERIFICATIONS' row for the Session's first reload, for the Session. The first reload does not hold
-// up the start. While no reload has loaded the list and the policy, the Session reports not ready and
+// up the start. While no reload has read the list and the policy, the Session reports not ready and
 // the reload is tried again within seconds, though the interval is an hour, it reports ready once one
 // has, and a later reload whose policy fails leaves it ready (ADR-0090, ADR-0142).
 func TestTheSessionIsReadyOnceAReloadHasLoadedEverything(t *testing.T) {
@@ -135,6 +135,29 @@ func TestTheSessionIsReadyOnceAReloadHasLoadedEverything(t *testing.T) {
 				t.Errorf("after a later reload's policy failed the probe answered %d %q, want ready", status, body)
 			}
 		})
+	}
+}
+
+// VERIFICATIONS' row for probes a state the operator fixes does not fail, for the Session. A policy
+// whose rows do not validate is the operator's to fix, so a first reload that reads it reports the
+// Session ready, the accounts keeping the policy that restricts every sender, and both probes answer
+// 200 (ADR-0041, ADR-0142).
+func TestAPolicyThatDoesNotValidateHoldsUpNoProbe(t *testing.T) {
+	conn := superuser(t)
+	reset(t, conn)
+	listed(t, conn, "personal")
+	must(t, conn, `INSERT INTO policy_rules (account_id, rule_id, class, domain_suffix, source, created_by)
+		VALUES (NULL, 'base.spaced', 'restricted', ARRAY['a b.example'], 'operator', 'test')`)
+	r := start(t)
+	r.waitReady(t, 10*time.Second)
+	if err := r.session().Reload(t.Context()); !errors.Is(err, policies.ErrInvalidUpdate) {
+		t.Fatalf("a reload over the invalid policy returned %v, want the policy refused as invalid", err)
+	}
+	if status, body := r.probe(t, "/healthz"); status != http.StatusOK {
+		t.Errorf("the health probe answered %d %q, want 200", status, body)
+	}
+	if got := r.session().AccountsWithPolicy(); len(got) != 0 {
+		t.Errorf("the accounts with a policy are %v, want none while no policy has validated", got)
 	}
 }
 
@@ -270,7 +293,7 @@ func TestTheWorkableAccountsAnswerFromTheLatestRead(t *testing.T) {
 	}
 }
 
-// F9's part of VERIFICATIONS' row for the Session's reload schedule. Once a reload has loaded
+// F9's part of VERIFICATIONS' row for the Session's reload schedule. Once a reload has read
 // everything, a scheduled reload that fails keeps in force what was, is logged by the Session, and is
 // tried again at the next interval rather than after the scheduler's backoff, so the scheduler never
 // counts it a failed run (ADR-0090).

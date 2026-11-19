@@ -6,15 +6,15 @@ scheduled-count: no
 integration: yes
 
 diff --git a/process/sessions/sessions.go b/process/sessions/sessions.go
-index 0f7b87f4..a1d1fee9 100644
+index cdcb3768..8e43a6a3 100644
 --- a/process/sessions/sessions.go
 +++ b/process/sessions/sessions.go
-@@ -217,7 +217,7 @@ func (s *Session) reload(ctx context.Context) error {
- 	s.inForce.Store(&listed)
- 	s.failed.Store(nil)
- 	if err = s.policies.Load(ctx, ids(listed)); err != nil {
--		err = fmt.Errorf("%w: %w", ErrPolicyNotLoaded, err)
-+		return fmt.Errorf("%w: %w", ErrPolicyNotLoaded, err)
- 	} else if !s.loaded.Swap(true) {
+@@ -224,7 +224,7 @@ func (s *Session) reload(ctx context.Context) error {
  		s.report(process.Ready, "")
  	}
+ 	if err != nil {
+-		err = fmt.Errorf("%w: %w", ErrPolicyNotLoaded, err)
++		return fmt.Errorf("%w: %w", ErrPolicyNotLoaded, err)
+ 	}
+ 	for _, tell := range after {
+ 		tell()

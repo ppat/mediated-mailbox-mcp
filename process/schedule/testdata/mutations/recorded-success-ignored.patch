@@ -5,12 +5,12 @@ tests: TestAJobsLatestSuccessStartsFromItsRecordedOne
 scheduled-count: no
 
 diff --git a/process/schedule/schedule.go b/process/schedule/schedule.go
-index 47abffeb..26840b64 100644
+index b13a5f70..14925192 100644
 --- a/process/schedule/schedule.go
 +++ b/process/schedule/schedule.go
-@@ -230,7 +230,7 @@ func (s *Scheduler) Ensure(key Key, job Job) error {
+@@ -261,7 +261,7 @@ func (s *Scheduler) Ensure(key Key, job Job) error {
  	ctx, cancel := context.WithCancel(s.ctx)
- 	st := &state{cancel: cancel, wake: make(chan struct{}, 1), done: make(chan struct{})}
+ 	st := &state{cancel: cancel, wake: make(chan struct{}, 1), done: make(chan struct{}), epoch: s.epoch}
  	s.jobs[key] = st
 -	seed := job.LastSuccess
 +	seed := time.Time{}

@@ -1,0 +1,19 @@
+control: A statement's or a connection attempt's outcome is evidence of the database serving, of a fault, or of nothing
+removes: every error the server returns is a fault, so a constraint, a statement timeout or a privilege makes a pool unready
+packages: ./process/database/core ./process/database
+tests: TestClassify TestThePoolsRecordFollowsItsOutcomes
+scheduled-count: no
+
+diff --git a/process/database/core/evidence.go b/process/database/core/evidence.go
+index ac625acb..c4d59b52 100644
+--- a/process/database/core/evidence.go
++++ b/process/database/core/evidence.go
+@@ -50,7 +50,7 @@ func Classify(o Outcome) Evidence {
+ 	case o.Connect:
+ 		return Fault
+ 	case o.Code != "":
+-		if unableToServe(o.Code) {
++		if o.Code != "" {
+ 			return Fault
+ 		}
+ 		return Reachable

@@ -1,5 +1,5 @@
-control: The Session's reload is tried again within seconds while no reload has loaded everything, and at the next interval once one has
-removes: a reload that fails before any has loaded everything is tried again only at the next interval
+control: The Session's reload is tried again within seconds while no reload has read everything, and at the next interval once one has
+removes: a reload that fails before any has read everything is tried again only at the next interval
 packages: ./process/sessions
 tests: TestTheSessionIsReadyOnceAReloadHasLoadedEverything TestTheSessionIsReadyOnceAReloadHasLoadedEverything/the_list TestTheSessionIsReadyOnceAReloadHasLoadedEverything/the_policy
 scheduled-count: no

@@ -260,24 +260,36 @@ func TestAnOpenStreamEndsWhenTheProcessDrains(t *testing.T) {
 	}
 }
 
-// The UI is ready only while the database answers a ping, and its readiness probe names the database
-// when it does not (ADR-0142).
+// The UI is ready while its work finds the database serving, and its readiness probe names the
+// database once a request's statement finds it gone. Shut out with no request made, it stays ready,
+// since nothing shows a fault. Once the database lets connections in again it is ready with no
+// request made, since an unready UI takes no traffic and its pool's own attempt to connect again is
+// the evidence. Its health probe answers 200 throughout (ADR-0142).
 func TestReadinessFollowsTheDatabase(t *testing.T) {
 	url := postgres.URL(t)
 	r := start(t, url)
-	awaitReadiness(r, http.StatusOK, "")
+	awaitReadiness(r, 5*time.Second, http.StatusOK, "")
 	open := shutOut(t, url)
-	awaitReadiness(r, http.StatusServiceUnavailable, "not ready: database: the database does not answer a ping")
+	time.Sleep(time.Second)
+	if a := r.do(http.MethodGet, r.probes, "/readyz", nil); a.status != http.StatusOK {
+		t.Errorf("shut out with no request made, the readiness probe answers %d %q, want 200", a.status, a.body)
+	}
+	if a := r.do(http.MethodGet, r.app, "/ui/api/accounts", nil); a.status < http.StatusInternalServerError {
+		t.Fatalf("a read with the database shut out answered %d %s", a.status, a.body)
+	}
+	awaitReadiness(r, 5*time.Second, http.StatusServiceUnavailable, "not ready: database: the database could not serve the latest statement or connection attempt")
+	if a := r.do(http.MethodGet, r.probes, "/healthz", nil); a.status != http.StatusOK {
+		t.Errorf("with the database shut out the health probe answers %d %q, want 200", a.status, a.body)
+	}
 	open()
-	awaitReadiness(r, http.StatusOK, "")
+	awaitReadiness(r, 25*time.Second, http.StatusOK, "")
 }
 
-// awaitReadiness asks the readiness probe until it answers status with body in it, for up to the
-// report's interval and its timeout together with a margin.
-func awaitReadiness(r *running, status int, body string) {
+// awaitReadiness asks the readiness probe until it answers status with body in it, for up to within.
+func awaitReadiness(r *running, within time.Duration, status int, body string) {
 	r.t.Helper()
 	var got answer
-	for deadline := time.Now().Add(10 * time.Second); time.Now().Before(deadline); time.Sleep(100 * time.Millisecond) {
+	for deadline := time.Now().Add(within); time.Now().Before(deadline); time.Sleep(100 * time.Millisecond) {
 		got = r.do(http.MethodGet, r.probes, "/readyz", nil)
 		if got.status == status && strings.Contains(got.body, body) {
 			return

@@ -1,0 +1,19 @@
+control: A statement's or a connection attempt's outcome is evidence of the database serving, of a fault, or of nothing
+removes: a caller that stopped waiting is classified by the error it got, so a cancelled statement that lost its connection is a fault
+packages: ./process/database/core ./process/database
+tests: TestClassify TestThePoolsRecordFollowsItsOutcomes
+scheduled-count: no
+
+diff --git a/process/database/core/evidence.go b/process/database/core/evidence.go
+index f122fcf2..b6f79738 100644
+--- a/process/database/core/evidence.go
++++ b/process/database/core/evidence.go
+@@ -50,8 +50,6 @@ func Classify(o Outcome) Evidence {
+ 	switch {
+ 	case !o.Failed:
+ 		return Reachable
+-	case o.CallerEnded:
+-		return None
+ 	case o.Connect && o.Holding:
+ 		return None
+ 	case o.Connect:

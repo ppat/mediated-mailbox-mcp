@@ -1,0 +1,19 @@
+control: The health probe fails only while something reports failed or a job's loop on the scheduler is wedged past its bound, and names it
+removes: the health probe ignores a part that reports failed
+packages: ./process
+tests: TestTheProbesAnswerFromWhatWasReported
+scheduled-count: no
+
+diff --git a/process/serve.go b/process/serve.go
+index e9ff2caf..ff925447 100644
+--- a/process/serve.go
++++ b/process/serve.go
+@@ -159,7 +159,7 @@ func (p *proc) serveOn(ctx context.Context, app, probeListener net.Listener, s c
+ 		return !notReady, line
+ 	}
+ 	live := func(*http.Request) (bool, string) {
+-		if line, failed := p.failedReport(); failed {
++		if line, failed := p.failedReport(); failed && false {
+ 			return false, line
+ 		}
+ 		if scheduler != nil {

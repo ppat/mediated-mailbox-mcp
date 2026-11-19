@@ -1,0 +1,20 @@
+control: A state the operator fixes, no account, an account that cannot connect or a policy that does not validate, fails neither probe
+removes: an OAuth client whose secret does not open fails the connections' load, so the Session never reads its accounts
+packages: ./api/app ./worker/app
+tests: TestNoAccountOrAnAccountThatCannotConnectFailsNoProbe/accounts_that_need_an_OAuth_client_and_name_none_or_whose_client_does_not_open TestNoAccountOrAnAccountThatCannotConnectFailsNoProbe/accounts_that_cannot_connect
+scheduled-count: no
+integration: yes
+
+diff --git a/process/connections/connections.go b/process/connections/connections.go
+index 463d796a..ae170432 100644
+--- a/process/connections/connections.go
++++ b/process/connections/connections.go
+@@ -215,7 +215,7 @@ func (c *Connections) Load(ctx context.Context, listed []accounts.Account) error
+ 		client, ok := c.openClient(cl)
+ 		scan.Clients[cl.ClientName] = !ok || c.onOldKey(cl.SealedClientSecret)
+ 		if !ok {
+-			continue
++			return errors.New("an OAuth client's secret did not open")
+ 		}
+ 		opened[cl.ClientName] = client
+ 		sealedClients[cl.ClientName] = cl.SealedClientSecret

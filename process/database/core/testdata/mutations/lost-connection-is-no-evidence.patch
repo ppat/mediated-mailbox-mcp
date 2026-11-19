@@ -1,0 +1,19 @@
+control: A statement's or a connection attempt's outcome is evidence of the database serving, of a fault, or of nothing
+removes: a statement that lost its connection without the server's answer is no evidence
+packages: ./process/database/core
+tests: TestClassify
+scheduled-count: no
+
+diff --git a/process/database/core/evidence.go b/process/database/core/evidence.go
+index ac625acb..54ccfdee 100644
+--- a/process/database/core/evidence.go
++++ b/process/database/core/evidence.go
+@@ -55,7 +55,7 @@ func Classify(o Outcome) Evidence {
+ 		}
+ 		return Reachable
+ 	case o.Lost:
+-		return Fault
++		return None
+ 	default:
+ 		return None
+ 	}

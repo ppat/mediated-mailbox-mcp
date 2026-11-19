@@ -64,7 +64,9 @@ type Capabilities interface {
 	// and with job_kind for a job kind.
 	Metrics() prometheus.Registerer
 	// Report reports what is being built as ready, not ready, or failed, with a reason when it is not
-	// ready. The readiness probe answers from the last reports.
+	// ready. The readiness probe answers from the last reports, and the health probe fails while one
+	// reports failed. A report is made from work the part does anyway, never from a call made to feed
+	// it.
 	Report(state State, reason string)
 	// Go runs run on a goroutine the process waits for before it closes its slots. A panic on it is
 	// the failure of what started it, named by name, which stops the process in order. Once the
@@ -77,8 +79,9 @@ type Capabilities interface {
 // State is what a report says.
 type State int
 
-// The states a report may name. A failed part reads as not ready on the readiness probe, with its
-// reason.
+// The states a report may name. NotReady is a fault that stops the part's work, reported only where
+// work that runs whether or not the process takes traffic can show it cleared. Failed is a fault only a restart clears, which fails the health probe as well
+// as the readiness probe, with its reason (ADR-0142).
 const (
 	NotReady State = iota
 	Ready

@@ -664,3 +664,57 @@ func TestEachAskCarriesItsTimeOnThePhase(t *testing.T) {
 		}
 	})
 }
+
+// blockingHandler is a log handler whose every record waits until release is closed, which holds the
+// loop that logs it between its run and its next wait, as a fault in the process would.
+type blockingHandler struct{ release chan struct{} }
+
+func (h blockingHandler) Enabled(context.Context, slog.Level) bool { return true }
+func (h blockingHandler) Handle(context.Context, slog.Record) error {
+	<-h.release
+	return nil
+}
+func (h blockingHandler) WithAttrs([]slog.Attr) slog.Handler { return h }
+func (h blockingHandler) WithGroup(string) slog.Handler      { return h }
+
+// A loop held between its run and its next wait for longer than the bound is reported wedged, with
+// its key and how long past due it is. A run in flight for hours, a job waiting hours for a slot of
+// its limit, a job waiting on a long interval and a job with no timer waiting for a wake are never
+// wedged (ADR-0142).
+func TestAWedgedLoopIsReportedAndALongRunOrWaitIsNot(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		s := schedule.New(t.Context(), newRecorder())
+		release := make(chan struct{})
+		defer s.Stop()
+		defer close(release)
+		limit := schedule.NewLimit(1)
+		long := func(ctx context.Context, _ schedule.Ask) error {
+			<-ctx.Done()
+			return nil
+		}
+		ensure(t, s, schedule.Key{Kind: "backfill", ID: "running"}, schedule.Job{Interval: time.Hour, Limit: limit, Backoff: backoff, Run: long})
+		synctest.Wait()
+		ensure(t, s, schedule.Key{Kind: "backfill", ID: "waiting"}, schedule.Job{Interval: time.Hour, Limit: limit, Backoff: backoff, Run: long})
+		ensure(t, s, schedule.Key{Kind: "sync", ID: "idle"}, schedule.Job{Interval: 6 * time.Hour, Backoff: backoff, Run: func(context.Context, schedule.Ask) error { return nil }})
+		ensure(t, s, schedule.Key{Kind: "woken"}, schedule.Job{Backoff: backoff, Run: func(context.Context, schedule.Ask) error { return nil }})
+		time.Sleep(3 * time.Hour)
+		synctest.Wait()
+		if key, past, wedged := s.Wedged(2 * time.Minute); wedged {
+			t.Fatalf("after three hours %v is reported wedged %s past due, want no loop wedged while it runs or waits", key, past)
+		}
+		held := schedule.Key{Kind: "sync", ID: "held"}
+		ensure(t, s, held, schedule.Job{Interval: time.Hour, Backoff: backoff, Logger: slog.New(blockingHandler{release: release}), Run: func(context.Context, schedule.Ask) error {
+			return errFailed
+		}})
+		synctest.Wait()
+		time.Sleep(time.Minute)
+		if key, _, wedged := s.Wedged(2 * time.Minute); wedged {
+			t.Fatalf("a minute after its run %v is reported wedged, want it within the two-minute bound", key)
+		}
+		time.Sleep(2 * time.Minute)
+		key, past, wedged := s.Wedged(2 * time.Minute)
+		if !wedged || key != held || past != 3*time.Minute {
+			t.Fatalf("three minutes after its run Wedged gives %v %s %t, want %v three minutes past due", key, past, wedged, held)
+		}
+	})
+}

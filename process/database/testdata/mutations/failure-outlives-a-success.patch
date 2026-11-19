@@ -1,0 +1,19 @@
+control: Each pool reports its database from the outcomes of the work run on it, clears on its own attempt to connect, and reports failed after its bound with no connection
+removes: a success leaves the first failed connection attempt in place, so a pool that connects again stays failed at its next failed attempt
+packages: ./process/database
+tests: TestThePoolsRecordFollowsItsOutcomes
+scheduled-count: no
+
+diff --git a/process/database/record.go b/process/database/record.go
+index 6a05845f..f2c381a5 100644
+--- a/process/database/record.go
++++ b/process/database/record.go
+@@ -76,7 +76,7 @@ func (r *record) record(ctx context.Context, evidence core.Evidence, o core.Outc
+ 	now := time.Now()
+ 	switch evidence {
+ 	case core.Reachable:
+-		r.fault, r.failingSince = false, time.Time{}
++		r.fault = false
+ 	case core.Fault:
+ 		r.fault = true
+ 		if o.Connect && r.failingSince.IsZero() {

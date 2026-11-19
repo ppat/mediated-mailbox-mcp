@@ -1,0 +1,19 @@
+control: A statement's or a connection attempt's outcome is evidence of the database serving, of a fault, or of nothing
+removes: a failed connection attempt is no evidence, so a database that refuses every connection never makes a pool unready
+packages: ./process/database/core ./process/database
+tests: TestClassify TestThePoolsRecordFollowsItsOutcomes
+scheduled-count: no
+
+diff --git a/process/database/core/evidence.go b/process/database/core/evidence.go
+index f122fcf2..f48c7ef7 100644
+--- a/process/database/core/evidence.go
++++ b/process/database/core/evidence.go
+@@ -55,7 +55,7 @@ func Classify(o Outcome) Evidence {
+ 	case o.Connect && o.Holding:
+ 		return None
+ 	case o.Connect:
+-		return Fault
++		return None
+ 	case o.Code != "":
+ 		if unableToServe(o.Code) {
+ 			return Fault

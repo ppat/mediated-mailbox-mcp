@@ -46,14 +46,16 @@ immutable snapshot that a process reloads and that a unit of work takes once
   `account_reload_interval` in the API server and in the worker, whose `reload_interval` paces its
   job kinds' own listing
   ([ADR-0119](./0119-the-workers-jobs-are-scheduled-from-recorded-state.md)). Its first load runs
-  at once and, while no load has succeeded, again every five seconds, so a process whose first load
-  fails after it has started, the database having answered its start's schema check
+  at once and, while no load has read the accounts, their connections and their policy, again every
+  five seconds, so a process whose first load fails after it has started, the database having
+  answered its start's schema check
   ([ADR-0140](../data/0140-each-migration-declares-the-oldest-chain-that-runs-on-it.md)), serves
-  soon after a load succeeds. The first load does not block the start, and until a load has
-  succeeded the Session reports not ready, and so does the process
+  soon after a load reads them. The first load does not block the start, and until a load has read
+  them the Session reports not ready, and so does the process. A policy whose rows do not validate
+  is read all the same, and holds up neither
   ([ADR-0142](../engineering/0142-each-program-is-a-spec-that-one-process-runs.md)). A process
   whose database does not answer at start does not start, and the platform restarts it. Once a
-  load has succeeded, a reload that fails is tried again at the next interval. Every unit of work
+  load has read them, a reload that fails is tried again at the next interval. Every unit of work
   takes the latest snapshot its process holds when it starts, whether the unit is a body request, a
   tick of delta sync or a page of backfill
   ([ADR-0119](./0119-the-workers-jobs-are-scheduled-from-recorded-state.md),

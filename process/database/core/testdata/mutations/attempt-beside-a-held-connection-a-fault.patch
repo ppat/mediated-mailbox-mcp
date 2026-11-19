@@ -1,0 +1,20 @@
+control: A statement's or a connection attempt's outcome is evidence of the database serving, of a fault, or of nothing
+removes: a failed connection attempt is a fault while the pool holds another connection, so a pool that can still serve reports not ready and nothing clears it without traffic
+packages: ./process/database/core ./process/database
+tests: TestClassify TestAFailedAttemptBesideAHeldConnectionShowsNoFault
+scheduled-count: no
+integration: yes
+
+diff --git a/process/database/core/evidence.go b/process/database/core/evidence.go
+index f122fcf2..6266fa7d 100644
+--- a/process/database/core/evidence.go
++++ b/process/database/core/evidence.go
+@@ -52,8 +52,6 @@ func Classify(o Outcome) Evidence {
+ 		return Reachable
+ 	case o.CallerEnded:
+ 		return None
+-	case o.Connect && o.Holding:
+-		return None
+ 	case o.Connect:
+ 		return Fault
+ 	case o.Code != "":

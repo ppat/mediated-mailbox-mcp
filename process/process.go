@@ -147,6 +147,19 @@ func (p *proc) notReady() (string, bool) {
 	return "", false
 }
 
+// failed returns the line naming the first reporter that reported failed, a fault only a restart
+// clears, and false when none did. It reads the reports and runs nothing.
+func (p *proc) failedReport() (string, bool) {
+	p.reportsMu.Lock()
+	defer p.reportsMu.Unlock()
+	for _, r := range p.reports {
+		if r.state == Failed {
+			return "not live: " + r.name + " failed: " + r.reason, true
+		}
+	}
+	return "", false
+}
+
 // goroutine starts run on a goroutine the process waits for, under the run context. A panic on it
 // is recorded as the failure of the part named owner.
 func (p *proc) goroutine(owner, name string, run func(context.Context)) bool {

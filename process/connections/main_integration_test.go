@@ -429,7 +429,7 @@ func start(t *testing.T, current keyPair, old ...keyPair) *running {
 		}
 	}
 	// The Session's first reload runs once the process serves, and the process is ready once it has
-	// loaded everything, so what a test changes after start is read by the reloads the test asks for.
+	// read everything, so what a test changes after start is read by the reloads the test asks for.
 	waitReady(t, r.logs)
 	return r
 }

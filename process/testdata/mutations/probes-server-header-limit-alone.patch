@@ -5,15 +5,15 @@ tests: TestTheServersCloseIdleAndSlowConnectionsAndNeverCutAnAnswer
 scheduled-count: no
 
 diff --git a/process/serve.go b/process/serve.go
-index b637c343..9b0f7994 100644
+index e9ff2caf..b222cd9c 100644
 --- a/process/serve.go
 +++ b/process/serve.go
-@@ -152,7 +152,7 @@ func (p *proc) serveOn(ctx context.Context, app, probeListener net.Listener, s c
- 		line, notReady := p.notReady()
- 		return !notReady, line
+@@ -173,7 +173,7 @@ func (p *proc) serveOn(ctx context.Context, app, probeListener net.Listener, s c
+ 		}
+ 		return true, ""
  	}
--	probeServer := newServer(probesHandler(p.registry, ready, p.logger), p.logger)
-+	probeServer := &http.Server{Handler: probesHandler(p.registry, ready, p.logger), ReadHeaderTimeout: connectionLimits.Header}
+-	probeServer := newServer(probesHandler(p.registry, live, ready, p.logger), p.logger)
++	probeServer := &http.Server{Handler: probesHandler(p.registry, live, ready, p.logger), ReadHeaderTimeout: connectionLimits.Header}
  	var appServer *http.Server
  	if app != nil {
  		mux := http.NewServeMux()

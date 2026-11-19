@@ -6,7 +6,7 @@ scheduled-count: no
 integration: yes
 
 diff --git a/process/sessions/sessions.go b/process/sessions/sessions.go
-index 0f7b87f4..e4765c4d 100644
+index cdcb3768..d8532d6b 100644
 --- a/process/sessions/sessions.go
 +++ b/process/sessions/sessions.go
 @@ -85,6 +85,7 @@ type Session struct {
@@ -17,15 +17,17 @@ index 0f7b87f4..e4765c4d 100644
  	membersMu   sync.Mutex
  	connections Connections
  	after       []func()
-@@ -216,7 +217,10 @@ func (s *Session) reload(ctx context.Context) error {
+@@ -216,7 +217,12 @@ func (s *Session) reload(ctx context.Context) error {
  	}
  	s.inForce.Store(&listed)
  	s.failed.Store(nil)
--	if err = s.policies.Load(ctx, ids(listed)); err != nil {
+-	err = s.policies.Load(ctx, ids(listed))
 +	if slices.Equal(ids(listed), s.tried) {
 +		err = nil
-+	} else if s.tried = ids(listed); false {
-+	} else if err = s.policies.Load(ctx, ids(listed)); err != nil {
- 		err = fmt.Errorf("%w: %w", ErrPolicyNotLoaded, err)
- 	} else if !s.loaded.Swap(true) {
- 		s.report(process.Ready, "")
++	} else {
++		s.tried = ids(listed)
++		err = s.policies.Load(ctx, ids(listed))
++	}
+ 	// A policy the read found invalid is the operator's to fix, and the accounts keep the policy they
+ 	// had, the one that restricts every sender before any was read, so it holds up neither the
+ 	// Session's readiness nor its reload's pace. A read of the policy that did not complete does.

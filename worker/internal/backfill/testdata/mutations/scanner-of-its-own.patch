@@ -6,12 +6,12 @@ scheduled-count: no
 integration: yes
 
 diff --git a/worker/internal/backfill/backfill.go b/worker/internal/backfill/backfill.go
-index 0210ff03..5ec6301a 100644
+index 102220e1..cd31b1fa 100644
 --- a/worker/internal/backfill/backfill.go
 +++ b/worker/internal/backfill/backfill.go
 @@ -105,7 +105,7 @@ type Backfill struct {
- // registers its series on the registerer p gives it, which labels them with its job kind (ADR-0117,
- // ADR-0119, ADR-0142).
+ // batch class, and registers its series on the registerer p gives it, which labels them with its job
+ // kind (ADR-0117, ADR-0119, ADR-0142).
  func Build(ctx context.Context, p process.Capabilities, c config.Worker) (schedule.Plan, error) {
 -	sc, err := scanner.Get(ctx, p, c)
 +	sc, err := scan.New(config.DefaultScanner(), "fixed")

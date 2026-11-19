@@ -50,7 +50,7 @@ keeps no slot and returns a new value on each call, and the UI calls it without 
 | --- | --- |
 | `process` itself | The spec and the process, `Spec`, `Endpoint`, `Job`, `Task`, `Capabilities`, `State` and `OnePerProcess`, `process.Run` and `process.RunContext`, the option a test substitutes a shared thing through, the revision of a top-level key read from the process, and an owner's upkeep on the scheduler, the build and the run, the servers, the operations endpoints, the runtime series, the stop order and the readiness reports ([ADR-0142](../docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md)) |
 | `settings/` | The layering of defaults, one optional configuration file, environment variables and flags into the configuration type of each program that runs as a process, and the reading of a `config.Duration` |
-| `database/` | The connection a pool is opened over, every pool, the latency of every statement a connection runs, by the statement's name, which its pure core `database/core` gives, the statistics of each pool, and the schema check, through `database.Get` and, for the migrator, `database.ForMigration`, and the readiness report of the process's one pool answering a ping |
+| `database/` | The connection a pool is opened over, every pool, the latency of every statement a connection runs, by the statement's name, which its pure core `database/core` gives, the statistics of each pool, and the schema check, through `database.Get` and, for the migrator, `database.ForMigration`, and the report each pool `database.Get` gives makes of its database from the outcomes of its statements and connection attempts |
 | `schedule/` | The scheduler, which runs each job kind's plan, adding and dropping its jobs by key, and the helper job code starts a goroutine through ([ADR-0119](../docs/adr/operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md)) |
 | `sessions/` | The Session, its three members, the reload, the order of the reload, its failure rules, and who is told after it |
 | `accounts/` | The reading of the list of accounts |
@@ -78,8 +78,9 @@ files outside every component, which admits only the standard library.
 - **Reading a message.** Nothing here reads one.
 - **The schema check's statement and comparison.** The statement is the data-access library's, and
   the comparison sits beside the migration chain. `database` runs the two on each pool.
-- **Deciding readiness.** Readiness is reported, through `Report`, by what holds the state it
-  answers from, so the probes answer from what was reported and run nothing.
+- **Deciding readiness and liveness.** Each is reported, through `Report`, by what holds the state it
+  answers from, or read from what the scheduler recorded, so the probes answer from that and run
+  nothing.
 - **A credential in the Session.** The Session's package imports no credential and no provider
   code. The connections attach to it as its third member, so code that holds the Session and not
   the connections cannot reach a credential.
@@ -146,8 +147,20 @@ the schema check.
 | Function | What it returns |
 | --- | --- |
 | `database.Get` | A pool for the part that asks, opened the first time that pool is asked for and kept in the process. In a process that runs until it is told to stop, it runs the schema check on the pool before returning it, so a schema the process cannot run on stops the start before anything serves ([ADR-0140](../docs/adr/data/0140-each-migration-declares-the-oldest-chain-that-runs-on-it.md)) |
-| `database.ReportReadiness` | Nothing but an error. It starts the readiness report of the process's one pool, the pool `database.Get` gives an endpoint, a task or a shared thing, so a program whose readiness rests on the database, the UI's, is ready only while it answers. The pool is pinged at once and then every five seconds, a ping that has not answered within two seconds counts as failed, and the report reads not ready from the moment it is asked for until a ping answers, and again from the first that fails, under the pools' own name, `database`. The ping runs on a goroutine of the process, which the process waits for before it closes the pools, and asked for again the report is not started twice. For a job kind's part it reports the job kind's own pool instead, under the job kind's name, so the worker is ready only while each job kind's pool answers and each pool's report is told apart from the others. The API server's pool does not run it, since the API server's readiness rests on its bearer token and the Session ([ADR-0142](../docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md)) |
 | `database.ForMigration` | The migrator's pool, with no schema check. It takes only a configuration type with an unexported method that only `config.Migrator` has, so the compiler refuses a deployable's own configuration there. Left to review are a `Build` that makes a `config.Migrator` value of its own, by a literal, by its defaults or as a zero value, and a pool a deployable's code opens through the driver itself. The opening both functions open through runs no schema check and is unexported, so nothing outside the package can call it ([ADR-0142](../docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md)) |
+
+Every pool `database.Get` gives reports its database's state on the readiness probe, the process's
+one pool under the pools' own name, `database`, and a job kind's pool under the job kind's name, so
+the worker's pools are told apart. The pool's tracer sees each statement end and each connection
+attempt return and writes the outcome to the pool's record, which the pure core `database/core`
+classifies as evidence that the database serves, as a fault, or as nothing, so no call is made to
+feed the report. A failed connection attempt counts as a fault only while the pool holds no other
+connection, and a statement that shows a fault closes the pool's other connections, so a pool that is not
+ready soon holds none. The pool keeps one connection and, while it holds none, attempts one
+every ten seconds, each attempt bounded by ten seconds, so a not-ready report clears on the pool's
+own attempt with no traffic. A pool holding no connection, with none made and no statement answered
+for fifteen minutes since its first failed attempt, reports failed, which fails the health probe. The classification and the bounds are
+[ADR-0142](../docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md#what-makes-a-probe-fail)'s.
 
 A process holds one or more pools, and every one of them is this package's. In the worker each job
 kind has a pool of its own, built for it and labelled with it, so one job kind cannot starve
@@ -266,11 +279,14 @@ metrics endpoint on a listener of its own while it runs
 
 | Path | Answers |
 | --- | --- |
-| `/healthz` | 200 while the process runs |
+| `/healthz` | 200 unless something reports failed, a fault only a restart clears, or a job's loop on the scheduler has gone two minutes past due without reaching its run or its next wait, and otherwise 503 with a line naming it |
 | `/readyz` | 200 only while the process serves and everything that reports is ready, and otherwise 503 with a line naming the first that is not |
 | `/metrics` | The process's registry, so every series a process registers reaches its scrape, between units of work as during them |
 
-The probes answer from what was reported and run nothing. Every answer is plain text for a
+The probes answer from what was reported and recorded and run no statement, no ping and no call to
+any dependency. Which faults fail which probe, and why a state the operator fixes fails neither, is
+[ADR-0142](../docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md#what-makes-a-probe-fail)'s.
+Every answer is plain text for a
 platform's healthcheck and scraper. The endpoints the platform reads are the contract a copy could
 quietly break, by renaming a path or serving a registry other than the process's own. Written once,
 the endpoints are the same in every process that serves them.
@@ -322,7 +338,11 @@ longer finds is told to `Dropped` only once its job has returned, and an empty k
 listing, since the listing's own job is keyed by the job kind alone. A plan with no `Keys` or no
 `Job` is refused when the process hands it to the scheduler, which fails the start before anything
 serves, with an error naming the job kind. While it runs the scheduler has no failure of its own,
-since a job's failure fails its run and a listing that fails is asked again after its backoff. How a
+since a job's failure fails its run and a listing that fails is asked again after its backoff. Each
+job's loop records when it was due to reach its run or its next wait, measured on the monotonic clock
+from when the scheduler was made, and `Wedged` names a loop past that by more than the bound it is
+given, which the health probe asks with two minutes. A run in flight, a wait for a slot of its limit
+and a wait for a wake with no timer record nothing, so a long run never fails the probe. How a
 job is woken, run, backed off and stopped is
 [ADR-0119](../docs/adr/operability/0119-the-workers-jobs-are-scheduled-from-recorded-state.md)'s.
 
@@ -377,7 +397,7 @@ Its reload is the Session's own upkeep, run on the process's scheduler on the sc
 [ADR-0090](../docs/adr/operability/0090-accounts-reach-deployables-as-reloaded-snapshots.md)
 states, at the interval `account_reload_interval` sets in the API server and in the worker. It runs
 at once when the process serves, and every five seconds, or the interval when it is shorter, while
-no reload has loaded everything. Once one has, a reload that fails is logged by the Session and
+no reload has read everything. Once one has, a reload that fails is logged by the Session and
 answered to the scheduler as not due, so it is tried again at the next interval rather than after
 the scheduler's backoff. Each reload its caller did not cancel is timed on one series per process
 ([ADR-0125](../docs/adr/engineering/0125-performance-is-measured-once-at-each-place-time-goes.md)).
@@ -398,10 +418,11 @@ Its order is written once.
 | One account's lowered rate target that cannot be read, or lies outside the range [ADR-0024](../docs/adr/operability/0024-conservative-target-aimd.md) allows | No unit of work begins on that account, so its work stops while every other account's goes on |
 | The policy's load | The accounts and the connections are in force all the same, the policy keeps what it had, and the reload returns an error that says so ([ADR-0041](../docs/adr/engineering/0041-policy-as-immutable-snapshots.md)) |
 
-The first reload does not hold up the start. Until a reload has loaded the list, the connections
-and the policy, the Session reports not ready and the reload is tried again. So the API server and
-the worker each start, and report not ready until one has. A later reload whose policy fails leaves
-the Session ready. A body request has the policy loaded before it decides, through the load
+The first reload does not hold up the start. Until a reload has read the list, the connections and
+the policy, the Session reports not ready and the reload is tried again. So the API server and the
+worker each start, and report not ready until one has. A policy whose rows do not validate is read
+all the same, so it holds up nothing, and a later reload whose policy fails leaves the Session
+ready. A body request has the policy loaded before it decides, through the load
 concurrent body requests share, which is `policies`'
 ([ADR-0099](../docs/adr/engineering/0099-a-body-request-loads-the-policy-before-it-decides.md)).
 

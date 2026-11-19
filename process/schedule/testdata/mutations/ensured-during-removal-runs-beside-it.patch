@@ -5,17 +5,17 @@ tests: TestAJobEnsuredWhileItIsRemovedNeverRunsTwiceAtOnce TestEnsuringAndRemovi
 scheduled-count: no
 
 diff --git a/process/schedule/schedule.go b/process/schedule/schedule.go
-index 47abffeb..ff8799d7 100644
+index 84821c76..1f229b1f 100644
 --- a/process/schedule/schedule.go
 +++ b/process/schedule/schedule.go
-@@ -241,9 +241,7 @@ func (s *Scheduler) Ensure(key Key, job Job) error {
- 		defer close(st.done)
+@@ -266,9 +266,7 @@ func (s *Scheduler) Ensure(key Key, job Job) error {
+ 		defer s.unwatch(st)
  		// The key's removed loop returns first, whether or not this one is removed meanwhile, so a
  		// chain of removals and ensures still runs one loop of the key at a time.
 -		if previous != nil {
 -			<-previous
 -		}
 +		_ = previous
+ 		s.watch(st, key)
  		s.loop(ctx, key, job, st)
  	}()
- 	return nil

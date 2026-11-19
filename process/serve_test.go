@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"math/big"
 	"net"
 	"net/http"
@@ -146,10 +147,10 @@ func reporter(pattern string, got *process.Capabilities) process.Endpoint[servin
 }
 
 // The operations endpoints answer as plain text with no content security policy, and no other path.
-// The readiness probe answers from what was reported and runs nothing. It is ready only while
+// The probes answer from what was reported and run nothing. The readiness probe is ready only while
 // everything that reported is ready, and names the first that is not, a failed one with its reason. A
-// part that never reports is not waited for. The health probe answers 200 while the process runs
-// (ADR-0051, ADR-0142).
+// part that never reports is not waited for. The health probe answers 200 while nothing reports
+// failed, a part not ready included, and names the first that reports failed (ADR-0051, ADR-0142).
 func TestTheProbesAnswerFromWhatWasReported(t *testing.T) {
 	var a, b process.Capabilities
 	r := serveSpec(t, process.Spec[serving]{Name: "test", Endpoints: []process.Endpoint[serving]{
@@ -173,15 +174,20 @@ func TestTheProbesAnswerFromWhatWasReported(t *testing.T) {
 	b.Report(process.NotReady, "waiting for its first load")
 	got["b not ready"] = probe("/readyz")
 	got["b not ready, asked again"] = probe("/readyz")
+	got["health while b is not ready"] = probe("/healthz")
 	a.Report(process.Failed, "its file is gone")
 	got["a failed"] = probe("/readyz")
+	got["health while a failed"] = probe("/healthz")
 	a.Report(process.Ready, "")
 	b.Report(process.Ready, "")
 	got["both ready"] = probe("/readyz")
+	got["health once both are ready"] = probe("/healthz")
 	want := map[string]string{
 		"nothing reported": "200 ready", "health": "200 ok", "another path": "404 404 page not found",
 		"b not ready": "503 not ready: /b/: waiting for its first load", "b not ready, asked again": "503 not ready: /b/: waiting for its first load",
 		"a failed": "503 not ready: /a/ failed: its file is gone", "both ready": "200 ready",
+		"health while b is not ready": "200 ok", "health while a failed": "503 not live: /a/ failed: its file is gone",
+		"health once both are ready": "200 ok",
 	}
 	if diff := cmp.Diff(want, got, compare.Options); diff != "" {
 		t.Errorf("probes (-want +got):\n%s", diff)
@@ -688,5 +694,54 @@ func TestTheProbesRunNothingWhenAsked(t *testing.T) {
 	// those and no more.
 	if after := runtime.NumGoroutine(); after > goroutines+4 {
 		t.Errorf("the asks left %d goroutines running beside the %d before them", after, goroutines)
+	}
+}
+
+// blockingHandler is a log handler whose every record waits until release is closed, which holds the
+// scheduler's loop that logs it between a run and its next wait, as a fault in the process would.
+type blockingHandler struct{ release chan struct{} }
+
+func (h blockingHandler) Enabled(context.Context, slog.Level) bool { return true }
+func (h blockingHandler) Handle(context.Context, slog.Record) error {
+	<-h.release
+	return nil
+}
+func (h blockingHandler) WithAttrs([]slog.Attr) slog.Handler { return h }
+func (h blockingHandler) WithGroup(string) slog.Handler      { return h }
+
+// The health probe fails once a job's loop on the process's scheduler has gone past due by more than
+// the bound without reaching its run or its next wait, naming the job, while the readiness probe
+// answers from the reports alone. The bound is shortened for the test, and the loop is held by the
+// logger its failed run is logged through (ADR-0142).
+func TestTheHealthProbeFailsOnAWedgedSchedulerLoop(t *testing.T) {
+	process.SetWedgeBound(t, 100*time.Millisecond)
+	slot := process.NewOnePerProcess[int]("kept")
+	release := make(chan struct{})
+	r := serveSpec(t, process.Spec[serving]{Name: "test", Endpoints: []process.Endpoint[serving]{{Pattern: "/", Build: func(ctx context.Context, p process.Capabilities, _ serving) (http.Handler, error) {
+		_, err := slot.Get(ctx, p, func(_ context.Context, sp process.Capabilities) (int, func(), error) {
+			return 1, nil, process.Upkeep(sp, schedule.Job{
+				Interval: time.Hour, Backoff: schedule.Backoff{Base: time.Hour, Max: time.Hour},
+				Logger: slog.New(blockingHandler{release: release}),
+				Run:    func(context.Context, schedule.Ask) error { return errors.New("the upkeep failed") },
+			})
+		})
+		return http.NotFoundHandler(), err
+	}}}})
+	t.Cleanup(func() { close(release) })
+	var health string
+	for deadline := time.Now().Add(5 * time.Second); time.Now().Before(deadline); time.Sleep(20 * time.Millisecond) {
+		status, body, _, err := get(t, &http.Client{}, "http://"+r.probes+"/healthz")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if health = fmt.Sprintf("%d %s", status, strings.TrimSpace(body)); status != http.StatusOK {
+			break
+		}
+	}
+	if !strings.HasPrefix(health, "503 not live: the scheduler has not run the job kept for ") {
+		t.Errorf("the health probe answers %q, want 503 naming the wedged job kept", health)
+	}
+	if status, body, _, err := get(t, &http.Client{}, "http://"+r.probes+"/readyz"); err != nil || status != http.StatusOK {
+		t.Errorf("the readiness probe answers %d %q %v, want 200 from the reports", status, body, err)
 	}
 }

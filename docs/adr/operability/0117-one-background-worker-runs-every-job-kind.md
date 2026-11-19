@@ -126,9 +126,9 @@ A process per job kind also costs.
   over the connections the worker's one Session holds. The reload of the accounts and their
   policy is the Session's, one per process, and its series is the worker's
   ([ADR-0090](./0090-accounts-reach-deployables-as-reloaded-snapshots.md)). Logs carry the job kind
-  and the account. Liveness is reported per job. The worker reports ready once each job kind's pool
-  answers, the Session has loaded the accounts, their connections and their policy once, and each
-  job kind's first listing of what it runs for has succeeded
+  and the account. Liveness is reported per job. The worker reports ready once the Session has read
+  the accounts, their connections and their policy once, each job kind's first listing of what it
+  runs for has succeeded, and the latest work on its pools found the database serving
   ([ADR-0142](../engineering/0142-each-program-is-a-spec-that-one-process-runs.md)). Something
   alerts when the worker stops
   ([ADR-0077](./0077-conditions-raised-as-alerting-rules.md)). A panic in one job does not take down

@@ -1,0 +1,19 @@
+control: The health probe fails only while something reports failed or a job's loop on the scheduler is wedged past its bound, and names it
+removes: the health probe fails on a part that is not ready, which a restart cannot help
+packages: ./process
+tests: TestTheProbesAnswerFromWhatWasReported
+scheduled-count: no
+
+diff --git a/process/process.go b/process/process.go
+index bb578ec9..f5d2de81 100644
+--- a/process/process.go
++++ b/process/process.go
+@@ -153,7 +153,7 @@ func (p *proc) failedReport() (string, bool) {
+ 	p.reportsMu.Lock()
+ 	defer p.reportsMu.Unlock()
+ 	for _, r := range p.reports {
+-		if r.state == Failed {
++		if r.state != Ready {
+ 			return "not live: " + r.name + " failed: " + r.reason, true
+ 		}
+ 	}

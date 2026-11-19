@@ -6,16 +6,16 @@ scheduled-count: no
 integration: yes
 
 diff --git a/process/database/database.go b/process/database/database.go
-index 6bd05532..4608642c 100644
+index 2a25a4fd..97a17b20 100644
 --- a/process/database/database.go
 +++ b/process/database/database.go
-@@ -49,9 +49,6 @@ func Get(ctx context.Context, p process.Capabilities, c config.HasDatabase) (*pg
+@@ -53,9 +53,6 @@ func Get(ctx context.Context, p process.Capabilities, c config.HasDatabase) (*pg
  	// job_kind, and every other pool through the process's own, so they carry none (ADR-0125).
  	kind := process.JobKind(p)
  	reg := set.shared.Metrics()
 -	if kind != "" {
 -		reg = p.Metrics()
 -	}
- 	return set.open(ctx, "job kind "+kind, c.DatabasePart(), reg, CheckSchema)
- }
- 
+ 	reporter := set.shared
+ 	if kind != "" {
+ 		reporter = p

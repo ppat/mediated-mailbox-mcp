@@ -21,6 +21,10 @@
 //   - A panic in a run is recovered in the run that raised it, and is that run's failure. Job code
 //     starts a goroutine only through Go, which recovers a panic in it the same way.
 //   - Remove and Stop cancel the runs' contexts and wait for them to return.
+//   - Each job's loop records when it was due to reach its run or its next wait, and Wedged reports a
+//     loop that has not reached it within a bound, for the health probe. A run in flight, a wait for
+//     a slot of its limit and a wait for a wake with no timer are never wedged, however long they
+//     take (ADR-0142).
 //
 // The package reads the clock only through the time package, so its tests drive it under
 // testing/synctest. It holds no package-level state and installs no signal handler.
@@ -33,6 +37,7 @@ import (
 	"log/slog"
 	"runtime/debug"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -191,6 +196,14 @@ type Scheduler struct {
 	mu   sync.Mutex
 	jobs map[Key]*state
 	wg   sync.WaitGroup
+
+	// watched holds every running loop's state with its key, under a lock of its own, so Wedged never
+	// waits on the lock a wedged loop might hold.
+	watchMu sync.Mutex
+	watched map[*state]Key
+	// epoch is when the scheduler was made, with its monotonic clock reading, which each loop's due
+	// time is measured from, so Wedged measures time past due on the monotonic clock.
+	epoch time.Time
 }
 
 // state is one job's loop as the scheduler holds it.
@@ -202,12 +215,29 @@ type state struct {
 	// returned, so a job ensured again meanwhile starts its loop only after this one's done closes, and
 	// never two runs of one key run at once.
 	removing bool
+	// epoch is the scheduler's, and due is the time from which the loop is due to reach its run or its
+	// next wait, as nanoseconds since epoch plus one, zero while it waits for a wake with no timer, for
+	// a slot of its limit, or for its run.
+	epoch time.Time
+	due   atomic.Int64
+}
+
+// expect records that the loop is due to reach its run or its next wait from at, and zero expects
+// nothing. at carries the monotonic clock reading time.Now gives, and so does every time the loop
+// derives from one, so its distance from epoch is monotonic and a step of the wall clock moves
+// neither.
+func (st *state) expect(at time.Time) {
+	if at.IsZero() {
+		st.due.Store(0)
+		return
+	}
+	st.due.Store(int64(at.Sub(st.epoch)) + 1)
 }
 
 // New returns a scheduler whose runs end when parent ends or Stop is called, reporting to observer.
 func New(parent context.Context, observer Observer) *Scheduler {
 	ctx, cancel := context.WithCancel(parent)
-	return &Scheduler{ctx: ctx, cancel: cancel, observer: observer, jobs: map[Key]*state{}}
+	return &Scheduler{ctx: ctx, cancel: cancel, observer: observer, epoch: time.Now(), jobs: map[Key]*state{}, watched: map[*state]Key{}}
 }
 
 // Ensure starts key's job with job unless it exists. Its first ask comes at once. It returns the
@@ -229,7 +259,7 @@ func (s *Scheduler) Ensure(key Key, job Job) error {
 		job.Logger = slog.New(slog.DiscardHandler)
 	}
 	ctx, cancel := context.WithCancel(s.ctx)
-	st := &state{cancel: cancel, wake: make(chan struct{}, 1), done: make(chan struct{})}
+	st := &state{cancel: cancel, wake: make(chan struct{}, 1), done: make(chan struct{}), epoch: s.epoch}
 	s.jobs[key] = st
 	seed := job.LastSuccess
 	if seed.IsZero() {
@@ -240,11 +270,13 @@ func (s *Scheduler) Ensure(key Key, job Job) error {
 	go func() {
 		defer s.wg.Done()
 		defer close(st.done)
+		defer s.unwatch(st)
 		// The key's removed loop returns first, whether or not this one is removed meanwhile, so a
 		// chain of removals and ensures still runs one loop of the key at a time.
 		if previous != nil {
 			<-previous
 		}
+		s.watch(st, key)
 		s.loop(ctx, key, job, st)
 	}()
 	return nil
@@ -289,6 +321,36 @@ func (s *Scheduler) Wake(key Key) {
 	}
 }
 
+func (s *Scheduler) watch(st *state, key Key) {
+	s.watchMu.Lock()
+	defer s.watchMu.Unlock()
+	s.watched[st] = key
+}
+
+func (s *Scheduler) unwatch(st *state) {
+	s.watchMu.Lock()
+	defer s.watchMu.Unlock()
+	delete(s.watched, st)
+}
+
+// Wedged returns a job whose loop has not reached its run or its next wait for longer than bound
+// after it was due, and how long past due it is, with false when there is none. Between those points
+// a loop runs only the scheduler's own bookkeeping, so a loop past a generous bound is held by a fault
+// a restart clears. It reads what each loop recorded and the clock, and takes no lock a loop holds
+// while it runs.
+func (s *Scheduler) Wedged(bound time.Duration) (Key, time.Duration, bool) {
+	now := time.Since(s.epoch)
+	s.watchMu.Lock()
+	defer s.watchMu.Unlock()
+	for st, key := range s.watched {
+		due := st.due.Load()
+		if past := now - time.Duration(due-1); due != 0 && past > bound {
+			return key, past, true
+		}
+	}
+	return Key{}, 0, false
+}
+
 // Stop cancels every run and waits until every job's loop has returned.
 func (s *Scheduler) Stop() {
 	s.cancel()
@@ -311,9 +373,11 @@ func (s *Scheduler) loop(ctx context.Context, key Key, job Job, st *state) {
 			wake = nil
 		}
 		var fired <-chan time.Time
+		st.expect(time.Time{})
 		if timed {
 			timer.Reset(time.Until(due))
 			fired = timer.C
+			st.expect(later(due, time.Now()))
 		}
 		var at time.Time
 		phase := false
@@ -325,6 +389,7 @@ func (s *Scheduler) loop(ctx context.Context, key Key, job Job, st *state) {
 		case <-wake:
 			at = time.Now()
 		}
+		st.expect(time.Now())
 		timer.Stop()
 		if backingOff {
 			backingOff = false
@@ -340,14 +405,16 @@ func (s *Scheduler) loop(ctx context.Context, key Key, job Job, st *state) {
 		case <-st.wake:
 		default:
 		}
-		if job.Limit != nil && !s.take(ctx, key, st, job.Limit) {
-			return
-		}
 		var onPhase time.Time
 		if job.Interval > 0 {
 			onPhase = anchor.Add(at.Sub(anchor) / job.Interval * job.Interval)
 		}
+		st.expect(time.Time{})
+		if job.Limit != nil && !s.take(ctx, key, st, job.Limit) {
+			return
+		}
 		outcome, err := s.ask(ctx, key, st, job, at, onPhase)
+		st.expect(time.Now())
 		if job.Limit != nil {
 			<-job.Limit.slots
 		}
@@ -367,6 +434,14 @@ func (s *Scheduler) loop(ctx context.Context, key Key, job Job, st *state) {
 		}
 		due, timed = point.Add(job.Interval), job.Interval > 0
 	}
+}
+
+// later returns the later of a and b.
+func later(a, b time.Time) time.Time {
+	if a.After(b) {
+		return a
+	}
+	return b
 }
 
 // owned calls f, which reports to the observer on key's own series, only while st is key's state. A

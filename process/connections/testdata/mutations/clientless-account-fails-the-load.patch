@@ -1,0 +1,21 @@
+control: A state the operator fixes, no account, an account that cannot connect or a policy that does not validate, fails neither probe
+removes: an account whose provider needs an OAuth client and that names none fails the connections' load, so the Session never reads its accounts
+packages: ./api/app ./worker/app
+tests: TestNoAccountOrAnAccountThatCannotConnectFailsNoProbe/accounts_that_need_an_OAuth_client_and_name_none_or_whose_client_does_not_open TestNoAccountOrAnAccountThatCannotConnectFailsNoProbe/accounts_that_cannot_connect
+scheduled-count: no
+integration: yes
+
+diff --git a/process/connections/connections.go b/process/connections/connections.go
+index 463d796a..5b574765 100644
+--- a/process/connections/connections.go
++++ b/process/connections/connections.go
+@@ -223,6 +223,9 @@ func (c *Connections) Load(ctx context.Context, listed []accounts.Account) error
+ 	previous := *c.records.Load()
+ 	next := make(map[string]*record, len(rows))
+ 	for _, r := range rows {
++		if r.account.Client == "" {
++			return errors.New("an account names no OAuth client")
++		}
+ 		rec, ok := previous[r.account.ID]
+ 		if !ok {
+ 			rec = &record{}

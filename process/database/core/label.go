@@ -1,5 +1,6 @@
-// Package core holds the database package's pure decision, the label a statement's latency is
-// recorded under (ADR-0125). It imports no clock and does no I/O.
+// Package core holds the database package's pure decisions, the label a statement's latency is
+// recorded under (ADR-0125) and the evidence a statement's or a connection attempt's outcome gives
+// about the database (ADR-0142). It imports no clock and does no I/O.
 package core
 
 import "strings"

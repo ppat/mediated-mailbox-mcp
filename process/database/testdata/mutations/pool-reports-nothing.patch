@@ -1,0 +1,21 @@
+control: Each pool reports its database from the outcomes of the work run on it, clears on its own attempt to connect, and reports failed after its bound with no connection
+removes: a kept pool reports nothing, so its database's state never reaches the readiness probe
+packages: ./process/database ./ui/app ./worker/app
+tests: TestThePoolsReportFollowsTheWorkRunOnIt TestReadinessFollowsTheDatabase TestTheWorkerIsNotReadyWhileItsWorkFindsTheDatabaseGone
+scheduled-count: no
+integration: yes
+
+diff --git a/process/database/database.go b/process/database/database.go
+index 2a25a4fd..1a46ac5c 100644
+--- a/process/database/database.go
++++ b/process/database/database.go
+@@ -146,9 +146,6 @@ func (s *pools) open(ctx context.Context, name string, c config.Database, reg pr
+ 	}
+ 	s.byName[name] = pool
+ 	s.opened = append(s.opened, pool)
+-	if reporter != nil {
+-		outcomes.start(reporter)
+-	}
+ 	return pool, nil
+ }
+ 

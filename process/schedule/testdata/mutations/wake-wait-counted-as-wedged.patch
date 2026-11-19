@@ -1,0 +1,19 @@
+control: The scheduler names a job's loop held past due between its run and its next wait, and never a run in flight or a wait
+removes: a job with no timer waiting for a wake counts as due from when it began to wait, so it is named wedged
+packages: ./process/schedule
+tests: TestAWedgedLoopIsReportedAndALongRunOrWaitIsNot
+scheduled-count: no
+
+diff --git a/process/schedule/schedule.go b/process/schedule/schedule.go
+index 84821c76..efa13c0b 100644
+--- a/process/schedule/schedule.go
++++ b/process/schedule/schedule.go
+@@ -366,7 +366,7 @@ func (s *Scheduler) loop(ctx context.Context, key Key, job Job, st *state) {
+ 			wake = nil
+ 		}
+ 		var fired <-chan time.Time
+-		st.expect(time.Time{})
++		st.expect(time.Now())
+ 		if timed {
+ 			timer.Reset(time.Until(due))
+ 			fired = timer.C

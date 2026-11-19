@@ -30,7 +30,7 @@ The demonstrations of the controls whose patches sit in more than one component'
 
 ## A job's latest success starts from what its job kind's runs record
 
-- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
+- **Date · evidence:** 2026-11-19 · [pull request #479](https://github.com/ppat/mediated-mailbox-mcp/pull/479), demonstrated with `go tool mutproof` on its branch
 - **Break (1):** the scheduler starts every job's latest success at its ensure, whatever its job kind's runs record
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/schedule`:** `TestAJobsLatestSuccessStartsFromItsRecordedOne`, `TestARemovedLoopReportsNothingOnTheJobEnsuredInItsPlace`
 - **Break (2):** a backfill job with no work outstanding counts from its latest recorded success, so an account whose backfill ended long ago is late at every start
@@ -342,22 +342,6 @@ The demonstrations of the controls whose patches sit in more than one component'
 - **Break (9):** the process logs each value without the layer that set it
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/worker/app`:** `TestALogLevelOfWarnWritesNoInfoRecordBeyondTheConfiguration`, `TestTheEffectiveConfigurationIsLogged`
 
-## Each pool's ping report is ready only while the database answers a ping, the process's pool's under database and a job kind's under its own name
-
-- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
-- **Break (1):** a ping the database does not answer is reported ready
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/database`:** `TestAJobKindsPoolIsReportedUnderItsOwnName`, `TestThePingReportFollowsTheDatabase`
-- **Break (2):** the report says nothing until its first ping returns, so a process whose first ping waits reads ready
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/database`:** `TestThePingReportIsNotReadyUntilAPingAnswers`
-- **Break (3):** a job kind's pool reports under the pools' own name, database, so one name stands for every pool and a job kind's report cannot be told apart
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/database`:** `TestAJobKindsPoolIsReportedUnderItsOwnName`
-- **Break (4):** the report's pings never start, so it stays not ready whatever the database answers
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/database`:** `TestAJobKindsPoolIsReportedUnderItsOwnName`, `TestThePingReportFollowsTheDatabase`, `TestThePingReportIsNotReadyUntilAPingAnswers`
-- **Break (5):** the report starts again each time it is asked for, so one pool is pinged by as many loops
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/database`:** `TestAJobKindsPoolIsReportedUnderItsOwnName`, `TestThePingReportFollowsTheDatabase`
-- **Break (6):** the read API endpoint never opts the UI's pool into the ping report, so the UI is ready whatever the database does
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/ui/app`:** `TestReadinessFollowsTheDatabase`
-
 ## The port returns a body's rendered part alone, and a part the provider holds apart takes exactly one more call
 
 - **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
@@ -384,7 +368,7 @@ The demonstrations of the controls whose patches sit in more than one component'
 
 ## The revision a verdict records is the scanner section's, and an empty revision is refused
 
-- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
+- **Date · evidence:** 2026-11-19 · [pull request #479](https://github.com/ppat/mediated-mailbox-mcp/pull/479), demonstrated with `go tool mutproof` on its branch
 - **Break (1):** an empty revision builds a scanner
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/core/scan`:** `TestNewRefusesAnInvalidConfiguration`, `TestNewRefusesAnInvalidConfiguration/an_empty_revision`
 - **Break (2):** a verdict records no revision

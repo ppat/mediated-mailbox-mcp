@@ -261,9 +261,9 @@ period, `worker.terminationGracePeriodSeconds`, and a lost node's pod can keep r
 node stops it. The worker's runs tolerate that overlap, since each reads recorded state and is
 idempotent or conditional.
 
-A new worker pod reports ready once each job kind's database pool answers, the worker has loaded
-the accounts, their connections and their policy once, and each job kind's first listing of what
-it runs for has succeeded
+A new worker pod reports ready once the worker has read the accounts, their connections and their
+policy once, each job kind's first listing of what it runs for has succeeded, and the latest work on
+its database pools found the database serving
 ([ADR-0142](https://github.com/ppat/mediated-mailbox-mcp/blob/main/docs/adr/engineering/0142-each-program-is-a-spec-that-one-process-runs.md)).
 So an upgrade that waits on its pods finishes only when the worker can run its jobs.
 

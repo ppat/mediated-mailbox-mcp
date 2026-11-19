@@ -1,0 +1,20 @@
+control: A state the operator fixes, no account, an account that cannot connect or a policy that does not validate, fails neither probe
+removes: a policy whose rows do not validate holds the Session not ready
+packages: ./process/sessions
+tests: TestAPolicyThatDoesNotValidateHoldsUpNoProbe
+scheduled-count: no
+integration: yes
+
+diff --git a/process/sessions/sessions.go b/process/sessions/sessions.go
+index cdcb3768..fe0d3333 100644
+--- a/process/sessions/sessions.go
++++ b/process/sessions/sessions.go
+@@ -220,7 +220,7 @@ func (s *Session) reload(ctx context.Context) error {
+ 	// A policy the read found invalid is the operator's to fix, and the accounts keep the policy they
+ 	// had, the one that restricts every sender before any was read, so it holds up neither the
+ 	// Session's readiness nor its reload's pace. A read of the policy that did not complete does.
+-	if (err == nil || errors.Is(err, policies.ErrInvalidUpdate)) && !s.loaded.Swap(true) {
++	if err == nil && !s.loaded.Swap(true) {
+ 		s.report(process.Ready, "")
+ 	}
+ 	if err != nil {

@@ -5,10 +5,10 @@ tests: TestTheProbesRunNothingWhenAsked
 scheduled-count: no
 
 diff --git a/process/serve.go b/process/serve.go
-index b637c343..5d49e8b7 100644
+index e9ff2caf..517ca52c 100644
 --- a/process/serve.go
 +++ b/process/serve.go
-@@ -145,11 +145,11 @@ func (p *proc) serveOn(ctx context.Context, app, probeListener net.Listener, s c
+@@ -151,11 +151,11 @@ func (p *proc) serveOn(ctx context.Context, app, probeListener net.Listener, s c
  	}
  
  	var serving atomic.Bool
@@ -20,4 +20,4 @@ index b637c343..5d49e8b7 100644
 -		line, notReady := p.notReady()
  		return !notReady, line
  	}
- 	probeServer := newServer(probesHandler(p.registry, ready, p.logger), p.logger)
+ 	live := func(*http.Request) (bool, string) {

@@ -6,17 +6,19 @@ scheduled-count: no
 integration: yes
 
 diff --git a/process/sessions/sessions.go b/process/sessions/sessions.go
-index 0f7b87f4..4fa90a93 100644
+index cdcb3768..4dc8a1d0 100644
 --- a/process/sessions/sessions.go
 +++ b/process/sessions/sessions.go
-@@ -216,7 +216,9 @@ func (s *Session) reload(ctx context.Context) error {
+@@ -216,7 +216,11 @@ func (s *Session) reload(ctx context.Context) error {
  	}
  	s.inForce.Store(&listed)
  	s.failed.Store(nil)
--	if err = s.policies.Load(ctx, ids(listed)); err != nil {
+-	err = s.policies.Load(ctx, ids(listed))
 +	if s.loaded.Load() {
 +		err = nil
-+	} else if err = s.policies.Load(ctx, ids(listed)); err != nil {
- 		err = fmt.Errorf("%w: %w", ErrPolicyNotLoaded, err)
- 	} else if !s.loaded.Swap(true) {
- 		s.report(process.Ready, "")
++	} else {
++		err = s.policies.Load(ctx, ids(listed))
++	}
+ 	// A policy the read found invalid is the operator's to fix, and the accounts keep the policy they
+ 	// had, the one that restricts every sender before any was read, so it holds up neither the
+ 	// Session's readiness nor its reload's pace. A read of the policy that did not complete does.

@@ -1,20 +1,21 @@
-control: Each pool's ping report is ready only while the database answers a ping, the process's pool's under database and a job kind's under its own name
-removes: a job kind's pool reports under the pools' own name, database, so one name stands for every pool and a job kind's report cannot be told apart
+control: Each pool reports its database from the outcomes of the work run on it, clears on its own attempt to connect, and reports failed after its bound with no connection
+removes: a job kind's pool reports under the pools' own name, database, so one name stands for every pool
 packages: ./process/database
 tests: TestAJobKindsPoolIsReportedUnderItsOwnName
 scheduled-count: no
 integration: yes
 
-diff --git a/process/database/readiness.go b/process/database/readiness.go
---- a/process/database/readiness.go
-+++ b/process/database/readiness.go
-@@ -39,9 +39,6 @@ func ReportReadiness(ctx context.Context, p process.Capabilities, c config.HasDa
+diff --git a/process/database/database.go b/process/database/database.go
+index 2a25a4fd..451e3dbd 100644
+--- a/process/database/database.go
++++ b/process/database/database.go
+@@ -57,9 +57,6 @@ func Get(ctx context.Context, p process.Capabilities, c config.HasDatabase) (*pg
+ 		reg = p.Metrics()
  	}
- 	kind := process.JobKind(p)
  	reporter := set.shared
 -	if kind != "" {
 -		reporter = p
 -	}
- 	set.mu.Lock()
- 	defer set.mu.Unlock()
- 	if set.reported[kind] {
+ 	return set.open(ctx, "job kind "+kind, c.DatabasePart(), reg, CheckSchema, reporter)
+ }
+ 

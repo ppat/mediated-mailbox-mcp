@@ -108,6 +108,12 @@ var connectionLimits = limits{Header: 10 * time.Second, Read: 30 * time.Second, 
 // limits are the timeouts a server runs with.
 type limits struct{ Header, Read, Idle time.Duration }
 
+// wedgeBound is how long past due a job's loop on the scheduler may go without reaching its run or
+// its next wait before the health probe fails, a bound generous beside the bookkeeping the loop does
+// there. A run in flight or a wait for a slot of its limit never counts, so a long run never fails
+// the probe (ADR-0142). Only the process's own tests shorten it.
+var wedgeBound = 2 * time.Minute
+
 // drainTimeout is how long the application server's requests have to finish once the process stops.
 const drainTimeout = 10 * time.Second
 
@@ -152,7 +158,22 @@ func (p *proc) serveOn(ctx context.Context, app, probeListener net.Listener, s c
 		line, notReady := p.notReady()
 		return !notReady, line
 	}
-	probeServer := newServer(probesHandler(p.registry, ready, p.logger), p.logger)
+	live := func(*http.Request) (bool, string) {
+		if line, failed := p.failedReport(); failed {
+			return false, line
+		}
+		if scheduler != nil {
+			if key, past, wedged := scheduler.Wedged(wedgeBound); wedged {
+				job := key.Kind
+				if key.ID != "" {
+					job += " " + key.ID
+				}
+				return false, fmt.Sprintf("not live: the scheduler has not run the job %s for %s after it was due", job, past.Round(time.Second))
+			}
+		}
+		return true, ""
+	}
+	probeServer := newServer(probesHandler(p.registry, live, ready, p.logger), p.logger)
 	var appServer *http.Server
 	if app != nil {
 		mux := http.NewServeMux()

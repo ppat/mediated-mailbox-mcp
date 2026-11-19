@@ -100,10 +100,10 @@ type Backfill struct {
 }
 
 // Build builds backfill's job kind from the process's capabilities and the worker's configuration,
-// and returns its plan. It takes the process's scanner, its own pool, which reports whether it
-// answers a ping, and the process's Session and connections, and a caller of its own in the batch class, and
-// registers its series on the registerer p gives it, which labels them with its job kind (ADR-0117,
-// ADR-0119, ADR-0142).
+// and returns its plan. It takes the process's scanner, its own pool, which reports on its database
+// from the work run on it, and the process's Session and connections, and a caller of its own in the
+// batch class, and registers its series on the registerer p gives it, which labels them with its job
+// kind (ADR-0117, ADR-0119, ADR-0142).
 func Build(ctx context.Context, p process.Capabilities, c config.Worker) (schedule.Plan, error) {
 	sc, err := scanner.Get(ctx, p, c)
 	if err != nil {
@@ -111,9 +111,6 @@ func Build(ctx context.Context, p process.Capabilities, c config.Worker) (schedu
 	}
 	pool, err := database.Get(ctx, p, c)
 	if err != nil {
-		return schedule.Plan{}, err
-	}
-	if err := database.ReportReadiness(ctx, p, c); err != nil {
 		return schedule.Plan{}, err
 	}
 	s, err := sessions.Get(ctx, p, c)

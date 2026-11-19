@@ -44,13 +44,13 @@ var ErrPolicyNotLoaded = errors.New("the policy was not loaded")
 // reloadDurationName is the series timing each reload of the Session, K12 of ADR-0125.
 const reloadDurationName = "mediated_mailbox_session_reload_duration_seconds"
 
-// firstRetry is how soon a reload is tried again while no reload has loaded the accounts, their
+// firstRetry is how soon a reload is tried again while no reload has read the accounts, their
 // connections and their policy, so a process whose first reload fails after its start's schema check
 // becomes ready soon after one succeeds (ADR-0090, ADR-0140).
 const firstRetry = 5 * time.Second
 
-// notReady is the reason the Session reports until a reload has loaded everything once.
-const notReady = "no reload has loaded the accounts, their connections and their policy yet"
+// notReady is the reason the Session reports until a reload has read everything once.
+const notReady = "no reload has read the accounts, their connections and their policy yet"
 
 // Connections is what the Session asks of the connections attached to it, its third member.
 type Connections interface {
@@ -78,8 +78,8 @@ type Session struct {
 	reloading sync.Mutex
 	// inForce is the list of accounts in force, nil before the first reload that read one.
 	inForce atomic.Pointer[[]accounts.Account]
-	// loaded is set once a reload has loaded the list, the connections where the process has them,
-	// and the policy.
+	// loaded is set once a reload has read the list, loaded the connections where the process has them,
+	// and completed its read of the policy, whether or not the policy it read was valid.
 	loaded atomic.Bool
 	// failed is the failure of the latest reload's read of the list or load of the connections, nil
 	// when they succeeded.
@@ -93,7 +93,7 @@ type Session struct {
 // Get returns the process's Session, built the first time any part asks, from the process, with the
 // process's own pool, logger and registerer, and the same one on every later call (ADR-0142). Its
 // first reload runs once the process serves, on the process's scheduler, and then on the interval c's
-// accounts part sets. It reports not ready until a reload has loaded everything once.
+// accounts part sets. It reports not ready until a reload has read everything once.
 func Get(ctx context.Context, p process.Capabilities, c config.HasAccounts) (*Session, error) {
 	return held.Get(ctx, p, func(ctx context.Context, shared process.Capabilities) (*Session, func(), error) {
 		pool, err := database.Get(ctx, shared, c)
@@ -123,7 +123,7 @@ func Get(ctx context.Context, p process.Capabilities, c config.HasAccounts) (*Se
 }
 
 // upkeep is the Session's reload as the process's scheduler runs it, at once when the process serves
-// and then on the reload interval. While no reload has loaded everything a failed reload is tried
+// and then on the reload interval. While no reload has read everything a failed reload is tried
 // again after five seconds, or the interval when it is shorter. Once one has, a failed reload keeps
 // in force what was, is logged, and is tried again at the next interval, so it is answered as not due
 // rather than failed, whose backoff would try it sooner (ADR-0090).
@@ -216,10 +216,15 @@ func (s *Session) reload(ctx context.Context) error {
 	}
 	s.inForce.Store(&listed)
 	s.failed.Store(nil)
-	if err = s.policies.Load(ctx, ids(listed)); err != nil {
-		err = fmt.Errorf("%w: %w", ErrPolicyNotLoaded, err)
-	} else if !s.loaded.Swap(true) {
+	err = s.policies.Load(ctx, ids(listed))
+	// A policy the read found invalid is the operator's to fix, and the accounts keep the policy they
+	// had, the one that restricts every sender before any was read, so it holds up neither the
+	// Session's readiness nor its reload's pace. A read of the policy that did not complete does.
+	if (err == nil || errors.Is(err, policies.ErrInvalidUpdate)) && !s.loaded.Swap(true) {
 		s.report(process.Ready, "")
+	}
+	if err != nil {
+		err = fmt.Errorf("%w: %w", ErrPolicyNotLoaded, err)
 	}
 	for _, tell := range after {
 		tell()

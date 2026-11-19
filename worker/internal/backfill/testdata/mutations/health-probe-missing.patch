@@ -6,15 +6,15 @@ scheduled-count: no
 integration: yes
 
 diff --git a/process/probes.go b/process/probes.go
-index 9642e96c..6854444c 100644
+index d49ef2aa..a8d044ec 100644
 --- a/process/probes.go
 +++ b/process/probes.go
-@@ -17,7 +17,7 @@ import (
- // healthcheck and scraper, which carry no credential and read no page.
- func probesHandler(gatherer prometheus.Gatherer, ready func(*http.Request) (bool, string), logger *slog.Logger) http.Handler {
+@@ -18,7 +18,7 @@ import (
+ // carry no credential and read no page.
+ func probesHandler(gatherer prometheus.Gatherer, live, ready func(*http.Request) (bool, string), logger *slog.Logger) http.Handler {
  	mux := http.NewServeMux()
 -	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
 +	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
- 		answerProbe(w, r, logger, http.StatusOK, "ok")
- 	})
- 	mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, r *http.Request) {
+ 		if ok, why := live(r); !ok {
+ 			answerProbe(w, r, logger, http.StatusServiceUnavailable, why)
+ 			return

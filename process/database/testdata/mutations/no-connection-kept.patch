@@ -1,0 +1,19 @@
+control: Each pool reports its database from the outcomes of the work run on it, clears on its own attempt to connect, and reports failed after its bound with no connection
+removes: a pool keeps no connection, so once it has lost its connections it attempts none on its own and a pool taking no traffic stays not ready
+packages: ./process/database ./ui/app
+tests: TestThePoolsReportFollowsTheWorkRunOnIt TestReadinessFollowsTheDatabase
+scheduled-count: no
+integration: yes
+
+diff --git a/process/database/database.go b/process/database/database.go
+index 2a25a4fd..64dc8901 100644
+--- a/process/database/database.go
++++ b/process/database/database.go
+@@ -86,7 +86,6 @@ func open(ctx context.Context, c config.Database, reg prometheus.Registerer, out
+ 		return nil, fmt.Errorf("configuring the database connection of %s: %w", c.User, err)
+ 	}
+ 	if reports {
+-		conf.MinConns = 1
+ 		conf.HealthCheckPeriod = healthCheckPeriod
+ 		conf.ConnConfig.ConnectTimeout = connectTimeout
+ 	}

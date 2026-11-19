@@ -1,0 +1,20 @@
+control: Each pool reports its database from the outcomes of the work run on it, clears on its own attempt to connect, and reports failed after its bound with no connection
+removes: a statement that shows a fault leaves the pool's other connections open, so a dead idle connection counts toward the one kept and the pool never attempts a new one
+packages: ./process/database
+tests: TestAJobKindsPoolIsReportedUnderItsOwnName
+scheduled-count: no
+integration: yes
+
+diff --git a/process/database/record.go b/process/database/record.go
+index 6a05845f..013dba86 100644
+--- a/process/database/record.go
++++ b/process/database/record.go
+@@ -64,7 +64,7 @@ func (r *record) observe(ctx context.Context, o core.Outcome, err error) {
+ 	if evidence == core.None {
+ 		return
+ 	}
+-	if reset := r.record(ctx, evidence, o, err); reset != nil && evidence == core.Fault && !o.Connect {
++	if reset := r.record(ctx, evidence, o, err); reset != nil && evidence == core.Fault && !o.Connect && false {
+ 		reset()
+ 	}
+ }

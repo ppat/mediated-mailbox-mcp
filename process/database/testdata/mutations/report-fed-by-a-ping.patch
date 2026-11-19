@@ -1,0 +1,31 @@
+control: Each pool reports its database from the outcomes of the work run on it, clears on its own attempt to connect, and reports failed after its bound with no connection
+removes: the pool is pinged every second, so the process makes calls to the database that the probes' answers do not need
+packages: ./process/database
+tests: TestAProbeRunsNoCallToTheDatabase
+scheduled-count: no
+integration: yes
+
+diff --git a/process/database/database.go b/process/database/database.go
+index 2a25a4fd..ace2be7a 100644
+--- a/process/database/database.go
++++ b/process/database/database.go
+@@ -29,6 +29,7 @@ import (
+ 	"fmt"
+ 	"slices"
+ 	"sync"
++	"time"
+ 
+ 	"github.com/jackc/pgx/v5/pgxpool"
+ 	"github.com/prometheus/client_golang/prometheus"
+@@ -148,6 +149,11 @@ func (s *pools) open(ctx context.Context, name string, c config.Database, reg pr
+ 	s.opened = append(s.opened, pool)
+ 	if reporter != nil {
+ 		outcomes.start(reporter)
++		go func() {
++			for range time.Tick(time.Second) {
++				_ = pool.Ping(context.Background())
++			}
++		}()
+ 	}
+ 	return pool, nil
+ }
