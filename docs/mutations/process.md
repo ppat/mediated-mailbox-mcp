@@ -451,9 +451,9 @@ The demonstrations of the controls whose patches sit in `process/`. [MUTATIONS.m
 
 ## A timed job is asked on its interval's phase, and a job with no interval only when woken
 
-- **Date · evidence:** 2026-11-19 · [pull request #479](https://github.com/ppat/mediated-mailbox-mcp/pull/479), demonstrated with `go tool mutproof` on its branch
+- **Date · evidence:** 2026-11-20 · [pull request #485](https://github.com/ppat/mediated-mailbox-mcp/pull/485), demonstrated with `go tool mutproof` on its branch
 - **Break (1):** a job with no interval is asked again at once after every run
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/schedule`:** `TestAJobWithNoIntervalIsAskedOnlyWhenWoken`, `TestAUnitMadeDurableIsASuccess`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/schedule`:** `TestAJobWithNoIntervalIsAskedOnlyWhenWoken`, `TestAUnitMadeDurableIsASuccess`, `TestAWedgedLoopIsReportedAndALongRunOrWaitIsNot`
 - **Break (2):** a run moves the phase to its own start, so after a run that outlasts the interval the phase never resumes
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/schedule`:** `TestATimedJobIsAskedOnTheIntervalsPhase`
 - **Break (3):** an ask carries its own time as its time on the ticker's phase, so an ask at the end of a backoff or at a wake names a time off the phase
@@ -992,7 +992,7 @@ The demonstrations of the controls whose patches sit in `process/`. [MUTATIONS.m
 
 ## The scheduler refuses a plan it could never run, and the refusal stops the process in order naming the job kind
 
-- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
+- **Date · evidence:** 2026-11-20 · [pull request #485](https://github.com/ppat/mediated-mailbox-mcp/pull/485), demonstrated with `go tool mutproof` on its branch
 - **Break (1):** a plan with no listing or no job is ensured, so its listing fails on every ask or panics and the process serves on
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/process`:** `TestASchedulerThatRefusesAPlanStopsTheProcessInOrder`
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/process/schedule`:** `TestAPlanItCouldNeverRunIsRefused`

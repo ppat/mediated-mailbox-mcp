@@ -696,7 +696,17 @@ func TestAWedgedLoopIsReportedAndALongRunOrWaitIsNot(t *testing.T) {
 		synctest.Wait()
 		ensure(t, s, schedule.Key{Kind: "backfill", ID: "waiting"}, schedule.Job{Interval: time.Hour, Limit: limit, Backoff: backoff, Run: long})
 		ensure(t, s, schedule.Key{Kind: "sync", ID: "idle"}, schedule.Job{Interval: 6 * time.Hour, Backoff: backoff, Run: func(context.Context, schedule.Ask) error { return nil }})
-		ensure(t, s, schedule.Key{Kind: "woken"}, schedule.Job{Backoff: backoff, Run: func(context.Context, schedule.Ask) error { return nil }})
+		// Nothing wakes the job with no interval, so it is asked once. A loop asking it again at once would
+		// keep the bubble's clock from moving and grow without bound, so a second ask fails the test and
+		// holds its run until the job is stopped.
+		var asked atomic.Int32
+		ensure(t, s, schedule.Key{Kind: "woken"}, schedule.Job{Backoff: backoff, Run: func(ctx context.Context, _ schedule.Ask) error {
+			if asked.Add(1) > 1 {
+				t.Error("a job with no interval is asked again on its own")
+				<-ctx.Done()
+			}
+			return nil
+		}})
 		time.Sleep(3 * time.Hour)
 		synctest.Wait()
 		if key, past, wedged := s.Wedged(2 * time.Minute); wedged {

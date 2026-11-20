@@ -5,14 +5,13 @@ tests: TestASchedulerThatRefusesAPlanStopsTheProcessInOrder
 scheduled-count: no
 
 diff --git a/process/serve.go b/process/serve.go
-index b637c343..e9714c49 100644
+index e9ff2caf..12637675 100644
 --- a/process/serve.go
 +++ b/process/serve.go
-@@ -126,23 +126,6 @@ func (p *proc) serveOn(ctx context.Context, app, probeListener net.Listener, s c
- 		}
+@@ -133,22 +133,6 @@ func (p *proc) serveOn(ctx context.Context, app, probeListener net.Listener, s c
  		tlsConf = tlsConfig(s.TLSCert, s.TLSKey)
  	}
--	var scheduler *schedule.Scheduler
+ 	var scheduler *schedule.Scheduler
 -	if len(b.plans) > 0 || len(b.upkeep) > 0 {
 -		var err error
 -		if scheduler, err = p.newScheduler(b); err != nil {
@@ -32,11 +31,10 @@ index b637c343..e9714c49 100644
  
  	var serving atomic.Bool
  	ready := func(*http.Request) (bool, string) {
-@@ -180,6 +163,23 @@ func (p *proc) serveOn(ctx context.Context, app, probeListener net.Listener, s c
+@@ -201,6 +185,22 @@ func (p *proc) serveOn(ctx context.Context, app, probeListener net.Listener, s c
  	}
  	serving.Store(true)
  	p.logger.Info("serving", "listen", address(app), "probe_listen", probeListener.Addr().String(), "tls", tlsConf != nil)
-+	var scheduler *schedule.Scheduler
 +	if len(b.plans) > 0 || len(b.upkeep) > 0 {
 +		var err error
 +		if scheduler, err = p.newScheduler(b); err != nil {
