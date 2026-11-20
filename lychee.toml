@@ -29,3 +29,40 @@ method = "get"
 # 429 means the host is there and rate-limiting us, not a broken link, and must not fail
 # the build.
 accept = ["200", "202", "206", "429"]
+
+# External links that fail from an automated client while the linked page exists. Where
+# the host has a machine endpoint that still tells a real target from a missing one, a
+# remap points the link there so the check keeps its power. Where a host refuses a made-up
+# path the same way as a real one, nothing is left to check and the prefix is excluded.
+# Each entry says what was seen. The hosts other than brendangregg.com were fetched with
+# curl, plainly and with a browser User-Agent, and refused both ways.
+remap = [
+  # doi.org answers 404 for a DOI that does not exist, before it redirects to the
+  # publisher (dl.acm.org answers every automated client 403). Its handle API answers
+  # 200 or 404 for the same DOI.
+  "^https://doi\\.org/(10\\.[^/]+/.+)$ https://doi.org/api/handles/$1",
+  # npmjs.com package pages answer automated clients 403, a missing package included.
+  # The registry answers 200 or 404 for the package.
+  "^https://www\\.npmjs\\.com/package/([^?#]+).*$ https://registry.npmjs.org/$1",
+]
+exclude = [
+  # Needs a signed-in claude.ai session (403 for any project id). The link is the design
+  # project the UI documents point operators at.
+  "^https://claude\\.ai/design/",
+  # uber.com/blog answers automated clients 406 for any slug, whatever the headers.
+  "^https://www\\.uber\\.com/blog/",
+  # The one link to brendangregg.com timed out from the GitHub runner on two attempts, 3
+  # retries at 20 s each, while another network answers it at once. Only this page is
+  # excluded, since no other path on the host was tried from a runner.
+  "^https://www\\.brendangregg\\.com/usemethod\\.html$",
+]
+
+# github.com answers 503 to a burst of requests for blob pages of files that exist. The
+# token lychee reads from GITHUB_TOKEN does not prevent it. The default pacing across the
+# 337 unique github.com links trips it, and two requests at a time every 250ms still left
+# one 503. One request every 500ms ran clean and took about 5 minutes, which fits the
+# links job's 10 minute timeout. Pace that host only. Every other host keeps lychee's
+# default.
+[hosts."github.com"]
+concurrency = 1
+request_interval = "500ms"
