@@ -461,20 +461,96 @@ func TestNoRunIssuesPastTheHardCap(t *testing.T) {
 			}
 		})
 		slices.SortStableFunc(grants, func(a, b grant) int { return compareInstants(a.at, b.at) })
-		for i := range grants {
-			sum := 0.0
-			for j := i; j < len(grants); j++ {
-				sum += grants[j].tokens
-				span := float64(grants[j].at) - float64(grants[i].at)
-				if span < 1000 && sum > hardCap*(1+1e-9) {
-					t.Fatalf("kind %q: %v tokens issued from %d to %d ms, inside one second, past the hard cap %v", kinds[r.Kind], sum, grants[i].at, grants[j].at, hardCap)
-				}
-				if limit := hardCap + target*span/1000; bucketBound && sum > limit*(1+1e-9) {
-					t.Fatalf("kind %q: %v tokens issued from %d to %d ms, past the hard cap plus the target over that span, %v", kinds[r.Kind], sum, grants[i].at, grants[j].at, limit)
-				}
-			}
+		if b := pastTheHardCap(grants, hardCap, target, bucketBound); b.found {
+			t.Fatalf("kind %q: %v tokens issued from %d to %d ms, past the limit %v, the hard cap inside one second and the hard cap plus the target over a longer span", kinds[r.Kind], b.sum, b.from, b.to, b.limit)
 		}
 	})
+}
+
+// breach is the first window of grants that issued more than the hard cap allows.
+type breach struct {
+	from, to int64
+	sum      float64
+	limit    float64
+	found    bool
+}
+
+// pastTheHardCap returns the first window of grants, taken in order of instant, that issued more
+// than the hard cap allows. The span between two grants is computed in unsigned integer
+// milliseconds, which holds any difference of two ordered int64 instants without overflow and stays
+// exact, where a float64 difference loses the low bits of instants near the clock's maximum and
+// misstates the span, either way.
+func pastTheHardCap(grants []grant, hardCap, target float64, bucketBound bool) breach {
+	for i := range grants {
+		sum := 0.0
+		for j := i; j < len(grants); j++ {
+			sum += grants[j].tokens
+			span := uint64(grants[j].at) - uint64(grants[i].at) //nolint:gosec // grants are in order of instant, so the difference is non-negative and the unsigned subtraction is exact
+			if span < 1000 && sum > hardCap*(1+1e-9) {
+				return breach{from: grants[i].at, to: grants[j].at, sum: sum, limit: hardCap, found: true}
+			}
+			if limit := hardCap + target*float64(span)/1000; bucketBound && sum > limit*(1+1e-9) {
+				return breach{from: grants[i].at, to: grants[j].at, sum: sum, limit: limit, found: true}
+			}
+		}
+	}
+	return breach{}
+}
+
+// Two grants 1025 ms apart at the clock's maximum, which a float64 span reads as 1024 ms and so
+// limits to 130.72 tokens, when the exact limit 100 + 30 * 1.025 is 130.75. It states the arithmetic
+// of the failure the property found in its own window check, distilled from the reduced run in the
+// test below. The limiter was correct.
+func TestTheHardCapWindowCheckMeasuresASpanNearTheClocksMaximumExactly(t *testing.T) {
+	const top = int64(math.MaxInt64)
+	grants := []grant{{at: top - 1025, tokens: 100}, {at: top, tokens: 30.74}}
+	if b := pastTheHardCap(grants, 100, 30, true); b.found {
+		t.Fatalf("a run inside the cap was reported past it: %v tokens from %d to %d ms, limit %v", b.sum, b.from, b.to, b.limit)
+	}
+	grants[1].tokens = 30.76
+	if !pastTheHardCap(grants, 100, 30, true).found {
+		t.Fatal("130.76 tokens over 1025 ms, past the limit 130.75, were not reported")
+	}
+}
+
+// The reduced run the property failed on, seed 43824916786, written out. The fields that matter are
+// a ceiling of 100, so a hard cap of 80, with the default target of half the ceiling, which is 50,
+// a starting rate of 50, and a clock that three backward advances leave at -1999 and a fourth
+// advance carries to 1999 ms below the maximum. The first three requests, at 85 tokens, are
+// refused. Six grants from 1999 to 974 ms below the maximum make up 131.25 tokens, spanning 1025 ms,
+// against the exact limit 80 + 50 * 1.025 = 131.25. The reduced case's kind and starting level do
+// not matter and are left out, and the filler of its steps is left at its zero value. A float64
+// span reads those 1025 ms as 1024 and limits the run to 131.2.
+func TestARunNearTheClocksMaximumStaysInsideTheHardCap(t *testing.T) {
+	l, err := core.LimitsWithTarget(100, 0.5)
+	if err != nil {
+		t.Fatalf("LimitsWithTarget: %v", err)
+	}
+	r := run{Ceiling: 100, Target: 0.5, Rate: 50, Steps: []step{
+		{Op: opRequest, Advance: -1, Class: 1, Tokens: 85},
+		{Op: opRequest, Advance: -999, Class: 1, Tokens: 85},
+		{Op: opRequest, Advance: -999, Class: 1, Tokens: 85},
+		{Op: opRequest, Advance: math.MaxInt64, Class: 1, Tokens: 9.66796875},
+		{Op: opRequest, Class: 1, Tokens: 25},
+		{Op: opRequest, Class: 1, Tokens: 31.93359375},
+		{Op: opRequest, Advance: 300, Class: 1, Tokens: 12.5},
+		{Op: opRequest, Advance: 700, Class: 1, Tokens: 43.75},
+		{Op: opRequest, Advance: 25, Class: 1, Tokens: 8.3984375},
+	}}
+	grants := replay(r, l, func(core.State) {})
+	slices.SortStableFunc(grants, func(a, b grant) int { return compareInstants(a.at, b.at) })
+	sum := 0.0
+	for _, g := range grants {
+		if g.at >= math.MaxInt64-1999 {
+			sum += g.tokens
+		}
+	}
+	if math.Abs(sum-131.25) > 1e-9 {
+		t.Fatalf("%v tokens granted near the clock's maximum, want 131.25, so the run no longer reaches the case it states", sum)
+	}
+	if b := pastTheHardCap(grants, 80, 50, true); b.found {
+		t.Fatalf("%v tokens issued from %d to %d ms, past the limit %v", b.sum, b.from, b.to, b.limit)
+	}
 }
 
 func compareInstants(a, b int64) int {
