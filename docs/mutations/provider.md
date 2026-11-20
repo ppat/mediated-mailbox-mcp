@@ -190,11 +190,11 @@ The demonstrations of the controls whose patches sit in `provider/`. [MUTATIONS.
 
 ## A stored latest instant ahead of the clock never moves a real grant out of the one-second window
 
-- **Date · evidence:** 2026-11-19 · [pull request #478](https://github.com/ppat/mediated-mailbox-mcp/pull/478), in run [44442809114](https://github.com/ppat/mediated-mailbox-mcp/actions/runs/44442809114) of the `mutation-demonstrations` workflow
+- **Date · evidence:** 2026-11-20 · [pull request #486](https://github.com/ppat/mediated-mailbox-mcp/pull/486), demonstrated with `go tool mutproof` on its branch
 - **Break (1):** window membership is judged from the instant issuance raised the request to, so a stored instant ahead of the clock moves every real grant out of the window
   - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit/core`:** `TestAStoredInstantAheadOfTheClockKeepsTheWindow`, `TestAStoredInstantAheadOfTheClockKeepsTheWindow/a_second_and_a_half_ahead`, `TestAStoredInstantAheadOfTheClockKeepsTheWindow/an_hour_ahead`, `TestAStoredInstantAheadOfTheClockKeepsTheWindow/at_the_clock's_limit`, `TestNoRunIssuesPastTheHardCap`
 - **Break (2):** window membership is judged from the stored latest instant rather than the request's own, so a stored instant ahead of the clock moves every real grant out of the window
-  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit/core`:** `TestAFutureStampCountsForOneSecondFromTheRequestThatSeesIt`, `TestAStoredInstantAheadOfTheClockKeepsTheWindow`, `TestAStoredInstantAheadOfTheClockKeepsTheWindow/a_second_and_a_half_ahead`, `TestAStoredInstantAheadOfTheClockKeepsTheWindow/an_hour_ahead`, `TestAStoredInstantAheadOfTheClockKeepsTheWindow/at_the_clock's_limit`, `TestNoRunIssuesPastTheHardCap`, `TestTwoCallsPastTheHardCapAreNotIssuedInOneSecond`
+  - **Went red in `github.com/ppat/mediated-mailbox-mcp/provider/ratelimit/core`:** `TestAFutureStampCountsForOneSecondFromTheRequestThatSeesIt`, `TestARunNearTheClocksMaximumStaysInsideTheHardCap`, `TestAStoredInstantAheadOfTheClockKeepsTheWindow`, `TestAStoredInstantAheadOfTheClockKeepsTheWindow/a_second_and_a_half_ahead`, `TestAStoredInstantAheadOfTheClockKeepsTheWindow/an_hour_ahead`, `TestAStoredInstantAheadOfTheClockKeepsTheWindow/at_the_clock's_limit`, `TestNoRunIssuesPastTheHardCap`, `TestTwoCallsPastTheHardCapAreNotIssuedInOneSecond`
 
 ## A throttle halves the rate, a server error cuts it to 80% and a latency median above twice the baseline cuts it to 90%
 
